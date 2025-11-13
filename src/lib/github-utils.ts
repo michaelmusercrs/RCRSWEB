@@ -4,8 +4,8 @@
  */
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const GITHUB_REPO = "michaelmusercrsRiver-City-New-Site";
-const GITHUB_OWNER = "michaelmuse"; // You'll need to update this
+const GITHUB_REPO = "RCRSWEB";
+const GITHUB_OWNER = "michaelmusercrs";
 const GITHUB_BRANCH = "main"; // or your default branch
 
 interface GitHubFile {
