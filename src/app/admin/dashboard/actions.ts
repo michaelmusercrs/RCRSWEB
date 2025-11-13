@@ -1,7 +1,7 @@
 'use server';
 
 import { commitMultipleFilesToGitHub } from '@/lib/github-utils';
-import { TeamMember } from '@/lib/team-data';
+import { TeamMember } from '@/lib/teamData';
 
 /**
  * Update a team member and commit to GitHub
