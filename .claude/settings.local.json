@@ -8,7 +8,14 @@
       "Bash(cat:*)",
       "Bash(git init:*)",
       "Bash(git branch:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nInitial commit - River City Roofing Solutions website\n\n- Next.js 14 website with TypeScript and Tailwind CSS\n- Complete team management system with 17 team members\n- Services and service areas pages (11 services, 8 areas)\n- Full contact form with thank you page and floating contact button\n- Blog system with 24 posts using placeholder images\n- Modern design with brand colors (black, neon green, blue)\n- Dynamic routing for team members, blog posts, and services\n- Server-side API routes for form handling\n- Mobile-responsive design throughout\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git remote add:*)",
+      "Bash(git push:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(python:*)"
     ],
     "deny": [],
     "ask": []

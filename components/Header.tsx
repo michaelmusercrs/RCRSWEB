@@ -8,9 +8,17 @@ import { Button } from '@/components/ui/button';
 
 const navigation = [
   { name: 'Services', href: '/services' },
+  { name: 'Service Areas', href: '/service-areas' },
   { name: 'Team', href: '/team' },
+  { name: 'Blog', href: '/blog' },
   { name: 'About', href: '/about' },
   { name: 'Contact', href: '/contact' },
+];
+
+const locationPages = [
+  { name: 'Huntsville', href: '/locations/huntsville' },
+  { name: 'Madison', href: '/locations/madison' },
+  { name: 'Decatur', href: '/locations/decatur' },
 ];
 
 export default function Header() {
@@ -91,6 +99,20 @@ export default function Header() {
                   {item.name}
                 </Link>
               ))}
+
+              {/* Location Pages Submenu */}
+              <div className="pt-2 pb-4 border-t">
+                <p className="text-sm uppercase tracking-widest font-bold text-gray-600 mb-3">Top Locations</p>
+                {locationPages.map((loc) => (
+                  <Link
+                    key={loc.name}
+                    href={loc.href}
+                    className="block text-xl font-semibold text-gray-700 hover:text-[#0066CC] transition-colors duration-300 py-2 pl-4"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {loc.name}
+                  </Link>
+                ))}</div>
               
               <div className="pt-6 border-t space-y-4">
                 <a
