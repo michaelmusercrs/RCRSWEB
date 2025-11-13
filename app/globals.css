@@ -43,7 +43,7 @@
   }
 
   .btn-accent {
-    @apply bg-brand-green text-black hover:bg-green-600 hover:text-white;
+    @apply bg-brand-green text-black hover:bg-brand-blue hover:text-white;
   }
 
   /* Modern Card Styles */
@@ -82,30 +82,30 @@ html {
   scroll-padding-top: 80px; /* Offset for fixed header */
 }
 
-/* Modern lime-themed scrollbar */
+/* Modern scrollbar */
 ::-webkit-scrollbar {
   width: 12px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0a0a0a;
+  background: #000000;
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #a3e635, #84cc16);
+  background: linear-gradient(180deg, #39FF14, #2ecc11);
   border-radius: 10px;
-  border: 2px solid #0a0a0a;
+  border: 2px solid #000000;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #84cc16, #65a30d);
+  background: linear-gradient(180deg, #0066CC, #0052a3);
 }
 
 /* Firefox scrollbar */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #a3e635 #0a0a0a;
+  scrollbar-color: #39FF14 #000000;
 }
 
 /* ============================================
@@ -123,10 +123,10 @@ html {
 
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(163, 230, 53, 0.4);
+    box-shadow: 0 0 20px rgba(57, 255, 20, 0.4);
   }
   50% {
-    box-shadow: 0 0 40px rgba(163, 230, 53, 0.8);
+    box-shadow: 0 0 40px rgba(57, 255, 20, 0.8);
   }
 }
 
@@ -229,7 +229,7 @@ html {
 
 .hover-lift:hover {
   transform: translateY(-8px);
-  box-shadow: 0 20px 40px rgba(163, 230, 53, 0.3);
+  box-shadow: 0 20px 40px rgba(57, 255, 20, 0.3);
 }
 
 .hover-scale {
@@ -250,7 +250,7 @@ html {
   position: absolute;
   inset: -2px;
   border-radius: inherit;
-  background: linear-gradient(45deg, #a3e635, #84cc16, #65a30d);
+  background: linear-gradient(45deg, #39FF14, #0066CC, #000000);
   opacity: 0;
   transition: opacity 0.3s ease;
   z-index: -1;
@@ -321,13 +321,13 @@ html {
 .form-input-modern {
   @apply transition-all duration-300;
   @apply border-2 border-neutral-700;
-  @apply focus:border-lime-400 focus:ring-4 focus:ring-lime-400/20;
+  @apply focus:border-brand-green focus:ring-4 focus:ring-brand-green/20;
   @apply hover:border-neutral-500;
 }
 
 .form-input-modern:focus {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(163, 230, 53, 0.2);
+  box-shadow: 0 8px 20px rgba(57, 255, 20, 0.2);
 }
 
 /* ============================================
@@ -335,7 +335,7 @@ html {
    ============================================ */
 
 .gradient-text {
-  background: linear-gradient(135deg, #a3e635 0%, #84cc16 50%, #65a30d 100%);
+  background: linear-gradient(135deg, #39FF14 0%, #0066CC 50%, #000000 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -344,11 +344,11 @@ html {
 .gradient-text-animated {
   background: linear-gradient(
     90deg,
-    #a3e635 0%,
-    #84cc16 25%,
-    #65a30d 50%,
-    #84cc16 75%,
-    #a3e635 100%
+    #39FF14 0%,
+    #0066CC 25%,
+    #39FF14 50%,
+    #0066CC 75%,
+    #39FF14 100%
   );
   background-size: 200% auto;
   -webkit-background-clip: text;
@@ -410,7 +410,7 @@ html {
    ============================================ */
 
 .text-shadow-glow {
-  text-shadow: 0 0 20px rgba(163, 230, 53, 0.5);
+  text-shadow: 0 0 20px rgba(57, 255, 20, 0.5);
 }
 
 .text-shadow-strong {
