@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default function NorthAlabamaPage() {
   return (
     <div className="min-h-screen bg-black text-white">
-      <section className="bg-gradient-to-b from-lime-400 to-lime-300 text-black px-6 py-16 md:py-24">
+      <section className="bg-gradient-to-b from-brand-green to-lime-300 text-black px-6 py-16 md:py-24">
         <div className="max-w-6xl mx-auto text-center">
           <div className="inline-block mb-4">
             <span className="text-xs uppercase tracking-widest font-bold flex items-center gap-2 justify-center">
@@ -28,10 +28,10 @@ export default function NorthAlabamaPage() {
             Serving communities throughout Northern Alabama with expert roofing services. Storm damage specialists you can trust.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" className="bg-black text-lime-400 hover:bg-neutral-900 font-bold uppercase tracking-widest">
+            <Button asChild size="lg" className="bg-black text-brand-green hover:bg-neutral-900 font-bold uppercase tracking-widest">
               <Link href="/contact">Get Free Estimate</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="border-2 border-black text-black hover:bg-black hover:text-lime-400 font-bold uppercase tracking-widest">
+            <Button asChild size="lg" variant="outline" className="border-2 border-black text-black hover:bg-black hover:text-brand-green font-bold uppercase tracking-widest">
               <a href="tel:256-274-8530">Call (256) 274-8530</a>
             </Button>
           </div>
@@ -42,7 +42,7 @@ export default function NorthAlabamaPage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-block mb-4">
-              <span className="text-xs uppercase tracking-widest font-bold text-lime-400">Regional Expertise</span>
+              <span className="text-xs uppercase tracking-widest font-bold text-brand-green">Regional Expertise</span>
             </div>
             <h2 className="text-4xl font-black uppercase tracking-wider mb-4">
               Storm Damage Specialists
@@ -52,21 +52,21 @@ export default function NorthAlabamaPage() {
           <div className="grid md:grid-cols-3 gap-8">
             <Card className="border-neutral-800 bg-black">
               <CardContent className="p-8 text-center">
-                <Cloud className="h-16 w-16 mx-auto mb-4 text-lime-400" />
+                <Cloud className="h-16 w-16 mx-auto mb-4 text-brand-green" />
                 <h3 className="text-xl font-black uppercase tracking-wider mb-3">Storm Prone Region</h3>
                 <p className="text-neutral-400">We understand North Alabama's weather patterns and storm seasons</p>
               </CardContent>
             </Card>
             <Card className="border-neutral-800 bg-black">
               <CardContent className="p-8 text-center">
-                <CheckCircle2 className="h-16 w-16 mx-auto mb-4 text-lime-400" />
+                <CheckCircle2 className="h-16 w-16 mx-auto mb-4 text-brand-green" />
                 <h3 className="text-xl font-black uppercase tracking-wider mb-3">Insurance Experts</h3>
                 <p className="text-neutral-400">Extensive experience with hail damage and insurance claims</p>
               </CardContent>
             </Card>
             <Card className="border-neutral-800 bg-black">
               <CardContent className="p-8 text-center">
-                <Phone className="h-16 w-16 mx-auto mb-4 text-lime-400" />
+                <Phone className="h-16 w-16 mx-auto mb-4 text-brand-green" />
                 <h3 className="text-xl font-black uppercase tracking-wider mb-3">2-3 Day Response</h3>
                 <p className="text-neutral-400">Quick service throughout the region</p>
               </CardContent>
@@ -75,7 +75,7 @@ export default function NorthAlabamaPage() {
         </div>
       </section>
 
-      <section className="py-16 md:py-24 px-6 bg-lime-400 text-black border-t border-neutral-800">
+      <section className="py-16 md:py-24 px-6 bg-brand-green text-black border-t border-neutral-800">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-black uppercase tracking-wider mb-4 leading-tight">
             Serving All of North Alabama
@@ -84,10 +84,10 @@ export default function NorthAlabamaPage() {
             Contact us today for expert roofing services anywhere in Northern Alabama.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" className="bg-black text-lime-400 hover:bg-neutral-900 font-bold uppercase tracking-widest">
+            <Button asChild size="lg" className="bg-black text-brand-green hover:bg-neutral-900 font-bold uppercase tracking-widest">
               <Link href="/contact">Request Free Estimate</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="border-2 border-black text-black hover:bg-black hover:text-lime-400 font-bold uppercase tracking-widest">
+            <Button asChild size="lg" variant="outline" className="border-2 border-black text-black hover:bg-black hover:text-brand-green font-bold uppercase tracking-widest">
               <a href="tel:256-274-8530">Call (256) 274-8530</a>
             </Button>
           </div>

@@ -187,7 +187,7 @@ export default function TeamMemberPage({ params }: { params: { slug: string } })
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 {member.email && (
-                  <Button asChild className="bg-brand-green hover:bg-green-600 text-white font-bold px-8 py-6 text-lg">
+                  <Button asChild className="bg-brand-green hover:bg-brand-blue text-white font-bold px-8 py-6 text-lg">
                     <a href={`mailto:${member.email}`}>Send Email</a>
                   </Button>
                 )}

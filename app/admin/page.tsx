@@ -19,7 +19,7 @@ export default function AdminDashboard() {
       label: 'Blog Posts',
       value: '24',
       icon: FileText,
-      color: 'bg-green-500',
+      color: 'bg-brand-green',
     },
     {
       label: 'Team Members',

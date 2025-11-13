@@ -20,7 +20,7 @@ const Button3D = forwardRef<HTMLButtonElement, Button3DProps>(
     // Variant styles with 3D effect
     const variants = {
       primary: `
-        bg-gradient-to-b from-lime-400 via-lime-500 to-lime-600
+        bg-gradient-to-b from-brand-green via-brand-green to-brand-green
         text-black font-black
         shadow-[0_6px_0_0_#65a30d,0_8px_12px_0_rgba(132,204,22,0.4)]
         hover:shadow-[0_4px_0_0_#65a30d,0_6px_10px_0_rgba(132,204,22,0.4)]
@@ -39,14 +39,14 @@ const Button3D = forwardRef<HTMLButtonElement, Button3DProps>(
       `,
       outline: `
         bg-gradient-to-b from-transparent to-neutral-900
-        text-lime-400 font-bold
-        border-2 border-lime-400
+        text-brand-green font-bold
+        border-2 border-brand-green
         shadow-[0_6px_0_0_#65a30d,0_8px_12px_0_rgba(132,204,22,0.2)]
         hover:shadow-[0_4px_0_0_#65a30d,0_6px_10px_0_rgba(132,204,22,0.2)]
         active:shadow-[0_1px_0_0_#65a30d,0_2px_4px_0_rgba(132,204,22,0.2)]
         hover:translate-y-[2px]
         active:translate-y-[5px]
-        hover:bg-lime-400/10
+        hover:bg-brand-green/10
       `,
       ghost: `
         bg-gradient-to-b from-neutral-800 to-neutral-900
@@ -78,7 +78,7 @@ const Button3D = forwardRef<HTMLButtonElement, Button3DProps>(
 
     // Glow effect
     const glowEffect = glow
-      ? 'before:absolute before:inset-0 before:rounded-lg before:opacity-0 hover:before:opacity-100 before:blur-xl before:bg-lime-400/50 before:transition-opacity before:duration-300 before:-z-10'
+      ? 'before:absolute before:inset-0 before:rounded-lg before:opacity-0 hover:before:opacity-100 before:blur-xl before:bg-brand-green/50 before:transition-opacity before:duration-300 before:-z-10'
       : '';
 
     // Shimmer effect
@@ -96,7 +96,7 @@ const Button3D = forwardRef<HTMLButtonElement, Button3DProps>(
           'uppercase tracking-widest',
           'transition-all duration-150 ease-out',
           'disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none',
-          'focus:outline-none focus:ring-4 focus:ring-lime-400/50',
+          'focus:outline-none focus:ring-4 focus:ring-brand-green/50',
           'select-none',
           // Variant
           variants[variant],

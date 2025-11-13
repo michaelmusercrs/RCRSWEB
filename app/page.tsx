@@ -20,7 +20,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Hero Section - Lime Background */}
-      <section className="bg-gradient-to-b from-lime-400 to-lime-300 text-black px-6 py-16 md:py-24 lg:py-32">
+      <section className="bg-gradient-to-b from-brand-green to-lime-300 text-black px-6 py-16 md:py-24 lg:py-32">
         <div className="max-w-6xl mx-auto text-center">
           <div className="inline-block mb-4">
             <span className="text-xs uppercase tracking-widest font-bold">River City Roofing Solutions</span>
@@ -32,10 +32,10 @@ export default function HomePage() {
             Professional roof replacement, repair, and storm damage services across Decatur, Huntsville, Madison, and beyond
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" className="bg-black text-lime-400 hover:bg-neutral-900 font-bold uppercase tracking-widest">
+            <Button asChild size="lg" className="bg-black text-brand-green hover:bg-neutral-900 font-bold uppercase tracking-widest">
               <Link href="/contact">Get Free Inspection</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="border-2 border-black text-black hover:bg-black hover:text-lime-400 font-bold uppercase tracking-widest">
+            <Button asChild size="lg" variant="outline" className="border-2 border-black text-black hover:bg-black hover:text-brand-green font-bold uppercase tracking-widest">
               <Link href="tel:256-274-8530">Call (256) 274-8530</Link>
             </Button>
           </div>
@@ -46,7 +46,7 @@ export default function HomePage() {
       <section className="py-16 md:py-24 px-6 bg-neutral-950 border-t border-neutral-800">
         <div className="max-w-6xl mx-auto text-center">
           <div className="inline-block mb-4">
-            <span className="text-xs uppercase tracking-widest font-bold text-lime-400">About Us</span>
+            <span className="text-xs uppercase tracking-widest font-bold text-brand-green">About Us</span>
           </div>
           <h2 className="text-4xl md:text-5xl font-black uppercase tracking-wider mb-6">
             Protecting North Alabama Homes Since 2010
@@ -55,8 +55,8 @@ export default function HomePage() {
             River City Roofing Solutions is your local, family-owned roofing company serving communities across North Alabama.
             We specialize in residential and commercial roofing with a commitment to quality workmanship, honest pricing, and exceptional customer service.
           </p>
-          <div className="border-l-4 border-lime-400 pl-6 text-left inline-block">
-            <p className="text-xl font-bold mb-2 text-lime-400 uppercase tracking-wider">
+          <div className="border-l-4 border-brand-green pl-6 text-left inline-block">
+            <p className="text-xl font-bold mb-2 text-brand-green uppercase tracking-wider">
               Licensed • Insured • Locally Owned
             </p>
             <p className="text-neutral-400">
@@ -71,7 +71,7 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-block mb-4">
-              <span className="text-xs uppercase tracking-widest font-bold text-lime-400">What We Do</span>
+              <span className="text-xs uppercase tracking-widest font-bold text-brand-green">What We Do</span>
             </div>
             <h2 className="text-4xl md:text-5xl font-black uppercase tracking-wider mb-4">
               Our Services
@@ -85,12 +85,12 @@ export default function HomePage() {
             {primaryServices.map((service, idx) => (
               <Card
                 key={service.id}
-                className={`border-neutral-800 hover:bg-lime-400 hover:text-black transition-all duration-300 group ${
+                className={`border-neutral-800 hover:bg-brand-green hover:text-black transition-all duration-300 group ${
                   idx === 1 ? 'bg-black' : 'bg-neutral-950'
                 }`}
               >
                 <CardContent className="p-6 lg:p-8">
-                  <div className="w-6 h-6 border-2 border-lime-400 group-hover:border-black rounded mb-6"></div>
+                  <div className="w-6 h-6 border-2 border-brand-green group-hover:border-black rounded mb-6"></div>
                   <h3 className="text-lg font-black uppercase tracking-wider mb-3 group-hover:text-black">
                     {service.title}
                   </h3>
@@ -99,7 +99,7 @@ export default function HomePage() {
                   </p>
                   <Link
                     href={`/services/${service.slug}`}
-                    className="text-lime-400 group-hover:text-black font-bold text-sm uppercase tracking-widest flex items-center gap-2"
+                    className="text-brand-green group-hover:text-black font-bold text-sm uppercase tracking-widest flex items-center gap-2"
                   >
                     Learn More <ArrowRight className="h-4 w-4" />
                   </Link>
@@ -109,7 +109,7 @@ export default function HomePage() {
           </div>
 
           <div className="text-center mt-12">
-            <Button asChild size="lg" className="bg-lime-400 text-black hover:bg-white font-bold uppercase tracking-widest">
+            <Button asChild size="lg" className="bg-brand-green text-black hover:bg-white font-bold uppercase tracking-widest">
               <Link href="/services">View All Services</Link>
             </Button>
           </div>
@@ -121,7 +121,7 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-block mb-4">
-              <span className="text-xs uppercase tracking-widest font-bold text-lime-400">Where We Work</span>
+              <span className="text-xs uppercase tracking-widest font-bold text-brand-green">Where We Work</span>
             </div>
             <h2 className="text-4xl md:text-5xl font-black uppercase tracking-wider mb-4">
               Service Areas
@@ -135,10 +135,10 @@ export default function HomePage() {
             {activeAreas.map((area) => (
               <Card
                 key={area.id}
-                className="border-neutral-800 bg-black hover:bg-lime-400 hover:text-black transition-all duration-300 group text-center"
+                className="border-neutral-800 bg-black hover:bg-brand-green hover:text-black transition-all duration-300 group text-center"
               >
                 <CardContent className="p-6">
-                  <MapPin className="h-8 w-8 mx-auto mb-3 text-lime-400 group-hover:text-black" />
+                  <MapPin className="h-8 w-8 mx-auto mb-3 text-brand-green group-hover:text-black" />
                   <h3 className="font-black uppercase tracking-wider text-lg mb-1 group-hover:text-black">
                     {area.name}
                   </h3>
@@ -151,7 +151,7 @@ export default function HomePage() {
           </div>
 
           <div className="text-center mt-12">
-            <Button asChild size="lg" className="bg-lime-400 text-black hover:bg-white font-bold uppercase tracking-widest">
+            <Button asChild size="lg" className="bg-brand-green text-black hover:bg-white font-bold uppercase tracking-widest">
               <Link href="/service-areas">View All Areas</Link>
             </Button>
           </div>
@@ -163,7 +163,7 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-block mb-4">
-              <span className="text-xs uppercase tracking-widest font-bold text-lime-400">Latest Insights</span>
+              <span className="text-xs uppercase tracking-widest font-bold text-brand-green">Latest Insights</span>
             </div>
             <h2 className="text-4xl md:text-5xl font-black uppercase tracking-wider mb-4">
               Roofing Blog
@@ -177,7 +177,7 @@ export default function HomePage() {
             {latestPosts.map((post) => (
               <Card
                 key={post.id}
-                className="border-neutral-800 overflow-hidden hover:border-lime-400 transition-all duration-300 group"
+                className="border-neutral-800 overflow-hidden hover:border-brand-green transition-all duration-300 group"
               >
                 <div className="w-full h-56 relative bg-neutral-900">
                   <Image
@@ -189,13 +189,13 @@ export default function HomePage() {
                 </div>
                 <CardContent className="p-6">
                   <p className="text-xs text-neutral-400 uppercase tracking-widest mb-2">{post.date}</p>
-                  <h3 className="text-lg font-black uppercase tracking-wider mb-2 group-hover:text-lime-400 transition-colors">
+                  <h3 className="text-lg font-black uppercase tracking-wider mb-2 group-hover:text-brand-green transition-colors">
                     {post.title}
                   </h3>
                   <p className="text-sm text-neutral-400 mb-4 leading-relaxed">{post.excerpt}</p>
                   <Link
                     href={`/blog/${post.slug}`}
-                    className="text-lime-400 font-bold text-sm uppercase tracking-widest flex items-center gap-2 hover:gap-3 transition-all"
+                    className="text-brand-green font-bold text-sm uppercase tracking-widest flex items-center gap-2 hover:gap-3 transition-all"
                   >
                     Read Article <ArrowRight className="h-4 w-4" />
                   </Link>
@@ -205,7 +205,7 @@ export default function HomePage() {
           </div>
 
           <div className="text-center mt-12">
-            <Button asChild size="lg" className="bg-lime-400 text-black hover:bg-white font-bold uppercase tracking-widest">
+            <Button asChild size="lg" className="bg-brand-green text-black hover:bg-white font-bold uppercase tracking-widest">
               <Link href="/blog">View All Articles</Link>
             </Button>
           </div>
@@ -217,7 +217,7 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-block mb-4">
-              <span className="text-xs uppercase tracking-widest font-bold text-lime-400">Our Work</span>
+              <span className="text-xs uppercase tracking-widest font-bold text-brand-green">Our Work</span>
             </div>
             <h2 className="text-4xl md:text-5xl font-black uppercase tracking-wider mb-4">
               Before & After Transformations
@@ -243,7 +243,7 @@ export default function HomePage() {
                   />
                 </div>
                 <div className="relative h-64">
-                  <div className="absolute top-4 left-4 bg-lime-400 text-black px-3 py-1 rounded-md font-bold text-sm z-10">
+                  <div className="absolute top-4 left-4 bg-brand-green text-black px-3 py-1 rounded-md font-bold text-sm z-10">
                     AFTER
                   </div>
                   <Image
@@ -275,7 +275,7 @@ export default function HomePage() {
                   />
                 </div>
                 <div className="relative h-64">
-                  <div className="absolute top-4 left-4 bg-lime-400 text-black px-3 py-1 rounded-md font-bold text-sm z-10">
+                  <div className="absolute top-4 left-4 bg-brand-green text-black px-3 py-1 rounded-md font-bold text-sm z-10">
                     AFTER
                   </div>
                   <Image
@@ -294,7 +294,7 @@ export default function HomePage() {
           </div>
 
           <div className="text-center">
-            <Button asChild size="lg" className="bg-lime-400 text-black hover:bg-white font-bold uppercase tracking-widest">
+            <Button asChild size="lg" className="bg-brand-green text-black hover:bg-white font-bold uppercase tracking-widest">
               <Link href="/contact">Start Your Project</Link>
             </Button>
           </div>
@@ -306,7 +306,7 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-block mb-4">
-              <span className="text-xs uppercase tracking-widest font-bold text-lime-400">Reviews</span>
+              <span className="text-xs uppercase tracking-widest font-bold text-brand-green">Reviews</span>
             </div>
             <h2 className="text-4xl md:text-5xl font-black uppercase tracking-wider mb-4">
               What Our Customers Say
@@ -321,14 +321,14 @@ export default function HomePage() {
               <CardContent className="p-8">
                 <div className="flex mb-6">
                   {[...Array(5)].map((_, i) => (
-                    <span key={i} className="text-lime-400 text-2xl">★</span>
+                    <span key={i} className="text-brand-green text-2xl">★</span>
                   ))}
                 </div>
                 <p className="text-neutral-300 italic leading-relaxed mb-6">
                   "Excellent service and handled our insurance claim perfectly! Beautiful work on our Huntsville home. The team was professional and efficient."
                 </p>
                 <div className="border-t border-neutral-800 pt-4">
-                  <p className="font-bold text-lime-400">JS</p>
+                  <p className="font-bold text-brand-green">JS</p>
                   <p className="text-neutral-500 text-sm">Madison, AL</p>
                 </div>
               </CardContent>
@@ -338,14 +338,14 @@ export default function HomePage() {
               <CardContent className="p-8">
                 <div className="flex mb-6">
                   {[...Array(5)].map((_, i) => (
-                    <span key={i} className="text-lime-400 text-2xl">★</span>
+                    <span key={i} className="text-brand-green text-2xl">★</span>
                   ))}
                 </div>
                 <p className="text-neutral-300 italic leading-relaxed mb-6">
                   "Prompt, hardworking, and honest. They fixed our roof after the hail storm quickly and professionally. Highly recommend!"
                 </p>
                 <div className="border-t border-neutral-800 pt-4">
-                  <p className="font-bold text-lime-400">Alison C.</p>
+                  <p className="font-bold text-brand-green">Alison C.</p>
                   <p className="text-neutral-500 text-sm">Huntsville, AL</p>
                 </div>
               </CardContent>
@@ -355,14 +355,14 @@ export default function HomePage() {
               <CardContent className="p-8">
                 <div className="flex mb-6">
                   {[...Array(5)].map((_, i) => (
-                    <span key={i} className="text-lime-400 text-2xl">★</span>
+                    <span key={i} className="text-brand-green text-2xl">★</span>
                   ))}
                 </div>
                 <p className="text-neutral-300 italic leading-relaxed mb-6">
                   "Rick got our roof replaced through insurance—highly recommend for anyone in the Decatur area! Fair pricing and quality work."
                 </p>
                 <div className="border-t border-neutral-800 pt-4">
-                  <p className="font-bold text-lime-400">Stacie F.</p>
+                  <p className="font-bold text-brand-green">Stacie F.</p>
                   <p className="text-neutral-500 text-sm">Decatur, AL</p>
                 </div>
               </CardContent>
@@ -371,7 +371,7 @@ export default function HomePage() {
 
           <div className="text-center mt-12">
             <p className="text-neutral-400 text-lg mb-4">⭐⭐⭐⭐⭐ Rated 5.0 stars by 47+ customers</p>
-            <Button asChild size="lg" variant="outline" className="border-2 border-lime-400 text-lime-400 hover:bg-lime-400 hover:text-black font-bold uppercase tracking-widest">
+            <Button asChild size="lg" variant="outline" className="border-2 border-brand-green text-brand-green hover:bg-brand-green hover:text-black font-bold uppercase tracking-widest">
               <Link href="/contact">Leave a Review</Link>
             </Button>
           </div>
@@ -383,7 +383,7 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-block mb-4">
-              <span className="text-xs uppercase tracking-widest font-bold text-lime-400">Why Us</span>
+              <span className="text-xs uppercase tracking-widest font-bold text-brand-green">Why Us</span>
             </div>
             <h2 className="text-4xl md:text-5xl font-black uppercase tracking-wider mb-4">
               Why Choose River City Roofing?
@@ -404,11 +404,11 @@ export default function HomePage() {
               return (
                 <Card
                   key={idx}
-                  className="border-neutral-800 bg-black hover:bg-lime-400 transition-all duration-300 group text-center"
+                  className="border-neutral-800 bg-black hover:bg-brand-green transition-all duration-300 group text-center"
                 >
                   <CardContent className="p-8">
-                    <div className="bg-lime-400 group-hover:bg-black rounded-2xl p-5 mb-6 shadow-lg inline-flex">
-                      <Icon className="text-black group-hover:text-lime-400" size={36} />
+                    <div className="bg-brand-green group-hover:bg-black rounded-2xl p-5 mb-6 shadow-lg inline-flex">
+                      <Icon className="text-black group-hover:text-brand-green" size={36} />
                     </div>
                     <h3 className="text-lg font-black uppercase tracking-wider mb-3 group-hover:text-black">
                       {item.title}
@@ -425,7 +425,7 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section - Lime BG */}
-      <section className="py-16 md:py-24 px-6 bg-lime-400 text-black border-t border-neutral-800">
+      <section className="py-16 md:py-24 px-6 bg-brand-green text-black border-t border-neutral-800">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-black uppercase tracking-wider mb-4 leading-tight">
             Ready to Protect Your Home?
@@ -434,10 +434,10 @@ export default function HomePage() {
             Get a free, no-obligation inspection and quote today. Our experts will assess your roof and provide honest recommendations.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" className="bg-black text-lime-400 hover:bg-neutral-900 font-bold uppercase tracking-widest">
+            <Button asChild size="lg" className="bg-black text-brand-green hover:bg-neutral-900 font-bold uppercase tracking-widest">
               <Link href="/contact">Schedule Free Inspection</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="border-2 border-black text-black hover:bg-black hover:text-lime-400 font-bold uppercase tracking-widest">
+            <Button asChild size="lg" variant="outline" className="border-2 border-black text-black hover:bg-black hover:text-brand-green font-bold uppercase tracking-widest">
               <Link href="tel:256-274-8530">Call (256) 274-8530</Link>
             </Button>
           </div>

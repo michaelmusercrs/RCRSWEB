@@ -71,7 +71,7 @@ export default function ViewCounter({
   if (variant === 'compact') {
     return (
       <div
-        className={`inline-flex items-center gap-1 ${sizes[size]} bg-neutral-900 text-lime-400 rounded-full font-bold border border-lime-400/20`}
+        className={`inline-flex items-center gap-1 ${sizes[size]} bg-neutral-900 text-brand-green rounded-full font-bold border border-brand-green/20`}
       >
         {showIcon && <Eye className={iconSizes[size]} />}
         <span>{formattedCount}</span>
@@ -81,9 +81,9 @@ export default function ViewCounter({
 
   if (variant === 'detailed') {
     return (
-      <div className="flex items-center gap-3 p-4 bg-gradient-to-br from-neutral-900 to-neutral-950 rounded-lg border border-neutral-800 hover:border-lime-400/30 transition-all duration-300 hover-lift">
-        <div className="p-3 bg-lime-400/10 rounded-full">
-          <Eye className="h-6 w-6 text-lime-400" />
+      <div className="flex items-center gap-3 p-4 bg-gradient-to-br from-neutral-900 to-neutral-950 rounded-lg border border-neutral-800 hover:border-brand-green/30 transition-all duration-300 hover-lift">
+        <div className="p-3 bg-brand-green/10 rounded-full">
+          <Eye className="h-6 w-6 text-brand-green" />
         </div>
         <div>
           <p className="text-2xl font-black text-white">{formattedCount}</p>
@@ -96,7 +96,7 @@ export default function ViewCounter({
   // Default variant
   return (
     <div
-      className={`inline-flex items-center gap-2 ${sizes[size]} bg-neutral-900 text-neutral-300 rounded-full border border-neutral-800 hover:border-lime-400/50 hover:text-lime-400 transition-all duration-300`}
+      className={`inline-flex items-center gap-2 ${sizes[size]} bg-neutral-900 text-neutral-300 rounded-full border border-neutral-800 hover:border-brand-green/50 hover:text-brand-green transition-all duration-300`}
     >
       {showIcon && <Eye className={iconSizes[size]} />}
       <span className="font-bold">{formattedCount}</span>

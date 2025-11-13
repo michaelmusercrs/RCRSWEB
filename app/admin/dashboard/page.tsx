@@ -31,7 +31,7 @@ const adminSections = [
     description: 'Update service area pages and content',
     icon: MapPin,
     href: '/admin/locations',
-    color: 'bg-green-500/10 text-green-600',
+    color: 'bg-brand-green/10 text-brand-blue',
   },
   {
     title: 'Reviews',
@@ -96,7 +96,7 @@ export default function AdminDashboard() {
             {gitHubStatus.loading ? (
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : gitHubStatus.connected ? (
-              <CheckCircle className="h-5 w-5 text-green-600" />
+              <CheckCircle className="h-5 w-5 text-brand-blue" />
             ) : (
               <AlertCircle className="h-5 w-5 text-red-600" />
             )}
@@ -108,7 +108,7 @@ export default function AdminDashboard() {
             <p className="text-muted-foreground">Checking connection...</p>
           ) : gitHubStatus.connected ? (
             <div className="space-y-3">
-              <p className="text-green-600 font-semibold">✓ Connected</p>
+              <p className="text-brand-blue font-semibold">✓ Connected</p>
               <p className="text-muted-foreground">
                 Logged in as: <span className="font-mono">{gitHubStatus.user}</span>
               </p>

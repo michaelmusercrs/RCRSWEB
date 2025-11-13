@@ -66,7 +66,7 @@ export default function AthensPage() {
       />
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-b from-lime-400 to-lime-300 text-black px-6 py-16 md:py-24">
+      <section className="bg-gradient-to-b from-brand-green to-lime-300 text-black px-6 py-16 md:py-24">
         <div className="max-w-6xl mx-auto text-center">
           <div className="inline-block mb-4">
             <span className="text-xs uppercase tracking-widest font-bold flex items-center gap-2 justify-center">
@@ -81,10 +81,10 @@ export default function AthensPage() {
             Professional roof repair, replacement, and storm damage services in Athens, AL. Serving the college town community with quality and care.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" className="bg-black text-lime-400 hover:bg-neutral-900 font-bold uppercase tracking-widest">
+            <Button asChild size="lg" className="bg-black text-brand-green hover:bg-neutral-900 font-bold uppercase tracking-widest">
               <Link href="/contact">Get Free Estimate</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="border-2 border-black text-black hover:bg-black hover:text-lime-400 font-bold uppercase tracking-widest">
+            <Button asChild size="lg" variant="outline" className="border-2 border-black text-black hover:bg-black hover:text-brand-green font-bold uppercase tracking-widest">
               <a href="tel:256-274-8530">Call (256) 274-8530</a>
             </Button>
           </div>
@@ -96,21 +96,21 @@ export default function AthensPage() {
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="border-neutral-800 bg-black text-center">
             <CardContent className="p-6">
-              <Clock className="h-12 w-12 mx-auto mb-4 text-lime-400" />
+              <Clock className="h-12 w-12 mx-auto mb-4 text-brand-green" />
               <h3 className="font-black uppercase text-lg mb-2">1-2 Day Response</h3>
               <p className="text-neutral-400 text-sm">Quick service for Athens residents</p>
             </CardContent>
           </Card>
           <Card className="border-neutral-800 bg-black text-center">
             <CardContent className="p-6">
-              <Shield className="h-12 w-12 mx-auto mb-4 text-lime-400" />
+              <Shield className="h-12 w-12 mx-auto mb-4 text-brand-green" />
               <h3 className="font-black uppercase text-lg mb-2">BBB Accredited</h3>
               <p className="text-neutral-400 text-sm">Licensed & Insured</p>
             </CardContent>
           </Card>
           <Card className="border-neutral-800 bg-black text-center">
             <CardContent className="p-6">
-              <Award className="h-12 w-12 mx-auto mb-4 text-lime-400" />
+              <Award className="h-12 w-12 mx-auto mb-4 text-brand-green" />
               <h3 className="font-black uppercase text-lg mb-2">Free Estimates</h3>
               <p className="text-neutral-400 text-sm">No obligation quotes</p>
             </CardContent>
@@ -123,7 +123,7 @@ export default function AthensPage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-block mb-4">
-              <span className="text-xs uppercase tracking-widest font-bold text-lime-400">Our Services</span>
+              <span className="text-xs uppercase tracking-widest font-bold text-brand-green">Our Services</span>
             </div>
             <h2 className="text-4xl md:text-5xl font-black uppercase tracking-wider mb-4">
               Roofing Services in Athens
@@ -144,10 +144,10 @@ export default function AthensPage() {
             ].map((service, idx) => (
               <Card
                 key={idx}
-                className="border-neutral-800 bg-neutral-950 hover:bg-lime-400 hover:text-black transition-all duration-300 group"
+                className="border-neutral-800 bg-neutral-950 hover:bg-brand-green hover:text-black transition-all duration-300 group"
               >
                 <CardContent className="p-6">
-                  <div className="w-6 h-6 border-2 border-lime-400 group-hover:border-black rounded mb-4"></div>
+                  <div className="w-6 h-6 border-2 border-brand-green group-hover:border-black rounded mb-4"></div>
                   <h3 className="text-lg font-black uppercase tracking-wider mb-2 group-hover:text-black">
                     {service.title}
                   </h3>
@@ -166,7 +166,7 @@ export default function AthensPage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-block mb-4">
-              <span className="text-xs uppercase tracking-widest font-bold text-lime-400">Local Experts</span>
+              <span className="text-xs uppercase tracking-widest font-bold text-brand-green">Local Experts</span>
             </div>
             <h2 className="text-4xl font-black uppercase tracking-wider mb-4">
               Why Athens Homeowners Trust Us
@@ -176,7 +176,7 @@ export default function AthensPage() {
           <div className="grid md:grid-cols-2 gap-8">
             <Card className="border-neutral-800 bg-black">
               <CardContent className="p-8">
-                <h3 className="text-xl font-black uppercase tracking-wider mb-4 text-lime-400">
+                <h3 className="text-xl font-black uppercase tracking-wider mb-4 text-brand-green">
                   College Town Expertise
                 </h3>
                 <p className="text-neutral-300 leading-relaxed mb-4">
@@ -190,7 +190,7 @@ export default function AthensPage() {
                     'Respect for community standards'
                   ].map((item, idx) => (
                     <li key={idx} className="flex items-start gap-2 text-neutral-300">
-                      <CheckCircle2 className="h-5 w-5 text-lime-400 flex-shrink-0 mt-0.5" />
+                      <CheckCircle2 className="h-5 w-5 text-brand-green flex-shrink-0 mt-0.5" />
                       <span>{item}</span>
                     </li>
                   ))}
@@ -200,7 +200,7 @@ export default function AthensPage() {
 
             <Card className="border-neutral-800 bg-black">
               <CardContent className="p-8">
-                <h3 className="text-xl font-black uppercase tracking-wider mb-4 text-lime-400">
+                <h3 className="text-xl font-black uppercase tracking-wider mb-4 text-brand-green">
                   Growing Market Focus
                 </h3>
                 <p className="text-neutral-300 leading-relaxed mb-4">
@@ -214,7 +214,7 @@ export default function AthensPage() {
                     'Community-focused service'
                   ].map((item, idx) => (
                     <li key={idx} className="flex items-start gap-2 text-neutral-300">
-                      <CheckCircle2 className="h-5 w-5 text-lime-400 flex-shrink-0 mt-0.5" />
+                      <CheckCircle2 className="h-5 w-5 text-brand-green flex-shrink-0 mt-0.5" />
                       <span>{item}</span>
                     </li>
                   ))}
@@ -230,7 +230,7 @@ export default function AthensPage() {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-block mb-4">
-              <span className="text-xs uppercase tracking-widest font-bold text-lime-400">FAQ</span>
+              <span className="text-xs uppercase tracking-widest font-bold text-brand-green">FAQ</span>
             </div>
             <h2 className="text-4xl font-black uppercase tracking-wider mb-4">
               Athens Roofing FAQs
@@ -238,40 +238,40 @@ export default function AthensPage() {
           </div>
 
           <div className="space-y-4">
-            <details className="bg-neutral-950 border border-neutral-800 rounded-lg p-6 group hover:border-lime-400 transition-colors">
+            <details className="bg-neutral-950 border border-neutral-800 rounded-lg p-6 group hover:border-brand-green transition-colors">
               <summary className="font-black uppercase tracking-wider cursor-pointer list-none flex justify-between items-center">
                 Do you offer free roof inspections in Athens?
-                <CheckCircle2 className="h-5 w-5 text-lime-400" />
+                <CheckCircle2 className="h-5 w-5 text-brand-green" />
               </summary>
               <p className="text-neutral-400 mt-4 leading-relaxed">
                 Yes! We provide free, no-obligation roof inspections for all Athens-area properties. Our certified inspectors will assess your roof's condition and provide a detailed report.
               </p>
             </details>
 
-            <details className="bg-neutral-950 border border-neutral-800 rounded-lg p-6 group hover:border-lime-400 transition-colors">
+            <details className="bg-neutral-950 border border-neutral-800 rounded-lg p-6 group hover:border-brand-green transition-colors">
               <summary className="font-black uppercase tracking-wider cursor-pointer list-none flex justify-between items-center">
                 What's your response time for Athens?
-                <CheckCircle2 className="h-5 w-5 text-lime-400" />
+                <CheckCircle2 className="h-5 w-5 text-brand-green" />
               </summary>
               <p className="text-neutral-400 mt-4 leading-relaxed">
                 We typically respond to Athens service requests within 1-2 days. For emergencies, we offer same-day service when available.
               </p>
             </details>
 
-            <details className="bg-neutral-950 border border-neutral-800 rounded-lg p-6 group hover:border-lime-400 transition-colors">
+            <details className="bg-neutral-950 border border-neutral-800 rounded-lg p-6 group hover:border-brand-green transition-colors">
               <summary className="font-black uppercase tracking-wider cursor-pointer list-none flex justify-between items-center">
                 Do you work with property managers and landlords?
-                <CheckCircle2 className="h-5 w-5 text-lime-400" />
+                <CheckCircle2 className="h-5 w-5 text-brand-green" />
               </summary>
               <p className="text-neutral-400 mt-4 leading-relaxed">
                 Absolutely! We have experience working with property managers and landlords throughout Athens. We understand the need for quick turnarounds and can work around tenant schedules.
               </p>
             </details>
 
-            <details className="bg-neutral-950 border border-neutral-800 rounded-lg p-6 group hover:border-lime-400 transition-colors">
+            <details className="bg-neutral-950 border border-neutral-800 rounded-lg p-6 group hover:border-brand-green transition-colors">
               <summary className="font-black uppercase tracking-wider cursor-pointer list-none flex justify-between items-center">
                 What roofing materials do you install in Athens?
-                <CheckCircle2 className="h-5 w-5 text-lime-400" />
+                <CheckCircle2 className="h-5 w-5 text-brand-green" />
               </summary>
               <p className="text-neutral-400 mt-4 leading-relaxed">
                 We install all major roofing types including asphalt shingles (IKO Dynasty, Owens Corning, GAF), metal roofing, TPO commercial systems, and specialty materials for historic properties.
@@ -282,7 +282,7 @@ export default function AthensPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 md:py-24 px-6 bg-lime-400 text-black border-t border-neutral-800">
+      <section className="py-16 md:py-24 px-6 bg-brand-green text-black border-t border-neutral-800">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-black uppercase tracking-wider mb-4 leading-tight">
             Ready for Your Free Athens Roof Estimate?
@@ -291,10 +291,10 @@ export default function AthensPage() {
             Call us today or fill out our contact form. We'll schedule your free inspection and provide an honest, detailed estimate.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" className="bg-black text-lime-400 hover:bg-neutral-900 font-bold uppercase tracking-widest">
+            <Button asChild size="lg" className="bg-black text-brand-green hover:bg-neutral-900 font-bold uppercase tracking-widest">
               <Link href="/contact">Request Free Estimate</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="border-2 border-black text-black hover:bg-black hover:text-lime-400 font-bold uppercase tracking-widest">
+            <Button asChild size="lg" variant="outline" className="border-2 border-black text-black hover:bg-black hover:text-brand-green font-bold uppercase tracking-widest">
               <a href="tel:256-274-8530">Call (256) 274-8530</a>
             </Button>
           </div>

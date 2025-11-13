@@ -162,7 +162,7 @@ export default function ContactPage() {
           </p>
           <a
             href="tel:256-274-8530"
-            className="inline-flex items-center justify-center px-8 py-3 rounded-full font-semibold bg-brand-green hover:bg-green-500 text-brand-black transition-colors shadow-lg hover:shadow-xl"
+            className="inline-flex items-center justify-center px-8 py-3 rounded-full font-semibold bg-brand-green hover:bg-brand-green text-brand-black transition-colors shadow-lg hover:shadow-xl"
           >
             Call Now: (256) 274-8530
           </a>

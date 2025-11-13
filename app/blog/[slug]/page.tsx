@@ -55,7 +55,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Hero Section - Lime Background */}
-      <section className="bg-gradient-to-b from-lime-400 to-lime-300 text-black px-6 py-16 md:py-24">
+      <section className="bg-gradient-to-b from-brand-green to-lime-300 text-black px-6 py-16 md:py-24">
         <div className="max-w-4xl mx-auto">
           {/* Back to Blog Link */}
           <Link
@@ -88,7 +88,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
             {post.keywords.map((keyword, idx) => (
               <span
                 key={idx}
-                className="text-xs px-3 py-1 bg-black text-lime-400 rounded-md font-bold uppercase tracking-widest"
+                className="text-xs px-3 py-1 bg-black text-brand-green rounded-md font-bold uppercase tracking-widest"
               >
                 {keyword}
               </span>
@@ -117,7 +117,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
         <div className="max-w-4xl mx-auto">
           {/* Excerpt */}
           <div className="mb-12 pb-8 border-b border-neutral-800">
-            <p className="text-2xl md:text-3xl text-lime-400 font-bold leading-relaxed">
+            <p className="text-2xl md:text-3xl text-brand-green font-bold leading-relaxed">
               {post.excerpt}
             </p>
           </div>
@@ -134,7 +134,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
           </div>
 
           {/* Call-to-Action Box */}
-          <div className="mt-12 p-8 bg-lime-400 text-black rounded-lg">
+          <div className="mt-12 p-8 bg-brand-green text-black rounded-lg">
             <h3 className="text-2xl font-black uppercase tracking-wider mb-4">
               Need Help With Your Roof?
             </h3>
@@ -142,10 +142,10 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
               Our expert team is ready to provide a free inspection and answer any questions you have.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button asChild size="lg" className="bg-black text-lime-400 hover:bg-neutral-900 font-bold uppercase tracking-widest">
+              <Button asChild size="lg" className="bg-black text-brand-green hover:bg-neutral-900 font-bold uppercase tracking-widest">
                 <Link href="/contact">Schedule Inspection</Link>
               </Button>
-              <Button asChild size="lg" variant="outline" className="border-2 border-black text-black hover:bg-black hover:text-lime-400 font-bold uppercase tracking-widest">
+              <Button asChild size="lg" variant="outline" className="border-2 border-black text-black hover:bg-black hover:text-brand-green font-bold uppercase tracking-widest">
                 <a href="tel:256-274-8530">Call (256) 274-8530</a>
               </Button>
             </div>
@@ -155,11 +155,11 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
           <div className="mt-12 p-6 bg-black border border-neutral-800 rounded-lg">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 bg-neutral-800 rounded-full flex items-center justify-center">
-                <User className="h-8 w-8 text-lime-400" />
+                <User className="h-8 w-8 text-brand-green" />
               </div>
               <div>
                 <p className="text-sm uppercase tracking-widest text-neutral-500 mb-1">Written by</p>
-                <p className="text-xl font-black uppercase tracking-wider text-lime-400">{post.author}</p>
+                <p className="text-xl font-black uppercase tracking-wider text-brand-green">{post.author}</p>
               </div>
             </div>
           </div>
@@ -172,7 +172,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
               <div className="inline-block mb-4">
-                <span className="text-xs uppercase tracking-widest font-bold text-lime-400">Keep Reading</span>
+                <span className="text-xs uppercase tracking-widest font-bold text-brand-green">Keep Reading</span>
               </div>
               <h2 className="text-4xl font-black uppercase tracking-wider mb-4">
                 Related Articles
@@ -183,7 +183,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
               {relatedPosts.map((relatedPost) => (
                 <Card
                   key={relatedPost.id}
-                  className="border-neutral-800 overflow-hidden hover:border-lime-400 transition-all duration-300 group bg-neutral-950"
+                  className="border-neutral-800 overflow-hidden hover:border-brand-green transition-all duration-300 group bg-neutral-950"
                 >
                   {/* Featured Image */}
                   <div className="w-full h-48 relative bg-neutral-900">
@@ -206,7 +206,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
                     </div>
 
                     {/* Title */}
-                    <h3 className="text-lg font-black uppercase tracking-wider mb-3 group-hover:text-lime-400 transition-colors leading-tight">
+                    <h3 className="text-lg font-black uppercase tracking-wider mb-3 group-hover:text-brand-green transition-colors leading-tight">
                       {relatedPost.title}
                     </h3>
 
@@ -218,7 +218,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
                     {/* Read More Link */}
                     <Link
                       href={`/blog/${relatedPost.slug}`}
-                      className="text-lime-400 font-bold text-sm uppercase tracking-widest flex items-center gap-2 hover:gap-3 transition-all"
+                      className="text-brand-green font-bold text-sm uppercase tracking-widest flex items-center gap-2 hover:gap-3 transition-all"
                     >
                       Read Article <ArrowRight className="h-4 w-4" />
                     </Link>
@@ -231,7 +231,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
       )}
 
       {/* Bottom CTA Section - Lime Background */}
-      <section className="py-16 md:py-24 px-6 bg-lime-400 text-black border-t border-neutral-800">
+      <section className="py-16 md:py-24 px-6 bg-brand-green text-black border-t border-neutral-800">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-black uppercase tracking-wider mb-4 leading-tight">
             Explore More Roofing Tips
@@ -240,10 +240,10 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
             Check out our complete collection of roofing guides, tips, and industry insights.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" className="bg-black text-lime-400 hover:bg-neutral-900 font-bold uppercase tracking-widest">
+            <Button asChild size="lg" className="bg-black text-brand-green hover:bg-neutral-900 font-bold uppercase tracking-widest">
               <Link href="/blog">View All Articles</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="border-2 border-black text-black hover:bg-black hover:text-lime-400 font-bold uppercase tracking-widest">
+            <Button asChild size="lg" variant="outline" className="border-2 border-black text-black hover:bg-black hover:text-brand-green font-bold uppercase tracking-widest">
               <Link href="/contact">Get Free Estimate</Link>
             </Button>
           </div>

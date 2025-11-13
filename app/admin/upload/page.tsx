@@ -202,7 +202,7 @@ export default function AdminUploadPage() {
                           title="Copy URL"
                         >
                           {copiedUrl === image.url ? (
-                            <span className="text-green-600 text-xs">✓</span>
+                            <span className="text-brand-blue text-xs">✓</span>
                           ) : (
                             <Copy className="w-4 h-4" />
                           )}

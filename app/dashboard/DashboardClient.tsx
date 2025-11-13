@@ -79,7 +79,7 @@ export default function DashboardClient() {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-lime-400 border-t-transparent mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-brand-green border-t-transparent mx-auto mb-4"></div>
           <p className="text-neutral-400">Loading dashboard...</p>
         </div>
       </div>
@@ -96,7 +96,7 @@ export default function DashboardClient() {
             <p className="text-neutral-400 mb-4">{error}</p>
             <Button
               onClick={fetchDashboardData}
-              className="bg-lime-400 text-black hover:bg-lime-300"
+              className="bg-brand-green text-black hover:bg-lime-300"
             >
               Retry
             </Button>
@@ -128,7 +128,7 @@ export default function DashboardClient() {
                 variant={selectedPeriod === days ? 'default' : 'outline'}
                 className={
                   selectedPeriod === days
-                    ? 'bg-lime-400 text-black hover:bg-lime-300'
+                    ? 'bg-brand-green text-black hover:bg-lime-300'
                     : 'border-neutral-700 text-neutral-300 hover:bg-neutral-900'
                 }
                 onClick={() => setSelectedPeriod(days)}
@@ -383,7 +383,7 @@ export default function DashboardClient() {
                           {lead.phone ? (
                             <a
                               href={`tel:${lead.phone}`}
-                              className="text-lime-400 hover:text-lime-300 flex items-center gap-1"
+                              className="text-brand-green hover:text-lime-300 flex items-center gap-1"
                             >
                               <Phone className="h-3 w-3" />
                               {lead.phone}
@@ -439,7 +439,7 @@ export default function DashboardClient() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-2xl font-black text-lime-400">
+                        <p className="text-2xl font-black text-brand-green">
                           {inspector.conversionRate}%
                         </p>
                         <p className="text-xs text-neutral-500 uppercase">Conversion</p>
@@ -475,9 +475,9 @@ function MetricCard({
   color = 'lime',
 }: MetricCardProps) {
   const colorClasses = {
-    lime: 'text-lime-400',
+    lime: 'text-brand-green',
     blue: 'text-blue-400',
-    green: 'text-green-400',
+    green: 'text-brand-green',
     orange: 'text-orange-400',
     red: 'text-red-400',
   };
@@ -499,7 +499,7 @@ function MetricCard({
           {trend && (
             <div
               className={`flex items-center gap-1 text-xs font-bold ${
-                trend.isPositive ? 'text-green-400' : 'text-red-400'
+                trend.isPositive ? 'text-brand-green' : 'text-red-400'
               }`}
             >
               {trend.isPositive ? (
@@ -525,11 +525,11 @@ interface FunnelStageProps {
 
 function FunnelStage({ label, count, percent, color }: FunnelStageProps) {
   const colorClasses: Record<string, string> = {
-    lime: 'bg-lime-400',
+    lime: 'bg-brand-green',
     blue: 'bg-blue-500',
     purple: 'bg-purple-500',
     orange: 'bg-orange-500',
-    green: 'bg-green-500',
+    green: 'bg-brand-green',
   };
 
   return (
@@ -593,7 +593,7 @@ function StatusBadge({ status }: { status: string }) {
     },
     won: {
       bg: 'bg-green-950',
-      text: 'text-green-400',
+      text: 'text-brand-green',
       icon: CheckCircle2,
     },
     lost: {

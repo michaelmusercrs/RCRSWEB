@@ -67,7 +67,7 @@ export default function HuntsvillePage() {
       />
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-b from-lime-400 to-lime-300 text-black px-6 py-16 md:py-24">
+      <section className="bg-gradient-to-b from-brand-green to-lime-300 text-black px-6 py-16 md:py-24">
         <div className="max-w-6xl mx-auto text-center">
           <div className="inline-block mb-4">
             <span className="text-xs uppercase tracking-widest font-bold flex items-center gap-2 justify-center">
@@ -82,10 +82,10 @@ export default function HuntsvillePage() {
             Professional roof repair, replacement, and storm damage services in Huntsville, AL. Free estimates and insurance claim assistance.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" className="bg-black text-lime-400 hover:bg-neutral-900 font-bold uppercase tracking-widest">
+            <Button asChild size="lg" className="bg-black text-brand-green hover:bg-neutral-900 font-bold uppercase tracking-widest">
               <Link href="/contact">Get Free Estimate</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="border-2 border-black text-black hover:bg-black hover:text-lime-400 font-bold uppercase tracking-widest">
+            <Button asChild size="lg" variant="outline" className="border-2 border-black text-black hover:bg-black hover:text-brand-green font-bold uppercase tracking-widest">
               <a href="tel:256-274-8530">Call (256) 274-8530</a>
             </Button>
           </div>
@@ -97,21 +97,21 @@ export default function HuntsvillePage() {
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="border-neutral-800 bg-black text-center">
             <CardContent className="p-6">
-              <Clock className="h-12 w-12 mx-auto mb-4 text-lime-400" />
+              <Clock className="h-12 w-12 mx-auto mb-4 text-brand-green" />
               <h3 className="font-black uppercase text-lg mb-2">24/7 Emergency</h3>
               <p className="text-neutral-400 text-sm">Available for storm damage</p>
             </CardContent>
           </Card>
           <Card className="border-neutral-800 bg-black text-center">
             <CardContent className="p-6">
-              <Shield className="h-12 w-12 mx-auto mb-4 text-lime-400" />
+              <Shield className="h-12 w-12 mx-auto mb-4 text-brand-green" />
               <h3 className="font-black uppercase text-lg mb-2">BBB Accredited</h3>
               <p className="text-neutral-400 text-sm">Licensed & Insured</p>
             </CardContent>
           </Card>
           <Card className="border-neutral-800 bg-black text-center">
             <CardContent className="p-6">
-              <Award className="h-12 w-12 mx-auto mb-4 text-lime-400" />
+              <Award className="h-12 w-12 mx-auto mb-4 text-brand-green" />
               <h3 className="font-black uppercase text-lg mb-2">Free Estimates</h3>
               <p className="text-neutral-400 text-sm">No obligation quotes</p>
             </CardContent>
@@ -124,7 +124,7 @@ export default function HuntsvillePage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-block mb-4">
-              <span className="text-xs uppercase tracking-widest font-bold text-lime-400">Our Services</span>
+              <span className="text-xs uppercase tracking-widest font-bold text-brand-green">Our Services</span>
             </div>
             <h2 className="text-4xl md:text-5xl font-black uppercase tracking-wider mb-4">
               Roofing Services in Huntsville
@@ -142,10 +142,10 @@ export default function HuntsvillePage() {
             ].map((service, idx) => (
               <Card
                 key={idx}
-                className="border-neutral-800 bg-neutral-950 hover:bg-lime-400 hover:text-black transition-all duration-300 group"
+                className="border-neutral-800 bg-neutral-950 hover:bg-brand-green hover:text-black transition-all duration-300 group"
               >
                 <CardContent className="p-6">
-                  <div className="w-6 h-6 border-2 border-lime-400 group-hover:border-black rounded mb-4"></div>
+                  <div className="w-6 h-6 border-2 border-brand-green group-hover:border-black rounded mb-4"></div>
                   <h3 className="text-lg font-black uppercase tracking-wider mb-2 group-hover:text-black">
                     {service.title}
                   </h3>
@@ -190,7 +190,7 @@ export default function HuntsvillePage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-block mb-4">
-              <span className="text-xs uppercase tracking-widest font-bold text-lime-400">Reviews</span>
+              <span className="text-xs uppercase tracking-widest font-bold text-brand-green">Reviews</span>
             </div>
             <h2 className="text-4xl font-black uppercase tracking-wider mb-4">
               What Huntsville Customers Say
@@ -202,13 +202,13 @@ export default function HuntsvillePage() {
               <CardContent className="p-6">
                 <div className="flex mb-4">
                   {[...Array(5)].map((_, i) => (
-                    <span key={i} className="text-lime-400 text-xl">★</span>
+                    <span key={i} className="text-brand-green text-xl">★</span>
                   ))}
                 </div>
                 <p className="text-neutral-300 italic mb-4">
                   "Excellent service and handled our insurance claim perfectly! Beautiful work on our Huntsville home."
                 </p>
-                <p className="text-lime-400 font-bold">- JS, Madison</p>
+                <p className="text-brand-green font-bold">- JS, Madison</p>
               </CardContent>
             </Card>
 
@@ -216,13 +216,13 @@ export default function HuntsvillePage() {
               <CardContent className="p-6">
                 <div className="flex mb-4">
                   {[...Array(5)].map((_, i) => (
-                    <span key={i} className="text-lime-400 text-xl">★</span>
+                    <span key={i} className="text-brand-green text-xl">★</span>
                   ))}
                 </div>
                 <p className="text-neutral-300 italic mb-4">
                   "Prompt, hardworking, and honest. They fixed our roof after the hail storm quickly and professionally."
                 </p>
-                <p className="text-lime-400 font-bold">- Alison C., Huntsville</p>
+                <p className="text-brand-green font-bold">- Alison C., Huntsville</p>
               </CardContent>
             </Card>
 
@@ -230,13 +230,13 @@ export default function HuntsvillePage() {
               <CardContent className="p-6">
                 <div className="flex mb-4">
                   {[...Array(5)].map((_, i) => (
-                    <span key={i} className="text-lime-400 text-xl">★</span>
+                    <span key={i} className="text-brand-green text-xl">★</span>
                   ))}
                 </div>
                 <p className="text-neutral-300 italic mb-4">
                   "Rick got our roof replaced through insurance—highly recommend for anyone in the Huntsville area!"
                 </p>
-                <p className="text-lime-400 font-bold">- Local Homeowner</p>
+                <p className="text-brand-green font-bold">- Local Homeowner</p>
               </CardContent>
             </Card>
           </div>
@@ -248,7 +248,7 @@ export default function HuntsvillePage() {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-block mb-4">
-              <span className="text-xs uppercase tracking-widest font-bold text-lime-400">FAQ</span>
+              <span className="text-xs uppercase tracking-widest font-bold text-brand-green">FAQ</span>
             </div>
             <h2 className="text-4xl font-black uppercase tracking-wider mb-4">
               Huntsville Roofing FAQs
@@ -256,40 +256,40 @@ export default function HuntsvillePage() {
           </div>
 
           <div className="space-y-4">
-            <details className="bg-black border border-neutral-800 rounded-lg p-6 group hover:border-lime-400 transition-colors">
+            <details className="bg-black border border-neutral-800 rounded-lg p-6 group hover:border-brand-green transition-colors">
               <summary className="font-black uppercase tracking-wider cursor-pointer list-none flex justify-between items-center">
                 Do you offer free roof inspections in Huntsville?
-                <CheckCircle2 className="h-5 w-5 text-lime-400" />
+                <CheckCircle2 className="h-5 w-5 text-brand-green" />
               </summary>
               <p className="text-neutral-400 mt-4 leading-relaxed">
                 Yes! We provide free, no-obligation roof inspections for all Huntsville-area homes. Our certified inspectors will assess your roof's condition and provide a detailed report with photos.
               </p>
             </details>
 
-            <details className="bg-black border border-neutral-800 rounded-lg p-6 group hover:border-lime-400 transition-colors">
+            <details className="bg-black border border-neutral-800 rounded-lg p-6 group hover:border-brand-green transition-colors">
               <summary className="font-black uppercase tracking-wider cursor-pointer list-none flex justify-between items-center">
                 How quickly can you respond to storm damage in Huntsville?
-                <CheckCircle2 className="h-5 w-5 text-lime-400" />
+                <CheckCircle2 className="h-5 w-5 text-brand-green" />
               </summary>
               <p className="text-neutral-400 mt-4 leading-relaxed">
                 We offer 24/7 emergency services for storm damage. We can typically have a crew at your Huntsville property within hours for emergency tarping and temporary repairs.
               </p>
             </details>
 
-            <details className="bg-black border border-neutral-800 rounded-lg p-6 group hover:border-lime-400 transition-colors">
+            <details className="bg-black border border-neutral-800 rounded-lg p-6 group hover:border-brand-green transition-colors">
               <summary className="font-black uppercase tracking-wider cursor-pointer list-none flex justify-between items-center">
                 Do you help with insurance claims for Alabama storms?
-                <CheckCircle2 className="h-5 w-5 text-lime-400" />
+                <CheckCircle2 className="h-5 w-5 text-brand-green" />
               </summary>
               <p className="text-neutral-400 mt-4 leading-relaxed">
                 Absolutely! We have extensive experience working with insurance companies on storm and hail damage claims in Alabama. We'll handle all documentation, photos, and communication with your insurance adjuster.
               </p>
             </details>
 
-            <details className="bg-black border border-neutral-800 rounded-lg p-6 group hover:border-lime-400 transition-colors">
+            <details className="bg-black border border-neutral-800 rounded-lg p-6 group hover:border-brand-green transition-colors">
               <summary className="font-black uppercase tracking-wider cursor-pointer list-none flex justify-between items-center">
                 What roofing materials do you install in Huntsville?
-                <CheckCircle2 className="h-5 w-5 text-lime-400" />
+                <CheckCircle2 className="h-5 w-5 text-brand-green" />
               </summary>
               <p className="text-neutral-400 mt-4 leading-relaxed">
                 We install all major roofing types including asphalt shingles (IKO Dynasty, Owens Corning, GAF), metal roofing, TPO commercial systems, and specialty materials. We'll help you choose the best option for Alabama's climate.
@@ -300,7 +300,7 @@ export default function HuntsvillePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 md:py-24 px-6 bg-lime-400 text-black border-t border-neutral-800">
+      <section className="py-16 md:py-24 px-6 bg-brand-green text-black border-t border-neutral-800">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-black uppercase tracking-wider mb-4 leading-tight">
             Ready for Your Free Huntsville Roof Estimate?
@@ -309,10 +309,10 @@ export default function HuntsvillePage() {
             Call us today or fill out our contact form. We'll schedule your free inspection and provide an honest, detailed estimate.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" className="bg-black text-lime-400 hover:bg-neutral-900 font-bold uppercase tracking-widest">
+            <Button asChild size="lg" className="bg-black text-brand-green hover:bg-neutral-900 font-bold uppercase tracking-widest">
               <Link href="/contact">Request Free Estimate</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="border-2 border-black text-black hover:bg-black hover:text-lime-400 font-bold uppercase tracking-widest">
+            <Button asChild size="lg" variant="outline" className="border-2 border-black text-black hover:bg-black hover:text-brand-green font-bold uppercase tracking-widest">
               <a href="tel:256-274-8530">Call (256) 274-8530</a>
             </Button>
           </div>

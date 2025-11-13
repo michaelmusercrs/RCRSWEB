@@ -13,11 +13,11 @@ export default function ThankYouPage() {
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Hero Section - Lime Background */}
-      <section className="bg-gradient-to-b from-lime-400 to-lime-300 text-black px-6 py-16 md:py-24">
+      <section className="bg-gradient-to-b from-brand-green to-lime-300 text-black px-6 py-16 md:py-24">
         <div className="max-w-4xl mx-auto text-center">
           {/* Success Icon */}
           <div className="inline-flex items-center justify-center w-24 h-24 bg-black rounded-full mb-8">
-            <CheckCircle className="h-12 w-12 text-lime-400" />
+            <CheckCircle className="h-12 w-12 text-brand-green" />
           </div>
 
           {/* Title */}
@@ -36,7 +36,7 @@ export default function ThankYouPage() {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-block mb-4">
-              <span className="text-xs uppercase tracking-widest font-bold text-lime-400">Next Steps</span>
+              <span className="text-xs uppercase tracking-widest font-bold text-brand-green">Next Steps</span>
             </div>
             <h2 className="text-4xl font-black uppercase tracking-wider mb-4">
               What Happens Next?
@@ -46,7 +46,7 @@ export default function ThankYouPage() {
           <div className="grid md:grid-cols-3 gap-6">
             <Card className="border-neutral-800 bg-black text-center">
               <CardContent className="p-8">
-                <div className="w-12 h-12 rounded-full bg-lime-400 text-black flex items-center justify-center mx-auto mb-6">
+                <div className="w-12 h-12 rounded-full bg-brand-green text-black flex items-center justify-center mx-auto mb-6">
                   <span className="text-2xl font-black">1</span>
                 </div>
                 <h3 className="text-lg font-black uppercase tracking-wider mb-3">
@@ -60,7 +60,7 @@ export default function ThankYouPage() {
 
             <Card className="border-neutral-800 bg-black text-center">
               <CardContent className="p-8">
-                <div className="w-12 h-12 rounded-full bg-lime-400 text-black flex items-center justify-center mx-auto mb-6">
+                <div className="w-12 h-12 rounded-full bg-brand-green text-black flex items-center justify-center mx-auto mb-6">
                   <span className="text-2xl font-black">2</span>
                 </div>
                 <h3 className="text-lg font-black uppercase tracking-wider mb-3">
@@ -74,7 +74,7 @@ export default function ThankYouPage() {
 
             <Card className="border-neutral-800 bg-black text-center">
               <CardContent className="p-8">
-                <div className="w-12 h-12 rounded-full bg-lime-400 text-black flex items-center justify-center mx-auto mb-6">
+                <div className="w-12 h-12 rounded-full bg-brand-green text-black flex items-center justify-center mx-auto mb-6">
                   <span className="text-2xl font-black">3</span>
                 </div>
                 <h3 className="text-lg font-black uppercase tracking-wider mb-3">
@@ -95,7 +95,7 @@ export default function ThankYouPage() {
           <div className="grid md:grid-cols-2 gap-6">
             <Card className="border-neutral-800 bg-neutral-950">
               <CardContent className="p-8">
-                <Clock className="h-12 w-12 text-lime-400 mb-4" />
+                <Clock className="h-12 w-12 text-brand-green mb-4" />
                 <h3 className="text-xl font-black uppercase tracking-wider mb-2">
                   Response Time
                 </h3>
@@ -107,13 +107,13 @@ export default function ThankYouPage() {
 
             <Card className="border-neutral-800 bg-neutral-950">
               <CardContent className="p-8">
-                <Phone className="h-12 w-12 text-lime-400 mb-4" />
+                <Phone className="h-12 w-12 text-brand-green mb-4" />
                 <h3 className="text-xl font-black uppercase tracking-wider mb-2">
                   Need Quick Help?
                 </h3>
                 <a
                   href="tel:256-274-8530"
-                  className="text-lime-400 font-bold text-lg hover:underline"
+                  className="text-brand-green font-bold text-lg hover:underline"
                 >
                   (256) 274-8530
                 </a>
@@ -138,7 +138,7 @@ export default function ThankYouPage() {
                     If you need immediate assistance with roof damage or leaks, call us right away at{' '}
                     <a
                       href="tel:256-274-8530"
-                      className="text-lime-400 font-bold hover:underline"
+                      className="text-brand-green font-bold hover:underline"
                     >
                       (256) 274-8530
                     </a>
@@ -152,7 +152,7 @@ export default function ThankYouPage() {
       </section>
 
       {/* CTA Section - Lime Background */}
-      <section className="py-16 md:py-24 px-6 bg-lime-400 text-black border-t border-neutral-800">
+      <section className="py-16 md:py-24 px-6 bg-brand-green text-black border-t border-neutral-800">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-black uppercase tracking-wider mb-4 leading-tight">
             Explore What We Do
@@ -161,10 +161,10 @@ export default function ThankYouPage() {
             While you wait, check out our full range of services or head back home.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" className="bg-black text-lime-400 hover:bg-neutral-900 font-bold uppercase tracking-widest">
+            <Button asChild size="lg" className="bg-black text-brand-green hover:bg-neutral-900 font-bold uppercase tracking-widest">
               <Link href="/services">View Our Services</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="border-2 border-black text-black hover:bg-black hover:text-lime-400 font-bold uppercase tracking-widest">
+            <Button asChild size="lg" variant="outline" className="border-2 border-black text-black hover:bg-black hover:text-brand-green font-bold uppercase tracking-widest">
               <Link href="/">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Home

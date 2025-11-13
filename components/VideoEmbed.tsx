@@ -126,7 +126,7 @@ export default function VideoEmbed({
           {/* Loading overlay */}
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-20 animate-fade-in-up">
-              <div className="w-16 h-16 border-4 border-lime-400 border-t-transparent rounded-full animate-spin" />
+              <div className="w-16 h-16 border-4 border-brand-green border-t-transparent rounded-full animate-spin" />
             </div>
           )}
 
@@ -173,10 +173,10 @@ export default function VideoEmbed({
           <div className="absolute inset-0 flex items-center justify-center z-10">
             <div className="relative">
               {/* Pulse effect */}
-              <div className="absolute inset-0 bg-lime-400 rounded-full animate-ping opacity-30" />
+              <div className="absolute inset-0 bg-brand-green rounded-full animate-ping opacity-30" />
 
               {/* Main play button */}
-              <div className="relative bg-gradient-to-br from-lime-400 to-lime-600 rounded-full p-6 shadow-2xl transform group-hover:scale-110 transition-all duration-300 hover:shadow-[0_0_40px_rgba(163,230,53,0.6)]">
+              <div className="relative bg-gradient-to-br from-brand-green to-brand-green rounded-full p-6 shadow-2xl transform group-hover:scale-110 transition-all duration-300 hover:shadow-[0_0_40px_rgba(163,230,53,0.6)]">
                 <Play className="h-10 w-10 text-black fill-black translate-x-0.5" />
               </div>
             </div>
