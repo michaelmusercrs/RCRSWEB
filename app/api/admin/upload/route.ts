@@ -21,13 +21,6 @@ import {
   MAX_FILE_SIZE_MB,
 } from '@/lib/image-utils';
 
-// Disable Next.js body parsing to handle multipart/form-data
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
 /**
  * Helper to parse form data using formidable
  */
