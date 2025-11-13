@@ -1,0 +1,148 @@
+═══════════════════════════════════════════════════════════════════════════════
+  RIVER CITY ROOFING - NEW COLOR SYSTEM IMPLEMENTATION GUIDE
+═══════════════════════════════════════════════════════════════════════════════
+
+YOUR NEW COLOR PALETTE (In Order of Visual Hierarchy):
+─────────────────────────────────────────────────────────────────────────────
+1. BLACK (#000000)          → Headlines, primary text, main elements
+2. NEON GREEN (#39FF14)     → Accents, highlights, icon backgrounds  
+3. GREY (#404040 - #F5F5F5) → Secondary text, borders, backgrounds
+4. WHITE (#FFFFFF)          → Primary background, cards, text on dark
+5. ROYAL BLUE (#0066CC)     → Buttons, links, interactive, feature sections
+
+NO GRADIENTS • MODERN • PROFESSIONAL • CLEAN
+
+═══════════════════════════════════════════════════════════════════════════════
+
+BENEFITS OF DOING THIS NOW:
+─────────────────────────────────────────────────────────────────────────────
+✅ Build new location pages with correct colors from day one
+✅ Consistent brand identity across all pages
+✅ Professional appearance
+✅ Better accessibility (high contrast)
+✅ Easier to maintain and update later
+✅ Clear visual hierarchy
+✅ Mobile-first responsive design built in
+
+═══════════════════════════════════════════════════════════════════════════════
+
+FILES CREATED:
+─────────────────────────────────────────────────────────────────────────────
+
+1. tailwind-config-NEW.ts
+   → Updated Tailwind configuration with new colors
+   → Add brand colors: brand-black, brand-green, brand-grey, brand-blue
+   → Map semantic colors: primary, secondary, background, etc.
+
+2. LocationPageTemplate-NEW.tsx
+   → Professional location page template
+   → Shows proper color usage throughout
+   → Modern, clean design
+   → Fully responsive
+   → Ready to customize for each city
+
+3. COLOR-SCHEME-GUIDE.md
+   → Comprehensive reference for color usage
+   → When to use each color
+   → Component-specific guidance
+   → Do's and Don'ts
+
+4. COLOR-SCHEME-VISUAL-REFERENCE.md
+   → Visual ASCII mockups of layout
+   → Before/after comparison
+   → Button states and icons
+   → Text hierarchy
+   → Implementation tips
+
+═══════════════════════════════════════════════════════════════════════════════
+
+HOW THIS LOOKS ON A PAGE:
+─────────────────────────────────────────────────────────────────────────────
+
+Hero Section (Image)
+  ↓ Black overlay
+  ↓ White text overlay
+
+Intro Section (White bg)
+  • Black headline
+  • Grey body text
+
+Services Section (Light grey bg)
+  • Black headline
+  • 4 white cards
+  • Green icon backgrounds
+  • Grey descriptions
+
+Why Choose Section (Royal blue bg)
+  • White headline
+  • Neon green checkmarks
+  • White body text
+
+CTA Section (White bg)
+  • Green accent left border
+  • Black headline
+  • Blue button + black outline button
+
+═══════════════════════════════════════════════════════════════════════════════
+
+NEXT STEPS:
+─────────────────────────────────────────────────────────────────────────────
+
+1. Replace your current tailwind.config.ts with tailwind-config-NEW.ts
+2. Customize the location template for each city:
+   - Decatur (done already, similar)
+   - Huntsville
+   - Madison
+   - Athens
+   - Owens Crossroads
+   - Birmingham (coming Q4 2025)
+   - Nashville (coming Q2 2026)
+
+3. Update other pages gradually:
+   - Services page
+   - About page
+   - Contact page
+   - Team pages
+   - Blog pages
+
+═══════════════════════════════════════════════════════════════════════════════
+
+QUICK REFERENCE - MOST USED TAILWIND CLASSES:
+─────────────────────────────────────────────────────────────────────────────
+
+Text Colors:
+  text-brand-black      Black headlines
+  text-brand-blue       Links, CTAs
+  text-gray-600         Secondary text
+  text-white            On dark backgrounds
+  text-brand-green      Rare accent text
+
+Background Colors:
+  bg-white              Default/cards
+  bg-gray-50            Alternate sections
+  bg-brand-blue         Feature sections
+  bg-brand-green/10     Icon light backgrounds
+
+Borders:
+  border border-gray-200                Default
+  border-l-4 border-brand-green         Accent left border
+  border-2 border-brand-black           Strong borders
+
+Buttons:
+  bg-brand-blue hover:bg-blue-700 text-white
+  border-2 border-brand-black text-brand-black hover:bg-black hover:text-white
+
+═══════════════════════════════════════════════════════════════════════════════
+
+READY TO BUILD LOCATION PAGES?
+─────────────────────────────────────────────────────────────────────────────
+
+Once you update your tailwind.config.ts, you'll be ready to:
+  ✓ Build professional location pages
+  ✓ Maintain consistency across all pages
+  ✓ Create a strong brand identity
+  ✓ Deliver modern, professional appearance
+
+Let me know when you're ready and we'll build out all the location pages!
+
+═══════════════════════════════════════════════════════════════════════════════

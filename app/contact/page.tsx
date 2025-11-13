@@ -1,0 +1,173 @@
+'use client';
+
+import ContactForm from '@/components/ContactForm';
+import { Clock, Award, Users, CheckCircle2 } from 'lucide-react';
+import type { Metadata } from 'next';
+
+const stats = [
+  {
+    icon: Clock,
+    label: '24/7 Support',
+    description: 'Available anytime for emergencies',
+  },
+  {
+    icon: Award,
+    label: 'Licensed & Insured',
+    description: 'Full coverage and certifications',
+  },
+  {
+    icon: Users,
+    label: 'Expert Team',
+    description: 'Over 40 years combined experience',
+  },
+];
+
+export default function ContactPage() {
+  return (
+    <div className="min-h-screen bg-white">
+      {/* Hero Section with Shingle Texture Background */}
+      <section
+        className="relative py-20 md:py-24 overflow-hidden"
+        style={{
+          backgroundImage: `
+            repeating-linear-gradient(
+              0deg,
+              rgba(0, 0, 0, 0.1) 0px,
+              rgba(0, 0, 0, 0.1) 40px,
+              transparent 40px,
+              transparent 80px
+            ),
+            repeating-linear-gradient(
+              90deg,
+              rgba(0, 0, 0, 0.05) 0px,
+              rgba(0, 0, 0, 0.05) 60px,
+              transparent 60px,
+              transparent 120px
+            ),
+            linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 50%, #2a2a2a 100%)
+          `,
+          backgroundSize: '100% 100%, 100% 100%, 100% 100%',
+        }}
+      >
+        {/* Overlay for text readability */}
+        <div className="absolute inset-0 bg-black/40"></div>
+
+        <div className="container mx-auto px-4 text-center relative z-10">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-white">
+            Let's Talk About Your Roof
+          </h1>
+          <p className="text-lg md:text-xl max-w-3xl mx-auto text-gray-200">
+            Our team is ready to help with your roofing needs. Reach out today for a
+            free inspection.
+          </p>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="py-12 md:py-16 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {stats.map((stat) => {
+              const Icon = stat.icon;
+              return (
+                <div key={stat.label} className="text-center">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-brand-blue/10 mb-4">
+                    <Icon className="h-8 w-8 text-brand-blue" />
+                  </div>
+                  <h3 className="font-semibold text-lg mb-2 text-brand-black">{stat.label}</h3>
+                  <p className="text-gray-600">{stat.description}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Main Contact Section */}
+      <section className="py-16 md:py-24 bg-white">
+        <div className="container mx-auto px-4">
+          <ContactForm showContactInfo={true} />
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-16 md:py-24 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-brand-black">
+              Common Questions
+            </h2>
+
+            <div className="space-y-6">
+              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                <h3 className="font-semibold text-lg mb-2 text-brand-black flex items-start gap-2">
+                  <CheckCircle2 className="text-brand-green mt-0.5 flex-shrink-0" size={20} />
+                  How long does a free inspection take?
+                </h3>
+                <p className="text-gray-600 ml-7">
+                  Most inspections take 30-45 minutes. We'll thoroughly examine your
+                  roof and provide a detailed assessment with photos and
+                  recommendations.
+                </p>
+              </div>
+
+              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                <h3 className="font-semibold text-lg mb-2 text-brand-black flex items-start gap-2">
+                  <CheckCircle2 className="text-brand-green mt-0.5 flex-shrink-0" size={20} />
+                  Do you handle insurance claims?
+                </h3>
+                <p className="text-gray-600 ml-7">
+                  Yes! Our team specializes in insurance claims. We'll help document
+                  damage, communicate with your insurance company, and ensure you get
+                  fair coverage.
+                </p>
+              </div>
+
+              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                <h3 className="font-semibold text-lg mb-2 text-brand-black flex items-start gap-2">
+                  <CheckCircle2 className="text-brand-green mt-0.5 flex-shrink-0" size={20} />
+                  What's your warranty on work?
+                </h3>
+                <p className="text-gray-600 ml-7">
+                  We stand behind our work with a comprehensive 5-year Workmanship
+                  Warranty. Plus, we offer manufacturer warranties on all materials.
+                </p>
+              </div>
+
+              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                <h3 className="font-semibold text-lg mb-2 text-brand-black flex items-start gap-2">
+                  <CheckCircle2 className="text-brand-green mt-0.5 flex-shrink-0" size={20} />
+                  Do you offer emergency services?
+                </h3>
+                <p className="text-gray-600 ml-7">
+                  Absolutely. Call us at (256) 274-8530 anytime, day or night. We
+                  provide emergency repairs and temporary solutions for urgent
+                  situations.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-16 md:py-24 bg-brand-blue text-white">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            Ready to Get Started?
+          </h2>
+          <p className="text-lg mb-8 opacity-90 max-w-2xl mx-auto">
+            Don't wait for a small roof problem to become a big one. Schedule your
+            free inspection today.
+          </p>
+          <a
+            href="tel:256-274-8530"
+            className="inline-flex items-center justify-center px-8 py-3 rounded-full font-semibold bg-brand-green hover:bg-green-500 text-brand-black transition-colors shadow-lg hover:shadow-xl"
+          >
+            Call Now: (256) 274-8530
+          </a>
+        </div>
+      </section>
+    </div>
+  );
+}

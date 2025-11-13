@@ -1,0 +1,225 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    RIVER CITY ROOFING - COLOR PALETTE                        ║
+║                          Modern • Professional • Clean                        ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+PRIMARY BRAND COLORS (In Recommended Order of Use)
+────────────────────────────────────────────────────────────────────────────────
+
+1. BLACK
+   ┌──────────────────────────────────────┐
+   │░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░│  HEX: #000000
+   │░░░░░░ BLACK (#000000) ░░░░░░        │  RGB: 0, 0, 0
+   │░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░│
+   └──────────────────────────────────────┘
+   
+   USAGE: Headlines, primary text, strong elements
+   TAILWIND: text-brand-black, bg-brand-black, border-brand-black
+   WHEN TO USE: Page titles, body copy on light backgrounds
+
+
+2. NEON GREEN (Logo Color) ⭐ Your Brand Accent
+   ┌──────────────────────────────────────┐
+   │████████████████████████████████████│  HEX: #39FF14
+   │██████ NEON GREEN (#39FF14) ███████ │  RGB: 57, 255, 20
+   │████████████████████████████████████│
+   └──────────────────────────────────────┘
+   
+   USAGE: Accents, highlights, icon backgrounds ONLY
+   TAILWIND: text-brand-green, bg-brand-green, border-brand-green
+   WHEN TO USE: Small accent borders, icon backgrounds (10% opacity),
+                checkmarks, hover effects - NOT full backgrounds
+   CAUTION: Too bright for large areas - use sparingly
+
+
+3. GREY (Multiple shades for hierarchy)
+   ┌──────────────────────────────────────┐
+   │▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒│  DARK: #404040
+   │░░▒▒░░ DARK GREY (#404040) ░░▒▒░░ │  MED:  #666666
+   │▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒│  LIGHT: #F5F5F5
+   └──────────────────────────────────────┘
+   
+   USAGE: Secondary text, borders, subtle backgrounds
+   TAILWIND: 
+     - text-gray-600 (body text)
+     - text-gray-700 (slightly darker)
+     - bg-gray-50 (light background sections)
+     - border-gray-200 (default borders)
+     - bg-gray-500 (darker elements)
+   
+   SHADE GUIDE:
+     • Dark Grey (#404040):   Text on very light backgrounds
+     • Medium Grey (#666666): Secondary text, icons
+     • Light Grey (#F5F5F5):  Section backgrounds (alternating)
+     • Border Grey (#E0E0E0): Card/section dividers
+
+
+4. WHITE (Clean, Professional)
+   ┌──────────────────────────────────────┐
+   │                                      │  HEX: #FFFFFF
+   │          WHITE (#FFFFFF)             │  RGB: 255, 255, 255
+   │                                      │
+   └──────────────────────────────────────┘
+   
+   USAGE: Primary background, card surfaces, text on dark
+   TAILWIND: bg-white, text-white
+   WHEN TO USE: Main page background, card backgrounds, text contrast
+
+
+5. ROYAL BLUE (Interactive & Feature Sections)
+   ┌──────────────────────────────────────┐
+   │██████████████████████████████████████│  HEX: #0066CC
+   │██ ROYAL BLUE (#0066CC) ███████████ │  RGB: 0, 102, 204
+   │██████████████████████████████████████│
+   └──────────────────────────────────────┘
+   
+   USAGE: Buttons, links, interactive elements, feature sections
+   TAILWIND: text-brand-blue, bg-brand-blue, border-brand-blue
+   HOVER STATE: bg-blue-700 (darker shade)
+   WHEN TO USE: 
+     - Call-to-action buttons
+     - Links and navigation
+     - Large background sections
+     - Focus rings on form elements
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                           COLOR USAGE BY SECTION                             ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+SECTION 1: HERO (Image Background)
+┌────────────────────────────────────────────────────────────────┐
+│ [Background Image]                                             │
+│ [Black overlay: #000000 at 50% opacity]                        │
+│ White text: "Page Title"                                       │
+│ White text: "Subtitle"                                         │
+└────────────────────────────────────────────────────────────────┘
+
+
+SECTION 2: INTRO (White Background)
+┌────────────────────────────────────────────────────────────────┐
+│ Background: WHITE (#FFFFFF)                                    │
+│                                                                │
+│ BLACK Headline: "Trusted Service in Your Area"                 │
+│ GREY Body Text: "We serve with pride and integrity..."         │
+└────────────────────────────────────────────────────────────────┘
+
+
+SECTION 3: SERVICES (Light Grey Background)
+┌────────────────────────────────────────────────────────────────┐
+│ Background: LIGHT GREY (#F5F5F5)                               │
+│                                                                │
+│ BLACK Headline: "Our Services"                                 │
+│                                                                │
+│ ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
+│ │ [GRN/10 bg] │  │ [GRN/10 bg] │  │ [GRN/10 bg] │              │
+│ │   Green     │  │   Green     │  │   Green     │              │
+│ │   Icon      │  │   Icon      │  │   Icon      │              │
+│ │             │  │             │  │             │              │
+│ │ Service 1   │  │ Service 2   │  │ Service 3   │              │
+│ │ GREY desc   │  │ GREY desc   │  │ GREY desc   │              │
+│ └─────────────┘  └─────────────┘  └─────────────┘              │
+└────────────────────────────────────────────────────────────────┘
+
+
+SECTION 4: WHY CHOOSE US (Royal Blue Background)
+┌────────────────────────────────────────────────────────────────┐
+│ Background: ROYAL BLUE (#0066CC)                               │
+│                                                                │
+│ WHITE Headline: "Why Choose River City?"                       │
+│                                                                │
+│ ✓ GREEN CHECKMARK  WHITE Text: "5-Year Warranty"              │
+│ ✓ GREEN CHECKMARK  WHITE Text: "Licensed & Insured"           │
+│ ✓ GREEN CHECKMARK  WHITE Text: "Insurance Experts"            │
+│ ✓ GREEN CHECKMARK  LIGHT BLUE Text: "Local Professionals"     │
+└────────────────────────────────────────────────────────────────┘
+
+
+SECTION 5: CTA (White Background with Accent)
+┌────────────────────────────────────────────────────────────────┐
+│ Background: WHITE (#FFFFFF)                                    │
+│ ██ GREEN left border accent                                   │
+│                                                                │
+│ BLACK Headline: "Ready to Get Started?"                        │
+│ GREY Body Text: "Request your free inspection..."              │
+│                                                                │
+│ [BLUE BUTTON]  [BLACK OUTLINE BUTTON]                         │
+│  Get Free      Call Us Now                                    │
+│  Inspection                                                    │
+└────────────────────────────────────────────────────────────────┘
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                         QUICK TAILWIND REFERENCE                             ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+TEXT COLORS
+├─ text-brand-black          → Headlines, main text
+├─ text-brand-blue           → Links, interactive
+├─ text-gray-600             → Secondary text
+├─ text-white                → On dark backgrounds
+└─ text-brand-green          → Rare accents only
+
+
+BACKGROUND COLORS
+├─ bg-white                  → Default sections, cards
+├─ bg-gray-50                → Alternate sections (light)
+├─ bg-brand-blue             → Feature sections (blue)
+├─ bg-brand-green/10         → Light backgrounds around icons
+└─ bg-black/50               → Dark overlay on images
+
+
+BORDER COLORS
+├─ border border-gray-200    → Default subtle borders
+├─ border-l-4 border-brand-green   → Accent left border
+└─ border-2 border-brand-black     → Strong dividers
+
+
+BUTTON STYLES
+├─ BLUE:   bg-brand-blue hover:bg-blue-700 text-white font-bold
+├─ BLACK:  border-2 border-brand-black text-brand-black hover:bg-black hover:text-white
+└─ TEXT:   text-brand-blue hover:underline
+
+
+ICON BACKGROUNDS
+├─ bg-brand-green/10        → Light green (10% opacity)
+├─ bg-blue-50               → Light blue
+└─ bg-gray-100              → Light grey
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                              DESIGN PRINCIPLES                               ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+✅ DO:
+   • Use green ONLY for accents (icons, checkmarks, borders)
+   • Alternate section backgrounds (white → grey → blue → white)
+   • Keep text BLACK on light, WHITE on dark
+   • Use blue for ALL interactive elements (buttons, links)
+   • Maintain high contrast for readability
+   • Use solid colors only (NO GRADIENTS)
+
+❌ DON'T:
+   • Use green as a background (too bright)
+   • Mix too many colors in one section
+   • Put light text on light backgrounds
+   • Use gradients anywhere
+   • Add unnecessary accent colors
+   • Forget hover states on interactive elements
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                        ACCESSIBILITY CHECKLIST                               ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+✓ Black on white     → WCAG AAA compliant (highest standard)
+✓ White on blue      → WCAG AA compliant (high standard)
+✓ Grey text          → Readable with proper sizing
+✓ No color-only info → All meanings conveyed with symbols too
+✓ Sufficient contrast → All combinations tested
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                          You're ready to build! 🎨
+═══════════════════════════════════════════════════════════════════════════════
+
