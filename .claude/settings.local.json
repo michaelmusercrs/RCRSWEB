@@ -15,7 +15,18 @@
       "Bash(netstat:*)",
       "Bash(findstr:*)",
       "Bash(taskkill:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(git commit:*)",
+      "Bash(dir:*)",
+      "Bash(npm install:*)",
+      "WebFetch(domain:yellowhammerroofing.com)",
+      "WebFetch(domain:thompsonroofing.com)",
+      "WebFetch(domain:barnettroofing.com)",
+      "WebSearch",
+      "WebFetch(domain:trs1llc.com)",
+      "Bash(timeout 5 bash:*)",
+      "Bash(curl:*)",
+      "Bash(nul)"
     ],
     "deny": [],
     "ask": []

@@ -3,22 +3,48 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/Header';
 import FloatingContactButton from '@/components/FloatingContactButton';
+import { generateMetadata, generateLocalBusinessSchema, getStructuredDataScript } from '@/lib/seo';
 
 const inter = Inter({ subsets: ['latin'] });
 
-export const metadata: Metadata = {
-  title: 'River City Roofing Solutions | Professional Roofing Services in North Alabama',
+export const metadata: Metadata = generateMetadata({
+  title: 'Professional Roofing Services in North Alabama',
   description: 'Licensed and insured roofing contractor serving Decatur, Huntsville, Madison, and all of North Alabama. Expert roof replacement, repair, and storm damage services.',
-  keywords: ['roofing', 'North Alabama', 'Decatur', 'Huntsville', 'Madison', 'roof repair', 'roof replacement', 'storm damage'],
-};
+  keywords: [
+    'Alabama roofing company',
+    'licensed roofer',
+    'insured contractor',
+    'free inspection',
+    'roof warranty',
+  ],
+  path: '/',
+});
 
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Generate structured data for local business
+  const localBusinessSchema = generateLocalBusinessSchema();
+  const structuredDataScript = getStructuredDataScript(localBusinessSchema);
+
   return (
     <html lang="en">
+      <head>
+        {/* Structured Data (JSON-LD) */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: structuredDataScript }}
+        />
+        {/* Favicon */}
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        {/* Theme color */}
+        <meta name="theme-color" content="#000000" />
+        <meta name="color-scheme" content="dark light" />
+      </head>
       <body className={inter.className}>
         <Header />
         <main>{children}</main>
