@@ -379,7 +379,7 @@ export const serviceAreas: ServiceArea[] = [
   {
     id: 2,
     slug: 'huntsville-al',
-    image: '/uploads/service-residential.png',
+    image: '/uploads/area-huntsville.webp',
     description: 'Serving the Rocket City with expert roofing solutions for homes and businesses. Fast response times and metal roofing specialists.',
     name: 'Huntsville',
     status: 'Active',
@@ -417,7 +417,7 @@ export const serviceAreas: ServiceArea[] = [
   {
     id: 4,
     slug: 'athens-al',
-    image: '/uploads/service-residential.png',
+    image: '/uploads/area-athens.jpg',
     description: 'Serving Athens and Limestone County with comprehensive roofing services. From college housing to historic homes.',
     name: 'Athens',
     status: 'Active',
@@ -435,7 +435,7 @@ export const serviceAreas: ServiceArea[] = [
   {
     id: 5,
     slug: 'owens-crossroads-al',
-    image: '/uploads/service-residential.png',
+    image: '/uploads/area-owens-crossroads.jpg',
     description: 'Quality roofing services for the Owens Crossroads community. Personalized attention and strong local relationships.',
     name: 'Owens Crossroads',
     status: 'Active',
@@ -453,7 +453,7 @@ export const serviceAreas: ServiceArea[] = [
   {
     id: 6,
     slug: 'north-alabama',
-    image: '/uploads/service-storm.jpg',
+    image: '/uploads/area-north-alabama.png',
     description: 'Proudly serving all of North Alabama with storm damage expertise and insurance claim support.',
     name: 'General North Alabama Territory',
     status: 'Active',
