@@ -110,6 +110,40 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ sl
         </div>
       </section>
 
+
+      {/* Google Map Section */}
+      <section className="py-16 md:py-24 bg-gray-900">
+        <div className="container mx-auto px-4">
+          <div className="max-w-6xl mx-auto">
+            <h2 className="text-3xl font-bold text-white mb-8 text-center">Find Us in {area.name}</h2>
+            <div className="rounded-2xl overflow-hidden border border-white/20 shadow-2xl">
+              <iframe
+                src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${area.mapQuery || area.name + ',+' + area.state}&zoom=12`}
+                width="100%"
+                height="450"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title={`Map of ${area.name}, ${area.state}`}
+              />
+            </div>
+            <div className="mt-6 text-center">
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${area.mapQuery || area.name + ',+' + area.state}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-brand-green hover:text-lime-400 transition-colors"
+              >
+                <MapPin size={20} />
+                Open in Google Maps
+                <ArrowRight size={16} />
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="py-16 md:py-24 bg-brand-blue">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">Get a Free Inspection in {area.name}</h2>

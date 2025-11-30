@@ -32,6 +32,7 @@ export interface ServiceArea {
   expansionTimeline?: string[];
   image?: string;
   description?: string;
+  mapQuery?: string;
 }
 
 export const services: Service[] = [
@@ -361,6 +362,7 @@ export const serviceAreas: ServiceArea[] = [
   {
     id: 1,
     slug: 'decatur-al',
+    mapQuery: 'Decatur,+AL',
     image: '/uploads/area-decatur.png',
     description: 'Our headquarters in Decatur provides same-day service and emergency response for residential and commercial roofing throughout Morgan County.',
     name: 'Decatur',
@@ -379,6 +381,7 @@ export const serviceAreas: ServiceArea[] = [
   {
     id: 2,
     slug: 'huntsville-al',
+    mapQuery: 'Huntsville,+AL',
     image: '/uploads/area-huntsville-rocket.jpg',
     description: 'Serving the Rocket City with expert roofing solutions for homes and businesses. Fast response times and metal roofing specialists.',
     name: 'Huntsville',
@@ -398,6 +401,7 @@ export const serviceAreas: ServiceArea[] = [
   {
     id: 3,
     slug: 'madison-al',
+    mapQuery: 'Madison,+AL',
     image: '/uploads/area-madison.jpg',
     description: 'Madison growing community deserves quality roofing. We specialize in LeafX gutter guards and residential roof replacement.',
     name: 'Madison',
@@ -417,6 +421,7 @@ export const serviceAreas: ServiceArea[] = [
   {
     id: 4,
     slug: 'athens-al',
+    mapQuery: 'Athens,+AL',
     image: '/uploads/area-athens.jpg',
     description: 'Serving Athens and Limestone County with comprehensive roofing services. From college housing to historic homes.',
     name: 'Athens',
@@ -435,6 +440,7 @@ export const serviceAreas: ServiceArea[] = [
   {
     id: 5,
     slug: 'owens-crossroads-al',
+    mapQuery: 'Owens+Crossroads,+AL',
     image: '/uploads/area-owens-crossroads.jpg',
     description: 'Quality roofing services for the Owens Crossroads community. Personalized attention and strong local relationships.',
     name: 'Owens Crossroads',
@@ -453,6 +459,7 @@ export const serviceAreas: ServiceArea[] = [
   {
     id: 6,
     slug: 'north-alabama',
+    mapQuery: 'North+Alabama',
     image: '/uploads/area-north-alabama.png',
     description: 'Proudly serving all of North Alabama with storm damage expertise and insurance claim support.',
     name: 'General North Alabama Territory',
@@ -471,6 +478,7 @@ export const serviceAreas: ServiceArea[] = [
   {
     id: 7,
     slug: 'birmingham-al',
+    mapQuery: 'Birmingham,+AL',
     image: '/uploads/service-commercial.png',
     description: 'Coming soon to Birmingham! Expanding our quality roofing services to Alabamas largest metro area.',
     name: 'Birmingham',
@@ -499,6 +507,7 @@ export const serviceAreas: ServiceArea[] = [
   {
     id: 8,
     slug: 'nashville-tn',
+    mapQuery: 'Nashville,+TN',
     image: '/uploads/service-commercial.png',
     description: 'Future expansion to Music City. Commercial and residential roofing services coming 2026.',
     name: 'Nashville',
