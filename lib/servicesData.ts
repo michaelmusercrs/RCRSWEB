@@ -361,7 +361,7 @@ export const serviceAreas: ServiceArea[] = [
   {
     id: 1,
     slug: 'decatur-al',
-    image: '/uploads/service-residential.png',
+    image: '/uploads/area-decatur.png',
     description: 'Our headquarters in Decatur provides same-day service and emergency response for residential and commercial roofing throughout Morgan County.',
     name: 'Decatur',
     status: 'Active',
@@ -398,7 +398,7 @@ export const serviceAreas: ServiceArea[] = [
   {
     id: 3,
     slug: 'madison-al',
-    image: '/uploads/service-residential.png',
+    image: '/uploads/area-madison.jpg',
     description: 'Madison's growing community deserves quality roofing. We specialize in LeafX gutter guards and residential roof replacement.',
     name: 'Madison',
     status: 'Active',
