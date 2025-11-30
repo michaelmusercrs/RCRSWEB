@@ -379,7 +379,7 @@ export const serviceAreas: ServiceArea[] = [
   {
     id: 2,
     slug: 'huntsville-al',
-    image: '/uploads/area-huntsville.webp',
+    image: '/uploads/area-huntsville-rocket.jpg',
     description: 'Serving the Rocket City with expert roofing solutions for homes and businesses. Fast response times and metal roofing specialists.',
     name: 'Huntsville',
     status: 'Active',
