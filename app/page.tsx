@@ -50,8 +50,8 @@ export default function HomePage() {
               "Licensed & Insured",
               "Storm Damage Experts"
             ]}
-            interval={3000}
-            className="text-2xl md:text-4xl lg:text-5xl font-black uppercase tracking-wider text-brand-green mb-8 h-16"
+            interval={5000}
+            className="text-2xl md:text-4xl lg:text-5xl font-black uppercase tracking-wider text-brand-green mb-8 min-h-[4rem]"
           />
 
           {/* Subtitle */}
