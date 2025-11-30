@@ -1,260 +1,124 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getService, getAllServiceSlugs } from '@/lib/servicesData';
-import { Home, Wrench, Building2, CloudRain, Flame, Shield, Search, AlertTriangle, Droplet, Wind, Paintbrush, ArrowLeft, CheckCircle2, Clock, DollarSign } from 'lucide-react';
-import ContactForm from '@/components/ContactForm';
+import Link from 'next/link';
+import Image from 'next/image';
+import { getService, getAllServiceSlugs, services } from '@/lib/servicesData';
+import { Home, Wrench, Building2, CloudRain, Flame, Shield, Search, AlertTriangle, Droplet, Wind, Paintbrush, ArrowRight, CheckCircle2, Phone, ArrowLeft } from 'lucide-react';
 import type { Metadata } from 'next';
 
-const iconMap: { [key: string]: any } = {
-  Home,
-  Wrench,
-  Building2,
-  CloudRain,
-  Flame,
-  Shield,
-  Search,
-  AlertTriangle,
-  Droplet,
-  Wind,
-  Paintbrush,
-};
+const iconMap: { [key: string]: any } = { Home, Wrench, Building2, CloudRain, Flame, Shield, Search, AlertTriangle, Droplet, Wind, Paintbrush };
 
 export async function generateStaticParams() {
-  const slugs = getAllServiceSlugs();
-  return slugs.map((slug) => ({
-    slug: slug,
-  }));
+  return getAllServiceSlugs().map((slug) => ({ slug }));
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const service = getService(params.slug);
-
-  if (!service) {
-    return {
-      title: 'Service Not Found',
-    };
-  }
-
-  return {
-    title: `${service.title} | River City Roofing Solutions`,
-    description: service.description,
-  };
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const service = getService(slug);
+  if (!service) return { title: 'Service Not Found' };
+  return { title: service.title + ' | River City Roofing Solutions', description: service.description };
 }
 
-export default function ServiceDetailPage({ params }: { params: { slug: string } }) {
-  const service = getService(params.slug);
-
-  if (!service) {
-    notFound();
-  }
-
+export default async function ServicePage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const service = getService(slug);
+  if (!service) notFound();
   const Icon = iconMap[service.icon];
+  const items = service.whatsIncluded || service.servicesIncluded || service.features || [];
 
   return (
     <div className="min-h-screen">
-      {/* Header */}
-      <section className="py-8 bg-black/60 backdrop-blur-sm">
-        <div className="container mx-auto px-4">
-          <Link
-            href="/services"
-            className="inline-flex items-center gap-2 text-white hover:text-brand-green font-semibold transition-colors mb-4"
-          >
-            <ArrowLeft size={20} />
-            Back to Services
+      <section className="relative min-h-[60vh] flex items-center">
+        {service.image && (
+          <div className="absolute inset-0 z-0">
+            <Image src={service.image} alt={service.title} fill className="object-cover" priority />
+            <div className="absolute inset-0 bg-black/60" />
+          </div>
+        )}
+        <div className="container mx-auto px-4 relative z-10">
+          <Link href="/services" className="inline-flex items-center gap-2 text-white/80 hover:text-brand-green mb-6 transition-colors">
+            <ArrowLeft size={20} /> Back to Services
           </Link>
-        </div>
-      </section>
-
-      {/* Hero Section */}
-      <section className="py-12 bg-black/70 backdrop-blur-sm">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-4xl">
             <div className="flex items-center gap-4 mb-6">
-              <div className="w-20 h-20 bg-brand-green/20 rounded-full flex items-center justify-center">
-                {Icon && <Icon className="text-brand-green" size={40} />}
-              </div>
-              <div>
-                <div className="inline-block bg-brand-green/20 text-brand-green px-3 py-1 rounded-full text-sm font-semibold mb-2">
-                  {service.category} Service
-                </div>
-                <h1 className="text-4xl md:text-5xl font-bold text-white">
-                  {service.title}
-                </h1>
-              </div>
+              {Icon && <div className="w-20 h-20 bg-brand-green/20 backdrop-blur-sm rounded-full flex items-center justify-center"><Icon className="text-brand-green" size={40} /></div>}
+              <span className="px-4 py-2 bg-brand-green/20 backdrop-blur-sm rounded-full text-brand-green font-semibold">{service.category} Service</span>
             </div>
-
-            <p className="text-xl text-gray-300 leading-relaxed">
-              {service.description}
-            </p>
-
-            {/* Quick Info Cards */}
-            <div className="grid md:grid-cols-2 gap-4 mt-8">
-              {service.costRange && (
-                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 flex items-center gap-3">
-                  <DollarSign className="text-brand-green" size={32} />
-                  <div>
-                    <p className="text-sm text-gray-400 font-medium">Cost Range</p>
-                    <p className="text-lg font-bold text-white">{service.costRange}</p>
-                  </div>
-                </div>
-              )}
-
-              {service.timeline && (
-                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 flex items-center gap-3">
-                  <Clock className="text-brand-blue" size={32} />
-                  <div>
-                    <p className="text-sm text-gray-400 font-medium">Timeline</p>
-                    <p className="text-lg font-bold text-white">{service.timeline}</p>
-                  </div>
-                </div>
-              )}
-            </div>
+            <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 drop-shadow-lg">{service.title}</h1>
+            <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-3xl drop-shadow-md">{service.description}</p>
+            {service.costRange && (
+              <div className="inline-block bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-6 py-3">
+                <span className="text-white/70 text-sm">Starting from</span>
+                <p className="text-2xl font-bold text-brand-green">{service.costRange}</p>
+              </div>
+            )}
           </div>
         </div>
       </section>
 
-      {/* Content Section */}
-      <section className="py-16 bg-black/80 backdrop-blur-sm">
+      <section className="py-16 md:py-24 bg-black/80 backdrop-blur-sm">
         <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto">
-            <div className="grid md:grid-cols-2 gap-12">
-              {/* What's Included */}
-              {service.whatsIncluded && service.whatsIncluded.length > 0 && (
+          <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12">
+            <div>
+              <h2 className="text-3xl font-bold text-white mb-8">{service.whatsIncluded ? "What's Included" : "Services Included"}</h2>
+              <div className="space-y-4">
+                {items.map((item, index) => (
+                  <div key={index} className="flex items-start gap-3">
+                    <CheckCircle2 className="text-brand-green flex-shrink-0 mt-1" size={20} />
+                    <span className="text-gray-300">{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-8">
+              {service.keyBenefits && (
                 <div>
-                  <h2 className="text-3xl font-bold text-white mb-6">
-                    What's Included
-                  </h2>
-                  <ul className="space-y-3">
-                    {service.whatsIncluded.map((item, idx) => (
-                      <li key={idx} className="flex items-start gap-3">
-                        <CheckCircle2 className="text-brand-green mt-1 flex-shrink-0" size={20} />
-                        <span className="text-gray-300">{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Services Included */}
-              {service.servicesIncluded && service.servicesIncluded.length > 0 && (
-                <div>
-                  <h2 className="text-3xl font-bold text-white mb-6">
-                    Services Included
-                  </h2>
-                  <ul className="space-y-3">
-                    {service.servicesIncluded.map((item, idx) => (
-                      <li key={idx} className="flex items-start gap-3">
-                        <CheckCircle2 className="text-brand-green mt-1 flex-shrink-0" size={20} />
-                        <span className="text-gray-300">{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Features */}
-              {service.features && service.features.length > 0 && (
-                <div>
-                  <h2 className="text-3xl font-bold text-white mb-6">
-                    Features
-                  </h2>
-                  <ul className="space-y-3">
-                    {service.features.map((item, idx) => (
-                      <li key={idx} className="flex items-start gap-3">
-                        <CheckCircle2 className="text-brand-green mt-1 flex-shrink-0" size={20} />
-                        <span className="text-gray-300">{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Key Benefits */}
-              {service.keyBenefits && service.keyBenefits.length > 0 && (
-                <div>
-                  <h2 className="text-3xl font-bold text-white mb-6">
-                    Key Benefits
-                  </h2>
-                  <ul className="space-y-3">
-                    {service.keyBenefits.map((benefit, idx) => (
-                      <li key={idx} className="flex items-start gap-3">
-                        <CheckCircle2 className="text-brand-green mt-1 flex-shrink-0" size={20} />
+                  <h2 className="text-3xl font-bold text-white mb-8">Key Benefits</h2>
+                  <div className="space-y-4">
+                    {service.keyBenefits.map((benefit, index) => (
+                      <div key={index} className="flex items-start gap-3">
+                        <CheckCircle2 className="text-brand-blue flex-shrink-0 mt-1" size={20} />
                         <span className="text-gray-300">{benefit}</span>
-                      </li>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {service.timeline && (
+                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-6">
+                  <h3 className="text-xl font-bold text-white mb-2">Timeline</h3>
+                  <p className="text-gray-300">{service.timeline}</p>
+                </div>
+              )}
+              {service.idealFor && (
+                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-6">
+                  <h3 className="text-xl font-bold text-white mb-4">Ideal For</h3>
+                  <ul className="space-y-2">
+                    {service.idealFor.map((item, index) => (
+                      <li key={index} className="text-gray-300 flex items-center gap-2"><ArrowRight className="text-brand-green" size={16} />{item}</li>
                     ))}
                   </ul>
                 </div>
               )}
             </div>
-
-            {/* Materials Available */}
-            {service.materialsAvailable && service.materialsAvailable.length > 0 && (
-              <div className="mt-12 pt-12 border-t border-white/20">
-                <h2 className="text-3xl font-bold text-white mb-6">
-                  Materials Available
-                </h2>
-                <div className="grid md:grid-cols-2 gap-4">
-                  {service.materialsAvailable.map((material, idx) => (
-                    <div key={idx} className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 flex items-center gap-3">
-                      <CheckCircle2 className="text-brand-blue flex-shrink-0" size={20} />
-                      <span className="text-gray-200 font-medium">{material}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Ideal For */}
-            {service.idealFor && service.idealFor.length > 0 && (
-              <div className="mt-12 pt-12 border-t border-white/20">
-                <h2 className="text-3xl font-bold text-white mb-6">
-                  Ideal For
-                </h2>
-                <div className="grid md:grid-cols-2 gap-4">
-                  {service.idealFor.map((item, idx) => (
-                    <div key={idx} className="bg-brand-blue/20 border border-brand-blue/30 rounded-xl p-4 flex items-center gap-3">
-                      <CheckCircle2 className="text-brand-blue flex-shrink-0" size={20} />
-                      <span className="text-gray-200 font-medium">{item}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </section>
 
-      {/* Contact Form Section */}
-      <section className="py-16 bg-black/80 backdrop-blur-sm">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              Interested in {service.title}?
-            </h2>
-            <p className="text-xl text-gray-300">
-              Get a free inspection and detailed estimate from our expert team.
-            </p>
-          </div>
-          <ContactForm
-            showContactInfo={false}
-            darkMode={true}
-            preselectedService={service.slug}
-          />
-        </div>
-      </section>
-
-      {/* Back to Services Link */}
-      <section className="py-12 bg-black/60 backdrop-blur-sm">
+      <section className="py-16 md:py-24 bg-brand-blue">
         <div className="container mx-auto px-4 text-center">
-          <Link
-            href="/services"
-            className="inline-flex items-center gap-2 text-white hover:text-brand-green font-semibold text-lg transition-colors"
-          >
-            <ArrowLeft size={20} />
-            View All Services
-          </Link>
+          <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">Ready to Get Started?</h2>
+          <p className="text-xl text-blue-100 mb-8">Contact us today for a free inspection and quote.</p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/contact" className="inline-flex items-center justify-center gap-2 bg-brand-green text-black font-bold px-8 py-4 rounded-full hover:bg-lime-400 transition-colors">
+              Get Free Quote <ArrowRight size={20} />
+            </Link>
+            <a href="tel:256-274-8530" className="inline-flex items-center justify-center gap-2 bg-white text-brand-blue font-bold px-8 py-4 rounded-full hover:bg-gray-100 transition-colors">
+              <Phone size={20} /> (256) 274-8530
+            </a>
+          </div>
         </div>
       </section>
     </div>
   );
 }
+

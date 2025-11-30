@@ -13,6 +13,7 @@ export interface Service {
   costRange?: string;
   keyBenefits?: string[];
   features?: string[];
+  image?: string;
 }
 
 export interface ServiceArea {
@@ -29,12 +30,15 @@ export interface ServiceArea {
   regionalPartner?: string;
   keyDetails?: string[];
   expansionTimeline?: string[];
+  image?: string;
+  description?: string;
 }
 
 export const services: Service[] = [
   {
     id: 1,
     slug: 'residential-roof-replacement',
+    image: '/uploads/service-residential.png',
     title: 'Residential Roof Replacement',
     category: 'Primary',
     description: 'Complete residential roof replacement with high-quality materials from trusted manufacturers.',
@@ -80,6 +84,7 @@ export const services: Service[] = [
   {
     id: 2,
     slug: 'residential-roof-repair',
+    image: '/uploads/service-residential.png',
     title: 'Residential Roof Repair',
     category: 'Primary',
     description: 'Expert repairs for roofing issues ranging from minor to moderate damage.',
@@ -115,6 +120,7 @@ export const services: Service[] = [
   {
     id: 3,
     slug: 'commercial-roofing',
+    image: '/uploads/service-commercial.png',
     title: 'Commercial Roofing',
     category: 'Primary',
     description: 'Comprehensive commercial roofing solutions for flat and low-slope roofs.',
@@ -154,6 +160,7 @@ export const services: Service[] = [
   {
     id: 4,
     slug: 'storm-hail-damage-repair',
+    image: '/uploads/service-storm.jpg',
     title: 'Storm & Hail Damage Repair',
     category: 'Primary',
     description: 'Rapid response to storm damage with insurance claim expertise.',
@@ -183,6 +190,7 @@ export const services: Service[] = [
   {
     id: 5,
     slug: 'chimney-services',
+    image: '/uploads/service-chimney.png',
     title: 'Chimney Services',
     category: 'Primary',
     description: 'Professional chimney cap installation and replacement to protect from water and pests.',
@@ -209,6 +217,7 @@ export const services: Service[] = [
   {
     id: 6,
     slug: 'leafx-gutter-protection',
+    image: '/uploads/service-leafx.png',
     title: 'LeafX® Gutter Protection',
     category: 'Primary',
     description: 'Professional gutter guard installation with lifetime clog-free guarantee.',
@@ -237,6 +246,7 @@ export const services: Service[] = [
   {
     id: 7,
     slug: 'roof-inspections-maintenance',
+    image: '/uploads/service-residential.png',
     title: 'Roof Inspections & Maintenance',
     category: 'Primary',
     description: 'Comprehensive roof inspections and preventive maintenance programs.',
@@ -264,6 +274,7 @@ export const services: Service[] = [
   {
     id: 8,
     slug: 'emergency-roof-services',
+    image: '/uploads/service-storm.jpg',
     title: 'Emergency Roof Services',
     category: 'Primary',
     description: '24/7 emergency response for severe roof damage.',
@@ -291,6 +302,7 @@ export const services: Service[] = [
   {
     id: 9,
     slug: 'gutter-repair-replacement',
+    image: '/uploads/service-leafx.png',
     title: 'Gutter Repair and Replacement',
     category: 'Additional',
     description: 'Professional gutter services for proper water drainage.',
@@ -310,6 +322,7 @@ export const services: Service[] = [
   {
     id: 10,
     slug: 'attic-ventilation',
+    image: '/uploads/service-residential.png',
     title: 'Attic Ventilation Solutions',
     category: 'Additional',
     description: 'Improve attic airflow and temperature control.',
@@ -328,6 +341,7 @@ export const services: Service[] = [
   {
     id: 11,
     slug: 'roof-coating-treatment',
+    image: '/uploads/service-residential.png',
     title: 'Roof Coating and Treatment',
     category: 'Additional',
     description: 'Protective coatings and treatments for roof extension.',
@@ -347,6 +361,8 @@ export const serviceAreas: ServiceArea[] = [
   {
     id: 1,
     slug: 'decatur-al',
+    image: '/uploads/service-residential.png',
+    description: 'Our headquarters in Decatur provides same-day service and emergency response for residential and commercial roofing throughout Morgan County.',
     name: 'Decatur',
     status: 'Active',
     state: 'AL',
@@ -363,6 +379,8 @@ export const serviceAreas: ServiceArea[] = [
   {
     id: 2,
     slug: 'huntsville-al',
+    image: '/uploads/service-residential.png',
+    description: 'Serving the Rocket City with expert roofing solutions for homes and businesses. Fast response times and metal roofing specialists.',
     name: 'Huntsville',
     status: 'Active',
     state: 'AL',
@@ -380,6 +398,8 @@ export const serviceAreas: ServiceArea[] = [
   {
     id: 3,
     slug: 'madison-al',
+    image: '/uploads/service-residential.png',
+    description: 'Madison's growing community deserves quality roofing. We specialize in LeafX gutter guards and residential roof replacement.',
     name: 'Madison',
     status: 'Active',
     state: 'AL',
@@ -397,6 +417,8 @@ export const serviceAreas: ServiceArea[] = [
   {
     id: 4,
     slug: 'athens-al',
+    image: '/uploads/service-residential.png',
+    description: 'Serving Athens and Limestone County with comprehensive roofing services. From college housing to historic homes.',
     name: 'Athens',
     status: 'Active',
     state: 'AL',
@@ -413,6 +435,8 @@ export const serviceAreas: ServiceArea[] = [
   {
     id: 5,
     slug: 'owens-crossroads-al',
+    image: '/uploads/service-residential.png',
+    description: 'Quality roofing services for the Owens Crossroads community. Personalized attention and strong local relationships.',
     name: 'Owens Crossroads',
     status: 'Active',
     state: 'AL',
@@ -429,6 +453,8 @@ export const serviceAreas: ServiceArea[] = [
   {
     id: 6,
     slug: 'north-alabama',
+    image: '/uploads/service-storm.jpg',
+    description: 'Proudly serving all of North Alabama with storm damage expertise and insurance claim support.',
     name: 'General North Alabama Territory',
     status: 'Active',
     state: 'AL',
@@ -445,6 +471,8 @@ export const serviceAreas: ServiceArea[] = [
   {
     id: 7,
     slug: 'birmingham-al',
+    image: '/uploads/service-commercial.png',
+    description: 'Coming soon to Birmingham! Expanding our quality roofing services to Alabama's largest metro area.',
     name: 'Birmingham',
     status: 'Expansion',
     state: 'AL',
@@ -471,6 +499,8 @@ export const serviceAreas: ServiceArea[] = [
   {
     id: 8,
     slug: 'nashville-tn',
+    image: '/uploads/service-commercial.png',
+    description: 'Future expansion to Music City. Commercial and residential roofing services coming 2026.',
     name: 'Nashville',
     status: 'Expansion',
     state: 'TN',
