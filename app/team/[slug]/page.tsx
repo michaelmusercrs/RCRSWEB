@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Mail, Phone, Award, CheckCircle2, ArrowLeft, Users } from 'lucide-react';
@@ -46,9 +47,18 @@ export default function TeamMemberPage({ params }: { params: { slug: string } })
               {/* Left Column - Profile Card */}
               <div className="md:col-span-1">
                 <div className="bg-gray-50 border border-gray-200 p-8 rounded-lg sticky top-8">
-                  {/* Profile Image Placeholder */}
-                  <div className="w-48 h-48 bg-gray-300 rounded-full mx-auto mb-6 flex items-center justify-center">
-                    <Users className="text-gray-500" size={96} />
+                  {/* Profile Image */}
+                  <div className="w-48 h-48 bg-gray-300 rounded-full mx-auto mb-6 flex items-center justify-center overflow-hidden relative">
+                    {member.profileImage ? (
+                      <Image
+                        src={member.profileImage}
+                        alt={member.name}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <Users className="text-gray-500" size={96} />
+                    )}
                   </div>
 
                   <div className="text-center mb-6">

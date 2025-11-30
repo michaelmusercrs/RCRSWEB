@@ -1,10 +1,10 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Mail, Phone, Award, Shield, Users, CheckCircle2, ArrowRight } from 'lucide-react';
-import { googleSheetsService } from '@/lib/google-sheets-service';
+import { teamMembers } from '@/lib/teamData';
 
 export default async function AboutPage() {
-  const teamMembers = await googleSheetsService.getTeamMembers();
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
@@ -74,12 +74,13 @@ export default async function AboutPage() {
                 className="bg-white border border-gray-200 hover:border-brand-blue hover:shadow-lg transition-all p-8 rounded-lg group"
               >
                 {/* Profile Image */}
-                <div className="w-32 h-32 bg-gray-300 rounded-full mx-auto mb-6 flex items-center justify-center overflow-hidden">
-                  {member.profileImage && !member.profileImage.includes('YOUR_GOOGLE_DRIVE') ? (
-                    <img
+                <div className="w-32 h-32 bg-gray-300 rounded-full mx-auto mb-6 flex items-center justify-center overflow-hidden relative">
+                  {member.profileImage ? (
+                    <Image
                       src={member.profileImage}
                       alt={member.name}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
                     />
                   ) : (
                     <Users className="text-gray-500" size={64} />
