@@ -102,7 +102,7 @@ export default function VideoBackground({
       )}
 
       {/* Dark overlay for text readability */}
-      <div className="absolute inset-0 bg-black/50" />
+      <div className="absolute inset-0 bg-black/60" />
 
       {/* Content - above everything */}
       <div className="relative z-20">

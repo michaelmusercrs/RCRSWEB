@@ -27,20 +27,20 @@ export default function HomePage() {
         fallbackImage="/uploads/hero-background.jpg"
         className="min-h-[90vh] flex items-center justify-center px-6 py-16 md:py-24 lg:py-32"
       >
-        <div className="max-w-4xl mx-auto text-center text-white">
-          {/* Big Centered Logo */}
-          <div className="mb-8">
+        <div className="max-w-5xl mx-auto text-center">
+          {/* HUGE Centered Logo - Acts as Home Button */}
+          <Link href="/" className="block mb-6">
             <Image
               src="/uploads/logo.png"
               alt="River City Roofing Solutions"
-              width={300}
-              height={300}
-              className="mx-auto w-48 h-48 md:w-64 md:h-64 lg:w-80 lg:h-80 object-contain"
+              width={600}
+              height={400}
+              className="mx-auto w-72 h-auto md:w-96 lg:w-[500px] object-contain drop-shadow-2xl"
               priority
             />
-          </div>
+          </Link>
 
-          {/* Rotating Tagline */}
+          {/* Rotating Tagline - Royal Blue */}
           <RotatingText
             phrases={[
               "Local Professionals",
@@ -51,20 +51,20 @@ export default function HomePage() {
               "Storm Damage Experts"
             ]}
             interval={5000}
-            className="text-2xl md:text-4xl lg:text-5xl font-black uppercase tracking-wider text-brand-green mb-8 min-h-[4rem]"
+            className="text-2xl md:text-4xl lg:text-5xl font-black uppercase tracking-wider text-brand-blue mb-6 min-h-[4rem] drop-shadow-lg"
           />
 
-          {/* Subtitle */}
-          <p className="text-lg md:text-xl max-w-2xl mx-auto text-white/80 leading-relaxed mb-10">
+          {/* Subtitle - White with shadow for visibility */}
+          <p className="text-xl md:text-2xl max-w-2xl mx-auto text-white leading-relaxed mb-10 drop-shadow-lg font-semibold">
             North Alabama's Premier Roofing Company
           </p>
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" className="bg-brand-green text-black hover:bg-lime-400 font-bold uppercase tracking-widest px-8 py-6 text-lg">
+            <Button asChild size="lg" className="bg-brand-green text-black hover:bg-lime-400 font-bold uppercase tracking-widest px-10 py-7 text-lg shadow-xl">
               <Link href="/contact">Get Free Inspection</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="border-2 border-white text-white hover:bg-white hover:text-black font-bold uppercase tracking-widest px-8 py-6 text-lg">
+            <Button asChild size="lg" className="bg-brand-blue text-white hover:bg-blue-700 font-bold uppercase tracking-widest px-10 py-7 text-lg shadow-xl">
               <Link href="tel:256-274-8530">Call (256) 274-8530</Link>
             </Button>
           </div>
