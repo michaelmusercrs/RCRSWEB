@@ -218,7 +218,7 @@ export const teamMembers: TeamMember[] = [
     displayOrder: 8,
     profileImage: '/uploads/boston.png',
     tagline: 'Spreads the word about our quality work through networking and community engagement.',
-    bio: "He is a 3rd generation in the roofing business. He is a member of the Limestone Leaders BNI networking group. He enjoys networking and meeting new people to tell them about the quality work of River City Roofing Solutions. He has 2 dogs Stitch (because he knocked him down when rescuing him from the animal shelter) and Juniper. He enjoys fishing and offroading.",
+    bio: "As Michael Muse's son, Boston proudly carries on the family tradition as a 3rd generation member of the roofing business. He serves as Marketing Director, bringing fresh energy and modern marketing strategies to River City Roofing Solutions. Boston is an active member of the Limestone Leaders BNI networking group, where he builds valuable business relationships throughout North Alabama. He thrives on networking and connecting with new people, passionately sharing the story of River City's commitment to quality craftsmanship. Outside of work, Boston is an animal lover with two rescue dogs—Stitch (named because he knocked Boston down when they first met at the animal shelter) and Juniper. When he's not working or spending time with his dogs, you'll find him fishing on local lakes or offroading through the Alabama countryside. His combination of family legacy, youthful enthusiasm, and genuine love for the community makes him an invaluable part of the River City team.",
     keyStrengths: [
       '3rd generation roofing industry knowledge',
       'BNI networking and relationship building',
@@ -478,6 +478,7 @@ export const teamMembers: TeamMember[] = [
     altEmail: '',
     displayOrder: 19,
     profileImage: '/uploads/danny-ray-muse.png',
+    tagline: 'Forever in our hearts, his legacy of love and family guides us every day.',
     bio: "Danny Ray Muse, known to all as 'Pops,' was the beloved father of Greg, Chris, and Tia, but he treated everyone he met like family. He was a huge part of River City Roofing Solutions, teaching us so much about work, life, and kindness. His sudden passing in 2023 left a void that can never be filled. Pops was loved by everyone, and he loved everyone in return. He is greatly missed, and his legacy of love and family continues to guide us every day.",
   },
 ];
