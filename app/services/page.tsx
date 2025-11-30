@@ -29,32 +29,28 @@ export default function ServicesPage() {
   const additionalServices = getAdditionalServices();
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Hero Section - Video Background */}
-      <VideoBackground
-        videoSrc="/uploads/hero-video.mp4"
-        fallbackImage="/uploads/hero-background.jpg"
-        className="min-h-[50vh] flex items-center justify-center"
-      >
+    <div className="min-h-screen">
+      {/* Hero Section */}
+      <section className="min-h-[50vh] flex items-center justify-center">
         <div className="container mx-auto px-4 text-center text-white">
-          <h1 className="text-5xl md:text-7xl font-bold mb-6">
+          <h1 className="text-5xl md:text-7xl font-bold mb-6 drop-shadow-lg">
             Our Services
           </h1>
-          <p className="text-xl md:text-2xl max-w-3xl mx-auto text-white/80">
+          <p className="text-xl md:text-2xl max-w-3xl mx-auto text-white/90 drop-shadow-md">
             Comprehensive roofing solutions for residential and commercial properties
           </p>
         </div>
-      </VideoBackground>
+      </section>
 
       {/* Primary Services Section */}
-      <section className="py-16 md:py-24 bg-white">
+      <section className="py-16 md:py-24 bg-black/80 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-12">
-              <h2 className="text-4xl md:text-5xl font-bold text-brand-black mb-4">
+              <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
                 Primary Services
               </h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              <p className="text-xl text-gray-300 max-w-3xl mx-auto">
                 Full-service roofing solutions backed by our 5-year workmanship warranty
               </p>
             </div>
@@ -101,14 +97,14 @@ export default function ServicesPage() {
       </section>
 
       {/* Additional Services Section */}
-      <section className="py-16 md:py-24 bg-gray-50">
+      <section className="py-16 md:py-24 bg-black/70 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-12">
-              <h2 className="text-4xl md:text-5xl font-bold text-brand-black mb-4">
+              <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
                 Additional Services
               </h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              <p className="text-xl text-gray-300 max-w-3xl mx-auto">
                 Complementary services to keep your entire roofing system in top condition
               </p>
             </div>
@@ -155,69 +151,69 @@ export default function ServicesPage() {
       </section>
 
       {/* Service Guarantees Section */}
-      <section className="py-16 md:py-24 bg-white">
+      <section className="py-16 md:py-24 bg-black/80 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-12">
-              <h2 className="text-4xl md:text-5xl font-bold text-brand-black mb-4">
+              <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
                 Our Service Guarantees
               </h2>
-              <p className="text-xl text-gray-600">
+              <p className="text-xl text-gray-300">
                 Your satisfaction and protection are our top priorities
               </p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-8">
-              <div className="bg-gray-50 border border-gray-200 rounded-2xl p-8">
+              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-8">
                 <div className="flex items-start gap-4 mb-4">
                   <CheckCircle2 className="text-brand-green flex-shrink-0 mt-1" size={32} />
                   <div>
-                    <h3 className="text-2xl font-bold text-brand-black mb-2">
+                    <h3 className="text-2xl font-bold text-white mb-2">
                       5-Year Workmanship Warranty
                     </h3>
-                    <p className="text-gray-600">
+                    <p className="text-gray-300">
                       Coverage on all labor, installation defects, and material defects with no hidden conditions. Full coverage commitment.
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-gray-50 border border-gray-200 rounded-2xl p-8">
+              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-8">
                 <div className="flex items-start gap-4 mb-4">
                   <CheckCircle2 className="text-brand-green flex-shrink-0 mt-1" size={32} />
                   <div>
-                    <h3 className="text-2xl font-bold text-brand-black mb-2">
+                    <h3 className="text-2xl font-bold text-white mb-2">
                       100% Satisfaction Guarantee
                     </h3>
-                    <p className="text-gray-600">
+                    <p className="text-gray-300">
                       If not satisfied, we'll make it right. Free touch-up visits within 30 days with ongoing support and problem resolution commitment.
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-gray-50 border border-gray-200 rounded-2xl p-8">
+              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-8">
                 <div className="flex items-start gap-4 mb-4">
                   <CheckCircle2 className="text-brand-green flex-shrink-0 mt-1" size={32} />
                   <div>
-                    <h3 className="text-2xl font-bold text-brand-black mb-2">
+                    <h3 className="text-2xl font-bold text-white mb-2">
                       No-Leak Guarantee
                     </h3>
-                    <p className="text-gray-600">
+                    <p className="text-gray-300">
                       Waterproof protection during warranty period. Emergency repair if issue occurs with professional resolution.
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-gray-50 border border-gray-200 rounded-2xl p-8">
+              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-8">
                 <div className="flex items-start gap-4 mb-4">
                   <CheckCircle2 className="text-brand-green flex-shrink-0 mt-1" size={32} />
                   <div>
-                    <h3 className="text-2xl font-bold text-brand-black mb-2">
+                    <h3 className="text-2xl font-bold text-white mb-2">
                       Insurance Claim Support
                     </h3>
-                    <p className="text-gray-600">
+                    <p className="text-gray-300">
                       Expert documentation, fair assessment advocacy, complete claim support with transparent process.
                     </p>
                   </div>

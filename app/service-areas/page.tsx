@@ -14,35 +14,32 @@ export default function ServiceAreasPage() {
   const expansionAreas = getExpansionServiceAreas();
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative w-full h-[40vh] flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 z-0" />
-        <div className="absolute inset-0 bg-black/50 z-10" />
-
+      <section className="relative w-full min-h-[40vh] flex items-center justify-center overflow-hidden">
         <div className="relative z-20 container mx-auto px-4 text-center text-white">
-          <h1 className="text-5xl md:text-7xl font-bold mb-6">
+          <h1 className="text-5xl md:text-7xl font-bold mb-6 drop-shadow-lg">
             Service Areas
           </h1>
-          <p className="text-xl md:text-2xl max-w-3xl mx-auto">
+          <p className="text-xl md:text-2xl max-w-3xl mx-auto text-white/90 drop-shadow-md">
             Proudly serving North Alabama and expanding to new markets
           </p>
         </div>
       </section>
 
       {/* Active Service Areas */}
-      <section className="py-16 md:py-24 bg-white">
+      <section className="py-16 md:py-24 bg-black/80 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-12">
-              <div className="inline-flex items-center gap-2 bg-brand-green/10 text-brand-green px-4 py-2 rounded-full text-sm font-bold mb-4">
+              <div className="inline-flex items-center gap-2 bg-brand-green/20 text-brand-green px-4 py-2 rounded-full text-sm font-bold mb-4">
                 <CheckCircle2 size={20} />
                 CURRENTLY SERVING
               </div>
-              <h2 className="text-4xl md:text-5xl font-bold text-brand-black mb-4">
+              <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
                 Active Service Areas
               </h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              <p className="text-xl text-gray-300 max-w-3xl mx-auto">
                 Full roofing services available now in these North Alabama locations
               </p>
             </div>
@@ -123,18 +120,18 @@ export default function ServiceAreasPage() {
       </section>
 
       {/* Expansion Areas */}
-      <section className="py-16 md:py-24 bg-gray-50">
+      <section className="py-16 md:py-24 bg-black/70 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-12">
-              <div className="inline-flex items-center gap-2 bg-brand-blue/10 text-brand-blue px-4 py-2 rounded-full text-sm font-bold mb-4">
+              <div className="inline-flex items-center gap-2 bg-brand-blue/20 text-brand-blue px-4 py-2 rounded-full text-sm font-bold mb-4">
                 <TrendingUp size={20} />
                 COMING SOON
               </div>
-              <h2 className="text-4xl md:text-5xl font-bold text-brand-black mb-4">
+              <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
                 Expansion Markets
               </h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              <p className="text-xl text-gray-300 max-w-3xl mx-auto">
                 Growing to serve more communities with the same quality and care
               </p>
             </div>
@@ -240,22 +237,22 @@ export default function ServiceAreasPage() {
       </section>
 
       {/* Service Standards */}
-      <section className="py-16 md:py-24 bg-white">
+      <section className="py-16 md:py-24 bg-black/80 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-12">
-              <h2 className="text-4xl md:text-5xl font-bold text-brand-black mb-4">
+              <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
                 Service Standards Across All Areas
               </h2>
-              <p className="text-xl text-gray-600">
+              <p className="text-xl text-gray-300">
                 Consistent quality and reliability, no matter where you're located
               </p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">
-              <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6">
-                <h3 className="text-xl font-bold text-brand-black mb-4">Response Times</h3>
-                <ul className="space-y-2 text-gray-600">
+              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6">
+                <h3 className="text-xl font-bold text-white mb-4">Response Times</h3>
+                <ul className="space-y-2 text-gray-300">
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="text-brand-green mt-0.5 flex-shrink-0" size={16} />
                     <span><strong>Emergency:</strong> Same-day response</span>
@@ -275,9 +272,9 @@ export default function ServiceAreasPage() {
                 </ul>
               </div>
 
-              <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6">
-                <h3 className="text-xl font-bold text-brand-black mb-4">Quality Standards</h3>
-                <ul className="space-y-2 text-gray-600">
+              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6">
+                <h3 className="text-xl font-bold text-white mb-4">Quality Standards</h3>
+                <ul className="space-y-2 text-gray-300">
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="text-brand-green mt-0.5 flex-shrink-0" size={16} />
                     <span>Free inspections with no obligation</span>
@@ -306,7 +303,7 @@ export default function ServiceAreasPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 md:py-24 bg-brand-blue">
+      <section className="py-16 md:py-24 bg-brand-blue/90 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">

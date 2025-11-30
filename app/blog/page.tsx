@@ -15,28 +15,24 @@ export const metadata: Metadata = {
 
 export default function BlogPage() {
   return (
-    <div className="min-h-screen bg-black text-white">
-      {/* Hero Section - Video Background */}
-      <VideoBackground
-        videoSrc="/uploads/hero-video.mp4"
-        fallbackImage="/uploads/hero-background.jpg"
-        className="min-h-[50vh] flex items-center justify-center px-6 py-16 md:py-24"
-      >
+    <div className="min-h-screen text-white">
+      {/* Hero Section */}
+      <section className="min-h-[50vh] flex items-center justify-center px-6 py-16 md:py-24">
         <div className="max-w-6xl mx-auto text-center text-white">
           <div className="inline-block mb-4">
             <span className="text-xs uppercase tracking-widest font-bold text-brand-green">Expert Insights</span>
           </div>
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter mb-6 leading-tight">
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter mb-6 leading-tight drop-shadow-lg">
             Roofing Blog & Resources
           </h1>
-          <p className="text-lg md:text-xl max-w-2xl mx-auto text-white/80 leading-relaxed">
+          <p className="text-lg md:text-xl max-w-2xl mx-auto text-white/90 leading-relaxed drop-shadow-md">
             Expert tips and insights from North Alabama's trusted roofing professionals
           </p>
         </div>
-      </VideoBackground>
+      </section>
 
       {/* Blog Posts Grid */}
-      <section className="py-16 md:py-24 px-6 bg-neutral-950 border-t border-neutral-800">
+      <section className="py-16 md:py-24 px-6 bg-black/80 backdrop-blur-sm border-t border-white/10">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-black uppercase tracking-wider mb-4">
@@ -109,8 +105,8 @@ export default function BlogPage() {
         </div>
       </section>
 
-      {/* CTA Section - Lime Background */}
-      <section className="py-16 md:py-24 px-6 bg-brand-green text-black border-t border-neutral-800">
+      {/* CTA Section */}
+      <section className="py-16 md:py-24 px-6 bg-brand-green/90 backdrop-blur-sm text-black">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-black uppercase tracking-wider mb-4 leading-tight">
             Need Roofing Help?

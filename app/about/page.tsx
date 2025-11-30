@@ -7,25 +7,21 @@ import VideoBackground from '@/components/VideoBackground';
 
 export default async function AboutPage() {
   return (
-    <div className="min-h-screen bg-white">
-      {/* Hero Section - Video Background */}
-      <VideoBackground
-        videoSrc="/uploads/hero-video.mp4"
-        fallbackImage="/uploads/hero-background.jpg"
-        className="min-h-[50vh] flex items-center justify-center"
-      >
+    <div className="min-h-screen">
+      {/* Hero Section */}
+      <section className="min-h-[50vh] flex items-center justify-center">
         <div className="container mx-auto px-4 text-center text-white">
-          <h1 className="text-5xl md:text-7xl font-bold mb-6">
+          <h1 className="text-5xl md:text-7xl font-bold mb-6 drop-shadow-lg">
             Meet Our Team
           </h1>
-          <p className="text-xl md:text-2xl max-w-3xl mx-auto text-white/80">
+          <p className="text-xl md:text-2xl max-w-3xl mx-auto text-white/90 drop-shadow-md">
             The experienced professionals protecting North Alabama homes
           </p>
         </div>
-      </VideoBackground>
+      </section>
 
-      {/* Our Story Section - Dark BG */}
-      <section className="py-16 md:py-24 bg-black relative z-10">
+      {/* Our Story Section */}
+      <section className="py-16 md:py-24 bg-black/80 backdrop-blur-sm relative z-10">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 text-center">
@@ -56,8 +52,8 @@ export default async function AboutPage() {
         </div>
       </section>
 
-      {/* Team Members Section - Dark BG */}
-      <section className="py-16 md:py-24 bg-neutral-900 relative z-10">
+      {/* Team Members Section */}
+      <section className="py-16 md:py-24 bg-black/70 backdrop-blur-sm relative z-10">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
@@ -108,8 +104,8 @@ export default async function AboutPage() {
         </div>
       </section>
 
-      {/* Our Values Section - Blue BG */}
-      <section className="py-16 md:py-24 bg-brand-blue relative z-10">
+      {/* Our Values Section */}
+      <section className="py-16 md:py-24 bg-brand-blue/90 backdrop-blur-sm relative z-10">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
@@ -158,8 +154,8 @@ export default async function AboutPage() {
         </div>
       </section>
 
-      {/* CTA Section - Dark BG */}
-      <section className="py-16 md:py-24 bg-black relative z-10">
+      {/* CTA Section */}
+      <section className="py-16 md:py-24 bg-black/80 backdrop-blur-sm relative z-10">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto border-l-4 border-brand-green pl-8">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
