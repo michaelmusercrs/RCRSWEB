@@ -50,11 +50,11 @@ export default function Header() {
           {/* Logo - Always visible */}
           <Link href="/" className="flex-shrink-0">
             <Image
-              src="/logo.png"
+              src="/logo-nobg.png"
               alt="River City Roofing Solutions"
-              width={80}
-              height={80}
-              className="w-16 h-16 md:w-20 md:h-20 hover:scale-105 transition-transform duration-300"
+              width={160}
+              height={60}
+              className="h-12 md:h-14 w-auto hover:scale-105 transition-transform duration-300"
               priority
             />
           </Link>

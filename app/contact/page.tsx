@@ -61,7 +61,7 @@ export default function ContactPage() {
       {/* Main Contact Section */}
       <section className="py-16 md:py-24 bg-black/70 backdrop-blur-sm">
         <div className="container mx-auto px-4">
-          <ContactForm showContactInfo={true} />
+          <ContactForm showContactInfo={true} darkMode={true} />
         </div>
       </section>
 
