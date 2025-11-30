@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Phone, Menu, X, MessageCircle } from 'lucide-react';
@@ -23,23 +24,28 @@ const locationPages = [
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
+  const isHomePage = pathname === '/';
 
   return (
     <>
-      {/* Main Header - Sticky */}
-      <header className="sticky top-0 z-50 bg-white shadow-md">
+      {/* Main Header - Sticky, transparent on homepage */}
+      <header className={`sticky top-0 z-50 ${isHomePage ? 'bg-transparent' : 'bg-white shadow-md'}`}>
         <nav className="container mx-auto px-4 py-3 flex items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="flex-shrink-0">
-            <Image
-              src="/logo.png"
-              alt="River City Roofing Solutions"
-              width={80}
-              height={80}
-              className="w-16 h-16 md:w-20 md:h-20 hover:scale-105 transition-transform duration-300"
-              priority
-            />
-          </Link>
+          {/* Logo - Hidden on homepage since huge logo is in hero */}
+          {!isHomePage && (
+            <Link href="/" className="flex-shrink-0">
+              <Image
+                src="/uploads/logo.png"
+                alt="River City Roofing Solutions"
+                width={80}
+                height={80}
+                className="w-16 h-16 md:w-20 md:h-20 hover:scale-105 transition-transform duration-300"
+                priority
+              />
+            </Link>
+          )}
+          {isHomePage && <div className="w-16 md:w-20" />}
 
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center gap-8">
@@ -47,7 +53,11 @@ export default function Header() {
               <Link
                 key={item.name}
                 href={item.href}
-                className="text-gray-800 font-semibold hover:text-[#0066CC] transition-colors duration-300 text-lg"
+                className={`font-semibold transition-colors duration-300 text-lg ${
+                  isHomePage
+                    ? 'text-white hover:text-brand-green drop-shadow-lg'
+                    : 'text-gray-800 hover:text-[#0066CC]'
+                }`}
               >
                 {item.name}
               </Link>
@@ -58,7 +68,11 @@ export default function Header() {
           <div className="hidden lg:flex items-center gap-4">
             <a
               href="tel:256-274-8530"
-              className="flex items-center gap-2 text-gray-800 hover:text-[#0066CC] transition-colors duration-300"
+              className={`flex items-center gap-2 transition-colors duration-300 ${
+                isHomePage
+                  ? 'text-white hover:text-brand-green drop-shadow-lg'
+                  : 'text-gray-800 hover:text-[#0066CC]'
+              }`}
             >
               <Phone className="w-5 h-5" />
               <span className="font-semibold text-lg">(256) 274-8530</span>
@@ -74,7 +88,11 @@ export default function Header() {
           {/* Mobile Menu Button */}
           <button
             type="button"
-            className="lg:hidden p-2 text-gray-800 hover:text-[#0066CC] transition-colors"
+            className={`lg:hidden p-2 transition-colors ${
+              isHomePage
+                ? 'text-white hover:text-brand-green'
+                : 'text-gray-800 hover:text-[#0066CC]'
+            }`}
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
             {mobileMenuOpen ? (
