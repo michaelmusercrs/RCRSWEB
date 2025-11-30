@@ -236,7 +236,7 @@ export default function HomePage() {
                     BEFORE
                   </div>
                   <Image
-                    src="https://placehold.co/400x400/4a4a4a/ffffff?text=Damaged+Roof"
+                    src="/uploads/service-storm.jpg"
                     alt="Before: Storm damaged roof in Huntsville"
                     fill
                     className="object-cover"
@@ -247,7 +247,7 @@ export default function HomePage() {
                     AFTER
                   </div>
                   <Image
-                    src="https://placehold.co/400x400/2a2a2a/39FF14?text=New+Roof"
+                    src="/uploads/service-residential.png"
                     alt="After: New roof installation in Huntsville"
                     fill
                     className="object-cover"
@@ -268,7 +268,7 @@ export default function HomePage() {
                     BEFORE
                   </div>
                   <Image
-                    src="https://placehold.co/400x400/4a4a4a/ffffff?text=Old+Shingles"
+                    src="/uploads/service-storm.jpg"
                     alt="Before: Worn roof in Madison"
                     fill
                     className="object-cover"
@@ -279,7 +279,7 @@ export default function HomePage() {
                     AFTER
                   </div>
                   <Image
-                    src="https://placehold.co/400x400/2a2a2a/39FF14?text=Premium+Install"
+                    src="/uploads/service-residential.png"
                     alt="After: Premium roof replacement in Madison"
                     fill
                     className="object-cover"
