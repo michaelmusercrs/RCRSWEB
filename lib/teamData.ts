@@ -140,6 +140,7 @@ export const teamMembers: TeamMember[] = [
     region: 'Nashville',
     launchDate: '2026',
     profileImage: '/uploads/aaron.jpg',
+    facebook: 'https://www.facebook.com/AaronRCRS/',
     tiktok: 'https://www.tiktok.com/@aaronrcrs',
     linkedin: 'https://www.linkedin.com/in/aaronrcrs',
     tagline: 'Brings discipline and commitment from his Marine background to every inspection.',
