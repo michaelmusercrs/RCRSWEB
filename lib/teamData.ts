@@ -129,7 +129,7 @@ export const teamMembers: TeamMember[] = [
     displayOrder: 4,
     region: 'Nashville',
     launchDate: '2026',
-    profileImage: '/uploads/aaron.png',
+    profileImage: '/uploads/aaron.jpg',
     tagline: 'Brings discipline and commitment from his Marine background to every inspection.',
     bio: "Aaron is a dedicated family man, married to his beautiful wife, Hannah, with whom he shares three wonderful children and three beloved dogs. His work as a Sales Inspector often rewards him with breathtaking views from rooftops across the region—a perk he enjoys almost as much as meeting friendly dogs on the job. His preferred shingle is the IKO Dynasty in the striking color Biscayne. His background is as impressive as his work ethic. Aaron proudly served in the Marines for 8 years, completing four tours in Afghanistan and Iraq. This experience instilled a deep sense of discipline and commitment that he brings to every inspection. Before joining us, he honed his expertise as an insurance adjuster for five years, giving him an invaluable perspective on the claims process. An avid traveler who has visited 18 countries, Aaron's leadership extends beyond his role at RCRS. He also serves as the President of his BNI chapter, demonstrating his commitment to professional growth and community networking. We are proud to have his experience, dedication, and positive energy on our team.",
     keyStrengths: [
@@ -216,7 +216,7 @@ export const teamMembers: TeamMember[] = [
     email: 'boston@rcrsal.com',
     altEmail: 'boston@rcrsal.com',
     displayOrder: 8,
-    profileImage: '/uploads/boston.png',
+    profileImage: '/uploads/boston.jpeg',
     tagline: 'Spreads the word about our quality work through networking and community engagement.',
     bio: "As Michael Muse's son, Boston proudly carries on the family tradition as a 3rd generation member of the roofing business. He serves as Marketing Director, bringing fresh energy and modern marketing strategies to River City Roofing Solutions. Boston is an active member of the Limestone Leaders BNI networking group, where he builds valuable business relationships throughout North Alabama. He thrives on networking and connecting with new people, passionately sharing the story of River City's commitment to quality craftsmanship. Outside of work, Boston is an animal lover with two rescue dogs—Stitch (named because he knocked Boston down when they first met at the animal shelter) and Juniper. When he's not working or spending time with his dogs, you'll find him fishing on local lakes or offroading through the Alabama countryside. His combination of family legacy, youthful enthusiasm, and genuine love for the community makes him an invaluable part of the River City team.",
     keyStrengths: [
@@ -303,7 +303,7 @@ export const teamMembers: TeamMember[] = [
     email: 'brendon@rcrsal.com',
     altEmail: 'brendon@rcrsal.com',
     displayOrder: 11,
-    profileImage: '/uploads/brendon.png',
+    profileImage: '/uploads/brendon.jpg',
     tagline: 'A third-generation roofer upholding the family legacy of trust and excellence.',
     bio: "As the son of owner Chris Muse, Brendon is proud to be the 3rd generation in the family business. He brings a deep-rooted passion for quality craftsmanship and customer service to his role as a Sales Inspector. When he's not on a roof, Brendon is a devoted husband to his beautiful wife, A'Lena Muse, and a passionate fan of Alabama football. He takes pride in upholding the family legacy of trust and excellence that River City Roofing Solutions is known for.",
     keyStrengths: [
@@ -361,7 +361,7 @@ export const teamMembers: TeamMember[] = [
     email: 'tae@rcrsal.com',
     altEmail: 'tae@rcrsal.com',
     displayOrder: 13,
-    profileImage: '/uploads/tae.png',
+    profileImage: '/uploads/tae.jpg',
     tagline: 'Keeps projects running smoothly by managing supplies, deliveries, and on-site logistics.',
     bio: "As Materials Manager, Tae brings a remarkable spirit of hard work and dedication to the River City Roofing team. He is a driven individual, passionate about his work, and committed to getting every job done right by managing supplies, deliveries, and on-site logistics. His approach is built on honesty and transparency, ensuring fairness in all his interactions. His shingle of choice is the IKO Dynasty in the color Biscayne. For Tae, the best part of RCRS is the team itself, saying, 'Everyone here feels like family... we always get the job done together.' Happily married to his wife, Keyerra, Tae also loves to give back to the community by coaching and training kids in basketball. In his downtime, he enjoys traveling. We are incredibly fortunate to have Tae's passion and team spirit in our family.",
     keyStrengths: [
@@ -448,7 +448,6 @@ export const teamMembers: TeamMember[] = [
     email: '',
     altEmail: '',
     displayOrder: 18,
-    profileImage: '/uploads/donnie-dotson.png',
     tagline: 'Guides our long-term vision with invaluable entrepreneurial experience.',
     bio: "Donnie has been part of River City Roofing Solutions since the very beginning, helping shape the company's direction and long-term vision. A successful entrepreneur with ventures across multiple industries, he brings valuable insight, experience, and perspective that strengthen our business decisions and help keep the company strong for years to come. When he isn't working, Donnie enjoys time at Smith Lake with his wife Lindsey and their three children, Nate, Luke, and Ruby. Whether it's teaching his kids water sports or relaxing with the family dogs, Donnie's greatest joy is found with family.",
     keyStrengths: [
@@ -477,7 +476,6 @@ export const teamMembers: TeamMember[] = [
     email: '',
     altEmail: '',
     displayOrder: 19,
-    profileImage: '/uploads/danny-ray-muse.png',
     tagline: 'Forever in our hearts, his legacy of love and family guides us every day.',
     bio: "Danny Ray Muse, known to all as 'Pops,' was the beloved father of Greg, Chris, and Tia, but he treated everyone he met like family. He was a huge part of River City Roofing Solutions, teaching us so much about work, life, and kindness. His sudden passing in 2023 left a void that can never be filled. Pops was loved by everyone, and he loved everyone in return. He is greatly missed, and his legacy of love and family continues to guide us every day.",
   },
