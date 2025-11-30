@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Phone, Menu, X, MessageCircle, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import RotatingText from '@/components/RotatingText';
+
 
 const navigation = [
   { name: 'Services', href: '/services' },
@@ -45,13 +45,12 @@ export default function Header() {
 
   return (
     <>
-      {/* Main Header - Sticky */}
-      <header className="sticky top-0 z-50 bg-black/40 backdrop-blur-sm">
-        {/* 1. NAVIGATION BUTTONS AT TOP */}
+      {/* Main Header - Sticky Nav Only */}
+      <header className="sticky top-0 z-50 bg-black/60 backdrop-blur-sm">
         <nav className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-center">
             {/* Desktop Navigation */}
-            <div className="hidden lg:flex items-center gap-6 mx-auto">
+            <div className="hidden lg:flex items-center gap-6">
               {navigation.map((item) => (
                 <Link
                   key={item.name}
@@ -69,11 +68,17 @@ export default function Header() {
                 <Phone className="w-5 h-5" />
                 <span className="font-semibold text-lg">(256) 274-8530</span>
               </a>
+              <Button
+                asChild
+                className="bg-brand-green text-black hover:bg-lime-400 font-bold px-6 py-2 rounded-md"
+              >
+                <Link href="/contact">Free Inspection</Link>
+              </Button>
             </div>
             {/* Mobile Menu Button */}
             <button
               type="button"
-              className="lg:hidden p-2 transition-colors text-white hover:text-brand-green mx-auto"
+              className="lg:hidden p-2 transition-colors text-white hover:text-brand-green"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
               {mobileMenuOpen ? <X className="w-8 h-8" /> : <Menu className="w-8 h-8" />}
@@ -81,41 +86,7 @@ export default function Header() {
           </div>
         </nav>
 
-        {/* 2. LARGE CENTERED LOGO */}
-        <div className="flex justify-center py-4">
-          <Link href="/" className="block">
-            <Image
-              src="/logo-nobg.png"
-              alt="River City Roofing Solutions"
-              width={500}
-              height={200}
-              className="h-28 md:h-36 lg:h-44 w-auto hover:scale-105 transition-transform duration-300 drop-shadow-2xl"
-              priority
-            />
-          </Link>
-        </div>
-
-        {/* 3. ROTATING SUBTITLES */}
-        <div className="text-center pb-4">
-          <RotatingText
-            phrases={["Local Professionals", "Family Owned", "5-Star Rated", "Licensed & Insured", "Storm Damage Experts"]}
-            interval={5000}
-            className="text-xl md:text-2xl lg:text-3xl font-black uppercase tracking-wider text-brand-blue drop-shadow-lg"
-          />
-          <p className="text-white/90 text-lg mt-2 drop-shadow-md">North Alabama's Premier Roofing Company</p>
-        </div>
-
-        {/* 4. CTA BUTTONS */}
-        <div className="flex flex-col sm:flex-row gap-3 justify-center pb-6 px-4">
-          <Button asChild size="lg" className="bg-brand-green text-black hover:bg-lime-400 font-bold uppercase tracking-widest px-8 py-6 text-base shadow-xl">
-            <Link href="/contact">Get Free Inspection</Link>
-          </Button>
-          <Button asChild size="lg" className="bg-brand-green text-black hover:bg-lime-400 font-bold uppercase tracking-widest px-8 py-6 text-base shadow-xl">
-            <Link href="tel:256-274-8530">Call (256) 274-8530</Link>
-          </Button>
-        </div>
-
-        {/* Hidden spacer for nav positioning */}
+        {/* Hidden spacer */}
         <nav className="hidden">
 
         </nav>
