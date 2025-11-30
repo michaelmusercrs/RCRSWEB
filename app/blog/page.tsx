@@ -4,6 +4,7 @@ import { blogPosts, blogMetadata } from '@/lib/blogData';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Calendar, User, ArrowRight } from 'lucide-react';
+import VideoBackground from '@/components/VideoBackground';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -15,20 +16,24 @@ export const metadata: Metadata = {
 export default function BlogPage() {
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Hero Section - Lime Background */}
-      <section className="bg-gradient-to-b from-brand-green to-lime-300 text-black px-6 py-16 md:py-24">
-        <div className="max-w-6xl mx-auto text-center">
+      {/* Hero Section - Video Background */}
+      <VideoBackground
+        videoSrc="/uploads/hero-video.mp4"
+        fallbackImage="/uploads/hero-background.jpg"
+        className="min-h-[50vh] flex items-center justify-center px-6 py-16 md:py-24"
+      >
+        <div className="max-w-6xl mx-auto text-center text-white">
           <div className="inline-block mb-4">
-            <span className="text-xs uppercase tracking-widest font-bold">Expert Insights</span>
+            <span className="text-xs uppercase tracking-widest font-bold text-brand-green">Expert Insights</span>
           </div>
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter mb-6 leading-tight">
             Roofing Blog & Resources
           </h1>
-          <p className="text-lg md:text-xl max-w-2xl mx-auto text-black/75 leading-relaxed">
+          <p className="text-lg md:text-xl max-w-2xl mx-auto text-white/80 leading-relaxed">
             Expert tips and insights from North Alabama's trusted roofing professionals
           </p>
         </div>
-      </section>
+      </VideoBackground>
 
       {/* Blog Posts Grid */}
       <section className="py-16 md:py-24 px-6 bg-neutral-950 border-t border-neutral-800">
@@ -44,65 +49,61 @@ export default function BlogPage() {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {blogPosts.map((post) => (
-              <Card
-                key={post.id}
-                className="border-neutral-800 overflow-hidden hover:border-brand-green transition-all duration-300 group bg-black"
-              >
-                {/* Featured Image */}
-                <div className="w-full h-56 relative bg-neutral-900">
-                  <Image
-                    src={post.image}
-                    alt={post.title}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                </div>
-
-                {/* Content */}
-                <CardContent className="p-6">
-                  {/* Meta */}
-                  <div className="flex items-center gap-4 mb-3 text-xs text-neutral-500 uppercase tracking-widest">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      {post.date}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <User className="h-3 w-3" />
-                      {post.author}
-                    </span>
+              <Link key={post.id} href={`/blog/${post.slug}`} className="block">
+                <Card className="border-neutral-800 overflow-hidden hover:border-brand-green transition-all duration-300 group bg-black cursor-pointer h-full">
+                  {/* Featured Image */}
+                  <div className="w-full h-56 relative bg-neutral-900">
+                    <Image
+                      src={post.image}
+                      alt={post.title}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
                   </div>
 
-                  {/* Title */}
-                  <h3 className="text-lg font-black uppercase tracking-wider mb-2 group-hover:text-brand-green transition-colors leading-tight">
-                    {post.title}
-                  </h3>
-
-                  {/* Excerpt */}
-                  <p className="text-sm text-neutral-400 mb-4 leading-relaxed line-clamp-3">
-                    {post.excerpt}
-                  </p>
-
-                  {/* Keywords */}
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {post.keywords.slice(0, 3).map((keyword, idx) => (
-                      <span
-                        key={idx}
-                        className="text-xs px-2 py-1 bg-neutral-800 rounded-md text-neutral-400"
-                      >
-                        {keyword}
+                  {/* Content */}
+                  <CardContent className="p-6">
+                    {/* Meta */}
+                    <div className="flex items-center gap-4 mb-3 text-xs text-neutral-500 uppercase tracking-widest">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        {post.date}
                       </span>
-                    ))}
-                  </div>
+                      <span className="flex items-center gap-1">
+                        <User className="h-3 w-3" />
+                        {post.author}
+                      </span>
+                    </div>
 
-                  {/* Read More Link */}
-                  <Link
-                    href={`/blog/${post.slug}`}
-                    className="text-brand-green font-bold text-sm uppercase tracking-widest flex items-center gap-2 hover:gap-3 transition-all"
-                  >
-                    Read Article <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </CardContent>
-              </Card>
+                    {/* Title */}
+                    <h3 className="text-lg font-black uppercase tracking-wider mb-2 group-hover:text-brand-green transition-colors leading-tight">
+                      {post.title}
+                    </h3>
+
+                    {/* Excerpt */}
+                    <p className="text-sm text-neutral-400 mb-4 leading-relaxed line-clamp-3">
+                      {post.excerpt}
+                    </p>
+
+                    {/* Keywords */}
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {post.keywords.slice(0, 3).map((keyword, idx) => (
+                        <span
+                          key={idx}
+                          className="text-xs px-2 py-1 bg-neutral-800 rounded-md text-neutral-400"
+                        >
+                          {keyword}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Read More Link */}
+                    <span className="text-brand-green font-bold text-sm uppercase tracking-widest flex items-center gap-2 group-hover:gap-3 transition-all">
+                      Read Article <ArrowRight className="h-4 w-4" />
+                    </span>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
         </div>

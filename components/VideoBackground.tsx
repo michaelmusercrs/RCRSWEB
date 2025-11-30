@@ -7,13 +7,15 @@ interface VideoBackgroundProps {
   fallbackImage?: string;
   className?: string;
   children?: React.ReactNode;
+  sticky?: boolean;
 }
 
 export default function VideoBackground({
   videoSrc,
   fallbackImage = '/uploads/hero-background.jpg',
   className = '',
-  children
+  children,
+  sticky = true
 }: VideoBackgroundProps) {
   const [useVideo, setUseVideo] = useState(false);
   const [videoLoaded, setVideoLoaded] = useState(false);
@@ -61,13 +63,16 @@ export default function VideoBackground({
     setUseVideo(false);
   };
 
+  const bgPositionClass = sticky ? 'fixed' : 'absolute';
+
   return (
     <div className={`relative overflow-hidden ${className}`}>
-      {/* Fallback/Background Image */}
+      {/* Fallback/Background Image - Fixed for parallax effect */}
       <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        className={`${bgPositionClass} inset-0 bg-cover bg-center bg-no-repeat`}
         style={{
           backgroundImage: `url(${fallbackImage})`,
+          backgroundAttachment: sticky ? 'fixed' : 'scroll',
           opacity: videoLoaded ? 0 : 1,
           transition: 'opacity 0.5s ease-in-out'
         }}
@@ -75,14 +80,14 @@ export default function VideoBackground({
 
       {/* Gradient overlay as ultimate fallback */}
       <div
-        className="absolute inset-0 bg-gradient-to-br from-gray-900 to-black"
+        className={`${bgPositionClass} inset-0 bg-gradient-to-br from-gray-900 to-black`}
         style={{
           opacity: videoLoaded ? 0 : 0.7,
           transition: 'opacity 0.5s ease-in-out'
         }}
       />
 
-      {/* Video Background */}
+      {/* Video Background - Fixed for parallax effect */}
       {useVideo && (
         <video
           ref={videoRef}
@@ -91,7 +96,7 @@ export default function VideoBackground({
           playsInline
           onLoadedData={handleVideoLoaded}
           onError={handleVideoError}
-          className="absolute inset-0 w-full h-full object-cover"
+          className={`${bgPositionClass} inset-0 w-full h-full object-cover`}
           style={{
             opacity: videoLoaded ? 1 : 0,
             transition: 'opacity 0.5s ease-in-out'
@@ -102,7 +107,7 @@ export default function VideoBackground({
       )}
 
       {/* Dark overlay for text readability */}
-      <div className="absolute inset-0 bg-black/40" />
+      <div className={`${bgPositionClass} inset-0 bg-black/40`} />
 
       {/* Content */}
       <div className="relative z-10">

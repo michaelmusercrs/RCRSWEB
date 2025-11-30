@@ -3,24 +3,26 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Mail, Phone, Award, Shield, Users, CheckCircle2, ArrowRight } from 'lucide-react';
 import { teamMembers } from '@/lib/teamData';
+import VideoBackground from '@/components/VideoBackground';
 
 export default async function AboutPage() {
   return (
     <div className="min-h-screen bg-white">
-      {/* Hero Section */}
-      <section className="relative w-full h-[50vh] flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 z-0" />
-        <div className="absolute inset-0 bg-black/50 z-10" />
-
-        <div className="relative z-20 container mx-auto px-4 text-center text-white">
+      {/* Hero Section - Video Background */}
+      <VideoBackground
+        videoSrc="/uploads/hero-video.mp4"
+        fallbackImage="/uploads/hero-background.jpg"
+        className="min-h-[50vh] flex items-center justify-center"
+      >
+        <div className="container mx-auto px-4 text-center text-white">
           <h1 className="text-5xl md:text-7xl font-bold mb-6">
             Meet Our Team
           </h1>
-          <p className="text-xl md:text-2xl max-w-3xl mx-auto">
+          <p className="text-xl md:text-2xl max-w-3xl mx-auto text-white/80">
             The experienced professionals protecting North Alabama homes
           </p>
         </div>
-      </section>
+      </VideoBackground>
 
       {/* Our Story Section - White BG */}
       <section className="py-16 md:py-24 bg-white">
@@ -69,64 +71,38 @@ export default async function AboutPage() {
 
           <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
             {teamMembers.map((member, idx) => (
-              <div
-                key={idx}
-                className="bg-white border border-gray-200 hover:border-brand-blue hover:shadow-lg transition-all p-8 rounded-lg group"
-              >
-                {/* Profile Image */}
-                <div className="w-32 h-32 bg-gray-300 rounded-full mx-auto mb-6 flex items-center justify-center overflow-hidden relative">
-                  {member.profileImage ? (
-                    <Image
-                      src={member.profileImage}
-                      alt={member.name}
-                      fill
-                      className="object-cover"
-                    />
-                  ) : (
-                    <Users className="text-gray-500" size={64} />
-                  )}
-                </div>
-
-                <div className="text-center mb-6">
-                  <h3 className="text-2xl font-bold text-brand-black mb-2">{member.name}</h3>
-                  <p className="text-lg text-brand-blue font-semibold mb-2">{member.position}</p>
-                  {member.tagline && (
-                    <p className="text-sm text-gray-500 italic mb-4">{member.tagline}</p>
-                  )}
-                  <p className="text-gray-600 leading-relaxed text-left">{member.bio}</p>
-                </div>
-
-                {/* Contact Info - Only show if available */}
-                {(member.phone || member.email) && (
-                  <div className="border-t border-gray-200 pt-6 space-y-3 mb-6">
-                    {member.phone && (
-                      <div className="flex items-center gap-3 text-gray-600">
-                        <Phone className="text-brand-blue" size={18} />
-                        <a href={`tel:${member.phone.replace(/\D/g, '')}`} className="hover:text-brand-blue">
-                          {member.phone}
-                        </a>
-                      </div>
-                    )}
-                    {member.email && (
-                      <div className="flex items-center gap-3 text-gray-600">
-                        <Mail className="text-brand-blue" size={18} />
-                        <a href={`mailto:${member.email}`} className="hover:text-brand-blue">
-                          {member.email}
-                        </a>
-                      </div>
+              <Link key={idx} href={`/team/${member.slug}`} className="block">
+                <div className="bg-white border border-gray-200 hover:border-brand-blue hover:shadow-lg transition-all p-8 rounded-lg group cursor-pointer h-full">
+                  {/* Profile Image */}
+                  <div className="w-32 h-32 bg-gray-300 rounded-full mx-auto mb-6 flex items-center justify-center overflow-hidden relative">
+                    {member.profileImage ? (
+                      <Image
+                        src={member.profileImage}
+                        alt={member.name}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <Users className="text-gray-500" size={64} />
                     )}
                   </div>
-                )}
 
-                {/* View Profile Link */}
-                <Link
-                  href={`/team/${member.slug}`}
-                  className="flex items-center justify-center gap-2 text-brand-blue hover:text-blue-700 font-semibold transition-colors group-hover:gap-3"
-                >
-                  View Full Profile
-                  <ArrowRight size={18} />
-                </Link>
-              </div>
+                  <div className="text-center mb-6">
+                    <h3 className="text-2xl font-bold text-brand-black mb-2 group-hover:text-brand-blue transition-colors">{member.name}</h3>
+                    <p className="text-lg text-brand-blue font-semibold mb-2">{member.position}</p>
+                    {member.tagline && (
+                      <p className="text-sm text-gray-500 italic mb-4">{member.tagline}</p>
+                    )}
+                    <p className="text-gray-600 leading-relaxed text-left line-clamp-4">{member.bio}</p>
+                  </div>
+
+                  {/* View Profile Link */}
+                  <span className="flex items-center justify-center gap-2 text-brand-blue font-semibold group-hover:gap-3 transition-all">
+                    View Full Profile
+                    <ArrowRight size={18} />
+                  </span>
+                </div>
+              </Link>
             ))}
           </div>
         </div>

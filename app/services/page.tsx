@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { getPrimaryServices, getAdditionalServices } from '@/lib/servicesData';
 import { Home, Wrench, Building2, CloudRain, Flame, Shield, Search, AlertTriangle, Droplet, Wind, Paintbrush, ArrowRight, CheckCircle2 } from 'lucide-react';
+import VideoBackground from '@/components/VideoBackground';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -29,20 +30,21 @@ export default function ServicesPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Hero Section */}
-      <section className="relative w-full h-[40vh] flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 z-0" />
-        <div className="absolute inset-0 bg-black/50 z-10" />
-
-        <div className="relative z-20 container mx-auto px-4 text-center text-white">
+      {/* Hero Section - Video Background */}
+      <VideoBackground
+        videoSrc="/uploads/hero-video.mp4"
+        fallbackImage="/uploads/hero-background.jpg"
+        className="min-h-[50vh] flex items-center justify-center"
+      >
+        <div className="container mx-auto px-4 text-center text-white">
           <h1 className="text-5xl md:text-7xl font-bold mb-6">
             Our Services
           </h1>
-          <p className="text-xl md:text-2xl max-w-3xl mx-auto">
+          <p className="text-xl md:text-2xl max-w-3xl mx-auto text-white/80">
             Comprehensive roofing solutions for residential and commercial properties
           </p>
         </div>
-      </section>
+      </VideoBackground>
 
       {/* Primary Services Section */}
       <section className="py-16 md:py-24 bg-white">

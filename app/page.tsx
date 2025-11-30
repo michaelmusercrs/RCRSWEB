@@ -112,28 +112,26 @@ export default function HomePage() {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {primaryServices.map((service, idx) => (
-              <Card
-                key={service.id}
-                className={`border-neutral-800 hover:bg-brand-green hover:text-black transition-all duration-300 group ${
-                  idx === 1 ? 'bg-black' : 'bg-neutral-950'
-                }`}
-              >
-                <CardContent className="p-6 lg:p-8">
-                  <div className="w-6 h-6 border-2 border-brand-green group-hover:border-black rounded mb-6"></div>
-                  <h3 className="text-lg font-black uppercase tracking-wider mb-3 group-hover:text-black">
-                    {service.title}
-                  </h3>
-                  <p className="text-neutral-400 group-hover:text-black/75 text-sm mb-4 leading-relaxed">
-                    {service.description}
-                  </p>
-                  <Link
-                    href={`/services/${service.slug}`}
-                    className="text-brand-green group-hover:text-black font-bold text-sm uppercase tracking-widest flex items-center gap-2"
-                  >
-                    Learn More <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </CardContent>
-              </Card>
+              <Link key={service.id} href={`/services/${service.slug}`} className="block">
+                <Card
+                  className={`border-neutral-800 hover:bg-brand-green hover:text-black transition-all duration-300 group cursor-pointer h-full ${
+                    idx === 1 ? 'bg-black' : 'bg-neutral-950'
+                  }`}
+                >
+                  <CardContent className="p-6 lg:p-8">
+                    <div className="w-6 h-6 border-2 border-brand-green group-hover:border-black rounded mb-6"></div>
+                    <h3 className="text-lg font-black uppercase tracking-wider mb-3 group-hover:text-black">
+                      {service.title}
+                    </h3>
+                    <p className="text-neutral-400 group-hover:text-black/75 text-sm mb-4 leading-relaxed">
+                      {service.description}
+                    </p>
+                    <span className="text-brand-green group-hover:text-black font-bold text-sm uppercase tracking-widest flex items-center gap-2">
+                      Learn More <ArrowRight className="h-4 w-4" />
+                    </span>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
 
