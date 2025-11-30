@@ -46,7 +46,7 @@ export default function ServiceAreasPage() {
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               {activeAreas.map((area) => (
-                <div
+                <Link href={`/service-areas/${area.slug}`}
                   key={area.id}
                   className="bg-white card-modern border-2 border-brand-green/20 p-6"
                 >
@@ -112,7 +112,7 @@ export default function ServiceAreasPage() {
                       </ul>
                     </div>
                   )}
-                </div>
+                </Link>
               ))}
             </div>
           </div>
@@ -138,7 +138,7 @@ export default function ServiceAreasPage() {
 
             <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
               {expansionAreas.map((area) => (
-                <div
+                <Link href={`/service-areas/${area.slug}`}
                   key={area.id}
                   className="bg-white card-modern border-2 border-brand-blue/20 p-8"
                 >
@@ -229,7 +229,7 @@ export default function ServiceAreasPage() {
                       </ul>
                     </div>
                   )}
-                </div>
+                </Link>
               ))}
             </div>
           </div>
