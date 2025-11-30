@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Phone, MapPin, Clock, Shield, Award, Users, CheckCircle2, ArrowRight } from 'lucide-react';
 import AnimatedHeroText from '@/components/AnimatedHeroText';
+import VideoBackground from '@/components/VideoBackground';
 import { blogPosts } from '@/lib/blogData';
 import { services, serviceAreas } from '@/lib/servicesData';
 
@@ -19,28 +20,32 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Hero Section - Lime Background */}
-      <section className="bg-gradient-to-b from-brand-green to-lime-300 text-black px-6 py-16 md:py-24 lg:py-32">
-        <div className="max-w-6xl mx-auto text-center">
+      {/* Hero Section - Video Background */}
+      <VideoBackground
+        videoSrc="/uploads/hero-video.mp4"
+        fallbackImage="/uploads/hero-background.jpg"
+        className="min-h-[80vh] flex items-center justify-center px-6 py-16 md:py-24 lg:py-32"
+      >
+        <div className="max-w-6xl mx-auto text-center text-white">
           <div className="inline-block mb-4">
-            <span className="text-xs uppercase tracking-widest font-bold">River City Roofing Solutions</span>
+            <span className="text-xs uppercase tracking-widest font-bold text-brand-green">River City Roofing Solutions</span>
           </div>
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter mb-6 leading-tight">
             North Alabama's Premier Roofing Company
           </h1>
-          <p className="text-lg md:text-xl max-w-2xl mx-auto text-black/75 leading-relaxed mb-8">
+          <p className="text-lg md:text-xl max-w-2xl mx-auto text-white/80 leading-relaxed mb-8">
             Professional roof replacement, repair, and storm damage services across Decatur, Huntsville, Madison, and beyond
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" className="bg-black text-brand-green hover:bg-neutral-900 font-bold uppercase tracking-widest">
+            <Button asChild size="lg" className="bg-brand-green text-black hover:bg-lime-400 font-bold uppercase tracking-widest">
               <Link href="/contact">Get Free Inspection</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="border-2 border-black text-black hover:bg-black hover:text-brand-green font-bold uppercase tracking-widest">
+            <Button asChild size="lg" variant="outline" className="border-2 border-white text-white hover:bg-white hover:text-black font-bold uppercase tracking-widest">
               <Link href="tel:256-274-8530">Call (256) 274-8530</Link>
             </Button>
           </div>
         </div>
-      </section>
+      </VideoBackground>
 
       {/* Intro Section - Dark BG */}
       <section className="py-16 md:py-24 px-6 bg-neutral-950 border-t border-neutral-800">
