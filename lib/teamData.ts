@@ -17,6 +17,8 @@ export interface TeamMember {
   facebook?: string;
   instagram?: string;
   x?: string;
+  tiktok?: string;
+  linkedin?: string;
   keyStrengths?: string[];
   responsibilities?: string[];
   // Legacy fields for compatibility
@@ -39,6 +41,10 @@ export const teamMembers: TeamMember[] = [
     altEmail: 'chrismuse@rcrsal.com',
     displayOrder: 1,
     profileImage: '/uploads/chris-muse.png',
+    facebook: 'https://www.facebook.com/RiverCityRoofingSolutions',
+    instagram: 'https://www.instagram.com/rivercityroofingsolutions/',
+    tiktok: 'https://www.tiktok.com/@river.city.roofin',
+    x: 'https://x.com/roofing_river',
     tagline: 'Drives the company forward with extensive industry experience and a passion for community.',
     bio: "Chris is a dedicated family man with a son, Brendon (who is also on the team), and two daughters, Katie Bell and Elizabeth. He has a long and deep history in construction, having worked every role from framing to roofing. He has done every part of the roofing process from installing, leading a crew, sales, and project managing. This comprehensive background gives him a unique understanding of the entire roofing process. Having personally handled thousands of insurance claims, he's an expert at navigating the system to ensure homeowners get the coverage they deserve. His favorite shingle is the IKO Royal Estate in Shadow Slate, a choice that reflects his eye for quality and durability. Outside of work, Chris is an avid golfer and enjoys watching Alabama football on Saturdays and cheering on the Atlanta Braves. He is very involved in youth basketball, coaching and managing the very successful 'River City Net Reepers' girls youth squad. Above all, he enjoys helping homeowners and takes great pride in watching the River City team grow and succeed.",
     keyStrengths: [
@@ -68,6 +74,10 @@ export const teamMembers: TeamMember[] = [
     altEmail: 'michaelmuse@rcrsal.com',
     displayOrder: 2,
     profileImage: '/uploads/michael-muse.png',
+    facebook: 'https://www.facebook.com/RiverCityRoofingSolutions',
+    instagram: 'https://www.instagram.com/rivercityroofingsolutions/',
+    tiktok: 'https://www.tiktok.com/@river.city.roofin',
+    x: 'https://x.com/roofing_river',
     tagline: 'Leads sales and marketing with a focus on empowering the team and ensuring customer satisfaction.',
     bio: "Michael, much like his brother Chris, brings extensive experience to the roofing industry. He has worked in every aspect of the business, from hands-on installation to developing effective sales and marketing strategies. His preferred shingle is the IKO Nordic in Granite Black, a choice reflecting his appreciation for superior durability and hail resistance. Having assisted thousands of homeowners with roof replacements, Michael derives great satisfaction from seeing the River City team consistently meet and exceed customer expectations. He is passionate about empowering his team to continuously improve and deliver exceptional service. A dedicated family man, Michael has two sons, Michael Jr. and Boston, and two grandchildren, Skis and Wrenly. He enjoyed coaching his sons' football teams when they were younger.",
     keyStrengths: [
@@ -304,6 +314,10 @@ export const teamMembers: TeamMember[] = [
     altEmail: 'brendon@rcrsal.com',
     displayOrder: 11,
     profileImage: '/uploads/brendon.jpg',
+    facebook: 'https://www.facebook.com/RiverCityRoofingSolutions',
+    instagram: 'https://www.instagram.com/rivercityroofingsolutions/',
+    tiktok: 'https://www.tiktok.com/@river.city.roofin',
+    x: 'https://x.com/roofing_river',
     tagline: 'A third-generation roofer upholding the family legacy of trust and excellence.',
     bio: "As the son of owner Chris Muse, Brendon is proud to be the 3rd generation in the family business. He brings a deep-rooted passion for quality craftsmanship and customer service to his role as a Sales Inspector. When he's not on a roof, Brendon is a devoted husband to his beautiful wife, A'Lena Muse, and a passionate fan of Alabama football. He takes pride in upholding the family legacy of trust and excellence that River City Roofing Solutions is known for.",
     keyStrengths: [

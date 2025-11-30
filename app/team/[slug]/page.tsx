@@ -2,7 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Mail, Phone, Award, CheckCircle2, ArrowLeft, Users } from 'lucide-react';
+import { Mail, Phone, Award, CheckCircle2, ArrowLeft, Users, Facebook, Instagram, Twitter, Linkedin } from 'lucide-react';
 import { getTeamMember, getAllTeamSlugs } from '@/lib/teamData';
 
 export async function generateStaticParams() {
@@ -120,6 +120,67 @@ export default function TeamMemberPage({ params }: { params: { slug: string } })
                     <Button asChild className="w-full bg-brand-blue hover:bg-blue-700 text-white font-bold">
                       <a href={`mailto:${member.email}`}>Contact {member.name.split(' ')[0]}</a>
                     </Button>
+                  )}
+
+                  {/* Social Media Links */}
+                  {(member.facebook || member.instagram || member.tiktok || member.x || member.linkedin) && (
+                    <div className="border-t border-gray-300 pt-6 mt-6">
+                      <p className="text-xs text-gray-500 uppercase tracking-wide mb-3 text-center">Connect</p>
+                      <div className="flex justify-center gap-3">
+                        {member.facebook && (
+                          <a
+                            href={member.facebook}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-10 h-10 bg-gray-200 hover:bg-blue-600 hover:text-white rounded-full flex items-center justify-center transition-colors"
+                          >
+                            <Facebook size={20} />
+                          </a>
+                        )}
+                        {member.instagram && (
+                          <a
+                            href={member.instagram}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-10 h-10 bg-gray-200 hover:bg-pink-600 hover:text-white rounded-full flex items-center justify-center transition-colors"
+                          >
+                            <Instagram size={20} />
+                          </a>
+                        )}
+                        {member.tiktok && (
+                          <a
+                            href={member.tiktok}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-10 h-10 bg-gray-200 hover:bg-black hover:text-white rounded-full flex items-center justify-center transition-colors group relative"
+                          >
+                            <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                              <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+                            </svg>
+                          </a>
+                        )}
+                        {member.x && (
+                          <a
+                            href={member.x}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-10 h-10 bg-gray-200 hover:bg-black hover:text-white rounded-full flex items-center justify-center transition-colors"
+                          >
+                            <Twitter size={20} />
+                          </a>
+                        )}
+                        {member.linkedin && (
+                          <a
+                            href={member.linkedin}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-10 h-10 bg-gray-200 hover:bg-blue-700 hover:text-white rounded-full flex items-center justify-center transition-colors"
+                          >
+                            <Linkedin size={20} />
+                          </a>
+                        )}
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
