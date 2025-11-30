@@ -24,14 +24,14 @@ export default async function AboutPage() {
         </div>
       </VideoBackground>
 
-      {/* Our Story Section - White BG */}
-      <section className="py-16 md:py-24 bg-white">
+      {/* Our Story Section - Dark BG */}
+      <section className="py-16 md:py-24 bg-black relative z-10">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-4xl md:text-5xl font-bold text-brand-black mb-6 text-center">
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 text-center">
               Our Story
             </h2>
-            <div className="space-y-6 text-lg text-gray-600 leading-relaxed">
+            <div className="space-y-6 text-lg text-neutral-300 leading-relaxed">
               <p>
                 River City Roofing Solutions was founded in 2010 with a simple mission: provide North Alabama
                 homeowners with honest, reliable roofing services they can trust. What started as a small,
@@ -43,10 +43,10 @@ export default async function AboutPage() {
                 and materials to deliver superior results on every project.
               </p>
               <div className="border-l-4 border-brand-green pl-6 my-8">
-                <p className="text-xl text-brand-black font-semibold mb-2">
+                <p className="text-xl text-brand-green font-semibold mb-2">
                   Family-Owned • Locally Operated • Community Focused
                 </p>
-                <p className="text-gray-600">
+                <p className="text-neutral-400">
                   We're not just your roofers—we're your neighbors, committed to protecting the homes
                   and businesses in our community.
                 </p>
@@ -56,14 +56,14 @@ export default async function AboutPage() {
         </div>
       </section>
 
-      {/* Team Members Section - Grey BG */}
-      <section className="py-16 md:py-24 bg-gray-50">
+      {/* Team Members Section - Dark BG */}
+      <section className="py-16 md:py-24 bg-neutral-900 relative z-10">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-4xl md:text-5xl font-bold text-brand-black mb-4">
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
               Our Team
             </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            <p className="text-lg text-neutral-300 max-w-2xl mx-auto">
               Meet the dedicated professionals who make River City Roofing Solutions the best choice
               for your roofing needs
             </p>
@@ -72,7 +72,7 @@ export default async function AboutPage() {
           <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
             {teamMembers.map((member, idx) => (
               <Link key={idx} href={`/team/${member.slug}`} className="block">
-                <div className="bg-white border border-gray-200 hover:border-brand-blue hover:shadow-lg transition-all p-8 rounded-lg group cursor-pointer h-full">
+                <div className="bg-neutral-800 border border-neutral-700 hover:border-brand-green hover:shadow-xl hover:shadow-brand-green/20 transition-all p-8 rounded-lg group cursor-pointer h-full">
                   {/* Profile Image */}
                   <div className="w-32 h-32 bg-gray-300 rounded-full mx-auto mb-6 flex items-center justify-center overflow-hidden relative">
                     {member.profileImage ? (
@@ -88,16 +88,16 @@ export default async function AboutPage() {
                   </div>
 
                   <div className="text-center mb-6">
-                    <h3 className="text-2xl font-bold text-brand-black mb-2 group-hover:text-brand-blue transition-colors">{member.name}</h3>
-                    <p className="text-lg text-brand-blue font-semibold mb-2">{member.position}</p>
+                    <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-brand-green transition-colors">{member.name}</h3>
+                    <p className="text-lg text-brand-green font-semibold mb-2">{member.position}</p>
                     {member.tagline && (
-                      <p className="text-sm text-gray-500 italic mb-4">{member.tagline}</p>
+                      <p className="text-sm text-neutral-400 italic mb-4">{member.tagline}</p>
                     )}
-                    <p className="text-gray-600 leading-relaxed text-left line-clamp-4">{member.bio}</p>
+                    <p className="text-neutral-300 leading-relaxed text-left line-clamp-4">{member.bio}</p>
                   </div>
 
                   {/* View Profile Link */}
-                  <span className="flex items-center justify-center gap-2 text-brand-blue font-semibold group-hover:gap-3 transition-all">
+                  <span className="flex items-center justify-center gap-2 text-brand-green font-semibold group-hover:gap-3 transition-all">
                     View Full Profile
                     <ArrowRight size={18} />
                   </span>
@@ -109,7 +109,7 @@ export default async function AboutPage() {
       </section>
 
       {/* Our Values Section - Blue BG */}
-      <section className="py-16 md:py-24 bg-brand-blue">
+      <section className="py-16 md:py-24 bg-brand-blue relative z-10">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
@@ -158,23 +158,23 @@ export default async function AboutPage() {
         </div>
       </section>
 
-      {/* CTA Section - White BG */}
-      <section className="py-16 md:py-24 bg-white">
+      {/* CTA Section - Dark BG */}
+      <section className="py-16 md:py-24 bg-black relative z-10">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto border-l-4 border-brand-green pl-8">
-            <h2 className="text-4xl md:text-5xl font-bold text-brand-black mb-4">
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
               Ready to Work With Us?
             </h2>
-            <p className="text-xl text-gray-600 mb-8">
+            <p className="text-xl text-neutral-300 mb-8">
               Experience the River City Roofing difference. Contact us today for your free inspection
               and see why North Alabama homeowners trust us with their roofing needs.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button asChild className="bg-brand-blue hover:bg-blue-700 text-white font-bold px-8 py-6 text-lg">
+              <Button asChild className="bg-brand-green hover:bg-lime-400 text-black font-bold px-8 py-6 text-lg">
                 <Link href="/contact">Schedule Free Inspection</Link>
               </Button>
-              <Button asChild className="border-2 border-brand-black text-brand-black hover:bg-black hover:text-white font-bold px-8 py-6 text-lg">
-                <Link href="tel:2565551234">Call (256) 555-1234</Link>
+              <Button asChild className="border-2 border-white text-white hover:bg-white hover:text-black font-bold px-8 py-6 text-lg">
+                <Link href="tel:256-274-8530">Call (256) 274-8530</Link>
               </Button>
             </div>
           </div>
