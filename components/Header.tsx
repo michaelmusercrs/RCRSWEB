@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Phone, Menu, X, MessageCircle, Send } from 'lucide-react';
+import { Phone, Menu, X, MessageCircle, Send, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 
@@ -48,7 +48,14 @@ export default function Header() {
       {/* Main Header - Sticky Nav Only */}
       <header className="sticky top-0 z-50 bg-black/60 backdrop-blur-sm">
         <nav className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-center">
+          <div className="flex items-center justify-between">
+            {/* Home Button - Only on non-home pages */}
+            {!isHomePage ? (
+              <Link href="/" className="flex items-center gap-2 text-white hover:text-brand-green transition-colors">
+                <Home className="w-6 h-6" />
+                <span className="hidden sm:inline font-semibold">Home</span>
+              </Link>
+            ) : <div />}
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center gap-6">
               {navigation.map((item) => (
