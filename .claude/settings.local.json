@@ -26,7 +26,13 @@
       "WebFetch(domain:trs1llc.com)",
       "Bash(timeout 5 bash:*)",
       "Bash(curl:*)",
-      "Bash(nul)"
+      "Bash(nul)",
+      "Bash(node setup-sheets.js:*)",
+      "Bash(timeout 10 curl:*)",
+      "Bash(node check-sheets.js:*)",
+      "Bash(node test-images.js:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(start CP210xVCPInstaller_x64.exe)"
     ],
     "deny": [],
     "ask": []

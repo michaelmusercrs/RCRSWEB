@@ -38,6 +38,7 @@ export const teamMembers: TeamMember[] = [
     email: 'chrismuse@rcrsal.com',
     altEmail: 'chrismuse@rcrsal.com',
     displayOrder: 1,
+    profileImage: '/uploads/chris-muse.png',
     tagline: 'Drives the company forward with extensive industry experience and a passion for community.',
     bio: "Chris is a dedicated family man with a son, Brendon (who is also on the team), and two daughters, Katie Bell and Elizabeth. He has a long and deep history in construction, having worked every role from framing to roofing. He has done every part of the roofing process from installing, leading a crew, sales, and project managing. This comprehensive background gives him a unique understanding of the entire roofing process. Having personally handled thousands of insurance claims, he's an expert at navigating the system to ensure homeowners get the coverage they deserve. His favorite shingle is the IKO Royal Estate in Shadow Slate, a choice that reflects his eye for quality and durability. Outside of work, Chris is an avid golfer and enjoys watching Alabama football on Saturdays and cheering on the Atlanta Braves. He is very involved in youth basketball, coaching and managing the very successful 'River City Net Reepers' girls youth squad. Above all, he enjoys helping homeowners and takes great pride in watching the River City team grow and succeed.",
     keyStrengths: [
@@ -66,6 +67,7 @@ export const teamMembers: TeamMember[] = [
     email: 'michaelmuse@rcrsal.com',
     altEmail: 'michaelmuse@rcrsal.com',
     displayOrder: 2,
+    profileImage: '/uploads/michael-muse.png',
     tagline: 'Leads sales and marketing with a focus on empowering the team and ensuring customer satisfaction.',
     bio: "Michael, much like his brother Chris, brings extensive experience to the roofing industry. He has worked in every aspect of the business, from hands-on installation to developing effective sales and marketing strategies. His preferred shingle is the IKO Nordic in Granite Black, a choice reflecting his appreciation for superior durability and hail resistance. Having assisted thousands of homeowners with roof replacements, Michael derives great satisfaction from seeing the River City team consistently meet and exceed customer expectations. He is passionate about empowering his team to continuously improve and deliver exceptional service. A dedicated family man, Michael has two sons, Michael Jr. and Boston, and two grandchildren, Skis and Wrenly. He enjoyed coaching his sons' football teams when they were younger.",
     keyStrengths: [
@@ -96,6 +98,7 @@ export const teamMembers: TeamMember[] = [
     displayOrder: 3,
     region: 'Birmingham',
     launchDate: 'Q4 2025',
+    profileImage: '/uploads/hunter.png',
     tagline: 'A cornerstone of RCRS, building relationships through honesty and transparency.',
     bio: "A true cornerstone of River City Roofing Solutions, Hunter has been an indispensable part of our journey since day one. His unwavering dedication and deep-seated knowledge of the roofing industry have been instrumental in shaping our company's commitment to quality and customer satisfaction. As one of our original team members, Hunter embodies the spirit and work ethic that our reputation is built upon. As a Sales Inspector, Hunter is known for his meticulous and honest assessments. He believes in empowering homeowners with clear, straightforward information, ensuring they can make confident decisions about their property. His goal isn't just to make a sale, but to build lasting relationships based on trust and transparency. Outside of work, Hunter is a devoted family man, happily married to Mary Rivers. Together, they are raising their wonderful Jackson and their beloved dogs, Bandit and Birdie. He cherishes his off-time, enjoying well-deserved moments with his family.",
     keyStrengths: [
@@ -126,6 +129,7 @@ export const teamMembers: TeamMember[] = [
     displayOrder: 4,
     region: 'Nashville',
     launchDate: '2026',
+    profileImage: '/uploads/aaron.png',
     tagline: 'Brings discipline and commitment from his Marine background to every inspection.',
     bio: "Aaron is a dedicated family man, married to his beautiful wife, Hannah, with whom he shares three wonderful children and three beloved dogs. His work as a Sales Inspector often rewards him with breathtaking views from rooftops across the region—a perk he enjoys almost as much as meeting friendly dogs on the job. His preferred shingle is the IKO Dynasty in the striking color Biscayne. His background is as impressive as his work ethic. Aaron proudly served in the Marines for 8 years, completing four tours in Afghanistan and Iraq. This experience instilled a deep sense of discipline and commitment that he brings to every inspection. Before joining us, he honed his expertise as an insurance adjuster for five years, giving him an invaluable perspective on the claims process. An avid traveler who has visited 18 countries, Aaron's leadership extends beyond his role at RCRS. He also serves as the President of his BNI chapter, demonstrating his commitment to professional growth and community networking. We are proud to have his experience, dedication, and positive energy on our team.",
     keyStrengths: [
@@ -154,6 +158,7 @@ export const teamMembers: TeamMember[] = [
     email: 'sara@rcrsal.com',
     altEmail: 'sara@rcrsal.com',
     displayOrder: 6,
+    profileImage: '/uploads/sara-hill.png',
     tagline: 'The organizational backbone of the office, ensuring smooth operations for our team.',
     bio: "As the dedicated Office Manager at River City Roofing Solutions, Sara brings a wealth of experience and a passion for excellence to every project. With a strong commitment to customer satisfaction, she plays a vital role in upholding our company's standards for quality and integrity. When not focused on delivering top-tier roofing solutions, Sara enjoys watching Alabama football and Braves baseball.",
     keyStrengths: [
@@ -182,6 +187,7 @@ export const teamMembers: TeamMember[] = [
     email: 'tia@rcrsal.com',
     altEmail: 'tia@rcrsal.com',
     displayOrder: 7,
+    profileImage: '/uploads/tia.png',
     tagline: 'Brings vibrant energy and a family-first attitude to our administrative team.',
     bio: "Tia brings a vibrant and positive energy to our team. She is a supermom to her adventurous 7-year-old, Mathias, and her resilient three-legged cat, Tipsy. Her family is a powerhouse of love and inspiration that shines through in her work. When asked what makes River City Roofing Solutions special, Tia says, 'It's the family vibe. Half of us might be family by blood, but here, it feels like we're all family.' This sentiment is at the core of our company culture. Her preferred roofing material is the IKO Dynasty in the Pacific Rim color, a choice as stylish and dependable as she is. Outside the office, Tia's greatest treasure is quality time with Mathias, whether they're exploring the wonders of nature or expressing their creativity with arts and crafts, especially painting. As an avid nature watcher and a die-hard Georgia Bulldogs fan, her enthusiasm is truly contagious.",
     keyStrengths: [
@@ -210,6 +216,7 @@ export const teamMembers: TeamMember[] = [
     email: 'boston@rcrsal.com',
     altEmail: 'boston@rcrsal.com',
     displayOrder: 8,
+    profileImage: '/uploads/boston.png',
     tagline: 'Spreads the word about our quality work through networking and community engagement.',
     bio: "He is a 3rd generation in the roofing business. He is a member of the Limestone Leaders BNI networking group. He enjoys networking and meeting new people to tell them about the quality work of River City Roofing Solutions. He has 2 dogs Stitch (because he knocked him down when rescuing him from the animal shelter) and Juniper. He enjoys fishing and offroading.",
     keyStrengths: [
@@ -238,6 +245,7 @@ export const teamMembers: TeamMember[] = [
     email: 'destin@rcrsal.com',
     altEmail: 'destin@rcrsal.com',
     displayOrder: 9,
+    profileImage: '/uploads/destin.png',
     tagline: 'Spreads positivity while managing administrative tasks and connecting with our team.',
     bio: "Destin is a proud mom to her two wonderful children, Paisley and Memphis, who are the light of her life. Her favorite shingles are the stylish and durable IKO Nordic in Granite Black. What Destin loves most about RCRS is the incredible work family she's a part of. She looks forward to connecting with her team and meeting new people every day. Outside of work, Destin is a coffee enthusiast with a passion for all genres of music. She believes in spreading positivity wherever she goes, and her dedicated and cheerful presence is a great asset to our team.",
     keyStrengths: [
@@ -266,6 +274,7 @@ export const teamMembers: TeamMember[] = [
     email: 'john@rcrsal.com',
     altEmail: 'john@rcrsal.com',
     displayOrder: 10,
+    profileImage: '/uploads/john.png',
     tagline: 'A cornerstone of our operations, ensuring projects run smoothly and efficiently.',
     bio: "As our invaluable Project Manager, John brings a fantastic attitude, dedication, and a commitment to quality to every job site. He is a cornerstone of our operations, ensuring that projects run smoothly and efficiently. John's favorite part of the job is interacting with everyone involved, from our skilled crew to our valued customers, ensuring clear communication and a positive experience for all. His shingle of choice is the IKO Dynasty in Glacier—a testament to his eye for quality. A former Auburn Tiger, John is as comfortable in the great outdoors as he is on a roof. When he's not in the woods or on a roof, you might find him enjoying a good game of cards. We're incredibly lucky to have John's leadership and positive energy on the River City team.",
     keyStrengths: [
@@ -294,6 +303,7 @@ export const teamMembers: TeamMember[] = [
     email: 'brendon@rcrsal.com',
     altEmail: 'brendon@rcrsal.com',
     displayOrder: 11,
+    profileImage: '/uploads/brendon.png',
     tagline: 'A third-generation roofer upholding the family legacy of trust and excellence.',
     bio: "As the son of owner Chris Muse, Brendon is proud to be the 3rd generation in the family business. He brings a deep-rooted passion for quality craftsmanship and customer service to his role as a Sales Inspector. When he's not on a roof, Brendon is a devoted husband to his beautiful wife, A'Lena Muse, and a passionate fan of Alabama football. He takes pride in upholding the family legacy of trust and excellence that River City Roofing Solutions is known for.",
     keyStrengths: [
@@ -322,6 +332,7 @@ export const teamMembers: TeamMember[] = [
     email: 'bart@rcrsal.com',
     altEmail: 'bart@rcrsal.com',
     displayOrder: 12,
+    profileImage: '/uploads/bart.png',
     tagline: "Helps ensure claims are handled accurately and in the homeowner's best interest.",
     bio: "As our Insurance Claims Specialist, Bart masterfully helps homeowners and our sales teams navigate the complexities of insurance claims, ensuring everyone receives the support they deserve. His favorite shingle is the stylish and durable IKO Dynasty in Granite Black. For Bart, the best part of working at RCRS is the family atmosphere. This sense of community extends to his own family—he loves spending time with his wife Carolyn, their son Andrew, and their adorable dog, Yoshi. When he's not on the job, Bart is a passionate Alabama Football fan (Roll Tide!), an avid hiker, and a dedicated father who enjoys watching his son play sports. His hard work and a positive attitude make him an invaluable asset to the River City family.",
     keyStrengths: [
@@ -350,6 +361,7 @@ export const teamMembers: TeamMember[] = [
     email: 'tae@rcrsal.com',
     altEmail: 'tae@rcrsal.com',
     displayOrder: 13,
+    profileImage: '/uploads/tae.png',
     tagline: 'Keeps projects running smoothly by managing supplies, deliveries, and on-site logistics.',
     bio: "As Materials Manager, Tae brings a remarkable spirit of hard work and dedication to the River City Roofing team. He is a driven individual, passionate about his work, and committed to getting every job done right by managing supplies, deliveries, and on-site logistics. His approach is built on honesty and transparency, ensuring fairness in all his interactions. His shingle of choice is the IKO Dynasty in the color Biscayne. For Tae, the best part of RCRS is the team itself, saying, 'Everyone here feels like family... we always get the job done together.' Happily married to his wife, Keyerra, Tae also loves to give back to the community by coaching and training kids in basketball. In his downtime, he enjoys traveling. We are incredibly fortunate to have Tae's passion and team spirit in our family.",
     keyStrengths: [
@@ -378,6 +390,7 @@ export const teamMembers: TeamMember[] = [
     email: 'greg@rcrsal.com',
     altEmail: 'greg@rcrsal.com',
     displayOrder: 15,
+    profileImage: '/uploads/greg.png',
     tagline: 'Brings a positive attitude and a keen eye for detail to every property he visits.',
     bio: "As a Sales Inspector, Greg is one of the friendly faces you'll meet when you schedule a free inspection. He brings a positive attitude and a keen eye for detail to every property he visits. He's passionate about helping homeowners find the best solutions for their roofing needs, whether it's a minor repair or a full replacement. His favorite shingle is the IKO Dynasty in a stunning Pacific Rim color, a testament to his great taste. Greg loves the family atmosphere at River City Roofing Solutions, where everyone supports each other to provide the best service possible.",
     keyStrengths: [
@@ -406,6 +419,7 @@ export const teamMembers: TeamMember[] = [
     email: 'travis@rcrsal.com',
     altEmail: 'travis@rcrsal.com',
     displayOrder: 17,
+    profileImage: '/uploads/travis.png',
     tagline: 'Dedicated to customer satisfaction with a deep connection to the local community.',
     bio: "As a dedicated Sales Inspector at River City Roofing Solutions, Travis brings a wealth of experience and a passion for excellence to every project. With a strong commitment to customer satisfaction, he plays a vital role in upholding our company's standards for quality and integrity. When not focused on delivering top-tier roofing solutions, Travis enjoys spending time with family, fishing on the Tennessee River, and volunteering in the local community. This connection to the community reinforces our company's identity as a trusted, local business.",
     keyStrengths: [
@@ -434,6 +448,7 @@ export const teamMembers: TeamMember[] = [
     email: '',
     altEmail: '',
     displayOrder: 18,
+    profileImage: '/uploads/donnie-dotson.png',
     tagline: 'Guides our long-term vision with invaluable entrepreneurial experience.',
     bio: "Donnie has been part of River City Roofing Solutions since the very beginning, helping shape the company's direction and long-term vision. A successful entrepreneur with ventures across multiple industries, he brings valuable insight, experience, and perspective that strengthen our business decisions and help keep the company strong for years to come. When he isn't working, Donnie enjoys time at Smith Lake with his wife Lindsey and their three children, Nate, Luke, and Ruby. Whether it's teaching his kids water sports or relaxing with the family dogs, Donnie's greatest joy is found with family.",
     keyStrengths: [
@@ -462,6 +477,7 @@ export const teamMembers: TeamMember[] = [
     email: '',
     altEmail: '',
     displayOrder: 19,
+    profileImage: '/uploads/danny-ray-muse.png',
     bio: "Danny Ray Muse, known to all as 'Pops,' was the beloved father of Greg, Chris, and Tia, but he treated everyone he met like family. He was a huge part of River City Roofing Solutions, teaching us so much about work, life, and kindness. His sudden passing in 2023 left a void that can never be filled. Pops was loved by everyone, and he loved everyone in return. He is greatly missed, and his legacy of love and family continues to guide us every day.",
   },
 ];

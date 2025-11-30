@@ -64,4 +64,5 @@ Write-Host "2. Run: npm run dev" -ForegroundColor White
 Write-Host "3. Open: http://localhost:3000" -ForegroundColor White
 Write-Host ""
 Write-Host "Press any key to continue..."
+
 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
