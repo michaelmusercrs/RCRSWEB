@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Phone, Menu, X, MessageCircle, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import RotatingText from '@/components/RotatingText';
 
 const navigation = [
   { name: 'Services', href: '/services' },
@@ -44,65 +45,79 @@ export default function Header() {
 
   return (
     <>
-      {/* Main Header - Sticky, semi-transparent on all pages */}
-      <header className="sticky top-0 z-50 bg-black/70 backdrop-blur-md shadow-lg">
-        {/* Large Centered Logo */}
+      {/* Main Header - Sticky */}
+      <header className="sticky top-0 z-50 bg-black/80 backdrop-blur-md shadow-lg">
+        {/* 1. NAVIGATION BUTTONS AT TOP */}
+        <nav className="container mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            {/* Desktop Navigation */}
+            <div className="hidden lg:flex items-center gap-6 mx-auto">
+              {navigation.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className="font-semibold transition-colors duration-300 text-lg text-white hover:text-brand-green drop-shadow-lg"
+                >
+                  {item.name}
+                </Link>
+              ))}
+              <span className="text-gray-500">|</span>
+              <a
+                href="tel:256-274-8530"
+                className="flex items-center gap-2 transition-colors duration-300 text-white hover:text-brand-green drop-shadow-lg"
+              >
+                <Phone className="w-5 h-5" />
+                <span className="font-semibold text-lg">(256) 274-8530</span>
+              </a>
+            </div>
+            {/* Mobile Menu Button */}
+            <button
+              type="button"
+              className="lg:hidden p-2 transition-colors text-white hover:text-brand-green mx-auto"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <X className="w-8 h-8" /> : <Menu className="w-8 h-8" />}
+            </button>
+          </div>
+        </nav>
+
+        {/* 2. LARGE CENTERED LOGO */}
         <div className="flex justify-center py-4">
           <Link href="/" className="block">
             <Image
               src="/logo-nobg.png"
               alt="River City Roofing Solutions"
-              width={400}
-              height={150}
-              className="h-24 md:h-32 lg:h-40 w-auto hover:scale-105 transition-transform duration-300 drop-shadow-2xl"
+              width={500}
+              height={200}
+              className="h-28 md:h-36 lg:h-44 w-auto hover:scale-105 transition-transform duration-300 drop-shadow-2xl"
               priority
             />
           </Link>
         </div>
 
-        {/* Navigation Bar */}
-        <nav className="container mx-auto px-4 py-2 flex items-center justify-center">
+        {/* 3. ROTATING SUBTITLES */}
+        <div className="text-center pb-4">
+          <RotatingText
+            phrases={["Local Professionals", "Family Owned", "5-Star Rated", "Licensed & Insured", "Storm Damage Experts"]}
+            interval={5000}
+            className="text-xl md:text-2xl lg:text-3xl font-black uppercase tracking-wider text-brand-blue drop-shadow-lg"
+          />
+          <p className="text-white/90 text-lg mt-2 drop-shadow-md">North Alabama's Premier Roofing Company</p>
+        </div>
 
-          {/* Desktop Navigation - All Centered */}
-          <div className="hidden lg:flex items-center gap-8">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className="font-semibold transition-colors duration-300 text-lg text-white hover:text-brand-green drop-shadow-lg"
-              >
-                {item.name}
-              </Link>
-            ))}
-            <span className="text-gray-500">|</span>
-            <a
-              href="tel:256-274-8530"
-              className="flex items-center gap-2 transition-colors duration-300 text-white hover:text-brand-green drop-shadow-lg"
-            >
-              <Phone className="w-5 h-5" />
-              <span className="font-semibold text-lg">(256) 274-8530</span>
-            </a>
-            <Button
-              asChild
-              className="bg-[#39FF14] hover:bg-[#2ecc11] text-black font-bold px-6 py-3 rounded-md transition-all duration-300 hover:scale-105 shadow-lg"
-            >
-              <Link href="/contact">Free Inspection</Link>
-            </Button>
-          </div>
+        {/* 4. CTA BUTTONS */}
+        <div className="flex flex-col sm:flex-row gap-3 justify-center pb-6 px-4">
+          <Button asChild size="lg" className="bg-brand-green text-black hover:bg-lime-400 font-bold uppercase tracking-widest px-8 py-6 text-base shadow-xl">
+            <Link href="/contact">Get Free Inspection</Link>
+          </Button>
+          <Button asChild size="lg" className="bg-brand-green text-black hover:bg-lime-400 font-bold uppercase tracking-widest px-8 py-6 text-base shadow-xl">
+            <Link href="tel:256-274-8530">Call (256) 274-8530</Link>
+          </Button>
+        </div>
 
+        {/* Hidden spacer for nav positioning */}
+        <nav className="hidden">
 
-          {/* Mobile Menu Button */}
-          <button
-            type="button"
-            className="lg:hidden p-2 transition-colors text-white hover:text-brand-green"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? (
-              <X className="w-8 h-8" />
-            ) : (
-              <Menu className="w-8 h-8" />
-            )}
-          </button>
         </nav>
 
         {/* Mobile Menu Overlay */}
