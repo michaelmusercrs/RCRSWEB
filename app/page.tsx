@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Phone, MapPin, Clock, Shield, Award, Users, CheckCircle2, ArrowRight } from 'lucide-react';
 import AnimatedHeroText from '@/components/AnimatedHeroText';
 import VideoBackground from '@/components/VideoBackground';
+import RotatingText from '@/components/RotatingText';
 import { blogPosts } from '@/lib/blogData';
 import { services, serviceAreas } from '@/lib/servicesData';
 
@@ -24,23 +25,46 @@ export default function HomePage() {
       <VideoBackground
         videoSrc="/uploads/hero-video.mp4"
         fallbackImage="/uploads/hero-background.jpg"
-        className="min-h-[80vh] flex items-center justify-center px-6 py-16 md:py-24 lg:py-32"
+        className="min-h-[90vh] flex items-center justify-center px-6 py-16 md:py-24 lg:py-32"
       >
-        <div className="max-w-6xl mx-auto text-center text-white">
-          <div className="inline-block mb-4">
-            <span className="text-xs uppercase tracking-widest font-bold text-brand-green">River City Roofing Solutions</span>
+        <div className="max-w-4xl mx-auto text-center text-white">
+          {/* Big Centered Logo */}
+          <div className="mb-8">
+            <Image
+              src="/uploads/logo.png"
+              alt="River City Roofing Solutions"
+              width={300}
+              height={300}
+              className="mx-auto w-48 h-48 md:w-64 md:h-64 lg:w-80 lg:h-80 object-contain"
+              priority
+            />
           </div>
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter mb-6 leading-tight">
+
+          {/* Rotating Tagline */}
+          <RotatingText
+            phrases={[
+              "Local Professionals",
+              "Family Owned",
+              "Trusted Since 2010",
+              "5-Star Rated",
+              "Licensed & Insured",
+              "Storm Damage Experts"
+            ]}
+            interval={3000}
+            className="text-2xl md:text-4xl lg:text-5xl font-black uppercase tracking-wider text-brand-green mb-8 h-16"
+          />
+
+          {/* Subtitle */}
+          <p className="text-lg md:text-xl max-w-2xl mx-auto text-white/80 leading-relaxed mb-10">
             North Alabama's Premier Roofing Company
-          </h1>
-          <p className="text-lg md:text-xl max-w-2xl mx-auto text-white/80 leading-relaxed mb-8">
-            Professional roof replacement, repair, and storm damage services across Decatur, Huntsville, Madison, and beyond
           </p>
+
+          {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" className="bg-brand-green text-black hover:bg-lime-400 font-bold uppercase tracking-widest">
+            <Button asChild size="lg" className="bg-brand-green text-black hover:bg-lime-400 font-bold uppercase tracking-widest px-8 py-6 text-lg">
               <Link href="/contact">Get Free Inspection</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="border-2 border-white text-white hover:bg-white hover:text-black font-bold uppercase tracking-widest">
+            <Button asChild size="lg" variant="outline" className="border-2 border-white text-white hover:bg-white hover:text-black font-bold uppercase tracking-widest px-8 py-6 text-lg">
               <Link href="tel:256-274-8530">Call (256) 274-8530</Link>
             </Button>
           </div>
