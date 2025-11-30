@@ -46,20 +46,24 @@ export default function Header() {
     <>
       {/* Main Header - Sticky, semi-transparent on all pages */}
       <header className="sticky top-0 z-50 bg-black/70 backdrop-blur-md shadow-lg">
-        <nav className="container mx-auto px-4 py-3 flex items-center justify-between">
-          {/* Logo - Always visible */}
-          <Link href="/" className="flex-shrink-0">
+        {/* Large Centered Logo */}
+        <div className="flex justify-center py-4">
+          <Link href="/" className="block">
             <Image
               src="/logo-nobg.png"
               alt="River City Roofing Solutions"
-              width={160}
-              height={60}
-              className="h-12 md:h-14 w-auto hover:scale-105 transition-transform duration-300"
+              width={400}
+              height={150}
+              className="h-24 md:h-32 lg:h-40 w-auto hover:scale-105 transition-transform duration-300 drop-shadow-2xl"
               priority
             />
           </Link>
+        </div>
 
-          {/* Desktop Navigation */}
+        {/* Navigation Bar */}
+        <nav className="container mx-auto px-4 py-2 flex items-center justify-center">
+
+          {/* Desktop Navigation - All Centered */}
           <div className="hidden lg:flex items-center gap-8">
             {navigation.map((item) => (
               <Link
@@ -70,10 +74,7 @@ export default function Header() {
                 {item.name}
               </Link>
             ))}
-          </div>
-
-          {/* Desktop Phone & CTA */}
-          <div className="hidden lg:flex items-center gap-4">
+            <span className="text-gray-500">|</span>
             <a
               href="tel:256-274-8530"
               className="flex items-center gap-2 transition-colors duration-300 text-white hover:text-brand-green drop-shadow-lg"
@@ -88,6 +89,7 @@ export default function Header() {
               <Link href="/contact">Free Inspection</Link>
             </Button>
           </div>
+
 
           {/* Mobile Menu Button */}
           <button
@@ -105,7 +107,7 @@ export default function Header() {
 
         {/* Mobile Menu Overlay */}
         {mobileMenuOpen && (
-          <div className="lg:hidden fixed inset-0 top-[72px] bg-white z-40 overflow-y-auto">
+          <div className="lg:hidden fixed inset-0 top-[200px] bg-white z-40 overflow-y-auto">
             <div className="px-4 py-6 space-y-6">
               {navigation.map((item) => (
                 <Link
