@@ -46,7 +46,7 @@ export default function Header() {
   return (
     <>
       {/* Main Header - Sticky */}
-      <header className="sticky top-0 z-50 bg-black/80 backdrop-blur-md shadow-lg">
+      <header className="sticky top-0 z-50 bg-black/40 backdrop-blur-sm">
         {/* 1. NAVIGATION BUTTONS AT TOP */}
         <nav className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
