@@ -140,6 +140,8 @@ export const teamMembers: TeamMember[] = [
     region: 'Nashville',
     launchDate: '2026',
     profileImage: '/uploads/aaron.jpg',
+    tiktok: 'https://www.tiktok.com/@aaronrcrs',
+    linkedin: 'https://www.linkedin.com/in/aaronrcrs',
     tagline: 'Brings discipline and commitment from his Marine background to every inspection.',
     bio: "Aaron is a dedicated family man, married to his beautiful wife, Hannah, with whom he shares three wonderful children and three beloved dogs. His work as a Sales Inspector often rewards him with breathtaking views from rooftops across the region—a perk he enjoys almost as much as meeting friendly dogs on the job. His preferred shingle is the IKO Dynasty in the striking color Biscayne. His background is as impressive as his work ethic. Aaron proudly served in the Marines for 8 years, completing four tours in Afghanistan and Iraq. This experience instilled a deep sense of discipline and commitment that he brings to every inspection. Before joining us, he honed his expertise as an insurance adjuster for five years, giving him an invaluable perspective on the claims process. An avid traveler who has visited 18 countries, Aaron's leadership extends beyond his role at RCRS. He also serves as the President of his BNI chapter, demonstrating his commitment to professional growth and community networking. We are proud to have his experience, dedication, and positive energy on our team.",
     keyStrengths: [
