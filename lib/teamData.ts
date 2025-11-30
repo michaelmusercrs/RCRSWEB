@@ -448,6 +448,7 @@ export const teamMembers: TeamMember[] = [
     email: '',
     altEmail: '',
     displayOrder: 18,
+    profileImage: '/uploads/donnie-dotson.jpg',
     tagline: 'Guides our long-term vision with invaluable entrepreneurial experience.',
     bio: "Donnie has been part of River City Roofing Solutions since the very beginning, helping shape the company's direction and long-term vision. A successful entrepreneur with ventures across multiple industries, he brings valuable insight, experience, and perspective that strengthen our business decisions and help keep the company strong for years to come. When he isn't working, Donnie enjoys time at Smith Lake with his wife Lindsey and their three children, Nate, Luke, and Ruby. Whether it's teaching his kids water sports or relaxing with the family dogs, Donnie's greatest joy is found with family.",
     keyStrengths: [
