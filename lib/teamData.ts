@@ -477,6 +477,7 @@ export const teamMembers: TeamMember[] = [
     email: '',
     altEmail: '',
     displayOrder: 19,
+    profileImage: '/uploads/danny-ray-muse.png',
     tagline: 'Forever in our hearts, his legacy of love and family guides us every day.',
     bio: "Danny Ray Muse, known to all as 'Pops,' was the beloved father of Greg, Chris, and Tia, but he treated everyone he met like family. He was a huge part of River City Roofing Solutions, teaching us so much about work, life, and kindness. His sudden passing in 2023 left a void that can never be filled. Pops was loved by everyone, and he loved everyone in return. He is greatly missed, and his legacy of love and family continues to guide us every day.",
   },
