@@ -65,6 +65,31 @@ export default function ContactPage() {
         </div>
       </section>
 
+      {/* Google Map Section */}
+      <section className="py-16 md:py-24 bg-black/60 backdrop-blur-sm">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-8 text-white">
+            Our Service Area
+          </h2>
+          <p className="text-center text-gray-300 mb-8 max-w-2xl mx-auto">
+            Proudly serving Decatur, Huntsville, Madison, Athens, and all of North Alabama
+          </p>
+          <div className="max-w-4xl mx-auto rounded-2xl overflow-hidden shadow-2xl">
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d206117.72498731682!2d-87.0665!3d34.6059!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x88626b67596015a5%3A0x1a225ecff2c0cc95!2sDecatur%2C%20AL!5e0!3m2!1sen!2sus!4v1700000000000!5m2!1sen!2sus"
+              width="100%"
+              height="450"
+              style={{ border: 0 }}
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              title="River City Roofing Solutions Service Area - Decatur, AL"
+              className="w-full"
+            />
+          </div>
+        </div>
+      </section>
+
       {/* FAQ Section */}
       <section className="py-16 md:py-24 bg-black/80 backdrop-blur-sm">
         <div className="container mx-auto px-4">

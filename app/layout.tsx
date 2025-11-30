@@ -1,10 +1,14 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+import Script from 'next/script';
 import './globals.css';
 import Header from '@/components/Header';
 import FloatingContactButton from '@/components/FloatingContactButton';
 import GlobalVideoBackground from '@/components/GlobalVideoBackground';
 import { generateMetadata, generateLocalBusinessSchema, getStructuredDataScript } from '@/lib/seo';
+
+// Google Analytics ID - Replace with your actual GA4 Measurement ID
+const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_ID || 'G-XXXXXXXXXX';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -33,6 +37,19 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        {/* Google Analytics */}
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${GA_MEASUREMENT_ID}');
+          `}
+        </Script>
         {/* Structured Data (JSON-LD) */}
         <script
           type="application/ld+json"
