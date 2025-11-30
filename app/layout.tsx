@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/Header';
 import FloatingContactButton from '@/components/FloatingContactButton';
+import GlobalVideoBackground from '@/components/GlobalVideoBackground';
 import { generateMetadata, generateLocalBusinessSchema, getStructuredDataScript } from '@/lib/seo';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -46,6 +47,10 @@ export default function RootLayout({
         <meta name="color-scheme" content="dark light" />
       </head>
       <body className={inter.className}>
+        <GlobalVideoBackground
+          videoSrc="/uploads/hero-video.mp4"
+          fallbackImage="/uploads/hero-background.jpg"
+        />
         <Header />
         <main>{children}</main>
         <FloatingContactButton />

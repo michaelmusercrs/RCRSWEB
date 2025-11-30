@@ -63,49 +63,8 @@ export default function VideoBackground({
 
   return (
     <div className={`relative ${className}`}>
-      {/* Fallback/Background Image */}
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat bg-fixed"
-        style={{
-          backgroundImage: `url(${fallbackImage})`,
-          opacity: videoLoaded ? 0 : 1,
-          transition: 'opacity 0.5s ease-in-out'
-        }}
-      />
-
-      {/* Gradient overlay as ultimate fallback */}
-      <div
-        className="absolute inset-0 bg-gradient-to-br from-gray-900 to-black"
-        style={{
-          opacity: videoLoaded ? 0 : 0.7,
-          transition: 'opacity 0.5s ease-in-out'
-        }}
-      />
-
-      {/* Video Background */}
-      {useVideo && (
-        <video
-          ref={videoRef}
-          autoPlay
-          muted
-          playsInline
-          onLoadedData={handleVideoLoaded}
-          onError={handleVideoError}
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{
-            opacity: videoLoaded ? 1 : 0,
-            transition: 'opacity 0.5s ease-in-out'
-          }}
-        >
-          <source src={videoSrc} type="video/mp4" />
-        </video>
-      )}
-
-      {/* Dark overlay for text readability */}
-      <div className="absolute inset-0 bg-black/60" />
-
-      {/* Content - above everything */}
-      <div className="relative z-20">
+      {/* Content Container */}
+      <div className="relative z-10">
         {children}
       </div>
     </div>

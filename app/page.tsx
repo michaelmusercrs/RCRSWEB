@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Phone, MapPin, Clock, Shield, Award, Users, CheckCircle2, ArrowRight } from 'lucide-react';
 import AnimatedHeroText from '@/components/AnimatedHeroText';
-import VideoBackground from '@/components/VideoBackground';
 import RotatingText from '@/components/RotatingText';
 import { blogPosts } from '@/lib/blogData';
 import { services, serviceAreas } from '@/lib/servicesData';
@@ -20,22 +19,18 @@ export default function HomePage() {
   const activeAreas = serviceAreas.filter(a => a.status === 'Active');
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      {/* Hero Section - Video Background */}
-      <VideoBackground
-        videoSrc="/uploads/hero-video.mp4"
-        fallbackImage="/uploads/hero-background.jpg"
-        className="min-h-[90vh] flex items-center justify-center px-6 py-16 md:py-24 lg:py-32"
-      >
+    <div className="min-h-screen text-white">
+      {/* Hero Section - Uses global video background */}
+      <div className="-mt-20 min-h-screen flex items-center justify-center px-6 pt-20">
         <div className="max-w-5xl mx-auto text-center">
           {/* HUGE Centered Logo - Acts as Home Button */}
-          <Link href="/" className="block mb-6">
+          <Link href="/" className="block mb-4">
             <Image
-              src="/uploads/logo.png"
+              src="/logo-nobg.png"
               alt="River City Roofing Solutions"
               width={600}
               height={400}
-              className="mx-auto w-72 h-auto md:w-96 lg:w-[500px] object-contain drop-shadow-2xl"
+              className="mx-auto w-96 h-auto md:w-[460px] lg:w-[600px] object-contain drop-shadow-2xl"
               priority
             />
           </Link>
@@ -45,34 +40,33 @@ export default function HomePage() {
             phrases={[
               "Local Professionals",
               "Family Owned",
-              "Trusted Since 2010",
               "5-Star Rated",
               "Licensed & Insured",
               "Storm Damage Experts"
             ]}
             interval={5000}
-            className="text-2xl md:text-4xl lg:text-5xl font-black uppercase tracking-wider text-brand-blue mb-6 min-h-[4rem] drop-shadow-lg"
+            className="text-xl md:text-3xl lg:text-4xl font-black uppercase tracking-wider text-brand-blue mb-4 min-h-[3rem] drop-shadow-lg"
           />
 
           {/* Subtitle - White with shadow for visibility */}
-          <p className="text-xl md:text-2xl max-w-2xl mx-auto text-white leading-relaxed mb-10 drop-shadow-lg font-semibold">
+          <p className="text-lg md:text-xl max-w-2xl mx-auto text-white leading-relaxed mb-6 drop-shadow-lg font-semibold">
             North Alabama's Premier Roofing Company
           </p>
 
-          {/* CTA Buttons */}
+          {/* CTA Buttons - Green with Blue Text */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" className="bg-brand-green text-black hover:bg-lime-400 font-bold uppercase tracking-widest px-10 py-7 text-lg shadow-xl">
+            <Button asChild size="lg" className="bg-brand-green text-brand-blue hover:bg-lime-400 font-bold uppercase tracking-widest px-10 py-7 text-lg shadow-xl">
               <Link href="/contact">Get Free Inspection</Link>
             </Button>
-            <Button asChild size="lg" className="bg-brand-blue text-white hover:bg-blue-700 font-bold uppercase tracking-widest px-10 py-7 text-lg shadow-xl">
+            <Button asChild size="lg" className="bg-brand-green text-brand-blue hover:bg-lime-400 font-bold uppercase tracking-widest px-10 py-7 text-lg shadow-xl">
               <Link href="tel:256-274-8530">Call (256) 274-8530</Link>
             </Button>
           </div>
         </div>
-      </VideoBackground>
+      </div>
 
-      {/* Intro Section - Dark BG */}
-      <section className="py-16 md:py-24 px-6 bg-neutral-950 border-t border-neutral-800">
+      {/* Intro Section - Semi-transparent */}
+      <section className="py-16 md:py-24 px-6 bg-black/85 backdrop-blur-sm border-t border-neutral-800">
         <div className="max-w-6xl mx-auto text-center">
           <div className="inline-block mb-4">
             <span className="text-xs uppercase tracking-widest font-bold text-brand-green">About Us</span>
@@ -96,7 +90,7 @@ export default function HomePage() {
       </section>
 
       {/* Services Section */}
-      <section className="py-16 md:py-24 px-6 bg-black border-t border-neutral-800">
+      <section className="py-16 md:py-24 px-6 bg-black/80 backdrop-blur-sm border-t border-neutral-800">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-block mb-4">
@@ -144,7 +138,7 @@ export default function HomePage() {
       </section>
 
       {/* Service Areas Section */}
-      <section className="py-16 md:py-24 px-6 bg-neutral-950 border-t border-neutral-800">
+      <section className="py-16 md:py-24 px-6 bg-black/85 backdrop-blur-sm border-t border-neutral-800">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-block mb-4">
@@ -186,7 +180,7 @@ export default function HomePage() {
       </section>
 
       {/* Blog Posts Section */}
-      <section className="py-16 md:py-24 px-6 bg-black border-t border-neutral-800">
+      <section className="py-16 md:py-24 px-6 bg-black/80 backdrop-blur-sm border-t border-neutral-800">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-block mb-4">
@@ -240,7 +234,7 @@ export default function HomePage() {
       </section>
 
       {/* Before & After Gallery */}
-      <section className="py-16 md:py-24 px-6 bg-black border-t border-neutral-800">
+      <section className="py-16 md:py-24 px-6 bg-black/80 backdrop-blur-sm border-t border-neutral-800">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-block mb-4">
@@ -329,7 +323,7 @@ export default function HomePage() {
       </section>
 
       {/* Enhanced Testimonials */}
-      <section className="py-16 md:py-24 px-6 bg-neutral-950 border-t border-neutral-800">
+      <section className="py-16 md:py-24 px-6 bg-black/85 backdrop-blur-sm border-t border-neutral-800">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-block mb-4">
@@ -406,7 +400,7 @@ export default function HomePage() {
       </section>
 
       {/* Why Choose Section */}
-      <section className="py-16 md:py-24 px-6 bg-black border-t border-neutral-800">
+      <section className="py-16 md:py-24 px-6 bg-black/80 backdrop-blur-sm border-t border-neutral-800">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-block mb-4">
@@ -451,8 +445,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* CTA Section - Lime BG */}
-      <section className="py-16 md:py-24 px-6 bg-brand-green text-black border-t border-neutral-800">
+      {/* CTA Section - Lime BG with slight transparency */}
+      <section className="py-16 md:py-24 px-6 bg-brand-green/95 backdrop-blur-sm text-black border-t border-neutral-800">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-black uppercase tracking-wider mb-4 leading-tight">
             Ready to Protect Your Home?

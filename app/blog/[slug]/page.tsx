@@ -54,20 +54,33 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Hero Section - Lime Background */}
-      <section className="bg-gradient-to-b from-brand-green to-lime-300 text-black px-6 py-16 md:py-24">
-        <div className="max-w-4xl mx-auto">
+      {/* Hero Section - Blog Image Background */}
+      <section className="relative min-h-[60vh] flex items-end -mt-20 pt-20">
+        {/* Background Image */}
+        <div className="absolute inset-0">
+          <Image
+            src={post.image}
+            alt={post.title}
+            fill
+            className="object-cover"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-black/30" />
+        </div>
+
+        {/* Content */}
+        <div className="relative z-10 max-w-4xl mx-auto px-6 pb-16">
           {/* Back to Blog Link */}
           <Link
             href="/blog"
-            className="inline-flex items-center gap-2 text-black/75 hover:text-black font-bold uppercase tracking-widest text-sm mb-8 transition-colors"
+            className="inline-flex items-center gap-2 text-white/75 hover:text-brand-green font-bold uppercase tracking-widest text-sm mb-8 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Blog
           </Link>
 
           {/* Article Meta */}
-          <div className="flex items-center gap-6 mb-6 text-sm uppercase tracking-widest">
+          <div className="flex items-center gap-6 mb-6 text-sm uppercase tracking-widest text-white/80">
             <span className="flex items-center gap-2">
               <Calendar className="h-4 w-4" />
               {post.date}
@@ -79,7 +92,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
           </div>
 
           {/* Article Title */}
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-tighter mb-6 leading-tight">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-tighter mb-6 leading-tight text-white drop-shadow-lg">
             {post.title}
           </h1>
 
@@ -88,26 +101,11 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
             {post.keywords.map((keyword, idx) => (
               <span
                 key={idx}
-                className="text-xs px-3 py-1 bg-black text-brand-green rounded-md font-bold uppercase tracking-widest"
+                className="text-xs px-3 py-1 bg-brand-green text-black rounded-md font-bold uppercase tracking-widest"
               >
                 {keyword}
               </span>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Image */}
-      <section className="border-t border-neutral-800">
-        <div className="max-w-6xl mx-auto">
-          <div className="relative w-full h-[400px] md:h-[500px] bg-neutral-900">
-            <Image
-              src={post.image}
-              alt={post.title}
-              fill
-              className="object-cover"
-              priority
-            />
           </div>
         </div>
       </section>

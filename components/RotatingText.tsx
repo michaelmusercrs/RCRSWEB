@@ -44,8 +44,8 @@ export default function RotatingText({
       <p
         className={`transition-all duration-700 ease-out transform ${
           isVisible
-            ? 'opacity-100 translate-y-0'
-            : 'opacity-0 translate-y-12'
+            ? 'opacity-100 translate-x-0'
+            : 'opacity-0 -translate-x-full'
         }`}
       >
         {phrases[currentIndex]}
