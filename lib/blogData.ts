@@ -66,7 +66,7 @@ export const blogPosts: BlogPost[] = [
     title: "Navigating Spring Storm Season: A Decatur Homeowner's Guide",
     date: "May 5, 2024",
     author: "Michael Muse",
-    image: "/uploads/service-storm.jpg",
+    image: "/uploads/blog-navigating-spring-storm-season-in-alabama.png",
     keywords: ["storm", "clouds"],
     excerpt: "Spring in North Alabama brings unpredictable weather. Learn how to prepare your roof and what to do after a storm hits.",
     content: "April in Decatur, Huntsville, and across the Tennessee Valley means beautiful blooms but also the threat of severe weather. Hail and high winds are a roof's worst enemy. We recommend a pre-season inspection to check for loose shingles or compromised flashing. After a storm, walk your property to look for any visible damage from the ground. If you suspect damage, call a licensed and insured local roofer immediately. We provide free inspections and are experts at working with all insurance companies to ensure your claim is handled correctly."
@@ -77,7 +77,7 @@ export const blogPosts: BlogPost[] = [
     title: "Is Metal Roofing the Right Choice for Your Huntsville Home?",
     date: "June 12, 2024",
     author: "Chris Muse",
-    image: "/uploads/area-huntsville.webp",
+    image: "/uploads/blog-metal-roofing-for-huntsville-homes.jpg",
     keywords: ["metal", "roof"],
     excerpt: "Metal roofing is gaining popularity in Madison and Huntsville for its durability and energy efficiency. Is it right for you?",
     content: "We're seeing more homeowners in Huntsville and Madison County ask about metal roofing, and for good reason. A metal roof can last 50 years or more, withstands extreme weather better than many other materials, and is highly energy-efficient, reflecting summer heat to lower your cooling costs. While the initial investment is higher than asphalt shingles, the long-term value, low maintenance, and potential insurance discounts make it a compelling option for many North Alabama families."
@@ -110,7 +110,7 @@ export const blogPosts: BlogPost[] = [
     title: "The River City Difference: What It Means to Be an IKO RoofPro Contractor",
     date: "September 5, 2024",
     author: "Chris Muse",
-    image: "/uploads/cert-iko-codeplus.png",
+    image: "/uploads/blog-iko-roofpro-difference.jpg",
     keywords: ["roofing", "certification"],
     excerpt: "Being an IKO RoofPro Certified Contractor isn't just a title. It's a commitment to quality, training, and superior warranties for our customers.",
     content: "At River City Roofing Solutions, we take pride in our certifications. Being an IKO RoofPro Contractor means our team has undergone specialized training directly from the manufacturer. This expertise allows us to offer enhanced warranties, like the IKO CodePlus program, which provides superior protection against wind and hail. It's our promise to you that your roof is installed to the highest industry standards, ensuring peace of mind for years to come."
@@ -121,7 +121,7 @@ export const blogPosts: BlogPost[] = [
     title: "Your Essential Fall Roof Maintenance Checklist",
     date: "September 18, 2024",
     author: "Michael Muse",
-    image: "/uploads/service-leafx.png",
+    image: "/uploads/blog-fall-roof-maintenance-checklist.jpg",
     keywords: ["roof", "autumn"],
     excerpt: "As the leaves start to fall in Athens and across North Alabama, a little roof care can prevent big problems this winter.",
     content: "Fall is the perfect time to prepare your roof for the colder, wetter months ahead. Start by cleaning your gutters of leaves and debris to prevent ice dams. Visually inspect your roof from the ground for any missing or damaged shingles. Check the flashing around your chimney and vents for any signs of cracking or peeling. Addressing these small issues now can prevent costly leaks and water damage when winter arrives. If you're not comfortable on a ladder, our team offers comprehensive fall maintenance inspections."
@@ -143,7 +143,7 @@ export const blogPosts: BlogPost[] = [
     title: "Are Icicles on Your Roof a Warning Sign?",
     date: "October 15, 2024",
     author: "Michael Muse",
-    image: "/uploads/area-athens.jpg",
+    image: "/uploads/blog-ice-dams-roof-warning-sign.jpg",
     keywords: ["icicles", "roof"],
     excerpt: "While they might look pretty, icicles can signal a serious problem with your attic's insulation and ventilation, leading to ice dams.",
     content: "Icicles hanging from your roofline might look festive, but they're often a symptom of a larger issue: an ice dam. This happens when heat escapes from your attic, melting snow on the roof. The water runs down and refreezes at the colder edge, creating a dam. Water then backs up under the shingles, causing leaks and damage to your roof, insulation, and interior walls. The solution isn't just removing the icicles; it's addressing the root cause with proper attic insulation and ventilation to keep your roof's surface evenly cold."
@@ -154,7 +154,7 @@ export const blogPosts: BlogPost[] = [
     title: "The Hidden Dangers of a Small Roof Leak",
     date: "October 29, 2024",
     author: "John",
-    image: "/uploads/area-north-alabama.png",
+    image: "/uploads/blog-roof-leaks-and-your-attic.jpg",
     keywords: ["attic", "water"],
     excerpt: "Don't ignore that small water spot on your ceiling. Learn how minor leaks can lead to major problems in your attic and home structure.",
     content: "A small, occasional drip might not seem like a big deal, but it's a major warning sign. By the time you see a water spot on your ceiling, the damage in your attic could already be significant. Persistent moisture can lead to wood rot in your roof deck and rafters, soaked and ineffective insulation, and the growth of dangerous mold and mildew. This compromises your home's structural integrity and air quality. At the first sign of a leak, call for a professional inspection to find the source and prevent a small issue from becoming a catastrophe."
@@ -165,7 +165,7 @@ export const blogPosts: BlogPost[] = [
     title: "Decoding Your Roofing Warranty: Materials vs. Workmanship",
     date: "November 12, 2024",
     author: "Chris Muse",
-    image: "/uploads/cert-owens-corning.png",
+    image: "/uploads/blog-understanding-roofing-warranties.jpg",
     keywords: ["warranty", "document"],
     excerpt: "Understand the two crucial parts of your roofing warranty and why both are essential for protecting your investment.",
     content: "When you get a new roof, you'll typically receive two types of warranties. The first is the manufacturer's warranty, which covers defects in the roofing materials themselves (e.g., shingles that fail prematurely). The second, and equally important, is the workmanship warranty provided by your contractor. This covers errors in the installation process. At River City Roofing Solutions, we stand by our work with a 5-Year Workmanship Warranty, giving you confidence that your roof was installed correctly and to the highest standards."
@@ -187,7 +187,7 @@ export const blogPosts: BlogPost[] = [
     title: "Checklist: What to Ask Before Hiring a Roofing Contractor",
     date: "December 10, 2024",
     author: "Chris Muse",
-    image: "/uploads/area-decatur.png",
+    image: "/uploads/blog-hiring-a-roofing-contractor-checklist.jpg",
     keywords: ["roofer", "clipboard"],
     excerpt: "Your home is your biggest investment. Use this checklist to ensure you're hiring a qualified and trustworthy roofing professional.",
     content: "Choosing a roofer can be daunting. To protect yourself and your investment, always ask for proof of licensing and insurance. A valid state license proves they meet minimum requirements, and liability insurance protects you from accidents on your property. Ask for local references and look at their online reviews. Inquire about their workmanship warranty—a reputable contractor will always stand behind their work. Finally, get a detailed, written estimate that outlines the scope of work and materials to be used. A professional contractor will happily provide all of this information."
@@ -198,7 +198,7 @@ export const blogPosts: BlogPost[] = [
     title: "What to Expect During Your Roof Replacement",
     date: "January 7, 2025",
     author: "John",
-    image: "/uploads/area-madison.jpg",
+    image: "/uploads/blog-roof-replacement-process.png",
     keywords: ["roof", "construction"],
     excerpt: "A new roof is a big project. Here's a step-by-step guide to what you can expect when our team arrives at your home.",
     content: "We strive to make the roof replacement process as smooth as possible. It starts with protecting your property—we cover landscaping, AC units, and windows. Next, our crew will tear off the old roofing material down to the decking. We'll inspect the wood decking and replace any damaged sections. Then, we install the new roofing system, including underlayment, flashing, and your chosen shingles. The final step is a meticulous cleanup, including using magnetic rollers to pick up stray nails. Our project manager will be on-site to answer any questions you have throughout the day."
@@ -220,7 +220,7 @@ export const blogPosts: BlogPost[] = [
     title: "Options for Financing Your New Roof",
     date: "February 4, 2025",
     author: "Sara Hill",
-    image: "/uploads/service-commercial.png",
+    image: "/uploads/blog-financing-your-roof.jpg",
     keywords: ["piggy", "bank"],
     excerpt: "A new roof is a major but necessary expense. Explore the different ways homeowners can finance their roof replacement project.",
     content: "A roof replacement is a significant investment in your home's safety and value, but it doesn't always fit neatly into the budget. Fortunately, there are several financing options available. Many homeowners use a Home Equity Line of Credit (HELOC) or a home equity loan. Personal loans are another option. Additionally, River City Roofing Solutions works with financing partners who specialize in home improvement loans, often offering competitive rates and flexible payment plans. Don't let cost delay a necessary replacement; ask us about our financing options during your free inspection."
@@ -242,7 +242,7 @@ export const blogPosts: BlogPost[] = [
     title: "How Long Does a Roof Really Last in Alabama?",
     date: "March 4, 2025",
     author: "Michael Muse",
-    image: "/uploads/area-owens-crossroads.jpg",
+    image: "/uploads/blog-how-long-roof-lasts-alabama.png",
     keywords: ["old", "roof"],
     excerpt: "The lifespan of your roof depends on materials, installation quality, and our unique Southern climate. Here's what you can expect.",
     content: "The lifespan of a roof in North Alabama can vary greatly. A standard 3-tab asphalt shingle roof typically lasts 15-20 years. An architectural or dimensional shingle roof, like the popular IKO Dynasty, can last 25-30 years or more. A high-quality metal roof can last 50+ years. However, these are just estimates. Factors like severe storms, hail, falling tree limbs, and improper attic ventilation can all shorten a roof's lifespan. The best way to know for sure is with a professional inspection every few years, especially after your roof passes the 15-year mark."
@@ -275,7 +275,7 @@ export const blogPosts: BlogPost[] = [
     title: "The Unsung Hero of Your Roof: The Chimney Cap",
     date: "April 15, 2025",
     author: "John",
-    image: "/uploads/service-chimney.png",
+    image: "/uploads/blog-chimney-caps-and-crowns.png",
     keywords: ["brick", "chimney"],
     excerpt: "It's a small detail, but a properly installed chimney cap plays a huge role in protecting your home from water damage and pests.",
     content: "Your chimney is essentially a large hole in your roof, and a missing or damaged chimney cap leaves it wide open to problems. Rainwater can pour down the flue, causing rust, rot, and deterioration of the chimney's interior masonry. It also provides an open invitation for birds, squirrels, and other pests to make a home inside. A durable, properly-fitted chimney cap is a simple and inexpensive way to prevent these issues, protecting your chimney structure and keeping unwanted guests out of your house."
@@ -286,7 +286,7 @@ export const blogPosts: BlogPost[] = [
     title: "What Are Those Ugly Black Streaks on My Roof?",
     date: "April 29, 2025",
     author: "Michael Muse",
-    image: "/uploads/cert-bbb.jpg",
+    image: "/uploads/blog-dark-streaks-on-roof.jpg",
     keywords: ["algae", "roof"],
     excerpt: "Those dark streaks aren't dirt. They're algae, and while mostly cosmetic, they can shorten your roof's life over time.",
     content: "Those unsightly black or green streaks you see on many roofs in our humid climate are a type of algae called Gloeocapsa magma. The algae feeds on the limestone filler in older asphalt shingles. While it doesn't cause immediate structural damage, it is a sign of aging, and by holding moisture, it can accelerate the deterioration of the shingles. Modern shingles, like those from IKO and Owens Corning, are manufactured with copper granules that are algae-resistant, preventing these streaks from forming and keeping your roof looking beautiful for years."
@@ -308,7 +308,7 @@ export const blogPosts: BlogPost[] = [
     title: "How a New Roof Boosts Your Home's Resale Value",
     date: "May 27, 2025",
     author: "Sara Hill",
-    image: "/uploads/cert-google.png",
+    image: "/uploads/blog-roofing-and-home-value.jpg",
     keywords: ["house", "sale"],
     excerpt: "A new roof is one of the single best home improvement projects for return on investment, especially in a competitive real estate market.",
     content: "When it's time to sell your home, a new roof is a powerful selling point. For potential buyers, it means peace of mind and one less major expense to worry about for decades. According to real estate experts, homeowners can often recoup a significant portion—sometimes over 60%—of the cost of a new roof at resale. It dramatically improves curb appeal, signals that the home is well-maintained, and can help your home sell faster and for a higher price. It's an investment not just in protection, but in your property's overall market value."
