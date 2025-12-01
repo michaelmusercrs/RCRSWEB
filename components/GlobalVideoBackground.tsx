@@ -81,7 +81,6 @@ export default function GlobalVideoBackground({
           key={`video-${animationKey}`}
           autoPlay
           muted
-          loop
           playsInline
           onLoadedData={handleVideoLoaded}
           onError={handleVideoError}
