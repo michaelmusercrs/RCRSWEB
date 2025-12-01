@@ -10,7 +10,7 @@ interface GlobalVideoBackgroundProps {
 
 export default function GlobalVideoBackground({
   videoSrc,
-  fallbackImage = '/uploads/hero-background.jpg',
+  fallbackImage = '/uploads/hero-background.webp',
 }: GlobalVideoBackgroundProps) {
   const [useVideo, setUseVideo] = useState(false);
   const [videoLoaded, setVideoLoaded] = useState(false);

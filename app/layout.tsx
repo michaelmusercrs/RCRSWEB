@@ -69,7 +69,7 @@ export default function RootLayout({
         <PromoBanner />
         <GlobalVideoBackground
           videoSrc="/uploads/hero-video.mp4"
-          fallbackImage="/uploads/hero-background.jpg"
+          fallbackImage="/uploads/hero-background.webp"
         />
         <Header />
         <main>{children}</main>
