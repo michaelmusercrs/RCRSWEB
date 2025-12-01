@@ -242,7 +242,7 @@ export const blogPosts: BlogPost[] = [
     title: "How Long Does a Roof Really Last in Alabama?",
     date: "March 4, 2025",
     author: "Michael Muse",
-    image: "/uploads/area-owens-crossroads.jpg",
+    image: "/uploads/service-residential.png",
     keywords: ["old", "roof"],
     excerpt: "The lifespan of your roof depends on materials, installation quality, and our unique Southern climate. Here's what you can expect.",
     content: "The lifespan of a roof in North Alabama can vary greatly. A standard 3-tab asphalt shingle roof typically lasts 15-20 years. An architectural or dimensional shingle roof, like the popular IKO Dynasty, can last 25-30 years or more. A high-quality metal roof can last 50+ years. However, these are just estimates. Factors like severe storms, hail, falling tree limbs, and improper attic ventilation can all shorten a roof's lifespan. The best way to know for sure is with a professional inspection every few years, especially after your roof passes the 15-year mark."
@@ -308,7 +308,7 @@ export const blogPosts: BlogPost[] = [
     title: "How a New Roof Boosts Your Home's Resale Value",
     date: "May 27, 2025",
     author: "Sara Hill",
-    image: "/uploads/cert-boral.png",
+    image: "/uploads/area-madison.jpg",
     keywords: ["house", "sale"],
     excerpt: "A new roof is one of the single best home improvement projects for return on investment, especially in a competitive real estate market.",
     content: "When it's time to sell your home, a new roof is a powerful selling point. For potential buyers, it means peace of mind and one less major expense to worry about for decades. According to real estate experts, homeowners can often recoup a significant portion—sometimes over 60%—of the cost of a new roof at resale. It dramatically improves curb appeal, signals that the home is well-maintained, and can help your home sell faster and for a higher price. It's an investment not just in protection, but in your property's overall market value."
