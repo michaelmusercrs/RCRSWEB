@@ -2,9 +2,11 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Mail, Phone, Award, CheckCircle2, ArrowLeft, Users, Facebook, Instagram, Twitter, Linkedin } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Mail, Phone, Award, CheckCircle2, ArrowLeft, Users, Facebook, Instagram, Twitter, Linkedin, Star } from 'lucide-react';
 import { getTeamMember, getAllTeamSlugs } from '@/lib/teamData';
 import ContactForm from '@/components/ContactForm';
+import { getReviewsForMember } from '@/lib/reviewsData';
 
 export async function generateStaticParams() {
   const slugs = getAllTeamSlugs();
@@ -19,6 +21,9 @@ export default function TeamMemberPage({ params }: { params: { slug: string } })
   if (!member) {
     notFound();
   }
+
+  // Get reviews for this team member (3 reviews, uses general reviews as fallback)
+  const memberReviews = getReviewsForMember(params.slug, 3);
 
   return (
     <div className="min-h-screen">
@@ -237,6 +242,49 @@ export default function TeamMemberPage({ params }: { params: { slug: string } })
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Customer Reviews Section */}
+      <section className="py-16 md:py-24 bg-black/70 backdrop-blur-sm">
+        <div className="container mx-auto px-4">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-12">
+              <div className="inline-flex items-center gap-2 bg-brand-green/20 border border-brand-green/30 px-4 py-2 rounded-full mb-4">
+                <Star className="text-brand-green" size={18} />
+                <span className="text-white font-medium">Customer Reviews</span>
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                What Customers Say
+              </h2>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6">
+              {memberReviews.map((review) => (
+                <Card key={review.id} className="border-neutral-800 bg-black/50">
+                  <CardContent className="p-6">
+                    <div className="flex mb-4">
+                      {[...Array(review.rating)].map((_, i) => (
+                        <span key={i} className="text-brand-green text-lg">★</span>
+                      ))}
+                    </div>
+                    <p className="text-gray-300 italic leading-relaxed mb-4 text-sm line-clamp-4">
+                      "{review.text}"
+                    </p>
+                    <div className="border-t border-neutral-700 pt-4">
+                      <p className="font-bold text-brand-green text-sm">{review.name}</p>
+                      {review.salesRep && (
+                        <p className="text-gray-500 text-xs">Worked with {review.salesRep}</p>
+                      )}
+                      {review.source && (
+                        <p className="text-gray-600 text-xs mt-1">via {review.source}</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </div>
         </div>

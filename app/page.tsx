@@ -7,6 +7,7 @@ import AnimatedHeroText from '@/components/AnimatedHeroText';
 import RotatingText from '@/components/RotatingText';
 import { blogPosts } from '@/lib/blogData';
 import { services, serviceAreas } from '@/lib/servicesData';
+import { getFeaturedReviews } from '@/lib/reviewsData';
 
 export default function HomePage() {
   // Get latest 3 blog posts
@@ -17,6 +18,9 @@ export default function HomePage() {
 
   // Get active service areas
   const activeAreas = serviceAreas.filter(a => a.status === 'Active');
+
+  // Get featured reviews
+  const featuredReviews = getFeaturedReviews(6);
 
   return (
     <div className="min-h-screen text-white">
@@ -337,61 +341,34 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            <Card className="border-neutral-800 bg-black">
-              <CardContent className="p-8">
-                <div className="flex mb-6">
-                  {[...Array(5)].map((_, i) => (
-                    <span key={i} className="text-brand-green text-2xl">★</span>
-                  ))}
-                </div>
-                <p className="text-neutral-300 italic leading-relaxed mb-6">
-                  "Excellent service and handled our insurance claim perfectly! Beautiful work on our Huntsville home. The team was professional and efficient."
-                </p>
-                <div className="border-t border-neutral-800 pt-4">
-                  <p className="font-bold text-brand-green">JS</p>
-                  <p className="text-neutral-500 text-sm">Madison, AL</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-neutral-800 bg-black">
-              <CardContent className="p-8">
-                <div className="flex mb-6">
-                  {[...Array(5)].map((_, i) => (
-                    <span key={i} className="text-brand-green text-2xl">★</span>
-                  ))}
-                </div>
-                <p className="text-neutral-300 italic leading-relaxed mb-6">
-                  "Prompt, hardworking, and honest. They fixed our roof after the hail storm quickly and professionally. Highly recommend!"
-                </p>
-                <div className="border-t border-neutral-800 pt-4">
-                  <p className="font-bold text-brand-green">Alison C.</p>
-                  <p className="text-neutral-500 text-sm">Huntsville, AL</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-neutral-800 bg-black">
-              <CardContent className="p-8">
-                <div className="flex mb-6">
-                  {[...Array(5)].map((_, i) => (
-                    <span key={i} className="text-brand-green text-2xl">★</span>
-                  ))}
-                </div>
-                <p className="text-neutral-300 italic leading-relaxed mb-6">
-                  "Rick got our roof replaced through insurance—highly recommend for anyone in the Decatur area! Fair pricing and quality work."
-                </p>
-                <div className="border-t border-neutral-800 pt-4">
-                  <p className="font-bold text-brand-green">Stacie F.</p>
-                  <p className="text-neutral-500 text-sm">Decatur, AL</p>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {featuredReviews.map((review) => (
+              <Card key={review.id} className="border-neutral-800 bg-black">
+                <CardContent className="p-8">
+                  <div className="flex mb-4">
+                    {[...Array(review.rating)].map((_, i) => (
+                      <span key={i} className="text-brand-green text-xl">★</span>
+                    ))}
+                  </div>
+                  <p className="text-neutral-300 italic leading-relaxed mb-6 line-clamp-4">
+                    "{review.text}"
+                  </p>
+                  <div className="border-t border-neutral-800 pt-4">
+                    <p className="font-bold text-brand-green">{review.name}</p>
+                    {review.salesRep && (
+                      <p className="text-neutral-500 text-sm">Worked with {review.salesRep}</p>
+                    )}
+                    {review.source && (
+                      <p className="text-neutral-600 text-xs mt-1">via {review.source}</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
 
           <div className="text-center mt-12">
-            <p className="text-neutral-400 text-lg mb-4">⭐⭐⭐⭐⭐ Rated 5.0 stars by 47+ customers</p>
+            <p className="text-neutral-400 text-lg mb-4">Rated 5.0 stars by 200+ customers</p>
             <Button asChild size="lg" variant="outline" className="border-2 border-brand-green text-brand-green hover:bg-brand-green hover:text-black font-bold uppercase tracking-widest">
               <Link href="/contact">Leave a Review</Link>
             </Button>
