@@ -14,6 +14,7 @@ export default function GlobalVideoBackground({
 }: GlobalVideoBackgroundProps) {
   const [useVideo, setUseVideo] = useState(false);
   const [videoLoaded, setVideoLoaded] = useState(false);
+  const [videoEnded, setVideoEnded] = useState(false);
   const [animationKey, setAnimationKey] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const pathname = usePathname();
@@ -40,6 +41,7 @@ export default function GlobalVideoBackground({
   // Refresh animation on route change
   useEffect(() => {
     setAnimationKey(prev => prev + 1);
+    setVideoEnded(false);
 
     // Restart video from beginning on route change
     if (videoRef.current) {
@@ -65,6 +67,10 @@ export default function GlobalVideoBackground({
     setVideoLoaded(true);
   };
 
+  const handleVideoEnded = () => {
+    setVideoEnded(true);
+  };
+
   const handleVideoError = () => {
     setUseVideo(false);
   };
@@ -83,23 +89,22 @@ export default function GlobalVideoBackground({
           muted
           playsInline
           onLoadedData={handleVideoLoaded}
+          onEnded={handleVideoEnded}
           onError={handleVideoError}
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
-            videoLoaded ? 'opacity-100' : 'opacity-0'
-          }`}
+          className="absolute inset-0 w-full h-full object-cover"
         >
           <source src={videoSrc} type="video/mp4" />
         </video>
       )}
 
-      {/* Fallback Image */}
-      <div
-        key={`image-${animationKey}`}
-        className={`absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat transition-opacity duration-1000 ${
-          useVideo && videoLoaded ? 'opacity-0' : 'opacity-100'
-        }`}
-        style={{ backgroundImage: `url(${fallbackImage})` }}
-      />
+      {/* Fallback Image - only shows if video fails to load */}
+      {!videoLoaded && (
+        <div
+          key={`image-${animationKey}`}
+          className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: `url(${fallbackImage})` }}
+        />
+      )}
 
       {/* Dark Overlay for readability */}
       <div className="absolute inset-0 bg-black/50" />
