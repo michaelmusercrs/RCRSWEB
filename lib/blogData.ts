@@ -308,7 +308,7 @@ export const blogPosts: BlogPost[] = [
     title: "How a New Roof Boosts Your Home's Resale Value",
     date: "May 27, 2025",
     author: "Sara Hill",
-    image: "/uploads/area-madison.jpg",
+    image: "/uploads/cert-google.png",
     keywords: ["house", "sale"],
     excerpt: "A new roof is one of the single best home improvement projects for return on investment, especially in a competitive real estate market.",
     content: "When it's time to sell your home, a new roof is a powerful selling point. For potential buyers, it means peace of mind and one less major expense to worry about for decades. According to real estate experts, homeowners can often recoup a significant portion—sometimes over 60%—of the cost of a new roof at resale. It dramatically improves curb appeal, signals that the home is well-maintained, and can help your home sell faster and for a higher price. It's an investment not just in protection, but in your property's overall market value."
