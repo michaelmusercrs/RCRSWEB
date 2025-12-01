@@ -6,6 +6,7 @@ import './globals.css';
 import Header from '@/components/Header';
 import FloatingContactButton from '@/components/FloatingContactButton';
 import GlobalVideoBackground from '@/components/GlobalVideoBackground';
+import PromoBanner from '@/components/PromoBanner';
 import { generateMetadata, generateLocalBusinessSchema, getStructuredDataScript } from '@/lib/seo';
 
 // Google Analytics ID - Replace with your actual GA4 Measurement ID
@@ -65,6 +66,7 @@ export default function RootLayout({
         <meta name="color-scheme" content="dark light" />
       </head>
       <body className={inter.className}>
+        <PromoBanner />
         <GlobalVideoBackground
           videoSrc="/uploads/hero-video.mp4"
           fallbackImage="/uploads/hero-background.jpg"

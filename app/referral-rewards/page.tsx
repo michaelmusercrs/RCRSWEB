@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Gift, DollarSign, Users, CheckCircle2, ArrowRight, Phone, Mail, Star, Heart, Zap } from 'lucide-react';
+import { Gift, DollarSign, Users, CheckCircle2, ArrowRight, Phone, Mail, Star, Heart, Zap, Trophy } from 'lucide-react';
 import type { Metadata } from 'next';
 import { generateMetadata as genMeta, siteConfig, getStructuredDataScript } from '@/lib/seo';
 
 export const metadata: Metadata = genMeta({
-  title: 'Referral Rewards Program - Earn $200 Per Referral',
-  description: 'Earn $200 cash for every friend, family member, or neighbor you refer to River City Roofing Solutions. No limit on referrals - refer 5 friends and earn $1,000! Share quality roofing services with people you trust.',
+  title: 'Referral Rewards Program - Earn Up To $10,000!',
+  description: 'Exclusive referral program for River City Roofing customers: Earn $100 to $10,000 in rewards! Your 5th referral earns you $10,000. Available to previous customers with completed contracts.',
   keywords: [
     'roofing referral program',
     'referral rewards',
@@ -16,7 +16,7 @@ export const metadata: Metadata = genMeta({
     'North Alabama roofing referral',
     'Huntsville roofing referral',
     'Decatur roofing referral',
-    '$200 referral bonus',
+    '$10000 referral bonus',
   ],
   path: '/referral-rewards',
 });
@@ -27,13 +27,12 @@ function getReferralProgramSchema() {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     name: 'Referral Rewards Program - River City Roofing Solutions',
-    description: 'Earn $200 for every successful roofing referral. No limit on referrals.',
+    description: 'Earn $100 to $10,000 in referral rewards. Exclusive program for previous customers.',
     url: `${siteConfig.url}/referral-rewards`,
     mainEntity: {
       '@type': 'Offer',
       name: 'Referral Rewards Program',
-      description: 'Earn $200 cash for every friend, family member, or neighbor you refer who completes a roofing project with River City Roofing Solutions.',
-      price: '200',
+      description: 'Tiered referral rewards for previous customers: 1st referral $100, 2nd $250, 3rd $500, 4th $1,000, 5th $10,000, 6th+ $1,000 each.',
       priceCurrency: 'USD',
       availability: 'https://schema.org/InStock',
       seller: {
@@ -56,6 +55,15 @@ function getReferralProgramSchema() {
 export default function ReferralRewardsPage() {
   const structuredData = getReferralProgramSchema();
 
+  const rewardTiers = [
+    { referral: '1st', amount: '$100', highlight: false },
+    { referral: '2nd', amount: '$250', highlight: false },
+    { referral: '3rd', amount: '$500', highlight: false },
+    { referral: '4th', amount: '$1,000', highlight: false },
+    { referral: '5th', amount: '$10,000', highlight: true },
+    { referral: '6th+', amount: '$1,000', highlight: false },
+  ];
+
   return (
     <>
       <script
@@ -67,18 +75,21 @@ export default function ReferralRewardsPage() {
         <section className="min-h-[50vh] flex items-center justify-center">
           <div className="container mx-auto px-4 text-center text-white">
             <div className="inline-flex items-center gap-2 bg-brand-green/20 border border-brand-green/40 rounded-full px-4 py-2 mb-6">
-              <Gift className="text-brand-green" size={20} />
-              <span className="text-brand-green font-semibold">Referral Rewards Program</span>
+              <Trophy className="text-brand-green" size={20} />
+              <span className="text-brand-green font-semibold">Exclusive Customer Rewards</span>
             </div>
             <h1 className="text-5xl md:text-7xl font-bold mb-6 drop-shadow-lg">
-              Share the Love, <span className="text-brand-green">Earn $200!</span>
+              Earn Up To <span className="text-brand-green">$10,000!</span>
             </h1>
-            <p className="text-xl md:text-2xl max-w-3xl mx-auto text-white/90 drop-shadow-md mb-8">
-              Know someone who needs roofing help? Refer them to us and you will both benefit from our Referral Rewards Program!
+            <p className="text-xl md:text-2xl max-w-3xl mx-auto text-white/90 drop-shadow-md mb-4">
+              Our way of saying THANK YOU to our valued customers
+            </p>
+            <p className="text-lg text-white/80 max-w-2xl mx-auto mb-8">
+              Refer friends and family to River City Roofing Solutions and watch your rewards grow with every referral!
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild className="bg-brand-green hover:bg-lime-400 text-black font-bold px-8 py-6 text-lg">
-                <Link href="/contact">Refer Someone Now</Link>
+                <Link href="/contact">Start Referring Now</Link>
               </Button>
               <Button asChild className="border-2 border-white text-white hover:bg-white hover:text-black font-bold px-8 py-6 text-lg">
                 <Link href="tel:256-274-8530">Call (256) 274-8530</Link>
@@ -87,15 +98,67 @@ export default function ReferralRewardsPage() {
           </div>
         </section>
 
-        {/* How It Works Section */}
+        {/* Reward Tiers Section */}
         <section className="py-16 md:py-24 bg-black/80 backdrop-blur-sm relative z-10">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
+                Tiered Reward Structure
+              </h2>
+              <p className="text-xl text-neutral-300 max-w-2xl mx-auto">
+                The more you refer, the bigger your rewards!
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 max-w-5xl mx-auto mb-12">
+              {rewardTiers.map((tier, idx) => (
+                <div
+                  key={idx}
+                  className={`rounded-lg p-6 text-center transition-all ${
+                    tier.highlight
+                      ? 'bg-gradient-to-b from-yellow-500/30 to-yellow-600/20 border-2 border-yellow-500 scale-105 shadow-lg shadow-yellow-500/20'
+                      : 'bg-neutral-800 border border-neutral-700 hover:border-brand-green'
+                  }`}
+                >
+                  <p className={`text-sm font-semibold mb-2 ${tier.highlight ? 'text-yellow-400' : 'text-neutral-400'}`}>
+                    {tier.referral} Referral
+                  </p>
+                  <p className={`text-3xl md:text-4xl font-black ${tier.highlight ? 'text-yellow-400' : 'text-brand-green'}`}>
+                    {tier.amount}
+                  </p>
+                  {tier.highlight && (
+                    <div className="mt-2">
+                      <Trophy className="text-yellow-400 mx-auto" size={24} />
+                      <p className="text-yellow-400 text-xs font-bold mt-1">JACKPOT!</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="max-w-3xl mx-auto bg-gradient-to-r from-yellow-500/20 to-brand-green/20 border border-yellow-500/40 rounded-lg p-8 text-center">
+              <Trophy className="text-yellow-400 mx-auto mb-4" size={48} />
+              <h3 className="text-2xl font-bold text-white mb-3">
+                Hit The $10,000 Jackpot on Your 5th Referral!
+              </h3>
+              <p className="text-neutral-300">
+                Your 1st through 4th referrals earn you <span className="text-brand-green font-bold">$1,850</span> total.
+                <br />Then your 5th referral hits the <span className="text-yellow-400 font-bold">$10,000 JACKPOT!</span>
+                <br />That is <span className="text-white font-bold">$11,850</span> in rewards for just 5 referrals!
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* How It Works Section */}
+        <section className="py-16 md:py-24 bg-brand-blue/90 backdrop-blur-sm relative z-10">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
                 How It Works
               </h2>
-              <p className="text-xl text-neutral-300 max-w-2xl mx-auto">
-                Three simple steps to earn your $200 referral reward
+              <p className="text-xl text-blue-100 max-w-2xl mx-auto">
+                Three simple steps to start earning
               </p>
             </div>
 
@@ -111,26 +174,26 @@ export default function ReferralRewardsPage() {
                   step: '2',
                   icon: CheckCircle2,
                   title: 'They Get Quality Service',
-                  desc: 'When they contact us for a roofing project (repair, replacement, or maintenance), they will receive the same great service you did.',
+                  desc: 'When they contact us and complete a roofing project, they receive the same great service you did.',
                 },
                 {
                   step: '3',
                   icon: DollarSign,
-                  title: 'You Get Rewarded',
-                  desc: 'Once their project is complete, you receive $200 as our thank-you for the referral!',
+                  title: 'You Get Paid',
+                  desc: 'Once their project is complete and paid, you receive your reward based on the tier structure!',
                 },
               ].map((item, idx) => {
                 const Icon = item.icon;
                 return (
-                  <div key={idx} className="bg-neutral-800 border border-neutral-700 hover:border-brand-green transition-all p-8 rounded-lg text-center relative">
+                  <div key={idx} className="bg-white/10 backdrop-blur-sm rounded-lg p-8 text-center relative">
                     <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-brand-green text-black font-bold w-8 h-8 rounded-full flex items-center justify-center">
                       {item.step}
                     </div>
-                    <div className="bg-neutral-700 rounded-full p-4 w-16 h-16 mx-auto mb-6 flex items-center justify-center">
-                      <Icon className="text-brand-green" size={32} />
+                    <div className="bg-white/20 rounded-full p-4 w-16 h-16 mx-auto mb-6 flex items-center justify-center">
+                      <Icon className="text-white" size={32} />
                     </div>
                     <h3 className="text-xl font-bold text-white mb-3">{item.title}</h3>
-                    <p className="text-neutral-300">{item.desc}</p>
+                    <p className="text-blue-100">{item.desc}</p>
                   </div>
                 );
               })}
@@ -138,91 +201,65 @@ export default function ReferralRewardsPage() {
           </div>
         </section>
 
-        {/* Why Refer Section */}
-        <section className="py-16 md:py-24 bg-brand-blue/90 backdrop-blur-sm relative z-10">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-12">
-              <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-                Why Refer River City Roofing?
-              </h2>
-              <p className="text-xl text-blue-100 max-w-2xl mx-auto">
-                You are not just recommending a company - you are helping someone protect their biggest investment
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
-              {[
-                {
-                  icon: Star,
-                  title: 'Trusted by the Community',
-                  desc: 'Family-owned, locally operated, and committed to doing the job right',
-                },
-                {
-                  icon: Zap,
-                  title: 'Fast & Reliable',
-                  desc: 'We show up on time, communicate clearly, and finish the job right the first time',
-                },
-                {
-                  icon: CheckCircle2,
-                  title: 'Certified Excellence',
-                  desc: 'IKO RoofPro Certified and fully insured for your peace of mind',
-                },
-                {
-                  icon: Heart,
-                  title: 'Customer First',
-                  desc: 'We treat every home like our own, ensuring satisfaction on every project',
-                },
-              ].map((item, idx) => {
-                const Icon = item.icon;
-                return (
-                  <div key={idx} className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center">
-                    <div className="bg-brand-green rounded-full p-3 w-14 h-14 mx-auto mb-4 flex items-center justify-center">
-                      <Icon className="text-white" size={28} />
-                    </div>
-                    <h3 className="text-lg font-bold text-white mb-2">{item.title}</h3>
-                    <p className="text-blue-100 text-sm">{item.desc}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        {/* Terms & Guidelines */}
+        {/* Program Requirements */}
         <section className="py-16 md:py-24 bg-black/70 backdrop-blur-sm relative z-10">
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto">
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-8 text-center">
-                Program Details
+                Program Requirements
               </h2>
 
               <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-8">
-                <h3 className="text-xl font-bold text-brand-green mb-4">Easy Referral Guidelines:</h3>
+                <h3 className="text-xl font-bold text-brand-green mb-4">Who Can Participate:</h3>
                 <ul className="space-y-4 text-neutral-300">
+                  <li className="flex items-start gap-3">
+                    <CheckCircle2 className="text-brand-green flex-shrink-0 mt-1" size={20} />
+                    <span><strong className="text-white">Previous customers only</strong> - You must have a completed contract with River City Roofing Solutions</span>
+                  </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle2 className="text-brand-green flex-shrink-0 mt-1" size={20} />
                     <span>Your referral must mention your name when they contact us</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle2 className="text-brand-green flex-shrink-0 mt-1" size={20} />
-                    <span>Applies to residential and commercial roofing projects (repairs, replacements, or maintenance)</span>
+                    <span>Applies to residential and commercial roofing projects</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle2 className="text-brand-green flex-shrink-0 mt-1" size={20} />
-                    <span>Reward is paid once the referred project is complete</span>
+                    <span><strong className="text-white">Reward paid when the referred job is completed</strong> and payment is received</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle2 className="text-brand-green flex-shrink-0 mt-1" size={20} />
-                    <span>There is no limit to the number of referrals - refer as many people as you would like!</span>
+                    <span>No limit on total referrals - keep earning $1,000 per referral after your 5th!</span>
                   </li>
                 </ul>
               </div>
 
-              <div className="mt-8 bg-gradient-to-r from-brand-green/20 to-lime-500/20 border border-brand-green/40 rounded-lg p-8 text-center">
-                <h3 className="text-2xl font-bold text-white mb-3">No Limit on Rewards!</h3>
-                <p className="text-neutral-300 text-lg">
-                  Refer 5 friends? That is <span className="text-brand-green font-bold">$1,000</span> in your pocket!
-                </p>
+              <div className="mt-8 grid md:grid-cols-2 gap-6">
+                <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-6">
+                  <h4 className="text-lg font-bold text-white mb-3">Example: 5 Referrals</h4>
+                  <ul className="space-y-2 text-sm text-neutral-300">
+                    <li>1st Referral: <span className="text-brand-green">$100</span></li>
+                    <li>2nd Referral: <span className="text-brand-green">$250</span></li>
+                    <li>3rd Referral: <span className="text-brand-green">$500</span></li>
+                    <li>4th Referral: <span className="text-brand-green">$1,000</span></li>
+                    <li>5th Referral: <span className="text-yellow-400 font-bold">$10,000</span></li>
+                    <li className="border-t border-neutral-600 pt-2 mt-2">
+                      <strong className="text-white">Total: $11,850</strong>
+                    </li>
+                  </ul>
+                </div>
+                <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-6">
+                  <h4 className="text-lg font-bold text-white mb-3">Example: 10 Referrals</h4>
+                  <ul className="space-y-2 text-sm text-neutral-300">
+                    <li>1st-4th: <span className="text-brand-green">$1,850</span></li>
+                    <li>5th (Jackpot): <span className="text-yellow-400 font-bold">$10,000</span></li>
+                    <li>6th-10th: <span className="text-brand-green">$5,000</span> ($1k each)</li>
+                    <li className="border-t border-neutral-600 pt-2 mt-2">
+                      <strong className="text-white">Total: $16,850</strong>
+                    </li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
@@ -234,10 +271,10 @@ export default function ReferralRewardsPage() {
             <div className="max-w-4xl mx-auto text-center">
               <Gift className="text-brand-green mx-auto mb-6" size={64} />
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-                Ready to Start Referring?
+                Ready to Start Earning?
               </h2>
               <p className="text-xl text-neutral-300 mb-8 max-w-2xl mx-auto">
-                It is easy! Just have your friend call us or fill out our contact form and mention your name. We will take it from there!
+                Have your referral call us or fill out our contact form and mention your name. We will track your referrals and send your rewards!
               </p>
 
               <div className="grid sm:grid-cols-2 gap-6 max-w-2xl mx-auto mb-8">
@@ -265,7 +302,7 @@ export default function ReferralRewardsPage() {
               </Button>
 
               <p className="text-neutral-400 mt-8 text-sm">
-                Thank you for being part of the River City Roofing family!
+                Thank you for being a valued River City Roofing customer!
               </p>
             </div>
           </div>
