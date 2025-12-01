@@ -102,7 +102,7 @@ export default function Header() {
 
         {/* Mobile Menu Overlay */}
         {mobileMenuOpen && (
-          <div className="lg:hidden fixed inset-x-0 top-[100px] bottom-0 bg-white z-[55] overflow-y-auto">
+          <div className="lg:hidden absolute left-0 right-0 top-full bg-white z-[100] overflow-y-auto max-h-[80vh] shadow-xl">
             <div className="px-4 py-6 space-y-6">
               {navigation.map((item) => (
                 <Link
