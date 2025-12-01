@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import Script from 'next/script';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 import Header from '@/components/Header';
 import FloatingContactButton from '@/components/FloatingContactButton';
@@ -71,6 +72,7 @@ export default function RootLayout({
         <Header />
         <main>{children}</main>
         <FloatingContactButton />
+        <SpeedInsights />
       </body>
     </html>
   );
