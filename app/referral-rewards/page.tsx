@@ -32,7 +32,7 @@ function getReferralProgramSchema() {
     mainEntity: {
       '@type': 'Offer',
       name: 'Referral Rewards Program',
-      description: 'Tiered referral rewards for previous customers: 1st referral $100, 2nd $250, 3rd $500, 4th+ $1,000 each.',
+      description: 'Tiered referral rewards for previous customers: 1st referral $100, 2nd $250, 3rd $500, 4th-10th $1,000 each. Maximum 10 referrals.',
       priceCurrency: 'USD',
       availability: 'https://schema.org/InStock',
       seller: {
@@ -61,7 +61,11 @@ export default function ReferralRewardsPage() {
     { referral: '3rd', amount: '$500' },
     { referral: '4th', amount: '$1,000' },
     { referral: '5th', amount: '$1,000' },
-    { referral: '6th+', amount: '$1,000' },
+    { referral: '6th', amount: '$1,000' },
+    { referral: '7th', amount: '$1,000' },
+    { referral: '8th', amount: '$1,000' },
+    { referral: '9th', amount: '$1,000' },
+    { referral: '10th', amount: '$1,000' },
   ];
 
   return (
@@ -110,7 +114,7 @@ export default function ReferralRewardsPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 max-w-5xl mx-auto mb-12">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 max-w-5xl mx-auto mb-12">
               {rewardTiers.map((tier, idx) => (
                 <div
                   key={idx}
@@ -133,11 +137,11 @@ export default function ReferralRewardsPage() {
             <div className="max-w-3xl mx-auto bg-gradient-to-r from-brand-green/20 to-lime-500/20 border border-brand-green/40 rounded-lg p-8 text-center">
               <DollarSign className="text-brand-green mx-auto mb-4" size={48} />
               <h3 className="text-2xl font-bold text-white mb-3">
-                Unlimited Earning Potential!
+                Earn Up To $7,850!
               </h3>
               <p className="text-neutral-300">
-                After your 4th referral, you earn <span className="text-brand-green font-bold">$1,000</span> for every additional referral.
-                <br />Refer 10 people? That is <span className="text-white font-bold">$7,850</span> in your pocket!
+                Refer all 10 people and earn a total of <span className="text-white font-bold">$7,850</span> in rewards!
+                <br /><span className="text-sm">Program limited to 10 referrals per customer.</span>
               </p>
             </div>
           </div>
@@ -223,7 +227,7 @@ export default function ReferralRewardsPage() {
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle2 className="text-brand-green flex-shrink-0 mt-1" size={20} />
-                    <span>No limit on total referrals - keep earning $1,000 per referral after your 4th!</span>
+                    <span><strong className="text-white">Maximum of 10 referrals per customer</strong> - earn up to $7,850 total!</span>
                   </li>
                 </ul>
               </div>
