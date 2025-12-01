@@ -154,7 +154,7 @@ export const blogPosts: BlogPost[] = [
     title: "The Hidden Dangers of a Small Roof Leak",
     date: "October 29, 2024",
     author: "John",
-    image: "/uploads/hero-background.jpg",
+    image: "/uploads/blog-roof-leaks-and-your-attic.jpg",
     keywords: ["attic", "water"],
     excerpt: "Don't ignore that small water spot on your ceiling. Learn how minor leaks can lead to major problems in your attic and home structure.",
     content: "A small, occasional drip might not seem like a big deal, but it's a major warning sign. By the time you see a water spot on your ceiling, the damage in your attic could already be significant. Persistent moisture can lead to wood rot in your roof deck and rafters, soaked and ineffective insulation, and the growth of dangerous mold and mildew. This compromises your home's structural integrity and air quality. At the first sign of a leak, call for a professional inspection to find the source and prevent a small issue from becoming a catastrophe."
