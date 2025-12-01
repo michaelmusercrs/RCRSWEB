@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Gift, DollarSign, Users, CheckCircle2, ArrowRight, Phone, Mail, Star, Heart, Zap, Trophy } from 'lucide-react';
+import { Gift, DollarSign, Users, CheckCircle2, ArrowRight, Phone, Mail, Star, Heart, Zap } from 'lucide-react';
 import type { Metadata } from 'next';
 import { generateMetadata as genMeta, siteConfig, getStructuredDataScript } from '@/lib/seo';
 
 export const metadata: Metadata = genMeta({
-  title: 'Referral Rewards Program - Earn Up To $10,000!',
-  description: 'Exclusive referral program for River City Roofing customers: Earn $100 to $10,000 in rewards! Your 5th referral earns you $10,000. Available to previous customers with completed contracts.',
+  title: 'Referral Rewards Program - Earn Up To $1,000 Per Referral!',
+  description: 'Exclusive referral program for River City Roofing customers: Earn $100 to $1,000 per referral! The more you refer, the more you earn. Available to previous customers with completed contracts.',
   keywords: [
     'roofing referral program',
     'referral rewards',
@@ -16,7 +16,7 @@ export const metadata: Metadata = genMeta({
     'North Alabama roofing referral',
     'Huntsville roofing referral',
     'Decatur roofing referral',
-    '$10000 referral bonus',
+    '$1000 referral bonus',
   ],
   path: '/referral-rewards',
 });
@@ -27,12 +27,12 @@ function getReferralProgramSchema() {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     name: 'Referral Rewards Program - River City Roofing Solutions',
-    description: 'Earn $100 to $10,000 in referral rewards. Exclusive program for previous customers.',
+    description: 'Earn $100 to $1,000 per referral. Exclusive program for previous customers.',
     url: `${siteConfig.url}/referral-rewards`,
     mainEntity: {
       '@type': 'Offer',
       name: 'Referral Rewards Program',
-      description: 'Tiered referral rewards for previous customers: 1st referral $100, 2nd $250, 3rd $500, 4th $1,000, 5th $10,000, 6th+ $1,000 each.',
+      description: 'Tiered referral rewards for previous customers: 1st referral $100, 2nd $250, 3rd $500, 4th+ $1,000 each.',
       priceCurrency: 'USD',
       availability: 'https://schema.org/InStock',
       seller: {
@@ -56,12 +56,12 @@ export default function ReferralRewardsPage() {
   const structuredData = getReferralProgramSchema();
 
   const rewardTiers = [
-    { referral: '1st', amount: '$100', highlight: false },
-    { referral: '2nd', amount: '$250', highlight: false },
-    { referral: '3rd', amount: '$500', highlight: false },
-    { referral: '4th', amount: '$1,000', highlight: false },
-    { referral: '5th', amount: '$10,000', highlight: true },
-    { referral: '6th+', amount: '$1,000', highlight: false },
+    { referral: '1st', amount: '$100' },
+    { referral: '2nd', amount: '$250' },
+    { referral: '3rd', amount: '$500' },
+    { referral: '4th', amount: '$1,000' },
+    { referral: '5th', amount: '$1,000' },
+    { referral: '6th+', amount: '$1,000' },
   ];
 
   return (
@@ -75,11 +75,11 @@ export default function ReferralRewardsPage() {
         <section className="min-h-[50vh] flex items-center justify-center">
           <div className="container mx-auto px-4 text-center text-white">
             <div className="inline-flex items-center gap-2 bg-brand-green/20 border border-brand-green/40 rounded-full px-4 py-2 mb-6">
-              <Trophy className="text-brand-green" size={20} />
+              <Gift className="text-brand-green" size={20} />
               <span className="text-brand-green font-semibold">Exclusive Customer Rewards</span>
             </div>
             <h1 className="text-5xl md:text-7xl font-bold mb-6 drop-shadow-lg">
-              Earn Up To <span className="text-brand-green">$10,000!</span>
+              Earn Up To <span className="text-brand-green">$1,000</span> Per Referral!
             </h1>
             <p className="text-xl md:text-2xl max-w-3xl mx-auto text-white/90 drop-shadow-md mb-4">
               Our way of saying THANK YOU to our valued customers
@@ -115,36 +115,29 @@ export default function ReferralRewardsPage() {
                 <div
                   key={idx}
                   className={`rounded-lg p-6 text-center transition-all ${
-                    tier.highlight
-                      ? 'bg-gradient-to-b from-yellow-500/30 to-yellow-600/20 border-2 border-yellow-500 scale-105 shadow-lg shadow-yellow-500/20'
+                    tier.amount === '$1,000'
+                      ? 'bg-gradient-to-b from-brand-green/30 to-brand-green/10 border-2 border-brand-green'
                       : 'bg-neutral-800 border border-neutral-700 hover:border-brand-green'
                   }`}
                 >
-                  <p className={`text-sm font-semibold mb-2 ${tier.highlight ? 'text-yellow-400' : 'text-neutral-400'}`}>
+                  <p className="text-sm font-semibold mb-2 text-neutral-400">
                     {tier.referral} Referral
                   </p>
-                  <p className={`text-3xl md:text-4xl font-black ${tier.highlight ? 'text-yellow-400' : 'text-brand-green'}`}>
+                  <p className={`text-3xl md:text-4xl font-black ${tier.amount === '$1,000' ? 'text-brand-green' : 'text-white'}`}>
                     {tier.amount}
                   </p>
-                  {tier.highlight && (
-                    <div className="mt-2">
-                      <Trophy className="text-yellow-400 mx-auto" size={24} />
-                      <p className="text-yellow-400 text-xs font-bold mt-1">JACKPOT!</p>
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
 
-            <div className="max-w-3xl mx-auto bg-gradient-to-r from-yellow-500/20 to-brand-green/20 border border-yellow-500/40 rounded-lg p-8 text-center">
-              <Trophy className="text-yellow-400 mx-auto mb-4" size={48} />
+            <div className="max-w-3xl mx-auto bg-gradient-to-r from-brand-green/20 to-lime-500/20 border border-brand-green/40 rounded-lg p-8 text-center">
+              <DollarSign className="text-brand-green mx-auto mb-4" size={48} />
               <h3 className="text-2xl font-bold text-white mb-3">
-                Hit The $10,000 Jackpot on Your 5th Referral!
+                Unlimited Earning Potential!
               </h3>
               <p className="text-neutral-300">
-                Your 1st through 4th referrals earn you <span className="text-brand-green font-bold">$1,850</span> total.
-                <br />Then your 5th referral hits the <span className="text-yellow-400 font-bold">$10,000 JACKPOT!</span>
-                <br />That is <span className="text-white font-bold">$11,850</span> in rewards for just 5 referrals!
+                After your 4th referral, you earn <span className="text-brand-green font-bold">$1,000</span> for every additional referral.
+                <br />Refer 10 people? That is <span className="text-white font-bold">$7,850</span> in your pocket!
               </p>
             </div>
           </div>
@@ -230,7 +223,7 @@ export default function ReferralRewardsPage() {
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle2 className="text-brand-green flex-shrink-0 mt-1" size={20} />
-                    <span>No limit on total referrals - keep earning $1,000 per referral after your 5th!</span>
+                    <span>No limit on total referrals - keep earning $1,000 per referral after your 4th!</span>
                   </li>
                 </ul>
               </div>
@@ -243,20 +236,19 @@ export default function ReferralRewardsPage() {
                     <li>2nd Referral: <span className="text-brand-green">$250</span></li>
                     <li>3rd Referral: <span className="text-brand-green">$500</span></li>
                     <li>4th Referral: <span className="text-brand-green">$1,000</span></li>
-                    <li>5th Referral: <span className="text-yellow-400 font-bold">$10,000</span></li>
+                    <li>5th Referral: <span className="text-brand-green">$1,000</span></li>
                     <li className="border-t border-neutral-600 pt-2 mt-2">
-                      <strong className="text-white">Total: $11,850</strong>
+                      <strong className="text-white">Total: $2,850</strong>
                     </li>
                   </ul>
                 </div>
                 <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-6">
                   <h4 className="text-lg font-bold text-white mb-3">Example: 10 Referrals</h4>
                   <ul className="space-y-2 text-sm text-neutral-300">
-                    <li>1st-4th: <span className="text-brand-green">$1,850</span></li>
-                    <li>5th (Jackpot): <span className="text-yellow-400 font-bold">$10,000</span></li>
-                    <li>6th-10th: <span className="text-brand-green">$5,000</span> ($1k each)</li>
+                    <li>1st-3rd: <span className="text-brand-green">$850</span></li>
+                    <li>4th-10th: <span className="text-brand-green">$7,000</span> ($1k each)</li>
                     <li className="border-t border-neutral-600 pt-2 mt-2">
-                      <strong className="text-white">Total: $16,850</strong>
+                      <strong className="text-white">Total: $7,850</strong>
                     </li>
                   </ul>
                 </div>

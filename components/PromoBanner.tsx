@@ -30,7 +30,7 @@ export default function PromoBanner() {
         <Link href="/referral-rewards" className="flex items-center justify-center gap-2 text-sm md:text-base font-bold hover:opacity-80 transition-opacity">
           <Trophy className="w-5 h-5 animate-pulse" />
           <span className="hidden sm:inline">CUSTOMER REWARDS:</span>
-          <span>Earn up to <span className="text-white bg-black px-2 py-0.5 rounded">$10,000</span> in referral rewards!</span>
+          <span>Earn up to <span className="text-white bg-black px-2 py-0.5 rounded">$1,000</span> per referral!</span>
           <Gift className="w-5 h-5" />
           <span className="underline ml-1">Learn More</span>
         </Link>
