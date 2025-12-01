@@ -162,3 +162,4 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ sl
   );
 }
 
+// Trigger Vercel rebuild
