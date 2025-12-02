@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import AdminLayout from '@/components/AdminLayout';
 import {
-  ArrowLeft, Plus, Edit, Trash2, Eye, Search, Calendar,
-  User, Tag, Save, X, Loader2, FileText, ExternalLink, RefreshCw
+  Plus, Edit, Trash2, Eye, Search, Calendar,
+  User, Tag, Save, X, Loader2, FileText, ExternalLink, RefreshCw, Sparkles
 } from 'lucide-react';
 
 interface BlogPost {
@@ -52,14 +53,12 @@ export default function BlogAdmin() {
   const handleSave = async (post: BlogPost) => {
     try {
       if (isCreating) {
-        // Create new post
         await fetch('/api/cms/blog', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(post),
         });
       } else {
-        // Update existing
         await fetch('/api/cms/blog', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -101,7 +100,6 @@ export default function BlogAdmin() {
     });
   };
 
-  // Edit Modal
   if (editingPost) {
     return (
       <BlogEditor
@@ -114,64 +112,64 @@ export default function BlogAdmin() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-900">
-      {/* Header */}
-      <div className="bg-neutral-800 border-b border-neutral-700 p-4">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/portal/admin" className="text-neutral-400 hover:text-white">
-              <ArrowLeft size={20} />
-            </Link>
-            <div>
-              <h1 className="text-xl font-bold text-white">Blog Posts</h1>
-              <p className="text-sm text-neutral-400">{posts.length} articles (Google Sheets)</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={loadPosts}
-              disabled={isLoading}
-              className="p-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg"
-            >
-              <RefreshCw size={18} className={`text-neutral-400 ${isLoading ? 'animate-spin' : ''}`} />
-            </button>
-            <button
-              onClick={handleCreate}
-              className="bg-brand-green hover:bg-lime-400 text-black font-bold px-4 py-2 rounded-lg flex items-center gap-2"
-            >
-              <Plus size={18} />
-              New Post
-            </button>
-          </div>
+    <AdminLayout
+      title="Blog Posts"
+      subtitle={`${posts.length} articles synced with Google Sheets`}
+      actions={
+        <div className="flex items-center gap-2">
+          <button
+            onClick={loadPosts}
+            disabled={isLoading}
+            className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
+          >
+            <RefreshCw size={18} className={`text-neutral-400 ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
+          <button
+            onClick={handleCreate}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-medium transition-all shadow-lg shadow-blue-500/25"
+          >
+            <Plus size={18} />
+            New Post
+          </button>
         </div>
+      }
+    >
+      {/* Search */}
+      <div className="relative mb-8">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500" size={20} />
+        <input
+          type="text"
+          placeholder="Search posts by title or author..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full bg-white/[0.03] border border-white/10 rounded-xl pl-12 pr-4 py-4 text-white placeholder-neutral-500 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all outline-none"
+        />
       </div>
 
-      <div className="max-w-6xl mx-auto p-4">
-        {/* Search */}
-        <div className="relative mb-6">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" size={18} />
-          <input
-            type="text"
-            placeholder="Search posts..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-neutral-800 border border-neutral-700 rounded-lg pl-10 pr-4 py-3 text-white"
-          />
-        </div>
-
-        {/* Loading State */}
-        {isLoading ? (
-          <div className="text-center py-12">
-            <Loader2 className="animate-spin mx-auto text-brand-green" size={32} />
-            <p className="text-neutral-400 mt-2">Loading posts from Google Sheets...</p>
+      {/* Loading State */}
+      {isLoading ? (
+        <div className="text-center py-24">
+          <div className="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Loader2 className="animate-spin text-blue-400" size={32} />
           </div>
-        ) : posts.length === 0 ? (
-          <div className="text-center py-12">
-            <FileText className="mx-auto text-neutral-600" size={48} />
-            <p className="text-neutral-400 mt-4">No blog posts yet</p>
-            <p className="text-neutral-500 text-sm mt-2">
-              Click "New Post" to create one, or run setup to import existing posts
-            </p>
+          <p className="text-neutral-400">Loading posts from Google Sheets...</p>
+        </div>
+      ) : posts.length === 0 ? (
+        <div className="text-center py-24">
+          <div className="w-16 h-16 bg-neutral-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <FileText className="text-neutral-600" size={32} />
+          </div>
+          <h3 className="text-lg font-semibold text-white mb-2">No blog posts yet</h3>
+          <p className="text-neutral-500 mb-6 max-w-sm mx-auto">
+            Get started by creating your first blog post or import default posts.
+          </p>
+          <div className="flex items-center justify-center gap-3">
+            <button
+              onClick={handleCreate}
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-medium"
+            >
+              Create First Post
+            </button>
             <button
               onClick={async () => {
                 setIsLoading(true);
@@ -179,95 +177,103 @@ export default function BlogAdmin() {
                   await fetch('/api/cms/setup', { method: 'POST' });
                   await loadPosts();
                 } catch (error) {
-                  console.error('Error setting up:', error);
+                  console.error('Error:', error);
                 } finally {
                   setIsLoading(false);
                 }
               }}
-              className="mt-4 bg-neutral-700 hover:bg-neutral-600 text-white px-4 py-2 rounded-lg"
+              className="px-6 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-neutral-400 transition-colors"
             >
-              Import Default Posts
+              Import Defaults
             </button>
           </div>
-        ) : (
-          /* Posts List */
-          <div className="space-y-3">
-            {filteredPosts.map(post => (
-              <div
-                key={post.id || post.slug}
-                className="bg-neutral-800 border border-neutral-700 rounded-xl p-4 hover:border-neutral-600 transition-colors"
-              >
-                <div className="flex items-start gap-4">
-                  {/* Thumbnail */}
-                  <div className="w-24 h-16 bg-neutral-700 rounded-lg overflow-hidden flex-shrink-0">
-                    {post.image && (
-                      <img
-                        src={post.image}
-                        alt={post.title}
-                        className="w-full h-full object-cover"
-                      />
+        </div>
+      ) : (
+        /* Posts Grid */
+        <div className="space-y-4">
+          {filteredPosts.map(post => (
+            <div
+              key={post.id || post.slug}
+              className="group bg-white/[0.02] border border-white/5 hover:border-white/10 rounded-2xl p-5 transition-all hover:bg-white/[0.04]"
+            >
+              <div className="flex items-start gap-5">
+                {/* Thumbnail */}
+                <div className="w-32 h-20 bg-neutral-800 rounded-xl overflow-hidden flex-shrink-0">
+                  {post.image ? (
+                    <img
+                      src={post.image}
+                      alt={post.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <FileText size={24} className="text-neutral-600" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="font-semibold text-white truncate group-hover:text-blue-400 transition-colors">
+                      {post.title}
+                    </h3>
+                    {!post.published && (
+                      <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded-full font-medium">
+                        Draft
+                      </span>
                     )}
                   </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-white truncate">{post.title}</h3>
-                      {!post.published && (
-                        <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-500 text-xs rounded">Draft</span>
-                      )}
-                    </div>
-                    <p className="text-sm text-neutral-400 line-clamp-1 mb-2">{post.excerpt}</p>
-                    <div className="flex items-center gap-4 text-xs text-neutral-500">
-                      <span className="flex items-center gap-1">
-                        <Calendar size={12} />
-                        {post.date}
+                  <p className="text-sm text-neutral-400 line-clamp-1 mb-3">{post.excerpt}</p>
+                  <div className="flex items-center gap-4 text-xs text-neutral-500">
+                    <span className="flex items-center gap-1.5">
+                      <Calendar size={14} />
+                      {post.date}
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <User size={14} />
+                      {post.author}
+                    </span>
+                    {post.keywords && (
+                      <span className="flex items-center gap-1.5">
+                        <Tag size={14} />
+                        {post.keywords}
                       </span>
-                      <span className="flex items-center gap-1">
-                        <User size={12} />
-                        {post.author}
-                      </span>
-                      {post.keywords && (
-                        <span className="flex items-center gap-1">
-                          <Tag size={12} />
-                          {post.keywords}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <Link
-                      href={`/blog/${post.slug}`}
-                      target="_blank"
-                      className="p-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg"
-                      title="View"
-                    >
-                      <Eye size={16} className="text-neutral-400" />
-                    </Link>
-                    <button
-                      onClick={() => setEditingPost(post)}
-                      className="p-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg"
-                      title="Edit"
-                    >
-                      <Edit size={16} className="text-neutral-400" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(post.slug)}
-                      className="p-2 bg-neutral-700 hover:bg-red-600 rounded-lg"
-                      title="Delete"
-                    >
-                      <Trash2 size={16} className="text-neutral-400" />
-                    </button>
+                    )}
                   </div>
                 </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Link
+                    href={`/blog/${post.slug}`}
+                    target="_blank"
+                    className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
+                    title="View"
+                  >
+                    <Eye size={18} className="text-neutral-400" />
+                  </Link>
+                  <button
+                    onClick={() => setEditingPost(post)}
+                    className="w-10 h-10 rounded-xl bg-white/5 hover:bg-blue-500/20 flex items-center justify-center transition-colors"
+                    title="Edit"
+                  >
+                    <Edit size={18} className="text-neutral-400 hover:text-blue-400" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(post.slug)}
+                    className="w-10 h-10 rounded-xl bg-white/5 hover:bg-red-500/20 flex items-center justify-center transition-colors"
+                    title="Delete"
+                  >
+                    <Trash2 size={18} className="text-neutral-400 hover:text-red-400" />
+                  </button>
+                </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </AdminLayout>
   );
 }
 
@@ -289,7 +295,6 @@ function BlogEditor({
     e.preventDefault();
     setIsSaving(true);
 
-    // Generate slug from title if new
     const slug = formData.slug || formData.title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
@@ -300,38 +305,29 @@ function BlogEditor({
   };
 
   return (
-    <div className="min-h-screen bg-neutral-900">
-      {/* Header */}
-      <div className="bg-neutral-800 border-b border-neutral-700 p-4 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button onClick={onCancel} className="text-neutral-400 hover:text-white">
-              <X size={20} />
-            </button>
-            <h1 className="text-xl font-bold text-white">
-              {isNew ? 'New Blog Post' : 'Edit Blog Post'}
-            </h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onCancel}
-              className="bg-neutral-700 hover:bg-neutral-600 text-white font-bold px-4 py-2 rounded-lg"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={isSaving}
-              className="bg-brand-green hover:bg-lime-400 text-black font-bold px-4 py-2 rounded-lg flex items-center gap-2"
-            >
-              {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-              Save to Sheets
-            </button>
-          </div>
+    <AdminLayout
+      title={isNew ? 'New Blog Post' : 'Edit Blog Post'}
+      subtitle={isNew ? 'Create a new article' : `Editing: ${post.title}`}
+      actions={
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-neutral-400 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={isSaving}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-medium transition-all shadow-lg shadow-blue-500/25 disabled:opacity-50"
+          >
+            {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+            Save to Sheets
+          </button>
         </div>
-      </div>
-
-      <form onSubmit={handleSubmit} className="max-w-4xl mx-auto p-4 space-y-6">
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-6">
         {/* Title */}
         <div>
           <label className="block text-sm font-medium text-neutral-300 mb-2">Title</label>
@@ -340,7 +336,7 @@ function BlogEditor({
             value={formData.title}
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             placeholder="Enter post title..."
-            className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-3 text-white text-lg"
+            className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white text-lg placeholder-neutral-500 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all outline-none"
             required
           />
         </div>
@@ -349,30 +345,28 @@ function BlogEditor({
         <div>
           <label className="block text-sm font-medium text-neutral-300 mb-2">
             URL Slug
-            <span className="text-neutral-500 font-normal ml-2">
-              (auto-generated from title if empty)
-            </span>
+            <span className="text-neutral-500 font-normal ml-2">(auto-generated if empty)</span>
           </label>
-          <div className="flex items-center bg-neutral-800 border border-neutral-700 rounded-lg overflow-hidden">
-            <span className="text-neutral-500 px-3">/blog/</span>
+          <div className="flex items-center bg-white/[0.03] border border-white/10 rounded-xl overflow-hidden focus-within:border-blue-500/50 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
+            <span className="text-neutral-500 px-4 bg-white/5">/blog/</span>
             <input
               type="text"
               value={formData.slug}
               onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
               placeholder="post-url-slug"
-              className="flex-1 bg-transparent py-3 pr-4 text-white outline-none"
+              className="flex-1 bg-transparent py-3 pr-4 text-white placeholder-neutral-500 outline-none"
             />
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Author */}
           <div>
             <label className="block text-sm font-medium text-neutral-300 mb-2">Author</label>
             <select
               value={formData.author}
               onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-              className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-3 text-white"
+              className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-blue-500/50 transition-all outline-none"
             >
               <option value="Chris Muse">Chris Muse</option>
               <option value="Michael Muse">Michael Muse</option>
@@ -391,21 +385,23 @@ function BlogEditor({
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
               placeholder="Month Day, Year"
-              className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-3 text-white"
+              className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-neutral-500 focus:border-blue-500/50 transition-all outline-none"
             />
           </div>
         </div>
 
-        {/* Published */}
-        <div className="flex items-center gap-3">
+        {/* Published Toggle */}
+        <div className="flex items-center gap-3 p-4 bg-white/[0.02] border border-white/5 rounded-xl">
           <input
             type="checkbox"
             id="published"
             checked={formData.published}
             onChange={(e) => setFormData({ ...formData, published: e.target.checked })}
-            className="w-5 h-5 rounded border-neutral-600 bg-neutral-700 text-brand-green"
+            className="w-5 h-5 rounded border-neutral-600 bg-neutral-700 text-blue-500 focus:ring-blue-500"
           />
-          <label htmlFor="published" className="text-neutral-300">Published (visible on website)</label>
+          <label htmlFor="published" className="text-neutral-300">
+            Published <span className="text-neutral-500 text-sm">(visible on website)</span>
+          </label>
         </div>
 
         {/* Image */}
@@ -417,10 +413,10 @@ function BlogEditor({
               value={formData.image}
               onChange={(e) => setFormData({ ...formData, image: e.target.value })}
               placeholder="/uploads/image.jpg"
-              className="flex-1 bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-3 text-white"
+              className="flex-1 bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-neutral-500 focus:border-blue-500/50 transition-all outline-none"
             />
             {formData.image && (
-              <div className="w-20 h-14 bg-neutral-700 rounded-lg overflow-hidden">
+              <div className="w-24 h-14 bg-neutral-800 rounded-xl overflow-hidden flex-shrink-0">
                 <img
                   src={formData.image}
                   alt="Preview"
@@ -434,30 +430,28 @@ function BlogEditor({
         {/* Keywords */}
         <div>
           <label className="block text-sm font-medium text-neutral-300 mb-2">
-            Keywords
-            <span className="text-neutral-500 font-normal ml-2">(comma separated)</span>
+            Keywords <span className="text-neutral-500 font-normal">(comma separated)</span>
           </label>
           <input
             type="text"
             value={formData.keywords}
             onChange={(e) => setFormData({ ...formData, keywords: e.target.value })}
             placeholder="roofing, shingles, storm damage"
-            className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-3 text-white"
+            className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-neutral-500 focus:border-blue-500/50 transition-all outline-none"
           />
         </div>
 
         {/* Excerpt */}
         <div>
           <label className="block text-sm font-medium text-neutral-300 mb-2">
-            Excerpt
-            <span className="text-neutral-500 font-normal ml-2">(short summary for listings)</span>
+            Excerpt <span className="text-neutral-500 font-normal">(short summary)</span>
           </label>
           <textarea
             value={formData.excerpt}
             onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
             placeholder="Brief summary of the post..."
             rows={2}
-            className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-3 text-white resize-none"
+            className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-neutral-500 focus:border-blue-500/50 transition-all outline-none resize-none"
           />
         </div>
 
@@ -468,18 +462,18 @@ function BlogEditor({
             value={formData.content}
             onChange={(e) => setFormData({ ...formData, content: e.target.value })}
             placeholder="Full blog post content..."
-            rows={12}
-            className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-3 text-white resize-y font-mono text-sm"
+            rows={15}
+            className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-neutral-500 focus:border-blue-500/50 transition-all outline-none resize-y font-mono text-sm"
           />
         </div>
 
         {/* Preview Link */}
         {!isNew && formData.slug && (
-          <div className="pt-4 border-t border-neutral-700">
+          <div className="pt-4 border-t border-white/5">
             <Link
               href={`/blog/${formData.slug}`}
               target="_blank"
-              className="inline-flex items-center gap-2 text-brand-green hover:underline"
+              className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors"
             >
               <ExternalLink size={16} />
               View live post
@@ -487,6 +481,6 @@ function BlogEditor({
           </div>
         )}
       </form>
-    </div>
+    </AdminLayout>
   );
 }
