@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    // Remote image patterns for external sources
     remotePatterns: [
       {
         protocol: 'https',
@@ -16,9 +15,16 @@ const nextConfig = {
     ],
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    formats: ['image/avif', 'image/webp'],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
-  // Note: Local images from /public/uploads are automatically served by Next.js
-  // and don't need to be added to remotePatterns
+  compress: true,
+  poweredByHeader: false,
+  reactStrictMode: true,
+  experimental: {
+    optimizePackageImports: ['lucide-react'],
+  },
 }
 
 module.exports = nextConfig
