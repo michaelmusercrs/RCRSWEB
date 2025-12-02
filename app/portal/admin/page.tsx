@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft, FileText, Users, Image, Settings, ChevronRight,
-  Edit, Plus, Trash2, Eye, Save, X, Upload, Globe
+  Edit, Plus, Trash2, Eye, Save, X, Upload, Globe, BookOpen
 } from 'lucide-react';
 
 export default function AdminPortal() {
@@ -120,6 +120,25 @@ export default function AdminPortal() {
             </div>
           </Link>
         </div>
+
+        {/* Training Portal */}
+        <Link
+          href="/portal/admin/training"
+          className="bg-gradient-to-r from-brand-green/20 to-blue-500/20 border border-brand-green/50 rounded-xl p-6 hover:border-brand-green transition-colors group mt-4 block"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-brand-green/30 rounded-lg flex items-center justify-center">
+                <BookOpen className="text-brand-green" size={24} />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-white group-hover:text-brand-green">Training Portal</h2>
+                <p className="text-sm text-neutral-400">Learn how to use all features</p>
+              </div>
+            </div>
+            <ChevronRight className="text-brand-green" size={20} />
+          </div>
+        </Link>
 
         {/* Quick Stats */}
         <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">

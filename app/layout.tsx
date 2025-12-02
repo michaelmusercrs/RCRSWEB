@@ -9,8 +9,8 @@ import GlobalVideoBackground from '@/components/GlobalVideoBackground';
 import PromoBanner from '@/components/PromoBanner';
 import { generateMetadata, generateLocalBusinessSchema, getStructuredDataScript } from '@/lib/seo';
 
-// Google Analytics ID - Replace with your actual GA4 Measurement ID
-const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_ID || 'G-XXXXXXXXXX';
+// Google Analytics ID
+const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_ID || 'G-Y8PB85BZC5';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -39,19 +39,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Google Analytics */}
-        <Script
-          src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
-          strategy="afterInteractive"
-        />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', '${GA_MEASUREMENT_ID}');
-          `}
-        </Script>
         {/* Structured Data (JSON-LD) */}
         <script
           type="application/ld+json"
@@ -66,12 +53,27 @@ export default function RootLayout({
         <meta name="color-scheme" content="dark light" />
       </head>
       <body className={inter.className}>
-        <PromoBanner />
+        {/* Google Analytics - Must be in body for Next.js App Router */}
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${GA_MEASUREMENT_ID}');
+          `}
+        </Script>
+        <div className="sticky top-0 z-50">
+          <PromoBanner />
+          <Header />
+        </div>
         <GlobalVideoBackground
           videoSrc="/uploads/hero-video.mp4"
           fallbackImage="/uploads/hero-background.webp"
         />
-        <Header />
         <main>{children}</main>
         <FloatingContactButton />
         <SpeedInsights />

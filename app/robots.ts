@@ -16,6 +16,7 @@ export default function robots(): MetadataRoute.Robots {
         disallow: [
           '/api/',
           '/admin/',
+          '/portal/',
           '/_next/',
           '/private/',
         ],
@@ -24,7 +25,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: 'Googlebot',
         allow: '/',
-        disallow: ['/api/', '/admin/'],
+        disallow: ['/api/', '/admin/', '/portal/'],
       },
       {
         userAgent: 'Googlebot-Image',
