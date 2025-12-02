@@ -3,16 +3,19 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import {
-  ArrowLeft, BookOpen, ChevronDown, ChevronRight, CheckCircle2,
-  FileText, Users, Image, Globe, Settings, Package, Truck, BarChart3,
-  Play, Clock, Target, AlertCircle, HelpCircle, Phone, Mail
+  BookOpen, ChevronDown, ChevronRight, CheckCircle2,
+  FileText, Users, Image, Package, Truck, BarChart3,
+  Play, Clock, Target, AlertCircle, HelpCircle, Phone, Mail,
+  Sparkles, GraduationCap, Award
 } from 'lucide-react';
+import AdminLayout from '@/components/AdminLayout';
 
 type Section = {
   id: string;
   title: string;
-  icon: any;
+  icon: React.ElementType;
   color: string;
+  bgColor: string;
   lessons: Lesson[];
 };
 
@@ -29,7 +32,8 @@ const trainingSections: Section[] = [
     id: 'portal-overview',
     title: 'Portal Overview',
     icon: BookOpen,
-    color: 'brand-green',
+    color: 'text-brand-green',
+    bgColor: 'bg-brand-green/20',
     lessons: [
       {
         id: 'getting-started',
@@ -66,7 +70,8 @@ const trainingSections: Section[] = [
     id: 'admin-blog',
     title: 'Blog Management',
     icon: FileText,
-    color: 'blue-500',
+    color: 'text-blue-400',
+    bgColor: 'bg-blue-500/20',
     lessons: [
       {
         id: 'view-posts',
@@ -121,7 +126,8 @@ const trainingSections: Section[] = [
     id: 'admin-team',
     title: 'Team Management',
     icon: Users,
-    color: 'green-500',
+    color: 'text-emerald-400',
+    bgColor: 'bg-emerald-500/20',
     lessons: [
       {
         id: 'view-team',
@@ -177,7 +183,8 @@ const trainingSections: Section[] = [
     id: 'admin-images',
     title: 'Image Gallery',
     icon: Image,
-    color: 'purple-500',
+    color: 'text-violet-400',
+    bgColor: 'bg-violet-500/20',
     lessons: [
       {
         id: 'upload-images',
@@ -221,7 +228,8 @@ const trainingSections: Section[] = [
     id: 'inventory',
     title: 'Inventory Management',
     icon: Package,
-    color: 'orange-500',
+    color: 'text-orange-400',
+    bgColor: 'bg-orange-500/20',
     lessons: [
       {
         id: 'view-inventory',
@@ -279,7 +287,8 @@ const trainingSections: Section[] = [
     id: 'manager',
     title: 'Manager Dashboard',
     icon: BarChart3,
-    color: 'blue-500',
+    color: 'text-cyan-400',
+    bgColor: 'bg-cyan-500/20',
     lessons: [
       {
         id: 'dashboard-overview',
@@ -335,7 +344,8 @@ const trainingSections: Section[] = [
     id: 'driver',
     title: 'Driver Portal',
     icon: Truck,
-    color: 'blue-500',
+    color: 'text-sky-400',
+    bgColor: 'bg-sky-500/20',
     lessons: [
       {
         id: 'driver-login',
@@ -419,227 +429,233 @@ export default function AdminTrainingPage() {
   const progressPercent = Math.round((completedLessons.length / totalLessons) * 100);
 
   return (
-    <div className="min-h-screen bg-neutral-900">
-      {/* Header */}
-      <div className="bg-neutral-800 border-b border-neutral-700 p-4">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/portal/admin" className="text-neutral-400 hover:text-white">
-              <ArrowLeft size={20} />
-            </Link>
-            <div>
-              <h1 className="text-xl font-bold text-white">Training Portal</h1>
-              <p className="text-sm text-neutral-400">Learn how to use all portal features</p>
-            </div>
-          </div>
+    <AdminLayout
+      title="Training Portal"
+      subtitle="Learn how to use all portal features"
+      actions={
+        <div className="flex items-center gap-4">
           <div className="text-right">
             <div className="text-2xl font-bold text-brand-green">{progressPercent}%</div>
             <div className="text-xs text-neutral-400">{completedLessons.length}/{totalLessons} lessons</div>
           </div>
+          {progressPercent === 100 && (
+            <div className="w-10 h-10 rounded-xl bg-brand-green/20 flex items-center justify-center">
+              <Award className="text-brand-green" size={20} />
+            </div>
+          )}
         </div>
-      </div>
-
+      }
+    >
       {/* Progress Bar */}
-      <div className="bg-neutral-800 border-b border-neutral-700">
-        <div className="max-w-4xl mx-auto">
-          <div className="h-1 bg-neutral-700">
-            <div
-              className="h-1 bg-brand-green transition-all duration-500"
-              style={{ width: `${progressPercent}%` }}
-            />
+      <div className="mb-8">
+        <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+          <div
+            className="h-2 bg-gradient-to-r from-brand-green to-emerald-400 transition-all duration-500 rounded-full"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Quick Start Card */}
+      <div className="relative overflow-hidden bg-gradient-to-r from-brand-green/10 via-emerald-500/10 to-cyan-500/10 border border-brand-green/20 rounded-2xl p-6 mb-8">
+        <div className="absolute -top-24 -right-24 w-48 h-48 bg-brand-green rounded-full blur-3xl opacity-10" />
+        <div className="relative flex items-start gap-5">
+          <div className="w-14 h-14 bg-brand-green/20 rounded-2xl flex items-center justify-center flex-shrink-0">
+            <GraduationCap className="text-brand-green" size={28} />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-white mb-2">Welcome to Training!</h2>
+            <p className="text-neutral-300 text-sm mb-4 leading-relaxed">
+              This guide will teach you how to use all features of the River City Roofing portal system.
+              Complete each lesson and mark it done to track your progress.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <span className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-neutral-300 flex items-center gap-2">
+                <Clock size={14} className="text-neutral-400" /> ~45 min total
+              </span>
+              <span className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-neutral-300 flex items-center gap-2">
+                <BookOpen size={14} className="text-neutral-400" /> {totalLessons} lessons
+              </span>
+              <span className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-neutral-300 flex items-center gap-2">
+                <Target size={14} className="text-neutral-400" /> 7 sections
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto p-4">
-        {/* Quick Start Card */}
-        <div className="bg-gradient-to-r from-brand-green/20 to-blue-500/20 border border-brand-green/30 rounded-xl p-6 mb-6">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-brand-green rounded-full flex items-center justify-center flex-shrink-0">
-              <Target className="text-black" size={24} />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-white mb-2">Welcome to Training!</h2>
-              <p className="text-neutral-300 text-sm mb-3">
-                This guide will teach you how to use all features of the River City Roofing portal system.
-                Complete each lesson and mark it done to track your progress.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <span className="px-3 py-1 bg-neutral-800 rounded-full text-xs text-neutral-300">
-                  <Clock size={12} className="inline mr-1" /> ~45 min total
-                </span>
-                <span className="px-3 py-1 bg-neutral-800 rounded-full text-xs text-neutral-300">
-                  <BookOpen size={12} className="inline mr-1" /> {totalLessons} lessons
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Training Sections */}
+      <div className="space-y-4">
+        {trainingSections.map((section) => {
+          const Icon = section.icon;
+          const isExpanded = expandedSection === section.id;
+          const sectionComplete = section.lessons.every(l => completedLessons.includes(l.id));
+          const sectionProgress = section.lessons.filter(l => completedLessons.includes(l.id)).length;
 
-        {/* Training Sections */}
-        <div className="space-y-4">
-          {trainingSections.map((section) => {
-            const Icon = section.icon;
-            const isExpanded = expandedSection === section.id;
-            const sectionComplete = section.lessons.every(l => completedLessons.includes(l.id));
-            const sectionProgress = section.lessons.filter(l => completedLessons.includes(l.id)).length;
-
-            return (
-              <div key={section.id} className="bg-neutral-800 border border-neutral-700 rounded-xl overflow-hidden">
-                {/* Section Header */}
-                <button
-                  onClick={() => toggleSection(section.id)}
-                  className="w-full p-4 flex items-center justify-between hover:bg-neutral-700/50 transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 bg-${section.color}/20 rounded-lg flex items-center justify-center`}>
-                      <Icon className={`text-${section.color}`} size={20} />
-                    </div>
-                    <div className="text-left">
-                      <h3 className="font-semibold text-white">{section.title}</h3>
-                      <p className="text-sm text-neutral-400">
-                        {sectionProgress}/{section.lessons.length} lessons
-                        {sectionComplete && <CheckCircle2 className="inline ml-2 text-brand-green" size={14} />}
-                      </p>
-                    </div>
+          return (
+            <div key={section.id} className="bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden hover:border-white/10 transition-colors">
+              {/* Section Header */}
+              <button
+                onClick={() => toggleSection(section.id)}
+                className="w-full p-5 flex items-center justify-between hover:bg-white/[0.02] transition-colors"
+              >
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 ${section.bgColor} rounded-xl flex items-center justify-center`}>
+                    <Icon className={section.color} size={24} />
                   </div>
+                  <div className="text-left">
+                    <h3 className="font-semibold text-white text-lg">{section.title}</h3>
+                    <p className="text-sm text-neutral-400 flex items-center gap-2">
+                      {sectionProgress}/{section.lessons.length} lessons
+                      {sectionComplete && <CheckCircle2 className="text-brand-green" size={14} />}
+                    </p>
+                  </div>
+                </div>
+                <div className={`w-8 h-8 rounded-lg ${isExpanded ? 'bg-white/10' : 'bg-white/5'} flex items-center justify-center transition-colors`}>
                   {isExpanded ? (
-                    <ChevronDown className="text-neutral-400" size={20} />
+                    <ChevronDown className="text-neutral-400" size={18} />
                   ) : (
-                    <ChevronRight className="text-neutral-400" size={20} />
+                    <ChevronRight className="text-neutral-400" size={18} />
                   )}
-                </button>
+                </div>
+              </button>
 
-                {/* Section Lessons */}
-                {isExpanded && (
-                  <div className="border-t border-neutral-700">
-                    {section.lessons.map((lesson, idx) => {
-                      const isLessonExpanded = expandedLesson === lesson.id;
-                      const isComplete = completedLessons.includes(lesson.id);
+              {/* Section Lessons */}
+              {isExpanded && (
+                <div className="border-t border-white/5">
+                  {section.lessons.map((lesson, idx) => {
+                    const isLessonExpanded = expandedLesson === lesson.id;
+                    const isComplete = completedLessons.includes(lesson.id);
 
-                      return (
-                        <div key={lesson.id} className={idx > 0 ? 'border-t border-neutral-700/50' : ''}>
-                          {/* Lesson Header */}
-                          <button
-                            onClick={() => toggleLesson(lesson.id)}
-                            className="w-full p-4 pl-8 flex items-center justify-between hover:bg-neutral-700/30 transition-colors"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                                isComplete ? 'bg-brand-green' : 'bg-neutral-700'
-                              }`}>
-                                {isComplete ? (
-                                  <CheckCircle2 className="text-black" size={14} />
-                                ) : (
-                                  <Play className="text-neutral-400" size={12} />
-                                )}
-                              </div>
-                              <span className={`font-medium ${isComplete ? 'text-brand-green' : 'text-white'}`}>
-                                {lesson.title}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <span className="text-xs text-neutral-500">{lesson.duration}</span>
-                              {isLessonExpanded ? (
-                                <ChevronDown className="text-neutral-400" size={16} />
+                    return (
+                      <div key={lesson.id} className={idx > 0 ? 'border-t border-white/5' : ''}>
+                        {/* Lesson Header */}
+                        <button
+                          onClick={() => toggleLesson(lesson.id)}
+                          className="w-full p-4 pl-8 flex items-center justify-between hover:bg-white/[0.02] transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
+                              isComplete
+                                ? 'bg-brand-green'
+                                : 'bg-white/5 border border-white/10'
+                            }`}>
+                              {isComplete ? (
+                                <CheckCircle2 className="text-black" size={14} />
                               ) : (
-                                <ChevronRight className="text-neutral-400" size={16} />
+                                <Play className="text-neutral-400" size={10} />
                               )}
                             </div>
-                          </button>
+                            <span className={`font-medium ${isComplete ? 'text-brand-green' : 'text-white'}`}>
+                              {lesson.title}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs text-neutral-500 px-2 py-1 bg-white/5 rounded-lg">
+                              {lesson.duration}
+                            </span>
+                            {isLessonExpanded ? (
+                              <ChevronDown className="text-neutral-400" size={16} />
+                            ) : (
+                              <ChevronRight className="text-neutral-400" size={16} />
+                            )}
+                          </div>
+                        </button>
 
-                          {/* Lesson Content */}
-                          {isLessonExpanded && (
-                            <div className="px-8 pb-4 pl-16">
-                              <div className="bg-neutral-900 rounded-lg p-4 mb-4">
-                                {lesson.content.map((line, i) => (
-                                  <p key={i} className={`text-sm ${
-                                    line.startsWith('-') || line.startsWith('   -')
-                                      ? 'text-neutral-400 pl-4'
-                                      : line === ''
-                                        ? 'h-2'
-                                        : 'text-neutral-300'
-                                  } ${i > 0 ? 'mt-2' : ''}`}>
-                                    {line}
+                        {/* Lesson Content */}
+                        {isLessonExpanded && (
+                          <div className="px-8 pb-5 pl-16">
+                            <div className="bg-white/[0.02] border border-white/5 rounded-xl p-5 mb-4">
+                              {lesson.content.map((line, i) => (
+                                <p key={i} className={`text-sm leading-relaxed ${
+                                  line.startsWith('-') || line.startsWith('   -')
+                                    ? 'text-neutral-400 pl-4'
+                                    : line === ''
+                                      ? 'h-3'
+                                      : 'text-neutral-300'
+                                } ${i > 0 ? 'mt-2' : ''}`}>
+                                  {line}
+                                </p>
+                              ))}
+                            </div>
+
+                            {lesson.tips && lesson.tips.length > 0 && (
+                              <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-5 mb-4">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <Sparkles className="text-blue-400" size={16} />
+                                  <span className="text-sm font-medium text-blue-400">Pro Tips</span>
+                                </div>
+                                {lesson.tips.map((tip, i) => (
+                                  <p key={i} className="text-sm text-blue-300/80 pl-6 mt-1.5 leading-relaxed">
+                                    - {tip}
                                   </p>
                                 ))}
                               </div>
+                            )}
 
-                              {lesson.tips && lesson.tips.length > 0 && (
-                                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <AlertCircle className="text-blue-400" size={16} />
-                                    <span className="text-sm font-medium text-blue-400">Pro Tips</span>
-                                  </div>
-                                  {lesson.tips.map((tip, i) => (
-                                    <p key={i} className="text-sm text-blue-300/80 pl-6 mt-1">
-                                      - {tip}
-                                    </p>
-                                  ))}
-                                </div>
-                              )}
+                            <button
+                              onClick={() => markComplete(lesson.id)}
+                              disabled={isComplete}
+                              className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                                isComplete
+                                  ? 'bg-brand-green/20 text-brand-green cursor-default'
+                                  : 'bg-gradient-to-r from-brand-green to-emerald-500 hover:from-lime-400 hover:to-emerald-400 text-black shadow-lg shadow-brand-green/25'
+                              }`}
+                            >
+                              {isComplete ? 'Completed!' : 'Mark as Complete'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
 
-                              <button
-                                onClick={() => markComplete(lesson.id)}
-                                disabled={isComplete}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                  isComplete
-                                    ? 'bg-brand-green/20 text-brand-green cursor-default'
-                                    : 'bg-brand-green hover:bg-lime-400 text-black'
-                                }`}
-                              >
-                                {isComplete ? 'Completed!' : 'Mark as Complete'}
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Help Section */}
-        <div className="mt-8 bg-neutral-800 border border-neutral-700 rounded-xl p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <HelpCircle className="text-brand-green" size={24} />
-            <h3 className="text-lg font-bold text-white">Need Help?</h3>
+      {/* Help Section */}
+      <div className="mt-10 bg-white/[0.02] border border-white/5 rounded-2xl p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-brand-green/20 rounded-xl flex items-center justify-center">
+            <HelpCircle className="text-brand-green" size={20} />
           </div>
-          <p className="text-neutral-400 text-sm mb-4">
-            If you have questions or run into issues, reach out to your manager or the admin team.
-          </p>
-          <div className="flex flex-wrap gap-4">
-            <a
-              href="tel:256-274-8530"
-              className="flex items-center gap-2 px-4 py-2 bg-neutral-700 rounded-lg text-white text-sm hover:bg-neutral-600 transition-colors"
-            >
-              <Phone size={16} />
-              (256) 274-8530
-            </a>
-            <a
-              href="mailto:rcrs@rivercityroofingsolutions.com"
-              className="flex items-center gap-2 px-4 py-2 bg-neutral-700 rounded-lg text-white text-sm hover:bg-neutral-600 transition-colors"
-            >
-              <Mail size={16} />
-              Email Support
-            </a>
-          </div>
+          <h3 className="text-lg font-bold text-white">Need Help?</h3>
         </div>
-
-        {/* Download Guide */}
-        <div className="mt-4 text-center">
-          <Link
-            href="/PORTAL-TRAINING-GUIDE.md"
-            target="_blank"
-            className="text-sm text-neutral-400 hover:text-brand-green transition-colors"
+        <p className="text-neutral-400 text-sm mb-5 leading-relaxed">
+          If you have questions or run into issues, reach out to your manager or the admin team.
+        </p>
+        <div className="flex flex-wrap gap-3">
+          <a
+            href="tel:256-274-8530"
+            className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white text-sm font-medium transition-colors"
           >
-            Download Full Training Guide (PDF)
-          </Link>
+            <Phone size={16} className="text-neutral-400" />
+            (256) 274-8530
+          </a>
+          <a
+            href="mailto:rcrs@rivercityroofingsolutions.com"
+            className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white text-sm font-medium transition-colors"
+          >
+            <Mail size={16} className="text-neutral-400" />
+            Email Support
+          </a>
         </div>
       </div>
-    </div>
+
+      {/* Download Guide */}
+      <div className="mt-6 text-center">
+        <Link
+          href="/PORTAL-TRAINING-GUIDE.md"
+          target="_blank"
+          className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-brand-green transition-colors"
+        >
+          <BookOpen size={14} />
+          Download Full Training Guide
+        </Link>
+      </div>
+    </AdminLayout>
   );
 }

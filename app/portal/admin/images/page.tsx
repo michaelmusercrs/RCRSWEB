@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import {
-  ArrowLeft, Upload, Trash2, Copy, Check, Search, Grid,
-  List, Image as ImageIcon, Folder, X, Loader2, Download, ExternalLink
+  Upload, Trash2, Copy, Check, Search, Grid,
+  List, Image as ImageIcon, X, Loader2, ExternalLink, FolderOpen
 } from 'lucide-react';
+import AdminLayout from '@/components/AdminLayout';
 
 interface ImageFile {
   name: string;
@@ -67,6 +68,15 @@ const sampleImages: ImageFile[] = [
   { name: 'blog-roof-leaks-and-your-attic.jpg', path: '/uploads/blog-roof-leaks-and-your-attic.jpg', category: 'Blog' },
 ];
 
+const categoryColors: Record<string, { bg: string; text: string; border: string }> = {
+  'Team': { bg: 'bg-emerald-500/20', text: 'text-emerald-400', border: 'border-emerald-500/30' },
+  'Services': { bg: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-500/30' },
+  'Certifications': { bg: 'bg-amber-500/20', text: 'text-amber-400', border: 'border-amber-500/30' },
+  'Areas': { bg: 'bg-purple-500/20', text: 'text-purple-400', border: 'border-purple-500/30' },
+  'Blog': { bg: 'bg-cyan-500/20', text: 'text-cyan-400', border: 'border-cyan-500/30' },
+  'Uploads': { bg: 'bg-rose-500/20', text: 'text-rose-400', border: 'border-rose-500/30' },
+};
+
 export default function ImageGallery() {
   const [images, setImages] = useState<ImageFile[]>(sampleImages);
   const [searchTerm, setSearchTerm] = useState('');
@@ -118,117 +128,147 @@ export default function ImageGallery() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-900">
-      {/* Header */}
-      <div className="bg-neutral-800 border-b border-neutral-700 p-4">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/portal/admin" className="text-neutral-400 hover:text-white">
-              <ArrowLeft size={20} />
-            </Link>
-            <div>
-              <h1 className="text-xl font-bold text-white">Image Gallery</h1>
-              <p className="text-sm text-neutral-400">{images.length} images</p>
-            </div>
-          </div>
-          <label className="bg-brand-green hover:bg-lime-400 text-black font-bold px-4 py-2 rounded-lg flex items-center gap-2 cursor-pointer">
-            {isUploading ? <Loader2 className="animate-spin" size={18} /> : <Upload size={18} />}
-            {isUploading ? 'Uploading...' : 'Upload'}
-            <input
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={handleUpload}
-              className="hidden"
-              disabled={isUploading}
-            />
-          </label>
+    <AdminLayout
+      title="Image Gallery"
+      subtitle={`${images.length} images`}
+      actions={
+        <label className="bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white font-semibold px-4 py-2 rounded-xl flex items-center gap-2 cursor-pointer transition-all shadow-lg shadow-violet-500/25">
+          {isUploading ? <Loader2 className="animate-spin" size={18} /> : <Upload size={18} />}
+          {isUploading ? 'Uploading...' : 'Upload'}
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={handleUpload}
+            className="hidden"
+            disabled={isUploading}
+          />
+        </label>
+      }
+    >
+      {/* Search & Filter */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-8">
+        <div className="relative flex-1">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500" size={18} />
+          <input
+            type="text"
+            placeholder="Search images..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white placeholder:text-neutral-500 focus:outline-none focus:border-brand-green/50 focus:ring-1 focus:ring-brand-green/50 transition-all"
+          />
+        </div>
+        <select
+          value={selectedCategory}
+          onChange={(e) => setSelectedCategory(e.target.value)}
+          className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-brand-green/50 transition-all"
+        >
+          <option value="">All Categories</option>
+          {categories.map(cat => (
+            <option key={cat} value={cat}>{cat}</option>
+          ))}
+        </select>
+        <div className="flex bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+          <button
+            onClick={() => setViewMode('grid')}
+            className={`p-3 transition-colors ${viewMode === 'grid' ? 'bg-white/10 text-white' : 'text-neutral-400 hover:text-white'}`}
+          >
+            <Grid size={18} />
+          </button>
+          <button
+            onClick={() => setViewMode('list')}
+            className={`p-3 transition-colors ${viewMode === 'list' ? 'bg-white/10 text-white' : 'text-neutral-400 hover:text-white'}`}
+          >
+            <List size={18} />
+          </button>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto p-4">
-        {/* Search & Filter */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" size={18} />
-            <input
-              type="text"
-              placeholder="Search images..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-neutral-800 border border-neutral-700 rounded-lg pl-10 pr-4 py-3 text-white"
-            />
-          </div>
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-3 text-white"
-          >
-            <option value="">All Categories</option>
-            {categories.map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
-          <div className="flex bg-neutral-800 border border-neutral-700 rounded-lg overflow-hidden">
+      {/* Category Pills */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        <button
+          onClick={() => setSelectedCategory('')}
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+            !selectedCategory
+              ? 'bg-brand-green/20 text-brand-green border border-brand-green/30'
+              : 'bg-white/5 text-neutral-400 border border-white/10 hover:bg-white/10'
+          }`}
+        >
+          All ({images.length})
+        </button>
+        {categories.map(cat => {
+          const count = images.filter(i => i.category === cat).length;
+          const colors = categoryColors[cat || ''] || categoryColors['Uploads'];
+          return (
             <button
-              onClick={() => setViewMode('grid')}
-              className={`p-3 ${viewMode === 'grid' ? 'bg-neutral-700' : ''}`}
+              key={cat}
+              onClick={() => setSelectedCategory(cat || '')}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all border ${
+                selectedCategory === cat
+                  ? `${colors.bg} ${colors.text} ${colors.border}`
+                  : 'bg-white/5 text-neutral-400 border-white/10 hover:bg-white/10'
+              }`}
             >
-              <Grid size={18} className="text-neutral-400" />
+              {cat} ({count})
             </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`p-3 ${viewMode === 'list' ? 'bg-neutral-700' : ''}`}
-            >
-              <List size={18} className="text-neutral-400" />
-            </button>
-          </div>
-        </div>
+          );
+        })}
+      </div>
 
-        {/* Grid View */}
-        {viewMode === 'grid' ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {filteredImages.map(image => (
+      {/* Grid View */}
+      {viewMode === 'grid' ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {filteredImages.map(image => {
+            const colors = categoryColors[image.category || ''] || categoryColors['Uploads'];
+            return (
               <div
                 key={image.path}
                 onClick={() => setSelectedImage(image)}
-                className="group relative bg-neutral-800 border border-neutral-700 rounded-xl overflow-hidden cursor-pointer hover:border-brand-green transition-colors"
+                className="group relative bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden cursor-pointer hover:border-white/20 hover:bg-white/[0.04] transition-all duration-300"
               >
-                <div className="aspect-square bg-neutral-700">
+                <div className="aspect-square bg-gradient-to-br from-neutral-800 to-neutral-900">
                   <img
                     src={image.path}
                     alt={image.name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                 </div>
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); copyToClipboard(image.path); }}
-                    className="p-2 bg-white/20 rounded-lg mr-2 hover:bg-white/30"
-                    title="Copy path"
-                  >
-                    {copiedPath === image.path ? (
-                      <Check size={16} className="text-green-500" />
-                    ) : (
-                      <Copy size={16} className="text-white" />
-                    )}
-                  </button>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
+                  <div className="flex items-center justify-between">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${colors.bg} ${colors.text}`}>
+                      {image.category}
+                    </span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); copyToClipboard(image.path); }}
+                      className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center transition-colors"
+                      title="Copy path"
+                    >
+                      {copiedPath === image.path ? (
+                        <Check size={14} className="text-green-400" />
+                      ) : (
+                        <Copy size={14} className="text-white" />
+                      )}
+                    </button>
+                  </div>
                 </div>
-                <div className="p-2">
+                <div className="p-3 border-t border-white/5">
                   <p className="text-xs text-neutral-400 truncate">{image.name}</p>
                 </div>
               </div>
-            ))}
-          </div>
-        ) : (
-          // List View
-          <div className="space-y-2">
-            {filteredImages.map(image => (
+            );
+          })}
+        </div>
+      ) : (
+        // List View
+        <div className="space-y-2">
+          {filteredImages.map(image => {
+            const colors = categoryColors[image.category || ''] || categoryColors['Uploads'];
+            return (
               <div
                 key={image.path}
-                className="bg-neutral-800 border border-neutral-700 rounded-xl p-3 flex items-center gap-4 hover:border-neutral-600"
+                className="bg-white/[0.02] border border-white/5 rounded-xl p-3 flex items-center gap-4 hover:bg-white/[0.04] hover:border-white/10 transition-all"
               >
-                <div className="w-16 h-16 bg-neutral-700 rounded-lg overflow-hidden flex-shrink-0">
+                <div className="w-16 h-16 bg-gradient-to-br from-neutral-800 to-neutral-900 rounded-xl overflow-hidden flex-shrink-0 border border-white/10">
                   <img
                     src={image.path}
                     alt={image.name}
@@ -237,70 +277,88 @@ export default function ImageGallery() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-white font-medium truncate">{image.name}</p>
-                  <p className="text-sm text-neutral-500">{image.path}</p>
+                  <p className="text-sm text-neutral-500 truncate">{image.path}</p>
                 </div>
-                <span className="px-2 py-1 bg-neutral-700 rounded text-xs text-neutral-400">
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${colors.bg} ${colors.text} border ${colors.border}`}>
                   {image.category}
                 </span>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => copyToClipboard(image.path)}
-                    className="p-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg"
+                    className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl transition-colors"
                     title="Copy path"
                   >
                     {copiedPath === image.path ? (
-                      <Check size={16} className="text-green-500" />
+                      <Check size={16} className="text-green-400" />
                     ) : (
                       <Copy size={16} className="text-neutral-400" />
                     )}
                   </button>
                   <button
                     onClick={() => setSelectedImage(image)}
-                    className="p-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg"
+                    className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl transition-colors"
                     title="Preview"
                   >
                     <ImageIcon size={16} className="text-neutral-400" />
                   </button>
                 </div>
               </div>
-            ))}
+            );
+          })}
+        </div>
+      )}
+
+      {/* Empty State */}
+      {filteredImages.length === 0 && (
+        <div className="text-center py-16">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/5 mb-4">
+            <FolderOpen className="text-neutral-500" size={32} />
           </div>
-        )}
-      </div>
+          <p className="text-neutral-400 mb-2">No images found</p>
+          <p className="text-neutral-500 text-sm">
+            Try adjusting your search or filter
+          </p>
+        </div>
+      )}
 
       {/* Image Preview Modal */}
       {selectedImage && (
-        <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50">
-          <div className="max-w-4xl w-full">
+        <div
+          className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          onClick={() => setSelectedImage(null)}
+        >
+          <div className="max-w-4xl w-full" onClick={e => e.stopPropagation()}>
             {/* Close button */}
             <button
               onClick={() => setSelectedImage(null)}
-              className="absolute top-4 right-4 p-2 bg-neutral-800 rounded-lg hover:bg-neutral-700"
+              className="absolute top-6 right-6 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center transition-colors"
             >
-              <X size={24} className="text-white" />
+              <X size={20} className="text-white" />
             </button>
 
             {/* Image */}
-            <div className="bg-neutral-800 rounded-xl overflow-hidden">
-              <img
-                src={selectedImage.path}
-                alt={selectedImage.name}
-                className="w-full max-h-[70vh] object-contain"
-              />
-              <div className="p-4 border-t border-neutral-700">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-white font-semibold">{selectedImage.name}</h3>
-                    <p className="text-sm text-neutral-400">{selectedImage.path}</p>
+            <div className="bg-white/[0.02] border border-white/10 rounded-2xl overflow-hidden">
+              <div className="bg-gradient-to-br from-neutral-800 to-neutral-900">
+                <img
+                  src={selectedImage.path}
+                  alt={selectedImage.name}
+                  className="w-full max-h-[70vh] object-contain"
+                />
+              </div>
+              <div className="p-6 border-t border-white/5">
+                <div className="flex items-center justify-between flex-wrap gap-4">
+                  <div className="min-w-0">
+                    <h3 className="text-white font-semibold text-lg mb-1">{selectedImage.name}</h3>
+                    <p className="text-sm text-neutral-400 truncate">{selectedImage.path}</p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <button
                       onClick={() => copyToClipboard(selectedImage.path)}
-                      className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg flex items-center gap-2 text-white"
+                      className="px-4 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl flex items-center gap-2 text-white text-sm font-medium transition-colors"
                     >
                       {copiedPath === selectedImage.path ? (
                         <>
-                          <Check size={16} className="text-green-500" />
+                          <Check size={16} className="text-green-400" />
                           Copied!
                         </>
                       ) : (
@@ -314,14 +372,14 @@ export default function ImageGallery() {
                       href={selectedImage.path}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg flex items-center gap-2 text-white"
+                      className="px-4 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl flex items-center gap-2 text-white text-sm font-medium transition-colors"
                     >
                       <ExternalLink size={16} />
                       Open
                     </a>
                     <button
                       onClick={() => handleDelete(selectedImage)}
-                      className="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-lg flex items-center gap-2 text-white"
+                      className="px-4 py-2.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-xl flex items-center gap-2 text-sm font-medium transition-colors"
                     >
                       <Trash2 size={16} />
                       Delete
@@ -333,6 +391,6 @@ export default function ImageGallery() {
           </div>
         </div>
       )}
-    </div>
+    </AdminLayout>
   );
 }
