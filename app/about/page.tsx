@@ -21,7 +21,7 @@ export default async function AboutPage() {
       </section>
 
       {/* Our Story Section */}
-      <section className="py-16 md:py-24 bg-black/80 backdrop-blur-sm relative z-10">
+      <section className="py-12 md:py-16 bg-black/80 backdrop-blur-sm relative z-10">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 text-center">
@@ -53,9 +53,9 @@ export default async function AboutPage() {
       </section>
 
       {/* Team Members Section */}
-      <section className="py-16 md:py-24 bg-black/70 backdrop-blur-sm relative z-10">
+      <section className="py-12 md:py-16 bg-black/70 backdrop-blur-sm relative z-10">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
               Our Team
             </h2>
@@ -105,9 +105,9 @@ export default async function AboutPage() {
       </section>
 
       {/* Our Values Section */}
-      <section className="py-16 md:py-24 bg-brand-blue/90 backdrop-blur-sm relative z-10">
+      <section className="py-12 md:py-16 bg-brand-blue/90 backdrop-blur-sm relative z-10">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
               Our Values
             </h2>
@@ -155,7 +155,7 @@ export default async function AboutPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 md:py-24 bg-black/80 backdrop-blur-sm relative z-10">
+      <section className="py-12 md:py-16 bg-black/80 backdrop-blur-sm relative z-10">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto border-l-4 border-brand-green pl-8">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">

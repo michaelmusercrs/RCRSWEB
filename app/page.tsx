@@ -70,7 +70,7 @@ export default function HomePage() {
       </div>
 
       {/* Intro Section - Semi-transparent */}
-      <section className="py-16 md:py-24 px-6 bg-black/85 backdrop-blur-sm border-t border-neutral-800">
+      <section className="py-12 md:py-16 px-6 bg-black/85 backdrop-blur-sm border-t border-neutral-800">
         <div className="max-w-6xl mx-auto text-center">
           <div className="inline-block mb-4">
             <span className="text-xs uppercase tracking-widest font-bold text-brand-green">About Us</span>
@@ -94,9 +94,9 @@ export default function HomePage() {
       </section>
 
       {/* Services Section */}
-      <section className="py-16 md:py-24 px-6 bg-black/80 backdrop-blur-sm border-t border-neutral-800">
+      <section className="py-12 md:py-16 px-6 bg-black/80 backdrop-blur-sm border-t border-neutral-800">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
             <div className="inline-block mb-4">
               <span className="text-xs uppercase tracking-widest font-bold text-brand-green">What We Do</span>
             </div>
@@ -142,9 +142,9 @@ export default function HomePage() {
       </section>
 
       {/* Service Areas Section */}
-      <section className="py-16 md:py-24 px-6 bg-black/85 backdrop-blur-sm border-t border-neutral-800">
+      <section className="py-12 md:py-16 px-6 bg-black/85 backdrop-blur-sm border-t border-neutral-800">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
             <div className="inline-block mb-4">
               <span className="text-xs uppercase tracking-widest font-bold text-brand-green">Where We Work</span>
             </div>
@@ -184,9 +184,9 @@ export default function HomePage() {
       </section>
 
       {/* Blog Posts Section */}
-      <section className="py-16 md:py-24 px-6 bg-black/80 backdrop-blur-sm border-t border-neutral-800">
+      <section className="py-12 md:py-16 px-6 bg-black/80 backdrop-blur-sm border-t border-neutral-800">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
             <div className="inline-block mb-4">
               <span className="text-xs uppercase tracking-widest font-bold text-brand-green">Latest Insights</span>
             </div>
@@ -238,9 +238,9 @@ export default function HomePage() {
       </section>
 
       {/* Before & After Gallery */}
-      <section className="py-16 md:py-24 px-6 bg-black/80 backdrop-blur-sm border-t border-neutral-800">
+      <section className="py-12 md:py-16 px-6 bg-black/80 backdrop-blur-sm border-t border-neutral-800">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
             <div className="inline-block mb-4">
               <span className="text-xs uppercase tracking-widest font-bold text-brand-green">Our Work</span>
             </div>
@@ -327,9 +327,9 @@ export default function HomePage() {
       </section>
 
       {/* Enhanced Testimonials */}
-      <section className="py-16 md:py-24 px-6 bg-black/85 backdrop-blur-sm border-t border-neutral-800">
+      <section className="py-12 md:py-16 px-6 bg-black/85 backdrop-blur-sm border-t border-neutral-800">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
             <div className="inline-block mb-4">
               <span className="text-xs uppercase tracking-widest font-bold text-brand-green">Reviews</span>
             </div>
@@ -377,9 +377,9 @@ export default function HomePage() {
       </section>
 
       {/* Why Choose Section */}
-      <section className="py-16 md:py-24 px-6 bg-black/80 backdrop-blur-sm border-t border-neutral-800">
+      <section className="py-12 md:py-16 px-6 bg-black/80 backdrop-blur-sm border-t border-neutral-800">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
             <div className="inline-block mb-4">
               <span className="text-xs uppercase tracking-widest font-bold text-brand-green">Why Us</span>
             </div>
@@ -423,7 +423,7 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section - Lime BG with slight transparency */}
-      <section className="py-16 md:py-24 px-6 bg-brand-green/95 backdrop-blur-sm text-black border-t border-neutral-800">
+      <section className="py-12 md:py-16 px-6 bg-brand-green/95 backdrop-blur-sm text-black border-t border-neutral-800">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-black uppercase tracking-wider mb-4 leading-tight">
             Ready to Protect Your Home?

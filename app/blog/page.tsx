@@ -17,7 +17,7 @@ export default function BlogPage() {
   return (
     <div className="min-h-screen text-white">
       {/* Hero Section */}
-      <section className="min-h-[50vh] flex items-center justify-center px-6 py-16 md:py-24">
+      <section className="min-h-[50vh] flex items-center justify-center px-6 py-12 md:py-16">
         <div className="max-w-6xl mx-auto text-center text-white">
           <div className="inline-block mb-4">
             <span className="text-xs uppercase tracking-widest font-bold text-brand-green">Expert Insights</span>
@@ -32,9 +32,9 @@ export default function BlogPage() {
       </section>
 
       {/* Blog Posts Grid */}
-      <section className="py-16 md:py-24 px-6 bg-black/80 backdrop-blur-sm border-t border-white/10">
+      <section className="py-12 md:py-16 px-6 bg-black/80 backdrop-blur-sm border-t border-white/10">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
             <h2 className="text-4xl font-black uppercase tracking-wider mb-4">
               Latest Articles
             </h2>
@@ -106,7 +106,7 @@ export default function BlogPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 md:py-24 px-6 bg-brand-green/90 backdrop-blur-sm text-black">
+      <section className="py-12 md:py-16 px-6 bg-brand-green/90 backdrop-blur-sm text-black">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-black uppercase tracking-wider mb-4 leading-tight">
             Need Roofing Help?

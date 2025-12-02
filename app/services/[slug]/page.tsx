@@ -55,7 +55,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
         </div>
       </section>
 
-      <section className="py-16 md:py-24 bg-black/80 backdrop-blur-sm">
+      <section className="py-12 md:py-16 bg-black/80 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12">
             <div>
@@ -104,7 +104,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
         </div>
       </section>
 
-      <section className="py-16 md:py-24 bg-brand-blue">
+      <section className="py-12 md:py-16 bg-brand-blue">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">Ready to Get Started?</h2>
           <p className="text-xl text-blue-100 mb-8">Contact us today for a free inspection and quote.</p>

@@ -59,14 +59,14 @@ export default function ContactPage() {
       </section>
 
       {/* Main Contact Section */}
-      <section className="py-16 md:py-24 bg-black/70 backdrop-blur-sm">
+      <section className="py-12 md:py-16 bg-black/70 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <ContactForm showContactInfo={true} darkMode={true} />
         </div>
       </section>
 
       {/* Google Map Section */}
-      <section className="py-16 md:py-24 bg-black/60 backdrop-blur-sm">
+      <section className="py-12 md:py-16 bg-black/60 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-8 text-white">
             Our Service Area
@@ -91,10 +91,10 @@ export default function ContactPage() {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-16 md:py-24 bg-black/80 backdrop-blur-sm">
+      <section className="py-12 md:py-16 bg-black/80 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-white">
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-8 text-white">
               Common Questions
             </h2>
 
@@ -151,7 +151,7 @@ export default function ContactPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 md:py-24 bg-brand-blue/90 backdrop-blur-sm text-white">
+      <section className="py-12 md:py-16 bg-brand-blue/90 backdrop-blur-sm text-white">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
             Ready to Get Started?

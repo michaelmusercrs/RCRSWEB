@@ -67,7 +67,7 @@ export default function DecaturPage() {
       />
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-b from-brand-green to-lime-300 text-black px-6 py-16 md:py-24">
+      <section className="bg-gradient-to-b from-brand-green to-lime-300 text-black px-6 py-12 md:py-16">
         <div className="max-w-6xl mx-auto text-center">
           <div className="inline-block mb-4">
             <span className="text-xs uppercase tracking-widest font-bold flex items-center gap-2 justify-center">
@@ -120,9 +120,9 @@ export default function DecaturPage() {
       </section>
 
       {/* Services in Decatur */}
-      <section className="py-16 md:py-24 px-6 bg-black border-t border-neutral-800">
+      <section className="py-12 md:py-16 px-6 bg-black border-t border-neutral-800">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
             <div className="inline-block mb-4">
               <span className="text-xs uppercase tracking-widest font-bold text-brand-green">Our Services</span>
             </div>
@@ -160,9 +160,9 @@ export default function DecaturPage() {
       </section>
 
       {/* Google Map */}
-      <section className="py-16 md:py-24 px-6 bg-neutral-950 border-t border-neutral-800">
+      <section className="py-12 md:py-16 px-6 bg-neutral-950 border-t border-neutral-800">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
             <h2 className="text-4xl font-black uppercase tracking-wider mb-4">
               Serving Decatur & Surrounding Areas
             </h2>
@@ -186,9 +186,9 @@ export default function DecaturPage() {
       </section>
 
       {/* Local Testimonials */}
-      <section className="py-16 md:py-24 px-6 bg-black border-t border-neutral-800">
+      <section className="py-12 md:py-16 px-6 bg-black border-t border-neutral-800">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
             <div className="inline-block mb-4">
               <span className="text-xs uppercase tracking-widest font-bold text-brand-green">Reviews</span>
             </div>
@@ -244,9 +244,9 @@ export default function DecaturPage() {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-16 md:py-24 px-6 bg-neutral-950 border-t border-neutral-800">
+      <section className="py-12 md:py-16 px-6 bg-neutral-950 border-t border-neutral-800">
         <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
             <div className="inline-block mb-4">
               <span className="text-xs uppercase tracking-widest font-bold text-brand-green">FAQ</span>
             </div>
@@ -300,7 +300,7 @@ export default function DecaturPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 md:py-24 px-6 bg-brand-green text-black border-t border-neutral-800">
+      <section className="py-12 md:py-16 px-6 bg-brand-green text-black border-t border-neutral-800">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-black uppercase tracking-wider mb-4 leading-tight">
             Ready for Your Free Decatur Roof Estimate?

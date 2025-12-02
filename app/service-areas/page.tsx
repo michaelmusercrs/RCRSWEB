@@ -28,10 +28,10 @@ export default function ServiceAreasPage() {
       </section>
 
       {/* Active Service Areas */}
-      <section className="py-16 md:py-24 bg-black/80 backdrop-blur-sm">
+      <section className="py-12 md:py-16 bg-black/80 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-12">
+            <div className="text-center mb-8">
               <div className="inline-flex items-center gap-2 bg-brand-green/20 text-brand-green px-4 py-2 rounded-full text-sm font-bold mb-4">
                 <CheckCircle2 size={20} />
                 CURRENTLY SERVING
@@ -120,10 +120,10 @@ export default function ServiceAreasPage() {
       </section>
 
       {/* Expansion Areas */}
-      <section className="py-16 md:py-24 bg-black/70 backdrop-blur-sm">
+      <section className="py-12 md:py-16 bg-black/70 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-12">
+            <div className="text-center mb-8">
               <div className="inline-flex items-center gap-2 bg-brand-blue/20 text-brand-blue px-4 py-2 rounded-full text-sm font-bold mb-4">
                 <TrendingUp size={20} />
                 COMING SOON
@@ -237,10 +237,10 @@ export default function ServiceAreasPage() {
       </section>
 
       {/* Service Standards */}
-      <section className="py-16 md:py-24 bg-black/80 backdrop-blur-sm">
+      <section className="py-12 md:py-16 bg-black/80 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <div className="max-w-5xl mx-auto">
-            <div className="text-center mb-12">
+            <div className="text-center mb-8">
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
                 Service Standards Across All Areas
               </h2>
@@ -303,7 +303,7 @@ export default function ServiceAreasPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 md:py-24 bg-brand-blue/90 backdrop-blur-sm">
+      <section className="py-12 md:py-16 bg-brand-blue/90 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">

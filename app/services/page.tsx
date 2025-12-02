@@ -43,10 +43,10 @@ export default function ServicesPage() {
       </section>
 
       {/* Primary Services Section */}
-      <section className="py-16 md:py-24 bg-black/80 backdrop-blur-sm">
+      <section className="py-12 md:py-16 bg-black/80 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-12">
+            <div className="text-center mb-8">
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
                 Primary Services
               </h2>
@@ -97,10 +97,10 @@ export default function ServicesPage() {
       </section>
 
       {/* Additional Services Section */}
-      <section className="py-16 md:py-24 bg-black/70 backdrop-blur-sm">
+      <section className="py-12 md:py-16 bg-black/70 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-12">
+            <div className="text-center mb-8">
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
                 Additional Services
               </h2>
@@ -151,10 +151,10 @@ export default function ServicesPage() {
       </section>
 
       {/* Service Guarantees Section */}
-      <section className="py-16 md:py-24 bg-black/80 backdrop-blur-sm">
+      <section className="py-12 md:py-16 bg-black/80 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <div className="max-w-5xl mx-auto">
-            <div className="text-center mb-12">
+            <div className="text-center mb-8">
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
                 Our Service Guarantees
               </h2>
@@ -225,7 +225,7 @@ export default function ServicesPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 md:py-24 bg-brand-blue">
+      <section className="py-12 md:py-16 bg-brand-blue">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">

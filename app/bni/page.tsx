@@ -102,9 +102,9 @@ export default function BNIPage() {
         </section>
 
         {/* Why Partner With Us */}
-        <section className="py-16 md:py-24 bg-black/80 backdrop-blur-sm relative z-10">
+        <section className="py-12 md:py-16 bg-black/80 backdrop-blur-sm relative z-10">
           <div className="container mx-auto px-4">
-            <div className="text-center mb-12">
+            <div className="text-center mb-8">
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
                 Why Partner With River City Roofing?
               </h2>
@@ -152,9 +152,9 @@ export default function BNIPage() {
         </section>
 
         {/* How It Works Section */}
-        <section className="py-16 md:py-24 bg-brand-blue/90 backdrop-blur-sm relative z-10">
+        <section className="py-12 md:py-16 bg-brand-blue/90 backdrop-blur-sm relative z-10">
           <div className="container mx-auto px-4">
-            <div className="text-center mb-12">
+            <div className="text-center mb-8">
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
                 How The Referral Process Works
               </h2>
@@ -203,9 +203,9 @@ export default function BNIPage() {
         </section>
 
         {/* Services We Offer */}
-        <section className="py-16 md:py-24 bg-black/70 backdrop-blur-sm relative z-10">
+        <section className="py-12 md:py-16 bg-black/70 backdrop-blur-sm relative z-10">
           <div className="container mx-auto px-4">
-            <div className="text-center mb-12">
+            <div className="text-center mb-8">
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
                 Services Your Clients Can Count On
               </h2>
@@ -236,7 +236,7 @@ export default function BNIPage() {
         </section>
 
         {/* Referral Guidelines */}
-        <section className="py-16 md:py-24 bg-neutral-900/90 backdrop-blur-sm relative z-10">
+        <section className="py-12 md:py-16 bg-neutral-900/90 backdrop-blur-sm relative z-10">
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto">
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-8 text-center">
@@ -279,7 +279,7 @@ export default function BNIPage() {
         </section>
 
         {/* CTA Section */}
-        <section className="py-16 md:py-24 bg-black/80 backdrop-blur-sm relative z-10">
+        <section className="py-12 md:py-16 bg-black/80 backdrop-blur-sm relative z-10">
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto text-center">
               <Handshake className="text-brand-green mx-auto mb-6" size={64} />

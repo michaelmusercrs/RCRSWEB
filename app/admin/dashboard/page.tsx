@@ -80,7 +80,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <section className="text-center mb-12">
+      <section className="text-center mb-8">
         <h1 className="font-headline text-4xl md:text-5xl font-bold mb-4">
           Admin Dashboard
         </h1>

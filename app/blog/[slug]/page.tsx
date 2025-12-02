@@ -111,7 +111,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
       </section>
 
       {/* Article Content */}
-      <section className="py-16 md:py-24 px-6 bg-neutral-950 border-t border-neutral-800">
+      <section className="py-12 md:py-16 px-6 bg-neutral-950 border-t border-neutral-800">
         <div className="max-w-4xl mx-auto">
           {/* Excerpt */}
           <div className="mb-12 pb-8 border-b border-neutral-800">
@@ -166,9 +166,9 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
 
       {/* Related Articles */}
       {relatedPosts.length > 0 && (
-        <section className="py-16 md:py-24 px-6 bg-black border-t border-neutral-800">
+        <section className="py-12 md:py-16 px-6 bg-black border-t border-neutral-800">
           <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-12">
+            <div className="text-center mb-8">
               <div className="inline-block mb-4">
                 <span className="text-xs uppercase tracking-widest font-bold text-brand-green">Keep Reading</span>
               </div>
@@ -229,7 +229,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
       )}
 
       {/* Bottom CTA Section - Lime Background */}
-      <section className="py-16 md:py-24 px-6 bg-brand-green text-black border-t border-neutral-800">
+      <section className="py-12 md:py-16 px-6 bg-brand-green text-black border-t border-neutral-800">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-black uppercase tracking-wider mb-4 leading-tight">
             Explore More Roofing Tips

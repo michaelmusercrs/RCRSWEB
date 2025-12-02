@@ -133,7 +133,7 @@ export default function PortalLogin() {
         {/* Main Content */}
         <main className="max-w-6xl mx-auto px-6 py-12">
           {/* Welcome Section */}
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-green/10 border border-brand-green/20 text-brand-green text-sm font-medium mb-6">
               <Sparkles size={16} />
               Team Portal

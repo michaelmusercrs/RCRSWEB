@@ -43,7 +43,7 @@ export default function TeamMemberPage({ params }: { params: { slug: string } })
       </section>
 
       {/* Profile Section */}
-      <section className="py-16 md:py-24 bg-black/80 backdrop-blur-sm">
+      <section className="py-12 md:py-16 bg-black/80 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <div className="max-w-5xl mx-auto">
             <div className="grid md:grid-cols-3 gap-12">
@@ -248,10 +248,10 @@ export default function TeamMemberPage({ params }: { params: { slug: string } })
       </section>
 
       {/* Customer Reviews Section */}
-      <section className="py-16 md:py-24 bg-black/70 backdrop-blur-sm">
+      <section className="py-12 md:py-16 bg-black/70 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <div className="max-w-5xl mx-auto">
-            <div className="text-center mb-12">
+            <div className="text-center mb-8">
               <div className="inline-flex items-center gap-2 bg-brand-green/20 border border-brand-green/30 px-4 py-2 rounded-full mb-4">
                 <Star className="text-brand-green" size={18} />
                 <span className="text-white font-medium">Customer Reviews</span>
@@ -291,9 +291,9 @@ export default function TeamMemberPage({ params }: { params: { slug: string } })
       </section>
 
       {/* Contact Form Section */}
-      <section className="py-16 md:py-24 bg-black/80 backdrop-blur-sm">
+      <section className="py-12 md:py-16 bg-black/80 backdrop-blur-sm">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
               Work With {member.name.split(' ')[0]}
             </h2>
