@@ -305,6 +305,7 @@ export default function TeamMemberPage({ params }: { params: { slug: string } })
             showContactInfo={false}
             darkMode={true}
             preselectedTeamMember={member.slug}
+            sourcePage={`Team Page - ${member.name}`}
           />
         </div>
       </section>

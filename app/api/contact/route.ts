@@ -18,7 +18,7 @@ import { calculateLeadScore, formatLeadForEmail } from '@/lib/lead-tracker';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, email, phone, subject, message, preferredInspector } = body;
+    const { name, email, phone, subject, message, preferredInspector, serviceType, serviceArea, city, sourcePage } = body;
 
     // Validate required fields
     if (!name || !email || !subject || !message) {
@@ -80,12 +80,17 @@ export async function POST(request: Request) {
 
     // Forward to Google Apps Script
     const formData = new URLSearchParams({
+      formType: 'contact',
+      sourcePage: sourcePage || 'Contact Page',
       name,
       email,
       phone: phone || '',
       subject,
       message,
       preferredInspector: preferredInspector || 'First Available',
+      serviceType: serviceType || '',
+      serviceArea: serviceArea || '',
+      city: city || '',
     });
 
     const response = await fetch(googleScriptEndpoint, {

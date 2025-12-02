@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Gift, DollarSign, Users, CheckCircle2, ArrowRight, Phone, Mail, Star, Heart, Zap } from 'lucide-react';
+import { Gift, DollarSign, Users, CheckCircle2, ArrowRight, Phone, Mail, Star, Heart, Zap, FileText, XCircle, AlertCircle } from 'lucide-react';
 import type { Metadata } from 'next';
 import { generateMetadata as genMeta, siteConfig, getStructuredDataScript } from '@/lib/seo';
+import ReferralCalculator from '@/components/ReferralCalculator';
+import ReferralForm from '@/components/ReferralForm';
 
 export const metadata: Metadata = genMeta({
   title: 'Referral Rewards Program - Earn Up To $1,000 Per Referral!',
@@ -198,6 +200,15 @@ export default function ReferralRewardsPage() {
           </div>
         </section>
 
+        {/* Calculator Section */}
+        <section className="py-16 md:py-24 bg-black/80 backdrop-blur-sm relative z-10">
+          <div className="container mx-auto px-4">
+            <div className="max-w-xl mx-auto">
+              <ReferralCalculator />
+            </div>
+          </div>
+        </section>
+
         {/* Program Requirements */}
         <section className="py-16 md:py-24 bg-black/70 backdrop-blur-sm relative z-10">
           <div className="container mx-auto px-4">
@@ -261,16 +272,24 @@ export default function ReferralRewardsPage() {
           </div>
         </section>
 
-        {/* CTA Section */}
+        {/* Submit Referral Form Section */}
+        <section id="submit" className="py-16 md:py-24 bg-brand-blue/90 backdrop-blur-sm relative z-10">
+          <div className="container mx-auto px-4">
+            <div className="max-w-2xl mx-auto">
+              <ReferralForm />
+            </div>
+          </div>
+        </section>
+
+        {/* Contact CTA Section */}
         <section className="py-16 md:py-24 bg-black/80 backdrop-blur-sm relative z-10">
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto text-center">
-              <Gift className="text-brand-green mx-auto mb-6" size={64} />
-              <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-                Ready to Start Earning?
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                Prefer to Call or Email?
               </h2>
-              <p className="text-xl text-neutral-300 mb-8 max-w-2xl mx-auto">
-                Have your referral call us or fill out our contact form and mention your name. We will track your referrals and send your rewards!
+              <p className="text-lg text-neutral-300 mb-8 max-w-2xl mx-auto">
+                You can also submit referrals by phone or email. Just provide the referral's name, phone, and address.
               </p>
 
               <div className="grid sm:grid-cols-2 gap-6 max-w-2xl mx-auto mb-8">
@@ -284,22 +303,246 @@ export default function ReferralRewardsPage() {
                 <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
                   <Mail className="text-brand-green mx-auto mb-3" size={32} />
                   <p className="text-neutral-400 text-sm mb-2">Email Us</p>
-                  <a href="mailto:info@rivercityroofingsolutions.com" className="text-lg font-bold text-white hover:text-brand-green transition-colors">
-                    info@rivercityroofingsolutions.com
+                  <a href="mailto:rcs@rivercityroofingsolutions.com" className="text-lg font-bold text-white hover:text-brand-green transition-colors">
+                    rcs@rivercityroofingsolutions.com
                   </a>
                 </div>
               </div>
 
-              <Button asChild className="bg-brand-green hover:bg-lime-400 text-black font-bold px-8 py-6 text-lg">
-                <Link href="/contact">
-                  Submit a Referral
-                  <ArrowRight className="ml-2" size={20} />
-                </Link>
-              </Button>
-
-              <p className="text-neutral-400 mt-8 text-sm">
+              <p className="text-neutral-400 text-sm">
                 Thank you for being a valued River City Roofing customer!
               </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Terms & Conditions Section */}
+        <section id="terms" className="py-16 md:py-24 bg-neutral-900/90 backdrop-blur-sm relative z-10">
+          <div className="container mx-auto px-4">
+            <div className="max-w-4xl mx-auto">
+              <div className="flex items-center justify-center gap-3 mb-8">
+                <FileText className="text-brand-green" size={32} />
+                <h2 className="text-3xl md:text-4xl font-bold text-white">
+                  Terms & Conditions
+                </h2>
+              </div>
+
+              <div className="bg-neutral-800 border border-neutral-700 rounded-lg overflow-hidden">
+                {/* Section 1: Eligibility */}
+                <div className="p-6 border-b border-neutral-700">
+                  <h3 className="text-lg font-bold text-brand-green mb-3">1. Eligibility</h3>
+                  <ul className="space-y-2 text-neutral-300 text-sm">
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="text-brand-green flex-shrink-0 mt-0.5" size={16} />
+                      <span>The Program is open to past and current River City Roofing Solutions customers.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="text-brand-green flex-shrink-0 mt-0.5" size={16} />
+                      <span>Participants must be 18 years or older.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="text-brand-green flex-shrink-0 mt-0.5" size={16} />
+                      <span>Employees, sales reps, and contractors of River City Roofing may be eligible under separate internal rules.</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Section 2: What Counts as a Qualified Referral */}
+                <div className="p-6 border-b border-neutral-700">
+                  <h3 className="text-lg font-bold text-brand-green mb-3">2. What Counts as a Qualified Referral</h3>
+                  <p className="text-neutral-400 text-sm mb-3">A referral qualifies only when ALL the following conditions are met:</p>
+                  <ul className="space-y-2 text-neutral-300 text-sm mb-4">
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="text-brand-green flex-shrink-0 mt-0.5" size={16} />
+                      <span>Participant submits the homeowner's name and property address <strong className="text-white">before</strong> River City Roofing has made prior contact.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="text-brand-green flex-shrink-0 mt-0.5" size={16} />
+                      <span>River City Roofing completes a <strong className="text-white">full roof replacement</strong> for the referred homeowner.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="text-brand-green flex-shrink-0 mt-0.5" size={16} />
+                      <span>The project is finished according to River City Roofing processes and the account is settled in full.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="text-brand-green flex-shrink-0 mt-0.5" size={16} />
+                      <span>The referred job is located within River City Roofing's service area.</span>
+                    </li>
+                  </ul>
+                  <p className="text-neutral-400 text-sm mb-2 font-semibold">NOT considered qualified:</p>
+                  <ul className="space-y-2 text-neutral-400 text-sm">
+                    <li className="flex items-start gap-2">
+                      <XCircle className="text-red-500 flex-shrink-0 mt-0.5" size={16} />
+                      <span>Repairs, small jobs, tune-ups, or partial roof work</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <XCircle className="text-red-500 flex-shrink-0 mt-0.5" size={16} />
+                      <span>Duplicate referrals already in our system</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <XCircle className="text-red-500 flex-shrink-0 mt-0.5" size={16} />
+                      <span>Commercial projects (unless pre-approved)</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <XCircle className="text-red-500 flex-shrink-0 mt-0.5" size={16} />
+                      <span>Self-referrals for the same household</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Section 3: Referral Reward Structure */}
+                <div className="p-6 border-b border-neutral-700">
+                  <h3 className="text-lg font-bold text-brand-green mb-3">3. Referral Reward Structure</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm mb-3">
+                    <div className="bg-neutral-700/50 rounded p-3 text-center">
+                      <p className="text-neutral-400">Referral #1</p>
+                      <p className="text-white font-bold">$100</p>
+                    </div>
+                    <div className="bg-neutral-700/50 rounded p-3 text-center">
+                      <p className="text-neutral-400">Referral #2</p>
+                      <p className="text-white font-bold">$250</p>
+                    </div>
+                    <div className="bg-neutral-700/50 rounded p-3 text-center">
+                      <p className="text-neutral-400">Referral #3</p>
+                      <p className="text-white font-bold">$500</p>
+                    </div>
+                    <div className="bg-brand-green/20 border border-brand-green/40 rounded p-3 text-center">
+                      <p className="text-neutral-300">Referral #4+</p>
+                      <p className="text-brand-green font-bold">$1,000 each</p>
+                    </div>
+                  </div>
+                  <p className="text-neutral-400 text-sm">Rewards are paid per completed qualifying project and cannot be combined. Maximum of 10 referrals per customer.</p>
+                </div>
+
+                {/* Section 4: Payment */}
+                <div className="p-6 border-b border-neutral-700">
+                  <h3 className="text-lg font-bold text-brand-green mb-3">4. Payment</h3>
+                  <ul className="space-y-2 text-neutral-300 text-sm">
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="text-brand-green flex-shrink-0 mt-0.5" size={16} />
+                      <span>Rewards are issued after the referred roof is completed and the project is paid in full.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="text-brand-green flex-shrink-0 mt-0.5" size={16} />
+                      <span>Payments may be made by check, digital transfer, or other approved method.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="text-brand-green flex-shrink-0 mt-0.5" size={16} />
+                      <span>Please allow 2-6 weeks for processing after project completion.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="text-brand-green flex-shrink-0 mt-0.5" size={16} />
+                      <span>Participant is responsible for any applicable taxes.</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Section 5: Submission Requirements */}
+                <div className="p-6 border-b border-neutral-700">
+                  <h3 className="text-lg font-bold text-brand-green mb-3">5. Submission Requirements</h3>
+                  <p className="text-neutral-300 text-sm mb-3">A referral must be submitted through one of the following methods:</p>
+                  <ul className="space-y-2 text-neutral-300 text-sm mb-3">
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="text-brand-green flex-shrink-0 mt-0.5" size={16} />
+                      <span>Text message, phone call, or email</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="text-brand-green flex-shrink-0 mt-0.5" size={16} />
+                      <span>Website referral/contact form</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="text-brand-green flex-shrink-0 mt-0.5" size={16} />
+                      <span>Submitted directly to a River City Roofing representative</span>
+                    </li>
+                  </ul>
+                  <p className="text-yellow-500 text-sm flex items-start gap-2">
+                    <AlertCircle className="flex-shrink-0 mt-0.5" size={16} />
+                    <span>The referral must be received <strong>before</strong> any inspection or contact is made with the homeowner by River City Roofing staff.</span>
+                  </p>
+                </div>
+
+                {/* Section 6: Verification & Fraud Prevention */}
+                <div className="p-6 border-b border-neutral-700">
+                  <h3 className="text-lg font-bold text-brand-green mb-3">6. Verification & Fraud Prevention</h3>
+                  <p className="text-neutral-300 text-sm mb-3">River City Roofing reserves the right to:</p>
+                  <ul className="space-y-2 text-neutral-300 text-sm mb-4">
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="text-brand-green flex-shrink-0 mt-0.5" size={16} />
+                      <span>Contact the referred homeowner to confirm the legitimacy of the referral</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="text-brand-green flex-shrink-0 mt-0.5" size={16} />
+                      <span>Disqualify any referral suspected to be fraudulent, misleading, or intentionally manipulated</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="text-brand-green flex-shrink-0 mt-0.5" size={16} />
+                      <span>Remove participants who attempt to abuse the Program</span>
+                    </li>
+                  </ul>
+                  <p className="text-neutral-400 text-sm mb-2">Examples of disqualified referrals include:</p>
+                  <ul className="space-y-1 text-neutral-400 text-sm">
+                    <li className="flex items-start gap-2">
+                      <XCircle className="text-red-500 flex-shrink-0 mt-0.5" size={16} />
+                      <span>Paying or coaching homeowners to pretend they were referred</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <XCircle className="text-red-500 flex-shrink-0 mt-0.5" size={16} />
+                      <span>Submitting random addresses without permission</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <XCircle className="text-red-500 flex-shrink-0 mt-0.5" size={16} />
+                      <span>Fake or incomplete contact info</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <XCircle className="text-red-500 flex-shrink-0 mt-0.5" size={16} />
+                      <span>Attempting to claim unknown incoming leads as "referrals"</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Section 7: Program Changes */}
+                <div className="p-6 border-b border-neutral-700">
+                  <h3 className="text-lg font-bold text-brand-green mb-3">7. Program Changes</h3>
+                  <ul className="space-y-2 text-neutral-300 text-sm">
+                    <li className="flex items-start gap-2">
+                      <AlertCircle className="text-yellow-500 flex-shrink-0 mt-0.5" size={16} />
+                      <span>River City Roofing Solutions may modify, pause, or terminate the Program at any time without prior notice.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="text-brand-green flex-shrink-0 mt-0.5" size={16} />
+                      <span>Any eligible referrals submitted before cancellation will still be honored.</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Section 8: Legal */}
+                <div className="p-6">
+                  <h3 className="text-lg font-bold text-brand-green mb-3">8. Legal</h3>
+                  <ul className="space-y-2 text-neutral-300 text-sm">
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="text-brand-green flex-shrink-0 mt-0.5" size={16} />
+                      <span>Program is valid only in areas where River City Roofing Solutions operates.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="text-brand-green flex-shrink-0 mt-0.5" size={16} />
+                      <span>Offer void where prohibited.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="text-brand-green flex-shrink-0 mt-0.5" size={16} />
+                      <span>Participation constitutes acceptance of these Terms & Conditions.</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Disclaimer */}
+              <div className="mt-8 p-4 bg-neutral-800/50 border border-neutral-700 rounded-lg">
+                <p className="text-neutral-400 text-xs text-center leading-relaxed">
+                  Referral reward paid after referred project is completed and account is settled. Only valid for full roof replacements.
+                  Referral must be submitted prior to inspection or contact. River City Roofing Solutions reserves the right to modify
+                  or cancel the program at any time. Void where prohibited.
+                </p>
+              </div>
             </div>
           </div>
         </section>

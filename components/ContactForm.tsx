@@ -1,267 +1,256 @@
 'use client';
 
-import { Phone, Mail, MapPin, Loader2 } from 'lucide-react';
 import { useState } from 'react';
-import { teamMembers } from '@/lib/teamData';
-import { services, serviceAreas } from '@/lib/servicesData';
 import { useRouter } from 'next/navigation';
-
-// Get all team members for dropdown
-const allTeamMembers = teamMembers.filter(m => m.category !== 'In Loving Memory');
-
-// Get all services for dropdown
-const allServices = services;
-
-// Get all active service areas for dropdown
-const activeServiceAreas = serviceAreas.filter(a => a.status === 'Active');
+import { Phone, Mail, MapPin, Loader2, CheckCircle2 } from 'lucide-react';
 
 interface ContactFormProps {
   showContactInfo?: boolean;
-  preselectedTeamMember?: string;
-  preselectedService?: string;
-  preselectedArea?: string;
   darkMode?: boolean;
+  sourcePage?: string;
+  preselectedTeamMember?: string;
 }
 
 export default function ContactForm({
   showContactInfo = true,
-  preselectedTeamMember,
-  preselectedService,
-  preselectedArea,
   darkMode = false,
+  sourcePage = 'Contact Page',
+  preselectedTeamMember,
 }: ContactFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedTeamMember, setSelectedTeamMember] = useState(preselectedTeamMember || '');
-  const [selectedService, setSelectedService] = useState(preselectedService || '');
-  const [selectedArea, setSelectedArea] = useState(preselectedArea || '');
-  const [customCity, setCustomCity] = useState('');
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [error, setError] = useState('');
   const router = useRouter();
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     setIsSubmitting(true);
+    setError('');
 
-    const formData = new FormData(event.currentTarget);
-
-    // Find selected names for the message
-    const teamMemberName = selectedTeamMember
-      ? allTeamMembers.find(m => m.slug === selectedTeamMember)?.name
-      : 'First Available';
-    const serviceName = selectedService
-      ? allServices.find(s => s.slug === selectedService)?.title
-      : 'General Inquiry';
-    const areaName = selectedArea
-      ? activeServiceAreas.find(a => a.slug === selectedArea)?.name
-      : 'Not Specified';
+    const form = e.currentTarget;
+    const formData = new FormData(form);
 
     try {
-      const response = await fetch('/api/contact', {
+      const response = await fetch('/api/forms/contact', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: formData.get('name'),
           email: formData.get('email'),
-          phone: formData.get('phone'),
+          phone: formData.get('phone') || '',
           subject: formData.get('subject'),
           message: formData.get('message'),
-          preferredTeamMember: teamMemberName,
-          serviceType: serviceName,
-          serviceArea: areaName,
-          city: customCity || areaName,
+          preferredInspector: preselectedTeamMember || 'First Available',
+          sourcePage: sourcePage,
         }),
       });
 
-      if (response.ok) {
-        router.push('/contact/thank-you');
+      const result = await response.json();
+
+      if (result.success) {
+        setIsSubmitted(true);
+        form.reset();
       } else {
-        alert('There was a problem submitting your form. Please try again or call us directly.');
-        setIsSubmitting(false);
+        setError(result.message || 'Something went wrong. Please try again.');
       }
-    } catch (error) {
-      alert('There was a problem submitting your form. Please try again or call us directly.');
+    } catch (err) {
+      setError('Network error. Please try again or call us at (256) 274-8530.');
+    } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Styling classes based on darkMode
-  const labelClass = darkMode
-    ? "block text-sm font-semibold text-gray-200"
-    : "block text-sm font-semibold text-gray-700";
+  // Styling
+  const bgClass = darkMode ? 'bg-white/10 backdrop-blur-sm border-white/20' : 'bg-white border-gray-200';
+  const textClass = darkMode ? 'text-white' : 'text-gray-900';
+  const labelClass = darkMode ? 'text-gray-200' : 'text-gray-700';
   const inputClass = darkMode
-    ? "w-full px-4 py-3 rounded-lg border border-gray-600 bg-white/10 text-white placeholder-gray-400 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
-    : "w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 outline-none transition-colors";
-  const selectClass = darkMode
-    ? "w-full px-4 py-3 rounded-lg border border-gray-600 bg-gray-800 text-white focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none transition-colors"
-    : "w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 outline-none transition-colors bg-white";
+    ? 'bg-white/10 border-gray-600 text-white placeholder-gray-400 focus:border-brand-green focus:ring-brand-green/20'
+    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-brand-blue focus:ring-brand-blue/20';
+  const buttonClass = darkMode
+    ? 'bg-brand-green hover:bg-lime-400 text-black'
+    : 'bg-brand-blue hover:bg-blue-700 text-white';
+
+  if (isSubmitted) {
+    return (
+      <div className={`${bgClass} rounded-2xl p-8 border text-center`}>
+        <div className="w-16 h-16 bg-brand-green rounded-full flex items-center justify-center mx-auto mb-4">
+          <CheckCircle2 className="w-8 h-8 text-black" />
+        </div>
+        <h3 className={`text-2xl font-bold mb-2 ${textClass}`}>Message Sent!</h3>
+        <p className={`mb-6 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+          Thank you for reaching out. We'll get back to you within 24 hours.
+        </p>
+        <button
+          onClick={() => setIsSubmitted(false)}
+          className={`${buttonClass} font-bold py-3 px-6 rounded-full transition-colors`}
+        >
+          Send Another Message
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className={`grid ${showContactInfo ? 'md:grid-cols-2' : ''} gap-12 items-start max-w-7xl mx-auto`}>
+    <div className={`grid ${showContactInfo ? 'md:grid-cols-2' : ''} gap-12 items-start max-w-6xl mx-auto`}>
       {showContactInfo && (
-        <div className="space-y-8">
+        <div className="space-y-6">
           <div>
-            <h2 className={`text-3xl font-bold mb-6 ${darkMode ? 'text-white' : 'text-brand-black'}`}>
-              Get In Touch
-            </h2>
-            <p className={`text-lg mb-8 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-              Have questions or ready to schedule your free inspection? Reach out
-              to us using any of the methods below.
+            <h2 className={`text-3xl font-bold mb-4 ${textClass}`}>Get In Touch</h2>
+            <p className={`text-lg ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              Have questions? Ready to schedule your free inspection? We're here to help.
             </p>
           </div>
 
-          <div className="space-y-6">
-            <div className={`flex items-start gap-4 p-6 rounded-2xl border transition-colors ${
-              darkMode
-                ? 'border-white/20 hover:border-brand-green/50 bg-white/5'
-                : 'border-brand-blue/20 hover:border-brand-blue/50 bg-white shadow-sm'
-            }`}>
-              <div className={`p-3 rounded-xl mt-1 ${darkMode ? 'bg-brand-green/20' : 'bg-brand-blue/10'}`}>
-                <MapPin className={`h-6 w-6 ${darkMode ? 'text-brand-green' : 'text-brand-blue'}`} />
+          <div className="space-y-4">
+            <a
+              href="tel:256-274-8530"
+              className={`flex items-center gap-4 p-4 rounded-xl border transition-colors ${
+                darkMode ? 'border-white/20 hover:border-brand-green/50 bg-white/5' : 'border-gray-200 hover:border-brand-blue/50 bg-gray-50'
+              }`}
+            >
+              <div className={`p-3 rounded-lg ${darkMode ? 'bg-brand-green/20' : 'bg-brand-blue/10'}`}>
+                <Phone className={`h-5 w-5 ${darkMode ? 'text-brand-green' : 'text-brand-blue'}`} />
               </div>
               <div>
-                <h3 className={`font-semibold text-lg mb-1 ${darkMode ? 'text-white' : ''}`}>Our Location</h3>
-                <a
-                  href="https://maps.google.com/?q=3325+Central+Pkwy+SW,+Decatur,+AL+35603"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`transition-colors ${darkMode ? 'text-gray-300 hover:text-brand-green' : 'text-gray-600 hover:text-brand-blue'}`}
-                >
-                  3325 Central Pkwy SW
-                  <br />
-                  Decatur, AL 35603
-                </a>
+                <div className={`font-semibold ${textClass}`}>(256) 274-8530</div>
+                <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>24/7 Emergency Line</div>
               </div>
-            </div>
+            </a>
 
-            <div className={`flex items-start gap-4 p-6 rounded-2xl border transition-colors ${
-              darkMode
-                ? 'border-white/20 hover:border-brand-green/50 bg-white/5'
-                : 'border-brand-blue/20 hover:border-brand-blue/50 bg-white shadow-sm'
-            }`}>
-              <div className={`p-3 rounded-xl mt-1 ${darkMode ? 'bg-brand-green/20' : 'bg-brand-blue/10'}`}>
-                <Phone className={`h-6 w-6 ${darkMode ? 'text-brand-green' : 'text-brand-blue'}`} />
+            <a
+              href="mailto:rcrs@rivercityroofingsolutions.com"
+              className={`flex items-center gap-4 p-4 rounded-xl border transition-colors ${
+                darkMode ? 'border-white/20 hover:border-brand-green/50 bg-white/5' : 'border-gray-200 hover:border-brand-blue/50 bg-gray-50'
+              }`}
+            >
+              <div className={`p-3 rounded-lg ${darkMode ? 'bg-brand-green/20' : 'bg-brand-blue/10'}`}>
+                <Mail className={`h-5 w-5 ${darkMode ? 'text-brand-green' : 'text-brand-blue'}`} />
               </div>
               <div>
-                <h3 className={`font-semibold text-lg mb-1 ${darkMode ? 'text-white' : ''}`}>Call Us</h3>
-                <a
-                  href="tel:256-274-8530"
-                  className={`text-lg font-semibold transition-colors ${darkMode ? 'text-gray-300 hover:text-brand-green' : 'text-gray-600 hover:text-brand-blue'}`}
-                >
-                  (256) 274-8530
-                </a>
-                <p className={`text-sm mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  Available 24/7 for emergencies
-                </p>
+                <div className={`font-semibold ${textClass}`}>rcrs@rivercityroofingsolutions.com</div>
+                <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Email Us</div>
               </div>
-            </div>
+            </a>
 
-            <div className={`flex items-start gap-4 p-6 rounded-2xl border transition-colors ${
-              darkMode
-                ? 'border-white/20 hover:border-brand-green/50 bg-white/5'
-                : 'border-brand-blue/20 hover:border-brand-blue/50 bg-white shadow-sm'
-            }`}>
-              <div className={`p-3 rounded-xl mt-1 ${darkMode ? 'bg-brand-green/20' : 'bg-brand-blue/10'}`}>
-                <Mail className={`h-6 w-6 ${darkMode ? 'text-brand-green' : 'text-brand-blue'}`} />
+            <a
+              href="https://maps.google.com/?q=3325+Central+Pkwy+SW,+Decatur,+AL+35603"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`flex items-center gap-4 p-4 rounded-xl border transition-colors ${
+                darkMode ? 'border-white/20 hover:border-brand-green/50 bg-white/5' : 'border-gray-200 hover:border-brand-blue/50 bg-gray-50'
+              }`}
+            >
+              <div className={`p-3 rounded-lg ${darkMode ? 'bg-brand-green/20' : 'bg-brand-blue/10'}`}>
+                <MapPin className={`h-5 w-5 ${darkMode ? 'text-brand-green' : 'text-brand-blue'}`} />
               </div>
               <div>
-                <h3 className={`font-semibold text-lg mb-1 ${darkMode ? 'text-white' : ''}`}>Email Us</h3>
-                <a
-                  href="mailto:office@rcrsal.com"
-                  className={`transition-colors ${darkMode ? 'text-gray-300 hover:text-brand-green' : 'text-gray-600 hover:text-brand-blue'}`}
-                >
-                  office@rcrsal.com
-                </a>
+                <div className={`font-semibold ${textClass}`}>3325 Central Pkwy SW</div>
+                <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Decatur, AL 35603</div>
               </div>
-            </div>
+            </a>
           </div>
         </div>
       )}
 
-      <div className={`p-8 rounded-2xl border shadow-md ${
-        darkMode
-          ? 'bg-white/10 backdrop-blur-sm border-white/20'
-          : 'bg-white border-gray-200'
-      }`}>
-        <h2 className={`text-3xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-brand-black'}`}>
-          Request a Free Inspection
-        </h2>
+      <div className={`${bgClass} rounded-2xl p-6 md:p-8 border shadow-lg`}>
+        <h2 className={`text-2xl font-bold mb-2 ${textClass}`}>Request Free Inspection</h2>
         <p className={`mb-6 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-          Fill out the form below and we'll get back to you shortly.
+          Fill out the form and we'll get back to you within 24 hours.
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Name and Email Row */}
+        {error && (
+          <div className="bg-red-500/20 border border-red-500 text-red-300 px-4 py-3 rounded-lg mb-4">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label htmlFor="name" className={labelClass}>
-                Full Name <span className="text-red-500">*</span>
+            <div>
+              <label htmlFor="name" className={`block text-sm font-medium mb-1 ${labelClass}`}>
+                Name <span className="text-red-500">*</span>
               </label>
               <input
+                type="text"
                 id="name"
                 name="name"
-                type="text"
-                placeholder="John Doe"
                 required
-                className={inputClass}
+                placeholder="John Doe"
+                className={`w-full px-4 py-3 rounded-lg border outline-none transition-colors focus:ring-2 ${inputClass}`}
               />
             </div>
-
-            <div className="space-y-2">
-              <label htmlFor="email" className={labelClass}>
-                Email Address <span className="text-red-500">*</span>
+            <div>
+              <label htmlFor="email" className={`block text-sm font-medium mb-1 ${labelClass}`}>
+                Email <span className="text-red-500">*</span>
               </label>
               <input
+                type="email"
                 id="email"
                 name="email"
-                type="email"
-                placeholder="you@example.com"
                 required
-                className={inputClass}
+                placeholder="john@example.com"
+                className={`w-full px-4 py-3 rounded-lg border outline-none transition-colors focus:ring-2 ${inputClass}`}
               />
             </div>
           </div>
 
-          {/* Phone */}
-          <div className="space-y-2">
-            <label htmlFor="phone" className={labelClass}>
-              Phone Number
+          <div>
+            <label htmlFor="phone" className={`block text-sm font-medium mb-1 ${labelClass}`}>
+              Phone
             </label>
             <input
+              type="tel"
               id="phone"
               name="phone"
-              type="tel"
-              placeholder="(555) 555-5555"
-              className={inputClass}
+              placeholder="(256) 555-1234"
+              className={`w-full px-4 py-3 rounded-lg border outline-none transition-colors focus:ring-2 ${inputClass}`}
             />
           </div>
 
-          {/* Message */}
-          <div className="space-y-2">
-            <label htmlFor="message" className={labelClass}>
-              Your Message <span className="text-red-500">*</span>
+          <div>
+            <label htmlFor="subject" className={`block text-sm font-medium mb-1 ${labelClass}`}>
+              Subject <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="subject"
+              name="subject"
+              required
+              className={`w-full px-4 py-3 rounded-lg border outline-none transition-colors focus:ring-2 ${inputClass} ${darkMode ? 'bg-gray-800' : 'bg-white'}`}
+            >
+              <option value="">Select a subject...</option>
+              <option value="Free Roof Inspection">Free Roof Inspection</option>
+              <option value="Roof Replacement Quote">Roof Replacement Quote</option>
+              <option value="Roof Repair">Roof Repair</option>
+              <option value="Storm Damage">Storm Damage</option>
+              <option value="Insurance Claim Help">Insurance Claim Help</option>
+              <option value="Commercial Roofing">Commercial Roofing</option>
+              <option value="Gutter Services">Gutter Services</option>
+              <option value="General Question">General Question</option>
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="message" className={`block text-sm font-medium mb-1 ${labelClass}`}>
+              Message <span className="text-red-500">*</span>
             </label>
             <textarea
               id="message"
               name="message"
-              placeholder="Tell us about your roofing needs..."
               required
               rows={4}
-              className={`${inputClass} resize-none`}
+              placeholder="Tell us about your roofing needs..."
+              className={`w-full px-4 py-3 rounded-lg border outline-none transition-colors focus:ring-2 resize-none ${inputClass}`}
             />
           </div>
 
           <button
             type="submit"
             disabled={isSubmitting}
-            className={`w-full font-bold py-4 px-8 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
-              darkMode
-                ? 'bg-brand-green hover:bg-lime-400 text-black'
-                : 'bg-brand-blue hover:bg-blue-700 text-white'
-            }`}
+            className={`w-full ${buttonClass} font-bold py-4 px-8 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
           >
             {isSubmitting && <Loader2 className="h-5 w-5 animate-spin" />}
-            {isSubmitting ? 'Submitting...' : 'Submit Request'}
+            {isSubmitting ? 'Sending...' : 'Send Message'}
           </button>
 
           <p className={`text-xs text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
