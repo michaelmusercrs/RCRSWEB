@@ -5,7 +5,7 @@ import Link from 'next/link';
 import AdminLayout from '@/components/AdminLayout';
 import {
   Plus, Edit, Trash2, Eye, Search, Calendar,
-  User, Tag, Save, X, Loader2, FileText, ExternalLink, RefreshCw, Sparkles
+  User, Tag, Save, X, Loader2, FileText, ExternalLink, RefreshCw, Upload, Image as ImageIcon
 } from 'lucide-react';
 
 interface BlogPost {
@@ -198,7 +198,7 @@ export default function BlogAdmin() {
             >
               <div className="flex items-start gap-5">
                 {/* Thumbnail */}
-                <div className="w-32 h-20 bg-neutral-800 rounded-xl overflow-hidden flex-shrink-0">
+                <div className="w-32 h-20 bg-gradient-to-br from-neutral-800 to-neutral-900 rounded-xl overflow-hidden flex-shrink-0 border border-white/10">
                   {post.image ? (
                     <img
                       src={post.image}
@@ -290,6 +290,7 @@ function BlogEditor({
 }) {
   const [formData, setFormData] = useState(post);
   const [isSaving, setIsSaving] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -328,8 +329,74 @@ function BlogEditor({
       }
     >
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Featured Image with Large Preview */}
+        <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
+          <label className="block text-sm font-medium text-neutral-300 mb-4 flex items-center gap-2">
+            <ImageIcon size={16} className="text-blue-400" />
+            Featured Image
+          </label>
+          <div className="flex flex-col md:flex-row gap-6">
+            {/* Image Preview */}
+            <div className="w-full md:w-64 h-40 bg-gradient-to-br from-neutral-800 to-neutral-900 rounded-xl overflow-hidden flex-shrink-0 border border-white/10">
+              {formData.image && !imageError ? (
+                <img
+                  src={formData.image}
+                  alt="Preview"
+                  className="w-full h-full object-cover"
+                  onError={() => setImageError(true)}
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-neutral-500">
+                  <ImageIcon size={32} className="mb-2" />
+                  <span className="text-xs">No image selected</span>
+                </div>
+              )}
+            </div>
+
+            {/* Image URL Input */}
+            <div className="flex-1">
+              <input
+                type="text"
+                value={formData.image}
+                onChange={(e) => {
+                  setFormData({ ...formData, image: e.target.value });
+                  setImageError(false);
+                }}
+                placeholder="/uploads/blog-image.jpg"
+                className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-neutral-500 focus:border-blue-500/50 transition-all outline-none mb-3"
+              />
+              <p className="text-xs text-neutral-500 mb-3">
+                Enter an image path from /uploads/ or use an external URL
+              </p>
+
+              {/* Quick Image Selection */}
+              <div className="flex flex-wrap gap-2">
+                {[
+                  '/uploads/service-residential.png',
+                  '/uploads/service-commercial.png',
+                  '/uploads/service-storm.jpg',
+                  '/uploads/service-chimney.png',
+                  '/uploads/service-leafx.png',
+                ].map(img => (
+                  <button
+                    key={img}
+                    type="button"
+                    onClick={() => {
+                      setFormData({ ...formData, image: img });
+                      setImageError(false);
+                    }}
+                    className="w-12 h-12 rounded-lg overflow-hidden border border-white/10 hover:border-blue-500/50 transition-colors"
+                  >
+                    <img src={img} alt="" className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Title */}
-        <div>
+        <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
           <label className="block text-sm font-medium text-neutral-300 mb-2">Title</label>
           <input
             type="text"
@@ -342,7 +409,7 @@ function BlogEditor({
         </div>
 
         {/* Slug */}
-        <div>
+        <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
           <label className="block text-sm font-medium text-neutral-300 mb-2">
             URL Slug
             <span className="text-neutral-500 font-normal ml-2">(auto-generated if empty)</span>
@@ -361,7 +428,7 @@ function BlogEditor({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Author */}
-          <div>
+          <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
             <label className="block text-sm font-medium text-neutral-300 mb-2">Author</label>
             <select
               value={formData.author}
@@ -378,7 +445,7 @@ function BlogEditor({
           </div>
 
           {/* Date */}
-          <div>
+          <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
             <label className="block text-sm font-medium text-neutral-300 mb-2">Date</label>
             <input
               type="text"
@@ -391,7 +458,7 @@ function BlogEditor({
         </div>
 
         {/* Published Toggle */}
-        <div className="flex items-center gap-3 p-4 bg-white/[0.02] border border-white/5 rounded-xl">
+        <div className="flex items-center gap-3 p-6 bg-white/[0.02] border border-white/5 rounded-2xl">
           <input
             type="checkbox"
             id="published"
@@ -404,31 +471,8 @@ function BlogEditor({
           </label>
         </div>
 
-        {/* Image */}
-        <div>
-          <label className="block text-sm font-medium text-neutral-300 mb-2">Featured Image</label>
-          <div className="flex gap-4">
-            <input
-              type="text"
-              value={formData.image}
-              onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-              placeholder="/uploads/image.jpg"
-              className="flex-1 bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-neutral-500 focus:border-blue-500/50 transition-all outline-none"
-            />
-            {formData.image && (
-              <div className="w-24 h-14 bg-neutral-800 rounded-xl overflow-hidden flex-shrink-0">
-                <img
-                  src={formData.image}
-                  alt="Preview"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )}
-          </div>
-        </div>
-
         {/* Keywords */}
-        <div>
+        <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
           <label className="block text-sm font-medium text-neutral-300 mb-2">
             Keywords <span className="text-neutral-500 font-normal">(comma separated)</span>
           </label>
@@ -442,7 +486,7 @@ function BlogEditor({
         </div>
 
         {/* Excerpt */}
-        <div>
+        <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
           <label className="block text-sm font-medium text-neutral-300 mb-2">
             Excerpt <span className="text-neutral-500 font-normal">(short summary)</span>
           </label>
@@ -456,7 +500,7 @@ function BlogEditor({
         </div>
 
         {/* Content */}
-        <div>
+        <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
           <label className="block text-sm font-medium text-neutral-300 mb-2">Content</label>
           <textarea
             value={formData.content}
