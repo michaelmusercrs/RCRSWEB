@@ -6,10 +6,11 @@
 import { Metadata } from 'next';
 
 // Base configuration - Use www version for canonical URLs
+// IMPORTANT: Always use hardcoded www URL for canonical consistency
 export const siteConfig = {
   name: 'River City Roofing Solutions',
   description: 'Licensed and insured roofing contractor serving Decatur, Huntsville, Madison, and all of North Alabama. Expert roof replacement, repair, and storm damage services.',
-  url: process.env.NEXT_PUBLIC_SITE_URL || 'https://www.rivercityroofingsolutions.com',
+  url: 'https://www.rivercityroofingsolutions.com', // Hardcoded to ensure consistent canonical URLs
   ogImage: '/logo.png',
   phone: '256-274-8530',
   email: 'rcrs@rivercityroofingsolutions.com',
@@ -93,9 +94,9 @@ export function generateMetadata(params: GenerateMetadataParams = {}): Metadata 
       email: true,
       address: true,
     },
-    // Set canonical as absolute URL path - Next.js combines with metadataBase
+    // Set canonical as absolute URL to ensure correct www domain and full path
     alternates: {
-      canonical: path || '/',
+      canonical: `${siteConfig.url}${path || '/'}`,
     },
     openGraph: {
       type: type as any,
