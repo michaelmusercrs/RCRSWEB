@@ -5,7 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import {
   ArrowLeft, FileText, Users, Image as ImageIcon, Settings, ChevronRight,
-  Globe, BookOpen, BarChart3, TrendingUp, Eye, Clock, Sparkles, Home
+  Globe, BookOpen, BarChart3, TrendingUp, Eye, Clock, Sparkles, Home,
+  DollarSign, AlertTriangle
 } from 'lucide-react';
 
 export default function AdminPortal() {
@@ -83,6 +84,18 @@ export default function AdminPortal() {
       iconColor: '#f97316',
       stat: '50+',
       statLabel: 'cities',
+    },
+    {
+      id: 'pricing',
+      title: 'Price Verification',
+      description: 'Audit invoices & track overcharges',
+      icon: DollarSign,
+      href: '/portal/admin/pricing',
+      color: 'from-red-500 to-rose-500',
+      bgColor: 'bg-red-500/10',
+      iconColor: '#ef4444',
+      stat: '$0',
+      statLabel: 'pending credits',
     },
   ];
 
