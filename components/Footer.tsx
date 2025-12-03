@@ -75,12 +75,12 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/services/storm-damage-restoration" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
+                <Link href="/services/storm-hail-damage-repair" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
                   Storm Damage
                 </Link>
               </li>
               <li>
-                <Link href="/services/gutter-installation" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
+                <Link href="/services/leafx-gutter-protection" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
                   Gutters & LeafX
                 </Link>
               </li>
