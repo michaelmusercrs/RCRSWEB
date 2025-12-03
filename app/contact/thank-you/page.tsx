@@ -2,12 +2,15 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { CheckCircle, ArrowLeft, Clock, Phone, Shield } from 'lucide-react';
+import { generateMetadata as genMeta } from '@/lib/seo';
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = {
-  title: 'Thank You | River City Roofing Solutions',
+export const metadata: Metadata = genMeta({
+  title: 'Thank You',
   description: 'Thank you for contacting River City Roofing Solutions. We will get back to you shortly.',
-};
+  path: '/contact/thank-you',
+  noindex: true, // Don't index thank you pages
+});
 
 export default function ThankYouPage() {
   return (

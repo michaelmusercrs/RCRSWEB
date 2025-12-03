@@ -8,7 +8,8 @@ import {
   User, Mail, AlertCircle
 } from 'lucide-react';
 import { useAuth, ROLE_DEFAULT_ROUTES } from '@/lib/auth-context';
-import { TEAM_MEMBERS } from '@/lib/team-roles';
+import { TEAM_MEMBERS, TeamRole } from '@/lib/team-roles';
+import RoleTrainingPopup from '@/components/RoleTrainingPopup';
 
 type LoginMode = 'select' | 'driver' | 'staff';
 
@@ -20,6 +21,9 @@ export default function PortalLogin() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showTraining, setShowTraining] = useState(false);
+  const [pendingRedirect, setPendingRedirect] = useState<string | null>(null);
+  const [loggedInUser, setLoggedInUser] = useState<{ name: string; role: TeamRole } | null>(null);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -27,6 +31,47 @@ export default function PortalLogin() {
       router.push(ROLE_DEFAULT_ROUTES[user.role]);
     }
   }, [user, authLoading, router]);
+
+  // Check if user has completed training for their role
+  const hasCompletedTraining = (role: TeamRole): boolean => {
+    try {
+      const trainingCompleted = sessionStorage.getItem(`training_completed_${role}`);
+      return trainingCompleted === 'true';
+    } catch {
+      return false;
+    }
+  };
+
+  // Mark training as completed for a role
+  const markTrainingCompleted = (role: TeamRole) => {
+    try {
+      sessionStorage.setItem(`training_completed_${role}`, 'true');
+    } catch {
+      // Ignore storage errors
+    }
+  };
+
+  // Handle training completion
+  const handleTrainingComplete = () => {
+    if (loggedInUser) {
+      markTrainingCompleted(loggedInUser.role);
+    }
+    setShowTraining(false);
+    if (pendingRedirect) {
+      router.push(pendingRedirect);
+    }
+  };
+
+  // Handle training skip
+  const handleTrainingSkip = () => {
+    if (loggedInUser) {
+      markTrainingCompleted(loggedInUser.role);
+    }
+    setShowTraining(false);
+    if (pendingRedirect) {
+      router.push(pendingRedirect);
+    }
+  };
 
   const handleDriverLogin = async () => {
     if (pin.length !== 4) {
@@ -40,6 +85,18 @@ export default function PortalLogin() {
     const result = await loginWithPin(pin);
 
     if (result.success) {
+      // Find the driver
+      const driver = TEAM_MEMBERS.find(m => m.role === 'driver' && m.pin === pin);
+      if (driver) {
+        // Check if training needed
+        if (!hasCompletedTraining('driver')) {
+          setLoggedInUser({ name: driver.name, role: 'driver' });
+          setPendingRedirect('/portal/driver');
+          setShowTraining(true);
+          setIsLoading(false);
+          return;
+        }
+      }
       router.push('/portal/driver');
     } else {
       setError(result.error || 'Invalid PIN');
@@ -63,7 +120,16 @@ export default function PortalLogin() {
       // Get user role to determine redirect
       const member = TEAM_MEMBERS.find(m => m.email.toLowerCase() === email.toLowerCase());
       if (member) {
-        router.push(ROLE_DEFAULT_ROUTES[member.role]);
+        const redirectUrl = ROLE_DEFAULT_ROUTES[member.role];
+        // Check if training needed
+        if (!hasCompletedTraining(member.role)) {
+          setLoggedInUser({ name: member.name, role: member.role });
+          setPendingRedirect(redirectUrl);
+          setShowTraining(true);
+          setIsLoading(false);
+          return;
+        }
+        router.push(redirectUrl);
       }
     } else {
       setError(result.error || 'Login failed');
@@ -81,6 +147,20 @@ export default function PortalLogin() {
   const handleBackspace = () => {
     setPin(prev => prev.slice(0, -1));
   };
+
+  // Show training popup if needed
+  if (showTraining && loggedInUser) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950">
+        <RoleTrainingPopup
+          role={loggedInUser.role}
+          userName={loggedInUser.name}
+          onComplete={handleTrainingComplete}
+          onSkip={handleTrainingSkip}
+        />
+      </div>
+    );
+  }
 
   // Show loading while checking auth
   if (authLoading) {

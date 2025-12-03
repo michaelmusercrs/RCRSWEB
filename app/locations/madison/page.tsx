@@ -4,12 +4,14 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { MapPin, Phone, Clock, CheckCircle2, Award, Shield } from 'lucide-react';
+import { generateMetadata as genMeta } from '@/lib/seo';
 
-export const metadata: Metadata = {
-  title: 'Roof Repair & Replacement Madison AL | River City Roofing Solutions',
+export const metadata: Metadata = genMeta({
+  title: 'Roof Repair & Replacement Madison AL',
   description: 'Expert roofing contractors in Madison, AL. Roof repair, replacement, storm damage & insurance claims. Free estimates. BBB Accredited. Call (256) 274-8530',
   keywords: ['roof repair Madison AL', 'roofing contractors Madison', 'roof replacement Madison', 'storm damage Madison', 'hail damage roof Madison'],
-};
+  path: '/locations/madison',
+});
 
 export default function MadisonPage() {
   return (

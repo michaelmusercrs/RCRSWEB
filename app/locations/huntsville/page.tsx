@@ -4,12 +4,14 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { MapPin, Phone, Clock, CheckCircle2, Award, Shield } from 'lucide-react';
+import { generateMetadata as genMeta } from '@/lib/seo';
 
-export const metadata: Metadata = {
-  title: 'Roof Repair & Replacement Huntsville AL | River City Roofing Solutions',
+export const metadata: Metadata = genMeta({
+  title: 'Roof Repair & Replacement Huntsville AL',
   description: 'Expert roofing contractors in Huntsville, AL. Roof repair, replacement, storm damage & insurance claims. Free estimates. BBB Accredited. Call (256) 274-8530',
   keywords: ['roof repair Huntsville AL', 'roofing contractors Huntsville', 'roof replacement Huntsville', 'storm damage Huntsville', 'hail damage roof Huntsville'],
-};
+  path: '/locations/huntsville',
+});
 
 export default function HuntsvillePage() {
   return (

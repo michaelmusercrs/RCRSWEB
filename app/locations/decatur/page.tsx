@@ -4,12 +4,14 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { MapPin, Phone, Clock, CheckCircle2, Award, Shield } from 'lucide-react';
+import { generateMetadata as genMeta } from '@/lib/seo';
 
-export const metadata: Metadata = {
-  title: 'Roof Repair & Replacement Decatur AL | River City Roofing Solutions',
+export const metadata: Metadata = genMeta({
+  title: 'Roof Repair & Replacement Decatur AL',
   description: 'Expert roofing contractors in Decatur, AL. Roof repair, replacement, storm damage & insurance claims. Free estimates. BBB Accredited. Call (256) 274-8530',
   keywords: ['roof repair Decatur AL', 'roofing contractors Decatur', 'roof replacement Decatur', 'storm damage Decatur', 'hail damage roof Decatur'],
-};
+  path: '/locations/decatur',
+});
 
 export default function DecaturPage() {
   return (
