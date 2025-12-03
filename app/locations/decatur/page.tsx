@@ -24,9 +24,9 @@ export default function DecaturPage() {
             "@context": "https://schema.org",
             "@type": "RoofingContractor",
             "name": "River City Roofing Solutions - Decatur",
-            "image": "https://rivercityroofingsolutions.com/wp-content/uploads/2019/09/rcrs-square-logo.jpg",
-            "@id": "https://rcrsweb.com/locations/decatur",
-            "url": "https://rcrsweb.com/locations/decatur",
+            "image": "https://www.rivercityroofingsolutions.com/logo.png",
+            "@id": "https://www.rivercityroofingsolutions.com/locations/decatur",
+            "url": "https://www.rivercityroofingsolutions.com/locations/decatur",
             "telephone": "+1-256-274-8530",
             "priceRange": "$$",
             "address": {

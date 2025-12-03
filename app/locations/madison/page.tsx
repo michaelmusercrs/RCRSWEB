@@ -24,9 +24,9 @@ export default function MadisonPage() {
             "@context": "https://schema.org",
             "@type": "RoofingContractor",
             "name": "River City Roofing Solutions - Madison",
-            "image": "https://rivercityroofingsolutions.com/wp-content/uploads/2019/09/rcrs-square-logo.jpg",
-            "@id": "https://rcrsweb.com/locations/madison",
-            "url": "https://rcrsweb.com/locations/madison",
+            "image": "https://www.rivercityroofingsolutions.com/logo.png",
+            "@id": "https://www.rivercityroofingsolutions.com/locations/madison",
+            "url": "https://www.rivercityroofingsolutions.com/locations/madison",
             "telephone": "+1-256-274-8530",
             "priceRange": "$$",
             "address": {

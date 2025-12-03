@@ -24,9 +24,9 @@ export default function HuntsvillePage() {
             "@context": "https://schema.org",
             "@type": "RoofingContractor",
             "name": "River City Roofing Solutions - Huntsville",
-            "image": "https://rivercityroofingsolutions.com/wp-content/uploads/2019/09/rcrs-square-logo.jpg",
-            "@id": "https://rcrsweb.com/locations/huntsville",
-            "url": "https://rcrsweb.com/locations/huntsville",
+            "image": "https://www.rivercityroofingsolutions.com/logo.png",
+            "@id": "https://www.rivercityroofingsolutions.com/locations/huntsville",
+            "url": "https://www.rivercityroofingsolutions.com/locations/huntsville",
             "telephone": "+1-256-274-8530",
             "priceRange": "$$",
             "address": {
