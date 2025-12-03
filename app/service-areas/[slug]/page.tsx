@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { getServiceArea, getAllServiceAreaSlugs, getPrimaryServices } from '@/lib/servicesData';
 import { MapPin, Clock, CheckCircle2, Phone, ArrowRight, ArrowLeft, Home, Wrench, Building2, CloudRain, Flame, Shield, Search, AlertTriangle } from 'lucide-react';
+import { siteConfig } from '@/lib/seo';
 import type { Metadata } from 'next';
 
 const iconMap: { [key: string]: any } = { Home, Wrench, Building2, CloudRain, Flame, Shield, Search, AlertTriangle };
@@ -15,9 +16,26 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const area = getServiceArea(slug);
   if (!area) return { title: 'Area Not Found' };
-  return { 
-    title: 'Roofing Services in ' + area.name + ', ' + area.state + ' | River City Roofing Solutions',
-    description: area.description || 'Professional roofing services in ' + area.name + '. Residential and commercial roofing, storm damage repair, and free inspections.'
+
+  const path = `/service-areas/${slug}`;
+  const url = `${siteConfig.url}${path}`;
+  const title = `Roofing Services in ${area.name}, ${area.state} | River City Roofing`;
+  const description = area.description || `Professional roofing services in ${area.name}. Residential and commercial roofing, storm damage repair, and free inspections.`;
+  const truncatedDesc = description.length > 155 ? description.substring(0, 155) + '...' : description;
+
+  return {
+    title,
+    description: truncatedDesc,
+    alternates: {
+      canonical: url,
+    },
+    openGraph: {
+      title,
+      description: truncatedDesc,
+      url,
+      siteName: siteConfig.name,
+      type: 'website',
+    },
   };
 }
 

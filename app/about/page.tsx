@@ -4,6 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Mail, Phone, Award, Shield, Users, CheckCircle2, ArrowRight } from 'lucide-react';
 import { teamMembers } from '@/lib/teamData';
 import VideoBackground from '@/components/VideoBackground';
+import { generateMetadata as genMeta } from '@/lib/seo';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = genMeta({
+  title: 'About Us - Meet Our Roofing Team',
+  description: 'Learn about River City Roofing Solutions, a family-owned roofing company serving North Alabama since 2010. Meet our experienced team of roofing professionals.',
+  path: '/about',
+  keywords: ['about us', 'roofing company', 'North Alabama roofers', 'family owned', 'roofing team'],
+});
 
 export default async function AboutPage() {
   return (

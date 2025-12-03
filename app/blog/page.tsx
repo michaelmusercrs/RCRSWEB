@@ -5,13 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Calendar, User, ArrowRight } from 'lucide-react';
 import VideoBackground from '@/components/VideoBackground';
+import { generateMetadata as genMeta } from '@/lib/seo';
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = {
-  title: 'Roofing Blog | River City Roofing Solutions',
-  description: 'Expert roofing tips, guides, and industry insights for North Alabama homeowners. Learn about roof maintenance, materials, storm prep and more.',
-  keywords: ['roofing blog', 'roof maintenance', 'North Alabama roofing', 'roof tips'],
-};
+export const metadata: Metadata = genMeta({
+  title: 'Roofing Blog - Tips, Guides & Expert Advice',
+  description: 'Expert roofing tips and guides for North Alabama homeowners. Learn about roof maintenance, materials, storm prep, and when to replace your roof.',
+  path: '/blog',
+  keywords: ['roofing blog', 'roof maintenance', 'North Alabama roofing', 'roof tips', 'roofing guides'],
+});
 
 export default function BlogPage() {
   return (

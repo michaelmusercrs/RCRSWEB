@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { getService, getAllServiceSlugs, services } from '@/lib/servicesData';
 import { Home, Wrench, Building2, CloudRain, Flame, Shield, Search, AlertTriangle, Droplet, Wind, Paintbrush, ArrowRight, CheckCircle2, Phone, ArrowLeft } from 'lucide-react';
 import type { Metadata } from 'next';
+import { siteConfig } from '@/lib/seo';
 
 const iconMap: { [key: string]: any } = { Home, Wrench, Building2, CloudRain, Flame, Shield, Search, AlertTriangle, Droplet, Wind, Paintbrush };
 
@@ -15,7 +16,30 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const service = getService(slug);
   if (!service) return { title: 'Service Not Found' };
-  return { title: service.title + ' | River City Roofing Solutions', description: service.description };
+
+  const path = `/services/${slug}`;
+  const url = `${siteConfig.url}${path}`;
+
+  // Create unique, descriptive title for each service
+  const title = `${service.title} in North Alabama | River City Roofing`;
+  const description = service.description.length > 155
+    ? service.description.substring(0, 155) + '...'
+    : service.description;
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: url,
+    },
+    openGraph: {
+      title,
+      description,
+      url,
+      siteName: siteConfig.name,
+      type: 'website',
+    },
+  };
 }
 
 export default async function ServicePage({ params }: { params: Promise<{ slug: string }> }) {

@@ -5,11 +5,11 @@
 
 import { Metadata } from 'next';
 
-// Base configuration
+// Base configuration - Use www version for canonical URLs
 export const siteConfig = {
   name: 'River City Roofing Solutions',
   description: 'Licensed and insured roofing contractor serving Decatur, Huntsville, Madison, and all of North Alabama. Expert roof replacement, repair, and storm damage services.',
-  url: process.env.NEXT_PUBLIC_SITE_URL || 'https://rivercityroofingsolutions.com',
+  url: process.env.NEXT_PUBLIC_SITE_URL || 'https://www.rivercityroofingsolutions.com',
   ogImage: '/logo.png',
   phone: '256-274-8530',
   email: 'rcrs@rivercityroofingsolutions.com',

@@ -2,13 +2,15 @@ import Link from 'next/link';
 import { getPrimaryServices, getAdditionalServices } from '@/lib/servicesData';
 import { Home, Wrench, Building2, CloudRain, Flame, Shield, Search, AlertTriangle, Droplet, Wind, Paintbrush, ArrowRight, CheckCircle2 } from 'lucide-react';
 import VideoBackground from '@/components/VideoBackground';
+import { generateMetadata as genMeta } from '@/lib/seo';
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = {
-  title: 'Roofing Services | River City Roofing Solutions',
-  description: 'Comprehensive roofing services including residential replacement, commercial roofing, storm damage repair, inspections, and more. Serving North Alabama with expert care.',
+export const metadata: Metadata = genMeta({
+  title: 'Roofing Services - Replacement, Repair & Storm Damage',
+  description: 'Complete roofing services in Decatur, Huntsville & North Alabama. Residential & commercial roof replacement, repairs, storm damage restoration, and free inspections.',
+  path: '/services',
   keywords: ['roofing services', 'roof replacement', 'roof repair', 'commercial roofing', 'storm damage', 'North Alabama'],
-};
+});
 
 const iconMap: { [key: string]: any } = {
   Home,

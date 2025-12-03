@@ -2,7 +2,6 @@
 
 import ContactForm from '@/components/ContactForm';
 import { Clock, Award, Users, CheckCircle2 } from 'lucide-react';
-import type { Metadata } from 'next';
 
 const stats = [
   {

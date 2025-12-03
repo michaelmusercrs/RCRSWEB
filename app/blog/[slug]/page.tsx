@@ -5,6 +5,7 @@ import { blogPosts, blogMetadata } from '@/lib/blogData';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Calendar, User, ArrowLeft, ArrowRight } from 'lucide-react';
+import { siteConfig } from '@/lib/seo';
 import type { Metadata } from 'next';
 
 interface BlogPostPageProps {
@@ -20,7 +21,7 @@ export async function generateStaticParams() {
   }));
 }
 
-// Generate metadata for SEO
+// Generate metadata for SEO with proper canonical URL
 export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
   const post = blogPosts.find((p) => p.slug === params.slug);
 
@@ -30,10 +31,25 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
     };
   }
 
+  const path = `/blog/${params.slug}`;
+  const url = `${siteConfig.url}${path}`;
+  const description = post.excerpt.length > 155 ? post.excerpt.substring(0, 155) + '...' : post.excerpt;
+
   return {
-    title: `${post.title} | River City Roofing Solutions`,
-    description: post.excerpt,
+    title: `${post.title} | River City Roofing Blog`,
+    description,
     keywords: post.keywords,
+    alternates: {
+      canonical: url,
+    },
+    openGraph: {
+      title: post.title,
+      description,
+      url,
+      siteName: siteConfig.name,
+      type: 'article',
+      images: [{ url: post.image.startsWith('http') ? post.image : `${siteConfig.url}${post.image}` }],
+    },
   };
 }
 

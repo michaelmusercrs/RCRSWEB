@@ -1,13 +1,15 @@
 import Link from 'next/link';
 import { getActiveServiceAreas, getExpansionServiceAreas } from '@/lib/servicesData';
 import { MapPin, Clock, Phone, CheckCircle2, Calendar, User, TrendingUp } from 'lucide-react';
+import { generateMetadata as genMeta } from '@/lib/seo';
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = {
-  title: 'Service Areas | River City Roofing Solutions',
-  description: 'Serving North Alabama including Decatur, Huntsville, Madison, Athens, and more. Expanding to Birmingham and Nashville. Expert roofing services in your area.',
-  keywords: ['service areas', 'North Alabama roofing', 'Decatur AL', 'Huntsville AL', 'Madison AL', 'Birmingham AL', 'Nashville TN'],
-};
+export const metadata: Metadata = genMeta({
+  title: 'Service Areas - North Alabama Roofing Coverage',
+  description: 'Expert roofing services in Decatur, Huntsville, Madison, Athens & all of North Alabama. Expanding to Birmingham and Nashville. Free inspections available.',
+  path: '/service-areas',
+  keywords: ['service areas', 'North Alabama roofing', 'Decatur AL', 'Huntsville AL', 'Madison AL'],
+});
 
 export default function ServiceAreasPage() {
   const activeAreas = getActiveServiceAreas();

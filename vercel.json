@@ -1,5 +1,18 @@
 {
   "framework": "nextjs",
   "buildCommand": "rm -rf .next && npm run build",
-  "cleanUrls": true
+  "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "rivercityroofingsolutions.com"
+        }
+      ],
+      "destination": "https://www.rivercityroofingsolutions.com/:path*",
+      "permanent": true
+    }
+  ]
 }

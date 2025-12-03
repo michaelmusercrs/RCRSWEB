@@ -7,12 +7,39 @@ import { Mail, Phone, Award, CheckCircle2, ArrowLeft, Users, Facebook, Instagram
 import { getTeamMember, getAllTeamSlugs } from '@/lib/teamData';
 import ContactForm from '@/components/ContactForm';
 import { getReviewsForMember } from '@/lib/reviewsData';
+import { siteConfig } from '@/lib/seo';
+import type { Metadata } from 'next';
 
 export async function generateStaticParams() {
   const slugs = getAllTeamSlugs();
   return slugs.map((slug) => ({
     slug: slug,
   }));
+}
+
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const member = getTeamMember(params.slug);
+  if (!member) return { title: 'Team Member Not Found' };
+
+  const path = `/team/${params.slug}`;
+  const url = `${siteConfig.url}${path}`;
+  const title = `${member.name} - ${member.position} | River City Roofing Team`;
+  const description = member.tagline || `Meet ${member.name}, ${member.position} at River City Roofing Solutions. ${member.bio?.substring(0, 100)}...`;
+
+  return {
+    title,
+    description: description.length > 155 ? description.substring(0, 155) + '...' : description,
+    alternates: {
+      canonical: url,
+    },
+    openGraph: {
+      title,
+      description,
+      url,
+      siteName: siteConfig.name,
+      type: 'profile',
+    },
+  };
 }
 
 export default function TeamMemberPage({ params }: { params: { slug: string } }) {
