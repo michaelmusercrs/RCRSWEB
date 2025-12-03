@@ -5,7 +5,7 @@
 
 import { MetadataRoute } from 'next';
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://rivercityroofingsolutions.com';
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.rivercityroofingsolutions.com';
 
 export default function robots(): MetadataRoute.Robots {
   return {

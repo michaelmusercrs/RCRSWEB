@@ -8,7 +8,7 @@ import { blogPosts } from '@/lib/blogData';
 import { services, serviceAreas } from '@/lib/servicesData';
 import { teamMembers } from '@/lib/teamData';
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://rivercityroofingsolutions.com';
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.rivercityroofingsolutions.com';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   // Static pages
