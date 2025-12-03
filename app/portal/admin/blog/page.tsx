@@ -5,7 +5,8 @@ import Link from 'next/link';
 import AdminLayout from '@/components/AdminLayout';
 import {
   Plus, Edit, Trash2, Eye, Search, Calendar,
-  User, Tag, Save, X, Loader2, FileText, ExternalLink, RefreshCw, Upload, Image as ImageIcon
+  User, Tag, Save, X, Loader2, FileText, ExternalLink, RefreshCw, Upload, Image as ImageIcon,
+  Bold, Italic, Heading1, Heading2, List, ListOrdered, Code, Quote, Link as LinkIcon, EyeOff
 } from 'lucide-react';
 
 interface BlogPost {
@@ -291,6 +292,56 @@ function BlogEditor({
   const [formData, setFormData] = useState(post);
   const [isSaving, setIsSaving] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+
+  // Insert text at cursor position
+  const insertText = (before: string, after: string = '') => {
+    const textarea = document.getElementById('content-editor') as HTMLTextAreaElement;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = formData.content.substring(start, end);
+    const newContent =
+      formData.content.substring(0, start) +
+      before + selectedText + after +
+      formData.content.substring(end);
+
+    setFormData({ ...formData, content: newContent });
+
+    // Restore cursor position after React re-renders
+    setTimeout(() => {
+      textarea.focus();
+      const newCursorPos = start + before.length + selectedText.length + after.length;
+      textarea.setSelectionRange(newCursorPos, newCursorPos);
+    }, 0);
+  };
+
+  // Simple markdown to HTML conversion for preview
+  const renderMarkdownPreview = (text: string) => {
+    return text
+      // Headers
+      .replace(/^### (.*$)/gm, '<h3 class="text-lg font-semibold text-white mt-4 mb-2">$1</h3>')
+      .replace(/^## (.*$)/gm, '<h2 class="text-xl font-bold text-white mt-6 mb-3">$1</h2>')
+      .replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold text-white mt-8 mb-4">$1</h1>')
+      // Bold and Italic
+      .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      // Links
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-400 hover:underline">$1</a>')
+      // Code
+      .replace(/`([^`]+)`/g, '<code class="bg-neutral-800 px-1.5 py-0.5 rounded text-sm">$1</code>')
+      // Blockquotes
+      .replace(/^> (.*$)/gm, '<blockquote class="border-l-4 border-blue-500 pl-4 italic text-neutral-300">$1</blockquote>')
+      // Lists
+      .replace(/^\* (.*$)/gm, '<li class="ml-4">$1</li>')
+      .replace(/^- (.*$)/gm, '<li class="ml-4">$1</li>')
+      .replace(/^\d+\. (.*$)/gm, '<li class="ml-4 list-decimal">$1</li>')
+      // Paragraphs
+      .replace(/\n\n/g, '</p><p class="text-neutral-300 mb-4">')
+      .replace(/\n/g, '<br />');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -501,14 +552,128 @@ function BlogEditor({
 
         {/* Content */}
         <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
-          <label className="block text-sm font-medium text-neutral-300 mb-2">Content</label>
-          <textarea
-            value={formData.content}
-            onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-            placeholder="Full blog post content..."
-            rows={15}
-            className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-neutral-500 focus:border-blue-500/50 transition-all outline-none resize-y font-mono text-sm"
-          />
+          <div className="flex items-center justify-between mb-4">
+            <label className="text-sm font-medium text-neutral-300">Content</label>
+            <button
+              type="button"
+              onClick={() => setShowPreview(!showPreview)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                showPreview
+                  ? 'bg-blue-500/20 text-blue-400'
+                  : 'bg-white/5 text-neutral-400 hover:text-white'
+              }`}
+            >
+              {showPreview ? <EyeOff size={16} /> : <Eye size={16} />}
+              {showPreview ? 'Edit' : 'Preview'}
+            </button>
+          </div>
+
+          {/* Formatting Toolbar */}
+          {!showPreview && (
+            <div className="flex flex-wrap gap-1 mb-3 p-2 bg-white/[0.02] rounded-lg border border-white/5">
+              <button
+                type="button"
+                onClick={() => insertText('**', '**')}
+                className="p-2 rounded hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
+                title="Bold"
+              >
+                <Bold size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={() => insertText('*', '*')}
+                className="p-2 rounded hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
+                title="Italic"
+              >
+                <Italic size={16} />
+              </button>
+              <div className="w-px h-6 bg-white/10 mx-1 self-center" />
+              <button
+                type="button"
+                onClick={() => insertText('# ')}
+                className="p-2 rounded hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
+                title="Heading 1"
+              >
+                <Heading1 size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={() => insertText('## ')}
+                className="p-2 rounded hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
+                title="Heading 2"
+              >
+                <Heading2 size={16} />
+              </button>
+              <div className="w-px h-6 bg-white/10 mx-1 self-center" />
+              <button
+                type="button"
+                onClick={() => insertText('- ')}
+                className="p-2 rounded hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
+                title="Bullet List"
+              >
+                <List size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={() => insertText('1. ')}
+                className="p-2 rounded hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
+                title="Numbered List"
+              >
+                <ListOrdered size={16} />
+              </button>
+              <div className="w-px h-6 bg-white/10 mx-1 self-center" />
+              <button
+                type="button"
+                onClick={() => insertText('> ')}
+                className="p-2 rounded hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
+                title="Quote"
+              >
+                <Quote size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={() => insertText('`', '`')}
+                className="p-2 rounded hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
+                title="Code"
+              >
+                <Code size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={() => insertText('[', '](url)')}
+                className="p-2 rounded hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
+                title="Link"
+              >
+                <LinkIcon size={16} />
+              </button>
+            </div>
+          )}
+
+          {showPreview ? (
+            <div
+              className="min-h-[400px] bg-white/[0.03] border border-white/10 rounded-xl px-6 py-4 text-neutral-300 prose prose-invert max-w-none"
+              dangerouslySetInnerHTML={{
+                __html: `<p class="text-neutral-300 mb-4">${renderMarkdownPreview(formData.content)}</p>`
+              }}
+            />
+          ) : (
+            <textarea
+              id="content-editor"
+              value={formData.content}
+              onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+              placeholder="Full blog post content... Use markdown for formatting:
+**bold** *italic*
+# Heading 1
+## Heading 2
+- Bullet point
+1. Numbered list
+> Quote
+`code`
+[link text](url)"
+              rows={15}
+              className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-neutral-500 focus:border-blue-500/50 transition-all outline-none resize-y font-mono text-sm"
+            />
+          )}
         </div>
 
         {/* Preview Link */}

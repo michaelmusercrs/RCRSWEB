@@ -4,6 +4,7 @@ import Script from 'next/script';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import FloatingContactButton from '@/components/FloatingContactButton';
 import GlobalVideoBackground from '@/components/GlobalVideoBackground';
 import PromoBanner from '@/components/PromoBanner';
@@ -75,6 +76,7 @@ export default function RootLayout({
           fallbackImage="/uploads/hero-background.webp"
         />
         <main>{children}</main>
+        <Footer />
         <FloatingContactButton />
         <SpeedInsights />
       </body>

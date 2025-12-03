@@ -427,6 +427,35 @@ export const teamMembers: TeamMember[] = [
     ],
   },
   {
+    slug: 'richard',
+    name: 'Richard',
+    company: 'River City Roofing Solutions',
+    category: 'Production',
+    position: 'Driver',
+    phone: '',
+    email: 'richard@rivercityroofingsolutions.com',
+    altEmail: 'richard@rivercityroofingsolutions.com',
+    displayOrder: 16,
+    profileImage: '/uploads/richard.png',
+    tagline: 'Ensures materials and equipment arrive safely and on time to every job site.',
+    bio: "Richard is a valued member of the River City Roofing Solutions team, serving as one of our dedicated drivers. He plays a crucial role in ensuring that materials, equipment, and supplies reach our job sites safely and on schedule. His reliability and attention to detail help keep our projects running smoothly. Richard takes pride in being part of the River City family and contributing to the company's mission of providing exceptional roofing services to the community.",
+    keyStrengths: [
+      'Reliable and punctual deliveries',
+      'Safe driving and vehicle maintenance',
+      'Inventory management assistance',
+      'Team coordination and communication',
+      'Attention to delivery details'
+    ],
+    responsibilities: [
+      'Deliver roofing materials to job sites',
+      'Maintain delivery vehicle in good condition',
+      'Coordinate delivery schedules with production team',
+      'Assist with material loading and unloading',
+      'Communicate with job site crews',
+      'Track and document deliveries'
+    ],
+  },
+  {
     slug: 'travis',
     name: 'Travis',
     company: 'River City Roofing Solutions',

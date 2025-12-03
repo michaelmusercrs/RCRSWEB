@@ -5,6 +5,11 @@
 /* Global Video Background handled by GlobalVideoBackground component */
 
 @layer base {
+  /* Prevent italics on email links */
+  a[href^="mailto:"] {
+    font-style: normal !important;
+  }
+
   :root {
     --primary: 0 0% 9%;
     --primary-hover: #2ecc11;

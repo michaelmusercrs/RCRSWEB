@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Phone, Mail, MapPin, Loader2, CheckCircle2 } from 'lucide-react';
 
 interface ContactFormProps {
@@ -40,6 +41,7 @@ export default function ContactForm({
           phone: formData.get('phone') || '',
           subject: formData.get('subject'),
           message: formData.get('message'),
+          smsConsent: formData.get('smsConsent') === 'on',
           preferredInspector: preselectedTeamMember || 'First Available',
           sourcePage: sourcePage,
         }),
@@ -208,6 +210,28 @@ export default function ContactForm({
             />
           </div>
 
+          {/* SMS Consent Checkbox - TCR Compliant */}
+          <div className={`p-4 rounded-lg border ${darkMode ? 'bg-white/5 border-white/10' : 'bg-gray-50 border-gray-200'}`}>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                name="smsConsent"
+                className={`mt-1 w-5 h-5 rounded border-2 ${
+                  darkMode
+                    ? 'bg-transparent border-gray-500 text-brand-green focus:ring-brand-green/30'
+                    : 'bg-white border-gray-300 text-brand-blue focus:ring-brand-blue/30'
+                }`}
+              />
+              <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                I consent to receive appointment reminders, service updates, and promotional SMS messages from River City Roofing Solutions.
+                Reply STOP to opt-out; Reply HELP for support. Message & data rates may apply. Messaging frequency may vary.{' '}
+                <Link href="/privacy#sms-terms" className="text-brand-green hover:underline">
+                  Privacy Policy & SMS Terms
+                </Link>
+              </span>
+            </label>
+          </div>
+
           <div>
             <label htmlFor="subject" className={`block text-sm font-medium mb-1 ${labelClass}`}>
               Subject <span className="text-red-500">*</span>
@@ -255,6 +279,10 @@ export default function ContactForm({
 
           <p className={`text-xs text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
             We respect your privacy. Your information will only be used to respond to your inquiry.
+            View our{' '}
+            <Link href="/privacy" className="text-brand-green hover:underline">Privacy Policy</Link>
+            {' '}and{' '}
+            <Link href="/terms" className="text-brand-green hover:underline">Terms of Service</Link>.
           </p>
         </form>
       </div>

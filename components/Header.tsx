@@ -45,8 +45,8 @@ export default function Header() {
 
   return (
     <>
-      {/* Main Header - Sticky Nav Only */}
-      <header className="sticky top-0 z-50 bg-black/60 backdrop-blur-sm">
+      {/* Main Header */}
+      <header className="bg-black/60 backdrop-blur-sm">
         <nav className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             {/* Home Button - Only on non-home pages */}

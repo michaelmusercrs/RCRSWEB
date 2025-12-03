@@ -25,7 +25,7 @@ export default function PromoBanner() {
   if (!isClient || !isVisible) return null;
 
   return (
-    <div className="bg-gradient-to-r from-yellow-500 via-yellow-400 to-brand-green text-black relative z-[60]">
+    <div className="bg-gradient-to-r from-yellow-500 via-yellow-400 to-brand-green text-black relative">
       <div className="container mx-auto px-4 py-2">
         <Link href="/referral-rewards" className="flex items-center justify-center gap-2 text-sm md:text-base font-bold hover:opacity-80 transition-opacity">
           <Trophy className="w-5 h-5 animate-pulse" />
