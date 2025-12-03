@@ -29,13 +29,14 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   return {
     title,
     description: description.length > 155 ? description.substring(0, 155) + '...' : description,
+    // Use path - Next.js combines with metadataBase for full canonical URL
     alternates: {
-      canonical: url,
+      canonical: path,
     },
     openGraph: {
       title,
       description,
-      url,
+      url: `${siteConfig.url}${path}`,
       siteName: siteConfig.name,
       type: 'profile',
     },

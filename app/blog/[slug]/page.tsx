@@ -32,20 +32,20 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
   }
 
   const path = `/blog/${params.slug}`;
-  const url = `${siteConfig.url}${path}`;
   const description = post.excerpt.length > 155 ? post.excerpt.substring(0, 155) + '...' : post.excerpt;
 
   return {
     title: `${post.title} | River City Roofing Blog`,
     description,
     keywords: post.keywords,
+    // Use path - Next.js combines with metadataBase
     alternates: {
-      canonical: url,
+      canonical: path,
     },
     openGraph: {
       title: post.title,
       description,
-      url,
+      url: `${siteConfig.url}${path}`,
       siteName: siteConfig.name,
       type: 'article',
       images: [{ url: post.image.startsWith('http') ? post.image : `${siteConfig.url}${post.image}` }],

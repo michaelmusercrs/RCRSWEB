@@ -93,8 +93,9 @@ export function generateMetadata(params: GenerateMetadataParams = {}): Metadata 
       email: true,
       address: true,
     },
+    // Set canonical as absolute URL path - Next.js combines with metadataBase
     alternates: {
-      canonical: url,
+      canonical: path || '/',
     },
     openGraph: {
       type: type as any,

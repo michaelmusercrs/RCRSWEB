@@ -18,7 +18,6 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (!service) return { title: 'Service Not Found' };
 
   const path = `/services/${slug}`;
-  const url = `${siteConfig.url}${path}`;
 
   // Create unique, descriptive title for each service
   const title = `${service.title} in North Alabama | River City Roofing`;
@@ -29,13 +28,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title,
     description,
+    // Use path - Next.js combines with metadataBase to create full canonical URL
     alternates: {
-      canonical: url,
+      canonical: path,
     },
     openGraph: {
       title,
       description,
-      url,
+      url: `${siteConfig.url}${path}`,
       siteName: siteConfig.name,
       type: 'website',
     },
