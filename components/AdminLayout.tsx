@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ArrowLeft, Home } from 'lucide-react';
 import { ReactNode } from 'react';
+import SettingsMenu from '@/components/SettingsMenu';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -56,6 +57,7 @@ export default function AdminLayout({
                   <Home size={16} />
                   View Site
                 </Link>
+                <SettingsMenu />
               </div>
             </div>
           </div>

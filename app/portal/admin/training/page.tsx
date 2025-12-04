@@ -1,14 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   BookOpen, ChevronDown, ChevronRight, CheckCircle2,
   FileText, Users, Image, Package, Truck, BarChart3,
   Play, Clock, Target, AlertCircle, HelpCircle, Phone, Mail,
-  Sparkles, GraduationCap, Award
+  Sparkles, GraduationCap, Award, Trophy, Flame
 } from 'lucide-react';
 import AdminLayout from '@/components/AdminLayout';
+import Leaderboard from '@/components/Leaderboard';
+import { useTraining, POINTS_CONFIG } from '@/lib/training-context';
 
 type Section = {
   id: string;
@@ -2283,7 +2285,11 @@ const trainingSections: Section[] = [
 export default function AdminTrainingPage() {
   const [expandedSection, setExpandedSection] = useState<string | null>('portal-overview');
   const [expandedLesson, setExpandedLesson] = useState<string | null>('getting-started');
-  const [completedLessons, setCompletedLessons] = useState<string[]>([]);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [pointsEarned, setPointsEarned] = useState<number | null>(null);
+
+  const { progress, markLessonComplete, markModuleComplete, settings } = useTraining();
+  const completedLessons = progress.completedLessons;
 
   const toggleSection = (sectionId: string) => {
     setExpandedSection(expandedSection === sectionId ? null : sectionId);
@@ -2293,9 +2299,23 @@ export default function AdminTrainingPage() {
     setExpandedLesson(expandedLesson === lessonId ? null : lessonId);
   };
 
-  const markComplete = (lessonId: string) => {
+  const markComplete = (lessonId: string, sectionId: string) => {
     if (!completedLessons.includes(lessonId)) {
-      setCompletedLessons([...completedLessons, lessonId]);
+      markLessonComplete(lessonId);
+      setPointsEarned(POINTS_CONFIG.lessonComplete);
+      setTimeout(() => setPointsEarned(null), 2000);
+
+      // Check if section is complete
+      const section = trainingSections.find(s => s.id === sectionId);
+      if (section) {
+        const sectionLessons = section.lessons.map(l => l.id);
+        const willBeComplete = sectionLessons.every(l =>
+          l === lessonId || completedLessons.includes(l)
+        );
+        if (willBeComplete) {
+          markModuleComplete(sectionId);
+        }
+      }
     }
   };
 
@@ -2308,6 +2328,34 @@ export default function AdminTrainingPage() {
       subtitle="Learn how to use all portal features"
       actions={
         <div className="flex items-center gap-4">
+          {/* Points display */}
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
+            <Award className="text-yellow-400" size={16} />
+            <span className="text-sm font-bold text-yellow-400">{progress.points} pts</span>
+            {pointsEarned && (
+              <span className="text-xs text-brand-green animate-bounce">+{pointsEarned}!</span>
+            )}
+          </div>
+          {/* Streak */}
+          {progress.streak > 0 && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500/10 border border-orange-500/20 rounded-xl">
+              <Flame className="text-orange-400" size={16} />
+              <span className="text-sm font-bold text-orange-400">{progress.streak}</span>
+            </div>
+          )}
+          {/* Leaderboard toggle */}
+          <button
+            onClick={() => setShowLeaderboard(!showLeaderboard)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-medium transition-all ${
+              showLeaderboard
+                ? 'bg-brand-green text-black'
+                : 'bg-white/5 hover:bg-white/10 text-neutral-400'
+            }`}
+          >
+            <Trophy size={16} />
+            <span className="hidden sm:inline">Leaderboard</span>
+          </button>
+          {/* Progress */}
           <div className="text-right">
             <div className="text-2xl font-bold text-brand-green">{progressPercent}%</div>
             <div className="text-xs text-neutral-400">{completedLessons.length}/{totalLessons} lessons</div>
@@ -2330,6 +2378,13 @@ export default function AdminTrainingPage() {
         </div>
       </div>
 
+      {/* Leaderboard Sidebar */}
+      {showLeaderboard && (
+        <div className="mb-8">
+          <Leaderboard showUserComparison={true} />
+        </div>
+      )}
+
       {/* Quick Start Card */}
       <div className="relative overflow-hidden bg-gradient-to-r from-brand-green/10 via-emerald-500/10 to-cyan-500/10 border border-brand-green/20 rounded-2xl p-6 mb-8">
         <div className="absolute -top-24 -right-24 w-48 h-48 bg-brand-green rounded-full blur-3xl opacity-10" />
@@ -2341,7 +2396,7 @@ export default function AdminTrainingPage() {
             <h2 className="text-xl font-bold text-white mb-2">Welcome to Training!</h2>
             <p className="text-neutral-300 text-sm mb-4 leading-relaxed">
               This guide will teach you how to use all features of the River City Roofing portal system.
-              Complete each lesson and mark it done to track your progress.
+              Complete each lesson and mark it done to track your progress. Earn points and compete on the leaderboard!
             </p>
             <div className="flex flex-wrap gap-3">
               <span className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-neutral-300 flex items-center gap-2">
@@ -2352,6 +2407,9 @@ export default function AdminTrainingPage() {
               </span>
               <span className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-neutral-300 flex items-center gap-2">
                 <Target size={14} className="text-neutral-400" /> 7 sections
+              </span>
+              <span className="px-4 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-sm text-yellow-400 flex items-center gap-2">
+                <Award size={14} /> +{POINTS_CONFIG.lessonComplete} pts/lesson
               </span>
             </div>
           </div>
@@ -2468,7 +2526,7 @@ export default function AdminTrainingPage() {
                             )}
 
                             <button
-                              onClick={() => markComplete(lesson.id)}
+                              onClick={() => markComplete(lesson.id, section.id)}
                               disabled={isComplete}
                               className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                                 isComplete
@@ -2476,7 +2534,7 @@ export default function AdminTrainingPage() {
                                   : 'bg-gradient-to-r from-brand-green to-emerald-500 hover:from-lime-400 hover:to-emerald-400 text-black shadow-lg shadow-brand-green/25'
                               }`}
                             >
-                              {isComplete ? 'Completed!' : 'Mark as Complete'}
+                              {isComplete ? 'Completed!' : `Mark as Complete (+${POINTS_CONFIG.lessonComplete} pts)`}
                             </button>
                           </div>
                         )}
@@ -2521,14 +2579,14 @@ export default function AdminTrainingPage() {
 
       {/* Download Guide */}
       <div className="mt-6 text-center">
-        <Link
-          href="/PORTAL-TRAINING-GUIDE.md"
-          target="_blank"
+        <a
+          href="/RCRS-Training-Guide.md"
+          download="RCRS-Training-Guide.md"
           className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-brand-green transition-colors"
         >
           <BookOpen size={14} />
-          Download Full Training Guide
-        </Link>
+          Download Full Training Guide (PDF)
+        </a>
       </div>
     </AdminLayout>
   );

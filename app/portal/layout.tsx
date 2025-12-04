@@ -1,6 +1,8 @@
 'use client';
 
 import { AuthProvider } from '@/lib/auth-context';
+import { TrainingProvider } from '@/lib/training-context';
+import TrainingPopup from '@/components/TrainingPopup';
 
 export default function PortalLayout({
   children,
@@ -9,7 +11,10 @@ export default function PortalLayout({
 }) {
   return (
     <AuthProvider>
-      {children}
+      <TrainingProvider>
+        {children}
+        <TrainingPopup />
+      </TrainingProvider>
     </AuthProvider>
   );
 }

@@ -8,6 +8,7 @@ import {
   Globe, BookOpen, BarChart3, TrendingUp, Eye, Clock, Sparkles, Home,
   DollarSign, AlertTriangle
 } from 'lucide-react';
+import SettingsMenu from '@/components/SettingsMenu';
 
 export default function AdminPortal() {
   const [stats, setStats] = useState({ posts: 0, members: 0, images: 0 });
@@ -126,14 +127,17 @@ export default function AdminPortal() {
                   <p className="text-sm text-neutral-400">Manage website content</p>
                 </div>
               </div>
-              <Link
-                href="/"
-                target="_blank"
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-neutral-400 text-sm transition-colors"
-              >
-                <Home size={16} />
-                View Site
-              </Link>
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/"
+                  target="_blank"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-neutral-400 text-sm transition-colors"
+                >
+                  <Home size={16} />
+                  View Site
+                </Link>
+                <SettingsMenu />
+              </div>
             </div>
           </div>
         </header>
