@@ -125,26 +125,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const loginWithPin = async (pin: string): Promise<{ success: boolean; error?: string }> => {
-    // Find driver by PIN
-    const driver = TEAM_MEMBERS.find(m =>
-      m.role === 'driver' && m.pin === pin && m.isActive
-    );
+    // Find user by PIN - supports drivers AND any user with a PIN
+    const member = TEAM_MEMBERS.find(m => m.pin === pin && m.isActive);
 
-    if (!driver) {
+    if (!member) {
       return { success: false, error: 'Invalid PIN. Please try again.' };
     }
 
     const authUser: AuthUser = {
-      userId: driver.id,
-      name: driver.name,
-      email: driver.email,
-      role: driver.role,
-      permissions: driver.permissions,
-      pin: driver.pin,
+      userId: member.id,
+      name: member.name,
+      email: member.email,
+      role: member.role,
+      permissions: member.permissions,
+      pin: member.pin,
     };
 
     setUser(authUser);
     sessionStorage.setItem('portalUser', JSON.stringify(authUser));
+
+    // Also set driver object for driver portal compatibility (if driver role)
+    if (member.role === 'driver') {
+      sessionStorage.setItem('driver', JSON.stringify({
+        id: member.id,
+        name: member.name,
+        email: member.email,
+        phone: member.phone || '',
+        vehicle: 'Company Truck',
+        isActive: true,
+      }));
+    }
+    sessionStorage.setItem('userRole', member.role);
 
     return { success: true };
   };

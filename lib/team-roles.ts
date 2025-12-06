@@ -16,103 +16,114 @@ export interface TeamMember {
   createdAt: string;
 }
 
-// Define team members
+// Define team members - Updated from PDF (items for web.pdf)
 export const TEAM_MEMBERS: TeamMember[] = [
   // Owners - Full access to everything
   {
-    id: 'michael',
+    id: 'RVR-135',
     name: 'Michael Muse',
     slug: 'michael-muse',
-    email: 'michaelmuse@rivercityroofingsolutions.com',
+    email: 'michaelmuse@rcrsal.com',
+    phone: '256-221-4290',
     role: 'owner',
+    pin: '1135',
     isActive: true,
     permissions: ['*'], // All permissions
     createdAt: '2024-01-01'
   },
   {
-    id: 'sara',
-    name: 'Sara',
-    slug: 'sara-hill',
-    email: 'sara@rivercityroofingsolutions.com',
-    role: 'admin', // Full access like owner
+    id: 'RVR-138',
+    name: 'Chris Muse',
+    slug: 'chris-muse',
+    email: 'chrismuse@rcrsal.com',
+    phone: '256-648-1224',
+    role: 'owner',
+    pin: '1138',
     isActive: true,
     permissions: ['*'],
     createdAt: '2024-01-01'
   },
 
-  // Office Staff - Billing, inventory, office portal
+  // Admin - Full access
   {
-    id: 'tia',
-    name: 'Tia',
-    slug: 'tia',
-    email: 'tia@rivercityroofingsolutions.com',
-    role: 'office',
+    id: 'RVR-131',
+    name: 'Sara Hill',
+    slug: 'sara-hill',
+    email: 'sara@rcrsal.com',
+    phone: '256-810-3594',
+    role: 'admin',
+    pin: '1131',
     isActive: true,
-    permissions: [
-      'view_dashboard',
-      'manage_billing',
-      'manage_inventory',
-      'view_tickets',
-      'update_ticket_status',
-      'create_invoices',
-      'manage_vendors',
-      'view_reports',
-      'view_schedule',
-      'manage_stock'
-    ],
-    createdAt: '2024-01-01'
+    permissions: ['*'],
+    createdAt: '2024-01-15'
   },
   {
-    id: 'destin',
-    name: 'Destin',
-    slug: 'destin',
-    email: 'destin@rivercityroofingsolutions.com',
-    role: 'office',
+    id: 'RVR-139',
+    name: 'Admin',
+    slug: 'admin',
+    email: 'admin@rcrsal.com',
+    role: 'admin',
+    pin: '0000',
     isActive: true,
-    permissions: [
-      'view_dashboard',
-      'manage_billing',
-      'manage_inventory',
-      'view_tickets',
-      'update_ticket_status',
-      'create_invoices',
-      'manage_vendors',
-      'view_reports',
-      'view_schedule',
-      'manage_stock'
-    ],
+    permissions: ['*'],
     createdAt: '2024-01-01'
   },
 
-  // Project Managers - Create orders, schedule deliveries
+  // Managers
   {
-    id: 'john',
-    name: 'John',
-    slug: 'john',
-    email: 'john@rivercityroofingsolutions.com',
-    role: 'project_manager',
+    id: 'RVR-132',
+    name: 'Destin McCury',
+    slug: 'destin',
+    email: 'destin@rcrsal.com',
+    phone: '256-905-7738',
+    role: 'office',
+    pin: '1132',
     isActive: true,
     permissions: [
       'view_dashboard',
-      'create_material_orders',
-      'create_delivery_tickets',
-      'create_pickup_tickets',
-      'create_return_tickets',
-      'schedule_events',
+      'manage_billing',
+      'manage_inventory',
+      'view_tickets',
+      'update_ticket_status',
+      'create_invoices',
+      'manage_vendors',
+      'view_reports',
       'view_schedule',
-      'view_own_tickets',
-      'update_own_tickets',
-      'view_inventory',
-      'view_drivers'
+      'manage_stock'
     ],
-    createdAt: '2024-01-01'
+    createdAt: '2024-02-01'
   },
   {
-    id: 'bart',
-    name: 'Bart',
+    id: 'RVR-133',
+    name: 'Tia Morris',
+    slug: 'tia',
+    email: 'tia@rcrsal.com',
+    phone: '256-394-8396',
+    role: 'office',
+    pin: '1133',
+    isActive: true,
+    permissions: [
+      'view_dashboard',
+      'manage_billing',
+      'manage_inventory',
+      'view_tickets',
+      'update_ticket_status',
+      'create_invoices',
+      'manage_vendors',
+      'view_reports',
+      'view_schedule',
+      'manage_stock'
+    ],
+    createdAt: '2024-02-01'
+  },
+  {
+    id: 'RVR-134',
+    name: 'Bart Roberts',
     slug: 'bart',
-    email: 'bart@rivercityroofingsolutions.com',
+    email: 'bart@rcrsal.com',
+    phone: '256-654-0747',
     role: 'project_manager',
+    pin: '1134',
     isActive: true,
     permissions: [
       'view_dashboard',
@@ -127,17 +138,41 @@ export const TEAM_MEMBERS: TeamMember[] = [
       'view_inventory',
       'view_drivers'
     ],
-    createdAt: '2024-01-01'
+    createdAt: '2024-03-15'
+  },
+  {
+    id: 'RVR-137',
+    name: 'John Cordonis',
+    slug: 'john',
+    email: 'john@rcrsal.com',
+    phone: '256-654-0875',
+    role: 'project_manager',
+    pin: '1137',
+    isActive: true,
+    permissions: [
+      'view_dashboard',
+      'create_material_orders',
+      'create_delivery_tickets',
+      'create_pickup_tickets',
+      'create_return_tickets',
+      'schedule_events',
+      'view_schedule',
+      'view_own_tickets',
+      'update_own_tickets',
+      'view_inventory',
+      'view_drivers'
+    ],
+    createdAt: '2024-02-15'
   },
 
   // Drivers - View assigned, complete deliveries
   {
-    id: 'rick',
-    name: 'Richard',
+    id: 'RVR-136',
+    name: 'Richard Geahr',
     slug: 'richard',
     email: 'richard@rivercityroofingsolutions.com',
     role: 'driver',
-    pin: '1234', // Driver login PIN
+    pin: '1136', // Driver login PIN from PDF
     isActive: true,
     permissions: [
       'view_assigned_tickets',
@@ -152,15 +187,16 @@ export const TEAM_MEMBERS: TeamMember[] = [
       'create_return_tickets',
       'log_gps_activity'
     ],
-    createdAt: '2024-01-01'
+    createdAt: '2024-04-01'
   },
   {
-    id: 'tae',
-    name: 'Tae',
+    id: 'a8ad2e33',
+    name: 'Tae Orr',
     slug: 'tae',
-    email: 'tae@rivercityroofingsolutions.com',
+    email: 'tae@rcrsal.com',
+    phone: '256-200-3467',
     role: 'driver',
-    pin: '5678', // Driver login PIN
+    pin: '2033', // Driver login PIN from PDF
     isActive: true,
     permissions: [
       'view_assigned_tickets',
@@ -175,25 +211,7 @@ export const TEAM_MEMBERS: TeamMember[] = [
       'create_return_tickets',
       'log_gps_activity'
     ],
-    createdAt: '2024-01-01'
-  },
-
-  // Viewer - Read only
-  {
-    id: 'chris',
-    name: 'Chris Muse',
-    slug: 'chris-muse',
-    email: 'chrismuse@rivercityroofingsolutions.com',
-    role: 'viewer',
-    isActive: true,
-    permissions: [
-      'view_dashboard',
-      'view_tickets',
-      'view_schedule',
-      'view_reports',
-      'view_inventory'
-    ],
-    createdAt: '2024-01-01'
+    createdAt: '2024-05-01'
   }
 ];
 

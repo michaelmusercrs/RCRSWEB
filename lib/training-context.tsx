@@ -114,18 +114,18 @@ const defaultSettings: UserSettings = {
   },
 };
 
-// Mock leaderboard data - would come from API in production
+// Leaderboard data - reset to zero for all team members
+// Points will be earned through actual training completion
 const mockLeaderboard: LeaderboardEntry[] = [
-  { name: 'Chris Muse', role: 'admin', points: 850, completedModules: 7, streak: 12 },
-  { name: 'Michael Muse', role: 'admin', points: 780, completedModules: 7, streak: 8 },
-  { name: 'Hunter', role: 'manager', points: 520, completedModules: 4, streak: 5 },
-  { name: 'Aaron', role: 'warehouse', points: 340, completedModules: 2, streak: 3 },
-  { name: 'Sara Hill', role: 'office', points: 280, completedModules: 2, streak: 4 },
-  { name: 'Tia', role: 'sales', points: 210, completedModules: 1, streak: 2 },
-  { name: 'Boston', role: 'driver', points: 180, completedModules: 2, streak: 1 },
-  { name: 'Destin', role: 'driver', points: 150, completedModules: 2, streak: 0 },
-  { name: 'John', role: 'pm', points: 120, completedModules: 2, streak: 1 },
-  { name: 'Brendon', role: 'warehouse', points: 90, completedModules: 1, streak: 0 },
+  { name: 'Chris Muse', role: 'admin', points: 0, completedModules: 0, streak: 0 },
+  { name: 'Michael Muse', role: 'admin', points: 0, completedModules: 0, streak: 0 },
+  { name: 'Sara Hill', role: 'admin', points: 0, completedModules: 0, streak: 0 },
+  { name: 'Destin McCury', role: 'office', points: 0, completedModules: 0, streak: 0 },
+  { name: 'Tia Morris', role: 'office', points: 0, completedModules: 0, streak: 0 },
+  { name: 'Bart Roberts', role: 'pm', points: 0, completedModules: 0, streak: 0 },
+  { name: 'John Cordonis', role: 'pm', points: 0, completedModules: 0, streak: 0 },
+  { name: 'Richard Geahr', role: 'driver', points: 0, completedModules: 0, streak: 0 },
+  { name: 'Tae Orr', role: 'driver', points: 0, completedModules: 0, streak: 0 },
 ];
 
 const TrainingContext = createContext<TrainingContextType | undefined>(undefined);

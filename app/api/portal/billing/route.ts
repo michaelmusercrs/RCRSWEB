@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { billingWorkflowService, BillingStatus, VendorSource, TransactionType } from '@/lib/billing-workflow-service';
+import { calculatePrice, calculateOrderTotal, getProductPricingList, getMarginAnalysis, pricingRules, volumePricing } from '@/lib/billingPricing';
 
 export async function GET(request: NextRequest) {
   try {
@@ -68,6 +69,21 @@ export async function GET(request: NextRequest) {
         const unreadOnly = searchParams.get('unreadOnly') !== 'false';
         const notifications = await billingWorkflowService.getOfficeNotifications(unreadOnly);
         return NextResponse.json({ notifications });
+      }
+
+      case 'pricing-list': {
+        const customerType = (searchParams.get('customerType') as 'residential' | 'commercial' | 'contractor' | 'insurance') || 'residential';
+        const pricingList = getProductPricingList(customerType);
+        return NextResponse.json({ pricingList, customerType });
+      }
+
+      case 'pricing-rules': {
+        return NextResponse.json({ pricingRules, volumePricing });
+      }
+
+      case 'margin-analysis': {
+        const analysis = getMarginAnalysis();
+        return NextResponse.json({ analysis });
       }
 
       default:
@@ -180,6 +196,34 @@ export async function POST(request: NextRequest) {
       case 'run-daily-check': {
         const result = await billingWorkflowService.runDailyBillingCheck();
         return NextResponse.json({ success: true, ...result });
+      }
+
+      case 'calculate': {
+        // Calculate pricing for an order
+        const { items, customerType } = data;
+        if (!items || !Array.isArray(items)) {
+          return NextResponse.json({ error: 'Items array required' }, { status: 400 });
+        }
+        try {
+          const result = calculateOrderTotal(items, customerType || 'residential');
+          return NextResponse.json(result);
+        } catch (error: any) {
+          return NextResponse.json({ error: error.message }, { status: 400 });
+        }
+      }
+
+      case 'calculate-single': {
+        // Calculate price for a single product
+        const { productId, quantity, customerType } = data;
+        if (!productId) {
+          return NextResponse.json({ error: 'Product ID required' }, { status: 400 });
+        }
+        try {
+          const result = calculatePrice(productId, quantity || 1, customerType || 'residential');
+          return NextResponse.json(result);
+        } catch (error: any) {
+          return NextResponse.json({ error: error.message }, { status: 400 });
+        }
       }
 
       default:

@@ -10,6 +10,7 @@ import {
 import { useAuth, ROLE_DEFAULT_ROUTES } from '@/lib/auth-context';
 import { TEAM_MEMBERS, TeamRole } from '@/lib/team-roles';
 import RoleTrainingPopup from '@/components/RoleTrainingPopup';
+import FeatureUpdatesPopup, { useFeatureUpdates } from '@/components/FeatureUpdatesPopup';
 
 type LoginMode = 'select' | 'driver' | 'staff';
 
@@ -22,6 +23,7 @@ export default function PortalLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showTraining, setShowTraining] = useState(false);
+  const [showFeatureUpdates, setShowFeatureUpdates] = useState(false);
   const [pendingRedirect, setPendingRedirect] = useState<string | null>(null);
   const [loggedInUser, setLoggedInUser] = useState<{ name: string; role: TeamRole } | null>(null);
 
@@ -57,9 +59,8 @@ export default function PortalLogin() {
       markTrainingCompleted(loggedInUser.role);
     }
     setShowTraining(false);
-    if (pendingRedirect) {
-      router.push(pendingRedirect);
-    }
+    // Show feature updates after training
+    setShowFeatureUpdates(true);
   };
 
   // Handle training skip
@@ -68,6 +69,13 @@ export default function PortalLogin() {
       markTrainingCompleted(loggedInUser.role);
     }
     setShowTraining(false);
+    // Show feature updates after skipping training
+    setShowFeatureUpdates(true);
+  };
+
+  // Handle feature updates close
+  const handleFeatureUpdatesClose = () => {
+    setShowFeatureUpdates(false);
     if (pendingRedirect) {
       router.push(pendingRedirect);
     }
@@ -85,19 +93,22 @@ export default function PortalLogin() {
     const result = await loginWithPin(pin);
 
     if (result.success) {
-      // Find the driver
-      const driver = TEAM_MEMBERS.find(m => m.role === 'driver' && m.pin === pin);
-      if (driver) {
+      // Find the member by PIN (supports any role with PIN)
+      const member = TEAM_MEMBERS.find(m => m.pin === pin);
+      if (member) {
+        const redirectUrl = ROLE_DEFAULT_ROUTES[member.role];
         // Check if training needed
-        if (!hasCompletedTraining('driver')) {
-          setLoggedInUser({ name: driver.name, role: 'driver' });
-          setPendingRedirect('/portal/driver');
+        if (!hasCompletedTraining(member.role)) {
+          setLoggedInUser({ name: member.name, role: member.role });
+          setPendingRedirect(redirectUrl);
           setShowTraining(true);
           setIsLoading(false);
           return;
         }
+        router.push(redirectUrl);
+      } else {
+        router.push('/portal/driver');
       }
-      router.push('/portal/driver');
     } else {
       setError(result.error || 'Invalid PIN');
     }
@@ -147,6 +158,23 @@ export default function PortalLogin() {
   const handleBackspace = () => {
     setPin(prev => prev.slice(0, -1));
   };
+
+  // Show feature updates popup
+  if (showFeatureUpdates && loggedInUser) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950">
+        <FeatureUpdatesPopup
+          role={loggedInUser.role}
+          userName={loggedInUser.name}
+          onClose={handleFeatureUpdatesClose}
+          onViewTraining={() => {
+            setShowFeatureUpdates(false);
+            setShowTraining(true);
+          }}
+        />
+      </div>
+    );
+  }
 
   // Show training popup if needed
   if (showTraining && loggedInUser) {
