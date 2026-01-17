@@ -25,6 +25,26 @@ yarn-error.log*
 # local env files
 .env*.local
 .env
+.env.test
+.env.vercel
+.env.vercel2
+
+# credentials
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!components.json
+!tailwind.config.json
+
+# temp files
+tmpclaude-*
+nul
+
+# drivers
+CH340_Driver/
+CP210x_Drivers/
+*.zip
 
 # vercel
 .vercel

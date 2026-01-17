@@ -9,7 +9,7 @@ import {
   Settings, FileText, LogOut, ChevronRight, Loader2, Clock,
   AlertCircle, CheckCircle, MapPin, Bell, Shield, Home,
   TrendingUp, Box, ClipboardList, Eye, Sparkles, UserCircle,
-  BookOpen, Image as ImageIcon, Globe, Link2
+  BookOpen, Image as ImageIcon, Globe, Link2, Phone
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { TeamRole } from '@/lib/team-roles';
@@ -34,6 +34,7 @@ const getRoleNavigation = (role: TeamRole) => {
       { id: 'pm', label: 'PM Portal', href: '/portal/pm', icon: Package, color: 'bg-cyan-500/20 text-cyan-400' },
       { id: 'billing', label: 'Billing', href: '/portal/billing', icon: DollarSign, color: 'bg-green-500/20 text-green-400' },
       { id: 'inventory', label: 'Inventory', href: '/portal/inventory', icon: Box, color: 'bg-orange-500/20 text-orange-400' },
+      { id: 'phone', label: 'Phone System', href: '/phone-portal.html', icon: Phone, color: 'bg-sky-500/20 text-sky-400' },
       { id: 'schedule', label: 'Schedule', href: '/portal/schedule', icon: Calendar, color: 'bg-purple-500/20 text-purple-400' },
       { id: 'reports', label: 'Reports', href: '/portal/reports', icon: BarChart3, color: 'bg-blue-500/20 text-blue-400' },
       { id: 'users', label: 'User Management', href: '/portal/admin/users', icon: Users, color: 'bg-pink-500/20 text-pink-400' },
@@ -47,6 +48,7 @@ const getRoleNavigation = (role: TeamRole) => {
       { id: 'office', label: 'Order Management', href: '/portal/office', icon: ClipboardList, color: 'bg-emerald-500/20 text-emerald-400' },
       { id: 'billing', label: 'Billing & Invoices', href: '/portal/billing', icon: DollarSign, color: 'bg-green-500/20 text-green-400' },
       { id: 'inventory', label: 'Inventory', href: '/portal/inventory', icon: Box, color: 'bg-orange-500/20 text-orange-400' },
+      { id: 'phone', label: 'Phone System', href: '/phone-portal.html', icon: Phone, color: 'bg-sky-500/20 text-sky-400' },
       { id: 'schedule', label: 'Schedule', href: '/portal/schedule', icon: Calendar, color: 'bg-purple-500/20 text-purple-400' },
       { id: 'reports', label: 'Reports', href: '/portal/reports', icon: BarChart3, color: 'bg-blue-500/20 text-blue-400' },
     ],
