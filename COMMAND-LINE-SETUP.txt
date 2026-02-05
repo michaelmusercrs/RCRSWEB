@@ -1,0 +1,33 @@
+# COMMAND LINE SETUP
+
+## First: Install Google Cloud CLI
+Windows: https://cloud.google.com/sdk/docs/install
+Mac: brew install google-cloud-sdk
+Linux: curl https://sdk.cloud.google.com | bash
+
+## Then run these commands:
+
+# 1. Login to Google Cloud
+gcloud auth login
+
+# 2. Run the setup script
+bash setup-google-sheets.sh        # Mac/Linux
+setup-google-sheets.bat             # Windows
+
+# 3. Extract credentials
+node extract-credentials.js
+
+# 4. Share your Google Sheet
+# Copy the email it prints out
+# Go to your Google Sheet
+# Click Share
+# Paste the email
+# Give it Editor access
+
+# 5. Install npm packages
+npm install google-spreadsheet google-auth-library
+
+# 6. Test it
+npm run dev
+
+DONE! Your Google Sheet now controls your website.
