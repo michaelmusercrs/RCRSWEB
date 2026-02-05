@@ -54,7 +54,8 @@ async function writeTeamMembers(members: TeamMember[]): Promise<void> {
  */
 export async function GET(req: NextRequest) {
   try {
-    const members = await readTeamMembers();
+    // Use in-memory team data directly (Vercel has read-only filesystem)
+    const members = [...teamMembers];
 
     // Get query parameters for filtering
     const { searchParams } = new URL(req.url);

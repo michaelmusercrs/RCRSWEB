@@ -118,13 +118,17 @@ export async function GET() {
     }));
 
     const activeJobs = jobs.filter(
-      (j: { status: string }) =>
-        !j.status.toLowerCase().includes('complete') && !j.status.toLowerCase().includes('closed')
+      (j: { status: string }) => {
+        const status = (j.status || '').toString().toLowerCase();
+        return !status.includes('complete') && !status.includes('closed');
+      }
     ).length;
 
     const completedJobs = jobs.filter(
-      (j: { status: string }) =>
-        j.status.toLowerCase().includes('complete') || j.status.toLowerCase().includes('closed')
+      (j: { status: string }) => {
+        const status = (j.status || '').toString().toLowerCase();
+        return status.includes('complete') || status.includes('closed');
+      }
     ).length;
 
     return NextResponse.json({
