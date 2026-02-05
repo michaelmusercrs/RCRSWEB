@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>River City Roofing - Phone Portal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #e94560 0%, #ff6b6b 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .logo-text h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .logo-text p {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #e94560 0%, #ff6b6b 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(233, 69, 96, 0.3);
+        }
+
+        .main-content {
+            padding: 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .welcome-section {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .welcome-section h2 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .welcome-section p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.1rem;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 50px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 25px;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .card-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .card-icon.phone { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .card-icon.voicemail { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .card-icon.directory { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .card-icon.settings { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .card-icon.calls { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+        .card-icon.help { background: linear-gradient(135deg, #fc4a1a 0%, #f7b733 100%); }
+
+        .card h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .card p {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .card-content ul {
+            list-style: none;
+            margin-top: 15px;
+        }
+
+        .card-content li {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-content li:last-child {
+            border-bottom: none;
+        }
+
+        .extension-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 30px;
+        }
+
+        .extension-table th,
+        .extension-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .extension-table th {
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 500;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .extension-table tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .status-badge.online {
+            background: rgba(56, 239, 125, 0.2);
+            color: #38ef7d;
+        }
+
+        .status-badge.offline {
+            background: rgba(255, 107, 107, 0.2);
+            color: #ff6b6b;
+        }
+
+        .status-badge.busy {
+            background: rgba(247, 183, 51, 0.2);
+            color: #f7b733;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .role-badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .role-badge.owner { background: rgba(233, 69, 96, 0.2); color: #e94560; }
+        .role-badge.admin { background: rgba(102, 126, 234, 0.2); color: #667eea; }
+        .role-badge.manager { background: rgba(17, 153, 142, 0.2); color: #11998e; }
+        .role-badge.user { background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.7); }
+
+        .quick-dial {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .dial-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .dial-btn:hover {
+            background: rgba(233, 69, 96, 0.2);
+            border-color: #e94560;
+        }
+
+        .dial-btn .number {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .dial-btn .label {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 5px;
+        }
+
+        .feature-codes {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .feature-code {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+
+        .feature-code .code {
+            font-family: 'Monaco', 'Menlo', monospace;
+            color: #4facfe;
+            font-weight: 600;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.9rem;
+        }
+
+        .footer a {
+            color: #e94560;
+            text-decoration: none;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 20px;
+                text-align: center;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .quick-dial {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <div class="logo-icon">🏠</div>
+            <div class="logo-text">
+                <h1>River City Roofing</h1>
+                <p>Phone System Portal</p>
+            </div>
+        </div>
+        <div class="header-actions">
+            <a href="http://192.168.86.96/admin" class="btn btn-secondary">Admin Panel</a>
+            <a href="http://192.168.86.96/ucp" class="btn btn-primary">User Control Panel</a>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <section class="welcome-section">
+            <h2>Phone System Dashboard</h2>
+            <p>Manage your extensions, voicemail, and phone settings</p>
+        </section>
+
+        <div class="dashboard-grid">
+            <!-- Quick Dial Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon phone">📞</div>
+                    <div>
+                        <h3>Quick Dial</h3>
+                        <p>Common extensions</p>
+                    </div>
+                </div>
+                <div class="quick-dial">
+                    <div class="dial-btn">
+                        <div class="number">600</div>
+                        <div class="label">Main Office</div>
+                    </div>
+                    <div class="dial-btn">
+                        <div class="number">601</div>
+                        <div class="label">Admin/Mgmt</div>
+                    </div>
+                    <div class="dial-btn">
+                        <div class="number">602</div>
+                        <div class="label">All Phones</div>
+                    </div>
+                    <div class="dial-btn">
+                        <div class="number">603</div>
+                        <div class="label">Owners</div>
+                    </div>
+                    <div class="dial-btn">
+                        <div class="number">*97</div>
+                        <div class="label">Voicemail</div>
+                    </div>
+                    <div class="dial-btn">
+                        <div class="number">*98</div>
+                        <div class="label">Check VM</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Voicemail Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon voicemail">📬</div>
+                    <div>
+                        <h3>Voicemail</h3>
+                        <p>Access your messages</p>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <p>Dial <strong>*97</strong> from your phone to access voicemail.</p>
+                    <ul>
+                        <li>
+                            <span>Check Messages</span>
+                            <span class="feature-code"><span class="code">*97</span></span>
+                        </li>
+                        <li>
+                            <span>Check Another Mailbox</span>
+                            <span class="feature-code"><span class="code">*98</span></span>
+                        </li>
+                        <li>
+                            <span>Direct to Voicemail</span>
+                            <span class="feature-code"><span class="code">*EXT</span></span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Feature Codes Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon settings">⚙️</div>
+                    <div>
+                        <h3>Feature Codes</h3>
+                        <p>Phone system shortcuts</p>
+                    </div>
+                </div>
+                <div class="feature-codes">
+                    <div class="feature-code">
+                        <span>Voicemail</span>
+                        <span class="code">*97</span>
+                    </div>
+                    <div class="feature-code">
+                        <span>Call Pickup</span>
+                        <span class="code">*8</span>
+                    </div>
+                    <div class="feature-code">
+                        <span>Call Park</span>
+                        <span class="code">70</span>
+                    </div>
+                    <div class="feature-code">
+                        <span>Parked Calls</span>
+                        <span class="code">71-79</span>
+                    </div>
+                    <div class="feature-code">
+                        <span>DND On</span>
+                        <span class="code">*78</span>
+                    </div>
+                    <div class="feature-code">
+                        <span>DND Off</span>
+                        <span class="code">*79</span>
+                    </div>
+                    <div class="feature-code">
+                        <span>Call Forward</span>
+                        <span class="code">*72</span>
+                    </div>
+                    <div class="feature-code">
+                        <span>CF Cancel</span>
+                        <span class="code">*73</span>
+                    </div>
+                    <div class="feature-code">
+                        <span>Intercom</span>
+                        <span class="code">*80+EXT</span>
+                    </div>
+                    <div class="feature-code">
+                        <span>Page All</span>
+                        <span class="code">*81</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Call History Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon calls">📊</div>
+                    <div>
+                        <h3>Call History</h3>
+                        <p>Recent activity</p>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <p>View your complete call history in the User Control Panel.</p>
+                    <br>
+                    <a href="http://192.168.86.96/ucp" class="btn btn-primary" style="display: inline-block;">
+                        Open Call History
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Extension Directory -->
+        <div class="card" style="margin-bottom: 30px;">
+            <div class="card-header">
+                <div class="card-icon directory">📇</div>
+                <div>
+                    <h3>Extension Directory</h3>
+                    <p>Company phone directory</p>
+                </div>
+            </div>
+            <table class="extension-table">
+                <thead>
+                    <tr>
+                        <th>Extension</th>
+                        <th>Name</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>101</strong></td>
+                        <td>Michael</td>
+                        <td><span class="role-badge owner">Owner</span></td>
+                        <td><span class="status-badge online"><span class="status-dot"></span> Online</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>102</strong></td>
+                        <td>Chris</td>
+                        <td><span class="role-badge owner">Owner</span></td>
+                        <td><span class="status-badge online"><span class="status-dot"></span> Online</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>103</strong></td>
+                        <td>Sara</td>
+                        <td><span class="role-badge admin">Admin</span></td>
+                        <td><span class="status-badge online"><span class="status-dot"></span> Online</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>104</strong></td>
+                        <td>Tia</td>
+                        <td><span class="role-badge user">User</span></td>
+                        <td><span class="status-badge offline"><span class="status-dot"></span> Offline</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>105</strong></td>
+                        <td>Destin</td>
+                        <td><span class="role-badge manager">Manager</span></td>
+                        <td><span class="status-badge online"><span class="status-dot"></span> Online</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>106</strong></td>
+                        <td>John</td>
+                        <td><span class="role-badge user">User</span></td>
+                        <td><span class="status-badge offline"><span class="status-dot"></span> Offline</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>107</strong></td>
+                        <td>Bart</td>
+                        <td><span class="role-badge user">User</span></td>
+                        <td><span class="status-badge offline"><span class="status-dot"></span> Offline</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>108</strong></td>
+                        <td>Boston</td>
+                        <td><span class="role-badge user">User</span></td>
+                        <td><span class="status-badge offline"><span class="status-dot"></span> Offline</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Help Card -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon help">❓</div>
+                <div>
+                    <h3>Need Help?</h3>
+                    <p>Support resources</p>
+                </div>
+            </div>
+            <div class="card-content">
+                <ul>
+                    <li>
+                        <span>FreePBX Admin Panel</span>
+                        <a href="http://192.168.86.96/admin" class="btn btn-secondary" style="padding: 5px 15px; font-size: 0.8rem;">Open</a>
+                    </li>
+                    <li>
+                        <span>User Control Panel (UCP)</span>
+                        <a href="http://192.168.86.96/ucp" class="btn btn-secondary" style="padding: 5px 15px; font-size: 0.8rem;">Open</a>
+                    </li>
+                    <li>
+                        <span>Phone System Support</span>
+                        <span>Contact IT</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>River City Roofing Solutions &copy; 2026 | Phone System: <a href="http://192.168.86.96">192.168.86.96</a></p>
+        <p>Main Line: (256) 274-8530</p>
+        <p style="margin-top: 10px;"><a href="/portal/dashboard">Back to Portal Dashboard</a></p>
+    </footer>
+</body>
+</html>
