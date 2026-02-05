@@ -4,7 +4,7 @@
  */
 
 import Link from 'next/link';
-import { Upload, FileText, Users, Image, TrendingUp } from 'lucide-react';
+import { Upload, FileText, Users, Image, TrendingUp, Package, AlertTriangle } from 'lucide-react';
 
 export default function AdminDashboard() {
   // Quick stats
@@ -38,25 +38,32 @@ export default function AdminDashboard() {
   // Quick actions
   const quickActions = [
     {
+      title: 'Manage Inventory',
+      description: 'View stock levels, low stock alerts, and manage items',
+      href: '/admin/inventory',
+      icon: Package,
+      color: 'bg-[#00FF00]',
+    },
+    {
       title: 'Upload Image',
       description: 'Upload photos for blog posts, projects, or team members',
       href: '/admin/upload',
       icon: Upload,
-      color: 'bg-[#00FF00]',
+      color: 'bg-blue-600',
     },
     {
       title: 'Create Blog Post',
       description: 'Write and publish a new blog post',
       href: '/admin/blog',
       icon: FileText,
-      color: 'bg-blue-600',
+      color: 'bg-purple-600',
     },
     {
       title: 'Add Team Member',
       description: 'Add a new team member profile',
       href: '/admin/team',
       icon: Users,
-      color: 'bg-purple-600',
+      color: 'bg-indigo-600',
     },
   ];
 
@@ -96,7 +103,7 @@ export default function AdminDashboard() {
       {/* Quick Actions */}
       <div>
         <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {quickActions.map((action, index) => {
             const Icon = action.icon;
             return (

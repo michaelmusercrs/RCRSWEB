@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Home } from 'lucide-react';
+import { ArrowLeft, Home, Command } from 'lucide-react';
 import { ReactNode } from 'react';
 import SettingsMenu from '@/components/SettingsMenu';
 
@@ -49,6 +49,13 @@ export default function AdminLayout({
               </div>
               <div className="flex items-center gap-3">
                 {actions}
+                <Link
+                  href="/command-center"
+                  className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-brand-green/20 to-emerald-500/20 hover:from-brand-green/30 hover:to-emerald-500/30 border border-brand-green/30 text-brand-green text-sm font-medium transition-all"
+                >
+                  <Command size={16} />
+                  Command Center
+                </Link>
                 <Link
                   href="/"
                   target="_blank"

@@ -217,12 +217,22 @@ export const TEAM_MEMBERS: TeamMember[] = [
 
 // Role-based portal access
 export const ROLE_PORTAL_ACCESS: Record<TeamRole, string[]> = {
-  owner: ['/portal/pm', '/portal/office', '/portal/billing', '/portal/inventory', '/portal/driver', '/portal/admin'],
-  admin: ['/portal/pm', '/portal/office', '/portal/billing', '/portal/inventory', '/portal/driver', '/portal/admin'],
-  office: ['/portal/office', '/portal/billing', '/portal/inventory'],
-  project_manager: ['/portal/pm'],
-  driver: ['/portal/driver'],
+  owner: ['/portal/pm', '/portal/office', '/portal/billing', '/portal/inventory', '/portal/driver', '/portal/admin', '/command-center'],
+  admin: ['/portal/pm', '/portal/office', '/portal/billing', '/portal/inventory', '/portal/driver', '/portal/admin', '/command-center'],
+  office: ['/portal/office', '/portal/billing', '/portal/inventory', '/command-center'],
+  project_manager: ['/portal/pm', '/command-center'],
+  driver: ['/portal/driver', '/command-center'],
   viewer: ['/portal/office'] // Read-only view
+};
+
+// Command Center module access by role
+export const COMMAND_CENTER_ACCESS: Record<TeamRole, string[]> = {
+  owner: ['dashboard', 'sales', 'inventory', 'marketing', 'phone', 'meetings', 'team', 'settings', 'reports'],
+  admin: ['dashboard', 'sales', 'inventory', 'marketing', 'phone', 'meetings', 'team', 'settings', 'reports'],
+  office: ['dashboard', 'inventory', 'phone', 'meetings'],
+  project_manager: ['dashboard', 'inventory', 'meetings'],
+  driver: ['dashboard'],
+  viewer: ['dashboard']
 };
 
 // Permission descriptions
@@ -316,3 +326,61 @@ export const ROLE_COLORS: Record<TeamRole, string> = {
   driver: 'bg-orange-500',
   viewer: 'bg-gray-500'
 };
+
+// Check if a role can access a Command Center module
+export function canAccessCommandCenterModule(role: TeamRole, module: string): boolean {
+  const allowedModules = COMMAND_CENTER_ACCESS[role];
+  return allowedModules?.includes(module) ?? false;
+}
+
+// Get all Command Center modules accessible by a role
+export function getAccessibleCommandCenterModules(role: TeamRole): string[] {
+  return COMMAND_CENTER_ACCESS[role] ?? [];
+}
+
+// Check if role has elevated access (owner or admin)
+export function hasElevatedAccess(role: TeamRole): boolean {
+  return role === 'owner' || role === 'admin';
+}
+
+// Check if role can manage team members
+export function canManageTeam(role: TeamRole): boolean {
+  return role === 'owner' || role === 'admin';
+}
+
+// Check if role can view sales data
+export function canViewSales(role: TeamRole): boolean {
+  return ['owner', 'admin'].includes(role);
+}
+
+// Check if role can manage inventory
+export function canManageInventory(role: TeamRole): boolean {
+  return ['owner', 'admin', 'office'].includes(role);
+}
+
+// Check if role can access marketing
+export function canAccessMarketing(role: TeamRole): boolean {
+  return ['owner', 'admin'].includes(role);
+}
+
+// Convert TeamRole to CommandCenterRole for the permission system
+export type CommandCenterRole = 'owner' | 'admin' | 'sales_manager' | 'office_manager' | 'project_manager' | 'driver';
+
+export function toCommandCenterRole(teamRole: TeamRole): CommandCenterRole {
+  switch (teamRole) {
+    case 'owner':
+      return 'owner';
+    case 'admin':
+      return 'admin';
+    case 'office':
+      return 'office_manager';
+    case 'project_manager':
+      return 'project_manager';
+    case 'driver':
+      return 'driver';
+    case 'viewer':
+      return 'driver'; // Viewers have minimal access like drivers
+    default:
+      return 'driver';
+  }
+}

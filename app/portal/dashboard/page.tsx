@@ -9,7 +9,7 @@ import {
   Settings, FileText, LogOut, ChevronRight, Loader2, Clock,
   AlertCircle, CheckCircle, MapPin, Bell, Shield, Home,
   TrendingUp, Box, ClipboardList, Eye, Sparkles, UserCircle,
-  BookOpen, Image as ImageIcon, Globe, Link2, Phone
+  BookOpen, Image as ImageIcon, Globe, Link2, Phone, Command
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { TeamRole } from '@/lib/team-roles';
@@ -28,6 +28,7 @@ const getRoleNavigation = (role: TeamRole) => {
   const allNav = {
     // Admin/Owner sees everything
     adminNav: [
+      { id: 'command-center', label: 'Command Center', href: '/command-center', icon: Command, color: 'bg-gradient-to-r from-lime-500/30 to-emerald-500/30 text-lime-400 ring-1 ring-lime-500/30' },
       { id: 'operations', label: 'Operations Center', href: '/portal/admin/operations', icon: Shield, color: 'bg-red-500/20 text-red-400' },
       { id: 'customers', label: 'Customer Portals', href: '/portal/customers', icon: Link2, color: 'bg-teal-500/20 text-teal-400' },
       { id: 'office', label: 'Office Portal', href: '/portal/office', icon: BarChart3, color: 'bg-emerald-500/20 text-emerald-400' },

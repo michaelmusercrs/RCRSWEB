@@ -6,7 +6,7 @@ import Image from 'next/image';
 import {
   ArrowLeft, FileText, Users, Image as ImageIcon, Settings, ChevronRight,
   Globe, BookOpen, BarChart3, TrendingUp, Eye, Clock, Sparkles, Home,
-  DollarSign, AlertTriangle
+  DollarSign, AlertTriangle, Package, Command
 } from 'lucide-react';
 import SettingsMenu from '@/components/SettingsMenu';
 
@@ -98,6 +98,18 @@ export default function AdminPortal() {
       stat: '$0',
       statLabel: 'pending credits',
     },
+    {
+      id: 'inventory',
+      title: 'Inventory',
+      description: 'Manage stock levels and low stock alerts',
+      icon: Package,
+      href: '/admin/inventory',
+      color: 'from-lime-500 to-green-500',
+      bgColor: 'bg-lime-500/10',
+      iconColor: '#84cc16',
+      stat: '-',
+      statLabel: 'items',
+    },
   ];
 
   return (
@@ -129,9 +141,16 @@ export default function AdminPortal() {
               </div>
               <div className="flex items-center gap-3">
                 <Link
+                  href="/command-center"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-brand-green/20 to-emerald-500/20 hover:from-brand-green/30 hover:to-emerald-500/30 border border-brand-green/30 text-brand-green text-sm font-medium transition-all"
+                >
+                  <Command size={16} />
+                  Command Center
+                </Link>
+                <Link
                   href="/"
                   target="_blank"
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-neutral-400 text-sm transition-colors"
+                  className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-neutral-400 text-sm transition-colors"
                 >
                   <Home size={16} />
                   View Site
@@ -198,24 +217,24 @@ export default function AdminPortal() {
             })}
           </div>
 
-          {/* Training Portal Banner */}
+          {/* Command Center Banner */}
           <Link
-            href="/portal/admin/training"
-            className="group relative block overflow-hidden rounded-2xl border border-brand-green/30 bg-gradient-to-r from-brand-green/10 via-emerald-500/5 to-cyan-500/10 p-6 transition-all duration-300 hover:border-brand-green/50 hover:shadow-2xl hover:shadow-brand-green/10"
+            href="/command-center"
+            className="group relative block overflow-hidden rounded-2xl border border-brand-green/30 bg-gradient-to-r from-brand-green/10 via-emerald-500/5 to-cyan-500/10 p-6 transition-all duration-300 hover:border-brand-green/50 hover:shadow-2xl hover:shadow-brand-green/10 mb-6"
           >
             <div className="absolute -top-24 -right-24 w-64 h-64 bg-brand-green rounded-full blur-3xl opacity-10 group-hover:opacity-20 transition-opacity" />
 
             <div className="relative z-10 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 bg-brand-green/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <BookOpen className="text-brand-green" size={28} />
+                  <Command className="text-brand-green" size={28} />
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-white mb-1 group-hover:text-brand-green transition-colors">
-                    Training Portal
+                    RCRS Command Center
                   </h3>
                   <p className="text-sm text-neutral-400">
-                    Learn how to use all features with interactive lessons
+                    Unified dashboard for sales, inventory, marketing, and operations
                   </p>
                 </div>
               </div>
@@ -224,6 +243,33 @@ export default function AdminPortal() {
                   New
                 </span>
                 <ChevronRight className="text-brand-green group-hover:translate-x-1 transition-transform" size={24} />
+              </div>
+            </div>
+          </Link>
+
+          {/* Training Portal Banner */}
+          <Link
+            href="/portal/admin/training"
+            className="group relative block overflow-hidden rounded-2xl border border-violet-500/30 bg-gradient-to-r from-violet-500/10 via-purple-500/5 to-fuchsia-500/10 p-6 transition-all duration-300 hover:border-violet-500/50 hover:shadow-2xl hover:shadow-violet-500/10"
+          >
+            <div className="absolute -top-24 -right-24 w-64 h-64 bg-violet-500 rounded-full blur-3xl opacity-10 group-hover:opacity-20 transition-opacity" />
+
+            <div className="relative z-10 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-violet-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <BookOpen className="text-violet-400" size={28} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-1 group-hover:text-violet-400 transition-colors">
+                    Training Portal
+                  </h3>
+                  <p className="text-sm text-neutral-400">
+                    Learn how to use all features with interactive lessons
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <ChevronRight className="text-violet-400 group-hover:translate-x-1 transition-transform" size={24} />
               </div>
             </div>
           </Link>

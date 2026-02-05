@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   Building2, ArrowLeft, Plus, FileText, Package, Truck, DollarSign,
   Clock, CheckCircle2, AlertCircle, Search, Filter, RefreshCw, Loader2,
-  ChevronRight, Users, Calendar, MapPin, Phone, Mail, Eye, CreditCard
+  ChevronRight, Users, Calendar, MapPin, Phone, Mail, Eye, CreditCard, Command
 } from 'lucide-react';
 import type { DeliveryTicket, Invoice, TicketStatus } from '@/lib/delivery-workflow-service';
 import type { Driver } from '@/lib/delivery-portal-service';
@@ -278,12 +278,21 @@ export default function OfficePage() {
               <p className="text-sm text-neutral-400">Job Tracking & Invoicing</p>
             </div>
           </div>
-          <button
-            onClick={loadAllData}
-            className="p-2 bg-neutral-700 rounded-lg hover:bg-neutral-600"
-          >
-            <RefreshCw size={20} className="text-neutral-400" />
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/command-center"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-brand-green/20 to-emerald-500/20 hover:from-brand-green/30 hover:to-emerald-500/30 border border-brand-green/30 text-brand-green text-sm font-medium transition-all"
+            >
+              <Command size={16} />
+              <span className="hidden sm:inline">Command Center</span>
+            </Link>
+            <button
+              onClick={loadAllData}
+              className="p-2 bg-neutral-700 rounded-lg hover:bg-neutral-600"
+            >
+              <RefreshCw size={20} className="text-neutral-400" />
+            </button>
+          </div>
         </div>
       </div>
 

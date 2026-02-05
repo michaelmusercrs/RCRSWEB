@@ -11,7 +11,7 @@
 import { useState, useEffect, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Lock, LogOut, Upload, FileText, Users, Settings, Home } from 'lucide-react';
+import { Lock, LogOut, LayoutDashboard, TrendingUp, Package, Megaphone, Users, UserCog, FileText, Settings, Command } from 'lucide-react';
 
 // Simple password - In production, use environment variables and proper auth
 const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'admin123';
@@ -131,11 +131,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   // Navigation items
-  const navItems = [
-    { href: '/admin', label: 'Dashboard', icon: Home },
-    { href: '/admin/upload', label: 'Upload Images', icon: Upload },
-    { href: '/admin/blog', label: 'Blog Posts', icon: FileText },
-    { href: '/admin/team', label: 'Team Members', icon: Users },
+  const navItems: Array<{ href: string; label: string; icon: typeof LayoutDashboard; highlight?: boolean }> = [
+    { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/command-center', label: 'Command Center', icon: Command, highlight: true },
+    { href: '/admin/sales', label: 'Sales & Commissions', icon: TrendingUp },
+    { href: '/admin/inventory', label: 'Inventory', icon: Package },
+    { href: '/admin/marketing', label: 'Marketing', icon: Megaphone },
+    { href: '/admin/jobnimbus', label: 'JobNimbus CRM', icon: Users },
+    { href: '/admin/team', label: 'Team', icon: UserCog },
+    { href: '/admin/blog', label: 'Blog', icon: FileText },
     { href: '/admin/settings', label: 'Settings', icon: Settings },
   ];
 
@@ -183,7 +187,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <div className="flex space-x-8">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = pathname === item.href;
+              const isActive = pathname === item.href || (item.href === '/command-center' && pathname?.startsWith('/command-center'));
 
               return (
                 <Link
@@ -194,12 +198,17 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     ${
                       isActive
                         ? 'border-[#00FF00] text-black font-semibold'
+                        : item.highlight
+                        ? 'border-transparent text-[#00FF00] hover:text-black hover:border-[#00FF00] font-semibold'
                         : 'border-transparent text-gray-600 hover:text-black hover:border-gray-300'
                     }
                   `}
                 >
                   <Icon className="w-4 h-4" />
                   <span className="text-sm">{item.label}</span>
+                  {item.highlight && !isActive && (
+                    <span className="ml-1 px-1.5 py-0.5 bg-[#00FF00] text-black text-[10px] font-bold rounded">NEW</span>
+                  )}
                 </Link>
               );
             })}
