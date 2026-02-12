@@ -7,9 +7,9 @@
 // - MANAGER (Destin Mccary): Operations oversight, view all, limited edit
 // - OFFICE (Tia Muse Morris): Billing, inventory, scheduling
 // - PROJECT_MANAGER (Bart Roberts, John Cordonis): Job scheduling, inventory coordination
-// - SALES (Aaron Lussi, Adam Rudell, Boston Muse, Brendon Muse, Greg Muse, Hunter Rivers, Joseph Dowd): Own leads/jobs, personal stats
+// - SALES (Aaron Lussi, Adam Rudell, Boston Muse, Brendon Muse, Greg Muse, Hunter Rivers, Joseph Dowd, Rick): Own leads/jobs, personal stats
 // - DRIVER (Richard Geahr, Travis Wages): Delivery queue, route navigation, photo upload
-// - INACTIVE: Tae Orr, Rick, Rudy (not in Google Workspace)
+// - INACTIVE: Tae Orr, Rudy (not in Google Workspace)
 // - CUSTOMER: External - job status, weather alerts, document viewing
 
 export type TeamRole = 'owner' | 'admin' | 'manager' | 'sales' | 'office' | 'project_manager' | 'driver' | 'viewer';
@@ -342,10 +342,10 @@ export const TEAM_MEMBERS: TeamMember[] = [
     name: 'Rick',
     slug: 'rick',
     email: 'rick@rcrsal.com',
-    phone: '',
+    phone: '256-701-7376',
     role: 'sales',
     pin: '2050',
-    isActive: false, // Not in Google Workspace - inactive
+    isActive: true,
     permissions: [
       'view_dashboard',
       'view_leads',
