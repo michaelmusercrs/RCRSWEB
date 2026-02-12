@@ -6,29 +6,33 @@ import Image from 'next/image';
 import {
   ArrowLeft, FileText, Users, Image as ImageIcon, Settings, ChevronRight,
   Globe, BookOpen, BarChart3, TrendingUp, Eye, Clock, Sparkles, Home,
-  DollarSign, AlertTriangle, Package, Command
+  DollarSign, AlertTriangle, Package, Command, Shield, MapPin, Loader2
 } from 'lucide-react';
 import SettingsMenu from '@/components/SettingsMenu';
 
 export default function AdminPortal() {
   const [stats, setStats] = useState({ posts: 0, members: 0, images: 0 });
+  const [geocodeSyncing, setGeocodeSyncing] = useState(false);
+  const [geocodeMessage, setGeocodeMessage] = useState<string | null>(null);
 
   useEffect(() => {
     // Load stats
     const loadStats = async () => {
       try {
-        const [blogRes, teamRes] = await Promise.all([
+        const [blogRes, teamRes, imagesRes] = await Promise.all([
           fetch('/api/cms/blog'),
           fetch('/api/cms/team'),
+          fetch('/api/cms/images'),
         ]);
-        const [blogData, teamData] = await Promise.all([
+        const [blogData, teamData, imagesData] = await Promise.all([
           blogRes.json(),
           teamRes.json(),
+          imagesRes.ok ? imagesRes.json() : [],
         ]);
         setStats({
           posts: Array.isArray(blogData) ? blogData.length : 0,
           members: Array.isArray(teamData) ? teamData.length : 0,
-          images: 100,
+          images: Array.isArray(imagesData) ? imagesData.length : 0,
         });
       } catch (error) {
         console.error('Error loading stats:', error);
@@ -45,7 +49,7 @@ export default function AdminPortal() {
       icon: FileText,
       href: '/portal/admin/blog',
       color: 'from-blue-500 to-cyan-500',
-      bgColor: 'bg-blue-500/10',
+      bgColor: 'bg-brand-green/10',
       iconColor: '#3b82f6',
       stat: stats.posts,
       statLabel: 'articles',
@@ -110,6 +114,18 @@ export default function AdminPortal() {
       stat: '-',
       statLabel: 'items',
     },
+    {
+      id: 'portal-settings',
+      title: 'Portal Settings',
+      description: 'Configure customer portal features per rep',
+      icon: Shield,
+      href: '/portal/admin/portal-settings',
+      color: 'from-cyan-500 to-blue-500',
+      bgColor: 'bg-cyan-500/10',
+      iconColor: '#06b6d4',
+      stat: '-',
+      statLabel: 'configs',
+    },
   ];
 
   return (
@@ -145,7 +161,7 @@ export default function AdminPortal() {
                   className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-brand-green/20 to-emerald-500/20 hover:from-brand-green/30 hover:to-emerald-500/30 border border-brand-green/30 text-brand-green text-sm font-medium transition-all"
                 >
                   <Command size={16} />
-                  Command Center
+                  RoofStack HQ
                 </Link>
                 <Link
                   href="/"
@@ -217,7 +233,7 @@ export default function AdminPortal() {
             })}
           </div>
 
-          {/* Command Center Banner */}
+          {/* RoofStack HQ Banner */}
           <Link
             href="/command-center"
             className="group relative block overflow-hidden rounded-2xl border border-brand-green/30 bg-gradient-to-r from-brand-green/10 via-emerald-500/5 to-cyan-500/10 p-6 transition-all duration-300 hover:border-brand-green/50 hover:shadow-2xl hover:shadow-brand-green/10 mb-6"
@@ -231,7 +247,7 @@ export default function AdminPortal() {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-white mb-1 group-hover:text-brand-green transition-colors">
-                    RCRS Command Center
+                    RoofStack HQ
                   </h3>
                   <p className="text-sm text-neutral-400">
                     Unified dashboard for sales, inventory, marketing, and operations
@@ -301,7 +317,7 @@ export default function AdminPortal() {
                 href="/portal/admin/blog"
                 className="flex items-center gap-3 px-4 py-3 bg-white/[0.02] border border-white/5 rounded-xl hover:bg-white/[0.05] transition-colors"
               >
-                <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-brand-green/10 rounded-lg flex items-center justify-center">
                   <FileText size={18} className="text-blue-400" />
                 </div>
                 <div>
@@ -333,7 +349,60 @@ export default function AdminPortal() {
                   <div className="text-xs text-neutral-500">Add new photos</div>
                 </div>
               </Link>
+              <button
+                onClick={async () => {
+                  if (geocodeSyncing) return;
+                  setGeocodeSyncing(true);
+                  setGeocodeMessage(null);
+                  try {
+                    const res = await fetch('/api/admin/geocode-sync', { method: 'POST' });
+                    const data = await res.json();
+                    if (res.ok) {
+                      setGeocodeMessage('Geocode sync started! Check Lead Distribution page for progress.');
+                    } else {
+                      setGeocodeMessage(data.error || 'Failed to start geocode sync');
+                    }
+                  } catch {
+                    setGeocodeMessage('Network error - could not start geocode sync');
+                  } finally {
+                    setGeocodeSyncing(false);
+                  }
+                }}
+                disabled={geocodeSyncing}
+                className="flex items-center gap-3 px-4 py-3 bg-white/[0.02] border border-white/5 rounded-xl hover:bg-white/[0.05] transition-colors text-left"
+              >
+                <div className="w-10 h-10 bg-sky-500/10 rounded-lg flex items-center justify-center">
+                  {geocodeSyncing ? (
+                    <Loader2 size={18} className="text-sky-400 animate-spin" />
+                  ) : (
+                    <MapPin size={18} className="text-sky-400" />
+                  )}
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-white">
+                    {geocodeSyncing ? 'Starting...' : 'Geocode All Contacts'}
+                  </div>
+                  <div className="text-xs text-neutral-500">Lat/lng via Nominatim (free)</div>
+                </div>
+              </button>
+              <Link
+                href="/portal/admin/lead-distro"
+                className="flex items-center gap-3 px-4 py-3 bg-white/[0.02] border border-white/5 rounded-xl hover:bg-white/[0.05] transition-colors"
+              >
+                <div className="w-10 h-10 bg-brand-green/10 rounded-lg flex items-center justify-center">
+                  <TrendingUp size={18} className="text-brand-green" />
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-white">Lead Distribution</div>
+                  <div className="text-xs text-neutral-500">Config + geocode progress</div>
+                </div>
+              </Link>
             </div>
+            {geocodeMessage && (
+              <div className="mt-4 p-3 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sm text-sky-400">
+                {geocodeMessage}
+              </div>
+            )}
           </div>
         </main>
 

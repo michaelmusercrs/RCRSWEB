@@ -148,11 +148,11 @@ export default function AdminOperationsPage() {
 
   const quickLinks = [
     { label: 'PM Portal', href: '/portal/pm', icon: Package, color: 'bg-cyan-500/20 text-cyan-400' },
-    { label: 'Office Portal', href: '/portal/office', icon: BarChart3, color: 'bg-emerald-500/20 text-emerald-400' },
+    { label: 'Operations', href: '/portal/office', icon: BarChart3, color: 'bg-emerald-500/20 text-emerald-400' },
     { label: 'Billing', href: '/portal/billing', icon: DollarSign, color: 'bg-green-500/20 text-green-400' },
     { label: 'Inventory', href: '/portal/inventory', icon: Package, color: 'bg-orange-500/20 text-orange-400' },
     { label: 'Schedule', href: '/portal/schedule', icon: Calendar, color: 'bg-purple-500/20 text-purple-400' },
-    { label: 'Reports', href: '/portal/reports', icon: BarChart3, color: 'bg-blue-500/20 text-blue-400' },
+    { label: 'Reports', href: '/portal/reports', icon: BarChart3, color: 'bg-brand-green/20 text-blue-400' },
     { label: 'User Management', href: '/portal/admin/users', icon: Users, color: 'bg-pink-500/20 text-pink-400' },
     { label: 'Website Admin', href: '/portal/admin', icon: Settings, color: 'bg-violet-500/20 text-violet-400' },
   ];
@@ -343,7 +343,7 @@ export default function AdminOperationsPage() {
                   {recentActivity.map((activity) => (
                     <div key={activity.id} className="p-4 flex items-center gap-4 hover:bg-white/[0.02]">
                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                        activity.type === 'ticket' ? 'bg-blue-500/20' :
+                        activity.type === 'ticket' ? 'bg-brand-green/20' :
                         activity.type === 'invoice' ? 'bg-green-500/20' :
                         activity.type === 'inventory' ? 'bg-orange-500/20' :
                         'bg-purple-500/20'
@@ -401,7 +401,7 @@ export default function AdminOperationsPage() {
                         </div>
                         <span className="text-white">{name}</span>
                       </div>
-                      <span className="px-2 py-1 rounded bg-blue-500/20 text-blue-400 text-xs">Active</span>
+                      <span className="px-2 py-1 rounded bg-brand-green/20 text-blue-400 text-xs">Active</span>
                     </div>
                   ))}
                 </div>
@@ -412,12 +412,12 @@ export default function AdminOperationsPage() {
                   {['Tia', 'Destin'].map((name) => (
                     <div key={name} className="flex items-center justify-between py-2">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 text-sm font-medium">
+                        <div className="w-8 h-8 rounded-full bg-brand-green/20 flex items-center justify-center text-blue-400 text-sm font-medium">
                           {name[0]}
                         </div>
                         <span className="text-white">{name}</span>
                       </div>
-                      <span className="px-2 py-1 rounded bg-blue-500/20 text-blue-400 text-xs">Active</span>
+                      <span className="px-2 py-1 rounded bg-brand-green/20 text-blue-400 text-xs">Active</span>
                     </div>
                   ))}
                 </div>

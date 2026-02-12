@@ -303,8 +303,8 @@ export default function ReferralRewardsPage() {
                 <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6">
                   <Mail className="text-brand-green mx-auto mb-3" size={32} />
                   <p className="text-neutral-400 text-sm mb-2">Email Us</p>
-                  <a href="mailto:rcs@rivercityroofingsolutions.com" className="text-lg font-bold text-white hover:text-brand-green transition-colors">
-                    rcs@rivercityroofingsolutions.com
+                  <a href="mailto:rcrs@rivercityroofingsolutions.com" className="text-lg font-bold text-white hover:text-brand-green transition-colors">
+                    rcrs@rivercityroofingsolutions.com
                   </a>
                 </div>
               </div>

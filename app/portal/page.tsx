@@ -20,6 +20,7 @@ export default function PortalLogin() {
   const [loginMode, setLoginMode] = useState<LoginMode>('select');
   const [pin, setPin] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showTraining, setShowTraining] = useState(false);
@@ -125,7 +126,7 @@ export default function PortalLogin() {
     setIsLoading(true);
     setError('');
 
-    const result = await login(email);
+    const result = await login(email, password);
 
     if (result.success) {
       // Get user role to determine redirect
@@ -237,8 +238,8 @@ export default function PortalLogin() {
                   />
                 </div>
               </div>
-              <h1 className="text-2xl font-bold text-white tracking-tight">River City Roofing</h1>
-              <p className="text-neutral-400">Internal Team Portal</p>
+              <h1 className="text-2xl font-bold text-white tracking-tight">RoofStack</h1>
+              <p className="text-neutral-400">Everything Under One Roof</p>
             </div>
 
             {/* Login Options */}
@@ -271,12 +272,12 @@ export default function PortalLogin() {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-blue-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <div className="w-14 h-14 bg-brand-green/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                       <Truck className="text-blue-500" size={28} />
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold text-white group-hover:text-blue-400 transition-colors">
-                        Driver Portal
+                        Logistics
                       </h3>
                       <p className="text-sm text-neutral-400">
                         Enter your 4-digit PIN
@@ -319,6 +320,7 @@ export default function PortalLogin() {
                   onClick={() => {
                     setLoginMode('select');
                     setEmail('');
+                    setPassword('');
                     setError('');
                   }}
                   className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
@@ -327,7 +329,7 @@ export default function PortalLogin() {
                 </button>
                 <div>
                   <h2 className="text-xl font-semibold text-white">Staff Login</h2>
-                  <p className="text-sm text-neutral-400">Enter your email to continue</p>
+                  <p className="text-sm text-neutral-400">Enter your email and PIN</p>
                 </div>
               </div>
 
@@ -340,8 +342,22 @@ export default function PortalLogin() {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                      placeholder="your.name@rcrsal.com"
+                      className="w-full bg-neutral-800/50 border border-neutral-700 rounded-xl pl-12 pr-4 py-3 text-white placeholder-neutral-500 focus:outline-none focus:border-brand-green/50 focus:ring-2 focus:ring-brand-green/20"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-neutral-300 mb-2">PIN</label>
+                  <div className="relative">
+                    <Shield className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500" size={18} />
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleStaffLogin()}
-                      placeholder="your.name@rivercityroofingsolutions.com"
+                      placeholder="Enter your PIN"
+                      maxLength={4}
                       className="w-full bg-neutral-800/50 border border-neutral-700 rounded-xl pl-12 pr-4 py-3 text-white placeholder-neutral-500 focus:outline-none focus:border-brand-green/50 focus:ring-2 focus:ring-brand-green/20"
                     />
                   </div>
@@ -357,28 +373,13 @@ export default function PortalLogin() {
 
               <button
                 onClick={handleStaffLogin}
-                disabled={!email || isLoading}
+                disabled={!email || !password || isLoading}
                 className="w-full bg-gradient-to-r from-brand-green to-emerald-500 hover:from-brand-green/90 hover:to-emerald-500/90 disabled:from-neutral-700 disabled:to-neutral-700 disabled:cursor-not-allowed text-black font-bold py-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-brand-green/25 disabled:shadow-none"
               >
                 {isLoading && <Loader2 className="animate-spin" size={20} />}
                 {isLoading ? 'Signing In...' : 'Continue'}
               </button>
 
-              {/* Quick access for team */}
-              <div className="mt-6 pt-6 border-t border-white/5">
-                <p className="text-xs text-neutral-500 text-center mb-3">Quick Login</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {TEAM_MEMBERS.filter(m => m.role !== 'driver' && m.isActive).slice(0, 6).map(member => (
-                    <button
-                      key={member.id}
-                      onClick={() => setEmail(member.email)}
-                      className="px-3 py-2 bg-neutral-800/50 rounded-lg text-sm text-neutral-400 hover:text-white hover:bg-neutral-700/50 transition-colors truncate"
-                    >
-                      {member.name.split(' ')[0]}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -417,11 +418,11 @@ export default function PortalLogin() {
             </div>
 
             {/* PIN Display */}
-            <div className="flex justify-center gap-4 mb-8">
+            <div className="flex justify-center gap-2 sm:gap-4 mb-8">
               {[0, 1, 2, 3].map(i => (
                 <div
                   key={i}
-                  className={`w-16 h-16 rounded-xl border-2 flex items-center justify-center text-2xl font-bold transition-all duration-200 ${
+                  className={`w-12 h-12 sm:w-16 sm:h-16 rounded-xl border-2 flex items-center justify-center text-2xl font-bold transition-all duration-200 flex-shrink-0 ${
                     pin.length > i
                       ? 'bg-gradient-to-br from-blue-500 to-cyan-500 border-transparent text-white shadow-lg shadow-blue-500/25'
                       : 'bg-neutral-800/50 border-neutral-700 text-neutral-500'

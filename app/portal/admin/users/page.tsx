@@ -272,7 +272,7 @@ export default function UserManagementPage() {
                           {user.role !== 'driver' && (
                             <button
                               onClick={() => handleResetPassword(user)}
-                              className="p-2 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30"
+                              className="p-2 bg-brand-green/20 text-blue-400 rounded-lg hover:bg-brand-green/30"
                               title="Reset Password"
                             >
                               <Key size={16} />

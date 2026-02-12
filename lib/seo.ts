@@ -9,11 +9,17 @@ import { Metadata } from 'next';
 // IMPORTANT: Always use hardcoded www URL for canonical consistency
 export const siteConfig = {
   name: 'River City Roofing Solutions',
+  shortName: 'RCRS',
   description: 'Licensed and insured roofing contractor serving Decatur, Huntsville, Madison, and all of North Alabama. Expert roof replacement, repair, and storm damage services.',
   url: 'https://www.rivercityroofingsolutions.com', // Hardcoded to ensure consistent canonical URLs
   ogImage: '/logo.png',
+  logo: '/logo.png',
+  logoSquare: '/logo-square.png',
   phone: '256-274-8530',
+  phoneFormatted: '(256) 274-8530',
+  phoneTel: '+12562748530',
   email: 'rcrs@rivercityroofingsolutions.com',
+  foundingYear: 2010,
   address: {
     streetAddress: '3325 Central Pkwy SW',
     addressLocality: 'Decatur',
@@ -21,10 +27,20 @@ export const siteConfig = {
     postalCode: '35603',
     addressCountry: 'US',
   },
+  geo: {
+    latitude: 34.6059,
+    longitude: -86.9833,
+  },
   social: {
     facebook: 'https://facebook.com/rivercityroofingsolutions',
     instagram: 'https://instagram.com/rivercityroofingsolutions',
   },
+  businessHours: {
+    weekdays: 'Mo-Fr 08:00-17:00',
+    saturday: 'Sa 09:00-14:00',
+    sunday: 'Closed',
+  },
+  priceRange: '$$',
   defaultKeywords: [
     'roofing contractor',
     'North Alabama roofer',
@@ -37,6 +53,19 @@ export const siteConfig = {
     'insurance claims',
     'residential roofing',
     'commercial roofing',
+    'free roof inspection',
+    'roofing company near me',
+  ],
+  // Service areas for local SEO
+  serviceAreas: [
+    'Decatur, AL',
+    'Huntsville, AL',
+    'Madison, AL',
+    'Athens, AL',
+    'Cullman, AL',
+    'Hartselle, AL',
+    'Moulton, AL',
+    'Florence, AL',
   ],
 };
 
@@ -138,15 +167,20 @@ export function generateMetadata(params: GenerateMetadataParams = {}): Metadata 
             'max-snippet': -1,
           },
         },
-    verification: {
-      google: 'your-google-verification-code', // TODO: Add real verification code
-      yandex: 'your-yandex-verification-code',
-      // Add other verification codes as needed
-    },
-    other: {
-      'google-site-verification': 'your-verification-code',
-      'msvalidate.01': 'your-bing-verification-code',
-    },
+    // Verification codes should be set via environment variables
+    // Set GOOGLE_SITE_VERIFICATION, YANDEX_VERIFICATION, BING_VERIFICATION in .env.local
+    ...(process.env.GOOGLE_SITE_VERIFICATION || process.env.YANDEX_VERIFICATION ? {
+      verification: {
+        ...(process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : {}),
+        ...(process.env.YANDEX_VERIFICATION ? { yandex: process.env.YANDEX_VERIFICATION } : {}),
+      },
+    } : {}),
+    ...(process.env.GOOGLE_SITE_VERIFICATION || process.env.BING_VERIFICATION ? {
+      other: {
+        ...(process.env.GOOGLE_SITE_VERIFICATION ? { 'google-site-verification': process.env.GOOGLE_SITE_VERIFICATION } : {}),
+        ...(process.env.BING_VERIFICATION ? { 'msvalidate.01': process.env.BING_VERIFICATION } : {}),
+      },
+    } : {}),
   };
 
   // Add article-specific metadata
@@ -403,4 +437,232 @@ export function generateFAQSchema(faqs: Array<{ question: string; answer: string
  */
 export function getStructuredDataScript(data: any): string {
   return JSON.stringify(data);
+}
+
+/**
+ * Generate WebSite schema for homepage
+ */
+export function generateWebSiteSchema() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    '@id': `${siteConfig.url}/#website`,
+    url: siteConfig.url,
+    name: siteConfig.name,
+    description: siteConfig.description,
+    publisher: {
+      '@id': `${siteConfig.url}/#organization`,
+    },
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: {
+        '@type': 'EntryPoint',
+        urlTemplate: `${siteConfig.url}/search?q={search_term_string}`,
+      },
+      'query-input': 'required name=search_term_string',
+    },
+  };
+}
+
+/**
+ * Generate Review schema for individual reviews
+ */
+export function generateReviewSchema(params: {
+  reviewBody: string;
+  ratingValue: number;
+  authorName: string;
+  datePublished?: string;
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Review',
+    reviewBody: params.reviewBody,
+    reviewRating: {
+      '@type': 'Rating',
+      ratingValue: params.ratingValue,
+      bestRating: 5,
+      worstRating: 1,
+    },
+    author: {
+      '@type': 'Person',
+      name: params.authorName,
+    },
+    datePublished: params.datePublished || new Date().toISOString().split('T')[0],
+    itemReviewed: {
+      '@type': 'RoofingContractor',
+      name: siteConfig.name,
+      '@id': `${siteConfig.url}/#organization`,
+    },
+  };
+}
+
+/**
+ * Generate Person schema for team member pages
+ */
+export function generatePersonSchema(params: {
+  name: string;
+  jobTitle: string;
+  description?: string;
+  image?: string;
+  email?: string;
+  telephone?: string;
+  url: string;
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    name: params.name,
+    jobTitle: params.jobTitle,
+    description: params.description,
+    image: params.image ? (params.image.startsWith('http') ? params.image : `${siteConfig.url}${params.image}`) : undefined,
+    email: params.email,
+    telephone: params.telephone,
+    url: params.url,
+    worksFor: {
+      '@type': 'RoofingContractor',
+      name: siteConfig.name,
+      '@id': `${siteConfig.url}/#organization`,
+    },
+  };
+}
+
+/**
+ * Generate HowTo schema for DIY/guide content
+ */
+export function generateHowToSchema(params: {
+  name: string;
+  description: string;
+  steps: Array<{ name: string; text: string; image?: string }>;
+  totalTime?: string;
+  estimatedCost?: string;
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'HowTo',
+    name: params.name,
+    description: params.description,
+    totalTime: params.totalTime,
+    estimatedCost: params.estimatedCost
+      ? {
+          '@type': 'MonetaryAmount',
+          currency: 'USD',
+          value: params.estimatedCost,
+        }
+      : undefined,
+    step: params.steps.map((step, index) => ({
+      '@type': 'HowToStep',
+      position: index + 1,
+      name: step.name,
+      text: step.text,
+      image: step.image ? (step.image.startsWith('http') ? step.image : `${siteConfig.url}${step.image}`) : undefined,
+    })),
+  };
+}
+
+/**
+ * Generate ContactPage schema
+ */
+export function generateContactPageSchema() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ContactPage',
+    name: 'Contact River City Roofing Solutions',
+    description: 'Contact us for a free roof inspection. Serving Decatur, Huntsville, Madison and all of North Alabama.',
+    url: `${siteConfig.url}/contact`,
+    mainEntity: {
+      '@type': 'RoofingContractor',
+      '@id': `${siteConfig.url}/#organization`,
+      name: siteConfig.name,
+      telephone: siteConfig.phoneTel,
+      email: siteConfig.email,
+      address: {
+        '@type': 'PostalAddress',
+        ...siteConfig.address,
+      },
+    },
+  };
+}
+
+/**
+ * Generate AboutPage schema
+ */
+export function generateAboutPageSchema() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'AboutPage',
+    name: `About ${siteConfig.name}`,
+    description: `Learn about ${siteConfig.name}, a family-owned roofing company serving North Alabama since ${siteConfig.foundingYear}.`,
+    url: `${siteConfig.url}/about`,
+    mainEntity: {
+      '@type': 'RoofingContractor',
+      '@id': `${siteConfig.url}/#organization`,
+    },
+  };
+}
+
+/**
+ * Generate CollectionPage schema for listing pages (services, blog, team)
+ */
+export function generateCollectionPageSchema(params: {
+  name: string;
+  description: string;
+  url: string;
+  numberOfItems?: number;
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: params.name,
+    description: params.description,
+    url: params.url.startsWith('http') ? params.url : `${siteConfig.url}${params.url}`,
+    numberOfItems: params.numberOfItems,
+    mainEntity: {
+      '@type': 'ItemList',
+      numberOfItems: params.numberOfItems,
+    },
+  };
+}
+
+/**
+ * Generate VideoObject schema for video content
+ */
+export function generateVideoSchema(params: {
+  name: string;
+  description: string;
+  thumbnailUrl: string;
+  uploadDate: string;
+  duration?: string;
+  contentUrl?: string;
+  embedUrl?: string;
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'VideoObject',
+    name: params.name,
+    description: params.description,
+    thumbnailUrl: params.thumbnailUrl.startsWith('http') ? params.thumbnailUrl : `${siteConfig.url}${params.thumbnailUrl}`,
+    uploadDate: params.uploadDate,
+    duration: params.duration,
+    contentUrl: params.contentUrl,
+    embedUrl: params.embedUrl,
+    publisher: {
+      '@type': 'Organization',
+      name: siteConfig.name,
+      logo: {
+        '@type': 'ImageObject',
+        url: `${siteConfig.url}${siteConfig.logo}`,
+      },
+    },
+  };
+}
+
+/**
+ * Generate complete structured data array for homepage
+ * Combines LocalBusiness, Organization, and WebSite schemas
+ */
+export function generateHomepageStructuredData() {
+  return [
+    generateLocalBusinessSchema(),
+    generateWebSiteSchema(),
+  ];
 }

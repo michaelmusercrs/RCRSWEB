@@ -5,7 +5,8 @@ import { blogPosts, blogMetadata } from '@/lib/blogData';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Calendar, User, ArrowLeft, ArrowRight } from 'lucide-react';
-import { siteConfig } from '@/lib/seo';
+import StructuredData from '@/components/StructuredData';
+import { siteConfig, generateArticleSchema, generateBreadcrumbSchema } from '@/lib/seo';
 import type { Metadata } from 'next';
 
 interface BlogPostPageProps {
@@ -68,8 +69,26 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
     ))
     .slice(0, 3);
 
+  // Generate structured data for article
+  const articleSchema = generateArticleSchema({
+    title: post.title,
+    description: post.excerpt,
+    image: post.image,
+    datePublished: post.date,
+    author: post.author,
+    url: `${siteConfig.url}/blog/${params.slug}`,
+  });
+
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: 'Blog', url: '/blog' },
+    { name: post.title, url: `/blog/${params.slug}` },
+  ]);
+
   return (
     <div className="min-h-screen bg-black text-white">
+      {/* Article and Breadcrumb Schema */}
+      <StructuredData data={[articleSchema, breadcrumbSchema]} />
       {/* Hero Section - Blog Image Background */}
       <section className="relative min-h-[60vh] flex items-end -mt-20 pt-20">
         {/* Background Image */}
@@ -139,11 +158,30 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
           {/* Main Content */}
           <div className="prose prose-invert prose-lg max-w-none">
             <div className="text-neutral-300 leading-relaxed space-y-6 text-lg">
-              {post.content.split('\n\n').map((paragraph, idx) => (
-                <p key={idx} className="mb-6">
-                  {paragraph}
-                </p>
-              ))}
+              {post.content.split('\n\n').map((paragraph, idx) => {
+                const trimmed = paragraph.trim();
+                // Detect heading-like paragraphs: short, no ending punctuation, no lowercase start
+                const isHeading = trimmed.length > 0 && trimmed.length < 100 &&
+                  !trimmed.endsWith('.') && !trimmed.endsWith('?') && !trimmed.endsWith('!') &&
+                  !trimmed.endsWith('"') && !trimmed.endsWith(')') &&
+                  trimmed[0] === trimmed[0].toUpperCase() &&
+                  !trimmed.startsWith('At River City') && !trimmed.startsWith('Contact') &&
+                  !trimmed.startsWith('Call ');
+
+                if (isHeading) {
+                  return (
+                    <h2 key={idx} className="text-2xl font-black uppercase tracking-wider text-white mb-4 mt-10 border-l-4 border-brand-green pl-4">
+                      {trimmed}
+                    </h2>
+                  );
+                }
+
+                return (
+                  <p key={idx} className="mb-6">
+                    {trimmed}
+                  </p>
+                );
+              })}
             </div>
           </div>
 

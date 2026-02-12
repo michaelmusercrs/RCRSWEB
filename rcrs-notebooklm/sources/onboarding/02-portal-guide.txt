@@ -1,0 +1,806 @@
+# RCRS Portal - Navigation & Training Guide
+Generated: 2026-02-11 11:23
+Source: River City Roofing Solutions Platform
+
+---
+
+## PORTAL-TRAINING-GUIDE.md
+
+# River City Roofing - Delivery & Warehouse Portal Training Guide
+
+## Table of Contents
+1. [Portal Overview](#portal-overview)
+2. [Accessing the Portal](#accessing-the-portal)
+3. [Inventory Management](#inventory-management)
+4. [Manager Dashboard](#manager-dashboard)
+5. [Driver Portal](#driver-portal)
+6. [Admin Portal](#admin-portal)
+7. [Google Sheets Integration](#google-sheets-integration)
+
+---
+
+## Portal Overview
+
+The Delivery & Warehouse Portal is accessed at: **yoursite.com/portal**
+
+It includes four main sections:
+- **Manager Dashboard** - Orders, deliveries, analytics
+- **Inventory Count** - Weekly inventory counts & restock requests
+- **Driver Portal** - Delivery tracking for drivers (PIN login required)
+- **Admin Portal** - Blog, team, images management
+
+---
+
+## Accessing the Portal
+
+### Main Portal Page
+Navigate to `/portal` to see all options:
+
+1. **Manager Dashboard** - Click to go directly (no login required)
+2. **Inventory Count** - Click to go directly (no login required)
+3. **Admin Portal** - Click to go directly (no login required)
+4. **Driver Login** - Requires a 4-digit PIN
+
+### Driver Login
+Drivers use a 4-digit PIN to access their personal delivery dashboard:
+1. Enter PIN using the number pad
+2. Click "Login"
+3. View today's assigned deliveries
+
+---
+
+## Inventory Management
+
+### Location: `/portal/inventory`
+
+### Three Main Tabs
+
+#### 1. Inventory Tab
+Shows all tracked products with:
+- Product name and SKU
+- Current quantity
+- Min/Max stock levels
+- Unit cost and supplier
+- Category filter
+- Search functionality
+
+**Low Stock Alert**: Items below minimum quantity show a red "LOW" badge and red border.
+
+**Request Restock**: Click the "Request Restock" button on any low-stock item to create a restock request.
+
+#### 2. Weekly Count Tab
+For performing weekly inventory counts:
+
+1. Click **"Start Count"** to begin
+2. For each product, enter the actual quantity you counted
+   - Use +/- buttons or type directly
+   - Shows variance (difference from expected)
+3. Click **"Submit (X)"** to save all counts
+4. Click **"Cancel"** to discard changes
+
+**Best Practices:**
+- Count at the same time each week
+- Count by category/location for efficiency
+- Investigate large variances immediately
+
+#### 3. Restock Requests Tab
+View all pending and processed restock requests:
+
+**Request Statuses:**
+- **Pending** (yellow) - Not yet reviewed
+- **Approved** (blue) - Approved for ordering
+- **Ordered** (purple) - Order placed with supplier
+- **Received** (green) - Materials received and stocked
+
+Each request shows:
+- Product name
+- Current quantity
+- Requested quantity
+- Supplier
+- Priority (Normal, High, Urgent)
+- Date requested and requested by
+
+---
+
+## Manager Dashboard
+
+### Location: `/portal/manager`
+
+### Overview Tab (Default)
+
+**Stats Cards:**
+1. **Today's Deliveries** - Total scheduled today + completed count
+2. **Pending Orders** - Orders waiting to be scheduled
+3. **Low Stock Items** - Links to inventory page
+4. **Inventory Value** - Total $ value of inventory
+
+**Quick Actions:**
+- **Create Material Order** - Opens order form
+- **Manage Inventory** - Links to inventory page
+
+**Active Deliveries:**
+Shows deliveries currently in progress (Loaded, En Route, Arrived)
+
+**Driver Status:**
+Shows all drivers and their current status:
+- Green = Available
+- Blue = On Delivery
+- Gray = Off Duty
+
+### Orders Tab
+
+View all material orders with details:
+- Job name and order ID
+- Customer name
+- Delivery date
+- Materials list
+- Priority (Normal, Rush, Urgent)
+- Status
+
+**Assigning Drivers:**
+For pending orders, select a driver from the dropdown to schedule the delivery.
+
+**Creating New Orders:**
+Click "New Order" and fill in:
+- Job name
+- Job address
+- Customer name & phone
+- Project manager (optional)
+- Materials needed
+- Special instructions (gate codes, stacking location)
+- Delivery date
+- Priority level
+
+### Deliveries Tab
+
+View all deliveries with:
+- Job name and delivery ID
+- Driver assigned
+- Scheduled date/time
+- Address
+- Current status
+- Delivery confirmation time (when completed)
+
+**Delivery Statuses:**
+1. **Scheduled** (yellow) - Assigned to driver
+2. **Loaded** (blue) - Driver confirmed materials loaded
+3. **En Route** (purple) - Driver departed warehouse
+4. **Arrived** (orange) - Driver at job site
+5. **Delivered** (green) - Delivery completed
+
+---
+
+## Driver Portal
+
+### Location: `/portal/driver` (requires PIN login from `/portal`)
+
+### Today's Deliveries List
+
+Shows all deliveries assigned for today:
+- Job name and customer name
+- Delivery address (truncated)
+- Scheduled time
+- Current status badge
+- "Loaded" checkmark if materials confirmed
+
+Tap any delivery to see details.
+
+### Delivery Detail View
+
+**Customer Info:**
+- Name
+- Phone (tap to call)
+
+**Delivery Address:**
+- Full address displayed
+- "Open in Maps" button launches Google Maps navigation
+
+**Materials:**
+- Full list of materials for this delivery
+
+**Timeline:**
+- Scheduled time
+- Load confirmed time
+- Departed time
+- Arrived time
+- (each shows as completed)
+
+### Driver Actions
+
+**Step 1: Confirm Load**
+Before leaving warehouse:
+1. Verify all materials are on truck
+2. Tap "Confirm Load"
+3. Status changes to "Loaded"
+
+**Step 2: Start Delivery**
+When leaving warehouse:
+1. Tap "Start Delivery"
+2. Status changes to "En Route"
+3. Use "Open in Maps" for navigation
+
+**Step 3: Mark Arrived**
+When at job site:
+1. Tap "Mark Arrived"
+2. Status changes to "Arrived"
+
+**Step 4: Complete Delivery**
+After unloading:
+1. Take photos if needed ("Take Photo" button)
+2. Tap "Complete Delivery"
+3. Status changes to "Delivered"
+4. Returns to delivery list
+
+**Taking Photos:**
+Tap "Take Photo" at any point to document:
+- Material condition
+- Delivery location
+- Any issues or concerns
+
+---
+
+## Admin Portal
+
+### Location: `/portal/admin`
+
+### Blog Management (`/portal/admin/blog`)
+- View all blog posts
+- Edit existing posts
+- Create new posts
+- Posts sync with Google Sheets
+
+### Team Management (`/portal/admin/team`)
+- View all team members
+- Edit member profiles
+- Upload headshot photos
+- Manage categories and order
+- Members sync with Google Sheets
+
+### Image Management (`/portal/admin/images`)
+- View all uploaded images
+- Upload new images
+- Organize by category
+- Images sync with Google Sheets
+
+---
+
+## Google Sheets Integration
+
+All portal data syncs with Google Sheets for easy access and backup.
+
+### Sheets Used:
+
+**Inventory System:**
+- `inventory` - Product list with quantities
+- `inventory-counts` - Historical count records
+- `restock-requests` - Restock request tracking
+
+**Delivery System:**
+- `material-orders` - All material orders
+- `deliveries` - Delivery tracking
+- `drivers` - Driver list with PINs
+
+**CMS System:**
+- `team-members` - Team profiles
+- `blog-posts` - Blog content
+- `images` - Image library
+
+**Forms:**
+- `contact-submissions` - Contact form submissions
+- `referral-submissions` - Referral form submissions
+
+### Accessing the Sheets
+
+1. Go to Google Sheets
+2. Open the shared spreadsheet (ID in env variables)
+3. Each tab contains different data
+4. **Important:** Don't manually edit while portal is in use to avoid conflicts
+
+### Data Backup
+
+All data is automatically saved to Google Sheets, providing:
+- Automatic cloud backup
+- Easy reporting and exports
+- Access from any device
+- Historical record keeping
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+**Portal won't load:**
+- Check internet connection
+- Clear browser cache
+- Try refreshing the page
+
+**Driver PIN not working:**
+- Verify PIN in Google Sheet `drivers` tab
+- Make sure status is not "Inactive"
+- Contact manager to reset PIN
+
+**Inventory counts not saving:**
+- Check internet connection
+- Make sure to click "Submit" button
+- Try refreshing and re-entering
+
+**Orders not showing:**
+- Click refresh button
+- Check filters/search
+- Verify order exists in Google Sheet
+
+### Getting Help
+
+For technical issues:
+- Contact your system administrator
+- Check the Google Sheet for data
+- Review browser console for errors
+
+---
+
+## Quick Reference
+
+### URLs
+| Page | URL |
+|------|-----|
+| Portal Home | `/portal` |
+| Manager Dashboard | `/portal/manager` |
+| Inventory | `/portal/inventory` |
+| Driver Portal | `/portal/driver` |
+| Admin Portal | `/portal/admin` |
+| Blog Admin | `/portal/admin/blog` |
+| Team Admin | `/portal/admin/team` |
+| Images Admin | `/portal/admin/images` |
+
+### Status Colors
+
+**Delivery Status:**
+- Yellow = Scheduled
+- Blue = Loaded
+- Purple = En Route
+- Orange = Arrived
+- Green = Delivered
+
+**Driver Status:**
+- Green = Available
+- Blue = On Delivery
+- Gray = Off Duty
+
+**Restock Request:**
+- Yellow = Pending
+- Blue = Approved
+- Purple = Ordered
+- Green = Received
+
+### Keyboard Shortcuts
+
+None currently - all actions are click/tap based for mobile-friendly use.
+
+---
+
+*Last Updated: December 2024*
+*River City Roofing Solutions*
+
+
+---
+
+## COMMAND-CENTER-README.md
+
+# RCRS Command Center
+
+The RCRS Command Center is a unified business dashboard for River City Roofing Solutions. It provides role-based access to sales data, inventory management, marketing tools, meetings, and phone system management.
+
+## Table of Contents
+
+- [Access](#access)
+- [Environment Variables](#environment-variables)
+- [Available Routes](#available-routes)
+- [Role Permissions](#role-permissions)
+- [Managing Team Members](#managing-team-members)
+- [Updating Commission Data](#updating-commission-data)
+- [Development](#development)
+
+---
+
+## Access
+
+The Command Center is accessible at `/command-center` and requires authentication through the Team Portal.
+
+**URL:** `https://your-domain.com/command-center`
+
+Users must first log in through the Team Portal (`/portal`) with their email or PIN. Once authenticated, they can access the Command Center with permissions appropriate to their role.
+
+---
+
+## Environment Variables
+
+The following environment variables are used by the Command Center:
+
+### Required for Live Inventory (Google Sheets Integration)
+
+```bash
+# Google Service Account credentials
+GOOGLE_SERVICE_ACCOUNT_EMAIL=your-service-account@project.iam.gserviceaccount.com
+GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+
+# Google Sheets ID for inventory data
+INVENTORY_SHEETS_ID=your-google-sheets-id
+```
+
+**Note:** If these are not configured, the inventory system will use mock/demo data.
+
+### Optional
+
+```bash
+# JobNimbus API integration (for sales data sync)
+JOBNIMBUS_API_KEY=your-jobnimbus-api-key
+```
+
+---
+
+## Available Routes
+
+### Main Dashboard
+| Route | Description |
+|-------|-------------|
+| `/command-center` | Main dashboard with KPIs and quick stats |
+
+### Sales Module
+| Route | Description |
+|-------|-------------|
+| `/command-center/sales` | Sales leaderboard and team performance |
+| `/command-center/sales/[rep]` | Individual sales rep statistics |
+| `/command-center/sales/achievements` | Team achievements and badges |
+
+### Inventory Module
+| Route | Description |
+|-------|-------------|
+| `/command-center/inventory` | Inventory listing with search and filters |
+| `/command-center/inventory/[sku]` | Individual item detail page |
+
+### Marketing Module
+| Route | Description |
+|-------|-------------|
+| `/command-center/marketing` | Marketing hub overview |
+| `/command-center/marketing/ads` | Ad campaign management |
+| `/command-center/marketing/calendar` | Marketing calendar |
+| `/command-center/marketing/emails` | Email campaigns |
+
+### Meetings Module
+| Route | Description |
+|-------|-------------|
+| `/command-center/meetings` | Monday meeting dashboard |
+| `/command-center/meetings/prep` | Meeting preparation tools |
+| `/command-center/meetings/archives` | Past meeting archives |
+
+### Phone Module
+| Route | Description |
+|-------|-------------|
+| `/command-center/phone` | Phone system dashboard |
+| `/command-center/phone/[extension]` | Extension details |
+
+---
+
+## Role Permissions
+
+The Command Center uses a role-based access control (RBAC) system with six roles:
+
+### Role Hierarchy (Highest to Lowest)
+1. **Owner** - Full system access
+2. **Admin** - Full access (except some financial details)
+3. **Manager** - Operations, team oversight, inventory management
+4. **Office** - Billing, schedule, customer management
+5. **Sales** - Leaderboard, own stats, inventory quantities only
+6. **Driver** - Deliveries, inventory for assigned jobs only
+
+### Permission Matrix
+
+| Feature | Owner | Admin | Manager | Office | Sales | Driver |
+|---------|-------|-------|---------|--------|-------|--------|
+| Dashboard (Full) | Yes | Yes | Yes | Yes | - | - |
+| Dashboard (Own) | Yes | Yes | Yes | Yes | Yes | Yes |
+| Sales View All | Yes | Yes | Yes | Yes | - | - |
+| Sales View Own | Yes | Yes | Yes | Yes | Yes | - |
+| Sales Commissions | Yes | Yes | - | - | - | - |
+| Inventory View | Yes | Yes | Yes | Yes | Yes | Yes |
+| Inventory View Costs | Yes | Yes | Yes | - | - | - |
+| Inventory Edit | Yes | Yes | Yes | - | - | - |
+| Inventory Delete | Yes | Yes | - | - | - | - |
+| Marketing View | Yes | Yes | Yes | - | - | - |
+| Marketing Edit | Yes | Yes | Yes | - | - | - |
+| Phone View All | Yes | Yes | Yes | Yes | - | - |
+| Phone Manage | Yes | Yes | - | - | - | - |
+| Team View | Yes | Yes | Yes | Yes | Yes | Yes |
+| Team Edit | Yes | Yes | - | - | - | - |
+| Billing View | Yes | Yes | Yes | Yes | - | - |
+| Billing Edit | Yes | Yes | Yes | Yes | - | - |
+
+---
+
+## Managing Team Members
+
+Team members are defined in `lib/team-roles.ts`. To add a new team member:
+
+1. Open `lib/team-roles.ts`
+2. Add a new entry to the `TEAM_MEMBERS` array:
+
+```typescript
+{
+  id: 'RVR-XXX',           // Unique ID
+  name: 'New Member',       // Full name
+  slug: 'new-member',       // URL-friendly slug
+  email: 'member@rcrsal.com',
+  phone: '256-XXX-XXXX',    // Optional
+  role: 'driver',           // One of: owner, admin, office, project_manager, driver, viewer
+  pin: '1234',              // 4-digit PIN for login
+  isActive: true,
+  permissions: [            // Array of specific permissions
+    'view_dashboard',
+    'view_schedule'
+  ],
+  createdAt: '2024-XX-XX'
+}
+```
+
+3. Save the file and redeploy
+
+### Role to TeamRole Mapping
+
+The Command Center maps `TeamRole` (from `lib/team-roles.ts`) to `Role` (from `types/roles.ts`):
+
+| TeamRole | Maps To |
+|----------|---------|
+| `owner` | `Owner` |
+| `admin` | `Admin` |
+| `office` | `Office` |
+| `project_manager` | `Manager` |
+| `driver` | `Driver` |
+| `viewer` | `Sales` |
+
+---
+
+## Updating Commission Data
+
+Commission data is stored in `data/commissions.json`. To update:
+
+1. Export your commission data from your CRM or spreadsheet
+2. Format it as JSON following this structure:
+
+```json
+{
+  "lastUpdated": "2024-01-15T00:00:00.000Z",
+  "period": "January 2024",
+  "salesReps": [
+    {
+      "id": "rep-id",
+      "name": "Rep Name",
+      "deals": 10,
+      "revenue": 50000,
+      "commission": 5000,
+      "closeRate": 0.35
+    }
+  ]
+}
+```
+
+3. Replace `data/commissions.json` with your new data
+4. Redeploy the application
+
+**Note:** Commission data is also displayed on individual rep pages at `/command-center/sales/[rep]`
+
+---
+
+## Development
+
+### Running Locally
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Type check
+npx tsc --noEmit
+```
+
+### Project Structure
+
+```
+app/command-center/
+  layout.tsx          # Root layout with auth/training providers
+  page.tsx            # Main dashboard
+  loading.tsx         # Loading state
+  error.tsx           # Error boundary
+  not-found.tsx       # 404 page
+  inventory/          # Inventory module
+  marketing/          # Marketing module
+  meetings/           # Meetings module
+  phone/              # Phone module
+  sales/              # Sales module
+
+components/command-center/
+  CommandCenterLayout.tsx   # Main layout with sidebar
+  DataTable.tsx             # Reusable data table
+  InventoryCard.tsx         # Inventory item card
+  PermissionGate.tsx        # Permission-based rendering
+  RoleBadge.tsx             # Role badge component
+  SearchInput.tsx           # Search input with debounce
+  StatCard.tsx              # Statistics card
+  StockAdjustModal.tsx      # Stock adjustment modal
+
+lib/
+  auth-context.tsx    # Authentication context
+  permissions.ts      # Permission checking utilities
+  team-roles.ts       # Team member definitions
+  training-context.tsx # Training feature context
+
+types/
+  roles.ts            # Role and permission type definitions
+```
+
+---
+
+## Support
+
+For technical issues, contact: support@rcrsal.com
+
+---
+
+*Last Updated: February 2026*
+
+
+---
+
+## FILE-STRUCTURE-GUIDE.md
+
+# 📂 Correct File Structure - Visual Guide
+
+## ✅ This is CORRECT:
+
+```
+C:\Users\User\Downloads\river-city-roofing\    ← Your project root
+│
+├── 📁 app\
+│   ├── globals.css
+│   ├── layout.tsx
+│   └── page.tsx
+│
+├── 📁 components\
+│   ├── Header.tsx
+│   └── 📁 ui\
+│       └── button.tsx
+│
+├── 📁 lib\
+│   └── utils.ts
+│
+├── 📁 public\
+│   └── logo.png
+│
+├── 📁 node_modules\          ← Created after npm install
+│
+├── package.json
+├── tailwind.config.js
+├── tsconfig.json
+├── postcss.config.js
+└── next.config.js
+```
+
+**When you open terminal here and run `npm run dev`, it works!** ✅
+
+---
+
+## ❌ This is WRONG:
+
+```
+C:\Users\User\Downloads\files\
+│
+├── 📁 outputs\                    ← WRONG! Files nested too deep
+│   ├── 📁 app\
+│   ├── 📁 components\
+│   └── package.json
+│
+└── node_modules\
+```
+
+**This will give you: "Couldn't find any `pages` or `app` directory"** ❌
+
+---
+
+## ❌ This is also WRONG:
+
+```
+C:\Users\User\Downloads\files\
+│
+├── app\                           ← Individual files, no structure
+├── components\
+├── lib\
+├── public\
+├── package.json (old)             ← Old package.json still here
+└── node_modules\
+```
+
+---
+
+## 🔧 How to Fix:
+
+### Step 1: Create fresh folder
+```
+C:\Users\User\Downloads\river-city-roofing\
+```
+
+### Step 2: Copy these FROM your download:
+```
+app\             → Copy entire folder
+components\      → Copy entire folder  
+lib\             → Copy entire folder
+public\          → Copy entire folder
+package.json     → Copy file
+tailwind.config.js   → Copy file
+tsconfig.json    → Copy file
+postcss.config.js    → Copy file
+next.config.js   → Copy file
+```
+
+### Step 3: Verify structure
+Open the folder in File Explorer. You should see:
+- 📁 app
+- 📁 components
+- 📁 lib
+- 📁 public
+- 📄 package.json
+- 📄 tailwind.config.js
+- 📄 tsconfig.json
+- 📄 postcss.config.js
+- 📄 next.config.js
+
+**NO `outputs` folder!**
+**NO nested folders!**
+
+### Step 4: Open terminal IN that folder
+```bash
+cd C:\Users\User\Downloads\river-city-roofing
+```
+
+### Step 5: Install and run
+```bash
+npm install
+npm run dev
+```
+
+---
+
+## 🎯 Success Looks Like:
+
+When you run `npm run dev`, you'll see:
+
+```
+  ▲ Next.js 14.1.0
+  - Local:        http://localhost:3000
+
+✓ Ready in 2.3s
+○ Compiling /
+✓ Compiled / in 1.2s
+```
+
+Then open http://localhost:3000 and you'll see the header! 🎉
+
+---
+
+## 💡 Pro Tip:
+
+The easiest way is to:
+1. Extract ALL files from the download
+2. Make sure they're at the ROOT (not in an `outputs` subfolder)
+3. Open terminal in that root folder
+4. Run `npm install` then `npm run dev`
+
+The key: `app`, `components`, `lib`, and `public` folders must be at the SAME LEVEL as `package.json`, NOT nested inside another folder!
+
+
+---

@@ -3,6 +3,7 @@ import { GoogleSpreadsheet } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
 import { customerPortalService, DEFAULT_PORTAL_SETTINGS, PortalSettings } from '@/lib/customer-portal-service';
 import { jobNimbusService } from '@/lib/jobnimbus-service';
+import { requireAdmin } from '@/lib/auth-service';
 
 async function getDoc(): Promise<GoogleSpreadsheet> {
   const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
@@ -34,6 +35,9 @@ async function getOrCreateSheet(doc: GoogleSpreadsheet, sheetName: string, heade
 
 // GET - List all customer portal accesses
 export async function GET(request: NextRequest) {
+  const auth = await requireAdmin();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const doc = await getDoc();
     const accessSheet = doc.sheetsByTitle['Customer_Portal_Access'];
@@ -82,6 +86,9 @@ export async function GET(request: NextRequest) {
 
 // POST - Create new customer portal access
 export async function POST(request: NextRequest) {
+  const auth = await requireAdmin();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const body = await request.json();
     const {
@@ -91,6 +98,8 @@ export async function POST(request: NextRequest) {
       customerAddress,
       salesRepSlug,
       jobNimbusContactId,
+      jobNimbusJobId,
+      source = 'manual', // 'jobnimbus' or 'manual'
       sendNotification = true,
       notificationMethod = 'sms', // 'sms', 'email', or 'both'
     } = body;
@@ -127,14 +136,18 @@ export async function POST(request: NextRequest) {
       salesRepId: salesRepInfo.id,
       salesRepName: salesRepInfo.name,
       salesRepSlug: salesRepInfo.slug,
+      jobId: jobNimbusJobId || '',
     });
 
-    // Save to sheet
+    // Get effective portal settings for this sales rep
+    const effectiveSettings = await customerPortalService.getEffectiveSettings(salesRepInfo.slug);
+
+    // Save to sheet with JobNimbus IDs
     const accessSheet = await getOrCreateSheet(doc, 'Customer_Portal_Access', [
       'accessToken', 'customerId', 'customerName', 'customerEmail', 'customerPhone',
       'customerAddress', 'salesRepId', 'salesRepName', 'salesRepSlug', 'jobId',
       'createdAt', 'expiresAt', 'lastAccessedAt', 'isActive', 'jobNimbusContactId',
-      'notificationSent', 'notificationChannel'
+      'jobNimbusJobId', 'source', 'notificationSent', 'notificationChannel', 'settings'
     ]);
 
     await accessSheet.addRow({
@@ -147,14 +160,17 @@ export async function POST(request: NextRequest) {
       salesRepId: salesRepInfo.id,
       salesRepName: salesRepInfo.name,
       salesRepSlug: salesRepInfo.slug,
-      jobId: '',
+      jobId: jobNimbusJobId || '',
       createdAt: portalAccess.createdAt,
       expiresAt: '',
       lastAccessedAt: '',
       isActive: 'true',
       jobNimbusContactId: jobNimbusContactId || '',
+      jobNimbusJobId: jobNimbusJobId || '',
+      source: source,
       notificationSent: 'false',
       notificationChannel: '',
+      settings: JSON.stringify(effectiveSettings),
     });
 
     const portalUrl = customerPortalService.getPortalUrl(portalAccess.accessToken);
@@ -183,6 +199,9 @@ export async function POST(request: NextRequest) {
 
 // PUT - Update portal (activate/deactivate, resend notification)
 export async function PUT(request: NextRequest) {
+  const auth = await requireAdmin();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const body = await request.json();
     const { accessToken, action, ...updates } = body;
@@ -254,6 +273,9 @@ export async function PUT(request: NextRequest) {
 
 // DELETE - Deactivate portal
 export async function DELETE(request: NextRequest) {
+  const auth = await requireAdmin();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const { searchParams } = new URL(request.url);
     const accessToken = searchParams.get('token');

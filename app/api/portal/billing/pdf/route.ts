@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { generateInvoiceHTML, generateMaterialTicketHTML, generateJobCostSummaryHTML } from '@/lib/invoice-pdf-service';
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const body = await request.json();
     const { type, data } = body;
@@ -15,9 +19,9 @@ export async function POST(request: NextRequest) {
           invoiceDate: data.invoiceDate || new Date().toLocaleDateString(),
           dueDate: data.dueDate || 'Due on Receipt',
           companyName: 'River City Roofing Solutions',
-          companyAddress: '123 Main Street, Huntsville, AL 35801',
-          companyPhone: '(256) 555-ROOF',
-          companyEmail: 'billing@rivercityroofingsolutions.com',
+          companyAddress: '3325 Central Pkwy SW, Decatur, AL 35603',
+          companyPhone: '(256) 274-8530',
+          companyEmail: 'rcrs@rivercityroofingsolutions.com',
           customerName: data.customerName,
           customerAddress: data.customerAddress || data.jobAddress,
           customerCity: data.customerCity || data.city,

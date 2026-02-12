@@ -3,11 +3,12 @@ import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Mail, Phone, Award, CheckCircle2, ArrowLeft, Users, Facebook, Instagram, Twitter, Linkedin, Star } from 'lucide-react';
+import { Mail, Phone, Award, CheckCircle2, ArrowLeft, Users, Facebook, Instagram, Twitter, Linkedin, Star, Truck } from 'lucide-react';
 import { getTeamMember, getAllTeamSlugs } from '@/lib/teamData';
 import ContactForm from '@/components/ContactForm';
 import { getReviewsForMember } from '@/lib/reviewsData';
-import { siteConfig } from '@/lib/seo';
+import StructuredData from '@/components/StructuredData';
+import { siteConfig, generatePersonSchema, generateBreadcrumbSchema } from '@/lib/seo';
 import type { Metadata } from 'next';
 
 export async function generateStaticParams() {
@@ -53,8 +54,27 @@ export default function TeamMemberPage({ params }: { params: { slug: string } })
   // Get reviews for this team member (3 reviews, uses general reviews as fallback)
   const memberReviews = getReviewsForMember(params.slug, 3);
 
+  // Generate structured data for team member
+  const personSchema = generatePersonSchema({
+    name: member.name,
+    jobTitle: member.position,
+    description: member.bio,
+    image: member.profileImage,
+    email: member.email,
+    telephone: member.phone,
+    url: `${siteConfig.url}/team/${params.slug}`,
+  });
+
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: 'Team', url: '/team' },
+    { name: member.name, url: `/team/${params.slug}` },
+  ]);
+
   return (
     <div className="min-h-screen">
+      {/* Person and Breadcrumb Schema */}
+      <StructuredData data={[personSchema, breadcrumbSchema]} />
       {/* Hero Section */}
       <section className="relative w-full min-h-[40vh] flex items-center justify-center overflow-hidden py-12">
         <div className="relative z-20 container mx-auto px-4 text-center text-white">
@@ -267,6 +287,27 @@ export default function TeamMemberPage({ params }: { params: { slug: string } })
                         </li>
                       ))}
                     </ul>
+                  </div>
+                )}
+
+                {/* Truck Image - Shows what vehicle to expect */}
+                {member.truckImage && (
+                  <div className="mb-12">
+                    <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+                      <Truck className="text-blue-400" size={24} />
+                      Look For My Truck
+                    </h3>
+                    <p className="text-gray-400 mb-4 text-sm">
+                      When I visit your property, you will see this vehicle:
+                    </p>
+                    <div className="relative aspect-video max-w-xl rounded-xl overflow-hidden border border-white/10">
+                      <Image
+                        src={member.truckImage}
+                        alt={`${member.name}'s work truck`}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
                   </div>
                 )}
               </div>

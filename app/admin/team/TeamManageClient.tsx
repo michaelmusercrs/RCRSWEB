@@ -241,7 +241,7 @@ export default function TeamManageClient() {
               placeholder="Search by name, position, or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00FF00] focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-green focus:border-transparent"
             />
           </div>
 
@@ -249,7 +249,7 @@ export default function TeamManageClient() {
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00FF00] focus:border-transparent bg-white"
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-green focus:border-transparent bg-white"
           >
             <option value="all">All Categories</option>
             {teamCategories.map(cat => (
@@ -260,7 +260,7 @@ export default function TeamManageClient() {
           {/* Add New Button */}
           <button
             onClick={handleAddNew}
-            className="flex items-center space-x-2 px-6 py-2 bg-[#00FF00] hover:bg-[#00DD00] text-black font-semibold rounded-lg transition-colors"
+            className="flex items-center space-x-2 px-6 py-2 bg-brand-green hover:bg-lime-400 text-black font-semibold rounded-lg transition-colors"
           >
             <Plus className="w-5 h-5" />
             <span>Add Member</span>
@@ -426,7 +426,7 @@ export default function TeamManageClient() {
                     type="text"
                     value={editingMember.name || ''}
                     onChange={(e) => setEditingMember({ ...editingMember, name: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00FF00]"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-green"
                     required
                   />
                 </div>
@@ -439,7 +439,7 @@ export default function TeamManageClient() {
                     type="text"
                     value={editingMember.position || ''}
                     onChange={(e) => setEditingMember({ ...editingMember, position: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00FF00]"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-green"
                     required
                   />
                 </div>
@@ -452,7 +452,7 @@ export default function TeamManageClient() {
                     type="email"
                     value={editingMember.email || ''}
                     onChange={(e) => setEditingMember({ ...editingMember, email: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00FF00]"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-green"
                     required
                   />
                 </div>
@@ -463,7 +463,7 @@ export default function TeamManageClient() {
                     type="tel"
                     value={editingMember.phone || ''}
                     onChange={(e) => setEditingMember({ ...editingMember, phone: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00FF00]"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-green"
                   />
                 </div>
 
@@ -474,7 +474,7 @@ export default function TeamManageClient() {
                   <select
                     value={editingMember.category || ''}
                     onChange={(e) => setEditingMember({ ...editingMember, category: e.target.value as any })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00FF00] bg-white"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-green bg-white"
                     required
                   >
                     {teamCategories.map(cat => (
@@ -489,7 +489,7 @@ export default function TeamManageClient() {
                     type="text"
                     value={editingMember.region || ''}
                     onChange={(e) => setEditingMember({ ...editingMember, region: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00FF00]"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-green"
                     placeholder="e.g., Birmingham, Nashville"
                   />
                 </div>
@@ -502,7 +502,7 @@ export default function TeamManageClient() {
                   type="text"
                   value={editingMember.tagline || ''}
                   onChange={(e) => setEditingMember({ ...editingMember, tagline: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00FF00]"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-green"
                   placeholder="Brief one-liner about the person"
                 />
               </div>
@@ -514,7 +514,7 @@ export default function TeamManageClient() {
                   value={editingMember.bio || ''}
                   onChange={(e) => setEditingMember({ ...editingMember, bio: e.target.value })}
                   rows={6}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00FF00] resize-none"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-green resize-none"
                   placeholder="Full biography..."
                 />
               </div>
@@ -528,7 +528,7 @@ export default function TeamManageClient() {
                       type="text"
                       value={editingMember.profileImage || ''}
                       onChange={(e) => setEditingMember({ ...editingMember, profileImage: e.target.value })}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00FF00]"
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-green"
                       placeholder="/uploads/profile.jpg"
                     />
                     <button
@@ -559,7 +559,7 @@ export default function TeamManageClient() {
                       type="text"
                       value={editingMember.truckImage || ''}
                       onChange={(e) => setEditingMember({ ...editingMember, truckImage: e.target.value })}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00FF00]"
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-green"
                       placeholder="/uploads/truck.jpg"
                     />
                     <button
@@ -592,7 +592,7 @@ export default function TeamManageClient() {
                     type="text"
                     value={editingMember.facebook || ''}
                     onChange={(e) => setEditingMember({ ...editingMember, facebook: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00FF00]"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-green"
                     placeholder="URL"
                   />
                 </div>
@@ -603,7 +603,7 @@ export default function TeamManageClient() {
                     type="text"
                     value={editingMember.instagram || ''}
                     onChange={(e) => setEditingMember({ ...editingMember, instagram: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00FF00]"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-green"
                     placeholder="URL"
                   />
                 </div>
@@ -614,7 +614,7 @@ export default function TeamManageClient() {
                     type="text"
                     value={editingMember.x || ''}
                     onChange={(e) => setEditingMember({ ...editingMember, x: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00FF00]"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-green"
                     placeholder="URL"
                   />
                 </div>
@@ -635,7 +635,7 @@ export default function TeamManageClient() {
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="px-6 py-2 bg-[#00FF00] hover:bg-[#00DD00] text-black font-semibold rounded-lg transition-colors disabled:opacity-50 flex items-center space-x-2"
+                className="px-6 py-2 bg-brand-green hover:bg-lime-400 text-black font-semibold rounded-lg transition-colors disabled:opacity-50 flex items-center space-x-2"
               >
                 {isSaving ? (
                   <>

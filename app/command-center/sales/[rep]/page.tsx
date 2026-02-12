@@ -435,7 +435,7 @@ const TIER_STYLES: Record<AchievementTier, { bg: string; border: string; text: s
   common: {
     bg: 'bg-zinc-800/50',
     border: 'border-zinc-700',
-    text: 'text-gray-400',
+    text: 'text-neutral-500',
   },
 };
 
@@ -510,7 +510,7 @@ function PerformanceChart({ transactions }: PerformanceChartProps) {
 
   if (weeklyData.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64 text-gray-500">
+      <div className="flex items-center justify-center h-64 text-neutral-500">
         No transaction data available
       </div>
     );
@@ -571,7 +571,7 @@ function CoachingCard({ tip }: CoachingCardProps) {
   const colors = {
     strength: 'border-green-500/30 bg-green-500/10',
     opportunity: 'border-amber-500/30 bg-amber-500/10',
-    insight: 'border-blue-500/30 bg-blue-500/10',
+    insight: 'border-blue-500/30 bg-brand-green/10',
   };
 
   return (
@@ -580,7 +580,7 @@ function CoachingCard({ tip }: CoachingCardProps) {
         <div className="mt-0.5">{icons[tip.type]}</div>
         <div>
           <h4 className="font-semibold text-white">{tip.title}</h4>
-          <p className="text-sm text-gray-400 mt-1">{tip.message}</p>
+          <p className="text-sm text-neutral-500 mt-1">{tip.message}</p>
         </div>
       </div>
     </div>
@@ -728,7 +728,7 @@ export default function RepDetailPage() {
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
         <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-6 max-w-md">
           <h2 className="text-xl font-bold text-red-400 mb-2">Error Loading Data</h2>
-          <p className="text-gray-400 mb-4">{error}</p>
+          <p className="text-neutral-500 mb-4">{error}</p>
           <Link
             href="/command-center/sales"
             className="px-4 py-2 bg-zinc-700 text-white rounded-lg hover:bg-zinc-600 transition"
@@ -746,7 +746,7 @@ export default function RepDetailPage() {
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
         <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-6 max-w-md">
           <h2 className="text-xl font-bold text-white mb-2">Rep Not Found</h2>
-          <p className="text-gray-400 mb-4">
+          <p className="text-neutral-500 mb-4">
             Could not find a rep matching "{decodeURIComponent(repSlug).replace(/-/g, ' ')}"
           </p>
           <Link
@@ -766,7 +766,7 @@ export default function RepDetailPage() {
       <div>
         <Link
           href="/command-center/sales"
-          className="inline-flex items-center gap-1 text-gray-400 hover:text-white mb-4 transition"
+          className="inline-flex items-center gap-1 text-neutral-500 hover:text-white mb-4 transition"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Leaderboard
@@ -778,21 +778,21 @@ export default function RepDetailPage() {
               className={cn(
                 'w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold',
                 rep.rank === 1 ? 'bg-yellow-500/20 text-yellow-400 ring-2 ring-yellow-500' :
-                rep.rank === 2 ? 'bg-gray-500/20 text-gray-400 ring-2 ring-gray-500' :
+                rep.rank === 2 ? 'bg-gray-400/20 text-neutral-400 ring-2 ring-gray-500' :
                 rep.rank === 3 ? 'bg-orange-500/20 text-orange-400 ring-2 ring-orange-500' :
-                'bg-zinc-700 text-gray-300'
+                'bg-zinc-700 text-neutral-400'
               )}
             >
               {rep.name.charAt(0)}
             </div>
             <div>
               <h1 className="text-3xl font-bold text-white">{rep.name}</h1>
-              <p className="text-gray-400 flex items-center gap-2">
+              <p className="text-neutral-500 flex items-center gap-2">
                 <span className={cn(
                   'font-semibold',
                   rep.rank === 1 ? 'text-yellow-400' :
-                  rep.rank === 2 ? 'text-gray-400' :
-                  rep.rank === 3 ? 'text-orange-400' : 'text-gray-500'
+                  rep.rank === 2 ? 'text-neutral-500' :
+                  rep.rank === 3 ? 'text-orange-400' : 'text-neutral-500'
                 )}>
                   Rank #{rep.rank}
                 </span>
@@ -874,14 +874,14 @@ export default function RepDetailPage() {
               <div className="mt-4 space-y-3">
                 {[
                   { label: 'Closing Power', value: dna.closingPower, color: 'bg-brand-green' },
-                  { label: 'Volume', value: dna.volume, color: 'bg-blue-500' },
+                  { label: 'Volume', value: dna.volume, color: 'bg-brand-green' },
                   { label: 'Revenue', value: dna.revenue, color: 'bg-amber-500' },
                   { label: 'Deal Size', value: dna.dealSize, color: 'bg-purple-500' },
                   { label: 'Consistency', value: dna.consistency, color: 'bg-cyan-500' },
                 ].map(({ label, value, color }) => (
                   <div key={label}>
                     <div className="flex justify-between text-sm mb-1">
-                      <span className="text-gray-400">{label}</span>
+                      <span className="text-neutral-500">{label}</span>
                       <span className="text-white font-medium">{value}</span>
                     </div>
                     <div className="h-2 bg-zinc-700 rounded-full overflow-hidden">
@@ -948,10 +948,10 @@ export default function RepDetailPage() {
                     <span className="text-3xl">{a.icon}</span>
                     <div>
                       <h3 className={cn('font-bold', style.text)}>{a.name}</h3>
-                      <p className="text-xs text-gray-500 uppercase">{a.tier}</p>
+                      <p className="text-xs text-neutral-500 uppercase">{a.tier}</p>
                     </div>
                   </div>
-                  <p className="text-sm text-gray-400 mt-2">{a.description}</p>
+                  <p className="text-sm text-neutral-500 mt-2">{a.description}</p>
                 </div>
               );
             })}
@@ -970,12 +970,12 @@ export default function RepDetailPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-700">
-                <th className="text-left py-3 px-4 text-gray-400 font-medium">Period</th>
-                <th className="text-right py-3 px-4 text-gray-400 font-medium">Commissions</th>
-                <th className="text-right py-3 px-4 text-gray-400 font-medium">Transactions</th>
-                <th className="text-right py-3 px-4 text-gray-400 font-medium">Avg Deal</th>
-                <th className="text-right py-3 px-4 text-gray-400 font-medium">Rank</th>
-                <th className="text-right py-3 px-4 text-gray-400 font-medium">% of Team</th>
+                <th className="text-left py-3 px-4 text-neutral-500 font-medium">Period</th>
+                <th className="text-right py-3 px-4 text-neutral-500 font-medium">Commissions</th>
+                <th className="text-right py-3 px-4 text-neutral-500 font-medium">Transactions</th>
+                <th className="text-right py-3 px-4 text-neutral-500 font-medium">Avg Deal</th>
+                <th className="text-right py-3 px-4 text-neutral-500 font-medium">Rank</th>
+                <th className="text-right py-3 px-4 text-neutral-500 font-medium">% of Team</th>
               </tr>
             </thead>
             <tbody>
@@ -984,21 +984,21 @@ export default function RepDetailPage() {
                 <td className="py-3 px-4 text-right text-brand-green font-semibold">
                   {formatCurrency(rep.totalCommissions)}
                 </td>
-                <td className="py-3 px-4 text-right text-gray-300">
+                <td className="py-3 px-4 text-right text-neutral-400">
                   {formatNumber(rep.transactionCount)}
                 </td>
-                <td className="py-3 px-4 text-right text-gray-300">
+                <td className="py-3 px-4 text-right text-neutral-400">
                   {formatCurrency(rep.avgTransaction)}
                 </td>
                 <td className="py-3 px-4 text-right">
                   <span className={cn(
                     'font-semibold',
-                    rep.rank <= 3 ? 'text-yellow-400' : 'text-gray-400'
+                    rep.rank <= 3 ? 'text-yellow-400' : 'text-neutral-500'
                   )}>
                     #{rep.rank}
                   </span>
                 </td>
-                <td className="py-3 px-4 text-right text-gray-300">
+                <td className="py-3 px-4 text-right text-neutral-400">
                   {rep.percentOfTotal.toFixed(1)}%
                 </td>
               </tr>
@@ -1008,21 +1008,21 @@ export default function RepDetailPage() {
                   <td className="py-3 px-4 text-right text-brand-green font-semibold">
                     {formatCurrency(ytdRep.totalCommissions)}
                   </td>
-                  <td className="py-3 px-4 text-right text-gray-300">
+                  <td className="py-3 px-4 text-right text-neutral-400">
                     {formatNumber(ytdRep.transactionCount)}
                   </td>
-                  <td className="py-3 px-4 text-right text-gray-300">
+                  <td className="py-3 px-4 text-right text-neutral-400">
                     {formatCurrency(ytdRep.avgTransaction)}
                   </td>
                   <td className="py-3 px-4 text-right">
                     <span className={cn(
                       'font-semibold',
-                      ytdRep.rank <= 3 ? 'text-yellow-400' : 'text-gray-400'
+                      ytdRep.rank <= 3 ? 'text-yellow-400' : 'text-neutral-500'
                     )}>
                       #{ytdRep.rank}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-right text-gray-300">
+                  <td className="py-3 px-4 text-right text-neutral-400">
                     {ytdRep.percentOfTotal.toFixed(1)}%
                   </td>
                 </tr>
@@ -1033,21 +1033,21 @@ export default function RepDetailPage() {
                   <td className="py-3 px-4 text-right text-brand-green font-semibold">
                     {formatCurrency(monthRep.totalCommissions)}
                   </td>
-                  <td className="py-3 px-4 text-right text-gray-300">
+                  <td className="py-3 px-4 text-right text-neutral-400">
                     {formatNumber(monthRep.transactionCount)}
                   </td>
-                  <td className="py-3 px-4 text-right text-gray-300">
+                  <td className="py-3 px-4 text-right text-neutral-400">
                     {formatCurrency(monthRep.avgTransaction)}
                   </td>
                   <td className="py-3 px-4 text-right">
                     <span className={cn(
                       'font-semibold',
-                      monthRep.rank <= 3 ? 'text-yellow-400' : 'text-gray-400'
+                      monthRep.rank <= 3 ? 'text-yellow-400' : 'text-neutral-500'
                     )}>
                       #{monthRep.rank}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-right text-gray-300">
+                  <td className="py-3 px-4 text-right text-neutral-400">
                     {monthRep.percentOfTotal.toFixed(1)}%
                   </td>
                 </tr>

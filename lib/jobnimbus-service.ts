@@ -1,8 +1,24 @@
 // JobNimbus API Service
 // Syncs contacts, jobs, and estimates with customer portal
+// NO DEMO MODE - requires valid API key
 
 const JOBNIMBUS_API_KEY = process.env.JOBNIMBUS_API_KEY;
-const JOBNIMBUS_API_URL = 'https://app.jobnimbus.com/api1';
+const JOBNIMBUS_API_URL = process.env.JOBNIMBUS_API_URL || 'https://app.jobnimbus.com/api1';
+
+// Maximum pages to fetch to prevent infinite loops
+const MAX_PAGES = 100;
+
+// API configuration check
+export function isJobNimbusConfigured(): boolean {
+  return Boolean(JOBNIMBUS_API_KEY);
+}
+
+export function getApiStatus(): { configured: boolean; apiUrl: string } {
+  return {
+    configured: isJobNimbusConfigured(),
+    apiUrl: JOBNIMBUS_API_URL,
+  };
+}
 
 interface JobNimbusContact {
   jnid: string;
@@ -75,31 +91,140 @@ interface JobNimbusTask {
   primary?: { jnid: string };
 }
 
+interface JobNimbusNote {
+  jnid: string;
+  content?: string;
+  type?: string;
+  created_at?: number;
+  created_by?: string;
+  created_by_name?: string;
+  primary?: { jnid: string };
+  related?: { jnid: string };
+}
+
+interface JobNimbusAttachment {
+  jnid: string;
+  filename?: string;
+  description?: string;
+  url?: string;
+  thumbnail_url?: string;
+  content_type?: string;
+  size?: number;
+  created_at?: number;
+  created_by?: string;
+  primary?: { jnid: string };
+  related?: { jnid: string };
+}
+
+interface JobNimbusInvoice {
+  jnid: string;
+  number?: string;
+  status?: string;
+  amount?: number;
+  amount_paid?: number;
+  balance?: number;
+  total?: number;
+  description?: string;
+  due_date?: number;
+  pdf_url?: string;
+  public_url?: string;
+  created_at?: number;
+  primary?: { jnid: string };
+  related?: { jnid: string };
+}
+
+// Error types for better error handling
+export class JobNimbusError extends Error {
+  constructor(
+    message: string,
+    public statusCode?: number,
+    public endpoint?: string,
+    public details?: string
+  ) {
+    super(message);
+    this.name = 'JobNimbusError';
+  }
+}
+
+export class JobNimbusConfigError extends JobNimbusError {
+  constructor() {
+    super('JobNimbus API key not configured. Please set JOBNIMBUS_API_KEY in .env.local');
+    this.name = 'JobNimbusConfigError';
+  }
+}
+
 class JobNimbusService {
   private async apiRequest<T>(
     endpoint: string,
     method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
-    body?: object
+    body?: object,
+    retries = 2
   ): Promise<T> {
     if (!JOBNIMBUS_API_KEY) {
-      throw new Error('JobNimbus API key not configured');
+      throw new JobNimbusConfigError();
     }
 
-    const response = await fetch(`${JOBNIMBUS_API_URL}${endpoint}`, {
-      method,
-      headers: {
-        'Authorization': `Bearer ${JOBNIMBUS_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: body ? JSON.stringify(body) : undefined,
-    });
+    const url = `${JOBNIMBUS_API_URL}${endpoint}`;
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`JobNimbus API error: ${response.status} - ${error}`);
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const response = await fetch(url, {
+          method,
+          headers: {
+            'Authorization': `Bearer ${JOBNIMBUS_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: body ? JSON.stringify(body) : undefined,
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+
+          // Don't retry client errors (4xx)
+          if (response.status >= 400 && response.status < 500) {
+            throw new JobNimbusError(
+              `JobNimbus API error: ${response.status}`,
+              response.status,
+              endpoint,
+              errorText
+            );
+          }
+
+          // Retry server errors (5xx) if we have retries left
+          if (attempt < retries) {
+            await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+            continue;
+          }
+
+          throw new JobNimbusError(
+            `JobNimbus API error after ${retries + 1} attempts: ${response.status}`,
+            response.status,
+            endpoint,
+            errorText
+          );
+        }
+
+        return response.json();
+      } catch (error) {
+        if (error instanceof JobNimbusError) {
+          throw error;
+        }
+
+        // Network or other errors
+        if (attempt < retries) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+          continue;
+        }
+
+        throw new JobNimbusError(
+          `Failed to connect to JobNimbus API: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          undefined,
+          endpoint
+        );
+      }
     }
 
-    return response.json();
+    throw new JobNimbusError('Unexpected error in API request', undefined, endpoint);
   }
 
   // Get all contacts
@@ -197,13 +322,120 @@ class JobNimbusService {
     return result.results;
   }
 
-  // Create a note on a contact
-  async createNote(contactJnid: string, content: string): Promise<any> {
-    return this.apiRequest('/notes', 'POST', {
+  // Get notes for a contact
+  async getNotesForContact(contactJnid: string, limit: number = 50): Promise<JobNimbusNote[]> {
+    const result = await this.apiRequest<{ results: JobNimbusNote[] }>(
+      `/notes?filter=primary.jnid:"${contactJnid}"&sort=-created_at&limit=${limit}`
+    );
+    return result.results || [];
+  }
+
+  // Get attachments/files for a contact
+  async getAttachmentsForContact(contactJnid: string): Promise<JobNimbusAttachment[]> {
+    const result = await this.apiRequest<{ results: JobNimbusAttachment[] }>(
+      `/files?filter=primary.jnid:"${contactJnid}"&sort=-created_at`
+    );
+    return result.results || [];
+  }
+
+  // Get invoices for a contact
+  async getInvoicesForContact(contactJnid: string): Promise<JobNimbusInvoice[]> {
+    const result = await this.apiRequest<{ results: JobNimbusInvoice[] }>(
+      `/invoices?filter=primary.jnid:"${contactJnid}"`
+    );
+    return result.results || [];
+  }
+
+  // Update a job's status
+  async updateJobStatus(jobJnid: string, status: string): Promise<JobNimbusJob> {
+    return this.apiRequest(`/jobs/${jobJnid}`, 'PUT', { status_name: status });
+  }
+
+  // Update a contact
+  async updateContact(contactJnid: string, data: Partial<JobNimbusContact>): Promise<JobNimbusContact> {
+    return this.apiRequest(`/contacts/${contactJnid}`, 'PUT', data);
+  }
+
+  // Update a job
+  async updateJob(jobJnid: string, data: Partial<JobNimbusJob>): Promise<JobNimbusJob> {
+    return this.apiRequest(`/jobs/${jobJnid}`, 'PUT', data);
+  }
+
+  // Create a contact
+  async createContact(data: Partial<JobNimbusContact>): Promise<JobNimbusContact> {
+    return this.apiRequest('/contacts', 'POST', data);
+  }
+
+  // Create a job
+  async createJob(data: Partial<JobNimbusJob>): Promise<JobNimbusJob> {
+    return this.apiRequest('/jobs', 'POST', data);
+  }
+
+  // Get all notes with pagination
+  async getNotes(params?: {
+    limit?: number;
+    offset?: number;
+    since?: number;
+  }): Promise<{ count: number; results: JobNimbusNote[] }> {
+    const query = new URLSearchParams();
+    if (params?.limit) query.set('limit', params.limit.toString());
+    if (params?.offset) query.set('offset', params.offset.toString());
+    if (params?.since) query.set('since', params.since.toString());
+    return this.apiRequest(`/activities?${query.toString()}`);
+  }
+
+  // Get notes for a job
+  async getNotesForJob(jobJnid: string, limit: number = 50): Promise<JobNimbusNote[]> {
+    const result = await this.apiRequest<{ results: JobNimbusNote[] }>(
+      `/activities?filter=related.jnid:"${jobJnid}"&sort=-created_at&limit=${limit}`
+    );
+    return result.results || [];
+  }
+
+  // Create a note on a job
+  async createNoteOnJob(jobJnid: string, contactJnid: string, content: string): Promise<JobNimbusNote> {
+    return this.apiRequest('/activities', 'POST', {
       primary: { jnid: contactJnid },
-      content,
-      type: 'note',
+      related: { jnid: jobJnid },
+      note: content,
+      record_type_name: 'Note',
+      is_active: true,
     });
+  }
+
+  // Get all files/attachments
+  async getFiles(params?: {
+    limit?: number;
+    offset?: number;
+  }): Promise<{ count: number; results: JobNimbusAttachment[] }> {
+    const query = new URLSearchParams();
+    if (params?.limit) query.set('limit', params.limit.toString());
+    if (params?.offset) query.set('offset', params.offset.toString());
+    return this.apiRequest(`/files?${query.toString()}`);
+  }
+
+  // Get files for a job
+  async getFilesForJob(jobJnid: string): Promise<JobNimbusAttachment[]> {
+    const result = await this.apiRequest<{ results: JobNimbusAttachment[] }>(
+      `/files?filter=related.jnid:"${jobJnid}"&sort=-created_at`
+    );
+    return result.results || [];
+  }
+
+  // Create a note on a contact
+  async createNote(contactJnid: string, content: string): Promise<JobNimbusNote> {
+    return this.apiRequest('/activities', 'POST', {
+      primary: { jnid: contactJnid },
+      note: content,
+      record_type_name: 'Note',
+      is_active: true,
+    });
+  }
+
+  // Create a note with portal message tag
+  async createPortalMessage(contactJnid: string, message: string, isFromCustomer: boolean = true): Promise<JobNimbusNote> {
+    const prefix = isFromCustomer ? '[Customer Portal Message]' : '[Staff Reply]';
+    return this.createNote(contactJnid, `${prefix} ${message}`);
   }
 
   // Add custom field to contact (for portal link)
@@ -271,16 +503,139 @@ class JobNimbusService {
     let offset = 0;
     const limit = 100;
     let hasMore = true;
+    let pageCount = 0;
 
-    while (hasMore) {
+    while (hasMore && pageCount < MAX_PAGES) {
       const result = await this.getContacts({ limit, offset, since });
       allContacts.push(...result.results);
       offset += limit;
       hasMore = result.results.length === limit;
+      pageCount++;
+    }
+
+    if (pageCount >= MAX_PAGES) {
+      console.warn('Max pagination limit reached for syncContacts');
     }
 
     return allContacts;
   }
+
+  // Search contacts by email
+  async searchContactByEmail(email: string): Promise<JobNimbusContact | null> {
+    const result = await this.apiRequest<{ results: JobNimbusContact[] }>(
+      `/contacts?filter=email:"${email}"&limit=1`
+    );
+    return result.results[0] || null;
+  }
+
+  // Search contacts by phone (checks all phone fields)
+  async searchContactByPhone(phone: string): Promise<JobNimbusContact | null> {
+    const normalizedPhone = phone.replace(/\D/g, '');
+    const result = await this.apiRequest<{ results: JobNimbusContact[] }>(
+      `/contacts?filter=mobile_phone:"${normalizedPhone}" OR home_phone:"${normalizedPhone}" OR work_phone:"${normalizedPhone}"&limit=1`
+    );
+    return result.results[0] || null;
+  }
+
+  // Get complete customer data with jobs, estimates, and tasks
+  async getCustomerPortalData(contactJnid: string): Promise<{
+    contact: JobNimbusContact;
+    jobs: JobNimbusJob[];
+    estimates: JobNimbusEstimate[];
+    tasks: JobNimbusTask[];
+    notes: JobNimbusNote[];
+    attachments: JobNimbusAttachment[];
+    invoices: JobNimbusInvoice[];
+  } | null> {
+    try {
+      const results = await Promise.allSettled([
+        this.getContact(contactJnid),
+        this.getJobsForContact(contactJnid),
+        this.getEstimatesForContact(contactJnid),
+        this.getTasksForContact(contactJnid),
+        this.getNotesForContact(contactJnid),
+        this.getAttachmentsForContact(contactJnid),
+        this.getInvoicesForContact(contactJnid),
+      ]);
+
+      // Extract fulfilled values or log rejections
+      const contact = results[0].status === 'fulfilled' ? results[0].value : null;
+      const jobs = results[1].status === 'fulfilled' ? results[1].value : [];
+      const estimates = results[2].status === 'fulfilled' ? results[2].value : [];
+      const tasks = results[3].status === 'fulfilled' ? results[3].value : [];
+      const notes = results[4].status === 'fulfilled' ? results[4].value : [];
+      const attachments = results[5].status === 'fulfilled' ? results[5].value : [];
+      const invoices = results[6].status === 'fulfilled' ? results[6].value : [];
+
+      // Log any failures (except 404s which are expected)
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          const labels = ['contact', 'jobs', 'estimates', 'tasks', 'notes', 'attachments', 'invoices'];
+          console.warn(`Failed to fetch ${labels[index]} for contact ${contactJnid}:`, result.reason);
+        }
+      });
+
+      // If contact fetch failed, return null
+      if (!contact) {
+        return null;
+      }
+
+      return { contact, jobs, estimates, tasks, notes, attachments, invoices };
+    } catch (error) {
+      if (error instanceof JobNimbusError && error.statusCode === 404) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  // Test API connection
+  async testConnection(): Promise<{ success: boolean; message: string; contactCount?: number }> {
+    try {
+      const result = await this.getContacts({ limit: 1 });
+      return {
+        success: true,
+        message: 'JobNimbus API connection successful',
+        contactCount: result.count,
+      };
+    } catch (error) {
+      if (error instanceof JobNimbusConfigError) {
+        return {
+          success: false,
+          message: 'API key not configured',
+        };
+      }
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  // Get API statistics
+  async getStats(): Promise<{
+    contacts: number;
+    jobs: number;
+    estimates: number;
+    tasks: number;
+  }> {
+    const [contacts, jobs, estimates, tasks] = await Promise.all([
+      this.getContacts({ limit: 1 }),
+      this.getJobs({ limit: 1 }),
+      this.getEstimates({ limit: 1 }),
+      this.getTasks({ limit: 1 }),
+    ]);
+
+    return {
+      contacts: contacts.count,
+      jobs: jobs.count,
+      estimates: estimates.count,
+      tasks: tasks.count,
+    };
+  }
 }
 
 export const jobNimbusService = new JobNimbusService();
+
+// Export types for use elsewhere
+export type { JobNimbusContact, JobNimbusJob, JobNimbusEstimate, JobNimbusTask, JobNimbusNote, JobNimbusAttachment, JobNimbusInvoice };

@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { billingWorkflowService, BillingStatus, VendorSource, TransactionType } from '@/lib/billing-workflow-service';
 import { calculatePrice, calculateOrderTotal, getProductPricingList, getMarginAnalysis, pricingRules, volumePricing } from '@/lib/billingPricing';
+import { apiSuccess, apiError, getErrorMessage } from '@/lib/api-response';
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action');
@@ -87,15 +92,18 @@ export async function GET(request: NextRequest) {
       }
 
       default:
-        return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+        return apiError('Invalid action', 400, 'INVALID_ACTION');
     }
   } catch (error) {
     console.error('Billing API GET error:', error);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    return apiError(getErrorMessage(error), 500, 'BILLING_FETCH_FAILED');
   }
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const body = await request.json();
     const { action, ...data } = body;
@@ -128,7 +136,7 @@ export async function POST(request: NextRequest) {
         );
 
         if (!record) {
-          return NextResponse.json({ error: 'Billing record not found' }, { status: 404 });
+          return apiError('Billing record not found', 404, 'BILLING_RECORD_NOT_FOUND');
         }
 
         return NextResponse.json({ success: true, record });
@@ -177,7 +185,7 @@ export async function POST(request: NextRequest) {
         );
 
         if (!alert) {
-          return NextResponse.json({ error: 'Alert not found' }, { status: 404 });
+          return apiError('Alert not found', 404, 'ALERT_NOT_FOUND');
         }
 
         return NextResponse.json({ success: true, alert });
@@ -202,13 +210,13 @@ export async function POST(request: NextRequest) {
         // Calculate pricing for an order
         const { items, customerType } = data;
         if (!items || !Array.isArray(items)) {
-          return NextResponse.json({ error: 'Items array required' }, { status: 400 });
+          return apiError('Items array required', 400, 'MISSING_ITEMS');
         }
         try {
           const result = calculateOrderTotal(items, customerType || 'residential');
-          return NextResponse.json(result);
-        } catch (error: any) {
-          return NextResponse.json({ error: error.message }, { status: 400 });
+          return apiSuccess(result);
+        } catch (calcError) {
+          return apiError(getErrorMessage(calcError), 400, 'CALCULATION_ERROR');
         }
       }
 
@@ -216,21 +224,21 @@ export async function POST(request: NextRequest) {
         // Calculate price for a single product
         const { productId, quantity, customerType } = data;
         if (!productId) {
-          return NextResponse.json({ error: 'Product ID required' }, { status: 400 });
+          return apiError('Product ID required', 400, 'MISSING_PRODUCT_ID');
         }
         try {
           const result = calculatePrice(productId, quantity || 1, customerType || 'residential');
-          return NextResponse.json(result);
-        } catch (error: any) {
-          return NextResponse.json({ error: error.message }, { status: 400 });
+          return apiSuccess(result);
+        } catch (calcError) {
+          return apiError(getErrorMessage(calcError), 400, 'CALCULATION_ERROR');
         }
       }
 
       default:
-        return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+        return apiError('Invalid action', 400, 'INVALID_ACTION');
     }
   } catch (error) {
     console.error('Billing API POST error:', error);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    return apiError(getErrorMessage(error), 500, 'BILLING_UPDATE_FAILED');
   }
 }

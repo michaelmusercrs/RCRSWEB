@@ -115,9 +115,4 @@ export const trackAdminAction = (action: string, entity: string) => {
   });
 };
 
-// TypeScript window extension
-declare global {
-  interface Window {
-    gtag: (...args: any[]) => void;
-  }
-}
+// Note: gtag type is declared in tracking-service.ts

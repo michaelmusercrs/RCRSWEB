@@ -89,8 +89,8 @@ export default function FeatureUpdatesPopup({
   const CategoryIcon = categoryIcons[currentUpdate.category];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="w-full max-w-2xl bg-gradient-to-br from-neutral-900 via-neutral-900 to-neutral-950 rounded-3xl border border-white/10 shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+      <div className="w-full max-w-2xl bg-gradient-to-br from-neutral-900 via-neutral-900 to-neutral-950 rounded-3xl border border-white/10 shadow-2xl overflow-hidden my-auto max-h-[95vh] max-h-[95dvh] flex flex-col">
         {/* Header */}
         <div className="relative px-6 py-5 border-b border-white/10 bg-gradient-to-r from-blue-500/10 to-purple-500/10">
           <div className="flex items-center justify-between">
@@ -127,7 +127,7 @@ export default function FeatureUpdatesPopup({
         </div>
 
         {/* Content */}
-        <div className="px-6 py-6 min-h-[350px] max-h-[55vh] overflow-y-auto">
+        <div className="px-6 py-6 min-h-[200px] flex-1 overflow-y-auto">
           {/* Category Badge */}
           <div className="flex items-center gap-3 mb-4">
             <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium ${categoryColors[currentUpdate.category]}`}>
@@ -180,7 +180,7 @@ export default function FeatureUpdatesPopup({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-white/10 bg-black/20 flex items-center justify-between">
+        <div className="px-6 py-4 border-t border-white/10 bg-black/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 flex-shrink-0">
           <div className="flex items-center gap-4">
             <span className="text-sm text-neutral-500">
               {currentIndex + 1} of {displayUpdates.length}

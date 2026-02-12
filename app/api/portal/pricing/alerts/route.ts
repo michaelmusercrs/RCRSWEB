@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { priceVerificationService } from '@/lib/price-verification-service';
 
 // GET /api/portal/pricing/alerts - Get price alerts
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') as any || undefined;
@@ -35,6 +39,9 @@ export async function GET(request: NextRequest) {
 
 // PATCH /api/portal/pricing/alerts - Update alert status
 export async function PATCH(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const data = await request.json();
     const { alertId, ...updates } = data;

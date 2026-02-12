@@ -1,0 +1,305 @@
+ROOF MEASUREMENT REPORT TEMPLATE
+River City Roofing Solutions
+===================================================
+
+============================================================
+COMPANY INFORMATION
+============================================================
+Company: River City Roofing Solutions
+Phone: (256) 274-8530
+Email: rcrs@rivercityroofingsolutions.com
+Website: www.rivercityroofingsolutions.com
+Service Area: Huntsville, Decatur, Madison, Athens, North Alabama
+Licensed & Insured
+
+============================================================
+PROPERTY INFORMATION (FILL IN PER JOB)
+============================================================
+Address: ___________________________________
+City: ___________________________________
+State: Alabama
+Zip: ___________________________________
+County: ___________________________________
+Property Type: [ ] Residential  [ ] Commercial  [ ] Multi-Family
+Stories: ___________________________________
+Roof Style: [ ] Gable  [ ] Hip  [ ] Flat  [ ] Mansard  [ ] Gambrel  [ ] Combination
+Existing Roofing Material: [ ] Asphalt Shingles  [ ] Metal  [ ] Tile  [ ] TPO/EPDM  [ ] Wood Shake
+Year Built: ___________________________________
+Last Roof Replacement: ___________________________________
+
+============================================================
+ROOF MEASUREMENTS (FILL IN FROM SATELLITE OR ON-SITE)
+============================================================
+Building Footprint: __________ sq ft
+Roof Pitch: ____ / 12
+Pitch Multiplier: __________ (see pitch table below)
+Total Roof Area: __________ sq ft (footprint x pitch multiplier)
+Roof Squares: __________ (total area / 100)
+Perimeter (Eave + Rake): __________ linear ft
+Ridge Length: __________ linear ft
+Valley Length: __________ linear ft
+Hip Length: __________ linear ft
+Pipe Boots / Penetrations: __________
+Skylights: __________
+Chimneys: __________
+Satellite Vents: __________
+Turbine Vents: __________
+
+============================================================
+PITCH REFERENCE TABLE
+============================================================
+Pitch    Multiplier    Degrees    Description
+2/12     1.014         9.5        Nearly flat
+3/12     1.031         14.0       Low slope
+4/12     1.054         18.4       Standard (most common)
+5/12     1.083         22.6       Moderate
+6/12     1.118         26.6       Standard steep
+7/12     1.158         30.3       Steep
+8/12     1.202         33.7       Steep
+9/12     1.250         36.9       Very steep
+10/12    1.302         39.8       Very steep
+12/12    1.414         45.0       Maximum standard
+
+How to use: Total Roof Area = Building Footprint x Pitch Multiplier
+
+============================================================
+MATERIAL CALCULATION FORMULAS
+============================================================
+These formulas are used by River City Roofing Solutions for
+standard residential asphalt shingle roof replacements.
+
+SHINGLES (GAF Timberline HDZ):
+  Bundles = Roof sq ft / 33.3
+  3 bundles = 1 square (100 sq ft)
+  Cost: $38.50/bundle
+
+UNDERLAYMENT (GAF FeltBuster Synthetic):
+  Rolls = Roof sq ft / 400
+  Cost: $62.00/roll
+
+STARTER STRIP (GAF Pro-Start):
+  Bundles = Perimeter ft / 100
+  Cost: $24.00/bundle
+
+RIDGE CAP (GAF Seal-A-Ridge):
+  Bundles = Ridge ft / 25
+  Cost: $56.00/bundle
+
+DRIP EDGE (10ft White):
+  Pieces = Perimeter ft / 10
+  Cost: $5.50/piece
+
+ICE & WATER SHIELD (GAF StormGuard):
+  Rolls = Perimeter ft / 75 (minimum 2 rolls)
+  Cost: $78.00/roll
+
+ROOFING NAILS (1.25" Galvanized):
+  Boxes = Shingle bundles / 10 (minimum 2 boxes)
+  Cost: $12.50/box (5 lb)
+
+STEP FLASHING (4x4x8"):
+  Pieces = Perimeter ft x 0.15 (add 20 if multi-story)
+  Cost: $1.80/piece
+
+PIPE BOOTS (Master Flash 2"):
+  Count = Number of pipe penetrations (default 3)
+  Cost: $14.00/piece
+
+============================================================
+EXAMPLE MATERIAL ESTIMATE BY ROOF SIZE
+============================================================
+
+SMALL ROOF (1,000 sq ft, 4/12 pitch):
+  Roof area: 1,054 sq ft (10.5 squares)
+  Perimeter: ~130 ft
+  Shingles: 32 bundles = $1,232.00
+  Underlayment: 3 rolls = $186.00
+  Starter: 2 bundles = $48.00
+  Ridge cap: 2 bundles = $112.00
+  Drip edge: 13 pieces = $71.50
+  Ice shield: 2 rolls = $156.00
+  Nails: 4 boxes = $50.00
+  Flashing: 20 pieces = $36.00
+  Pipe boots: 3 pieces = $42.00
+  TOTAL: ~$1,933.50
+
+MEDIUM ROOF (1,500 sq ft, 5/12 pitch):
+  Roof area: 1,625 sq ft (16.3 squares)
+  Perimeter: ~165 ft
+  Shingles: 49 bundles = $1,886.50
+  Underlayment: 5 rolls = $310.00
+  Starter: 2 bundles = $48.00
+  Ridge cap: 2 bundles = $112.00
+  Drip edge: 17 pieces = $93.50
+  Ice shield: 3 rolls = $234.00
+  Nails: 5 boxes = $62.50
+  Flashing: 25 pieces = $45.00
+  Pipe boots: 3 pieces = $42.00
+  TOTAL: ~$2,833.50
+
+LARGE ROOF (2,500 sq ft, 6/12 pitch):
+  Roof area: 2,795 sq ft (28 squares)
+  Perimeter: ~210 ft
+  Shingles: 84 bundles = $3,234.00
+  Underlayment: 7 rolls = $434.00
+  Starter: 3 bundles = $72.00
+  Ridge cap: 3 bundles = $168.00
+  Drip edge: 21 pieces = $115.50
+  Ice shield: 3 rolls = $234.00
+  Nails: 9 boxes = $112.50
+  Flashing: 32 pieces = $57.60
+  Pipe boots: 4 pieces = $56.00
+  TOTAL: ~$4,483.60
+
+============================================================
+ADDITIONAL COST FACTORS (NOT IN MATERIAL ESTIMATE)
+============================================================
+- Labor: Typically $50-$100 per square depending on complexity
+- Tear-off / Disposal: $100-$200 per square (dumpster + labor)
+- Permits: Varies by city ($100-$500)
+- Delivery fee: $75-$200
+- Decking replacement: $75-$125 per sheet (if rot found)
+- Chimney flashing: $200-$500 per chimney
+- Skylight flashing/replacement: $300-$800 per skylight
+- Ridge vent (new install): $3-$5 per linear foot
+- Overhead & profit: 10-20%
+
+============================================================
+ON-SITE INSPECTION CHECKLIST
+============================================================
+EXTERIOR - ROOF:
+[ ] Shingle condition (curling, cracking, missing tabs)
+[ ] Granule loss (check gutters and ground)
+[ ] Hail damage (circular dents, bruised shingles)
+[ ] Wind damage (lifted, creased, missing shingles)
+[ ] Algae/moss growth
+[ ] Flashing condition (walls, chimneys, vents)
+[ ] Pipe boot condition (cracked rubber seals)
+[ ] Ridge/hip cap condition
+[ ] Exposed nail heads
+[ ] Number of existing layers
+
+EXTERIOR - OTHER:
+[ ] Gutter condition (sagging, damage, drainage)
+[ ] Downspouts (connected, proper discharge)
+[ ] Soffit condition (rot, damage, ventilation)
+[ ] Fascia condition (rot, paint, damage)
+[ ] Siding near roofline
+[ ] Chimney condition (cap, mortar, flashing)
+
+INTERIOR / ATTIC:
+[ ] Attic ventilation (ridge vent, soffit vents)
+[ ] Daylight visible through decking
+[ ] Water stains on decking
+[ ] Mold or mildew
+[ ] Insulation condition
+[ ] Ceiling stains (interior rooms)
+[ ] Active leaks
+
+MEASUREMENTS TO VERIFY:
+[ ] Confirm roof pitch with pitch gauge
+[ ] Measure or confirm building footprint
+[ ] Count all penetrations (pipes, vents, etc.)
+[ ] Note all valleys, hips, ridges
+[ ] Measure chimney dimensions if present
+[ ] Note satellite dish/antenna locations
+[ ] Check for solar panels
+
+============================================================
+NORTH ALABAMA STORM & WEATHER DATA
+============================================================
+Service Area: Huntsville, Decatur, Madison, Athens, Hartselle,
+Cullman, Albertville, Guntersville, Florence, Muscle Shoals
+
+Tennessee Valley Corridor Statistics:
+- Average 3-5 significant hail events per year
+- Moderate-to-high hail risk zone
+- Tornado Alley fringe area (EF0-EF3 events annually)
+- Primary severe weather season: March through June
+- Secondary season: November
+- Average annual rainfall: 54 inches
+- Freeze/thaw cycles: November through March
+
+Counties Served:
+Madison, Morgan, Limestone, Lawrence, Marshall, Cullman,
+DeKalb, Jackson, Lauderdale, Colbert
+
+Insurance Note:
+Alabama is a "replacement cost" state for homeowner's insurance.
+Most policies cover storm damage including hail and wind.
+Deductibles vary: flat dollar ($1,000-$5,000) or percentage (1-5%).
+
+Recommendation: Run a free storm risk assessment at
+www.rivercityroofingsolutions.com/check-my-address
+
+============================================================
+FREE SATELLITE MEASUREMENT TOOLS
+============================================================
+Use these to get measurements before or instead of on-site visit:
+
+1. MeasureMyRoof.tools - https://app.measuremyroof.tools
+   AI-powered satellite analysis, instant results, free
+
+2. Roofr.com - https://roofr.com/measurements
+   Free unlimited satellite roof measurements with pitch
+
+3. MapScaping Calculator - https://mapscaping.com/free-interactive-roof-area-calculator/
+   Interactive draw-on-map roof area calculator
+
+4. Google Maps Satellite View
+   Switch to satellite view, use "Measure Distance" tool to trace edges
+
+5. RCRS Check My Address - www.rivercityroofingsolutions.com/check-my-address
+   Storm damage risk assessment with NWS hail data
+
+============================================================
+GAF PRODUCT LINE REFERENCE
+============================================================
+River City Roofing Solutions is a GAF-certified installer.
+
+SHINGLES:
+- Timberline HDZ (Standard): Lifetime warranty, Class F wind
+- Timberline AS II (Premium): StainGuard Plus, algae resistant
+- Timberline UHDZ (Ultra): Max Definition, thickest profile
+- Royal Sovereign (3-Tab): Budget option, 25-year warranty
+
+UNDERLAYMENT:
+- FeltBuster Synthetic: Standard, lightweight, slip-resistant
+- Tiger Paw: Premium, 25-year limited warranty
+- Deck-Armor: Breathable, premium protection
+
+ICE & WATER:
+- StormGuard: Standard double-layer protection
+- WeatherWatch: Mineral-surface, economy option
+
+VENTILATION:
+- Cobra Ridge Vent: Low-profile, nailable
+- Cobra Snow Country: For areas with heavy snow
+- Master Flow Power Vent: Active ventilation
+
+STARTER:
+- Pro-Start: Standard starter strip
+- WeatherBlocker: Enhanced wind resistance
+
+============================================================
+REPORT WORKFLOW
+============================================================
+1. Receive lead / address
+2. Pull satellite measurement (free tools above)
+3. Generate preliminary report with material estimate
+4. Schedule on-site inspection
+5. Verify measurements, complete inspection checklist
+6. Update report with verified numbers
+7. Generate final estimate / proposal
+8. Present to homeowner
+9. If insurance claim: document damage, file with carrier
+10. Upon approval: order materials, schedule crew
+
+============================================================
+PREPARED BY
+============================================================
+River City Roofing Solutions
+Huntsville - Decatur - North Alabama
+(256) 274-8530
+rcrs@rivercityroofingsolutions.com
+www.rivercityroofingsolutions.com

@@ -76,7 +76,6 @@ export interface Delivery {
   arrivedTime?: string;
   deliveredTime?: string;
   deliveryNotes?: string;
-  customerSignature?: string;
   photoCount: number;
   gpsCoordinates?: string;
 }
@@ -170,11 +169,19 @@ class DeliveryPortalService {
   private async getOrCreateSheet(name: string, headers: string[]) {
     const doc = await this.getDoc();
     let sheet = doc.sheetsByTitle[name];
-
     if (!sheet) {
-      sheet = await doc.addSheet({ title: name, headerValues: headers });
+      sheet = await doc.addSheet({ title: name, headerValues: headers, gridProperties: { columnCount: Math.max(headers.length + 5, 26) } });
+    } else {
+      // Ensure headers exist - fix for sheets created without headers
+      try {
+        await sheet.loadHeaderRow();
+      } catch {
+        if (sheet.gridProperties.columnCount < headers.length) {
+          await sheet.resize({ rowCount: sheet.gridProperties.rowCount, columnCount: headers.length + 5 });
+        }
+        await sheet.setHeaderRow(headers);
+      }
     }
-
     return sheet;
   }
 
@@ -299,7 +306,7 @@ class DeliveryPortalService {
       'deliveryId', 'orderId', 'driver', 'driverName', 'status', 'scheduledDate', 'scheduledTime',
       'jobName', 'jobAddress', 'customerName', 'customerPhone', 'materials',
       'loadConfirmed', 'loadConfirmedTime', 'loadConfirmedBy', 'departedTime',
-      'arrivedTime', 'deliveredTime', 'deliveryNotes', 'customerSignature', 'photoCount', 'gpsCoordinates'
+      'arrivedTime', 'deliveredTime', 'deliveryNotes', 'photoCount', 'gpsCoordinates'
     ]);
 
     const delivery: Delivery = {
@@ -346,7 +353,6 @@ class DeliveryPortalService {
       arrivedTime: row.get('arrivedTime'),
       deliveredTime: row.get('deliveredTime'),
       deliveryNotes: row.get('deliveryNotes'),
-      customerSignature: row.get('customerSignature'),
       photoCount: parseInt(row.get('photoCount')) || 0,
       gpsCoordinates: row.get('gpsCoordinates'),
     }));
@@ -408,7 +414,6 @@ class DeliveryPortalService {
 
       if (updates) {
         if (updates.deliveryNotes) row.set('deliveryNotes', updates.deliveryNotes);
-        if (updates.customerSignature) row.set('customerSignature', updates.customerSignature);
         if (updates.gpsCoordinates) row.set('gpsCoordinates', updates.gpsCoordinates);
       }
 

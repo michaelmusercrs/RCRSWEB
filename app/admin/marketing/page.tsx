@@ -325,10 +325,10 @@ const campaignStatus = [
 // Status badge component
 function StatusBadge({ status }: { status: string }) {
   const styles = {
-    active: 'bg-[#00FF00]/20 text-[#00FF00] border-[#00FF00]/30',
-    completed: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+    active: 'bg-brand-green/20 text-brand-green border-brand-green/30',
+    completed: 'bg-brand-green/20 text-blue-400 border-blue-500/30',
     scheduled: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-    draft: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
+    draft: 'bg-gray-400/20 text-neutral-400 border-gray-500/30',
   };
   const icons = {
     active: CheckCircle,
@@ -357,27 +357,27 @@ function AdCard({
   onCopy: () => void;
 }) {
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
+    <div className="bg-neutral-900 rounded-lg border border-white/10 p-4 hover:border-white/20 transition-shadow">
       <div className="flex items-start justify-between mb-3">
         <div>
-          <h4 className="font-semibold text-gray-900">{ad.title}</h4>
-          <p className="text-xs text-gray-500">{ad.platform} - {ad.format}</p>
+          <h4 className="font-semibold text-white">{ad.title}</h4>
+          <p className="text-xs text-neutral-500">{ad.platform} - {ad.format}</p>
         </div>
         <StatusBadge status={ad.status} />
       </div>
-      <p className="text-sm text-gray-700 font-medium mb-1">{ad.headline}</p>
-      <p className="text-xs text-gray-500 line-clamp-2 mb-3">{ad.body}</p>
+      <p className="text-sm text-neutral-300 font-medium mb-1">{ad.headline}</p>
+      <p className="text-xs text-neutral-500 line-clamp-2 mb-3">{ad.body}</p>
       <div className="flex items-center gap-2">
         <button
           onClick={onPreview}
-          className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+          className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-white/10 hover:bg-white/10 text-neutral-300 rounded-lg transition-colors"
         >
           <Eye className="w-3 h-3" />
           Preview
         </button>
         <button
           onClick={onCopy}
-          className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-[#00FF00]/10 hover:bg-[#00FF00]/20 text-black rounded-lg transition-colors"
+          className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-brand-green/10 hover:bg-brand-green/20 text-black rounded-lg transition-colors"
         >
           <Copy className="w-3 h-3" />
           Copy
@@ -396,16 +396,16 @@ function EmailCard({
   onPreview: () => void;
 }) {
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
+    <div className="bg-neutral-900 rounded-lg border border-white/10 p-4 hover:border-white/20 transition-shadow">
       <div className="flex items-start justify-between mb-2">
-        <h4 className="font-semibold text-gray-900">{template.title}</h4>
-        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">{template.trigger}</span>
+        <h4 className="font-semibold text-white">{template.title}</h4>
+        <span className="text-xs bg-white/10 text-neutral-400 px-2 py-1 rounded">{template.trigger}</span>
       </div>
-      <p className="text-sm text-gray-700 font-medium mb-1">Subject: {template.subject}</p>
-      <p className="text-xs text-gray-500 line-clamp-2 mb-3">{template.preview}</p>
+      <p className="text-sm text-neutral-300 font-medium mb-1">Subject: {template.subject}</p>
+      <p className="text-xs text-neutral-500 line-clamp-2 mb-3">{template.preview}</p>
       <button
         onClick={onPreview}
-        className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+        className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-white/10 hover:bg-white/10 text-neutral-300 rounded-lg transition-colors"
       >
         <Eye className="w-3 h-3" />
         Preview Template
@@ -431,14 +431,14 @@ function Modal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="fixed inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden">
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-black">
+      <div className="relative bg-neutral-900 rounded-xl border border-white/10 max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden">
+        <div className="flex items-center justify-between p-4 border-b border-white/10 bg-black">
           <h3 className="text-lg font-semibold text-white">{title}</h3>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-gray-800 rounded-lg transition-colors"
+            className="p-1 hover:bg-white/10 rounded-lg transition-colors"
           >
-            <X className="w-5 h-5 text-gray-400" />
+            <X className="w-5 h-5 text-neutral-500" />
           </button>
         </div>
         <div className="p-6 overflow-y-auto max-h-[calc(80vh-80px)]">
@@ -476,18 +476,18 @@ export default function MarketingPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Marketing</h1>
-          <p className="text-gray-600 mt-1">Q1 2026 Marketing Platform</p>
+          <h1 className="text-3xl font-bold text-white">Marketing</h1>
+          <p className="text-neutral-400 mt-1">Q1 2026 Marketing Platform</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="px-3 py-1.5 bg-[#00FF00] text-black text-sm font-semibold rounded-lg">
+          <span className="px-3 py-1.5 bg-brand-green text-black text-sm font-semibold rounded-lg">
             Q1 2026
           </span>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-white/10">
         <div className="flex space-x-1">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -497,8 +497,8 @@ export default function MarketingPage() {
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
                 className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === tab.id
-                    ? 'border-[#00FF00] text-black'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-brand-green text-brand-green'
+                    : 'border-transparent text-neutral-500 hover:text-neutral-300 hover:border-white/10'
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -513,22 +513,22 @@ export default function MarketingPage() {
       {activeTab === 'overview' && (
         <div className="space-y-6">
           {/* Monthly Themes */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Q1 2026 Campaign Themes</h2>
+          <div className="bg-neutral-900 rounded-lg border border-white/10 p-6">
+            <h2 className="text-xl font-bold text-white mb-4">Q1 2026 Campaign Themes</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {marketingOverview.themes.map((theme, index) => (
                 <div
                   key={theme.month}
-                  className="p-4 rounded-lg border-2 border-gray-100 hover:border-[#00FF00]/50 transition-colors"
+                  className="p-4 rounded-lg border-2 border-white/5 hover:border-brand-green/50 transition-colors"
                 >
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="w-8 h-8 rounded-full bg-black text-[#00FF00] flex items-center justify-center text-sm font-bold">
+                    <span className="w-8 h-8 rounded-full bg-black text-brand-green flex items-center justify-center text-sm font-bold">
                       {index + 1}
                     </span>
-                    <h3 className="font-semibold text-gray-900">{theme.month}</h3>
+                    <h3 className="font-semibold text-white">{theme.month}</h3>
                   </div>
-                  <p className="text-[#00FF00] font-medium mb-1">{theme.theme}</p>
-                  <p className="text-sm text-gray-600">{theme.focus}</p>
+                  <p className="text-brand-green font-medium mb-1">{theme.theme}</p>
+                  <p className="text-sm text-neutral-400">{theme.focus}</p>
                 </div>
               ))}
             </div>
@@ -539,14 +539,14 @@ export default function MarketingPage() {
             {marketingOverview.kpis.map((kpi) => {
               const Icon = kpi.icon;
               return (
-                <div key={kpi.label} className="bg-white rounded-lg border border-gray-200 p-4">
+                <div key={kpi.label} className="bg-neutral-900 rounded-lg border border-white/10 p-4">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-[#00FF00]/10 rounded-lg">
+                    <div className="p-2 bg-brand-green/10 rounded-lg">
                       <Icon className="w-5 h-5 text-black" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">{kpi.label}</p>
-                      <p className="font-semibold text-gray-900">{kpi.target}</p>
+                      <p className="text-xs text-neutral-500">{kpi.label}</p>
+                      <p className="font-semibold text-white">{kpi.target}</p>
                     </div>
                   </div>
                 </div>
@@ -555,19 +555,19 @@ export default function MarketingPage() {
           </div>
 
           {/* Budget Allocation */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Budget Allocation</h2>
+          <div className="bg-neutral-900 rounded-lg border border-white/10 p-6">
+            <h2 className="text-xl font-bold text-white mb-4">Budget Allocation</h2>
             <div className="space-y-3">
               {marketingOverview.budgetAllocation.map((item) => (
                 <div key={item.channel} className="flex items-center gap-4">
-                  <span className="w-40 text-sm text-gray-700">{item.channel}</span>
-                  <div className="flex-1 h-4 bg-gray-100 rounded-full overflow-hidden">
+                  <span className="w-40 text-sm text-neutral-300">{item.channel}</span>
+                  <div className="flex-1 h-4 bg-white/10 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-[#00FF00] rounded-full"
+                      className="h-full bg-brand-green rounded-full"
                       style={{ width: `${item.percentage}%` }}
                     />
                   </div>
-                  <span className="w-12 text-sm font-medium text-gray-900 text-right">{item.percentage}%</span>
+                  <span className="w-12 text-sm font-medium text-white text-right">{item.percentage}%</span>
                 </div>
               ))}
             </div>
@@ -578,8 +578,8 @@ export default function MarketingPage() {
             <h2 className="text-xl font-bold mb-4">Key Messaging Pillars</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
-                <h3 className="text-[#00FF00] font-semibold mb-2">Family-Owned Business</h3>
-                <ul className="text-sm text-gray-300 space-y-1">
+                <h3 className="text-brand-green font-semibold mb-2">Family-Owned Business</h3>
+                <ul className="text-sm text-neutral-400 space-y-1">
                   <li>- Multi-generational expertise</li>
                   <li>- Personal attention to every customer</li>
                   <li>- Community-focused values</li>
@@ -587,8 +587,8 @@ export default function MarketingPage() {
                 </ul>
               </div>
               <div>
-                <h3 className="text-[#00FF00] font-semibold mb-2">3-Minute Financing</h3>
-                <ul className="text-sm text-gray-300 space-y-1">
+                <h3 className="text-brand-green font-semibold mb-2">3-Minute Financing</h3>
+                <ul className="text-sm text-neutral-400 space-y-1">
                   <li>- Fast approval process</li>
                   <li>- Accessible to more homeowners</li>
                   <li>- No surprise fees</li>
@@ -596,8 +596,8 @@ export default function MarketingPage() {
                 </ul>
               </div>
               <div>
-                <h3 className="text-[#00FF00] font-semibold mb-2">Storm Damage Specialists</h3>
-                <ul className="text-sm text-gray-300 space-y-1">
+                <h3 className="text-brand-green font-semibold mb-2">Storm Damage Specialists</h3>
+                <ul className="text-sm text-neutral-400 space-y-1">
                   <li>- Rapid response after weather</li>
                   <li>- Expert insurance claim assistance</li>
                   <li>- Free storm damage inspections</li>
@@ -613,12 +613,12 @@ export default function MarketingPage() {
       {activeTab === 'ads' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-900">10 Ad Variations</h2>
+            <h2 className="text-xl font-bold text-white">10 Ad Variations</h2>
             <div className="flex items-center gap-2 text-sm">
-              <span className="flex items-center gap-1 text-gray-500">
-                <CheckCircle className="w-4 h-4 text-[#00FF00]" /> Active: {ads.filter(a => a.status === 'active').length}
+              <span className="flex items-center gap-1 text-neutral-500">
+                <CheckCircle className="w-4 h-4 text-brand-green" /> Active: {ads.filter(a => a.status === 'active').length}
               </span>
-              <span className="flex items-center gap-1 text-gray-500">
+              <span className="flex items-center gap-1 text-neutral-500">
                 <Clock className="w-4 h-4 text-yellow-500" /> Scheduled: {ads.filter(a => a.status === 'scheduled').length}
               </span>
             </div>
@@ -636,7 +636,7 @@ export default function MarketingPage() {
           </div>
 
           {copiedId && (
-            <div className="fixed bottom-4 right-4 bg-black text-[#00FF00] px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+            <div className="fixed bottom-4 right-4 bg-black text-brand-green px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
               <CheckCircle className="w-4 h-4" />
               Copied to clipboard!
             </div>
@@ -647,7 +647,7 @@ export default function MarketingPage() {
       {/* Emails Tab */}
       {activeTab === 'emails' && (
         <div className="space-y-4">
-          <h2 className="text-xl font-bold text-gray-900">5 Email Templates</h2>
+          <h2 className="text-xl font-bold text-white">5 Email Templates</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {emailTemplates.map((template) => (
@@ -660,42 +660,42 @@ export default function MarketingPage() {
           </div>
 
           {/* Email Usage Guide */}
-          <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 mt-6">
-            <h3 className="font-semibold text-gray-900 mb-3">Email Template Usage Guide</h3>
+          <div className="bg-white/5 rounded-lg border border-white/10 p-4 mt-6">
+            <h3 className="font-semibold text-white mb-3">Email Template Usage Guide</h3>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-2 px-3 font-medium text-gray-700">Template</th>
-                    <th className="text-left py-2 px-3 font-medium text-gray-700">When to Use</th>
-                    <th className="text-left py-2 px-3 font-medium text-gray-700">Trigger</th>
+                  <tr className="border-b border-white/10">
+                    <th className="text-left py-2 px-3 font-medium text-neutral-300">Template</th>
+                    <th className="text-left py-2 px-3 font-medium text-neutral-300">When to Use</th>
+                    <th className="text-left py-2 px-3 font-medium text-neutral-300">Trigger</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="border-b border-gray-100">
+                  <tr className="border-b border-white/5">
                     <td className="py-2 px-3">Welcome</td>
-                    <td className="py-2 px-3 text-gray-600">New lead enters system</td>
-                    <td className="py-2 px-3 text-gray-600">Form submission</td>
+                    <td className="py-2 px-3 text-neutral-400">New lead enters system</td>
+                    <td className="py-2 px-3 text-neutral-400">Form submission</td>
                   </tr>
-                  <tr className="border-b border-gray-100">
+                  <tr className="border-b border-white/5">
                     <td className="py-2 px-3">Storm Alert</td>
-                    <td className="py-2 px-3 text-gray-600">After severe weather events</td>
-                    <td className="py-2 px-3 text-gray-600">Manual send</td>
+                    <td className="py-2 px-3 text-neutral-400">After severe weather events</td>
+                    <td className="py-2 px-3 text-neutral-400">Manual send</td>
                   </tr>
-                  <tr className="border-b border-gray-100">
+                  <tr className="border-b border-white/5">
                     <td className="py-2 px-3">Financing</td>
-                    <td className="py-2 px-3 text-gray-600">Mid-funnel nurture</td>
-                    <td className="py-2 px-3 text-gray-600">3-5 days after welcome</td>
+                    <td className="py-2 px-3 text-neutral-400">Mid-funnel nurture</td>
+                    <td className="py-2 px-3 text-neutral-400">3-5 days after welcome</td>
                   </tr>
-                  <tr className="border-b border-gray-100">
+                  <tr className="border-b border-white/5">
                     <td className="py-2 px-3">Pre-Storm</td>
-                    <td className="py-2 px-3 text-gray-600">February/Early March</td>
-                    <td className="py-2 px-3 text-gray-600">Scheduled campaign</td>
+                    <td className="py-2 px-3 text-neutral-400">February/Early March</td>
+                    <td className="py-2 px-3 text-neutral-400">Scheduled campaign</td>
                   </tr>
                   <tr>
                     <td className="py-2 px-3">Post-Estimate</td>
-                    <td className="py-2 px-3 text-gray-600">After in-home estimate</td>
-                    <td className="py-2 px-3 text-gray-600">CRM trigger</td>
+                    <td className="py-2 px-3 text-neutral-400">After in-home estimate</td>
+                    <td className="py-2 px-3 text-neutral-400">CRM trigger</td>
                   </tr>
                 </tbody>
               </table>
@@ -707,7 +707,7 @@ export default function MarketingPage() {
       {/* Calendar Tab */}
       {activeTab === 'calendar' && (
         <div className="space-y-4">
-          <h2 className="text-xl font-bold text-gray-900">Q1 2026 Content Calendar</h2>
+          <h2 className="text-xl font-bold text-white">Q1 2026 Content Calendar</h2>
 
           {/* Month Accordions */}
           {['January', 'February', 'March'].map((month) => {
@@ -717,47 +717,47 @@ export default function MarketingPage() {
             const isExpanded = expandedMonth === month;
 
             return (
-              <div key={month} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div key={month} className="bg-neutral-900 rounded-lg border border-white/10 overflow-hidden">
                 <button
                   onClick={() => setExpandedMonth(isExpanded ? null : month)}
-                  className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+                  className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-10 h-10 rounded-full bg-black text-[#00FF00] flex items-center justify-center font-bold">
+                    <span className="w-10 h-10 rounded-full bg-black text-brand-green flex items-center justify-center font-bold">
                       {month.substring(0, 1)}
                     </span>
                     <div className="text-left">
-                      <h3 className="font-semibold text-gray-900">{month} 2026</h3>
-                      <p className="text-sm text-gray-500">{monthItems.length} scheduled items</p>
+                      <h3 className="font-semibold text-white">{month} 2026</h3>
+                      <p className="text-sm text-neutral-500">{monthItems.length} scheduled items</p>
                     </div>
                   </div>
                   {isExpanded ? (
-                    <ChevronUp className="w-5 h-5 text-gray-400" />
+                    <ChevronUp className="w-5 h-5 text-neutral-500" />
                   ) : (
-                    <ChevronDown className="w-5 h-5 text-gray-400" />
+                    <ChevronDown className="w-5 h-5 text-neutral-500" />
                   )}
                 </button>
 
                 {isExpanded && (
-                  <div className="border-t border-gray-200">
+                  <div className="border-t border-white/10">
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
-                        <thead className="bg-gray-50">
+                        <thead className="bg-white/5">
                           <tr>
-                            <th className="text-left py-3 px-4 font-medium text-gray-700">Date</th>
-                            <th className="text-left py-3 px-4 font-medium text-gray-700">Channel</th>
-                            <th className="text-left py-3 px-4 font-medium text-gray-700">Type</th>
-                            <th className="text-left py-3 px-4 font-medium text-gray-700">Topic</th>
-                            <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
+                            <th className="text-left py-3 px-4 font-medium text-neutral-300">Date</th>
+                            <th className="text-left py-3 px-4 font-medium text-neutral-300">Channel</th>
+                            <th className="text-left py-3 px-4 font-medium text-neutral-300">Type</th>
+                            <th className="text-left py-3 px-4 font-medium text-neutral-300">Topic</th>
+                            <th className="text-left py-3 px-4 font-medium text-neutral-300">Status</th>
                           </tr>
                         </thead>
                         <tbody>
                           {monthItems.map((item, index) => (
-                            <tr key={index} className="border-t border-gray-100 hover:bg-gray-50">
+                            <tr key={index} className="border-t border-white/5 hover:bg-white/5">
                               <td className="py-3 px-4 font-medium">{item.date}</td>
-                              <td className="py-3 px-4 text-gray-600">{item.channel}</td>
-                              <td className="py-3 px-4 text-gray-600">{item.type}</td>
-                              <td className="py-3 px-4 text-gray-600">{item.topic}</td>
+                              <td className="py-3 px-4 text-neutral-400">{item.channel}</td>
+                              <td className="py-3 px-4 text-neutral-400">{item.type}</td>
+                              <td className="py-3 px-4 text-neutral-400">{item.topic}</td>
                               <td className="py-3 px-4">
                                 <StatusBadge status={item.status} />
                               </td>
@@ -777,28 +777,28 @@ export default function MarketingPage() {
             <h3 className="font-semibold mb-4">Posting Frequency Summary</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div>
-                <p className="text-[#00FF00] font-medium">Facebook</p>
-                <p className="text-sm text-gray-300">4-5 posts per week</p>
+                <p className="text-brand-green font-medium">Facebook</p>
+                <p className="text-sm text-neutral-400">4-5 posts per week</p>
               </div>
               <div>
-                <p className="text-[#00FF00] font-medium">Instagram Feed</p>
-                <p className="text-sm text-gray-300">3-4 posts per week</p>
+                <p className="text-brand-green font-medium">Instagram Feed</p>
+                <p className="text-sm text-neutral-400">3-4 posts per week</p>
               </div>
               <div>
-                <p className="text-[#00FF00] font-medium">Instagram Stories</p>
-                <p className="text-sm text-gray-300">Daily during campaigns</p>
+                <p className="text-brand-green font-medium">Instagram Stories</p>
+                <p className="text-sm text-neutral-400">Daily during campaigns</p>
               </div>
               <div>
-                <p className="text-[#00FF00] font-medium">Email</p>
-                <p className="text-sm text-gray-300">2-3 per month</p>
+                <p className="text-brand-green font-medium">Email</p>
+                <p className="text-sm text-neutral-400">2-3 per month</p>
               </div>
               <div>
-                <p className="text-[#00FF00] font-medium">Blog</p>
-                <p className="text-sm text-gray-300">1-2 articles per week</p>
+                <p className="text-brand-green font-medium">Blog</p>
+                <p className="text-sm text-neutral-400">1-2 articles per week</p>
               </div>
               <div>
-                <p className="text-[#00FF00] font-medium">Google Ads</p>
-                <p className="text-sm text-gray-300">Weekly optimization</p>
+                <p className="text-brand-green font-medium">Google Ads</p>
+                <p className="text-sm text-neutral-400">Weekly optimization</p>
               </div>
             </div>
           </div>
@@ -808,30 +808,30 @@ export default function MarketingPage() {
       {/* Campaigns Tab */}
       {activeTab === 'campaigns' && (
         <div className="space-y-4">
-          <h2 className="text-xl font-bold text-gray-900">Campaign Status Tracking</h2>
+          <h2 className="text-xl font-bold text-white">Campaign Status Tracking</h2>
 
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="bg-neutral-900 rounded-lg border border-white/10 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50">
+                <thead className="bg-white/5">
                   <tr>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Campaign</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Leads</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Spend</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">CTR</th>
+                    <th className="text-left py-3 px-4 font-medium text-neutral-300">Campaign</th>
+                    <th className="text-left py-3 px-4 font-medium text-neutral-300">Status</th>
+                    <th className="text-left py-3 px-4 font-medium text-neutral-300">Leads</th>
+                    <th className="text-left py-3 px-4 font-medium text-neutral-300">Spend</th>
+                    <th className="text-left py-3 px-4 font-medium text-neutral-300">CTR</th>
                   </tr>
                 </thead>
                 <tbody>
                   {campaignStatus.map((campaign, index) => (
-                    <tr key={index} className="border-t border-gray-100 hover:bg-gray-50">
-                      <td className="py-3 px-4 font-medium text-gray-900">{campaign.name}</td>
+                    <tr key={index} className="border-t border-white/5 hover:bg-white/5">
+                      <td className="py-3 px-4 font-medium text-white">{campaign.name}</td>
                       <td className="py-3 px-4">
                         <StatusBadge status={campaign.status} />
                       </td>
-                      <td className="py-3 px-4 text-gray-600">{campaign.leads}</td>
-                      <td className="py-3 px-4 text-gray-600">{campaign.spend}</td>
-                      <td className="py-3 px-4 text-gray-600">{campaign.ctr}</td>
+                      <td className="py-3 px-4 text-neutral-400">{campaign.leads}</td>
+                      <td className="py-3 px-4 text-neutral-400">{campaign.spend}</td>
+                      <td className="py-3 px-4 text-neutral-400">{campaign.ctr}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -841,51 +841,51 @@ export default function MarketingPage() {
 
           {/* Performance Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <div className="flex items-center gap-2 text-gray-500 mb-2">
+            <div className="bg-neutral-900 rounded-lg border border-white/10 p-4">
+              <div className="flex items-center gap-2 text-neutral-500 mb-2">
                 <Users className="w-4 h-4" />
                 <span className="text-sm">Total Leads</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900">82</p>
-              <p className="text-xs text-[#00FF00]">+23% from last month</p>
+              <p className="text-2xl font-bold text-white">82</p>
+              <p className="text-xs text-brand-green">+23% from last month</p>
             </div>
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <div className="flex items-center gap-2 text-gray-500 mb-2">
+            <div className="bg-neutral-900 rounded-lg border border-white/10 p-4">
+              <div className="flex items-center gap-2 text-neutral-500 mb-2">
                 <DollarSign className="w-4 h-4" />
                 <span className="text-sm">Total Spend</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900">$2,270</p>
-              <p className="text-xs text-gray-500">Q1 Budget: $15,000</p>
+              <p className="text-2xl font-bold text-white">$2,270</p>
+              <p className="text-xs text-neutral-500">Q1 Budget: $15,000</p>
             </div>
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <div className="flex items-center gap-2 text-gray-500 mb-2">
+            <div className="bg-neutral-900 rounded-lg border border-white/10 p-4">
+              <div className="flex items-center gap-2 text-neutral-500 mb-2">
                 <Target className="w-4 h-4" />
                 <span className="text-sm">Avg. CTR</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900">3.03%</p>
-              <p className="text-xs text-[#00FF00]">Above industry avg</p>
+              <p className="text-2xl font-bold text-white">3.03%</p>
+              <p className="text-xs text-brand-green">Above industry avg</p>
             </div>
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <div className="flex items-center gap-2 text-gray-500 mb-2">
+            <div className="bg-neutral-900 rounded-lg border border-white/10 p-4">
+              <div className="flex items-center gap-2 text-neutral-500 mb-2">
                 <TrendingUp className="w-4 h-4" />
                 <span className="text-sm">Cost Per Lead</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900">$27.68</p>
-              <p className="text-xs text-gray-500">Target: $35</p>
+              <p className="text-2xl font-bold text-white">$27.68</p>
+              <p className="text-xs text-neutral-500">Target: $35</p>
             </div>
           </div>
 
           {/* Active Campaigns Detail */}
-          <div className="bg-[#00FF00]/5 border border-[#00FF00]/20 rounded-lg p-4">
-            <h3 className="font-semibold text-gray-900 mb-3">Active Campaigns</h3>
+          <div className="bg-brand-green/5 border border-brand-green/20 rounded-lg p-4">
+            <h3 className="font-semibold text-white mb-3">Active Campaigns</h3>
             <div className="space-y-3">
               {campaignStatus.filter(c => c.status === 'active').map((campaign, index) => (
                 <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-[#00FF00] rounded-full animate-pulse" />
-                    <span className="font-medium text-gray-900">{campaign.name}</span>
+                    <div className="w-2 h-2 bg-brand-green rounded-full animate-pulse" />
+                    <span className="font-medium text-white">{campaign.name}</span>
                   </div>
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
+                  <div className="flex items-center gap-4 text-sm text-neutral-400">
                     <span>{campaign.leads} leads</span>
                     <span>{campaign.spend} spent</span>
                     <span>{campaign.ctr} CTR</span>
@@ -906,23 +906,23 @@ export default function MarketingPage() {
         {selectedAd && (
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-500">Platform:</span>
+              <span className="text-sm text-neutral-500">Platform:</span>
               <span className="text-sm font-medium">{selectedAd.platform}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-500">Format:</span>
+              <span className="text-sm text-neutral-500">Format:</span>
               <span className="text-sm font-medium">{selectedAd.format}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-500">Status:</span>
+              <span className="text-sm text-neutral-500">Status:</span>
               <StatusBadge status={selectedAd.status} />
             </div>
 
             {/* Ad Preview Card */}
             <div className="bg-black rounded-lg p-6 mt-4">
-              <h3 className="text-[#00FF00] font-bold text-xl mb-3">{selectedAd.headline}</h3>
-              <p className="text-gray-300 whitespace-pre-line mb-4">{selectedAd.body}</p>
-              <button className="bg-[#00FF00] text-black font-semibold px-6 py-2 rounded-lg">
+              <h3 className="text-brand-green font-bold text-xl mb-3">{selectedAd.headline}</h3>
+              <p className="text-neutral-400 whitespace-pre-line mb-4">{selectedAd.body}</p>
+              <button className="bg-brand-green text-black font-semibold px-6 py-2 rounded-lg">
                 {selectedAd.cta}
               </button>
             </div>
@@ -930,7 +930,7 @@ export default function MarketingPage() {
             <div className="flex gap-2 mt-4">
               <button
                 onClick={() => handleCopyAd(selectedAd)}
-                className="flex items-center gap-2 px-4 py-2 bg-[#00FF00] text-black font-medium rounded-lg hover:bg-[#00DD00] transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-brand-green text-black font-medium rounded-lg hover:bg-lime-400 transition-colors"
               >
                 <Copy className="w-4 h-4" />
                 Copy Ad Content
@@ -948,35 +948,35 @@ export default function MarketingPage() {
       >
         {selectedEmail && (
           <div className="space-y-4">
-            <div className="bg-gray-100 rounded-lg p-4">
-              <p className="text-sm text-gray-500 mb-1">Subject Line:</p>
+            <div className="bg-white/10 rounded-lg p-4">
+              <p className="text-sm text-neutral-500 mb-1">Subject Line:</p>
               <p className="font-medium">{selectedEmail.subject}</p>
             </div>
-            <div className="bg-gray-100 rounded-lg p-4">
-              <p className="text-sm text-gray-500 mb-1">Trigger:</p>
+            <div className="bg-white/10 rounded-lg p-4">
+              <p className="text-sm text-neutral-500 mb-1">Trigger:</p>
               <p className="font-medium">{selectedEmail.trigger}</p>
             </div>
 
             {/* Email Content Preview */}
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="border border-white/10 rounded-lg overflow-hidden">
               <div className="bg-black p-4">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-[#00FF00] rounded flex items-center justify-center">
+                  <div className="w-8 h-8 bg-brand-green rounded flex items-center justify-center">
                     <span className="text-black font-bold text-sm">RC</span>
                   </div>
                   <span className="text-white font-semibold">River City Roofing Solutions</span>
                 </div>
               </div>
-              <div className="p-4 bg-white">
-                <pre className="whitespace-pre-wrap font-sans text-sm text-gray-700">
+              <div className="p-4 bg-neutral-900">
+                <pre className="whitespace-pre-wrap font-sans text-sm text-neutral-300">
                   {selectedEmail.content}
                 </pre>
               </div>
               <div className="bg-black p-4 text-center">
-                <button className="bg-[#00FF00] text-black font-semibold px-6 py-2 rounded-lg">
+                <button className="bg-brand-green text-black font-semibold px-6 py-2 rounded-lg">
                   Schedule Free Inspection
                 </button>
-                <p className="text-gray-400 text-xs mt-3">
+                <p className="text-neutral-500 text-xs mt-3">
                   River City Roofing Solutions | Family-Owned. Community-Trusted.
                 </p>
               </div>

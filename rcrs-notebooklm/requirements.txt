@@ -1,0 +1,3 @@
+notebooklm-py[browser]
+asyncio
+pathlib

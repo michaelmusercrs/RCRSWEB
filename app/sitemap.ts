@@ -1,6 +1,7 @@
 /**
  * Dynamic Sitemap Generator
  * Automatically generates sitemap.xml with all pages
+ * Optimized for SEO with proper priorities and change frequencies
  */
 
 import { MetadataRoute } from 'next';
@@ -11,7 +12,7 @@ import { teamMembers } from '@/lib/teamData';
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.rivercityroofingsolutions.com';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  // Static pages
+  // Static pages - Core site pages
   const staticPages = [
     {
       url: baseUrl,
@@ -56,16 +57,44 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/before-after`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly' as const,
-      priority: 0.7,
-    },
-    {
       url: `${baseUrl}/referral-rewards`,
       lastModified: new Date(),
       changeFrequency: 'monthly' as const,
       priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/privacy`,
+      lastModified: new Date(),
+      changeFrequency: 'yearly' as const,
+      priority: 0.3,
+    },
+    {
+      url: `${baseUrl}/terms`,
+      lastModified: new Date(),
+      changeFrequency: 'yearly' as const,
+      priority: 0.3,
+    },
+  ];
+
+  // Location pages - High priority for local SEO
+  const locationPages = [
+    {
+      url: `${baseUrl}/locations/decatur`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/locations/huntsville`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/locations/madison`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.9,
     },
   ];
 
@@ -103,6 +132,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   return [
     ...staticPages,
+    ...locationPages,
     ...servicePages,
     ...serviceAreaPages,
     ...teamPages,

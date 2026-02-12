@@ -17,10 +17,10 @@ import { CommandCenterLayout } from '@/components/command-center/CommandCenterLa
 
 export const metadata: Metadata = {
   title: {
-    template: '%s | RCRS Command Center',
-    default: 'RCRS Command Center',
+    template: '%s | RoofStack',
+    default: 'HQ | RoofStack',
   },
-  description: 'River City Roofing Solutions - Unified Business Command Center',
+  description: 'RoofStack - Everything Under One Roof',
 };
 
 export default function CommandCenterRootLayout({

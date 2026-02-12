@@ -30,7 +30,7 @@ import { useAuth } from '@/lib/auth-context';
 import { hasPermission } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
 
-// Demo report data
+// Sample report summary (will be replaced with real data from JobNimbus)
 const REPORT_SUMMARY = {
   totalRevenue: 2845000,
   revenueChange: 18.5,
@@ -43,6 +43,26 @@ const REPORT_SUMMARY = {
 };
 
 const AVAILABLE_REPORTS = [
+  {
+    id: 'financial-overview',
+    name: 'Financial Overview',
+    description: 'Revenue, margins, AR aging, cash flow, and CFO-level analytics',
+    icon: DollarSign,
+    category: 'Financial',
+    lastGenerated: '2026-02-05',
+    href: '/command-center/reports/financial',
+    featured: true,
+  },
+  {
+    id: 'team-performance',
+    name: 'Team Performance Report',
+    description: 'Rep scorecards, revenue trends, seasonal patterns, funnel analysis, and insights',
+    icon: Users,
+    category: 'Sales',
+    lastGenerated: new Date().toISOString().split('T')[0],
+    href: '/command-center/reports/team',
+    featured: true,
+  },
   {
     id: 'sales-performance',
     name: 'Sales Performance',
@@ -111,7 +131,7 @@ interface StatCardProps {
 function StatCard({ title, value, change, icon: Icon, color }: StatCardProps) {
   const colorClasses = {
     lime: 'bg-lime-500/10 text-lime-400',
-    blue: 'bg-blue-500/10 text-blue-400',
+    blue: 'bg-brand-green/10 text-blue-400',
     purple: 'bg-purple-500/10 text-purple-400',
     orange: 'bg-orange-500/10 text-orange-400',
   };
@@ -154,17 +174,32 @@ interface ReportCardProps {
 
 function ReportCard({ report, canExport }: ReportCardProps) {
   const Icon = report.icon;
+  const reportHref = (report as any).href;
+  const isFeatured = (report as any).featured;
 
-  return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5 transition-all hover:border-zinc-700 hover:bg-zinc-800/50">
+  const cardContent = (
+    <div className={cn(
+      "rounded-xl border bg-zinc-900 p-5 transition-all hover:border-zinc-700 hover:bg-zinc-800/50",
+      isFeatured ? "border-lime-500/30" : "border-zinc-800"
+    )}>
       <div className="flex items-start gap-4">
-        <div className="rounded-lg bg-lime-500/10 p-3">
+        <div className={cn(
+          "rounded-lg p-3",
+          isFeatured ? "bg-lime-500/20" : "bg-lime-500/10"
+        )}>
           <Icon size={24} className="text-lime-400" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <h3 className="font-semibold text-white">{report.name}</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-white">{report.name}</h3>
+                {isFeatured && (
+                  <span className="rounded-full bg-lime-500/20 px-2 py-0.5 text-xs font-medium text-lime-400">
+                    New
+                  </span>
+                )}
+              </div>
               <span className="text-xs text-lime-400">{report.category}</span>
             </div>
           </div>
@@ -178,10 +213,16 @@ function ReportCard({ report, canExport }: ReportCardProps) {
               })}
             </p>
             <div className="flex gap-2">
-              <button className="rounded-lg px-3 py-1.5 text-sm font-medium text-lime-400 transition-colors hover:bg-lime-500/10">
-                View
-              </button>
-              {canExport && (
+              {reportHref ? (
+                <span className="rounded-lg px-3 py-1.5 text-sm font-medium text-lime-400 transition-colors hover:bg-lime-500/10">
+                  View Report
+                </span>
+              ) : (
+                <button className="rounded-lg px-3 py-1.5 text-sm font-medium text-lime-400 transition-colors hover:bg-lime-500/10">
+                  View
+                </button>
+              )}
+              {canExport && !reportHref && (
                 <button className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white">
                   <Download size={14} />
                   Export
@@ -193,6 +234,12 @@ function ReportCard({ report, canExport }: ReportCardProps) {
       </div>
     </div>
   );
+
+  if (reportHref) {
+    return <Link href={reportHref}>{cardContent}</Link>;
+  }
+
+  return cardContent;
 }
 
 export default function ReportsPage() {
@@ -362,6 +409,13 @@ export default function ReportsPage() {
           <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
             <h3 className="mb-4 font-semibold text-white">Quick Links</h3>
             <div className="space-y-2">
+              <Link
+                href="/command-center/reports/team"
+                className="flex items-center gap-3 rounded-lg bg-zinc-800 px-3 py-2.5 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-700 hover:text-white"
+              >
+                <Users size={18} className="text-lime-400" />
+                Team Performance Report
+              </Link>
               <Link
                 href="/command-center/sales"
                 className="flex items-center gap-3 rounded-lg bg-zinc-800 px-3 py-2.5 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-700 hover:text-white"

@@ -218,8 +218,8 @@ export default function ImageUpload({
             transition-all duration-200
             ${
               isDragging
-                ? 'border-[#00FF00] bg-[#00FF00]/5 scale-[1.02]'
-                : 'border-gray-300 hover:border-[#00FF00] hover:bg-gray-50'
+                ? 'border-brand-green bg-brand-green/5 scale-[1.02]'
+                : 'border-gray-300 hover:border-brand-green hover:bg-gray-50'
             }
           `}
         >
@@ -227,11 +227,11 @@ export default function ImageUpload({
             <div
               className={`
               p-4 rounded-full transition-colors
-              ${isDragging ? 'bg-[#00FF00]/10' : 'bg-gray-100'}
+              ${isDragging ? 'bg-brand-green/10' : 'bg-gray-100'}
             `}
             >
               <Upload
-                className={`w-12 h-12 ${isDragging ? 'text-[#00FF00]' : 'text-gray-400'}`}
+                className={`w-12 h-12 ${isDragging ? 'text-brand-green' : 'text-gray-400'}`}
               />
             </div>
 
@@ -290,7 +290,7 @@ export default function ImageUpload({
             <button
               onClick={handleUpload}
               disabled={isUploading}
-              className="px-6 py-2 bg-[#00FF00] hover:bg-[#00DD00] text-black font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+              className="px-6 py-2 bg-brand-green hover:bg-lime-400 text-black font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
             >
               {isUploading ? (
                 <>
@@ -310,7 +310,7 @@ export default function ImageUpload({
           {isUploading && (
             <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
               <div
-                className="bg-[#00FF00] h-full transition-all duration-300"
+                className="bg-brand-green h-full transition-all duration-300"
                 style={{ width: `${uploadProgress}%` }}
               />
             </div>

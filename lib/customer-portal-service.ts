@@ -2,6 +2,7 @@
 // Manages customer access tokens, documents, and portal data
 
 import crypto from 'crypto';
+import { googleSheetsService } from './google-sheets-service';
 
 export interface CustomerPortalAccess {
   accessToken: string;
@@ -88,24 +89,97 @@ export interface HailReport {
 export interface PortalSettings {
   showWeather: boolean;
   showHailReports: boolean;
+  showStormReport: boolean;
+  showHailRecon: boolean;
+  showWeatherAlerts: boolean;
+  showRiskScore: boolean;
   showAppointments: boolean;
   showDocuments: boolean;
   showMessages: boolean;
   showJobProgress: boolean;
+  showDeliveryTracking: boolean;
   allowFileUpload: boolean;
   allowMessages: boolean;
 }
 
+export interface RepPortalSettings {
+  repSlug: string;
+  repName: string;
+  // Each setting can be: true (enabled), false (disabled), or null (inherit from global)
+  showWeather: boolean | null;
+  showHailReports: boolean | null;
+  showStormReport: boolean | null;
+  showHailRecon: boolean | null;
+  showWeatherAlerts: boolean | null;
+  showRiskScore: boolean | null;
+  showAppointments: boolean | null;
+  showDocuments: boolean | null;
+  showMessages: boolean | null;
+  showJobProgress: boolean | null;
+  showDeliveryTracking: boolean | null;
+  allowFileUpload: boolean | null;
+  allowMessages: boolean | null;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+// Per-customer settings overrides (nullable = inherit from rep default)
+export interface CustomerSettingsOverride {
+  customerId: string;
+  repSlug: string;
+  showWeather: boolean | null;
+  showHailReports: boolean | null;
+  showStormReport: boolean | null;
+  showHailRecon: boolean | null;
+  showWeatherAlerts: boolean | null;
+  showRiskScore: boolean | null;
+  showAppointments: boolean | null;
+  showDocuments: boolean | null;
+  showMessages: boolean | null;
+  showJobProgress: boolean | null;
+  showDeliveryTracking: boolean | null;
+  allowFileUpload: boolean | null;
+  allowMessages: boolean | null;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+// Customer-facing defaults: all OFF by default (reps must explicitly enable per-customer)
+// Internal admin/rep views always show everything regardless of these settings.
 export const DEFAULT_PORTAL_SETTINGS: PortalSettings = {
-  showWeather: true,
-  showHailReports: true,
-  showAppointments: true,
-  showDocuments: true,
-  showMessages: true,
-  showJobProgress: true,
-  allowFileUpload: true,
-  allowMessages: true,
+  showWeather: false,
+  showHailReports: false,
+  showStormReport: false,
+  showHailRecon: false,
+  showWeatherAlerts: false,
+  showRiskScore: false,
+  showAppointments: false,
+  showDocuments: false,
+  showMessages: false,
+  showJobProgress: false,
+  showDeliveryTracking: false,
+  allowFileUpload: false,
+  allowMessages: false,
 };
+
+// Setting keys used in cascade logic
+export const PORTAL_SETTING_KEYS: (keyof PortalSettings)[] = [
+  'showWeather', 'showHailReports', 'showStormReport', 'showHailRecon',
+  'showWeatherAlerts', 'showRiskScore', 'showAppointments', 'showDocuments',
+  'showMessages', 'showJobProgress', 'showDeliveryTracking',
+  'allowFileUpload', 'allowMessages',
+];
+
+export interface CustomerCallRecord {
+  callId: string;
+  direction: 'inbound' | 'outbound';
+  status: 'completed' | 'missed' | 'voicemail';
+  startTime: string;
+  duration: number;
+  repName: string;
+  notes?: string;
+  recordingAvailable?: boolean;
+}
 
 export interface CustomerPortalData {
   customer: CustomerPortalAccess;
@@ -120,6 +194,7 @@ export interface CustomerPortalData {
   appointments: CustomerAppointment[];
   documents: CustomerDocument[];
   messages: CustomerMessage[];
+  calls?: CustomerCallRecord[];
   jobStatus?: {
     phase: string;
     progress: number;
@@ -153,6 +228,9 @@ class CustomerPortalService {
     salesRepSlug: string;
     jobId?: string;
   }): CustomerPortalAccess {
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000); // 90 days from now
+
     return {
       accessToken: this.generateAccessToken(),
       customerId: `CUST-${Date.now()}-${this.generateShortCode()}`,
@@ -164,7 +242,8 @@ class CustomerPortalService {
       salesRepName: data.salesRepName,
       salesRepSlug: data.salesRepSlug,
       jobId: data.jobId,
-      createdAt: new Date().toISOString(),
+      createdAt: now.toISOString(),
+      expiresAt: expiresAt.toISOString(),
       isActive: true,
     };
   }
@@ -403,6 +482,388 @@ class CustomerPortalService {
 
   private toRad(deg: number): number {
     return deg * Math.PI / 180;
+  }
+
+  // Global settings - cached in memory, persisted to Google Sheets
+  private globalSettings: PortalSettings = { ...DEFAULT_PORTAL_SETTINGS };
+  private globalSettingsLoaded = false;
+
+  // Get global portal settings
+  getGlobalSettings(): PortalSettings {
+    return { ...this.globalSettings };
+  }
+
+  // Load global settings from Google Sheets
+  async loadGlobalSettings(): Promise<PortalSettings> {
+    try {
+      const ready = await googleSheetsService.init();
+      if (!ready) return this.getGlobalSettings();
+
+      const doc = (googleSheetsService as any).doc;
+      if (!doc) return this.getGlobalSettings();
+
+      let sheet = doc.sheetsByTitle['Portal_Global_Settings'];
+      if (!sheet) {
+        this.globalSettingsLoaded = true;
+        return this.getGlobalSettings();
+      }
+
+      const rows = await sheet.getRows();
+      if (rows.length > 0) {
+        const row = rows[0];
+        const loaded: Record<string, boolean> = {};
+        for (const key of PORTAL_SETTING_KEYS) {
+          const val = row.get(key);
+          // Keys missing from older sheet rows default to the DEFAULT_PORTAL_SETTINGS value
+          loaded[key] = val !== undefined && val !== null && val !== '' ? val === 'true' : DEFAULT_PORTAL_SETTINGS[key];
+        }
+        this.globalSettings = loaded as unknown as PortalSettings;
+      }
+
+      this.globalSettingsLoaded = true;
+      return this.getGlobalSettings();
+    } catch (error) {
+      console.error('Error loading global portal settings:', error);
+      return this.getGlobalSettings();
+    }
+  }
+
+  // Save global portal settings to Google Sheets
+  async saveGlobalSettings(settings: PortalSettings): Promise<void> {
+    this.globalSettings = { ...settings };
+
+    try {
+      const ready = await googleSheetsService.init();
+      if (!ready) throw new Error('Google Sheets not initialized');
+
+      const doc = (googleSheetsService as any).doc;
+      if (!doc) throw new Error('Google Sheets doc not available');
+
+      const headers = [
+        ...PORTAL_SETTING_KEYS,
+        'updatedAt', 'updatedBy'
+      ];
+
+      let sheet = doc.sheetsByTitle['Portal_Global_Settings'];
+      if (!sheet) {
+        sheet = await doc.addSheet({ title: 'Portal_Global_Settings', headerValues: headers });
+      }
+
+      const rows = await sheet.getRows();
+      const rowData: Record<string, string> = {};
+      for (const key of PORTAL_SETTING_KEYS) {
+        rowData[key] = String(settings[key]);
+      }
+      rowData.updatedAt = new Date().toISOString();
+      rowData.updatedBy = 'admin';
+
+      if (rows.length > 0) {
+        const row = rows[0];
+        Object.entries(rowData).forEach(([key, value]) => {
+          row.set(key, value);
+        });
+        await row.save();
+      } else {
+        await sheet.addRow(rowData);
+      }
+    } catch (error) {
+      console.error('Error saving global portal settings:', error);
+      throw error;
+    }
+  }
+
+  // Get per-rep portal settings overrides
+  async getRepSettings(repSlug: string): Promise<RepPortalSettings | null> {
+    try {
+      const ready = await googleSheetsService.init();
+      if (!ready) return null;
+
+      const doc = (googleSheetsService as any).doc;
+      if (!doc) return null;
+
+      const sheet = doc.sheetsByTitle['Portal_Rep_Settings'];
+      if (!sheet) return null;
+
+      const rows = await sheet.getRows();
+      const row = rows.find((r: any) => r.get('repSlug') === repSlug);
+      if (!row) return null;
+
+      const result: Record<string, any> = {
+        repSlug: row.get('repSlug'),
+        repName: row.get('repName'),
+        updatedAt: row.get('updatedAt') || '',
+        updatedBy: row.get('updatedBy') || '',
+      };
+      for (const key of PORTAL_SETTING_KEYS) {
+        result[key] = this.parseNullableBoolean(row.get(key));
+      }
+      return result as RepPortalSettings;
+    } catch (error) {
+      console.error('Error getting rep portal settings:', error);
+      return null;
+    }
+  }
+
+  // Get all rep settings
+  async getAllRepSettings(): Promise<RepPortalSettings[]> {
+    try {
+      const ready = await googleSheetsService.init();
+      if (!ready) return [];
+
+      const doc = (googleSheetsService as any).doc;
+      if (!doc) return [];
+
+      const sheet = doc.sheetsByTitle['Portal_Rep_Settings'];
+      if (!sheet) return [];
+
+      const rows = await sheet.getRows();
+      return rows.map((row: any) => {
+        const result: Record<string, any> = {
+          repSlug: row.get('repSlug') || '',
+          repName: row.get('repName') || '',
+          updatedAt: row.get('updatedAt') || '',
+          updatedBy: row.get('updatedBy') || '',
+        };
+        for (const key of PORTAL_SETTING_KEYS) {
+          result[key] = this.parseNullableBoolean(row.get(key));
+        }
+        return result as RepPortalSettings;
+      });
+    } catch (error) {
+      console.error('Error getting all rep portal settings:', error);
+      return [];
+    }
+  }
+
+  // Save per-rep portal settings overrides
+  async saveRepSettings(repSlug: string, settings: Partial<RepPortalSettings>): Promise<void> {
+    try {
+      const ready = await googleSheetsService.init();
+      if (!ready) throw new Error('Google Sheets not initialized');
+
+      const doc = (googleSheetsService as any).doc;
+      if (!doc) throw new Error('Google Sheets doc not available');
+
+      const headers = [
+        'repSlug', 'repName',
+        ...PORTAL_SETTING_KEYS,
+        'updatedAt', 'updatedBy'
+      ];
+
+      let sheet = doc.sheetsByTitle['Portal_Rep_Settings'];
+      if (!sheet) {
+        sheet = await doc.addSheet({ title: 'Portal_Rep_Settings', headerValues: headers });
+      }
+
+      const rows = await sheet.getRows();
+      const existingRow = rows.find((r: any) => r.get('repSlug') === repSlug);
+
+      const serializeNullable = (val: boolean | null | undefined): string => {
+        if (val === null || val === undefined) return 'null';
+        return String(val);
+      };
+
+      const rowData: Record<string, string> = {
+        repSlug,
+        repName: settings.repName || existingRow?.get('repName') || '',
+        updatedAt: new Date().toISOString(),
+        updatedBy: settings.updatedBy || 'admin',
+      };
+      for (const key of PORTAL_SETTING_KEYS) {
+        rowData[key] = serializeNullable((settings as any)[key]);
+      }
+
+      if (existingRow) {
+        Object.entries(rowData).forEach(([key, value]) => {
+          existingRow.set(key, value);
+        });
+        await existingRow.save();
+      } else {
+        await sheet.addRow(rowData);
+      }
+    } catch (error) {
+      console.error('Error saving rep portal settings:', error);
+      throw error;
+    }
+  }
+
+  // Get effective settings for a rep (global merged with rep overrides) - 2-tier cascade
+  async getEffectiveSettings(repSlug: string): Promise<PortalSettings> {
+    if (!this.globalSettingsLoaded) {
+      await this.loadGlobalSettings();
+    }
+
+    const global = this.getGlobalSettings();
+    const repSettings = await this.getRepSettings(repSlug);
+
+    if (!repSettings) return global;
+
+    // Merge: rep override takes precedence, null means inherit from global
+    const effective: PortalSettings = { ...global };
+    for (const key of PORTAL_SETTING_KEYS) {
+      const repValue = repSettings[key];
+      if (repValue !== null && repValue !== undefined) {
+        effective[key] = repValue as boolean;
+      }
+    }
+
+    return effective;
+  }
+
+  // 3-TIER CASCADE: Admin → Rep → Per-Customer
+  // For each setting:
+  //   1. If admin global = OFF → result = OFF (admin wins, can't be overridden)
+  //   2. If admin global = ON, check rep setting
+  //   3. If rep allows, check per-customer override
+  //   4. Customer null → inherit from rep effective (which defaults OFF)
+  async getEffectiveCustomerSettings(repSlug: string, customerId: string): Promise<PortalSettings> {
+    // Get the 2-tier result (admin + rep)
+    const repEffective = await this.getEffectiveSettings(repSlug);
+
+    // Fetch per-customer overrides
+    const custOverride = await this.getCustomerSettings(customerId);
+    if (!custOverride) return repEffective;
+
+    // Apply customer-level overrides on top of rep-effective
+    const effective: PortalSettings = { ...repEffective };
+    for (const key of PORTAL_SETTING_KEYS) {
+      // Admin already baked in via repEffective - if OFF, stays OFF
+      if (!repEffective[key]) {
+        effective[key] = false;
+        continue;
+      }
+      // Rep allows it; check customer override
+      const custValue = custOverride[key];
+      if (custValue !== null && custValue !== undefined) {
+        effective[key] = custValue as boolean;
+      }
+      // else: inherit from repEffective (already set)
+    }
+
+    return effective;
+  }
+
+  // Get per-customer settings overrides from Google Sheets
+  async getCustomerSettings(customerId: string): Promise<CustomerSettingsOverride | null> {
+    try {
+      const ready = await googleSheetsService.init();
+      if (!ready) return null;
+
+      const doc = (googleSheetsService as any).doc;
+      if (!doc) return null;
+
+      const sheet = doc.sheetsByTitle['Portal_Customer_Settings'];
+      if (!sheet) return null;
+
+      const rows = await sheet.getRows();
+      const row = rows.find((r: any) => r.get('customerId') === customerId);
+      if (!row) return null;
+
+      const result: Record<string, any> = {
+        customerId: row.get('customerId'),
+        repSlug: row.get('repSlug'),
+        updatedAt: row.get('updatedAt') || '',
+        updatedBy: row.get('updatedBy') || '',
+      };
+      for (const key of PORTAL_SETTING_KEYS) {
+        result[key] = this.parseNullableBoolean(row.get(key));
+      }
+      return result as CustomerSettingsOverride;
+    } catch (error) {
+      console.error('Error getting customer portal settings:', error);
+      return null;
+    }
+  }
+
+  // Save per-customer settings overrides
+  async saveCustomerSettings(customerId: string, repSlug: string, settings: Partial<CustomerSettingsOverride>, updatedBy?: string): Promise<void> {
+    try {
+      const ready = await googleSheetsService.init();
+      if (!ready) throw new Error('Google Sheets not initialized');
+
+      const doc = (googleSheetsService as any).doc;
+      if (!doc) throw new Error('Google Sheets doc not available');
+
+      const headers = [
+        'customerId', 'repSlug',
+        ...PORTAL_SETTING_KEYS,
+        'updatedAt', 'updatedBy'
+      ];
+
+      let sheet = doc.sheetsByTitle['Portal_Customer_Settings'];
+      if (!sheet) {
+        sheet = await doc.addSheet({ title: 'Portal_Customer_Settings', headerValues: headers });
+      }
+
+      const rows = await sheet.getRows();
+      const existingRow = rows.find((r: any) => r.get('customerId') === customerId);
+
+      const serializeNullable = (val: boolean | null | undefined): string => {
+        if (val === null || val === undefined) return 'null';
+        return String(val);
+      };
+
+      const rowData: Record<string, string> = {
+        customerId,
+        repSlug,
+        updatedAt: new Date().toISOString(),
+        updatedBy: updatedBy || 'rep',
+      };
+      for (const key of PORTAL_SETTING_KEYS) {
+        rowData[key] = serializeNullable((settings as any)[key]);
+      }
+
+      if (existingRow) {
+        Object.entries(rowData).forEach(([key, value]) => {
+          existingRow.set(key, value);
+        });
+        await existingRow.save();
+      } else {
+        await sheet.addRow(rowData);
+      }
+    } catch (error) {
+      console.error('Error saving customer portal settings:', error);
+      throw error;
+    }
+  }
+
+  // Get all customer settings for a specific rep
+  async getCustomerSettingsForRep(repSlug: string): Promise<CustomerSettingsOverride[]> {
+    try {
+      const ready = await googleSheetsService.init();
+      if (!ready) return [];
+
+      const doc = (googleSheetsService as any).doc;
+      if (!doc) return [];
+
+      const sheet = doc.sheetsByTitle['Portal_Customer_Settings'];
+      if (!sheet) return [];
+
+      const rows = await sheet.getRows();
+      return rows
+        .filter((r: any) => r.get('repSlug') === repSlug)
+        .map((row: any) => {
+          const result: Record<string, any> = {
+            customerId: row.get('customerId'),
+            repSlug: row.get('repSlug'),
+            updatedAt: row.get('updatedAt') || '',
+            updatedBy: row.get('updatedBy') || '',
+          };
+          for (const key of PORTAL_SETTING_KEYS) {
+            result[key] = this.parseNullableBoolean(row.get(key));
+          }
+          return result as CustomerSettingsOverride;
+        });
+    } catch (error) {
+      console.error('Error getting customer settings for rep:', error);
+      return [];
+    }
+  }
+
+  // Parse a nullable boolean from a string
+  private parseNullableBoolean(value: string | undefined | null): boolean | null {
+    if (!value || value === 'null' || value === '') return null;
+    return value === 'true';
   }
 
   // Job status phases

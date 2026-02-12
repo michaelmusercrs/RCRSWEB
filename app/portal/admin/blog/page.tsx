@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import AdminLayout from '@/components/AdminLayout';
 import {
   Plus, Edit, Trash2, Eye, Search, Calendar,
@@ -143,14 +144,14 @@ export default function BlogAdmin() {
           placeholder="Search posts by title or author..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full bg-white/[0.03] border border-white/10 rounded-xl pl-12 pr-4 py-4 text-white placeholder-neutral-500 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all outline-none"
+          className="w-full bg-white/[0.03] border border-white/10 rounded-xl pl-12 pr-4 py-4 text-white placeholder-neutral-500 focus:border-brand-green/50 focus:ring-2 focus:ring-brand-green/20 transition-all outline-none"
         />
       </div>
 
       {/* Loading State */}
       {isLoading ? (
         <div className="text-center py-24">
-          <div className="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-brand-green/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Loader2 className="animate-spin text-blue-400" size={32} />
           </div>
           <p className="text-neutral-400">Loading posts from Google Sheets...</p>
@@ -199,12 +200,14 @@ export default function BlogAdmin() {
             >
               <div className="flex items-start gap-5">
                 {/* Thumbnail */}
-                <div className="w-32 h-20 bg-gradient-to-br from-neutral-800 to-neutral-900 rounded-xl overflow-hidden flex-shrink-0 border border-white/10">
+                <div className="w-32 h-20 bg-gradient-to-br from-neutral-800 to-neutral-900 rounded-xl overflow-hidden flex-shrink-0 border border-white/10 relative">
                   {post.image ? (
-                    <img
+                    <Image
                       src={post.image}
                       alt={post.title}
-                      className="w-full h-full object-cover"
+                      fill
+                      unoptimized={true}
+                      className="object-cover"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
@@ -256,7 +259,7 @@ export default function BlogAdmin() {
                   </Link>
                   <button
                     onClick={() => setEditingPost(post)}
-                    className="w-10 h-10 rounded-xl bg-white/5 hover:bg-blue-500/20 flex items-center justify-center transition-colors"
+                    className="w-10 h-10 rounded-xl bg-white/5 hover:bg-brand-green/20 flex items-center justify-center transition-colors"
                     title="Edit"
                   >
                     <Edit size={18} className="text-neutral-400 hover:text-blue-400" />
@@ -329,7 +332,7 @@ function BlogEditor({
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       // Links
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-400 hover:underline">$1</a>')
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-brand-green hover:underline">$1</a>')
       // Code
       .replace(/`([^`]+)`/g, '<code class="bg-neutral-800 px-1.5 py-0.5 rounded text-sm">$1</code>')
       // Blockquotes
@@ -388,12 +391,14 @@ function BlogEditor({
           </label>
           <div className="flex flex-col md:flex-row gap-6">
             {/* Image Preview */}
-            <div className="w-full md:w-64 h-40 bg-gradient-to-br from-neutral-800 to-neutral-900 rounded-xl overflow-hidden flex-shrink-0 border border-white/10">
+            <div className="w-full md:w-64 h-40 bg-gradient-to-br from-neutral-800 to-neutral-900 rounded-xl overflow-hidden flex-shrink-0 border border-white/10 relative">
               {formData.image && !imageError ? (
-                <img
+                <Image
                   src={formData.image}
                   alt="Preview"
-                  className="w-full h-full object-cover"
+                  fill
+                  unoptimized={true}
+                  className="object-cover"
                   onError={() => setImageError(true)}
                 />
               ) : (
@@ -414,7 +419,7 @@ function BlogEditor({
                   setImageError(false);
                 }}
                 placeholder="/uploads/blog-image.jpg"
-                className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-neutral-500 focus:border-blue-500/50 transition-all outline-none mb-3"
+                className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-neutral-500 focus:border-brand-green/50 transition-all outline-none mb-3"
               />
               <p className="text-xs text-neutral-500 mb-3">
                 Enter an image path from /uploads/ or use an external URL
@@ -436,9 +441,9 @@ function BlogEditor({
                       setFormData({ ...formData, image: img });
                       setImageError(false);
                     }}
-                    className="w-12 h-12 rounded-lg overflow-hidden border border-white/10 hover:border-blue-500/50 transition-colors"
+                    className="w-12 h-12 rounded-lg overflow-hidden border border-white/10 hover:border-blue-500/50 transition-colors relative"
                   >
-                    <img src={img} alt="" className="w-full h-full object-cover" />
+                    <Image src={img} alt="" fill unoptimized={true} className="object-cover" />
                   </button>
                 ))}
               </div>
@@ -454,7 +459,7 @@ function BlogEditor({
             value={formData.title}
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             placeholder="Enter post title..."
-            className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white text-lg placeholder-neutral-500 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all outline-none"
+            className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white text-lg placeholder-neutral-500 focus:border-brand-green/50 focus:ring-2 focus:ring-brand-green/20 transition-all outline-none"
             required
           />
         </div>
@@ -484,7 +489,7 @@ function BlogEditor({
             <select
               value={formData.author}
               onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-              className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-blue-500/50 transition-all outline-none"
+              className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-brand-green/50 transition-all outline-none"
             >
               <option value="Chris Muse">Chris Muse</option>
               <option value="Michael Muse">Michael Muse</option>
@@ -503,7 +508,7 @@ function BlogEditor({
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
               placeholder="Month Day, Year"
-              className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-neutral-500 focus:border-blue-500/50 transition-all outline-none"
+              className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-neutral-500 focus:border-brand-green/50 transition-all outline-none"
             />
           </div>
         </div>
@@ -515,7 +520,7 @@ function BlogEditor({
             id="published"
             checked={formData.published}
             onChange={(e) => setFormData({ ...formData, published: e.target.checked })}
-            className="w-5 h-5 rounded border-neutral-600 bg-neutral-700 text-blue-500 focus:ring-blue-500"
+            className="w-5 h-5 rounded border-neutral-600 bg-neutral-700 text-blue-500 focus:ring-brand-green"
           />
           <label htmlFor="published" className="text-neutral-300">
             Published <span className="text-neutral-500 text-sm">(visible on website)</span>
@@ -532,7 +537,7 @@ function BlogEditor({
             value={formData.keywords}
             onChange={(e) => setFormData({ ...formData, keywords: e.target.value })}
             placeholder="roofing, shingles, storm damage"
-            className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-neutral-500 focus:border-blue-500/50 transition-all outline-none"
+            className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-neutral-500 focus:border-brand-green/50 transition-all outline-none"
           />
         </div>
 
@@ -546,7 +551,7 @@ function BlogEditor({
             onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
             placeholder="Brief summary of the post..."
             rows={2}
-            className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-neutral-500 focus:border-blue-500/50 transition-all outline-none resize-none"
+            className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-neutral-500 focus:border-brand-green/50 transition-all outline-none resize-none"
           />
         </div>
 
@@ -559,7 +564,7 @@ function BlogEditor({
               onClick={() => setShowPreview(!showPreview)}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors ${
                 showPreview
-                  ? 'bg-blue-500/20 text-blue-400'
+                  ? 'bg-brand-green/20 text-blue-400'
                   : 'bg-white/5 text-neutral-400 hover:text-white'
               }`}
             >
@@ -671,7 +676,7 @@ function BlogEditor({
 `code`
 [link text](url)"
               rows={15}
-              className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-neutral-500 focus:border-blue-500/50 transition-all outline-none resize-y font-mono text-sm"
+              className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-neutral-500 focus:border-brand-green/50 transition-all outline-none resize-y font-mono text-sm"
             />
           )}
         </div>

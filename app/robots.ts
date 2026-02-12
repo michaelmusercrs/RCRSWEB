@@ -1,6 +1,7 @@
 /**
  * Robots.txt Configuration
  * Controls search engine crawler access
+ * Optimized for SEO best practices
  */
 
 import { MetadataRoute } from 'next';
@@ -17,18 +18,42 @@ export default function robots(): MetadataRoute.Robots {
           '/api/',
           '/admin/',
           '/portal/',
+          '/command-center/',
+          '/customer/',
+          '/dashboard/',
+          '/my/',
           '/_next/',
           '/private/',
+          '/*.json$',
+          '/*/upload',
         ],
       },
-      // Special rules for well-behaved crawlers
+      // Google crawler - primary search engine
       {
         userAgent: 'Googlebot',
         allow: '/',
-        disallow: ['/api/', '/admin/', '/portal/'],
+        disallow: ['/api/', '/admin/', '/portal/', '/command-center/', '/customer/', '/dashboard/', '/my/'],
       },
+      // Google Image crawler - allow all images
       {
         userAgent: 'Googlebot-Image',
+        allow: '/',
+      },
+      // Bing crawler
+      {
+        userAgent: 'Bingbot',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/portal/', '/command-center/', '/customer/', '/dashboard/', '/my/'],
+      },
+      // Block aggressive crawlers that may overload the server
+      {
+        userAgent: 'AhrefsBot',
+        crawlDelay: 10,
+        allow: '/',
+      },
+      {
+        userAgent: 'SemrushBot',
+        crawlDelay: 10,
         allow: '/',
       },
     ],

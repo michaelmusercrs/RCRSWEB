@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import {
   calculateDashboardMetrics,
   groupLeadsBySource,
@@ -32,57 +33,9 @@ async function ensureDataFile() {
   try {
     await fs.access(DATA_FILE);
   } catch {
-    // Create with sample data for demonstration
-    const sampleLeads: Lead[] = [
-      {
-        id: '1',
-        name: 'John Doe',
-        email: 'john@example.com',
-        phone: '256-555-0100',
-        subject: 'Roof Replacement',
-        message: 'Need urgent roof replacement after storm damage. Looking for quote as soon as possible.',
-        preferredInspector: 'Rick Muse',
-        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-        status: 'new',
-        score: 85,
-        priority: 'hot',
-        source: 'Website',
-      },
-      {
-        id: '2',
-        name: 'Jane Smith',
-        email: 'jane@company.com',
-        phone: '256-555-0200',
-        subject: 'Roof Inspection',
-        message: 'Want to schedule inspection for roof repair.',
-        preferredInspector: 'First Available',
-        timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
-        status: 'contacted',
-        score: 70,
-        priority: 'warm',
-        source: 'Google',
-        contactedAt: new Date(Date.now() - 23 * 60 * 60 * 1000),
-      },
-      {
-        id: '3',
-        name: 'Bob Johnson',
-        email: 'bob@email.com',
-        subject: 'Storm Damage',
-        message: 'Have leak',
-        timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
-        status: 'won',
-        score: 65,
-        priority: 'warm',
-        source: 'Referral',
-        contactedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 + 30 * 60 * 1000),
-        scheduledAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-        quotedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-        closedAt: new Date(),
-        revenue: 12500,
-      },
-    ];
-
-    await fs.writeFile(DATA_FILE, JSON.stringify(sampleLeads, null, 2));
+    // Create empty leads file - leads will be added via contact form submissions
+    const emptyLeads: Lead[] = [];
+    await fs.writeFile(DATA_FILE, JSON.stringify(emptyLeads, null, 2));
   }
 }
 
@@ -108,6 +61,9 @@ async function writeLeads(leads: Lead[]): Promise<void> {
  * Returns dashboard metrics and lead data
  */
 export async function GET(req: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const { searchParams } = new URL(req.url);
     const view = searchParams.get('view') || 'overview';
@@ -231,6 +187,9 @@ export async function POST(req: NextRequest) {
  * Update a lead's status
  */
 export async function PUT(req: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const body = await req.json();
     const { id, status, revenue, notes } = body;

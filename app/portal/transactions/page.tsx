@@ -152,21 +152,21 @@ export default function TransactionsPage() {
       case 'count':
         return <ClipboardCheck className="w-4 h-4 text-purple-500" />;
       default:
-        return <Package className="w-4 h-4 text-gray-500" />;
+        return <Package className="w-4 h-4 text-neutral-500" />;
     }
   };
 
   const getTypeBadge = (type: string) => {
     const colors: Record<string, string> = {
-      delivery: 'bg-blue-100 text-blue-800',
-      restock: 'bg-green-100 text-green-800',
-      return: 'bg-orange-100 text-orange-800',
-      adjustment: 'bg-yellow-100 text-yellow-800',
-      count: 'bg-purple-100 text-purple-800'
+      delivery: 'bg-brand-green/20 text-blue-400',
+      restock: 'bg-green-500/20 text-green-400',
+      return: 'bg-orange-500/20 text-orange-400',
+      adjustment: 'bg-yellow-500/20 text-yellow-400',
+      count: 'bg-purple-500/20 text-purple-400'
     };
 
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[type] || 'bg-gray-100 text-gray-800'}`}>
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[type] || 'bg-white/10 text-neutral-300'}`}>
         {type.charAt(0).toUpperCase() + type.slice(1)}
       </span>
     );
@@ -192,7 +192,18 @@ export default function TransactionsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="w-16 h-16 rounded-2xl bg-purple-50 border border-purple-200 flex items-center justify-center">
+              <BarChart3 className="text-purple-600" size={32} />
+            </div>
+            <div className="absolute inset-0 rounded-2xl border-2 border-purple-300 animate-ping opacity-50" />
+          </div>
+          <div className="text-center">
+            <h2 className="text-lg font-semibold text-neutral-900">Loading Transactions</h2>
+            <p className="text-sm text-neutral-500 mt-1">Fetching transaction history...</p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -218,47 +229,47 @@ export default function TransactionsPage() {
       {stats && (
         <div className="px-6 py-4">
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            <div className="bg-white rounded-lg border border-neutral-200 p-4">
+            <div className="bg-neutral-900 rounded-lg border border-neutral-200 p-4">
               <div className="flex items-center gap-2 text-neutral-500 text-sm mb-1">
                 <BarChart3 className="w-4 h-4" />
                 Total Transactions
               </div>
               <div className="text-2xl font-bold text-neutral-900">{stats.totalTransactions}</div>
             </div>
-            <div className="bg-white rounded-lg border border-neutral-200 p-4">
+            <div className="bg-neutral-900 rounded-lg border border-neutral-200 p-4">
               <div className="flex items-center gap-2 text-blue-500 text-sm mb-1">
                 <Truck className="w-4 h-4" />
                 Deliveries
               </div>
               <div className="text-2xl font-bold text-neutral-900">{stats.deliveryCount}</div>
             </div>
-            <div className="bg-white rounded-lg border border-neutral-200 p-4">
+            <div className="bg-neutral-900 rounded-lg border border-neutral-200 p-4">
               <div className="flex items-center gap-2 text-green-500 text-sm mb-1">
                 <Package className="w-4 h-4" />
                 Restocks
               </div>
               <div className="text-2xl font-bold text-neutral-900">{stats.restockCount}</div>
             </div>
-            <div className="bg-white rounded-lg border border-neutral-200 p-4">
+            <div className="bg-neutral-900 rounded-lg border border-neutral-200 p-4">
               <div className="flex items-center gap-2 text-neutral-500 text-sm mb-1">
                 <TrendingUp className="w-4 h-4" />
                 Delivery Value
               </div>
-              <div className="text-2xl font-bold text-green-600">{formatCurrency(stats.totalDeliveryValue)}</div>
+              <div className="text-2xl font-bold text-green-400">{formatCurrency(stats.totalDeliveryValue)}</div>
             </div>
-            <div className="bg-white rounded-lg border border-neutral-200 p-4">
+            <div className="bg-neutral-900 rounded-lg border border-neutral-200 p-4">
               <div className="flex items-center gap-2 text-neutral-500 text-sm mb-1">
                 <TrendingDown className="w-4 h-4" />
                 Restock Cost
               </div>
-              <div className="text-2xl font-bold text-red-600">{formatCurrency(stats.totalRestockCost)}</div>
+              <div className="text-2xl font-bold text-red-400">{formatCurrency(stats.totalRestockCost)}</div>
             </div>
-            <div className="bg-white rounded-lg border border-neutral-200 p-4">
+            <div className="bg-neutral-900 rounded-lg border border-neutral-200 p-4">
               <div className="flex items-center gap-2 text-neutral-500 text-sm mb-1">
                 <DollarSign className="w-4 h-4" />
                 Profit Margin
               </div>
-              <div className={`text-2xl font-bold ${stats.profitMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <div className={`text-2xl font-bold ${stats.profitMargin >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {formatCurrency(stats.profitMargin)}
               </div>
             </div>
@@ -321,7 +332,7 @@ export default function TransactionsPage() {
 
       {/* Transactions Table */}
       <div className="px-6 py-4">
-        <div className="bg-white rounded-lg border border-neutral-200 overflow-hidden">
+        <div className="bg-neutral-900 rounded-lg border border-neutral-200 overflow-hidden">
           <table className="w-full">
             <thead className="bg-neutral-50 border-b border-neutral-200">
               <tr>
@@ -362,7 +373,7 @@ export default function TransactionsPage() {
                       {transaction.referenceNumber}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <span className={`text-sm font-medium ${transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      <span className={`text-sm font-medium ${transaction.amount > 0 ? 'text-green-400' : 'text-red-400'}`}>
                         {transaction.amount > 0 ? '+' : ''}{transaction.amount}
                       </span>
                     </td>
@@ -402,12 +413,12 @@ export default function TransactionsPage() {
                           </div>
                           <div>
                             <span className="text-neutral-500">Status:</span>
-                            <div className="font-medium capitalize text-green-600">{transaction.status}</div>
+                            <div className="font-medium capitalize text-green-400">{transaction.status}</div>
                           </div>
                           {transaction.deliveryPhoto && (
                             <div className="col-span-2 md:col-span-4">
                               <span className="text-neutral-500">Delivery Photo:</span>
-                              <div className="font-medium text-blue-600">{transaction.deliveryPhoto}</div>
+                              <div className="font-medium text-blue-400">{transaction.deliveryPhoto}</div>
                             </div>
                           )}
                         </div>

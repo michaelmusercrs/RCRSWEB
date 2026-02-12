@@ -59,7 +59,7 @@ function StatusBadge({ status }: { status: Extension['status'] }) {
   const config = {
     online: { bg: 'bg-lime-500/20', text: 'text-lime-400', label: 'Online' },
     busy: { bg: 'bg-yellow-500/20', text: 'text-yellow-400', label: 'Busy' },
-    ringing: { bg: 'bg-blue-500/20', text: 'text-blue-400', label: 'Ringing' },
+    ringing: { bg: 'bg-brand-green/20', text: 'text-blue-400', label: 'Ringing' },
     dnd: { bg: 'bg-red-500/20', text: 'text-red-400', label: 'DND' },
     offline: { bg: 'bg-zinc-500/20', text: 'text-zinc-400', label: 'Offline' },
   };
@@ -97,7 +97,7 @@ function PhoneRoleBadge({ role }: { role: Extension['role'] }) {
   const config = {
     Owner: { bg: 'bg-amber-500/20', text: 'text-amber-400' },
     Admin: { bg: 'bg-purple-500/20', text: 'text-purple-400' },
-    Manager: { bg: 'bg-blue-500/20', text: 'text-blue-400' },
+    Manager: { bg: 'bg-brand-green/20', text: 'text-blue-400' },
     User: { bg: 'bg-zinc-500/20', text: 'text-zinc-400' },
   };
 
@@ -394,6 +394,25 @@ export default function PhoneSystemPage() {
               Quick Actions
             </h2>
             <div className="space-y-2">
+              {/* Call Logs Link */}
+              <Link
+                href="/command-center/phone/calls"
+                className="flex items-center gap-3 rounded-lg border border-lime-500/30 bg-lime-500/10 p-3 transition-colors hover:border-lime-500/50 hover:bg-lime-500/20"
+              >
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-lime-500/20">
+                  <PhoneCall size={18} className="text-lime-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-white">
+                    Call Logs
+                  </p>
+                  <p className="text-xs text-zinc-400">
+                    View call history & recordings
+                  </p>
+                </div>
+                <ArrowRight size={16} className="text-lime-400" />
+              </Link>
+
               {userExtension && (
                 <Link
                   href={`/command-center/phone/${userExtension.extension}`}
@@ -427,7 +446,7 @@ export default function PhoneSystemPage() {
               </div>
 
               <div className="flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-800/30 p-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/10">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-green/10">
                   <Hash size={18} className="text-blue-400" />
                 </div>
                 <div className="flex-1">

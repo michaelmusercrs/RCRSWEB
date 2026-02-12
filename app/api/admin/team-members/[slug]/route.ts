@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { TeamMember } from '@/lib/teamData';
+import { requireAdmin } from '@/lib/auth-service';
 
 const DATA_FILE = path.join(process.cwd(), 'data', 'team-members.json');
 
@@ -37,6 +38,9 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { slug: string } }
 ) {
+  const auth = await requireAdmin();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const members = await readTeamMembers();
     const member = members.find(m => m.slug === params.slug);
@@ -76,6 +80,9 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: { slug: string } }
 ) {
+  const auth = await requireAdmin();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const body = await req.json();
     const members = await readTeamMembers();
@@ -129,6 +136,9 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: { slug: string } }
 ) {
+  const auth = await requireAdmin();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const members = await readTeamMembers();
 

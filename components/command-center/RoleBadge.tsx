@@ -25,6 +25,8 @@ const roleBadgeVariants = cva(
         // Types from @/lib/team-roles (lowercase)
         owner: 'bg-amber-500/20 text-amber-400 border border-amber-500/30',
         admin: 'bg-purple-500/20 text-purple-400 border border-purple-500/30',
+        manager: 'bg-blue-500/20 text-blue-400 border border-blue-500/30',
+        sales: 'bg-green-500/20 text-green-400 border border-green-500/30',
         office: 'bg-gray-500/20 text-gray-400 border border-gray-500/30',
         project_manager: 'bg-blue-500/20 text-blue-400 border border-blue-500/30',
         driver: 'bg-orange-500/20 text-orange-400 border border-orange-500/30',
@@ -72,7 +74,9 @@ const ROLE_DISPLAY_NAMES: Record<CombinedRole, string> = {
   admin: 'Admin',
   office: 'Office',
   project_manager: 'Project Manager',
+  manager: 'Manager',
   driver: 'Driver',
+  sales: 'Sales',
   viewer: 'Viewer',
 };
 
@@ -89,10 +93,13 @@ const RoleBadge = React.forwardRef<HTMLSpanElement, RoleBadgeProps>(
   ({ className, role, label, size, showDot = false, ...props }, ref) => {
     const displayName = label || ROLE_DISPLAY_NAMES[role] || role;
 
+    // Cast role to the variant type to handle combined role types
+    const variantRole = role as VariantProps<typeof roleBadgeVariants>['role'];
+
     return (
       <span
         ref={ref}
-        className={cn(roleBadgeVariants({ role, size }), className)}
+        className={cn(roleBadgeVariants({ role: variantRole, size }), className)}
         {...props}
       >
         {showDot && (

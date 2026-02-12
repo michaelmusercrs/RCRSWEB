@@ -48,7 +48,7 @@ export default function CommandCenterError({
             Something went wrong
           </h1>
           <p className="text-neutral-400 text-center mb-6">
-            An error occurred while loading the Command Center. Please try again or contact support if the problem persists.
+            An error occurred while loading RoofStack. Please try again or contact support if the problem persists.
           </p>
 
           {/* Error Details (Development Only) */}

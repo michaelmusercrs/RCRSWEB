@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth-service';
 import { cmsSheetsService } from '@/lib/cms-sheets-service';
 
 // POST /api/cms/setup - Initialize sheets with default data
 export async function POST() {
+  const auth = await requireAdmin();
+  if (!auth.authenticated) return auth.response;
+
   try {
     // Setup blog posts sheet
     await cmsSheetsService.setupBlogPostsSheet();

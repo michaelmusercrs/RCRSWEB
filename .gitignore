@@ -29,13 +29,16 @@ yarn-error.log*
 .env.vercel
 .env.vercel2
 
-# credentials
+# credentials and service account keys
 *.json
 !package.json
 !package-lock.json
 !tsconfig.json
 !components.json
 !tailwind.config.json
+gen-lang-client-*.json
+*-service-account*.json
+*credentials*.json
 
 # temp files
 tmpclaude-*

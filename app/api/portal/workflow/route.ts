@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { portalAuthService, WorkflowStep, WorkflowType } from '@/lib/portal-auth';
+import { groupMeService, getGroupMeConfigFromEnv } from '@/lib/groupme-service';
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
@@ -33,6 +38,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const body = await request.json();
     const { action, ...data } = body;
@@ -48,6 +56,24 @@ export async function POST(request: NextRequest) {
           requestedBy: data.requestedBy,
           data: data.workflowData || {},
         });
+
+        // Send GroupMe notification for profile edit pending approval
+        if (workflow && data.type === 'profile_update') {
+          try {
+            const groupMeConfig = getGroupMeConfigFromEnv();
+            if (groupMeConfig.enabled && groupMeConfig.botId && groupMeConfig.notifyOn.profileEditPending) {
+              const notification = groupMeService.createProfileEditNotification({
+                teamMemberName: data.workflowData?.teamMemberName || 'Unknown',
+                editType: data.workflowData?.editType || 'profile',
+                editedBy: data.requestedBy,
+              });
+              await groupMeService.sendNotification(groupMeConfig, notification);
+            }
+          } catch (notifyError) {
+            console.error('Failed to send profile edit notification:', notifyError);
+          }
+        }
+
         return NextResponse.json({ success: true, workflow });
       }
 

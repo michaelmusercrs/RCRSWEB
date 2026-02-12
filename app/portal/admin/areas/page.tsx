@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import AdminLayout from '@/components/AdminLayout';
 import {
   Edit, Eye, Search, Save, Loader2, ExternalLink,
@@ -110,10 +111,12 @@ export default function AreasAdmin() {
               {/* Image */}
               <div className="relative h-40 bg-gradient-to-br from-neutral-800 to-neutral-900">
                 {area.image ? (
-                  <img
+                  <Image
                     src={area.image}
                     alt={area.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    fill
+                    unoptimized={true}
+                    className="object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
@@ -257,12 +260,14 @@ function AreaEditor({
           </label>
           <div className="flex flex-col md:flex-row gap-6">
             {/* Image Preview */}
-            <div className="w-full md:w-64 h-40 bg-gradient-to-br from-neutral-800 to-neutral-900 rounded-xl overflow-hidden flex-shrink-0 border border-white/10">
+            <div className="w-full md:w-64 h-40 bg-gradient-to-br from-neutral-800 to-neutral-900 rounded-xl overflow-hidden flex-shrink-0 border border-white/10 relative">
               {formData.image && !imageError ? (
-                <img
+                <Image
                   src={formData.image}
                   alt="Preview"
-                  className="w-full h-full object-cover"
+                  fill
+                  unoptimized={true}
+                  className="object-cover"
                   onError={() => setImageError(true)}
                 />
               ) : (
@@ -304,11 +309,11 @@ function AreaEditor({
                       setFormData({ ...formData, image: img });
                       setImageError(false);
                     }}
-                    className={`w-12 h-12 rounded-lg overflow-hidden border transition-colors ${
+                    className={`w-12 h-12 rounded-lg overflow-hidden border transition-colors relative ${
                       formData.image === img ? 'border-orange-500' : 'border-white/10 hover:border-orange-500/50'
                     }`}
                   >
-                    <img src={img} alt="" className="w-full h-full object-cover" />
+                    <Image src={img} alt="" fill unoptimized={true} className="object-cover" />
                   </button>
                 ))}
               </div>

@@ -26,6 +26,7 @@ import {
   Minus,
   AlertTriangle,
   RefreshCw,
+  Trash2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -61,6 +62,8 @@ export interface InventoryCardProps {
   onQuickAdjust?: (delta: number) => void;
   /** Callback when edit button is clicked */
   onEdit?: () => void;
+  /** Callback when delete button is clicked */
+  onDelete?: () => void;
   /** Additional CSS classes */
   className?: string;
 }
@@ -76,6 +79,7 @@ export function InventoryCard({
   onAdjust,
   onQuickAdjust,
   onEdit,
+  onDelete,
   className,
 }: InventoryCardProps) {
   // Calculate stock status
@@ -273,6 +277,21 @@ export function InventoryCard({
             >
               <RefreshCw className="h-4 w-4" />
               Adjust
+            </button>
+          )}
+
+          {/* Delete Button */}
+          {onDelete && (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onDelete();
+              }}
+              className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-500/10 text-red-400 transition-colors hover:bg-red-500/20"
+              title="Delete item"
+            >
+              <Trash2 className="h-4 w-4" />
             </button>
           )}
         </div>

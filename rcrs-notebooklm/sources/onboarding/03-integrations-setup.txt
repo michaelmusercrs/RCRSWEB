@@ -1,0 +1,1634 @@
+# RCRS Integrations & Environment Setup
+Generated: 2026-02-11 11:23
+Source: River City Roofing Solutions Platform
+
+---
+
+## docs/INTEGRATIONS.md
+
+# Integrations Guide
+
+## Overview
+
+River City Roofing Solutions integrates with several third-party services to provide a comprehensive business management platform. This document details each integration, its configuration, and usage.
+
+---
+
+## JobNimbus CRM
+
+### Purpose
+JobNimbus serves as the primary Customer Relationship Management (CRM) system, storing all customer contacts, jobs, estimates, and tasks.
+
+### Configuration
+
+**Environment Variables:**
+```env
+JOBNIMBUS_API_KEY=your_api_key
+JOBNIMBUS_API_URL=https://app.jobnimbus.com/api1
+```
+
+**Getting API Key:**
+1. Log into JobNimbus admin
+2. Navigate to Settings > Integrations > API
+3. Generate new API key
+4. Copy and store securely
+
+### Features
+
+**Data Synced:**
+- Contacts (customers)
+- Jobs
+- Estimates
+- Tasks/Appointments
+- Notes
+
+**API Endpoints Used:**
+| Endpoint | Purpose |
+|----------|---------|
+| `/contacts` | Customer records |
+| `/jobs` | Project/job records |
+| `/estimates` | Quotes and proposals |
+| `/tasks` | Scheduled activities |
+| `/notes` | Communication history |
+
+### Integration Service
+
+Location: `/lib/jobnimbus-service.ts`
+
+**Key Methods:**
+```typescript
+// Get all contacts
+jobNimbusService.getContacts({ limit: 100, offset: 0 })
+
+// Get single contact
+jobNimbusService.getContact(jnid)
+
+// Search by email
+jobNimbusService.searchContactByEmail(email)
+
+// Get customer portal data
+jobNimbusService.getCustomerPortalData(contactJnid)
+
+// Test connection
+jobNimbusService.testConnection()
+```
+
+### Status Mapping
+
+JobNimbus statuses map to portal phases:
+
+| JobNimbus Status | Portal Phase |
+|------------------|--------------|
+| Lead, New | lead |
+| Contacted, Appointment Set | inspection |
+| Inspected, Estimate Sent | estimate |
+| Contract Signed | contract |
+| Permit | permit |
+| Material Ordered | materials |
+| Scheduled | scheduled |
+| In Progress | in_progress |
+| Complete, Closed | complete |
+
+### Error Handling
+
+```typescript
+try {
+  const data = await jobNimbusService.getContacts();
+} catch (error) {
+  if (error instanceof JobNimbusConfigError) {
+    // API key not configured
+  } else if (error instanceof JobNimbusError) {
+    // API call failed - check error.statusCode
+  }
+}
+```
+
+---
+
+## Google Sheets
+
+### Purpose
+Google Sheets serves as a flexible data store for:
+- Team member information
+- Inventory data
+- Commission tracking
+- Customer records
+- Order history
+
+### Configuration
+
+**Environment Variables:**
+```env
+GOOGLE_SHEETS_ID=your_spreadsheet_id
+GOOGLE_SERVICE_ACCOUNT_EMAIL=service@project.iam.gserviceaccount.com
+GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+```
+
+**Setting Up:**
+1. Create Google Cloud project
+2. Enable Google Sheets API
+3. Create service account
+4. Download JSON key file
+5. Share spreadsheet with service account email
+6. Extract credentials to environment variables
+
+### Sheet Structure
+
+**Required Sheets:**
+| Sheet Name | Purpose |
+|------------|---------|
+| team-members-import | Team member profiles |
+| Inventory | Product inventory |
+| InventoryLogs | Stock change history |
+| Commissions | Sales commission records |
+| Customers | Customer database |
+| Orders | Material orders |
+
+### Integration Service
+
+Location: `/lib/google-sheets-service.ts`
+
+**Key Methods:**
+```typescript
+// Team Members
+googleSheetsService.getTeamMembers()
+googleSheetsService.updateTeamMember(member)
+googleSheetsService.deleteTeamMember(slug)
+
+// Inventory
+googleSheetsService.getInventory({ category, lowStock, search })
+googleSheetsService.updateInventoryItem(item)
+googleSheetsService.deleteInventoryItem(sku)
+
+// Commissions
+googleSheetsService.getCommissions({ salesRep, startDate, endDate })
+googleSheetsService.getCommissionSummaries()
+googleSheetsService.addCommissionEntry(entry)
+
+// Customers
+googleSheetsService.getCustomers({ salesRep, search })
+googleSheetsService.updateCustomer(customer)
+
+// Orders
+googleSheetsService.getOrders({ status, customerId })
+googleSheetsService.updateOrder(order)
+```
+
+### Data Types
+
+**Team Member:**
+```typescript
+interface TeamMember {
+  slug: string;
+  name: string;
+  company: string;
+  category: string;
+  position: string;
+  phone: string;
+  email: string;
+  displayOrder: number;
+  bio: string;
+  profileImage?: string;
+  truckImage?: string;
+  facebook?: string;
+  instagram?: string;
+}
+```
+
+**Inventory Item:**
+```typescript
+interface InventoryItem {
+  sku: string;
+  name: string;
+  description: string;
+  category: string;
+  cost: number;
+  price: number;
+  quantity: number;
+  minStock: number;
+  maxStock: number;
+  unit: string;
+  supplier: string;
+  location: string;
+}
+```
+
+### Image URL Conversion
+
+Google Drive share links are automatically converted to thumbnail URLs:
+```
+Input: https://drive.google.com/file/d/FILE_ID/view
+Output: https://drive.google.com/thumbnail?id=FILE_ID&sz=w400
+```
+
+---
+
+## GroupMe Notifications
+
+### Purpose
+GroupMe provides real-time team notifications for important business events.
+
+### Configuration
+
+**Environment Variables:**
+```env
+GROUPME_BOT_ID=your_bot_id
+GROUPME_ACCESS_TOKEN=your_access_token  # Optional
+GROUPME_ENABLED=true
+
+# Notification toggles
+GROUPME_NOTIFY_NEW_LEAD=true
+GROUPME_NOTIFY_PROFILE_EDIT=true
+GROUPME_NOTIFY_LOW_INVENTORY=true
+GROUPME_NOTIFY_JOB_STATUS=true
+GROUPME_NOTIFY_PORTAL_ACTIVITY=true
+GROUPME_NOTIFY_DELIVERY=true
+GROUPME_NOTIFY_SLA=true
+```
+
+**Creating a Bot:**
+1. Log into GroupMe
+2. Go to developers.groupme.com
+3. Create new bot
+4. Select target group
+5. Copy Bot ID
+
+### Integration Service
+
+Location: `/lib/groupme-service.ts`
+
+**Notification Types:**
+- `new_lead` - New contact form submission
+- `profile_edit_pending` - Team profile change awaiting approval
+- `low_inventory` - Stock below threshold
+- `job_status_change` - Job status updated
+- `customer_portal_activity` - Customer accessed portal
+- `delivery_update` - Delivery status changed
+- `sla_alert` - SLA warning or violation
+- `custom` - Custom notifications
+
+**Sending Notifications:**
+```typescript
+import { groupMeService, getGroupMeConfigFromEnv } from '@/lib/groupme-service';
+
+const config = getGroupMeConfigFromEnv();
+
+// Create and send notification
+const notification = groupMeService.createNewLeadNotification({
+  name: 'John Doe',
+  email: 'john@example.com',
+  phone: '256-555-1234',
+  source: 'Website Contact Form',
+  message: 'I need a roof inspection'
+});
+
+await groupMeService.sendNotification(config, notification);
+```
+
+**Helper Methods:**
+```typescript
+// Pre-built notification creators
+groupMeService.createNewLeadNotification(data)
+groupMeService.createProfileEditNotification(data)
+groupMeService.createLowInventoryNotification(data)
+groupMeService.createJobStatusNotification(data)
+groupMeService.createPortalActivityNotification(data)
+groupMeService.createDeliveryUpdateNotification(data)
+groupMeService.createSLAAlertNotification(data)
+
+// Test connection
+groupMeService.testConnection(botId)
+```
+
+### Message Format
+
+Notifications are formatted with:
+- Type prefix (e.g., `[NEW LEAD]`)
+- Priority indicator for high/urgent
+- Title
+- Message body
+- Details section
+- `@all` mention for urgent items
+
+---
+
+## TeamUp Calendar
+
+### Purpose
+TeamUp provides calendar functionality for scheduling:
+- Inspections
+- Installations
+- Deliveries
+- Meetings
+
+### Configuration
+
+**Environment Variables:**
+```env
+TEAMUP_API_KEY=your_api_key
+TEAMUP_CALENDAR_KEY=your_calendar_key
+
+# Sub-calendars (optional)
+TEAMUP_SUBCAL_INSPECTIONS=subcal_id
+TEAMUP_SUBCAL_INSTALLATIONS=subcal_id
+TEAMUP_SUBCAL_DELIVERIES=subcal_id
+TEAMUP_SUBCAL_MEETINGS=subcal_id
+TEAMUP_SUBCAL_GENERAL=subcal_id
+```
+
+**Getting API Key:**
+1. Log into TeamUp
+2. Navigate to Settings > API
+3. Generate new API key
+4. Get calendar key from calendar URL
+
+### Integration Service
+
+Location: `/lib/teamup-service.ts`
+
+**Event Types:**
+- `inspection`
+- `installation`
+- `repair`
+- `delivery`
+- `pickup`
+- `meeting`
+- `followup`
+- `estimate`
+- `other`
+
+**Key Methods:**
+```typescript
+// Get events
+teamupService.getEvents(startDate, endDate, subcalendarId?)
+
+// Create events
+teamupService.scheduleInspection({
+  customerName: 'John Doe',
+  customerPhone: '256-555-1234',
+  address: '123 Main St',
+  startTime: '2024-01-20T09:00:00',
+  duration: 60,
+  assignedTo: 'Hunter'
+})
+
+teamupService.scheduleInstallation({...})
+teamupService.scheduleDelivery({...})
+teamupService.scheduleMeeting({...})
+
+// Update event
+teamupService.updateEventStatus(eventId, 'completed', 'Notes')
+
+// Get available slots
+teamupService.getAvailableSlots(date, eventType, durationMinutes)
+```
+
+**Event Color Coding:**
+| Event Type | Color |
+|------------|-------|
+| Inspection | Blue |
+| Installation | Brand Green |
+| Repair | Amber |
+| Delivery | Purple |
+| Meeting | Indigo |
+| Followup | Teal |
+
+### Demo Mode
+
+When TeamUp is not configured, the service returns demo data for development.
+
+---
+
+## Weather APIs
+
+### Purpose
+Weather data helps with:
+- Customer portal weather display
+- Work scheduling decisions
+- Hail storm tracking
+
+### Services Used
+
+**Open-Meteo (Free, No API Key):**
+- Current conditions
+- 7-day forecast
+- Temperature, wind, precipitation
+
+**National Weather Service:**
+- Weather alerts
+- Severe weather warnings
+
+**Iowa State Mesonet:**
+- Historical hail reports
+- Storm data
+
+### Integration Service
+
+Location: `/lib/weather-service.ts`
+
+**Key Methods:**
+```typescript
+// Get weather for address
+const weather = await weatherService.getWeather('Huntsville, AL');
+// Returns: current conditions, 7-day forecast, alerts
+
+// Get hail reports
+const hailReports = await weatherService.getHailReports(
+  address,
+  daysBack,  // default 30
+  radiusMiles // default 50
+);
+```
+
+### Weather Data Structure
+
+```typescript
+interface WeatherData {
+  current: {
+    temp: number;
+    feelsLike: number;
+    humidity: number;
+    windSpeed: number;
+    condition: string;
+    icon: string;
+    isWorkable: boolean;
+  };
+  forecast: DayForecast[];
+  alerts: WeatherAlert[];
+  location: string;
+  lastUpdated: string;
+}
+```
+
+### Workability Logic
+
+A day is considered "workable" for roofing when:
+- Precipitation chance < 40%
+- Wind speed < 25 mph
+- No active rain/storm (weather code < 61)
+
+### Supported Locations
+
+Pre-configured coordinates for Alabama cities:
+- Hartselle (HQ)
+- Decatur
+- Huntsville
+- Madison
+- Athens
+- Cullman
+- Birmingham
+- Florence
+- And more...
+
+---
+
+## Vercel Blob Storage
+
+### Purpose
+File storage for:
+- Team member photos
+- Project images
+- Documents
+- Blog post images
+
+### Configuration
+
+**Environment Variables:**
+```env
+BLOB_READ_WRITE_TOKEN=your_vercel_blob_token
+```
+
+### Usage
+
+```typescript
+import { put } from '@vercel/blob';
+
+const { url } = await put(filename, fileBuffer, {
+  access: 'public',
+});
+```
+
+---
+
+## Integration Health Checks
+
+### Checking Configuration
+
+```typescript
+import { isJobNimbusConfigured } from '@/lib/jobnimbus-service';
+import { isGoogleSheetsConfigured } from '@/lib/google-sheets-service';
+import { teamupService } from '@/lib/teamup-service';
+
+// Check each service
+const jobNimbusOk = isJobNimbusConfigured();
+const sheetsOk = isGoogleSheetsConfigured();
+const teamupConfig = teamupService.checkConfiguration();
+```
+
+### Connection Testing
+
+```typescript
+// JobNimbus
+const result = await jobNimbusService.testConnection();
+// Returns: { success, message, contactCount }
+
+// GroupMe
+const result = await groupMeService.testConnection(botId);
+// Returns: { success, error }
+```
+
+---
+
+## Best Practices
+
+### API Key Security
+
+- Never commit API keys to version control
+- Use environment variables
+- Rotate keys periodically
+- Use minimum required permissions
+
+### Rate Limiting
+
+- JobNimbus: Respect API limits
+- Google Sheets: Batch operations when possible
+- GroupMe: 202 responses indicate success
+- Weather APIs: Cache responses (15 min)
+
+### Error Handling
+
+- Always catch API errors
+- Provide fallback data when possible
+- Log errors for debugging
+- Show user-friendly messages
+
+### Data Caching
+
+- Cache weather data (15 minutes)
+- Cache TeamUp events (5 minutes)
+- Cache inventory data (1 minute)
+- Invalidate cache on updates
+
+---
+
+## Troubleshooting
+
+### JobNimbus Issues
+
+| Issue | Solution |
+|-------|----------|
+| 401 Unauthorized | Check API key is valid |
+| 429 Rate Limited | Reduce request frequency |
+| 500 Server Error | Check JobNimbus status |
+| Connection timeout | Check network, retry |
+
+### Google Sheets Issues
+
+| Issue | Solution |
+|-------|----------|
+| Permission denied | Share sheet with service account |
+| Sheet not found | Check sheet name matches exactly |
+| Invalid credentials | Verify private key format (\\n) |
+
+### TeamUp Issues
+
+| Issue | Solution |
+|-------|----------|
+| 401 Unauthorized | Check API key |
+| Invalid calendar | Verify calendar key |
+| Events not showing | Check date range |
+
+### GroupMe Issues
+
+| Issue | Solution |
+|-------|----------|
+| Messages not sending | Verify bot ID |
+| Wrong group | Bot assigned to wrong group |
+| Rate limited | Reduce notification frequency |
+
+
+---
+
+## GOOGLE-APPS-SCRIPT-SETUP.md
+
+# Google Apps Script Setup for Contact Form
+
+Follow these steps to set up the contact form backend:
+
+## Step 1: Create a New Google Apps Script
+
+1. Go to [Google Apps Script](https://script.google.com/)
+2. Click **New Project**
+3. Name it "River City Roofing Contact Form"
+
+## Step 2: Copy This Code
+
+Delete everything in the editor and paste this code:
+
+```javascript
+// Configuration
+const NOTIFICATION_EMAIL = "rcs@rivercityroofingsolutions.com";
+const SPREADSHEET_ID = "1uMEdtHo3xMu2gs21p7dYAgYiPWuCZ3s4a8YU-gJZ31s"; // Your existing sheet
+const CONTACT_SHEET_NAME = "Contact Submissions";
+const REFERRAL_SHEET_NAME = "Referral Submissions";
+
+function doPost(e) {
+  try {
+    const data = e.parameter;
+    const timestamp = new Date().toLocaleString("en-US", {timeZone: "America/Chicago"});
+
+    // Check if this is a referral or contact form
+    if (data.formType === "referral") {
+      return handleReferral(data, timestamp);
+    } else {
+      return handleContact(data, timestamp);
+    }
+  } catch (error) {
+    return ContentService
+      .createTextOutput(JSON.stringify({result: "error", message: error.toString()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// ============================================
+// CONTACT FORM HANDLER
+// ============================================
+function handleContact(data, timestamp) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName(CONTACT_SHEET_NAME);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(CONTACT_SHEET_NAME);
+    sheet.appendRow([
+      "Timestamp",
+      "Name",
+      "Email",
+      "Phone",
+      "Subject",
+      "Message",
+      "Preferred Inspector",
+      "Service Type",
+      "Service Area",
+      "Status"
+    ]);
+    sheet.getRange(1, 1, 1, 10).setFontWeight("bold").setBackground("#39FF14");
+  }
+
+  sheet.appendRow([
+    timestamp,
+    data.name || "",
+    data.email || "",
+    data.phone || "",
+    data.subject || "",
+    data.message || "",
+    data.preferredInspector || "First Available",
+    data.serviceType || "",
+    data.serviceArea || "",
+    "New"
+  ]);
+
+  sendContactNotificationEmail(data, timestamp);
+  sendContactConfirmationEmail(data);
+
+  return ContentService
+    .createTextOutput(JSON.stringify({result: "success", message: "Contact form submitted"}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ============================================
+// REFERRAL FORM HANDLER
+// ============================================
+function handleReferral(data, timestamp) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName(REFERRAL_SHEET_NAME);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(REFERRAL_SHEET_NAME);
+    sheet.appendRow([
+      "Timestamp",
+      "Referrer Name",
+      "Referrer Phone",
+      "Referrer Email",
+      "Referral Name",
+      "Referral Phone",
+      "Referral Email",
+      "Referral Address",
+      "Sales Rep",
+      "Notes",
+      "Status",
+      "Reward Tier",
+      "Reward Paid"
+    ]);
+    sheet.getRange(1, 1, 1, 13).setFontWeight("bold").setBackground("#39FF14");
+  }
+
+  sheet.appendRow([
+    timestamp,
+    data.referrerName || "",
+    data.referrerPhone || "",
+    data.referrerEmail || "",
+    data.referralName || "",
+    data.referralPhone || "",
+    data.referralEmail || "",
+    data.referralAddress || "",
+    data.salesRep || "",
+    data.notes || "",
+    "New",
+    "",  // Reward Tier - to be filled later
+    "No" // Reward Paid - to be updated when paid
+  ]);
+
+  sendReferralNotificationEmail(data, timestamp);
+  sendReferralConfirmationEmail(data);
+
+  return ContentService
+    .createTextOutput(JSON.stringify({result: "success", message: "Referral submitted"}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ============================================
+// CONTACT EMAIL FUNCTIONS
+// ============================================
+function sendContactNotificationEmail(data, timestamp) {
+  const subject = `🏠 New Lead: ${data.subject || "Contact Form Submission"}`;
+
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <div style="background: #000; padding: 20px; text-align: center;">
+        <h1 style="color: #39FF14; margin: 0;">New Contact Form Submission</h1>
+      </div>
+
+      <div style="padding: 20px; background: #f9f9f9;">
+        <h2 style="color: #0066CC; border-bottom: 2px solid #39FF14; padding-bottom: 10px;">Contact Details</h2>
+
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 10px; font-weight: bold; width: 140px;">Name:</td>
+            <td style="padding: 10px;">${data.name || "Not provided"}</td>
+          </tr>
+          <tr style="background: #fff;">
+            <td style="padding: 10px; font-weight: bold;">Email:</td>
+            <td style="padding: 10px;"><a href="mailto:${data.email}">${data.email || "Not provided"}</a></td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; font-weight: bold;">Phone:</td>
+            <td style="padding: 10px;"><a href="tel:${data.phone}">${data.phone || "Not provided"}</a></td>
+          </tr>
+          <tr style="background: #fff;">
+            <td style="padding: 10px; font-weight: bold;">Subject:</td>
+            <td style="padding: 10px;">${data.subject || "Not provided"}</td>
+          </tr>
+        </table>
+
+        <h2 style="color: #0066CC; border-bottom: 2px solid #39FF14; padding-bottom: 10px; margin-top: 20px;">Message</h2>
+        <div style="background: #fff; padding: 15px; border-left: 4px solid #39FF14;">
+          ${(data.message || "No message").replace(/\n/g, "<br>")}
+        </div>
+
+        <p style="color: #666; font-size: 12px; margin-top: 20px;">
+          Submitted: ${timestamp}<br>
+          Source: rivercityroofingsolutions.com
+        </p>
+      </div>
+
+      <div style="background: #000; padding: 15px; text-align: center;">
+        <p style="color: #39FF14; margin: 0; font-size: 14px;">River City Roofing Solutions</p>
+        <p style="color: #fff; margin: 5px 0 0 0; font-size: 12px;">(256) 274-8530</p>
+      </div>
+    </div>
+  `;
+
+  MailApp.sendEmail({
+    to: NOTIFICATION_EMAIL,
+    subject: subject,
+    htmlBody: htmlBody,
+    replyTo: data.email || NOTIFICATION_EMAIL
+  });
+}
+
+function sendContactConfirmationEmail(data) {
+  if (!data.email) return;
+
+  const subject = "Thank You for Contacting River City Roofing Solutions!";
+
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <div style="background: #000; padding: 20px; text-align: center;">
+        <h1 style="color: #39FF14; margin: 0;">Thank You!</h1>
+      </div>
+
+      <div style="padding: 20px;">
+        <p>Hi ${data.name || "there"},</p>
+
+        <p>Thank you for reaching out to River City Roofing Solutions! We've received your message and one of our team members will get back to you within 24 hours.</p>
+
+        <p>In the meantime, feel free to give us a call if you have any urgent questions:</p>
+
+        <p style="text-align: center; margin: 20px 0;">
+          <a href="tel:256-274-8530" style="background: #39FF14; color: #000; padding: 12px 30px; text-decoration: none; font-weight: bold; border-radius: 5px; display: inline-block;">(256) 274-8530</a>
+        </p>
+
+        <p>We look forward to helping you with your roofing needs!</p>
+
+        <p>Best regards,<br>
+        <strong>The River City Roofing Team</strong></p>
+      </div>
+
+      <div style="background: #000; padding: 15px; text-align: center;">
+        <p style="color: #39FF14; margin: 0; font-size: 14px;">River City Roofing Solutions</p>
+        <p style="color: #fff; margin: 5px 0 0 0; font-size: 12px;">(256) 274-8530 | rivercityroofingsolutions.com</p>
+      </div>
+    </div>
+  `;
+
+  MailApp.sendEmail({
+    to: data.email,
+    subject: subject,
+    htmlBody: htmlBody,
+    name: "River City Roofing Solutions",
+    replyTo: NOTIFICATION_EMAIL
+  });
+}
+
+// ============================================
+// REFERRAL EMAIL FUNCTIONS
+// ============================================
+function sendReferralNotificationEmail(data, timestamp) {
+  const subject = `🎁 New Referral from ${data.referrerName}!`;
+
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <div style="background: #000; padding: 20px; text-align: center;">
+        <h1 style="color: #39FF14; margin: 0;">🎁 New Referral Submitted!</h1>
+      </div>
+
+      <div style="padding: 20px; background: #f9f9f9;">
+        <h2 style="color: #0066CC; border-bottom: 2px solid #39FF14; padding-bottom: 10px;">Referring Customer</h2>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 10px; font-weight: bold; width: 140px;">Name:</td>
+            <td style="padding: 10px;">${data.referrerName}</td>
+          </tr>
+          <tr style="background: #fff;">
+            <td style="padding: 10px; font-weight: bold;">Phone:</td>
+            <td style="padding: 10px;"><a href="tel:${data.referrerPhone}">${data.referrerPhone}</a></td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; font-weight: bold;">Email:</td>
+            <td style="padding: 10px;"><a href="mailto:${data.referrerEmail}">${data.referrerEmail || "Not provided"}</a></td>
+          </tr>
+        </table>
+
+        <h2 style="color: #0066CC; border-bottom: 2px solid #39FF14; padding-bottom: 10px; margin-top: 20px;">New Lead (Referral)</h2>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 10px; font-weight: bold; width: 140px;">Name:</td>
+            <td style="padding: 10px;"><strong>${data.referralName}</strong></td>
+          </tr>
+          <tr style="background: #fff;">
+            <td style="padding: 10px; font-weight: bold;">Phone:</td>
+            <td style="padding: 10px;"><a href="tel:${data.referralPhone}" style="font-size: 16px; font-weight: bold;">${data.referralPhone}</a></td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; font-weight: bold;">Email:</td>
+            <td style="padding: 10px;"><a href="mailto:${data.referralEmail}">${data.referralEmail || "Not provided"}</a></td>
+          </tr>
+          <tr style="background: #fff;">
+            <td style="padding: 10px; font-weight: bold;">Address:</td>
+            <td style="padding: 10px;"><strong>${data.referralAddress}</strong></td>
+          </tr>
+        </table>
+
+        ${data.salesRep ? `
+        <h2 style="color: #0066CC; border-bottom: 2px solid #39FF14; padding-bottom: 10px; margin-top: 20px;">Sales Rep</h2>
+        <p style="padding: 10px; background: #fff;">${data.salesRep}</p>
+        ` : ""}
+
+        ${data.notes ? `
+        <h2 style="color: #0066CC; border-bottom: 2px solid #39FF14; padding-bottom: 10px; margin-top: 20px;">Notes</h2>
+        <div style="background: #fff; padding: 15px; border-left: 4px solid #39FF14;">
+          ${data.notes.replace(/\n/g, "<br>")}
+        </div>
+        ` : ""}
+
+        <p style="color: #666; font-size: 12px; margin-top: 20px;">
+          Submitted: ${timestamp}<br>
+          Source: Referral Rewards Program
+        </p>
+      </div>
+
+      <div style="background: #000; padding: 15px; text-align: center;">
+        <p style="color: #39FF14; margin: 0; font-size: 14px;">River City Roofing Solutions</p>
+        <p style="color: #fff; margin: 5px 0 0 0; font-size: 12px;">(256) 274-8530</p>
+      </div>
+    </div>
+  `;
+
+  MailApp.sendEmail({
+    to: NOTIFICATION_EMAIL,
+    subject: subject,
+    htmlBody: htmlBody
+  });
+}
+
+function sendReferralConfirmationEmail(data) {
+  if (!data.referrerEmail) return;
+
+  const subject = "Thank You for Your Referral! 🎁";
+
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <div style="background: #000; padding: 20px; text-align: center;">
+        <h1 style="color: #39FF14; margin: 0;">Thank You for Your Referral!</h1>
+      </div>
+
+      <div style="padding: 20px;">
+        <p>Hi ${data.referrerName},</p>
+
+        <p>Thank you for referring <strong>${data.referralName}</strong> to River City Roofing Solutions! We truly appreciate your trust in our services.</p>
+
+        <div style="background: #f9f9f9; padding: 20px; border-left: 4px solid #39FF14; margin: 20px 0;">
+          <h3 style="margin: 0 0 10px 0; color: #0066CC;">What happens next?</h3>
+          <ol style="margin: 0; padding-left: 20px; color: #666;">
+            <li style="margin-bottom: 8px;">We'll reach out to ${data.referralName.split(' ')[0]} within 24-48 hours</li>
+            <li style="margin-bottom: 8px;">If they schedule and complete a roof replacement, you'll earn your reward!</li>
+            <li style="margin-bottom: 8px;">We'll keep you updated on the status of your referral</li>
+          </ol>
+        </div>
+
+        <div style="background: #000; padding: 20px; border-radius: 10px; text-align: center; margin: 20px 0;">
+          <p style="color: #39FF14; font-size: 24px; font-weight: bold; margin: 0;">Reward Tiers</p>
+          <p style="color: #fff; margin: 10px 0;">1st: $100 | 2nd: $250 | 3rd: $500 | 4th+: $1,000 each</p>
+          <p style="color: #39FF14; font-size: 14px; margin: 0;">Earn up to $7,850 with 10 referrals!</p>
+        </div>
+
+        <p>Have more friends or family who need roofing services? Keep those referrals coming!</p>
+
+        <p style="text-align: center; margin: 20px 0;">
+          <a href="https://rivercityroofingsolutions.com/referral-rewards" style="background: #39FF14; color: #000; padding: 12px 30px; text-decoration: none; font-weight: bold; border-radius: 5px; display: inline-block;">Submit Another Referral</a>
+        </p>
+
+        <p>Thank you for being a valued customer!</p>
+
+        <p>Best regards,<br>
+        <strong>The River City Roofing Team</strong></p>
+      </div>
+
+      <div style="background: #000; padding: 15px; text-align: center;">
+        <p style="color: #39FF14; margin: 0; font-size: 14px;">River City Roofing Solutions</p>
+        <p style="color: #fff; margin: 5px 0 0 0; font-size: 12px;">(256) 274-8530 | rivercityroofingsolutions.com</p>
+      </div>
+    </div>
+  `;
+
+  MailApp.sendEmail({
+    to: data.referrerEmail,
+    subject: subject,
+    htmlBody: htmlBody,
+    name: "River City Roofing Solutions",
+    replyTo: NOTIFICATION_EMAIL
+  });
+}
+
+// Test function - run this to verify setup
+function testSetup() {
+  const testData = {
+    parameter: {
+      name: "Test User",
+      email: "test@example.com",
+      phone: "(256) 555-1234",
+      subject: "Test Submission",
+      message: "This is a test message from the setup verification.",
+      preferredInspector: "First Available"
+    }
+  };
+
+  const result = doPost(testData);
+  Logger.log(result.getContent());
+}
+```
+
+## Step 3: Deploy as Web App
+
+1. Click **Deploy** > **New deployment**
+2. Click the gear icon next to "Select type" and choose **Web app**
+3. Set these options:
+   - **Description**: Contact Form Handler
+   - **Execute as**: Me
+   - **Who has access**: Anyone
+4. Click **Deploy**
+5. **Authorize** when prompted (click through the "unsafe" warning - it's your own script)
+6. **Copy the Web App URL** - it looks like:
+   ```
+   https://script.google.com/macros/s/AKfycb.../exec
+   ```
+
+## Step 4: Add URL to Vercel
+
+1. Go to your Vercel project dashboard
+2. Go to **Settings** > **Environment Variables**
+3. Add a new variable:
+   - **Name**: `NEXT_PUBLIC_GOOGLE_SCRIPT_ENDPOINT`
+   - **Value**: (paste the Web App URL from Step 3)
+4. Click **Save**
+5. **Redeploy** your site for the changes to take effect
+
+## Step 5: Test
+
+1. Go to your contact page
+2. Submit a test form
+3. Check:
+   - Email arrives at rcs@rivercityroofingsolutions.com
+   - Entry appears in Google Sheet "Contact Submissions" tab
+   - Confirmation email sent to the submitter
+
+## Troubleshooting
+
+- **"Authorization required"**: Re-authorize the script in Apps Script
+- **No emails**: Check spam folder, verify email address in script
+- **Sheet not updating**: Verify SPREADSHEET_ID matches your sheet
+- **CORS errors**: Make sure deployment is set to "Anyone" access
+
+## Updating the Script
+
+If you need to make changes:
+1. Edit the code in Apps Script
+2. Click **Deploy** > **Manage deployments**
+3. Click the pencil icon on your deployment
+4. Change version to "New version"
+5. Click **Deploy**
+
+
+---
+
+## GOOGLE-SHEETS-GLOSSARY.md
+
+# RCRS DATA GLOSSARY & GOOGLE SHEETS INDEX
+## River City Roofing Solutions - Master Data Reference
+
+**Created:** February 6, 2026
+**Spreadsheet ID:** `1uMEdtHo3xMu2gs21p7dYAgYiPWuCZ3s4a8YU-gJZ31s`
+**Service Account:** `sheets-access@gen-lang-client-0821717467.iam.gserviceaccount.com`
+
+---
+
+## HOW TO USE THIS DOCUMENT
+This is the master index for ALL data in the RCRS system. For each data source, it tells you:
+- **Where** the data lives
+- **How** it gets there (manual entry, form submission, API sync, etc.)
+- **When** it updates (real-time, on sync, manual)
+- **What** it connects to (which pages, charts, tables display it)
+
+---
+
+## GOOGLE SHEETS TABS (All in one spreadsheet)
+
+### Tab 1: `contact-submissions`
+| Field | Details |
+|-------|---------|
+| **What it stores** | Every contact form submission from the website |
+| **How data enters** | Automatically when someone fills out the Contact Form on the website |
+| **Update frequency** | Real-time (every form submission) |
+| **Columns** | id, timestamp, status, sourcePage, name, email, phone, subject, message, preferredInspector, serviceType, serviceArea, leadSource, leadSourceDetail, marketingSource |
+| **Connected to** | Admin Leads page, Command Center dashboard, Google Apps Script email notifications |
+| **Who uses it** | Michael, Sara, Sales Reps (to follow up on leads) |
+| **Notes** | Also triggers email notification via Google Apps Script endpoint |
+
+---
+
+### Tab 2: `referral-submissions`
+| Field | Details |
+|-------|---------|
+| **What it stores** | Every referral form submission from the website |
+| **How data enters** | Automatically when someone submits a Referral Form |
+| **Update frequency** | Real-time (every form submission) |
+| **Columns** | id, timestamp, status, sourcePage, referrerName, referrerPhone, referrerEmail, referralName, referralPhone, referralEmail, referralAddress, salesRep, notes |
+| **Connected to** | Admin dashboard, email notifications |
+| **Who uses it** | Michael, Sara, Sales Reps |
+| **Notes** | Referrer is the person making the referral; Referral is the potential customer |
+
+---
+
+### Tab 3: `Commissions`
+| Field | Details |
+|-------|---------|
+| **What it stores** | Sales rep commission records and payment history |
+| **How data enters** | Synced from `data/commissions.json` via manual sync, or direct entry |
+| **Update frequency** | On manual sync (POST /api/sheets/sync) |
+| **Columns** | salesRep, date, amount, balance, jobId, jobName, description, status |
+| **Connected to** | Command Center > Sales Leaderboard, Command Center > Financial, Sales Portal > Performance, Individual Rep dashboards |
+| **Who uses it** | Michael, Sara (admin view), Sales Reps (own data only) |
+| **Notes** | This is the main source for all sales leaderboard rankings and commission payouts |
+
+---
+
+### Tab 4: `Inventory`
+| Field | Details |
+|-------|---------|
+| **What it stores** | Current inventory of all materials and products |
+| **How data enters** | Synced from `data/inventory.json`, or direct entry in sheets |
+| **Update frequency** | On manual sync or when inventory is updated in portal |
+| **Columns** | sku, name, description, category, cost, price, quantity, minStock, maxStock, unit, supplier, location, imageUrl, lastUpdated, updatedBy |
+| **Connected to** | Command Center > Inventory, Portal > Inventory, Admin > Inventory, Low Stock Alerts, Order Workflow |
+| **Who uses it** | Tia (office), Destin (manager), Michael/Sara (admin), Bart/John (PM for orders) |
+| **Notes** | Low stock alert triggers when quantity < minStock |
+
+---
+
+### Tab 5: `InventoryLogs`
+| Field | Details |
+|-------|---------|
+| **What it stores** | Every inventory transaction (additions, removals, adjustments) |
+| **How data enters** | Automatically when inventory changes via portal or API |
+| **Update frequency** | Real-time with each inventory action |
+| **Columns** | id, sku, action, quantity, previousQty, newQty, reason, performedBy, timestamp |
+| **Connected to** | Inventory audit trail, Admin reports |
+| **Who uses it** | Michael, Sara, Tia (for auditing) |
+| **Notes** | Used to track who changed what and when |
+
+---
+
+### Tab 6: `Customers`
+| Field | Details |
+|-------|---------|
+| **What it stores** | Customer records and contact information |
+| **How data enters** | Created from contact form submissions, manual entry, or JobNimbus sync |
+| **Update frequency** | On creation/sync |
+| **Columns** | customerId, name, email, phone, address, city, state, zip, jobCount, totalSpent, lastJobDate, notes, source, salesRep, createdAt, updatedAt |
+| **Connected to** | Customer Portal, Sales > Customers, Command Center, Invoices |
+| **Who uses it** | All staff (role-filtered views) |
+| **Notes** | Links to JobNimbus contacts when synced |
+
+---
+
+### Tab 7: `Orders`
+| Field | Details |
+|-------|---------|
+| **What it stores** | Material orders and delivery requests |
+| **How data enters** | Created by Project Managers or Office Staff via Portal > Orders |
+| **Update frequency** | Real-time (on order creation/update) |
+| **Columns** | orderId, customerId, customerName, jobId, jobAddress, status, items (JSON), totalCost, totalPrice, createdBy, deliveryDate, deliveredBy |
+| **Connected to** | Driver Portal (delivery queue), Office Portal (order tracking), Inventory (stock deduction) |
+| **Who uses it** | Bart/John (create), Tia (track), Richard/Tae (deliver) |
+| **Notes** | Items column is JSON array of materials with SKU and quantity |
+
+---
+
+### Tab 8: `team-members-import`
+| Field | Details |
+|-------|---------|
+| **What it stores** | Team member profiles, bios, and photos |
+| **How data enters** | Synced from `lib/teamData.ts` on CMS setup, or edited via Admin > Team |
+| **Update frequency** | On manual edit or sync |
+| **Columns** | slug, name, company, category, position, phone, email, altEmail, displayOrder, tagline, bio, region, launchDate, profileImage, truckImage, facebook, instagram, x, tiktok, linkedin |
+| **Connected to** | Website /team page, Individual profile pages /team/[slug], Admin > Team editor |
+| **Who uses it** | Michael, Sara (editing), Public (viewing on website) |
+| **Notes** | Profile edits go through approval workflow before publishing |
+
+---
+
+### Tab 9: `blog-posts`
+| Field | Details |
+|-------|---------|
+| **What it stores** | Blog articles for the website |
+| **How data enters** | Created via Admin > Blog editor, or synced from `lib/blogData.ts` |
+| **Update frequency** | On publish/edit |
+| **Columns** | id, slug, title, date, author, image, keywords, excerpt, content, published |
+| **Connected to** | Website /blog page, Individual posts /blog/[slug], SEO sitemap |
+| **Who uses it** | Michael, Sara (writing/editing), Public (reading) |
+| **Notes** | `published` field controls visibility; unpublished posts are drafts |
+
+---
+
+### Tab 10: `images`
+| Field | Details |
+|-------|---------|
+| **What it stores** | Metadata for all uploaded images |
+| **How data enters** | Automatically on image upload via Admin > Images or profile uploads |
+| **Update frequency** | Real-time (each upload) |
+| **Columns** | id, filename, path, category, uploadedBy, uploadedAt, altText |
+| **Connected to** | Admin > Image Gallery, Blog post images, Team profile images |
+| **Who uses it** | Michael, Sara (managing media library) |
+| **Notes** | Actual image files stored in Vercel Blob; this tab stores metadata only |
+
+---
+
+### Tab 11: `settings`
+| Field | Details |
+|-------|---------|
+| **What it stores** | CMS configuration settings |
+| **How data enters** | Admin > Settings panel |
+| **Update frequency** | On settings change |
+| **Columns** | key, value |
+| **Connected to** | Site-wide configuration, SEO settings |
+| **Who uses it** | Michael, Sara (admin only) |
+
+---
+
+### Tab 12: `page-views`
+| Field | Details |
+|-------|---------|
+| **What it stores** | Website page view tracking (internal analytics) |
+| **How data enters** | Automatically on every page load (via tracking component) |
+| **Update frequency** | Real-time |
+| **Columns** | id, path, timestamp, referrer |
+| **Connected to** | Command Center > Reports, Admin analytics |
+| **Who uses it** | Michael (analytics review) |
+| **Notes** | Auto-rotates to keep last 10,000 views. Separate from Google Analytics. |
+
+---
+
+### Tab 13: `profile-views`
+| Field | Details |
+|-------|---------|
+| **What it stores** | Individual team member profile page views |
+| **How data enters** | Automatically when someone views a /team/[slug] page |
+| **Update frequency** | Real-time |
+| **Columns** | id, slug, teamMemberName, timestamp, source |
+| **Connected to** | Team member analytics, Admin reports |
+| **Who uses it** | Michael, individual team members (own stats) |
+| **Notes** | Auto-rotates to keep last 10,000 views |
+
+---
+
+## OTHER DATA SOURCES
+
+### Local JSON Files (`data/` directory)
+
+| File | What It Stores | Syncs To | Update Method |
+|------|---------------|----------|---------------|
+| `inventory.json` | Master inventory list | Google Sheets `Inventory` tab | Portal updates + manual sync |
+| `commissions.json` | All commission history (25K+ lines) | Google Sheets `Commissions` tab | Manual sync |
+| `documents.json` | Document records | Not synced | API updates |
+| `calls.json` | Phone call logs | Not synced | API logging |
+| `audit-log.json` | System audit trail | Not synced | Automatic logging |
+| `system-config.json` | System settings | Not synced | Admin settings panel |
+| `pending-profile-changes.json` | Staged profile edits | N/A | Profile edit workflow |
+| `pending-profile-edits.json` | Pending edits | N/A | Profile edit workflow |
+| `profile-notifications.json` | Edit notifications | N/A | Profile workflow |
+| `profile-overrides.json` | Profile display overrides | N/A | Admin actions |
+| `profile-reviews.json` | Profile review queue | N/A | Approval workflow |
+| `profile-updates.json` | Profile update history | N/A | Automatic |
+
+### Hardcoded Data Files (`lib/` directory)
+
+| File | What It Stores | Notes |
+|------|---------------|-------|
+| `lib/teamData.ts` | Team member profiles (30KB+) | Primary source, syncs TO sheets |
+| `lib/blogData.ts` | Blog post content (365KB+) | Primary source, syncs TO sheets |
+| `lib/inventoryData.ts` | Fallback inventory data | Used if sheets unavailable |
+| `lib/inventoryTransactions.ts` | Transaction history | Hardcoded reference |
+| `lib/team-roles.ts` | Role definitions & PINs | Auth system, not synced |
+
+---
+
+## EXTERNAL SERVICES
+
+### JobNimbus CRM
+| Field | Details |
+|-------|---------|
+| **What it stores** | Contacts, Jobs, Estimates, Tasks, Invoices |
+| **API URL** | `https://app.jobnimbus.com/api1` |
+| **How it connects** | API calls from `/api/admin/jobnimbus/*` routes |
+| **Sync direction** | Read from JobNimbus → display in portal/admin |
+| **Who uses it** | Michael, Sara, Sales Reps |
+| **Webhook** | `/api/webhooks/jobnimbus` receives real-time updates |
+
+### Google Apps Script (Email)
+| Field | Details |
+|-------|---------|
+| **What it does** | Sends email notifications for form submissions |
+| **Trigger** | Contact form or referral form submission |
+| **Sends to** | rcrs@rivercityroofingsolutions.com |
+| **Data sent** | Form fields via POST request |
+
+### Vercel Blob Storage
+| Field | Details |
+|-------|---------|
+| **What it stores** | Uploaded files: images, photos, documents |
+| **How files get there** | Admin uploads, profile photos, ticket photos, customer uploads |
+| **Connected to** | Image Gallery, Team Profiles, Delivery Proof Photos |
+
+### Google Analytics
+| Field | Details |
+|-------|---------|
+| **Tracking ID** | G-Y8PB85BZC5 |
+| **What it tracks** | All public website traffic, page views, events |
+| **Connected to** | Admin > Settings (ID display), Website layout (tracking script) |
+| **Notes** | Respects cookie consent; default is denied until user consents |
+
+---
+
+## DATA FLOW DIAGRAMS
+
+### Lead Flow (New Customer Contact)
+```
+Customer visits website
+    |
+    v
+Fills out Contact Form (/contact or header form)
+    |
+    v
+POST /api/forms/contact
+    |
+    +---> Google Sheets "contact-submissions" tab (stored)
+    |
+    +---> Google Apps Script (email to rcrs@rivercityroofingsolutions.com)
+    |
+    v
+Admin sees new lead in dashboard
+    |
+    v
+Sales rep assigned, follows up
+    |
+    v
+(Manual) Create contact in JobNimbus
+    |
+    v
+Job created in JobNimbus -> tracked through completion
+```
+
+### Inventory Flow (Material Order to Delivery)
+```
+Project Manager creates order (Portal > Orders > New)
+    |
+    v
+POST /api/portal/orders/workflow
+    |
+    +---> Google Sheets "Orders" tab (order record)
+    |
+    +---> Inventory quantities updated (Google Sheets "Inventory" + data/inventory.json)
+    |
+    +---> Google Sheets "InventoryLogs" tab (transaction logged)
+    |
+    v
+Driver sees delivery in Driver Portal
+    |
+    v
+Driver: Load Verified -> En Route -> Arrived -> Delivered
+    |
+    v
+Driver uploads proof photos (Vercel Blob)
+    |
+    v
+Driver captures signature
+    |
+    v
+Delivery marked complete -> Order status updated
+```
+
+### Sales/Commission Flow
+```
+Sales rep closes deal (tracked in JobNimbus)
+    |
+    v
+Commission record added to data/commissions.json
+    |
+    v
+Manual sync: POST /api/sheets/sync
+    |
+    v
+Google Sheets "Commissions" tab updated
+    |
+    v
+Command Center > Sales Leaderboard calculates rankings
+    |
+    v
+Individual rep sees their performance in Sales Portal
+```
+
+### Blog Post Flow
+```
+Admin writes post in Admin > Blog editor
+    |
+    v
+POST /api/cms/blog
+    |
+    v
+Google Sheets "blog-posts" tab (saved)
+    |
+    v
+Published = true -> appears on /blog page
+    |
+    v
+Sitemap.xml regenerated on build
+    |
+    v
+Google indexes new page
+```
+
+### Team Profile Edit Flow
+```
+Team member requests edit via Portal > My Profile
+    |
+    v
+POST /api/profile/submit-edit
+    |
+    v
+data/pending-profile-edits.json (staged)
+    |
+    v
+Admin sees pending edit in Admin > Approvals
+    |
+    v
+Admin approves: POST /api/profile/approve
+    |
+    v
+Google Sheets "team-members-import" tab (updated)
+    |
+    v
+Website /team/[slug] page shows updated info
+```
+
+---
+
+## BACKUP RECOMMENDATIONS
+
+### Current State
+- **Google Sheets**: No automatic backup (Google provides version history)
+- **Local JSON files**: In git repository (backed up on push)
+- **Vercel Blob**: No backup system
+- **Hardcoded data files**: In git repository
+
+### Recommended Backup Plan
+1. **Google Sheets** - Enable Google Takeout scheduled export, or set up Apps Script to copy sheet daily to a backup spreadsheet
+2. **data/ directory** - Already in git; ensure regular commits
+3. **Vercel Blob** - Set up periodic download of blob contents
+4. **Environment variables** - Document in `.env.local.configured` (already done, in gitignore)
+
+---
+
+## SYNC COMMANDS REFERENCE
+
+| Action | How to Trigger | What It Does |
+|--------|---------------|--------------|
+| Sync all data to Sheets | POST `/api/sheets/sync` | Pushes inventory, team, commissions, customers to Google Sheets |
+| Sync inventory only | POST `/api/sheets/sync?syncType=inventory` | Pushes inventory data to Sheets |
+| Sync from portal | POST `/api/portal/sync?action=sync&type=inventory` | Portal-triggered inventory sync |
+| Setup CMS sheets | GET `/api/cms/setup` | Creates all CMS tabs and imports initial data from hardcoded files |
+| Manual page in admin | Visit `/admin/settings` > Data Sync section | UI for triggering syncs |
+
+---
+
+## THINGS TO FILL IN (Michael's Input Needed)
+
+- [ ] **LeadSpeed** - What is it? How does it connect? Add to this glossary.
+- [ ] **Review data** - CSV with real review count/data to update SEO schema (currently shows 47)
+- [ ] **Job Breakdown format** - Define fields for the new job breakdown form/portal based on examples at `G:\My Drive\...\BREAKDOWNEXAMPLES`
+- [ ] **Additional Google Sheets tabs** - Any tabs you've manually created that aren't listed here?
+- [ ] **Backup frequency preference** - Daily? Weekly? How many versions to keep?
+- [ ] **Which data should be consolidated** vs kept separate?
+
+
+---
+
+## ENV-CONFIGURATION-STATUS.md
+
+# Environment Configuration Status
+
+This document summarizes the current state of environment variables for River City Roofing Solutions.
+
+## Configuration Files Created
+
+| File | Purpose | Status |
+|------|---------|--------|
+| `.env.example` | Template with all variables documented | Created |
+| `.env.local.configured` | Reference with actual values (review before using) | Created |
+| `SETUP.md` | Comprehensive setup documentation | Created |
+
+## Environment Variable Audit
+
+### CONFIGURED (values present)
+
+| Variable | Source | Status |
+|----------|--------|--------|
+| `JOBNIMBUS_API_KEY` | .env.local | Working |
+| `JOBNIMBUS_API_URL` | .env.local | Working |
+| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | .env.vercel | Working |
+| `GOOGLE_PRIVATE_KEY` | .env.vercel | Working |
+| `GOOGLE_SHEETS_ID` | .env.vercel | Working |
+| `NEXT_PUBLIC_GOOGLE_SCRIPT_ENDPOINT` | .env.vercel | Working |
+| `NEXT_PUBLIC_GA_ID` | .env.vercel | Working |
+| `BLOB_READ_WRITE_TOKEN` | .env.local | Working |
+
+### NEEDS CONFIGURATION
+
+| Variable | Priority | Notes |
+|----------|----------|-------|
+| `ADMIN_PASSWORD` | HIGH | Change from default immediately! |
+| `JWT_SECRET` | HIGH | Generate secure secret for sessions |
+| `GROUPME_BOT_ID` | Medium | For team notifications |
+| `TEAMUP_API_KEY` | Medium | For calendar integration |
+| `TWILIO_*` | Low | Optional SMS notifications |
+| `SENDGRID_API_KEY` | Low | Optional email via SendGrid |
+
+### SECURITY ISSUES FIXED
+
+1. **Admin Authentication**
+   - Previously: Used `NEXT_PUBLIC_ADMIN_PASSWORD` (exposed to browser)
+   - Now: Uses `ADMIN_PASSWORD` via secure API authentication
+   - File fixed: `app/admin/layout.tsx`
+
+2. **Service Account Key**
+   - File `gen-lang-client-*.json` is in .gitignore
+   - Contains private key - should NOT be committed
+
+3. **Rate Limiting**
+   - Admin login now has rate limiting and lockout protection
+   - Prevents brute force attacks
+
+## Variable Categories
+
+### Public Variables (NEXT_PUBLIC_*)
+These are exposed to the browser and should NOT contain secrets.
+
+```
+NEXT_PUBLIC_GOOGLE_SCRIPT_ENDPOINT  - OK (public endpoint)
+NEXT_PUBLIC_GA_ID                   - OK (analytics tracking ID)
+NEXT_PUBLIC_SITE_URL                - OK (public URL)
+NEXT_PUBLIC_COMPANY_NAME            - OK (public info)
+NEXT_PUBLIC_COMPANY_PHONE           - OK (public info)
+NEXT_PUBLIC_COMPANY_LOCATION        - OK (public info)
+NEXT_PUBLIC_APP_VERSION             - OK (version info)
+```
+
+### Server-Only Variables
+These are NEVER exposed to the browser.
+
+```
+JOBNIMBUS_API_KEY          - CRM access
+GOOGLE_SERVICE_ACCOUNT_EMAIL - Service account
+GOOGLE_PRIVATE_KEY         - Private key (CRITICAL)
+GOOGLE_SHEETS_ID           - Sheet ID
+ADMIN_PASSWORD             - Admin access (CRITICAL)
+JWT_SECRET                 - Session tokens (CRITICAL)
+GROUPME_*                  - Team notifications
+TEAMUP_*                   - Calendar access
+TWILIO_*                   - SMS service
+SENDGRID_API_KEY           - Email service
+CALLS_WEBHOOK_API_KEY      - Webhook auth
+JOBNIMBUS_WEBHOOK_SECRET   - Webhook validation
+```
+
+## Recommended Actions
+
+### Immediate (Security)
+
+1. Generate a strong `ADMIN_PASSWORD`:
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(16).toString('hex'))"
+   ```
+
+2. Generate `JWT_SECRET`:
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+   ```
+
+3. Add these to Vercel production environment variables
+
+### Soon (Functionality)
+
+1. Set up GroupMe bot for team notifications
+2. Configure TeamUp calendar if using scheduling features
+
+### Optional
+
+1. Twilio for SMS notifications
+2. SendGrid for transactional emails
+3. Facebook Pixel for marketing analytics
+
+## Files Modified
+
+1. `app/admin/layout.tsx` - Now uses secure API authentication
+2. `.gitignore` - Added explicit service account file patterns
+3. Created: `.env.example`, `.env.local.configured`, `SETUP.md`
+
+## Vercel Environment Variables
+
+Make sure these are set in Vercel Dashboard > Settings > Environment Variables:
+
+**Production (required)**:
+- JOBNIMBUS_API_KEY
+- GOOGLE_SERVICE_ACCOUNT_EMAIL
+- GOOGLE_PRIVATE_KEY
+- GOOGLE_SHEETS_ID
+- NEXT_PUBLIC_GOOGLE_SCRIPT_ENDPOINT
+- ADMIN_PASSWORD (different from dev!)
+- JWT_SECRET (different from dev!)
+
+**All environments**:
+- NEXT_PUBLIC_GA_ID
+- NEXT_PUBLIC_SITE_URL
+- NEXT_PUBLIC_COMPANY_*
+
+## Testing Checklist
+
+- [ ] Admin login works with new API authentication
+- [ ] Contact form submissions work
+- [ ] JobNimbus data loads correctly
+- [ ] Google Sheets sync functions
+- [ ] Analytics tracking fires
+- [ ] Rate limiting blocks rapid login attempts
+
+
+---

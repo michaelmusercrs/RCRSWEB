@@ -55,3 +55,15 @@ export type { StockAdjustModalProps, InventoryItemBasic } from './StockAdjustMod
 // ExtensionCard - Card component for phone system extensions
 export { ExtensionCard, ExtensionCardCompact } from './ExtensionCard';
 export type { ExtensionCardProps } from './ExtensionCard';
+
+// BreakdownSheet - Customer job breakdown sheet with materials and labor
+export { default as BreakdownSheet } from './BreakdownSheet';
+
+// InvoiceGenerator - Invoice viewing and management component
+export { default as InvoiceGenerator } from './InvoiceGenerator';
+
+// DeliveryWidget - Dashboard widget showing today's delivery summary
+export { default as DeliveryWidget } from './DeliveryWidget';
+
+// ResponseTimeDashboard - Lead response time analytics visualization
+export { ResponseTimeDashboard } from './ResponseTimeDashboard';

@@ -31,6 +31,7 @@ export interface ServiceArea {
   keyDetails?: string[];
   expansionTimeline?: string[];
   image?: string;
+  altText?: string;
   description?: string;
   mapQuery?: string;
 }
@@ -363,7 +364,8 @@ export const serviceAreas: ServiceArea[] = [
     id: 1,
     slug: 'decatur-al',
     mapQuery: 'Decatur,+AL',
-    image: '/uploads/area-decatur.png',
+    image: '/uploads/area-decatur.jpg',
+    altText: 'Tennessee River bridge in Decatur Alabama - roofing services area',
     description: 'Our headquarters in Decatur provides same-day service and emergency response for residential and commercial roofing throughout Morgan County.',
     name: 'Decatur',
     status: 'Active',
@@ -383,6 +385,7 @@ export const serviceAreas: ServiceArea[] = [
     slug: 'huntsville-al',
     mapQuery: 'Huntsville,+AL',
     image: '/uploads/area-huntsville-rocket.jpg',
+    altText: 'US Space and Rocket Center in Huntsville Alabama - roofing services area',
     description: 'Serving the Rocket City with expert roofing solutions for homes and businesses. Fast response times and metal roofing specialists.',
     name: 'Huntsville',
     status: 'Active',
@@ -390,7 +393,7 @@ export const serviceAreas: ServiceArea[] = [
     population: '~215,000',
     coverage: 'City and Madison County area',
     services: 'All residential and commercial',
-    responseTime: '1-2 days',
+    responseTime: 'Same day - 2 days',
     keyDetails: [
       'High demand market',
       'Metal roofing popular',
@@ -403,6 +406,7 @@ export const serviceAreas: ServiceArea[] = [
     slug: 'madison-al',
     mapQuery: 'Madison,+AL',
     image: '/uploads/area-madison.jpg',
+    altText: 'Suburban neighborhood in Madison Alabama - roofing services area',
     description: 'Madison growing community deserves quality roofing. We specialize in LeafX gutter guards and residential roof replacement.',
     name: 'Madison',
     status: 'Active',
@@ -410,7 +414,7 @@ export const serviceAreas: ServiceArea[] = [
     population: '~42,000',
     coverage: 'City and surrounding suburbs',
     services: 'All residential services',
-    responseTime: '1-2 days',
+    responseTime: 'Same day - 2 days',
     keyDetails: [
       'Growing suburban market',
       'LeafX gutter guards popular',
@@ -423,6 +427,7 @@ export const serviceAreas: ServiceArea[] = [
     slug: 'athens-al',
     mapQuery: 'Athens,+AL',
     image: '/uploads/area-athens.jpg',
+    altText: 'Limestone County Courthouse in Athens Alabama - roofing services area',
     description: 'Serving Athens and Limestone County with comprehensive roofing services. From college housing to historic homes.',
     name: 'Athens',
     status: 'Active',
@@ -430,7 +435,7 @@ export const serviceAreas: ServiceArea[] = [
     population: '~24,000',
     coverage: 'City of Athens area',
     services: 'All residential and commercial',
-    responseTime: '1-2 days',
+    responseTime: 'Same day - 2 days',
     keyDetails: [
       'College town',
       'Diverse housing stock',
@@ -442,13 +447,14 @@ export const serviceAreas: ServiceArea[] = [
     slug: 'owens-crossroads-al',
     mapQuery: 'Owens+Crossroads,+AL',
     image: '/uploads/area-owens-crossroads.jpg',
+    altText: 'Mountain overlook near Hampton Cove and Owens Cross Roads Alabama - roofing services area',
     description: 'Quality roofing services for the Owens Crossroads community. Personalized attention and strong local relationships.',
     name: 'Owens Crossroads',
     status: 'Active',
     state: 'AL',
     coverage: 'Community and surrounding areas',
     services: 'Residential and some commercial',
-    responseTime: '1-2 days',
+    responseTime: 'Same day - 2 days',
     keyDetails: [
       'Smaller community',
       'Picturesque area',
@@ -460,14 +466,15 @@ export const serviceAreas: ServiceArea[] = [
     id: 6,
     slug: 'north-alabama',
     mapQuery: 'North+Alabama',
-    image: '/uploads/area-north-alabama.png',
+    image: '/uploads/area-north-alabama.jpg',
+    altText: 'Scenic rolling hills and countryside in North Alabama - roofing services area',
     description: 'Proudly serving all of North Alabama with storm damage expertise and insurance claim support.',
     name: 'General North Alabama Territory',
     status: 'Active',
     state: 'AL',
     coverage: 'Northern Alabama communities',
     services: 'Selective based on location',
-    responseTime: '2-3 days',
+    responseTime: 'Next day - 3 days',
     keyDetails: [
       'Storm-prone region',
       'Hail damage common',
@@ -480,6 +487,7 @@ export const serviceAreas: ServiceArea[] = [
     slug: 'birmingham-al',
     mapQuery: 'Birmingham,+AL',
     image: '/uploads/area-birmingham.jpg',
+    altText: 'Birmingham Alabama city skyline - roofing services expansion area',
     description: 'Coming soon to Birmingham! Expanding our quality roofing services to Alabamas largest metro area.',
     name: 'Birmingham',
     status: 'Expansion',
@@ -509,6 +517,7 @@ export const serviceAreas: ServiceArea[] = [
     slug: 'nashville-tn',
     mapQuery: 'Nashville,+TN',
     image: '/uploads/area-nashville.webp',
+    altText: 'Nashville Tennessee skyline - roofing services expansion area',
     description: 'Future expansion to Music City. Commercial and residential roofing services coming 2026.',
     name: 'Nashville',
     status: 'Expansion',

@@ -33,7 +33,7 @@ export default function ReportsPage() {
   });
 
   const reportTypes = [
-    { id: 'delivery', label: 'Deliveries', icon: Truck, color: 'bg-blue-500' },
+    { id: 'delivery', label: 'Deliveries', icon: Truck, color: 'bg-brand-green' },
     { id: 'billing', label: 'Billing', icon: DollarSign, color: 'bg-green-500' },
     { id: 'inventory', label: 'Inventory', icon: Package, color: 'bg-orange-500' },
     { id: 'team', label: 'Team', icon: Users, color: 'bg-purple-500' },
@@ -226,9 +226,17 @@ export default function ReportsPage() {
         <main className="max-w-7xl mx-auto px-6 py-8">
           {isLoading ? (
             <div className="flex items-center justify-center py-20">
-              <div className="text-center">
-                <Loader2 className="animate-spin mx-auto text-brand-green" size={48} />
-                <p className="text-neutral-400 mt-4">Loading report data...</p>
+              <div className="flex flex-col items-center gap-4">
+                <div className="relative">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-green/20 to-emerald-500/20 border border-brand-green/30 flex items-center justify-center">
+                    <BarChart3 className="text-brand-green" size={32} />
+                  </div>
+                  <div className="absolute inset-0 rounded-2xl border-2 border-brand-green/30 animate-ping" />
+                </div>
+                <div className="text-center">
+                  <h2 className="text-lg font-semibold text-white">Generating Report</h2>
+                  <p className="text-sm text-zinc-400 mt-1">Crunching the numbers...</p>
+                </div>
               </div>
             </div>
           ) : (
@@ -316,7 +324,7 @@ export default function ReportsPage() {
                       <div className="space-y-3">
                         {[
                           { status: 'Completed', count: 142, color: 'bg-green-500' },
-                          { status: 'In Progress', count: 10, color: 'bg-blue-500' },
+                          { status: 'In Progress', count: 10, color: 'bg-brand-green' },
                           { status: 'Pending', count: 4, color: 'bg-yellow-500' },
                           { status: 'Cancelled', count: 2, color: 'bg-red-500' },
                         ].map((item) => (
@@ -539,12 +547,12 @@ export default function ReportsPage() {
                     <div className="overflow-x-auto">
                       <div className="flex gap-2 min-w-max pb-4">
                         {[
-                          { stage: 'Order Created', count: 3, time: 5, color: 'bg-gray-500' },
+                          { stage: 'Order Created', count: 3, time: 5, color: 'bg-white/50' },
                           { stage: 'Reviewed', count: 2, time: 15, color: 'bg-cyan-500' },
-                          { stage: 'Driver Assigned', count: 2, time: 10, color: 'bg-blue-500' },
+                          { stage: 'Driver Assigned', count: 2, time: 10, color: 'bg-brand-green' },
                           { stage: 'Materials Pulled', count: 4, time: 45, color: 'bg-yellow-500', bottleneck: true },
                           { stage: 'Load Verified', count: 2, time: 15, color: 'bg-purple-500' },
-                          { stage: 'En Route', count: 1, time: 35, color: 'bg-indigo-500' },
+                          { stage: 'En Route', count: 1, time: 35, color: 'bg-brand-green' },
                           { stage: 'Delivered', count: 0, time: 20, color: 'bg-teal-500' },
                           { stage: 'Billing', count: 8, time: 480, color: 'bg-orange-500', bottleneck: true },
                         ].map((stage, i) => (

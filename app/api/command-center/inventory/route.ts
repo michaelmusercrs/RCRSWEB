@@ -4,22 +4,25 @@
  * Enterprise-grade inventory management with Google Sheets integration.
  * Implements strict role-based field filtering per RCRS Command Center specifications.
  *
- * Data Storage:
- * - Primary: Google Sheets (when GOOGLE_SERVICE_ACCOUNT_EMAIL and GOOGLE_PRIVATE_KEY are configured)
- * - Fallback: Local JSON file (data/inventory.json) when Google Sheets is not configured
+ * Data Storage Hierarchy:
+ * 1. Primary: Google Sheets (when GOOGLE_SERVICE_ACCOUNT_EMAIL and GOOGLE_PRIVATE_KEY are configured)
+ * 2. Secondary: Local JSON file (data/inventory.json)
+ * 3. Fallback: inventoryData.ts (11 built-in items from PDF inventory list)
  *
  * The API automatically selects the appropriate storage backend at runtime.
  *
  * @author RCRS Development Team
- * @version 1.1.0
+ * @version 1.2.0
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { GoogleSpreadsheet, GoogleSpreadsheetRow } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
 import { Role, isValidRole, ROLE_HIERARCHY } from '@/types/roles';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { inventoryProducts, InventoryProduct } from '@/lib/inventoryData';
 
 // =============================================================================
 // CONFIGURATION
@@ -202,19 +205,59 @@ class JsonInventoryService {
     return `${prefix}-${timestamp}-${random}`;
   }
 
+  /**
+   * Convert InventoryProduct from inventoryData.ts to InventoryItemFull format
+   */
+  private convertInventoryProduct(product: InventoryProduct): InventoryItemFull {
+    return {
+      sku: product.productId,
+      name: product.productName,
+      description: product.description,
+      category: product.category,
+      cost: product.cost,
+      price: product.price,
+      quantity: product.currentQty,
+      minStock: product.minQty,
+      maxStock: product.maxQty,
+      unit: product.unit,
+      supplier: product.supplier,
+      location: product.location,
+      imageUrl: product.imageUrl,
+      lastUpdated: new Date().toISOString(),
+      updatedBy: 'System',
+    };
+  }
+
+  /**
+   * Get default inventory items from inventoryData.ts
+   */
+  private getDefaultInventoryItems(): InventoryItemFull[] {
+    return inventoryProducts.map(product => this.convertInventoryProduct(product));
+  }
+
   private async loadData(): Promise<InventoryJsonData> {
-    if (this.data) return this.data;
+    if (this.data && this.data.items.length > 0) return this.data;
 
     try {
       const fileContent = await fs.readFile(INVENTORY_JSON_PATH, 'utf-8');
-      this.data = JSON.parse(fileContent) as InventoryJsonData;
-      return this.data;
+      const jsonData = JSON.parse(fileContent) as InventoryJsonData;
+
+      // If JSON file has items, use them
+      if (jsonData.items && jsonData.items.length > 0) {
+        this.data = jsonData;
+        return this.data;
+      }
     } catch (error) {
-      console.error('Failed to load inventory JSON:', error);
-      // Return empty data structure if file doesn't exist
-      this.data = { items: [], logs: [] };
-      return this.data;
+      console.log('JSON file not found or invalid, using inventoryData.ts as source');
     }
+
+    // Fallback to inventoryProducts from inventoryData.ts
+    console.log('Loading inventory from inventoryData.ts (11 items)');
+    this.data = {
+      items: this.getDefaultInventoryItems(),
+      logs: []
+    };
+    return this.data;
   }
 
   private async saveData(): Promise<void> {
@@ -1083,6 +1126,9 @@ async function getInventoryService(): Promise<InventoryService | JsonInventorySe
  * - role: Override role for testing (use header x-user-role in production)
  */
 export async function GET(request: NextRequest): Promise<NextResponse<InventoryApiResponse>> {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response as NextResponse<InventoryApiResponse>;
+
   try {
     const role = getRoleFromRequest(request);
     const { searchParams } = new URL(request.url);
@@ -1145,6 +1191,9 @@ export async function GET(request: NextRequest): Promise<NextResponse<InventoryA
  * - imageUrl: string (optional)
  */
 export async function POST(request: NextRequest): Promise<NextResponse<InventoryApiResponse>> {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response as NextResponse<InventoryApiResponse>;
+
   try {
     const role = getRoleFromRequest(request);
 
@@ -1221,6 +1270,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<Inventory
  * - reason: string (required for adjustments)
  */
 export async function PATCH(request: NextRequest): Promise<NextResponse<InventoryApiResponse>> {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response as NextResponse<InventoryApiResponse>;
+
   try {
     const role = getRoleFromRequest(request);
 
@@ -1339,6 +1391,9 @@ export async function PATCH(request: NextRequest): Promise<NextResponse<Inventor
  * - sku: string (required)
  */
 export async function DELETE(request: NextRequest): Promise<NextResponse<InventoryApiResponse>> {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response as NextResponse<InventoryApiResponse>;
+
   try {
     const role = getRoleFromRequest(request);
 

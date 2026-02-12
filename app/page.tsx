@@ -2,16 +2,18 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Phone, MapPin, Clock, Shield, Award, Users, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Phone, MapPin, Clock, Shield, Award, Users, CheckCircle2, ArrowRight, CloudLightning } from 'lucide-react';
 import AnimatedHeroText from '@/components/AnimatedHeroText';
 import RotatingText from '@/components/RotatingText';
+import StructuredData from '@/components/StructuredData';
+import { generateFAQSchema, generateHomepageStructuredData } from '@/lib/seo';
 import { blogPosts } from '@/lib/blogData';
 import { services, serviceAreas } from '@/lib/servicesData';
 import { getFeaturedReviews } from '@/lib/reviewsData';
 
 export default function HomePage() {
-  // Get latest 3 blog posts
-  const latestPosts = blogPosts.slice(0, 3);
+  // Get latest 3 blog posts (array is sorted oldest-first, so take from end)
+  const latestPosts = [...blogPosts].reverse().slice(0, 3);
 
   // Get primary services
   const primaryServices = services.filter(s => s.category === 'Primary').slice(0, 6);
@@ -22,8 +24,36 @@ export default function HomePage() {
   // Get featured reviews
   const featuredReviews = getFeaturedReviews(6);
 
+  // Homepage FAQ data
+  const homepageFAQs = [
+    {
+      question: 'How much does a new roof cost in North Alabama?',
+      answer: 'A typical residential roof replacement in North Alabama ranges from $5,000 to $25,000+ depending on the size of your roof, materials chosen, and complexity of the job. We offer free inspections and detailed quotes so you know exactly what to expect.',
+    },
+    {
+      question: 'Do you offer free roof inspections?',
+      answer: 'Yes! We provide completely free, no-obligation roof inspections for homeowners across North Alabama. Our certified inspectors will assess your roof\'s condition, document any issues with photos, and provide honest recommendations.',
+    },
+    {
+      question: 'How long does a roof replacement take?',
+      answer: 'Most residential roof replacements are completed in 1-3 days, depending on the size and complexity of the project. We work efficiently to minimize disruption to your daily life while ensuring top-quality workmanship.',
+    },
+    {
+      question: 'Do you help with insurance claims for storm damage?',
+      answer: 'Absolutely! We have extensive experience working with insurance companies on storm and hail damage claims. We handle all documentation, photos, and communication with your insurance adjuster to maximize your claim.',
+    },
+    {
+      question: 'What areas do you serve?',
+      answer: 'We serve all of North Alabama including Decatur, Huntsville, Madison, Athens, Owens Cross Roads, and surrounding communities. We\'re expanding to Birmingham and Nashville. Contact us to confirm service in your area.',
+    },
+  ];
+
+  const faqSchema = generateFAQSchema(homepageFAQs);
+  const homepageSchemas = generateHomepageStructuredData();
+
   return (
     <div className="min-h-screen text-white">
+      <StructuredData data={[...homepageSchemas, faqSchema]} />
       {/* Hero Section - Uses global video background */}
       <div className="-mt-20 min-h-screen flex items-center justify-center px-6 pt-20">
         <div className="max-w-5xl mx-auto text-center">
@@ -53,9 +83,9 @@ export default function HomePage() {
           />
 
           {/* Subtitle - White with shadow for visibility */}
-          <p className="text-lg md:text-xl max-w-2xl mx-auto text-white leading-relaxed mb-6 drop-shadow-lg font-semibold">
-            North Alabama's Premier Roofing Company
-          </p>
+          <h1 className="text-2xl md:text-3xl lg:text-4xl max-w-2xl mx-auto text-white leading-relaxed mb-6 drop-shadow-lg font-black uppercase tracking-wider">
+            North Alabama&apos;s Premier Roofing Company
+          </h1>
 
           {/* CTA Buttons - Green with Blue Text */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -158,20 +188,27 @@ export default function HomePage() {
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
             {activeAreas.map((area) => (
-              <Card
-                key={area.id}
-                className="border-neutral-800 bg-black hover:bg-brand-green hover:text-black transition-all duration-300 group text-center"
-              >
-                <CardContent className="p-6">
-                  <MapPin className="h-8 w-8 mx-auto mb-3 text-brand-green group-hover:text-black" />
-                  <h3 className="font-black uppercase tracking-wider text-lg mb-1 group-hover:text-black">
-                    {area.name}
-                  </h3>
-                  <p className="text-xs text-neutral-400 group-hover:text-black/75 uppercase tracking-widest">
-                    {area.state}
-                  </p>
-                </CardContent>
-              </Card>
+              <Link key={area.id} href={`/service-areas/${area.slug}`} className="block">
+                <Card
+                  className="border-neutral-800 bg-black hover:border-brand-green transition-all duration-300 group text-center overflow-hidden"
+                >
+                  {area.image && (
+                    <div className="h-32 relative">
+                      <Image src={area.image} alt={`${area.name} ${area.state} roofing`} fill className="object-cover" />
+                      <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all" />
+                    </div>
+                  )}
+                  <CardContent className="p-4">
+                    <MapPin className="h-6 w-6 mx-auto mb-2 text-brand-green" />
+                    <h3 className="font-black uppercase tracking-wider text-lg mb-1 group-hover:text-brand-green transition-colors">
+                      {area.name}
+                    </h3>
+                    <p className="text-xs text-neutral-400 uppercase tracking-widest">
+                      {area.state}
+                    </p>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
 
@@ -293,8 +330,8 @@ export default function HomePage() {
                     BEFORE
                   </div>
                   <Image
-                    src="/uploads/service-storm.jpg"
-                    alt="Before: Worn roof in Madison"
+                    src="/uploads/service-residential.png"
+                    alt="Before: Aging commercial roof in Madison"
                     fill
                     className="object-cover"
                   />
@@ -304,8 +341,8 @@ export default function HomePage() {
                     AFTER
                   </div>
                   <Image
-                    src="/uploads/service-residential.png"
-                    alt="After: Premium roof replacement in Madison"
+                    src="/uploads/service-commercial.png"
+                    alt="After: Premium commercial roof replacement in Madison"
                     fill
                     className="object-cover"
                   />
@@ -368,7 +405,7 @@ export default function HomePage() {
           </div>
 
           <div className="text-center mt-12">
-            <p className="text-neutral-400 text-lg mb-4">Rated 5.0 stars by 200+ customers</p>
+            <p className="text-neutral-400 text-lg mb-4">Rated 5.0 stars on Google Reviews</p>
             <Button asChild size="lg" variant="outline" className="border-2 border-brand-green text-brand-green hover:bg-brand-green hover:text-black font-bold uppercase tracking-widest">
               <Link href="/contact">Leave a Review</Link>
             </Button>
@@ -418,6 +455,63 @@ export default function HomePage() {
                 </Card>
               );
             })}
+          </div>
+        </div>
+      </section>
+
+      {/* Storm Report CTA Banner */}
+      <section className="py-12 md:py-16 px-6 bg-black/85 backdrop-blur-sm border-t border-neutral-800">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-neutral-950 border-2 border-brand-green/40 rounded-2xl p-8 md:p-12 flex flex-col md:flex-row items-center gap-8">
+            <div className="flex-1 text-center md:text-left">
+              <div className="inline-flex items-center gap-2 bg-brand-green/15 px-3 py-1 rounded-full mb-4">
+                <CloudLightning className="w-4 h-4 text-brand-green" />
+                <span className="text-brand-green text-xs font-bold uppercase tracking-widest">Free Tool</span>
+              </div>
+              <h2 className="text-3xl md:text-4xl font-black uppercase tracking-wider mb-3">
+                Check Your Address for Storm Damage
+              </h2>
+              <p className="text-neutral-300 leading-relaxed">
+                Get a free, instant report showing recent hail and storm activity near your property.
+                Real data from the National Weather Service &mdash; no obligation.
+              </p>
+            </div>
+            <div className="flex-shrink-0">
+              <Button asChild size="lg" className="bg-brand-green text-black hover:bg-lime-400 font-bold uppercase tracking-widest px-8 py-7 text-lg shadow-xl whitespace-nowrap">
+                <Link href="/check-my-address">Check My Address</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-12 md:py-16 px-6 bg-black/80 backdrop-blur-sm border-t border-neutral-800">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-8">
+            <div className="inline-block mb-4">
+              <span className="text-xs uppercase tracking-widest font-bold text-brand-green">FAQ</span>
+            </div>
+            <h2 className="text-4xl md:text-5xl font-black uppercase tracking-wider mb-4">
+              Common Roofing Questions
+            </h2>
+            <p className="text-lg text-neutral-300 max-w-2xl mx-auto">
+              Answers to the most frequently asked questions from North Alabama homeowners
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {homepageFAQs.map((faq, idx) => (
+              <details key={idx} className="bg-black border border-neutral-800 rounded-lg p-6 group hover:border-brand-green transition-colors">
+                <summary className="font-black uppercase tracking-wider cursor-pointer list-none flex justify-between items-center">
+                  {faq.question}
+                  <CheckCircle2 className="h-5 w-5 text-brand-green flex-shrink-0 ml-4" />
+                </summary>
+                <p className="text-neutral-400 mt-4 leading-relaxed">
+                  {faq.answer}
+                </p>
+              </details>
+            ))}
           </div>
         </div>
       </section>

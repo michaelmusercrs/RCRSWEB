@@ -2,6 +2,12 @@
   "framework": "nextjs",
   "buildCommand": "rm -rf .next node_modules/.cache && npm run build",
   "cleanUrls": true,
+  "crons": [
+    {
+      "path": "/api/cron/check-lead-timers",
+      "schedule": "*/2 * * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/command-center/:path*",

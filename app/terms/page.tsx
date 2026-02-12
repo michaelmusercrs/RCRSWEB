@@ -13,7 +13,7 @@ export default function TermsOfServicePage() {
     <div className="min-h-screen bg-black/80 backdrop-blur-sm">
       <div className="container mx-auto px-4 py-16 max-w-4xl">
         <h1 className="text-4xl font-bold text-white mb-8">Terms of Service</h1>
-        <p className="text-gray-400 mb-8">Last Updated: December 2, 2024</p>
+        <p className="text-gray-400 mb-8">Last Updated: February 6, 2026</p>
 
         <div className="prose prose-invert prose-lg max-w-none space-y-8">
           <section>

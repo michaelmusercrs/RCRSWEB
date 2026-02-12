@@ -5,11 +5,13 @@
  *
  * Displays billing overview, invoices, payment tracking, and financial summaries.
  * Primary tool for Office staff to manage customer billing.
+ * Fetches real data from /api/portal/billing
  *
  * Role-based: Requires billing.view permission
  */
 
 import * as React from 'react';
+import Link from 'next/link';
 import {
   CreditCard,
   DollarSign,
@@ -23,67 +25,50 @@ import {
   Plus,
   ArrowUpRight,
   ArrowDownRight,
+  Loader2,
+  RefreshCw,
+  ClipboardList,
+  TrendingUp,
+  Package,
   type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { hasPermission } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
 
-// Demo billing data
-const BILLING_STATS = {
-  totalOutstanding: 47850.00,
-  paidThisMonth: 128450.00,
-  overdueInvoices: 3,
-  pendingPayments: 12,
-};
+// Types for billing data
+interface BillingStats {
+  totalOutstanding: number;
+  paidThisMonth: number;
+  overdueCount: number;
+  pendingCount: number;
+  totalRecords: number;
+  unbilledMaterials: number;
+}
 
-const RECENT_INVOICES = [
-  {
-    id: 'INV-2026-0142',
-    customer: 'John Smith',
-    address: '123 Main St, Hartselle, AL',
-    amount: 8500.00,
-    status: 'paid',
-    dueDate: '2026-01-28',
-    paidDate: '2026-01-25',
-  },
-  {
-    id: 'INV-2026-0141',
-    customer: 'Sarah Johnson',
-    address: '456 Oak Ave, Decatur, AL',
-    amount: 12750.00,
-    status: 'pending',
-    dueDate: '2026-02-10',
-    paidDate: null,
-  },
-  {
-    id: 'INV-2026-0140',
-    customer: 'Mike Williams',
-    address: '789 Pine St, Huntsville, AL',
-    amount: 6200.00,
-    status: 'overdue',
-    dueDate: '2026-01-20',
-    paidDate: null,
-  },
-  {
-    id: 'INV-2026-0139',
-    customer: 'Jennifer Davis',
-    address: '321 Elm Rd, Athens, AL',
-    amount: 15400.00,
-    status: 'paid',
-    dueDate: '2026-01-15',
-    paidDate: '2026-01-14',
-  },
-  {
-    id: 'INV-2026-0138',
-    customer: 'Robert Brown',
-    address: '654 Maple Dr, Madison, AL',
-    amount: 9800.00,
-    status: 'pending',
-    dueDate: '2026-02-05',
-    paidDate: null,
-  },
-];
+interface BillingRecord {
+  id: string;
+  ticketId?: string;
+  jobId?: string;
+  jobName: string;
+  jobAddress: string;
+  transactionType: string;
+  totalCost: number;
+  totalPrice: number;
+  status: string;
+  createdAt: string;
+  billedAt?: string;
+}
+
+// Default fallback data (used only if API fails)
+const DEFAULT_STATS: BillingStats = {
+  totalOutstanding: 0,
+  paidThisMonth: 0,
+  overdueCount: 0,
+  pendingCount: 0,
+  totalRecords: 0,
+  unbilledMaterials: 0,
+};
 
 // Stat card component
 interface StatCardProps {
@@ -97,7 +82,7 @@ interface StatCardProps {
 function StatCard({ title, value, icon: Icon, trend, color }: StatCardProps) {
   const colorClasses = {
     lime: 'bg-lime-500/10 text-lime-400',
-    blue: 'bg-blue-500/10 text-blue-400',
+    blue: 'bg-brand-green/10 text-blue-400',
     red: 'bg-red-500/10 text-red-400',
     orange: 'bg-orange-500/10 text-orange-400',
   };
@@ -136,7 +121,7 @@ function StatCard({ title, value, icon: Icon, trend, color }: StatCardProps) {
 function StatusBadge({ status }: { status: string }) {
   const statusStyles = {
     paid: 'bg-lime-500/20 text-lime-400',
-    pending: 'bg-blue-500/20 text-blue-400',
+    pending: 'bg-brand-green/20 text-blue-400',
     overdue: 'bg-red-500/20 text-red-400',
   };
 
@@ -157,6 +142,10 @@ export default function BillingPage() {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<string>('all');
+  const [stats, setStats] = React.useState<BillingStats>(DEFAULT_STATS);
+  const [records, setRecords] = React.useState<BillingRecord[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
 
   // Check permission
   const userRole = (user?.role === 'owner' || user?.role === 'admin') ? 'Owner' :
@@ -166,12 +155,52 @@ export default function BillingPage() {
   const canView = hasPermission(userRole as 'Owner' | 'Admin' | 'Manager' | 'Sales' | 'Driver' | 'Office', 'billing.view');
   const canEdit = hasPermission(userRole as 'Owner' | 'Admin' | 'Manager' | 'Sales' | 'Driver' | 'Office', 'billing.edit');
 
-  // Filter invoices
-  const filteredInvoices = RECENT_INVOICES.filter(invoice => {
-    const matchesSearch = invoice.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          invoice.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          invoice.address.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter;
+  // Fetch data from API
+  const fetchBillingData = React.useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Fetch dashboard stats
+      const statsRes = await fetch('/api/portal/billing?action=dashboard');
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        setStats({
+          totalOutstanding: statsData.totalOutstanding || 0,
+          paidThisMonth: statsData.paidThisMonth || 0,
+          overdueCount: statsData.overdueCount || 0,
+          pendingCount: statsData.pendingCount || 0,
+          totalRecords: statsData.totalRecords || 0,
+          unbilledMaterials: statsData.unbilledMaterials || 0,
+        });
+      }
+
+      // Fetch billing records
+      const recordsRes = await fetch('/api/portal/billing?action=records');
+      if (recordsRes.ok) {
+        const recordsData = await recordsRes.json();
+        setRecords(recordsData.records || []);
+      }
+    } catch (err) {
+      console.error('Error fetching billing data:', err);
+      setError('Failed to load billing data. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (canView) {
+      fetchBillingData();
+    }
+  }, [canView, fetchBillingData]);
+
+  // Filter records
+  const filteredRecords = records.filter(record => {
+    const matchesSearch = record.jobName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          record.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          record.jobAddress.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || record.status.toLowerCase() === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -199,49 +228,132 @@ export default function BillingPage() {
             Manage invoices, track payments, and view financial summaries
           </p>
         </div>
-        {canEdit && (
-          <button className="inline-flex items-center gap-2 rounded-lg bg-lime-500 px-4 py-2 font-medium text-zinc-900 transition-colors hover:bg-lime-400">
-            <Plus size={18} />
-            Create Invoice
-          </button>
-        )}
+        <div className="flex gap-2">
+          <Link
+            href="/command-center/billing/invoices"
+            className="inline-flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 font-medium text-zinc-300 transition-colors hover:bg-zinc-700"
+          >
+            <FileText size={18} />
+            View Invoices
+          </Link>
+          {canEdit && (
+            <Link
+              href="/command-center/billing/invoices"
+              className="inline-flex items-center gap-2 rounded-lg bg-lime-500 px-4 py-2 font-medium text-zinc-900 transition-colors hover:bg-lime-400"
+            >
+              <Plus size={18} />
+              Create Invoice
+            </Link>
+          )}
+        </div>
       </div>
+
+      {/* Quick Links */}
+      {!isLoading && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Link
+            href="/command-center/billing/invoices"
+            className="flex items-center gap-4 rounded-xl border border-zinc-800 bg-zinc-900 p-4 transition-colors hover:border-zinc-700 hover:bg-zinc-800/50"
+          >
+            <div className="rounded-lg bg-brand-green/10 p-3 text-blue-400">
+              <FileText size={24} />
+            </div>
+            <div>
+              <h3 className="font-semibold text-white">Invoices</h3>
+              <p className="text-sm text-zinc-400">View and manage all invoices</p>
+            </div>
+          </Link>
+          <Link
+            href="/command-center/billing/breakdowns"
+            className="flex items-center gap-4 rounded-xl border border-zinc-800 bg-zinc-900 p-4 transition-colors hover:border-zinc-700 hover:bg-zinc-800/50"
+          >
+            <div className="rounded-lg bg-purple-500/10 p-3 text-purple-400">
+              <ClipboardList size={24} />
+            </div>
+            <div>
+              <h3 className="font-semibold text-white">Customer Breakdowns</h3>
+              <p className="text-sm text-zinc-400">Job cost sheets and materials</p>
+            </div>
+          </Link>
+          <Link
+            href="/command-center/reports"
+            className="flex items-center gap-4 rounded-xl border border-zinc-800 bg-zinc-900 p-4 transition-colors hover:border-zinc-700 hover:bg-zinc-800/50"
+          >
+            <div className="rounded-lg bg-lime-500/10 p-3 text-lime-400">
+              <TrendingUp size={24} />
+            </div>
+            <div>
+              <h3 className="font-semibold text-white">Financial Reports</h3>
+              <p className="text-sm text-zinc-400">Profit margins and analytics</p>
+            </div>
+          </Link>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-lime-400" />
+          <span className="ml-2 text-zinc-400">Loading billing data...</span>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-400" />
+              <span className="text-red-400">{error}</span>
+            </div>
+            <button
+              onClick={fetchBillingData}
+              className="inline-flex items-center gap-2 rounded-lg bg-red-500/20 px-3 py-1.5 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/30"
+            >
+              <RefreshCw size={14} />
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Stats Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Total Outstanding"
-          value={`$${BILLING_STATS.totalOutstanding.toLocaleString()}`}
-          icon={DollarSign}
-          color="orange"
-        />
-        <StatCard
-          title="Paid This Month"
-          value={`$${BILLING_STATS.paidThisMonth.toLocaleString()}`}
-          icon={CheckCircle2}
-          trend={{ value: 12, isPositive: true }}
-          color="lime"
-        />
-        <StatCard
-          title="Overdue Invoices"
-          value={BILLING_STATS.overdueInvoices}
-          icon={AlertTriangle}
-          color="red"
-        />
-        <StatCard
-          title="Pending Payments"
-          value={BILLING_STATS.pendingPayments}
-          icon={Clock}
-          color="blue"
-        />
-      </div>
+      {!isLoading && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            title="Total Outstanding"
+            value={`$${stats.totalOutstanding.toLocaleString()}`}
+            icon={DollarSign}
+            color="orange"
+          />
+          <StatCard
+            title="Paid This Month"
+            value={`$${stats.paidThisMonth.toLocaleString()}`}
+            icon={CheckCircle2}
+            color="lime"
+          />
+          <StatCard
+            title="Overdue Records"
+            value={stats.overdueCount}
+            icon={AlertTriangle}
+            color="red"
+          />
+          <StatCard
+            title="Pending Records"
+            value={stats.pendingCount}
+            icon={Clock}
+            color="blue"
+          />
+        </div>
+      )}
 
-      {/* Invoices Table */}
+      {/* Billing Records Table */}
+      {!isLoading && (
       <div className="rounded-xl border border-zinc-800 bg-zinc-900">
         {/* Table Header */}
         <div className="border-b border-zinc-800 p-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-lg font-semibold text-white">Recent Invoices</h2>
+            <h2 className="text-lg font-semibold text-white">Billing Records</h2>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               {/* Search */}
               <div className="relative">
@@ -291,45 +403,53 @@ export default function BillingPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredInvoices.map((invoice) => (
-                <tr
-                  key={invoice.id}
-                  className="border-b border-zinc-800 transition-colors hover:bg-zinc-800/50"
-                >
-                  <td className="px-4 py-4">
-                    <div className="flex items-center gap-2">
-                      <FileText size={16} className="text-zinc-500" />
-                      <span className="font-medium text-white">{invoice.id}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-4">
-                    <div>
-                      <p className="font-medium text-white">{invoice.customer}</p>
-                      <p className="text-sm text-zinc-500">{invoice.address}</p>
-                    </div>
-                  </td>
-                  <td className="px-4 py-4">
-                    <span className="font-semibold text-white">
-                      ${invoice.amount.toLocaleString()}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4">
-                    <StatusBadge status={invoice.status} />
-                  </td>
-                  <td className="px-4 py-4 text-sm text-zinc-400">
-                    {new Date(invoice.dueDate).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                  </td>
-                  <td className="px-4 py-4">
-                    <button className="rounded-lg px-3 py-1.5 text-sm font-medium text-lime-400 transition-colors hover:bg-lime-500/10">
-                      View
-                    </button>
+              {filteredRecords.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-zinc-500">
+                    No billing records found
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredRecords.map((record) => (
+                  <tr
+                    key={record.id}
+                    className="border-b border-zinc-800 transition-colors hover:bg-zinc-800/50"
+                  >
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-2">
+                        <FileText size={16} className="text-zinc-500" />
+                        <span className="font-medium text-white">{record.id}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4">
+                      <div>
+                        <p className="font-medium text-white">{record.jobName}</p>
+                        <p className="text-sm text-zinc-500">{record.jobAddress}</p>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className="font-semibold text-white">
+                        ${record.totalPrice.toLocaleString()}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4">
+                      <StatusBadge status={record.status.toLowerCase()} />
+                    </td>
+                    <td className="px-4 py-4 text-sm text-zinc-400">
+                      {new Date(record.createdAt).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </td>
+                    <td className="px-4 py-4">
+                      <button className="rounded-lg px-3 py-1.5 text-sm font-medium text-lime-400 transition-colors hover:bg-lime-500/10">
+                        View
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -337,18 +457,20 @@ export default function BillingPage() {
         {/* Table Footer */}
         <div className="flex items-center justify-between border-t border-zinc-800 px-4 py-3">
           <p className="text-sm text-zinc-500">
-            Showing {filteredInvoices.length} of {RECENT_INVOICES.length} invoices
+            Showing {filteredRecords.length} of {records.length} records
           </p>
           <div className="flex gap-2">
-            <button className="rounded-lg border border-zinc-700 px-3 py-1.5 text-sm text-zinc-400 transition-colors hover:bg-zinc-800">
-              Previous
-            </button>
-            <button className="rounded-lg border border-zinc-700 px-3 py-1.5 text-sm text-zinc-400 transition-colors hover:bg-zinc-800">
-              Next
+            <button
+              onClick={fetchBillingData}
+              className="inline-flex items-center gap-2 rounded-lg border border-zinc-700 px-3 py-1.5 text-sm text-zinc-400 transition-colors hover:bg-zinc-800"
+            >
+              <RefreshCw size={14} />
+              Refresh
             </button>
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

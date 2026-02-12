@@ -4,6 +4,11 @@ import { JWT } from 'google-auth-library';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
+import { createCustomerTokenRateLimiter, withRateLimit } from '@/lib/rate-limiter';
+
+// SECURITY: Rate limiter for customer token upload access.
+// Limits to 10 attempts per 15 minutes per IP to prevent token brute-force.
+const tokenRateLimiter = createCustomerTokenRateLimiter();
 
 async function getDoc(): Promise<GoogleSpreadsheet> {
   const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
@@ -36,13 +41,17 @@ async function getOrCreateSheet(doc: GoogleSpreadsheet, sheetName: string, heade
 // POST - Upload file from customer
 export async function POST(
   request: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
+  // SECURITY: Rate limit token access to prevent brute-force token guessing.
+  return withRateLimit(request, tokenRateLimiter, async () => {
   try {
-    const token = params.token;
+    const { token } = await params;
     const doc = await getDoc();
 
-    // Verify access token
+    // SECURITY: Verify access token and derive customerId from the token.
+    // The customerId is NEVER taken from user input - it is always resolved
+    // from the token to prevent horizontal privilege escalation.
     const accessSheet = doc.sheetsByTitle['Customer_Portal_Access'];
     if (!accessSheet) {
       return NextResponse.json({ error: 'Portal not configured' }, { status: 500 });
@@ -55,6 +64,19 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid access token' }, { status: 404 });
     }
 
+    // SECURITY: Check if token has expired
+    const expiresAtStr = accessRow.get('expiresAt');
+    if (expiresAtStr) {
+      const expiresAt = new Date(expiresAtStr);
+      if (expiresAt < new Date()) {
+        return NextResponse.json(
+          { error: 'This portal link has expired. Please contact your rep for a new one.' },
+          { status: 410 }
+        );
+      }
+    }
+
+    // SECURITY: customerId derived solely from token lookup
     const customerId = accessRow.get('customerId');
     const customerName = accessRow.get('customerName');
 
@@ -172,6 +194,7 @@ export async function POST(
     console.error('File upload error:', error);
     return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
   }
+  }); // end withRateLimit
 }
 
 // Helper to get sales rep email
@@ -187,13 +210,16 @@ async function getSalesRepEmail(doc: GoogleSpreadsheet, slug: string): Promise<s
 // GET - List customer's uploaded documents
 export async function GET(
   request: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
+  // SECURITY: Rate limit token access to prevent brute-force token guessing.
+  return withRateLimit(request, tokenRateLimiter, async () => {
   try {
-    const token = params.token;
+    const { token } = await params;
     const doc = await getDoc();
 
-    // Verify access token
+    // SECURITY: Verify access token and derive customerId from the token.
+    // This ensures a customer can only see their own documents.
     const accessSheet = doc.sheetsByTitle['Customer_Portal_Access'];
     if (!accessSheet) {
       return NextResponse.json({ error: 'Portal not configured' }, { status: 500 });
@@ -206,6 +232,19 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid access token' }, { status: 404 });
     }
 
+    // SECURITY: Check if token has expired
+    const expiresAtStr = accessRow.get('expiresAt');
+    if (expiresAtStr) {
+      const expiresAt = new Date(expiresAtStr);
+      if (expiresAt < new Date()) {
+        return NextResponse.json(
+          { error: 'This portal link has expired. Please contact your rep for a new one.' },
+          { status: 410 }
+        );
+      }
+    }
+
+    // SECURITY: customerId derived solely from token lookup
     const customerId = accessRow.get('customerId');
 
     // Get customer's documents
@@ -232,4 +271,5 @@ export async function GET(
     console.error('Error fetching documents:', error);
     return NextResponse.json({ error: 'Failed to load documents' }, { status: 500 });
   }
+  }); // end withRateLimit
 }

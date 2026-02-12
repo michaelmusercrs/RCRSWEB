@@ -26,6 +26,7 @@ import {
   List,
   Filter,
   RefreshCw,
+  Trash2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
@@ -122,6 +123,8 @@ function InventoryPage() {
   // Sales and Driver roles should NOT see cost/price information
   // Owner, Admin, Manager can see costs (per ROLE_PERMISSIONS in lib/permissions.ts)
   const userRole = user?.role;
+  // Only Owner and Admin can delete inventory items
+  const canDelete = userRole === 'owner' || userRole === 'admin';
   const showCost = canViewCosts || userRole === 'owner' || userRole === 'admin' || userRole === 'project_manager';
   const showPrice = canViewCosts || userRole === 'owner' || userRole === 'admin' || userRole === 'office' || userRole === 'project_manager';
 
@@ -203,6 +206,39 @@ function InventoryPage() {
     // For quick +1/-1, use a simple reason
     const reason = delta > 0 ? 'Quick add' : 'Quick remove';
     handleStockAdjust(item.sku, delta, reason);
+  };
+
+  // =============================================================================
+  // DELETE ITEM
+  // =============================================================================
+
+  const handleDeleteItem = async (item: InventoryItem) => {
+    if (!confirm(`Are you sure you want to delete "${item.name}" (${item.sku})? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/command-center/inventory', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': user?.userId || '',
+          'x-user-name': user?.name || '',
+          'x-user-role': user?.role ? mapRoleForApi(user.role) : 'Driver',
+        },
+        body: JSON.stringify({ sku: item.sku }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        await fetchInventory();
+      } else {
+        alert(data.error || 'Failed to delete item');
+      }
+    } catch {
+      alert('Failed to delete item');
+    }
   };
 
   // =============================================================================
@@ -344,7 +380,7 @@ function InventoryPage() {
     cols.push({
       accessor: 'sku',
       header: '',
-      width: 'w-20',
+      width: 'w-28',
       render: (_, row) => (
         <div className="flex items-center justify-end gap-1">
           <button
@@ -357,12 +393,25 @@ function InventoryPage() {
           >
             <RefreshCw className="h-4 w-4" />
           </button>
+          {canDelete && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteItem(row);
+              }}
+              className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-red-500/10 hover:text-red-400"
+              title="Delete item"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
         </div>
       ),
     });
 
     return cols;
-  }, [showCost, showPrice]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showCost, showPrice, canDelete]);
 
   // =============================================================================
   // RENDER
@@ -373,7 +422,7 @@ function InventoryPage() {
       {/* Page Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white">Inventory Management</h1>
+            <h1 className="text-2xl font-bold text-white">Materials Management</h1>
             <p className="mt-1 text-sm text-zinc-400">
               Track and manage roofing materials and supplies
             </p>
@@ -434,7 +483,7 @@ function InventoryPage() {
         </div>
 
         {/* Filters Bar */}
-        <div className="flex flex-col gap-4 rounded-lg border border-zinc-800 bg-zinc-900 p-4 lg:flex-row lg:items-center">
+        <div className="flex flex-col gap-4 rounded-lg border border-zinc-800 bg-zinc-900 p-4 lg:flex-row lg:items-center overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
           {/* Search */}
           <div className="flex-1">
             <SearchInput
@@ -567,6 +616,7 @@ function InventoryPage() {
                   showPrice={showPrice}
                   onAdjust={() => setAdjustItem(item)}
                   onQuickAdjust={(delta) => handleQuickAdjust(item, delta)}
+                  onDelete={canDelete ? () => handleDeleteItem(item) : undefined}
                 />
               ))
             )}

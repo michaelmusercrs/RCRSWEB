@@ -1,0 +1,308 @@
+NOTEBOOKLM PROMPTS - RIVER CITY ROOFING SOLUTIONS
+===================================================
+Copy/paste these into NotebookLM after uploading your source files.
+
+===================================================
+ROOF MEASUREMENT & ESTIMATION
+===================================================
+
+What formulas are used to calculate materials from roof square footage?
+
+Calculate a full material estimate for a 1,200 sq ft roof with a 5/12 pitch.
+
+Calculate a full material estimate for a 2,000 sq ft roof with a 6/12 pitch.
+
+Calculate a full material estimate for a 3,000 sq ft roof with a 4/12 pitch.
+
+How does roof pitch affect total material cost? Show examples.
+
+What is the pitch multiplier table and how do I use it?
+
+Compare material costs for small, medium, and large roofs side by side.
+
+If I only know the building footprint, walk me through getting the total roof area.
+
+What is a roof square and how many bundles of shingles does it require?
+
+What is the waste factor and how is it built into quantities?
+
+How do valleys, hips, and complex roof shapes change the material estimate?
+
+If the roof has 2 layers of existing shingles, how does that change the job scope?
+
+===================================================
+MATERIAL & PRODUCT KNOWLEDGE
+===================================================
+
+List all GAF products used by River City Roofing with descriptions and prices.
+
+What is the purpose of each material in a roof replacement?
+
+Explain the difference between underlayment, ice and water shield, and starter strip.
+
+What makes GAF Timberline HDZ a good shingle choice?
+
+Compare GAF Timberline HDZ vs AS II vs UHDZ - what's the difference?
+
+Compare 3-tab shingles vs architectural shingles - cost and performance.
+
+What ventilation options does GAF offer and when is each used?
+
+What materials protect against ice dams and where are they installed?
+
+If a customer wants a premium upgrade, what products change and what's the cost difference?
+
+What warranty does a GAF-certified installer provide?
+
+===================================================
+COST & PRICING
+===================================================
+
+Break down all cost factors for a roof replacement beyond just materials.
+
+Estimate total project cost for a 15-square roof including labor and disposal.
+
+Estimate total project cost for a 25-square roof including labor and disposal.
+
+What is the typical cost per square foot for a full roof replacement in North Alabama?
+
+Compare budget vs mid-range vs premium roof replacement costs.
+
+What additional costs come up if decking damage is found?
+
+How much does a chimney or skylight add to the total cost?
+
+Create a rough budget range (low/mid/high) for a homeowner to expect.
+
+What is the typical markup for overhead and profit on a roofing job?
+
+How do material prices compare to labor costs as a percentage of total?
+
+===================================================
+INSPECTION & FIELD USE
+===================================================
+
+Give me the complete on-site inspection checklist.
+
+What are the top 5 most critical things to check during a roof inspection?
+
+What signs of hail damage should the inspector look for?
+
+What signs of wind damage should the inspector look for?
+
+How do I verify roof pitch on-site?
+
+What tools should an inspector bring to a roof inspection?
+
+If decking damage is found, how does that change the scope and cost?
+
+What interior signs indicate a roof problem?
+
+How do I determine if a roof needs repair vs full replacement?
+
+What does each item on the inspection checklist mean in plain English?
+
+List common issues found on residential roofs in North Alabama.
+
+How many layers of shingles are allowed before tear-off is required?
+
+===================================================
+STORM & INSURANCE
+===================================================
+
+What is the hail risk for North Alabama and the Tennessee Valley?
+
+Summarize storm statistics for the Huntsville-Decatur service area.
+
+What information does an insurance adjuster need from a roof report?
+
+Walk me through the insurance claim process for storm damage.
+
+What is the difference between ACV and replacement cost for roof claims?
+
+How do deductibles work for roof insurance claims in Alabama?
+
+When is severe weather season in North Alabama?
+
+What types of storm damage qualify for an insurance claim?
+
+How do I document hail damage for an insurance claim?
+
+What is the typical timeline from filing a claim to getting a new roof?
+
+Draft a letter to an insurance company requesting a roof inspection.
+
+===================================================
+CUSTOMER COMMUNICATION
+===================================================
+
+Write a professional email to a homeowner summarizing their roof assessment.
+
+Create a simple one-page summary explaining a roof estimate to a homeowner.
+
+Draft a follow-up message asking a homeowner to schedule an on-site inspection.
+
+Explain each material line item in plain English for a homeowner.
+
+Write a comparison of repair vs full replacement for a homeowner.
+
+Create talking points for presenting a roof estimate to a homeowner.
+
+Write a text message letting a homeowner know their roof report is ready.
+
+Draft a thank-you message after completing a roof installation.
+
+Write a referral request message to send after completing a job.
+
+How should I explain roof pitch to a homeowner who doesn't understand it?
+
+Write an email explaining why satellite measurements are preliminary and need verification.
+
+Draft a message for a homeowner whose insurance claim was denied.
+
+===================================================
+SALES & MARKETING
+===================================================
+
+Write a blog post about why homeowners in North Alabama should get a roof inspection.
+
+Create social media post copy promoting free roof measurement reports.
+
+What are the key selling points of River City Roofing Solutions?
+
+Write a Google Business Profile post about free roof assessments.
+
+Draft a door-knocking script using storm data for a neighborhood.
+
+Create a comparison: DIY measurement vs satellite report vs on-site inspection.
+
+Write a Facebook ad promoting free storm damage inspections.
+
+Create an elevator pitch for River City Roofing Solutions.
+
+Write a Nextdoor post about recent hail activity and free inspections.
+
+What objections do homeowners typically have and how should we respond?
+
+Draft a seasonal marketing email for spring storm season.
+
+Draft a seasonal marketing email for fall roof prep.
+
+===================================================
+TRAINING & EDUCATION
+===================================================
+
+Explain roof measurement terminology for a new sales rep.
+
+Create a quiz to test roofing knowledge based on this information.
+
+What should a new estimator know about reading a roof measurement report?
+
+Explain the material calculation formulas in simple terms for training.
+
+Create flashcards for the pitch multiplier table.
+
+Write a training guide on using free satellite measurement tools.
+
+Create a new hire orientation document covering RCRS products and processes.
+
+What are the most common mistakes new estimators make?
+
+Explain the full workflow from lead to completed installation.
+
+Write a guide on how to properly inspect a roof for a trainee.
+
+How do I explain the difference between material cost and job cost to a new rep?
+
+===================================================
+OPERATIONS & SCHEDULING
+===================================================
+
+How long does a typical roof replacement take by size?
+
+What crew size is recommended for different roof sizes?
+
+What weather conditions delay or cancel a roofing job?
+
+Create a project timeline from initial contact to completed installation.
+
+What is the lead time for ordering GAF materials?
+
+Create a material order checklist that can be sent to a supplier.
+
+What is the step-by-step process for the day of installation?
+
+How should jobs be scheduled around North Alabama weather patterns?
+
+What permits are needed for roof replacement in Alabama?
+
+Create a pre-job checklist for the crew foreman.
+
+===================================================
+AUDIO OVERVIEW / PODCAST PROMPTS
+===================================================
+Use these with NotebookLM's Audio Overview feature to generate
+podcast-style discussions.
+
+Create a podcast explaining what a roof measurement report is and why homeowners need one.
+
+Discuss storm risks in North Alabama and how they affect residential roofs.
+
+Walk through the GAF product line and why these products were chosen.
+
+Explain the roof replacement process step by step for a homeowner audience.
+
+Discuss the difference between a satellite estimate and a verified measurement.
+
+Explain roof pitch in plain English - how it's measured and why it matters for cost.
+
+Talk about common roofing scams and how professional reports protect homeowners.
+
+Walk through the inspection checklist and explain what each item means.
+
+Discuss the insurance claim process for storm-damaged roofs.
+
+Compare repair vs replacement - when does each make sense?
+
+Create an overview of River City Roofing Solutions for potential customers.
+
+Discuss seasonal maintenance tips for North Alabama homeowners.
+
+Explain how free satellite measurement tools work and their limitations.
+
+Talk about what makes a quality roof installation vs a cheap one.
+
+===================================================
+COMPETITIVE ANALYSIS
+===================================================
+
+What differentiates a GAF-certified installer from a non-certified one?
+
+What questions should a homeowner ask any roofing contractor?
+
+What red flags indicate a roofing company is not trustworthy?
+
+Why should a homeowner choose River City Roofing over a competitor?
+
+What certifications and credentials matter in roofing?
+
+===================================================
+TIPS FOR USING THESE PROMPTS IN NOTEBOOKLM
+===================================================
+
+1. Upload the roof-report-template.txt as your primary source
+2. Add more sources for deeper answers:
+   - Photos from inspections
+   - GAF product spec sheets (download from gaf.com)
+   - Insurance claim documents
+   - Weather/storm data
+   - County property records
+   - Your own job history/notes
+3. Replace numbers in prompts with real job data:
+   "Calculate materials for [ACTUAL SQ FT] with [ACTUAL PITCH]"
+4. Combine prompts for complex tasks:
+   "Using the material formulas AND storm data, create an
+   insurance justification for a full roof replacement."
+5. Use Audio Overview for customer-friendly explanations
+6. Save good outputs as new source documents for future reference
+7. Create separate notebooks per job or per topic for organization

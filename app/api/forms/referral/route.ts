@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { formService } from '@/lib/form-service';
+import { createFormRateLimiter, withRateLimit } from '@/lib/rate-limiter';
+
+const formRateLimiter = createFormRateLimiter();
 
 export async function POST(request: NextRequest) {
+  return withRateLimit(request, formRateLimiter, async () => {
   try {
     const body = await request.json();
     const {
@@ -47,4 +51,5 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+  });
 }

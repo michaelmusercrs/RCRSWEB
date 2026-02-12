@@ -14,15 +14,15 @@ import type { InventoryItem } from '@/lib/delivery-portal-service';
 type TabType = 'dashboard' | 'tickets' | 'invoices' | 'create';
 
 const statusColors: Record<TicketStatus, string> = {
-  created: 'bg-gray-500',
+  created: 'bg-white/50',
   assigned: 'bg-cyan-500',
   materials_pulled: 'bg-yellow-500',
-  load_verified: 'bg-blue-500',
+  load_verified: 'bg-brand-green',
   en_route: 'bg-purple-500',
   arrived: 'bg-orange-500',
   delivered: 'bg-teal-500',
   picked_up: 'bg-teal-500',
-  proof_captured: 'bg-indigo-500',
+  proof_captured: 'bg-brand-green',
   qc_photos: 'bg-pink-500',
   completed: 'bg-green-500',
   cancelled: 'bg-red-500',
@@ -118,7 +118,7 @@ export default function OfficePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'create',
-          createdBy: 'Office Portal',
+          createdBy: 'Operations',
           ...newTicket,
         }),
       });
@@ -256,9 +256,19 @@ export default function OfficePage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-neutral-900 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="animate-spin mx-auto text-brand-green" size={48} />
-          <p className="text-neutral-400 mt-4">Loading office portal...</p>
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 flex items-center justify-center">
+              <Building2 className="text-emerald-400" size={28} />
+            </div>
+            <div className="absolute inset-0 rounded-2xl">
+              <Loader2 className="absolute -top-2 -right-2 animate-spin text-brand-green" size={20} />
+            </div>
+          </div>
+          <div className="text-center">
+            <p className="text-white font-medium">Loading Operations</p>
+            <p className="text-sm text-neutral-500">Fetching orders and tickets...</p>
+          </div>
         </div>
       </div>
     );
@@ -274,7 +284,7 @@ export default function OfficePage() {
               <ArrowLeft size={20} />
             </Link>
             <div>
-              <h1 className="text-xl font-bold text-white">Office Portal</h1>
+              <h1 className="text-xl font-bold text-white">Operations</h1>
               <p className="text-sm text-neutral-400">Job Tracking & Invoicing</p>
             </div>
           </div>
@@ -284,7 +294,7 @@ export default function OfficePage() {
               className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-brand-green/20 to-emerald-500/20 hover:from-brand-green/30 hover:to-emerald-500/30 border border-brand-green/30 text-brand-green text-sm font-medium transition-all"
             >
               <Command size={16} />
-              <span className="hidden sm:inline">Command Center</span>
+              <span className="hidden sm:inline">RoofStack HQ</span>
             </Link>
             <button
               onClick={loadAllData}
@@ -329,7 +339,7 @@ export default function OfficePage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                  <div className="w-10 h-10 bg-brand-green/20 rounded-lg flex items-center justify-center">
                     <Truck className="text-blue-400" size={20} />
                   </div>
                   <div>
@@ -607,7 +617,7 @@ export default function OfficePage() {
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                             invoice.status === 'paid' ? 'bg-green-500/20 text-green-400' :
                             invoice.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
-                            invoice.status === 'sent' ? 'bg-blue-500/20 text-blue-400' :
+                            invoice.status === 'sent' ? 'bg-brand-green/20 text-blue-400' :
                             invoice.status === 'overdue' ? 'bg-red-500/20 text-red-400' :
                             'bg-neutral-500/20 text-neutral-400'
                           }`}>

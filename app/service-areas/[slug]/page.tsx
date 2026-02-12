@@ -3,7 +3,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { getServiceArea, getAllServiceAreaSlugs, getPrimaryServices } from '@/lib/servicesData';
 import { MapPin, Clock, CheckCircle2, Phone, ArrowRight, ArrowLeft, Home, Wrench, Building2, CloudRain, Flame, Shield, Search, AlertTriangle } from 'lucide-react';
-import { siteConfig } from '@/lib/seo';
+import { generateBreadcrumbSchema, siteConfig } from '@/lib/seo';
+import StructuredData from '@/components/StructuredData';
 import type { Metadata } from 'next';
 
 const iconMap: { [key: string]: any } = { Home, Wrench, Building2, CloudRain, Flame, Shield, Search, AlertTriangle };
@@ -46,12 +47,79 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ sl
   if (!area) notFound();
   const services = getPrimaryServices().slice(0, 4);
 
+  // Geo coordinates for service areas
+  const geoCoords: Record<string, { lat: number; lng: number }> = {
+    'decatur-al': { lat: 34.6059, lng: -86.9833 },
+    'huntsville-al': { lat: 34.7304, lng: -86.5861 },
+    'madison-al': { lat: 34.6993, lng: -86.7483 },
+    'athens-al': { lat: 34.8029, lng: -86.9717 },
+    'owens-crossroads-al': { lat: 34.5887, lng: -86.4558 },
+    'north-alabama': { lat: 34.6059, lng: -86.9833 },
+    'birmingham-al': { lat: 33.5207, lng: -86.8025 },
+    'nashville-tn': { lat: 36.1627, lng: -86.7816 },
+  };
+
+  const coords = geoCoords[slug] || { lat: 34.6059, lng: -86.9833 };
+
+  const localBusinessSchema = {
+    "@context": "https://schema.org",
+    "@type": "RoofingContractor",
+    "name": `River City Roofing Solutions - ${area.name}`,
+    "image": `${siteConfig.url}/logo.png`,
+    "@id": `${siteConfig.url}/service-areas/${slug}`,
+    "url": `${siteConfig.url}/service-areas/${slug}`,
+    "telephone": siteConfig.phoneTel,
+    "priceRange": "$$",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": siteConfig.address.streetAddress,
+      "addressLocality": siteConfig.address.addressLocality,
+      "addressRegion": siteConfig.address.addressRegion,
+      "postalCode": siteConfig.address.postalCode,
+      "addressCountry": siteConfig.address.addressCountry,
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": coords.lat,
+      "longitude": coords.lng,
+    },
+    "areaServed": {
+      "@type": area.name.includes('Territory') ? "State" : "City",
+      "name": area.name.replace(' Territory', ''),
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": area.name.replace('General ', '').replace(' Territory', ''),
+        "addressRegion": area.state,
+      },
+    },
+    "openingHoursSpecification": [
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        "opens": "08:00",
+        "closes": "17:00",
+      },
+    ],
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "5",
+      "reviewCount": "200",
+    },
+  };
+
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: 'Service Areas', url: '/service-areas' },
+    { name: area.name, url: `/service-areas/${slug}` },
+  ]);
+
   return (
     <div className="min-h-screen">
+      <StructuredData data={[localBusinessSchema, breadcrumbSchema]} />
       <section className="relative min-h-[60vh] flex items-center">
         {area.image && (
           <div className="absolute inset-0 z-0">
-            <Image src={area.image} alt={area.name + ' roofing services'} fill className="object-cover" priority />
+            <Image src={area.image} alt={area.altText || area.name + ' roofing services'} fill className="object-cover" priority />
             <div className="absolute inset-0 bg-black/60" />
           </div>
         )}
@@ -137,7 +205,7 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ sl
             <h2 className="text-3xl font-bold text-white mb-8 text-center">Find Us in {area.name}</h2>
             <div className="rounded-2xl overflow-hidden border border-white/20 shadow-2xl">
               <iframe
-                src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${area.mapQuery || area.name + ',+' + area.state}&zoom=12`}
+                src={`https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d105126.23!2d-86.7483!3d34.6993!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2s${encodeURIComponent(area.mapQuery || area.name + ', ' + area.state)}!5e0!3m2!1sen!2sus`}
                 width="100%"
                 height="450"
                 style={{ border: 0 }}

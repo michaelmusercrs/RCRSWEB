@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import {
   X, ChevronRight, ChevronLeft, CheckCircle2, BookOpen, Truck, Package,
-  FileText, Users, BarChart3, Shield, Target, Phone, ArrowRight, GraduationCap
+  FileText, Users, BarChart3, Shield, Target, Phone, ArrowRight, GraduationCap,
+  MessageSquare
 } from 'lucide-react';
 import { TeamRole } from '@/lib/team-roles';
 
@@ -303,6 +304,90 @@ const roleTraining: Record<TeamRole, TrainingSlide[]> = {
       ],
     },
   ],
+  manager: [
+    {
+      title: 'Welcome, Manager',
+      icon: Target,
+      content: [
+        'Manage your team and coordinate operations.',
+        '',
+        'YOUR KEY FEATURES:',
+        '- View and manage team performance',
+        '- Track job progress and deliveries',
+        '- Access reports and analytics',
+        '- Coordinate with project managers',
+      ],
+      tips: [
+        'Review team metrics weekly',
+        'Keep communication lines open',
+        'Address issues promptly',
+      ],
+    },
+    {
+      title: 'Team Coordination',
+      icon: Users,
+      content: [
+        'Keep your team aligned and productive.',
+        '',
+        'MANAGEMENT TIPS:',
+        '- Hold brief daily standups',
+        '- Monitor delivery schedules',
+        '- Track material usage',
+        '- Report weekly metrics',
+      ],
+    },
+  ],
+  sales: [
+    {
+      title: 'Welcome to Sales Portal',
+      icon: Target,
+      content: [
+        'Your hub for managing leads and closing deals.',
+        '',
+        'YOUR KEY FEATURES:',
+        '- View and manage assigned leads',
+        '- Track customer interactions',
+        '- Schedule appointments',
+        '- Access customer history',
+      ],
+      tips: [
+        'Follow up on leads within 24 hours',
+        'Keep notes updated after each call',
+        'Schedule next steps before closing calls',
+      ],
+    },
+    {
+      title: 'Lead Management',
+      icon: Phone,
+      content: [
+        'Convert leads into customers.',
+        '',
+        'SALES WORKFLOW:',
+        '1. Review new leads daily',
+        '2. Make initial contact quickly',
+        '3. Schedule inspections',
+        '4. Prepare and send estimates',
+        '5. Follow up and close deals',
+        '',
+        'Track your progress in the dashboard.',
+      ],
+    },
+    {
+      title: 'Customer Communication',
+      icon: MessageSquare,
+      content: [
+        'Build relationships that lead to referrals.',
+        '',
+        'BEST PRACTICES:',
+        '- Be responsive and professional',
+        '- Document all conversations',
+        '- Set clear expectations',
+        '- Follow through on promises',
+        '',
+        'Happy customers are your best marketing!',
+      ],
+    },
+  ],
 };
 
 export default function RoleTrainingPopup({
@@ -333,8 +418,8 @@ export default function RoleTrainingPopup({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="w-full max-w-2xl bg-gradient-to-br from-neutral-900 via-neutral-900 to-neutral-950 rounded-3xl border border-white/10 shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+      <div className="w-full max-w-2xl bg-gradient-to-br from-neutral-900 via-neutral-900 to-neutral-950 rounded-3xl border border-white/10 shadow-2xl overflow-hidden my-auto max-h-[95vh] max-h-[95dvh] flex flex-col">
         {/* Header */}
         <div className="relative px-6 py-5 border-b border-white/10 bg-gradient-to-r from-brand-green/10 to-transparent">
           <div className="flex items-center justify-between">
@@ -369,7 +454,7 @@ export default function RoleTrainingPopup({
         </div>
 
         {/* Content */}
-        <div className="px-6 py-6 min-h-[400px] max-h-[60vh] overflow-y-auto">
+        <div className="px-6 py-6 min-h-[200px] flex-1 overflow-y-auto">
           {/* Slide Title */}
           <div className="flex items-center gap-4 mb-6">
             <div className="w-14 h-14 bg-brand-blue/20 rounded-2xl flex items-center justify-center">
@@ -418,7 +503,7 @@ export default function RoleTrainingPopup({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-white/10 bg-black/20 flex items-center justify-between">
+        <div className="px-6 py-4 border-t border-white/10 bg-black/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 flex-shrink-0">
           <div className="flex items-center gap-2">
             <span className="text-sm text-neutral-500">
               {currentSlide + 1} of {totalSlides}

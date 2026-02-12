@@ -272,7 +272,7 @@ const TIER_STYLES: Record<AchievementTier, { bg: string; border: string; text: s
   common: {
     bg: 'bg-zinc-800/50',
     border: 'border-zinc-700',
-    text: 'text-gray-400',
+    text: 'text-neutral-500',
     glow: '',
   },
 };
@@ -317,10 +317,10 @@ function AchievementCard({ achievement, showRep = true }: AchievementCardProps) 
               {achievement.achievement.tier}
             </span>
           </div>
-          <p className="text-sm text-gray-400 mb-2">
+          <p className="text-sm text-neutral-500 mb-2">
             {achievement.achievement.description}
           </p>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-neutral-500">
             {achievement.achievement.requirement}
           </p>
           {showRep && (
@@ -369,7 +369,7 @@ function TierFilter({ selected, onChange, counts }: TierFilterProps) {
                 ? style
                   ? cn(style.bg, style.border, style.text)
                   : 'bg-brand-green text-black border-brand-green'
-                : 'bg-zinc-900 border-zinc-700 text-gray-400 hover:border-zinc-600'
+                : 'bg-zinc-900 border-zinc-700 text-neutral-500 hover:border-zinc-600'
             )}
           >
             {icon}
@@ -411,7 +411,7 @@ function RepSummary({ repName, achievements }: RepSummaryProps) {
   return (
     <Link
       href={`/command-center/sales/${encodeURIComponent(repName.toLowerCase().replace(/\s+/g, '-'))}`}
-      className="block bg-[#1a1a1a] rounded-xl p-4 border border-gray-800 hover:border-gray-700 transition-all hover:scale-[1.01]"
+      className="block bg-zinc-900 rounded-xl p-4 border border-gray-800 hover:border-gray-700 transition-all hover:scale-[1.01]"
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -420,7 +420,7 @@ function RepSummary({ repName, achievements }: RepSummaryProps) {
           </div>
           <div>
             <h3 className="font-semibold text-white">{repName}</h3>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-neutral-500">
               {achievements.length} achievement{achievements.length !== 1 ? 's' : ''}
             </p>
           </div>
@@ -443,7 +443,7 @@ function RepSummary({ repName, achievements }: RepSummaryProps) {
                 <span className={cn('text-sm font-bold', style.text)}>
                   {tierCounts[tier]}
                 </span>
-                <span className="text-xs text-gray-500 uppercase">{tier.charAt(0)}</span>
+                <span className="text-xs text-neutral-500 uppercase">{tier.charAt(0)}</span>
               </div>
             );
           })}
@@ -590,7 +590,7 @@ export default function AchievementsPage() {
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
         <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-6 max-w-md">
           <h2 className="text-xl font-bold text-red-400 mb-2">Error Loading Data</h2>
-          <p className="text-gray-400 mb-4">{error}</p>
+          <p className="text-neutral-500 mb-4">{error}</p>
           <button
             onClick={() => window.location.reload()}
             className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
@@ -609,7 +609,7 @@ export default function AchievementsPage() {
         <div>
           <Link
             href="/command-center/sales"
-            className="inline-flex items-center gap-1 text-gray-400 hover:text-white mb-2 transition"
+            className="inline-flex items-center gap-1 text-neutral-500 hover:text-white mb-2 transition"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Leaderboard
@@ -618,7 +618,7 @@ export default function AchievementsPage() {
             <Award className="h-8 w-8 text-amber-400" />
             Achievement Wall
           </h1>
-          <p className="text-gray-400 mt-1">
+          <p className="text-neutral-500 mt-1">
             {tierCounts.all} achievements earned across {data?.data.summary.uniqueReps || 0} reps
           </p>
         </div>
@@ -630,7 +630,7 @@ export default function AchievementsPage() {
               'px-4 py-2 rounded-lg transition',
               viewMode === 'achievements'
                 ? 'bg-brand-green text-black'
-                : 'bg-zinc-800 text-gray-400 hover:bg-zinc-700'
+                : 'bg-zinc-800 text-neutral-500 hover:bg-zinc-700'
             )}
           >
             By Achievement
@@ -641,7 +641,7 @@ export default function AchievementsPage() {
               'px-4 py-2 rounded-lg transition',
               viewMode === 'reps'
                 ? 'bg-brand-green text-black'
-                : 'bg-zinc-800 text-gray-400 hover:bg-zinc-700'
+                : 'bg-zinc-800 text-neutral-500 hover:bg-zinc-700'
             )}
           >
             By Rep
@@ -650,9 +650,9 @@ export default function AchievementsPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-[#1a1a1a] rounded-xl p-4 border border-gray-800">
+      <div className="bg-zinc-900 rounded-xl p-4 border border-gray-800">
         <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-          <div className="flex items-center gap-2 text-gray-400">
+          <div className="flex items-center gap-2 text-neutral-500">
             <Filter className="h-4 w-4" />
             <span className="text-sm font-medium">Filter:</span>
           </div>
@@ -690,7 +690,7 @@ export default function AchievementsPage() {
               <p className={cn('text-3xl font-bold', style.text)}>
                 {tierCounts[tier]}
               </p>
-              <p className="text-sm text-gray-400 capitalize">{tier}</p>
+              <p className="text-sm text-neutral-500 capitalize">{tier}</p>
             </div>
           );
         })}
@@ -723,7 +723,7 @@ export default function AchievementsPage() {
                   {tier === 'rare' && <Target className="h-5 w-5" />}
                   {tier === 'common' && <TrendingUp className="h-5 w-5" />}
                   {tier} Achievements
-                  <span className="text-sm font-normal text-gray-500">
+                  <span className="text-sm font-normal text-neutral-500">
                     ({tierAchievements.length})
                   </span>
                 </h2>
@@ -742,11 +742,11 @@ export default function AchievementsPage() {
 
           {filteredAchievements.length === 0 && (
             <div className="text-center py-12">
-              <Trophy className="h-16 w-16 text-gray-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-400 mb-2">
+              <Trophy className="h-16 w-16 text-neutral-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-neutral-500 mb-2">
                 No achievements found
               </h3>
-              <p className="text-gray-500">
+              <p className="text-neutral-500">
                 Try adjusting your filters to see more results.
               </p>
             </div>
@@ -765,11 +765,11 @@ export default function AchievementsPage() {
 
           {achievementsByRep.length === 0 && (
             <div className="text-center py-12">
-              <Users className="h-16 w-16 text-gray-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-400 mb-2">
+              <Users className="h-16 w-16 text-neutral-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-neutral-500 mb-2">
                 No reps found
               </h3>
-              <p className="text-gray-500">
+              <p className="text-neutral-500">
                 Try adjusting your filters to see more results.
               </p>
             </div>

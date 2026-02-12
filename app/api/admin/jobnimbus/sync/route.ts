@@ -1,59 +1,35 @@
 import { NextResponse } from 'next/server';
-
-const JOBNIMBUS_API_KEY = process.env.JOBNIMBUS_API_KEY;
-const JOBNIMBUS_API_URL = process.env.JOBNIMBUS_API_URL || 'https://app.jobnimbus.com/api1';
+import { requireAdmin } from '@/lib/auth-service';
+import { isJobNimbusConfigured } from '@/lib/jobnimbus-service';
+import { jnSyncEngine } from '@/lib/jn-sync-engine';
 
 export async function POST() {
-  if (!JOBNIMBUS_API_KEY) {
-    return NextResponse.json({
-      success: true,
-      message: 'Demo mode - sync simulated',
-      syncedContacts: 3,
-      syncedJobs: 3,
-    });
+  const auth = await requireAdmin();
+  if (!auth.authenticated) return auth.response;
+
+  if (!isJobNimbusConfigured()) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'JobNimbus API key not configured',
+        message: 'Please set JOBNIMBUS_API_KEY in your .env.local file'
+      },
+      { status: 500 }
+    );
   }
 
   try {
-    // Fetch all contacts
-    const contactsResponse = await fetch(`${JOBNIMBUS_API_URL}/contacts?limit=500`, {
-      headers: {
-        'Authorization': `Bearer ${JOBNIMBUS_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!contactsResponse.ok) {
-      throw new Error(`Failed to fetch contacts: ${contactsResponse.status}`);
-    }
-
-    const contactsData = await contactsResponse.json();
-
-    // Fetch all jobs
-    const jobsResponse = await fetch(`${JOBNIMBUS_API_URL}/jobs?limit=500`, {
-      headers: {
-        'Authorization': `Bearer ${JOBNIMBUS_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!jobsResponse.ok) {
-      throw new Error(`Failed to fetch jobs: ${jobsResponse.status}`);
-    }
-
-    const jobsData = await jobsResponse.json();
-
-    // In a real implementation, you would:
-    // 1. Store contacts/jobs in a local database
-    // 2. Update customer portal access codes
-    // 3. Send notifications for status changes
-    // 4. Sync any local changes back to JobNimbus
+    const syncResult = await jnSyncEngine.runFullSync();
 
     return NextResponse.json({
       success: true,
       message: 'Sync completed successfully',
-      syncedContacts: contactsData.count || contactsData.results?.length || 0,
-      syncedJobs: jobsData.count || jobsData.results?.length || 0,
-      timestamp: new Date().toISOString(),
+      syncedContacts: syncResult.contactsSynced,
+      syncedJobs: syncResult.jobsSynced,
+      syncedNotes: syncResult.notesSynced,
+      duration: syncResult.syncDuration,
+      errors: syncResult.errors,
+      timestamp: syncResult.completedAt,
     });
   } catch (error) {
     console.error('Sync error:', error);
@@ -62,4 +38,18 @@ export async function POST() {
       { status: 500 }
     );
   }
+}
+
+// GET - Get sync status
+export async function GET() {
+  const auth = await requireAdmin();
+  if (!auth.authenticated) return auth.response;
+
+  const syncStatus = jnSyncEngine.getSyncStatus();
+
+  return NextResponse.json({
+    success: true,
+    isConfigured: syncStatus.isConfigured,
+    lastSync: syncStatus.lastSync,
+  });
 }

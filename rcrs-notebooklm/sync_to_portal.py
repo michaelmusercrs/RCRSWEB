@@ -1,0 +1,257 @@
+#!/usr/bin/env python3
+"""
+RCRS NotebookLM -> Portal Sync Script
+
+Copies generated NotebookLM content into the Next.js public directory
+and generates TypeScript data files for the training portal to consume.
+
+This bridges the NotebookLM output to the web application.
+"""
+
+import json
+import shutil
+from pathlib import Path
+from datetime import datetime
+
+SCRIPT_DIR = Path(__file__).parent
+OUTPUT_DIR = SCRIPT_DIR / "output"
+STATE_FILE = SCRIPT_DIR / "pipeline_state.json"
+RCRS_ROOT = SCRIPT_DIR.parent
+
+# Portal destinations
+PUBLIC_DIR = RCRS_ROOT / "public" / "training"
+LIB_DIR = RCRS_ROOT / "lib"
+
+
+def ensure_dirs():
+    """Create portal content directories."""
+    dirs = [
+        PUBLIC_DIR / "audio",
+        PUBLIC_DIR / "video",
+        PUBLIC_DIR / "quizzes",
+        PUBLIC_DIR / "guides",
+        PUBLIC_DIR / "infographics",
+        PUBLIC_DIR / "mindmaps",
+        PUBLIC_DIR / "flashcards",
+    ]
+    for d in dirs:
+        d.mkdir(parents=True, exist_ok=True)
+
+
+def copy_media_files():
+    """Copy generated media to public directory."""
+    copied = []
+
+    file_mappings = [
+        ("audio", "*.mp3"),
+        ("video", "*.mp4"),
+        ("quizzes", "*.json"),
+        ("quizzes", "*.md"),
+        ("guides", "*.md"),
+        ("infographics", "*.png"),
+        ("mindmaps", "*.png"),
+        ("flashcards", "*.json"),
+    ]
+
+    for subdir, pattern in file_mappings:
+        src_dir = OUTPUT_DIR / subdir
+        dst_dir = PUBLIC_DIR / subdir
+        if src_dir.exists():
+            for f in src_dir.glob(pattern):
+                dst = dst_dir / f.name
+                shutil.copy2(f, dst)
+                copied.append(str(dst.relative_to(RCRS_ROOT)))
+                print(f"  Copied: {f.name} -> {dst.relative_to(RCRS_ROOT)}")
+
+    return copied
+
+
+def generate_training_data_ts():
+    """Generate TypeScript data file for the training portal."""
+    state = json.loads(STATE_FILE.read_text(encoding="utf-8")) if STATE_FILE.exists() else {}
+    notebooks = state.get("notebooks", {})
+
+    # Build training modules data
+    modules = []
+    for name, data in notebooks.items():
+        module = {
+            "id": name,
+            "title": {
+                "sales": "Sales Training & Mastery",
+                "onboarding": "Platform Onboarding",
+                "field-ops": "Field Operations & Delivery",
+                "customer-service": "Customer Service Excellence",
+                "admin-deep-dive": "Admin & Architecture Deep Dive",
+            }.get(name, name.replace("-", " ").title()),
+            "description": {
+                "sales": "Complete sales training with pitch techniques, CRM workflow, and commission tracking",
+                "onboarding": "New employee orientation covering the RCRS platform, tools, and daily workflows",
+                "field-ops": "Delivery process, inventory management, and driver portal operations",
+                "customer-service": "Customer portal, messaging, scheduling, and communication best practices",
+                "admin-deep-dive": "Full system architecture, security, API reference, and admin capabilities",
+            }.get(name, ""),
+            "audience": {
+                "sales": ["sales_rep", "sales_manager"],
+                "onboarding": ["all"],
+                "field-ops": ["driver", "warehouse", "crew_lead"],
+                "customer-service": ["office_staff", "customer_service"],
+                "admin-deep-dive": ["admin", "manager", "owner"],
+            }.get(name, ["all"]),
+            "difficulty": {
+                "sales": "intermediate",
+                "onboarding": "beginner",
+                "field-ops": "beginner",
+                "customer-service": "intermediate",
+                "admin-deep-dive": "advanced",
+            }.get(name, "beginner"),
+            "content": {},
+        }
+
+        # Map content paths to public URLs
+        if data.get("audio"):
+            module["content"]["audioDeepDive"] = f"/training/audio/{name}-deep-dive.mp3"
+        if data.get("video"):
+            module["content"]["trainingVideo"] = f"/training/video/{name}-training.mp4"
+        if data.get("video_brief"):
+            module["content"]["briefVideo"] = f"/training/video/{name}-brief.mp4"
+        if data.get("quiz"):
+            module["content"]["quiz"] = f"/training/quizzes/{name}-quiz.json"
+        if data.get("flashcards"):
+            module["content"]["flashcards"] = f"/training/flashcards/{name}-flashcards.json"
+        if data.get("study_guide"):
+            module["content"]["studyGuide"] = f"/training/guides/{name}-study-guide.md"
+        if data.get("mindmap"):
+            module["content"]["mindMap"] = f"/training/mindmaps/{name}-mindmap.png"
+        if data.get("infographic"):
+            module["content"]["infographic"] = f"/training/infographics/{name}-infographic.png"
+
+        modules.append(module)
+
+    # Generate TypeScript file
+    ts_content = f"""/**
+ * RCRS Training Content Data
+ * Auto-generated by NotebookLM pipeline on {datetime.now().strftime('%Y-%m-%d %H:%M')}
+ * DO NOT EDIT MANUALLY - regenerate with: python rcrs-notebooklm/sync_to_portal.py
+ */
+
+export interface TrainingContent {{
+  audioDeepDive?: string;
+  trainingVideo?: string;
+  briefVideo?: string;
+  quiz?: string;
+  flashcards?: string;
+  studyGuide?: string;
+  mindMap?: string;
+  infographic?: string;
+}}
+
+export interface TrainingModule {{
+  id: string;
+  title: string;
+  description: string;
+  audience: string[];
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  content: TrainingContent;
+}}
+
+export const TRAINING_MODULES: TrainingModule[] = {json.dumps(modules, indent=2)};
+
+export const TRAINING_PATHS = {{
+  sales: TRAINING_MODULES.filter(m => m.id === 'sales'),
+  onboarding: TRAINING_MODULES.filter(m => m.id === 'onboarding'),
+  fieldOps: TRAINING_MODULES.filter(m => m.id === 'field-ops'),
+  customerService: TRAINING_MODULES.filter(m => m.id === 'customer-service'),
+  adminDeepDive: TRAINING_MODULES.filter(m => m.id === 'admin-deep-dive'),
+}};
+
+export function getModulesForRole(role: string): TrainingModule[] {{
+  return TRAINING_MODULES.filter(
+    m => m.audience.includes('all') || m.audience.includes(role)
+  );
+}}
+
+export function getContentUrl(moduleId: string, contentType: keyof TrainingContent): string | undefined {{
+  const mod = TRAINING_MODULES.find(m => m.id === moduleId);
+  return mod?.content[contentType];
+}}
+"""
+
+    ts_path = LIB_DIR / "training-content.ts"
+    ts_path.write_text(ts_content, encoding="utf-8")
+    print(f"\n  Generated: {ts_path.relative_to(RCRS_ROOT)}")
+    return ts_path
+
+
+def generate_quiz_api_data():
+    """Process quiz JSON files into a format the portal API can serve."""
+    quiz_dir = OUTPUT_DIR / "quizzes"
+    if not quiz_dir.exists():
+        return
+
+    combined_quizzes = {}
+    for qf in quiz_dir.glob("*-quiz.json"):
+        name = qf.stem.replace("-quiz", "")
+        try:
+            quiz_data = json.loads(qf.read_text(encoding="utf-8"))
+            combined_quizzes[name] = quiz_data
+        except Exception as e:
+            print(f"  WARNING: Could not parse {qf.name}: {e}")
+
+    if combined_quizzes:
+        out_path = PUBLIC_DIR / "quizzes" / "all-quizzes.json"
+        out_path.write_text(json.dumps(combined_quizzes, indent=2), encoding="utf-8")
+        print(f"  Combined quizzes: {out_path.relative_to(RCRS_ROOT)}")
+
+
+def generate_flashcard_data():
+    """Process flashcard JSON files into portal-ready format."""
+    fc_dir = OUTPUT_DIR / "flashcards"
+    if not fc_dir.exists():
+        return
+
+    combined = {}
+    for ff in fc_dir.glob("*-flashcards.json"):
+        name = ff.stem.replace("-flashcards", "")
+        try:
+            data = json.loads(ff.read_text(encoding="utf-8"))
+            combined[name] = data
+        except Exception as e:
+            print(f"  WARNING: Could not parse {ff.name}: {e}")
+
+    if combined:
+        out_path = PUBLIC_DIR / "flashcards" / "all-flashcards.json"
+        out_path.write_text(json.dumps(combined, indent=2), encoding="utf-8")
+        print(f"  Combined flashcards: {out_path.relative_to(RCRS_ROOT)}")
+
+
+def main():
+    print("=" * 60)
+    print("RCRS NotebookLM -> Portal Sync")
+    print(f"Syncing: {OUTPUT_DIR} -> {PUBLIC_DIR}")
+    print("=" * 60)
+
+    ensure_dirs()
+
+    print("\n[1/4] Copying media files...")
+    copied = copy_media_files()
+    print(f"  Total files copied: {len(copied)}")
+
+    print("\n[2/4] Generating training data TypeScript...")
+    generate_training_data_ts()
+
+    print("\n[3/4] Processing quiz data...")
+    generate_quiz_api_data()
+
+    print("\n[4/4] Processing flashcard data...")
+    generate_flashcard_data()
+
+    print("\n" + "=" * 60)
+    print("SYNC COMPLETE")
+    print("=" * 60)
+    print(f"\nFiles synced to: {PUBLIC_DIR.relative_to(RCRS_ROOT)}")
+    print(f"TypeScript data: lib/training-content.ts")
+    print(f"\nNext: The training portal pages will automatically pick up this content.")
+
+
+if __name__ == "__main__":
+    main()

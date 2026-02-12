@@ -4,7 +4,8 @@ import Image from 'next/image';
 import { getService, getAllServiceSlugs, services } from '@/lib/servicesData';
 import { Home, Wrench, Building2, CloudRain, Flame, Shield, Search, AlertTriangle, Droplet, Wind, Paintbrush, ArrowRight, CheckCircle2, Phone, ArrowLeft } from 'lucide-react';
 import type { Metadata } from 'next';
-import { siteConfig } from '@/lib/seo';
+import StructuredData from '@/components/StructuredData';
+import { siteConfig, generateServiceSchema, generateBreadcrumbSchema } from '@/lib/seo';
 
 const iconMap: { [key: string]: any } = { Home, Wrench, Building2, CloudRain, Flame, Shield, Search, AlertTriangle, Droplet, Wind, Paintbrush };
 
@@ -49,8 +50,24 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
   const Icon = iconMap[service.icon];
   const items = service.whatsIncluded || service.servicesIncluded || service.features || [];
 
+  // Generate structured data for service page
+  const serviceSchema = generateServiceSchema({
+    name: service.title,
+    description: service.description,
+    image: service.image,
+    url: `${siteConfig.url}/services/${slug}`,
+  });
+
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: 'Services', url: '/services' },
+    { name: service.title, url: `/services/${slug}` },
+  ]);
+
   return (
     <div className="min-h-screen">
+      {/* Service and Breadcrumb Schema */}
+      <StructuredData data={[serviceSchema, breadcrumbSchema]} />
       <section className="relative min-h-[60vh] flex items-center">
         {service.image && (
           <div className="absolute inset-0 z-0">

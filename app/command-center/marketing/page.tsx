@@ -64,7 +64,7 @@ interface StatCardProps {
 function StatCard({ title, value, icon: Icon, description, color, href }: StatCardProps) {
   const colorClasses = {
     lime: 'bg-lime-500/10 text-lime-400',
-    blue: 'bg-blue-500/10 text-blue-400',
+    blue: 'bg-brand-green/10 text-blue-400',
     purple: 'bg-purple-500/10 text-purple-400',
     orange: 'bg-orange-500/10 text-orange-400',
   };
@@ -146,7 +146,7 @@ interface CampaignCardProps {
 function CampaignCard({ title, status, platform, startDate, endDate, progress }: CampaignCardProps) {
   const statusColors = {
     active: 'bg-lime-500/20 text-lime-400',
-    scheduled: 'bg-blue-500/20 text-blue-400',
+    scheduled: 'bg-brand-green/20 text-blue-400',
     completed: 'bg-zinc-500/20 text-zinc-400',
   };
 
@@ -399,7 +399,7 @@ export default function MarketingHubPage() {
                   <span
                     className={cn(
                       'shrink-0 rounded-full px-2 py-0.5 text-xs font-medium',
-                      event.type === 'Social' && 'bg-blue-500/20 text-blue-400',
+                      event.type === 'Social' && 'bg-brand-green/20 text-blue-400',
                       event.type === 'Email' && 'bg-purple-500/20 text-purple-400',
                       event.type === 'Blog' && 'bg-amber-500/20 text-amber-400',
                       event.type === 'Ad' && 'bg-lime-500/20 text-lime-400'
@@ -465,7 +465,7 @@ export default function MarketingHubPage() {
           className="group flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900 p-4 transition-all hover:border-zinc-700 hover:bg-zinc-800/50"
         >
           <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-blue-500/10 p-2.5 text-blue-400">
+            <div className="rounded-lg bg-brand-green/10 p-2.5 text-blue-400">
               <Image size={20} />
             </div>
             <div>
@@ -530,7 +530,7 @@ export default function MarketingHubPage() {
             </p>
           </div>
           <div className="rounded-lg border border-zinc-800 bg-zinc-800/30 p-4">
-            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
+            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-brand-green/10">
               <DollarSign size={20} className="text-blue-400" />
             </div>
             <h3 className="font-medium text-white">3-Minute Financing</h3>

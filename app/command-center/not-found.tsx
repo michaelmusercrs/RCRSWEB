@@ -33,7 +33,7 @@ export default function CommandCenterNotFound() {
             Page Not Found
           </h2>
           <p className="text-neutral-400 max-w-md mx-auto">
-            The Command Center page you're looking for doesn't exist or has been moved.
+            The RoofStack page you're looking for doesn't exist or has been moved.
           </p>
         </div>
 
@@ -44,7 +44,7 @@ export default function CommandCenterNotFound() {
             className="flex items-center justify-center gap-3 w-full px-6 py-4 rounded-xl bg-gradient-to-r from-brand-green to-emerald-500 hover:from-brand-green/90 hover:to-emerald-500/90 text-black font-semibold transition-all shadow-lg shadow-brand-green/25"
           >
             <LayoutDashboard className="w-5 h-5" />
-            Go to Command Center Dashboard
+            Go to RoofStack HQ
           </Link>
 
           <div className="grid grid-cols-2 gap-3">
@@ -79,7 +79,7 @@ export default function CommandCenterNotFound() {
               href="/command-center/inventory"
               className="px-4 py-2 rounded-lg bg-neutral-800/50 hover:bg-neutral-700/50 text-sm text-neutral-300 hover:text-white transition-colors"
             >
-              Inventory
+              Materials
             </Link>
             <Link
               href="/command-center/marketing"

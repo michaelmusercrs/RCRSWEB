@@ -366,6 +366,9 @@ const ROUTE_PERMISSIONS: ReadonlyArray<{
   { pattern: '/command-center/schedule', permission: 'schedule.view' },
   { pattern: '/command-center/schedule/edit', permission: 'schedule.edit' },
 
+  // Documents routes
+  { pattern: '/command-center/documents', permission: 'dashboard.view' },
+
   // Reports routes
   { pattern: '/command-center/reports', permission: 'reports.view' },
   { pattern: '/command-center/reports/export', permission: 'reports.export' },
@@ -379,8 +382,26 @@ const ROUTE_PERMISSIONS: ReadonlyArray<{
   { pattern: '/portal/billing', permission: 'billing.view' },
   { pattern: '/portal/inventory', permission: 'inventory.view' },
   { pattern: '/portal/driver', permission: 'schedule.view' },
+  { pattern: '/portal/driver/loading', permission: 'schedule.view' },
   { pattern: '/portal/pm', permission: 'schedule.view' },
+  { pattern: '/portal/delivery', permission: 'schedule.view' },
+  { pattern: '/portal/schedule', permission: 'schedule.view' },
+  { pattern: '/portal/chat', permission: 'dashboard.view' },
+  { pattern: '/portal/training', permission: 'dashboard.view' },
+  { pattern: '/portal/training/sales', permission: 'dashboard.view' },
+  { pattern: '/portal/training/onboarding', permission: 'dashboard.view' },
+  { pattern: '/portal/sales', permission: 'sales.viewOwn' },
+  { pattern: '/portal/sales/leads', permission: 'sales.viewOwn' },
+  { pattern: '/portal/sales/customers', permission: 'sales.viewOwn' },
+  { pattern: '/portal/sales/performance', permission: 'sales.viewOwn' },
+  { pattern: '/portal/manager', minRole: 'Manager' },
   { pattern: '/portal/admin', minRole: 'Admin' },
+  { pattern: '/portal/admin/portal-settings', minRole: 'Admin' },
+  { pattern: '/portal/admin/lead-distro', minRole: 'Admin' },
+  { pattern: '/portal/admin/training', minRole: 'Admin' },
+
+  // Public pages
+  { pattern: '/check-my-address', isPublic: true },
 ] as const;
 
 /**
@@ -495,7 +516,7 @@ export function getAccessDeniedRedirect(userRole: Role): string {
 const COMMAND_CENTER_NAV: NavItem[] = [
   {
     id: 'dashboard',
-    label: 'Dashboard',
+    label: 'HQ',
     href: '/command-center',
     icon: 'LayoutDashboard',
     requiredPermission: 'dashboard.view',
@@ -531,7 +552,7 @@ const COMMAND_CENTER_NAV: NavItem[] = [
   },
   {
     id: 'inventory',
-    label: 'Inventory',
+    label: 'Materials',
     href: '/command-center/inventory',
     icon: 'Package',
     requiredPermission: 'inventory.view',
@@ -539,7 +560,7 @@ const COMMAND_CENTER_NAV: NavItem[] = [
     children: [
       {
         id: 'inventory-list',
-        label: 'View Inventory',
+        label: 'View Materials',
         href: '/command-center/inventory',
         requiredPermission: 'inventory.view',
       },
@@ -602,8 +623,16 @@ const COMMAND_CENTER_NAV: NavItem[] = [
     showInMobile: true,
   },
   {
+    id: 'agents',
+    label: 'Agents',
+    href: '/command-center/agents',
+    icon: 'Users',
+    requiredPermission: 'team.view',
+    showInMobile: true,
+  },
+  {
     id: 'billing',
-    label: 'Billing',
+    label: 'Finance',
     href: '/command-center/billing',
     icon: 'CreditCard',
     requiredPermission: 'billing.view',
@@ -615,6 +644,14 @@ const COMMAND_CENTER_NAV: NavItem[] = [
     href: '/command-center/schedule',
     icon: 'Calendar',
     requiredPermission: 'schedule.view',
+    showInMobile: true,
+  },
+  {
+    id: 'documents',
+    label: 'Documents',
+    href: '/command-center/documents',
+    icon: 'FileText',
+    requiredPermission: 'dashboard.view',
     showInMobile: true,
   },
   {

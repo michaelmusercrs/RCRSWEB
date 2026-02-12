@@ -264,37 +264,8 @@ function createErrorResponse(message) {
 // TESTING FUNCTION (OPTIONAL)
 // ========================================
 
-/**
- * Test function to verify everything works
- * Run this from the script editor to test
- */
-function testFormSubmission() {
-  console.log('Testing form submission...');
-
-  // Create test data
-  const testEvent = {
-    parameter: {
-      name: 'Test User',
-      email: 'your-email@example.com', // UPDATE THIS WITH YOUR EMAIL
-      phone: '256-555-1234',
-      subject: 'Test Inspection Request',
-      message: 'This is a test submission from Google Apps Script',
-      preferredInspector: 'First Available'
-    }
-  };
-
-  // Run the form handler
-  const result = doPost(testEvent);
-
-  // Log result
-  console.log('Test result:', result.getContent());
-
-  // Check your email and Google Sheet to verify it worked
-  console.log('Check your:');
-  console.log('1. Email inbox for confirmation');
-  console.log('2. Company email for notification');
-  console.log('3. Google Sheet for new row');
-}
+// Test function removed - test via the website contact form
+// After deploying, submit a test through the live website
 
 /**
  * Gets the current deployment URL

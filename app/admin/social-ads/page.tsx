@@ -29,13 +29,13 @@ export default function SocialAdsPage() {
   const getPlatformIcon = (platform: string) => {
     switch (platform) {
       case 'facebook':
-        return <Facebook className="w-5 h-5 text-blue-600" />;
+        return <Facebook className="w-5 h-5 text-blue-400" />;
       case 'instagram':
         return <Instagram className="w-5 h-5 text-pink-600" />;
       default:
         return (
           <div className="flex gap-1">
-            <Facebook className="w-4 h-4 text-blue-600" />
+            <Facebook className="w-4 h-4 text-blue-400" />
             <Instagram className="w-4 h-4 text-pink-600" />
           </div>
         );
@@ -58,8 +58,8 @@ export default function SocialAdsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Social Media Ads</h1>
-          <p className="text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-white">Social Media Ads</h1>
+          <p className="text-neutral-500 mt-1">
             Ready-to-use ad content for Facebook and Instagram campaigns
           </p>
         </div>
@@ -81,11 +81,11 @@ export default function SocialAdsPage() {
           <Megaphone className="w-10 h-10 text-brand-green" />
           <div>
             <h2 className="text-xl font-bold">{brandGuidelines.companyInfo.name}</h2>
-            <p className="text-gray-300">{brandGuidelines.companyInfo.tagline}</p>
+            <p className="text-neutral-400">{brandGuidelines.companyInfo.tagline}</p>
           </div>
           <div className="ml-auto text-right">
             <p className="text-brand-green font-bold text-lg">{brandGuidelines.companyInfo.phone}</p>
-            <p className="text-gray-400">{brandGuidelines.companyInfo.location}</p>
+            <p className="text-neutral-500">{brandGuidelines.companyInfo.location}</p>
           </div>
         </div>
       </div>
@@ -95,15 +95,15 @@ export default function SocialAdsPage() {
         {socialAds.map((ad) => (
           <div
             key={ad.id}
-            className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow"
+            className="bg-neutral-900 rounded-xl border border-white/10 overflow-hidden hover:border-white/20 transition-shadow"
           >
             {/* Ad Header */}
-            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+            <div className="p-4 border-b border-white/5 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {getPlatformIcon(ad.platform)}
                 <div>
-                  <h3 className="font-bold text-gray-900">Ad #{ad.id}</h3>
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <h3 className="font-bold text-white">Ad #{ad.id}</h3>
+                  <div className="flex items-center gap-2 text-sm text-neutral-500">
                     {getTypeIcon(ad.type)}
                     <span className="capitalize">{ad.type}</span>
                   </div>
@@ -111,30 +111,30 @@ export default function SocialAdsPage() {
               </div>
               <button
                 onClick={() => setSelectedAd(selectedAd?.id === ad.id ? null : ad)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
               >
-                <Eye className="w-5 h-5 text-gray-400" />
+                <Eye className="w-5 h-5 text-neutral-500" />
               </button>
             </div>
 
             {/* Ad Content Preview */}
             <div className="p-4 space-y-3">
               <div>
-                <p className="text-xs text-gray-400 uppercase font-medium">Headline</p>
-                <p className="font-bold text-gray-900">{ad.headline}</p>
+                <p className="text-xs text-neutral-500 uppercase font-medium">Headline</p>
+                <p className="font-bold text-white">{ad.headline}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-400 uppercase font-medium">Primary Text</p>
-                <p className="text-gray-600 text-sm line-clamp-3">{ad.primaryText}</p>
+                <p className="text-xs text-neutral-500 uppercase font-medium">Primary Text</p>
+                <p className="text-neutral-400 text-sm line-clamp-3">{ad.primaryText}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-400 uppercase font-medium">Call to Action</p>
+                <p className="text-xs text-neutral-500 uppercase font-medium">Call to Action</p>
                 <p className="text-brand-green font-medium">{ad.callToAction}</p>
               </div>
             </div>
 
             {/* Ad Footer */}
-            <div className="p-4 bg-gray-50 border-t border-gray-100 flex flex-wrap gap-2">
+            <div className="p-4 bg-white/5 border-t border-white/5 flex flex-wrap gap-2">
               {ad.hashtags.slice(0, 4).map((tag) => (
                 <span
                   key={tag}
@@ -144,7 +144,7 @@ export default function SocialAdsPage() {
                 </span>
               ))}
               {ad.hashtags.length > 4 && (
-                <span className="px-2 py-1 bg-gray-200 text-gray-600 text-xs rounded-full">
+                <span className="px-2 py-1 bg-white/10 text-neutral-400 text-xs rounded-full">
                   +{ad.hashtags.length - 4} more
                 </span>
               )}
@@ -156,16 +156,16 @@ export default function SocialAdsPage() {
       {/* Selected Ad Detail Modal */}
       {selectedAd && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-neutral-900 border border-white/10 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
+            <div className="p-6 border-b border-white/10 flex items-center justify-between sticky top-0 bg-neutral-900">
               <div className="flex items-center gap-3">
                 {getPlatformIcon(selectedAd.platform)}
                 <h2 className="text-xl font-bold">Ad #{selectedAd.id} Details</h2>
               </div>
               <button
                 onClick={() => setSelectedAd(null)}
-                className="p-2 hover:bg-gray-100 rounded-lg"
+                className="p-2 hover:bg-white/10 rounded-lg"
               >
                 ✕
               </button>
@@ -176,7 +176,7 @@ export default function SocialAdsPage() {
               {/* Headline */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-medium text-gray-500 uppercase">Headline</label>
+                  <label className="text-sm font-medium text-neutral-500 uppercase">Headline</label>
                   <button
                     onClick={() => copyToClipboard(selectedAd.headline, 'headline')}
                     className="flex items-center gap-1 text-sm text-brand-green hover:text-brand-green/80"
@@ -185,7 +185,7 @@ export default function SocialAdsPage() {
                     {copiedField === 'headline' ? 'Copied!' : 'Copy'}
                   </button>
                 </div>
-                <p className="text-lg font-bold text-gray-900 bg-gray-50 p-3 rounded-lg">
+                <p className="text-lg font-bold text-white bg-white/5 p-3 rounded-lg">
                   {selectedAd.headline}
                 </p>
               </div>
@@ -193,7 +193,7 @@ export default function SocialAdsPage() {
               {/* Primary Text */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-medium text-gray-500 uppercase">Primary Text</label>
+                  <label className="text-sm font-medium text-neutral-500 uppercase">Primary Text</label>
                   <button
                     onClick={() => copyToClipboard(selectedAd.primaryText, 'primaryText')}
                     className="flex items-center gap-1 text-sm text-brand-green hover:text-brand-green/80"
@@ -202,7 +202,7 @@ export default function SocialAdsPage() {
                     {copiedField === 'primaryText' ? 'Copied!' : 'Copy'}
                   </button>
                 </div>
-                <div className="bg-gray-50 p-3 rounded-lg whitespace-pre-wrap text-gray-700">
+                <div className="bg-white/5 p-3 rounded-lg whitespace-pre-wrap text-neutral-300">
                   {selectedAd.primaryText}
                 </div>
               </div>
@@ -210,7 +210,7 @@ export default function SocialAdsPage() {
               {/* CTA */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-500 uppercase block mb-2">
+                  <label className="text-sm font-medium text-neutral-500 uppercase block mb-2">
                     Call to Action
                   </label>
                   <p className="bg-brand-green/10 text-brand-green font-medium p-3 rounded-lg">
@@ -218,7 +218,7 @@ export default function SocialAdsPage() {
                   </p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500 uppercase block mb-2">
+                  <label className="text-sm font-medium text-neutral-500 uppercase block mb-2">
                     CTA Button
                   </label>
                   <p className="bg-black text-white font-medium p-3 rounded-lg text-center">
@@ -230,7 +230,7 @@ export default function SocialAdsPage() {
               {/* Hashtags */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-medium text-gray-500 uppercase flex items-center gap-2">
+                  <label className="text-sm font-medium text-neutral-500 uppercase flex items-center gap-2">
                     <Hash className="w-4 h-4" />
                     Hashtags
                   </label>
@@ -257,18 +257,18 @@ export default function SocialAdsPage() {
 
               {/* Target Audience */}
               <div>
-                <label className="text-sm font-medium text-gray-500 uppercase flex items-center gap-2 mb-2">
+                <label className="text-sm font-medium text-neutral-500 uppercase flex items-center gap-2 mb-2">
                   <Target className="w-4 h-4" />
                   Target Audience
                 </label>
-                <p className="bg-blue-50 text-blue-700 p-3 rounded-lg">
+                <p className="bg-blue-50 text-blue-400 p-3 rounded-lg">
                   {selectedAd.targetAudience}
                 </p>
               </div>
 
               {/* Image Suggestion */}
               <div>
-                <label className="text-sm font-medium text-gray-500 uppercase flex items-center gap-2 mb-2">
+                <label className="text-sm font-medium text-neutral-500 uppercase flex items-center gap-2 mb-2">
                   <ImageIcon className="w-4 h-4" />
                   Suggested Image/Visual
                 </label>
@@ -279,7 +279,7 @@ export default function SocialAdsPage() {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-6 border-t border-gray-200 bg-gray-50">
+            <div className="p-6 border-t border-white/10 bg-white/5">
               <button
                 onClick={() => {
                   const fullContent = `HEADLINE:\n${selectedAd.headline}\n\nPRIMARY TEXT:\n${selectedAd.primaryText}\n\nCALL TO ACTION:\n${selectedAd.callToAction}\n\nHASHTAGS:\n${selectedAd.hashtags.join(' ')}`;

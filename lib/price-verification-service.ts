@@ -137,11 +137,19 @@ class PriceVerificationService {
   private async getOrCreateSheet(name: string, headers: string[]) {
     const doc = await this.getDoc();
     let sheet = doc.sheetsByTitle[name];
-
     if (!sheet) {
-      sheet = await doc.addSheet({ title: name, headerValues: headers });
+      sheet = await doc.addSheet({ title: name, headerValues: headers, gridProperties: { columnCount: Math.max(headers.length + 5, 26) } });
+    } else {
+      // Ensure headers exist - fix for sheets created without headers
+      try {
+        await sheet.loadHeaderRow();
+      } catch {
+        if (sheet.gridProperties.columnCount < headers.length) {
+          await sheet.resize({ rowCount: sheet.gridProperties.rowCount, columnCount: headers.length + 5 });
+        }
+        await sheet.setHeaderRow(headers);
+      }
     }
-
     return sheet;
   }
 

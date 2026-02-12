@@ -139,31 +139,31 @@ function DataTable<T extends object>({
     if (!isActive) {
       return (
         <ChevronsUpDown
-          className="ml-1 h-4 w-4 text-gray-500"
+          className="ml-1.5 h-3.5 w-3.5 text-zinc-600"
           aria-hidden="true"
         />
       );
     }
 
     return sortState.direction === 'asc' ? (
-      <ChevronUp className="ml-1 h-4 w-4 text-brand-green" aria-hidden="true" />
+      <ChevronUp className="ml-1.5 h-3.5 w-3.5 text-lime-400" aria-hidden="true" />
     ) : (
-      <ChevronDown className="ml-1 h-4 w-4 text-brand-green" aria-hidden="true" />
+      <ChevronDown className="ml-1.5 h-3.5 w-3.5 text-lime-400" aria-hidden="true" />
     );
   };
 
   // Loading skeleton
   if (loading) {
     return (
-      <div className={cn('overflow-x-auto rounded-lg border border-gray-700', className)}>
-        <table className="min-w-full divide-y divide-gray-700">
-          <thead className="bg-[#1a1a1a]">
+      <div className={cn('overflow-x-auto rounded-xl border border-zinc-800', className)} style={{ WebkitOverflowScrolling: 'touch' }}>
+        <table className="min-w-full divide-y divide-zinc-800 table-auto">
+          <thead className="bg-zinc-900">
             <tr>
               {columns.map((column, i) => (
                 <th
                   key={i}
                   className={cn(
-                    'px-4 py-3 text-left text-sm font-semibold text-gray-300',
+                    'px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-400',
                     column.width
                   )}
                 >
@@ -172,14 +172,14 @@ function DataTable<T extends object>({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-700 bg-[#242424]">
+          <tbody className="divide-y divide-zinc-800 bg-zinc-900">
             {Array.from({ length: 5 }).map((_, rowIndex) => (
-              <tr key={rowIndex}>
+              <tr key={rowIndex} className="animate-pulse">
                 {columns.map((_, colIndex) => (
-                  <td key={colIndex} className="px-4 py-3">
+                  <td key={colIndex} className="px-4 py-3.5">
                     <div
-                      className="h-4 animate-pulse rounded bg-gray-600"
-                      style={{ width: `${60 + Math.random() * 40}%` }}
+                      className="h-4 rounded bg-zinc-800"
+                      style={{ width: colIndex === 0 ? '70%' : colIndex === columns.length - 1 ? '40%' : '60%' }}
                     />
                   </td>
                 ))}
@@ -194,15 +194,15 @@ function DataTable<T extends object>({
   // Empty state
   if (!data || data.length === 0) {
     return (
-      <div className={cn('overflow-x-auto rounded-lg border border-gray-700', className)}>
-        <table className="min-w-full divide-y divide-gray-700">
-          <thead className="bg-[#1a1a1a]">
+      <div className={cn('overflow-x-auto rounded-xl border border-zinc-800', className)} style={{ WebkitOverflowScrolling: 'touch' }}>
+        <table className="min-w-full divide-y divide-zinc-800 table-auto">
+          <thead className="bg-zinc-900">
             <tr>
               {columns.map((column, i) => (
                 <th
                   key={i}
                   className={cn(
-                    'px-4 py-3 text-left text-sm font-semibold text-gray-300',
+                    'px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-400',
                     column.width
                   )}
                 >
@@ -211,13 +211,20 @@ function DataTable<T extends object>({
               ))}
             </tr>
           </thead>
-          <tbody className="bg-[#242424]">
+          <tbody className="bg-zinc-900">
             <tr>
               <td
                 colSpan={columns.length}
-                className="px-4 py-12 text-center text-gray-500"
+                className="px-4 py-16 text-center"
               >
-                <p className="text-lg">{emptyMessage}</p>
+                <div className="flex flex-col items-center justify-center">
+                  <div className="h-12 w-12 rounded-xl bg-zinc-800/50 flex items-center justify-center mb-3">
+                    <svg className="h-6 w-6 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                    </svg>
+                  </div>
+                  <p className="text-sm font-medium text-zinc-400">{emptyMessage}</p>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -228,12 +235,13 @@ function DataTable<T extends object>({
 
   return (
     <div
-      className={cn('overflow-x-auto rounded-lg border border-gray-700', className)}
+      className={cn('overflow-x-auto rounded-xl border border-zinc-800', className)}
       role="region"
       aria-label="Data table"
+      style={{ WebkitOverflowScrolling: 'touch' }}
     >
-      <table className="min-w-full divide-y divide-gray-700">
-        <thead className="bg-[#1a1a1a]">
+      <table className="min-w-full divide-y divide-zinc-800 table-auto">
+        <thead className="bg-zinc-900">
           <tr>
             {columns.map((column, i) => {
               const accessor = String(column.accessor);
@@ -242,12 +250,12 @@ function DataTable<T extends object>({
                   key={i}
                   scope="col"
                   className={cn(
-                    'px-4 py-3 text-sm font-semibold text-gray-300',
+                    'px-4 py-3 text-xs font-semibold uppercase tracking-wider text-zinc-400',
                     column.width,
                     column.align === 'center' && 'text-center',
                     column.align === 'right' && 'text-right',
                     column.align !== 'center' && column.align !== 'right' && 'text-left',
-                    column.sortable && 'cursor-pointer select-none hover:bg-gray-800'
+                    column.sortable && 'cursor-pointer select-none hover:bg-zinc-800 transition-colors'
                   )}
                   onClick={() => handleSort(column)}
                   onKeyDown={(e) => {
@@ -275,13 +283,13 @@ function DataTable<T extends object>({
             })}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-700 bg-[#242424]">
+        <tbody className="divide-y divide-zinc-800 bg-zinc-900">
           {sortedData.map((row, rowIndex) => (
             <tr
               key={getRowKey(row, rowIndex)}
               className={cn(
-                striped && rowIndex % 2 === 1 && 'bg-[#2a2a2a]',
-                hoverable && 'hover:bg-gray-700/50 transition-colors',
+                striped && rowIndex % 2 === 1 && 'bg-zinc-900/50',
+                hoverable && 'hover:bg-zinc-800/50 transition-colors',
                 onRowClick && 'cursor-pointer'
               )}
               onClick={() => onRowClick?.(row, rowIndex)}
@@ -300,7 +308,7 @@ function DataTable<T extends object>({
                   <td
                     key={colIndex}
                     className={cn(
-                      'px-4 py-3 text-sm text-gray-200',
+                      'px-4 py-3 text-sm text-zinc-200',
                       column.width,
                       column.align === 'center' && 'text-center',
                       column.align === 'right' && 'text-right',

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import Script from 'next/script';
+import { Suspense } from 'react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 import Header from '@/components/Header';
@@ -8,10 +9,14 @@ import Footer from '@/components/Footer';
 import FloatingContactButton from '@/components/FloatingContactButton';
 import GlobalVideoBackground from '@/components/GlobalVideoBackground';
 import PromoBanner from '@/components/PromoBanner';
-import { generateMetadata, generateLocalBusinessSchema, getStructuredDataScript } from '@/lib/seo';
+import CookieConsent from '@/components/CookieConsent';
+import TrackingProvider from '@/components/TrackingProvider';
+import { generateMetadata, generateLocalBusinessSchema, generateWebSiteSchema, getStructuredDataScript, siteConfig } from '@/lib/seo';
 
-// Google Analytics ID
+// Tracking IDs from environment variables
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_ID || 'G-Y8PB85BZC5';
+const FB_PIXEL_ID = process.env.NEXT_PUBLIC_FB_PIXEL_ID || '';
+const GOOGLE_ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID || '';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -33,28 +38,47 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Generate structured data for local business
+  // Generate structured data for local business and website
   const localBusinessSchema = generateLocalBusinessSchema();
-  const structuredDataScript = getStructuredDataScript(localBusinessSchema);
+  const webSiteSchema = generateWebSiteSchema();
+  // Combine schemas into an array for multiple structured data blocks
+  const combinedSchemas = [localBusinessSchema, webSiteSchema];
 
   return (
     <html lang="en">
       <head>
-        {/* Structured Data (JSON-LD) */}
+        {/* Structured Data (JSON-LD) - LocalBusiness and WebSite schemas */}
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: structuredDataScript }}
+          dangerouslySetInnerHTML={{ __html: getStructuredDataScript(combinedSchemas) }}
         />
+        {/* Additional SEO Meta Tags */}
+        <meta name="geo.region" content="US-AL" />
+        <meta name="geo.placename" content="Decatur" />
+        <meta name="geo.position" content={`${siteConfig.geo.latitude};${siteConfig.geo.longitude}`} />
+        <meta name="ICBM" content={`${siteConfig.geo.latitude}, ${siteConfig.geo.longitude}`} />
         {/* Favicon */}
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+        <link rel="icon" href="/logo-nobg.png" type="image/png" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.png" />
+        {/* PWA Manifest */}
+        <link rel="manifest" href="/manifest.json" />
         {/* Theme color */}
         <meta name="theme-color" content="#000000" />
         <meta name="color-scheme" content="dark light" />
+        {/* PWA Meta Tags */}
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="RCRS" />
+        <meta name="application-name" content="River City Roofing Solutions" />
+        <meta name="msapplication-TileColor" content="#000000" />
+        <meta name="msapplication-TileImage" content="/icons/icon-144x144.png" />
+        <meta name="msapplication-tap-highlight" content="no" />
+        <meta name="format-detection" content="telephone=no" />
       </head>
       <body className={inter.className}>
-        {/* Google Analytics - Must be in body for Next.js App Router */}
+        {/* Google Tag Manager / Analytics with Consent Mode */}
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
           strategy="afterInteractive"
@@ -63,22 +87,92 @@ export default function RootLayout({
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
+
+            // Default consent mode - deny until user consents
+            gtag('consent', 'default', {
+              'analytics_storage': 'denied',
+              'ad_storage': 'denied',
+              'ad_user_data': 'denied',
+              'ad_personalization': 'denied',
+              'wait_for_update': 500
+            });
+
             gtag('js', new Date());
-            gtag('config', '${GA_MEASUREMENT_ID}');
+            gtag('config', '${GA_MEASUREMENT_ID}', {
+              page_path: window.location.pathname,
+              send_page_view: true
+            });
+            ${GOOGLE_ADS_ID ? `gtag('config', '${GOOGLE_ADS_ID}');` : ''}
           `}
         </Script>
-        <div className="sticky top-0 z-50">
-          <PromoBanner />
-          <Header />
-        </div>
-        <GlobalVideoBackground
-          videoSrc="/uploads/hero-video.mp4"
-          fallbackImage="/uploads/hero-background.webp"
-        />
-        <main>{children}</main>
-        <Footer />
-        <FloatingContactButton />
+
+        {/* Facebook Pixel - Loads conditionally based on consent in tracking-service.ts */}
+        {FB_PIXEL_ID && (
+          <Script id="facebook-pixel-noscript" strategy="afterInteractive">
+            {`
+              // Facebook Pixel will be initialized by tracking-service.ts after consent
+              window.FB_PIXEL_ID = '${FB_PIXEL_ID}';
+            `}
+          </Script>
+        )}
+
+        {/* Google Ads Remarketing Tag */}
+        {GOOGLE_ADS_ID && (
+          <Script
+            src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ADS_ID}`}
+            strategy="afterInteractive"
+          />
+        )}
+
+        <Suspense fallback={null}>
+          <TrackingProvider>
+            <div className="sticky top-0 z-50">
+              <PromoBanner />
+              <Header />
+            </div>
+            <GlobalVideoBackground
+              videoSrc="/uploads/hero-video.mp4"
+              fallbackImage="/uploads/hero-background.webp"
+            />
+            <main>{children}</main>
+            <Footer />
+            <FloatingContactButton />
+          </TrackingProvider>
+        </Suspense>
+
+        <CookieConsent />
         <SpeedInsights />
+
+        {/* Service Worker Registration */}
+        <Script id="sw-register" strategy="afterInteractive">
+          {`
+            if ('serviceWorker' in navigator) {
+              window.addEventListener('load', function() {
+                // Determine which manifest to use based on the current path
+                var isPortal = window.location.pathname.startsWith('/portal');
+                if (isPortal) {
+                  var manifestLink = document.querySelector('link[rel="manifest"]');
+                  if (manifestLink) {
+                    manifestLink.setAttribute('href', '/manifest-portal.json');
+                  }
+                }
+
+                navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                  .then(function(registration) {
+                    console.log('[PWA] Service Worker registered with scope:', registration.scope);
+
+                    // Check for updates periodically (every 60 minutes)
+                    setInterval(function() {
+                      registration.update();
+                    }, 60 * 60 * 1000);
+                  })
+                  .catch(function(error) {
+                    console.log('[PWA] Service Worker registration failed:', error);
+                  });
+              });
+            }
+          `}
+        </Script>
       </body>
     </html>
   );

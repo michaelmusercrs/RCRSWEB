@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { priceVerificationService } from '@/lib/price-verification-service';
 
 // GET /api/portal/pricing - Get supplier pricing list
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const { searchParams } = new URL(request.url);
     const supplier = searchParams.get('supplier') || undefined;
@@ -17,6 +21,9 @@ export async function GET(request: NextRequest) {
 
 // POST /api/portal/pricing - Add new supplier pricing
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const data = await request.json();
     const pricing = await priceVerificationService.addSupplierPricing(data);
@@ -29,6 +36,9 @@ export async function POST(request: NextRequest) {
 
 // PATCH /api/portal/pricing - Update supplier pricing
 export async function PATCH(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const data = await request.json();
     const { productId, ...updates } = data;

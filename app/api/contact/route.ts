@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
 import { calculateLeadScore, formatLeadForEmail } from '@/lib/lead-tracker';
+import { groupMeService, getGroupMeConfigFromEnv } from '@/lib/groupme-service';
+import { portalGenerator } from '@/lib/portal-generator';
+import { leadPortalService } from '@/lib/lead-portal-service';
+import { apiError, getErrorMessage } from '@/lib/api-response';
 
 /**
  * Contact Form API Route
@@ -22,19 +26,13 @@ export async function POST(request: Request) {
 
     // Validate required fields
     if (!name || !email || !subject || !message) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
+      return apiError('Missing required fields: name, email, subject, and message are required', 400, 'VALIDATION_ERROR');
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        { error: 'Invalid email address' },
-        { status: 400 }
-      );
+      return apiError('Invalid email address', 400, 'INVALID_EMAIL');
     }
 
     // Calculate lead quality score
@@ -68,13 +66,28 @@ export async function POST(request: Request) {
         timestamp: new Date().toISOString(),
       });
 
-      return NextResponse.json(
-        {
-          success: true,
-          message: 'Thank you for contacting us! We will get back to you shortly.',
-          warning: 'Development mode - no email sent'
-        },
-        { status: 200 }
+      // Still send GroupMe notification even in dev mode
+      try {
+        const groupMeConfig = getGroupMeConfigFromEnv();
+        if (groupMeConfig.enabled && groupMeConfig.botId) {
+          const notification = groupMeService.createNewLeadNotification({
+            name,
+            email,
+            phone,
+            source: sourcePage || 'Contact Page',
+            subject,
+            message,
+          });
+          await groupMeService.sendNotification(groupMeConfig, notification);
+        }
+      } catch (groupMeError) {
+        console.error('Failed to send GroupMe notification:', groupMeError);
+      }
+
+      return apiError(
+        'Contact form processing is temporarily unavailable. Please call us at (256) 274-8530.',
+        503,
+        'GOOGLE_SCRIPT_NOT_CONFIGURED'
       );
     }
 
@@ -104,25 +117,93 @@ export async function POST(request: Request) {
     const data = await response.json();
 
     if (data.result === 'success') {
+      // Auto-generate customer portal for new leads
+      let portalData = null;
+      try {
+        // Check if we have enough info to generate a portal
+        if (phone && (serviceArea || city)) {
+          const address = [serviceArea, city, 'AL'].filter(Boolean).join(', ');
+
+          const portalResult = await portalGenerator.generatePortalForLead({
+            name,
+            email,
+            phone,
+            address,
+            source: 'contact_form',
+            sourceDetails: sourcePage || 'Contact Page',
+            preferredRepSlug: preferredInspector && preferredInspector !== 'First Available'
+              ? preferredInspector.toLowerCase().replace(/\s+/g, '-')
+              : undefined,
+            serviceType,
+            message,
+          });
+
+          if (portalResult.success && portalResult.portalAccess) {
+            // Store the lead in our system
+            await leadPortalService.createLead({
+              portalAccess: portalResult.portalAccess,
+              shortCode: portalResult.shortCode!,
+              source: 'contact_form',
+              sourceDetails: sourcePage || 'Contact Page',
+              serviceType,
+              message,
+            });
+
+            portalData = {
+              portalUrl: portalResult.portalUrl,
+              salesRepName: portalResult.salesRep?.name,
+            };
+
+            console.log(`Portal auto-generated for ${name}: ${portalResult.portalUrl}`);
+          }
+        }
+      } catch (portalError) {
+        // Don't fail the request if portal generation fails
+        console.error('Failed to auto-generate portal:', portalError);
+      }
+
+      // Send GroupMe notification for new lead
+      try {
+        const groupMeConfig = getGroupMeConfigFromEnv();
+        if (groupMeConfig.enabled && groupMeConfig.botId) {
+          const notification = groupMeService.createNewLeadNotification({
+            name,
+            email,
+            phone,
+            source: sourcePage || 'Contact Page',
+            subject,
+            message,
+          });
+          await groupMeService.sendNotification(groupMeConfig, notification);
+        }
+      } catch (groupMeError) {
+        // Don't fail the request if GroupMe notification fails
+        console.error('Failed to send GroupMe notification:', groupMeError);
+      }
+
       return NextResponse.json(
         {
           success: true,
           message: 'Thank you for contacting us! We will get back to you shortly.',
+          portalGenerated: portalData !== null,
+          ...(portalData && { portal: portalData }),
         },
         { status: 200 }
       );
     } else {
       console.error('Google Apps Script returned error:', data);
-      return NextResponse.json(
-        { error: 'Failed to process your request. Please try calling us directly.' },
-        { status: 500 }
+      return apiError(
+        'Failed to process your request. Please try calling us directly at (256) 274-8530.',
+        500,
+        'GOOGLE_SCRIPT_ERROR'
       );
     }
   } catch (error) {
     console.error('Error processing contact form:', error);
-    return NextResponse.json(
-      { error: 'Failed to process your request. Please try calling us directly.' },
-      { status: 500 }
+    return apiError(
+      'Failed to process your request. Please try calling us directly at (256) 274-8530.',
+      500,
+      'CONTACT_FORM_ERROR'
     );
   }
 }

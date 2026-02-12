@@ -17,6 +17,10 @@ export interface ContactFormData {
   serviceType?: string;
   serviceArea?: string;
   sourcePage: string;
+  // Lead source attribution
+  leadSource?: string;
+  leadSourceDetail?: string;
+  marketingSource?: string;
 }
 
 export interface ReferralFormData {
@@ -58,6 +62,10 @@ class FormService {
         serviceType: data.serviceType || '',
         serviceArea: data.serviceArea || '',
         sourcePage: data.sourcePage,
+        // Lead source attribution columns
+        leadSource: data.leadSource || 'Direct',
+        leadSourceDetail: data.leadSourceDetail || '',
+        marketingSource: data.marketingSource || 'Website - Direct',
       });
 
       // Send email notification
@@ -112,6 +120,18 @@ class FormService {
   }
 
   /**
+   * Sanitize input to prevent Google Sheets formula injection
+   */
+  private sanitizeForSheets(value: string): string {
+    if (typeof value !== 'string') return value;
+    // Prefix dangerous formula characters with a single quote
+    if (/^[=+\-@\t\r]/.test(value)) {
+      return `'${value}`;
+    }
+    return value;
+  }
+
+  /**
    * Save form submission to Google Sheets
    */
   private async saveToSheet(formType: string, data: Record<string, string>): Promise<void> {
@@ -132,17 +152,23 @@ class FormService {
 
     if (!sheet) {
       const headers = formType === 'contact'
-        ? ['id', 'timestamp', 'status', 'sourcePage', 'name', 'email', 'phone', 'subject', 'message', 'preferredInspector', 'serviceType', 'serviceArea']
+        ? ['id', 'timestamp', 'status', 'sourcePage', 'name', 'email', 'phone', 'subject', 'message', 'preferredInspector', 'serviceType', 'serviceArea', 'leadSource', 'leadSourceDetail', 'marketingSource']
         : ['id', 'timestamp', 'status', 'sourcePage', 'referrerName', 'referrerPhone', 'referrerEmail', 'referralName', 'referralPhone', 'referralEmail', 'referralAddress', 'salesRep', 'notes'];
 
       sheet = await doc.addSheet({ title: sheetName, headerValues: headers });
+    }
+
+    // Sanitize all user input to prevent formula injection
+    const sanitizedData: Record<string, string> = {};
+    for (const [key, value] of Object.entries(data)) {
+      sanitizedData[key] = this.sanitizeForSheets(value);
     }
 
     await sheet.addRow({
       id: `${formType}-${Date.now()}`,
       timestamp: new Date().toISOString(),
       status: 'new',
-      ...data,
+      ...sanitizedData,
     });
   }
 

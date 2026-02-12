@@ -158,11 +158,19 @@ class SchedulingService {
   private async getOrCreateSheet(sheetName: string, headers: string[]) {
     const doc = await this.getDoc();
     let sheet = doc.sheetsByTitle[sheetName];
-
     if (!sheet) {
-      sheet = await doc.addSheet({ title: sheetName, headerValues: headers });
+      sheet = await doc.addSheet({ title: sheetName, headerValues: headers, gridProperties: { columnCount: Math.max(headers.length + 5, 26) } });
+    } else {
+      // Ensure headers exist - fix for sheets created without headers
+      try {
+        await sheet.loadHeaderRow();
+      } catch {
+        if (sheet.gridProperties.columnCount < headers.length) {
+          await sheet.resize({ rowCount: sheet.gridProperties.rowCount, columnCount: headers.length + 5 });
+        }
+        await sheet.setHeaderRow(headers);
+      }
     }
-
     return sheet;
   }
 

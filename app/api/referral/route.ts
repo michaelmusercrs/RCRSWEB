@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { apiError, getErrorMessage } from '@/lib/api-response';
 
 /**
  * Referral Form API Route
@@ -21,9 +22,10 @@ export async function POST(request: Request) {
 
     // Validate required fields
     if (!referrerName || !referrerPhone || !referralName || !referralPhone || !referralAddress) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
+      return apiError(
+        'Missing required fields: referrerName, referrerPhone, referralName, referralPhone, and referralAddress are required',
+        400,
+        'VALIDATION_ERROR'
       );
     }
 
@@ -50,13 +52,10 @@ export async function POST(request: Request) {
         timestamp: new Date().toISOString(),
       });
 
-      return NextResponse.json(
-        {
-          success: true,
-          message: 'Thank you for your referral! We will contact them soon.',
-          warning: 'Development mode - no email sent'
-        },
-        { status: 200 }
+      return apiError(
+        'Referral processing is temporarily unavailable. Please call us at (256) 274-8530.',
+        503,
+        'GOOGLE_SCRIPT_NOT_CONFIGURED'
       );
     }
 
@@ -95,16 +94,18 @@ export async function POST(request: Request) {
       );
     } else {
       console.error('Google Apps Script returned error:', data);
-      return NextResponse.json(
-        { error: 'Failed to process your referral. Please try calling us directly.' },
-        { status: 500 }
+      return apiError(
+        'Failed to process your referral. Please try calling us directly at (256) 274-8530.',
+        500,
+        'GOOGLE_SCRIPT_ERROR'
       );
     }
   } catch (error) {
     console.error('Error processing referral form:', error);
-    return NextResponse.json(
-      { error: 'Failed to process your referral. Please try calling us directly.' },
-      { status: 500 }
+    return apiError(
+      'Failed to process your referral. Please try calling us directly at (256) 274-8530.',
+      500,
+      'REFERRAL_FORM_ERROR'
     );
   }
 }

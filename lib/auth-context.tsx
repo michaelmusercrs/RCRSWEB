@@ -29,6 +29,37 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const ROLE_ROUTES: Record<TeamRole, string[]> = {
   owner: ['*'], // All routes
   admin: ['*'], // All routes
+  manager: [
+    '/portal/dashboard',
+    '/portal/manager',
+    '/portal/office',
+    '/portal/billing',
+    '/portal/inventory',
+    '/portal/schedule',
+    '/portal/reports',
+    '/portal/my-profile',
+    '/portal/monday-notes',
+    '/portal/chat',
+    '/portal/settings/notifications',
+    '/command-center',
+    '/command-center/leads',
+  ],
+  sales: [
+    '/portal/dashboard',
+    '/portal/sales',
+    '/portal/sales/leads',
+    '/portal/sales/jobs',
+    '/portal/sales/stats',
+    '/portal/sales/profile',
+    '/portal/my-profile',
+    '/portal/monday-notes',
+    '/portal/chat',
+    '/portal/inventory',
+    '/portal/schedule',
+    '/portal/settings/notifications',
+    '/command-center/sales',
+    '/command-center/leads',
+  ],
   office: [
     '/portal/dashboard',
     '/portal/office',
@@ -36,20 +67,34 @@ const ROLE_ROUTES: Record<TeamRole, string[]> = {
     '/portal/inventory',
     '/portal/schedule',
     '/portal/reports',
+    '/portal/my-profile',
+    '/portal/monday-notes',
+    '/portal/chat',
+    '/portal/settings/notifications',
+    '/command-center',
+    '/command-center/leads',
   ],
   project_manager: [
     '/portal/dashboard',
     '/portal/pm',
     '/portal/schedule',
+    '/portal/inventory',
+    '/portal/monday-notes',
+    '/portal/chat',
+    '/command-center',
   ],
   driver: [
     '/portal/dashboard',
     '/portal/driver',
+    '/portal/inventory',
+    '/portal/monday-notes',
+    '/portal/chat',
   ],
   viewer: [
     '/portal/dashboard',
     '/portal/office',
     '/portal/reports',
+    '/portal/chat',
   ],
 };
 
@@ -57,8 +102,10 @@ const ROLE_ROUTES: Record<TeamRole, string[]> = {
 export const ROLE_DEFAULT_ROUTES: Record<TeamRole, string> = {
   owner: '/portal/dashboard',
   admin: '/portal/dashboard',
+  manager: '/portal/dashboard',
+  sales: '/portal/dashboard',
   office: '/portal/dashboard',
-  project_manager: '/portal/dashboard',
+  project_manager: '/portal/pm',
   driver: '/portal/driver',
   viewer: '/portal/dashboard',
 };
@@ -108,8 +155,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: false, error: 'Email not found. Please contact admin.' };
     }
 
-    // In production, verify password against stored hash
-    // For now, we're using temp password validation
+    // Validate password/PIN - required for all logins
+    if (!password) {
+      return { success: false, error: 'Password is required.' };
+    }
+
+    // Validate against member PIN
+    if (!member.pin || password !== member.pin) {
+      return { success: false, error: 'Invalid password. Please try again.' };
+    }
+
     const authUser: AuthUser = {
       userId: member.id,
       name: member.name,

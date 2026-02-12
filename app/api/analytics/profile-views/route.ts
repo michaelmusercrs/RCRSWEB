@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { cmsSheetsService } from '@/lib/cms-sheets-service';
 
 /**
@@ -11,6 +12,9 @@ import { cmsSheetsService } from '@/lib/cms-sheets-service';
  * Get profile view statistics
  */
 export async function GET(req: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const { searchParams } = new URL(req.url);
     const slug = searchParams.get('slug');

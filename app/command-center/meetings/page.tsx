@@ -6,15 +6,16 @@
  * Central hub for managing Monday meetings. Displays:
  * - Next meeting countdown
  * - Quick action buttons
+ * - Auto-updating sales leaderboard
  * - Meeting agenda preview (18 slides)
- * - Statistics cards
+ * - Statistics cards with period toggles
  *
  * @author RCRS Development Team
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 import * as React from 'react';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Calendar,
@@ -43,6 +44,14 @@ import {
   MessageCircle,
   Star,
   PlayCircle,
+  Flame,
+  Snowflake,
+  Crown,
+  Medal,
+  TrendingUp,
+  TrendingDown,
+  Presentation,
+  Monitor,
 } from 'lucide-react';
 import { StatCard, LoadingSpinner } from '@/components/command-center';
 import { cn } from '@/lib/utils';
@@ -63,6 +72,42 @@ interface MeetingConfig {
   totalSlides: number;
   estimatedDuration: number;
 }
+
+interface LeaderboardRep {
+  rank: number;
+  name: string;
+  initials: string;
+  avatarColor: string;
+  totalCommissions: number;
+  weeklyCommissions: number;
+  monthlyCommissions: number;
+  ytdCommissions: number;
+  totalTransactions: number;
+  avgTransaction: number;
+  percentOfTeamTotal: number;
+  streak: 'hot' | 'cold' | 'neutral';
+  isTopPerformer: boolean;
+  achievements: Array<{
+    id: string;
+    icon: string;
+    name: string;
+    tier: string;
+  }>;
+}
+
+interface LeaderboardData {
+  leaderboard: LeaderboardRep[];
+  summary: {
+    totalTeamCommissions: number;
+    totalTransactions: number;
+    weeklyTotal: number;
+    monthlyTotal: number;
+    ytdTotal: number;
+    avgTeamTransaction: number;
+  };
+}
+
+type PeriodType = 'week' | 'month' | 'ytd';
 
 // =============================================================================
 // Icon Mapping
@@ -251,7 +296,7 @@ function SlideListItem({ slide, index }: SlideListItemProps) {
     : `0:${slide.duration.toString().padStart(2, '0')}`;
 
   const categoryColors: Record<string, string> = {
-    opener: 'bg-blue-500/20 text-blue-400',
+    opener: 'bg-brand-green/20 text-blue-400',
     business: 'bg-lime-500/20 text-lime-400',
     team: 'bg-purple-500/20 text-purple-400',
     closer: 'bg-orange-500/20 text-orange-400',
@@ -317,13 +362,199 @@ function StatusBadge({ status }: StatusBadgeProps) {
 }
 
 // =============================================================================
+// Period Toggle Component
+// =============================================================================
+
+interface PeriodToggleProps {
+  selected: PeriodType;
+  onChange: (period: PeriodType) => void;
+}
+
+function PeriodToggle({ selected, onChange }: PeriodToggleProps) {
+  const periods: { value: PeriodType; label: string }[] = [
+    { value: 'week', label: 'Weekly' },
+    { value: 'month', label: 'Monthly' },
+    { value: 'ytd', label: 'YTD' },
+  ];
+
+  return (
+    <div className="flex gap-1 bg-zinc-800 p-1 rounded-lg">
+      {periods.map(({ value, label }) => (
+        <button
+          key={value}
+          onClick={() => onChange(value)}
+          className={cn(
+            'px-3 py-1.5 text-sm font-medium rounded-md transition-all',
+            selected === value
+              ? 'bg-lime-500 text-black'
+              : 'text-zinc-400 hover:text-white hover:bg-zinc-700'
+          )}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// =============================================================================
+// Mini Leaderboard Component
+// =============================================================================
+
+interface MiniLeaderboardProps {
+  leaderboard: LeaderboardRep[];
+  period: PeriodType;
+  onViewFull: () => void;
+}
+
+function MiniLeaderboard({ leaderboard, period, onViewFull }: MiniLeaderboardProps) {
+  const top5 = leaderboard.slice(0, 5);
+
+  const getValue = (rep: LeaderboardRep) => {
+    switch (period) {
+      case 'week':
+        return rep.weeklyCommissions;
+      case 'month':
+        return rep.monthlyCommissions;
+      case 'ytd':
+        return rep.ytdCommissions;
+      default:
+        return rep.totalCommissions;
+    }
+  };
+
+  const formatCurrency = (amount: number): string => {
+    if (amount >= 1000000) {
+      return `$${(amount / 1000000).toFixed(2)}M`;
+    }
+    if (amount >= 1000) {
+      return `$${(amount / 1000).toFixed(1)}K`;
+    }
+    return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+  };
+
+  const getRankIcon = (rank: number) => {
+    switch (rank) {
+      case 1:
+        return <Crown className="h-5 w-5 text-yellow-400" />;
+      case 2:
+        return <Medal className="h-5 w-5 text-neutral-500" />;
+      case 3:
+        return <Award className="h-5 w-5 text-orange-500" />;
+      default:
+        return <span className="text-zinc-500 font-bold">#{rank}</span>;
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      {top5.map((rep) => (
+        <div
+          key={rep.name}
+          className={cn(
+            'flex items-center gap-3 p-3 rounded-lg transition-colors',
+            rep.isTopPerformer ? 'bg-zinc-800' : 'bg-zinc-800/50 hover:bg-zinc-800'
+          )}
+        >
+          <div className="w-8 flex justify-center">
+            {getRankIcon(rep.rank)}
+          </div>
+          <div
+            className={cn(
+              'w-10 h-10 rounded-full bg-gradient-to-br flex items-center justify-center text-sm font-bold text-white',
+              rep.avatarColor
+            )}
+          >
+            {rep.initials}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-white truncate">{rep.name}</span>
+              {rep.streak === 'hot' && <Flame className="h-4 w-4 text-orange-400 animate-pulse" />}
+              {rep.streak === 'cold' && <Snowflake className="h-4 w-4 text-blue-400" />}
+            </div>
+            <div className="flex gap-1 mt-0.5">
+              {rep.achievements.slice(0, 3).map((a) => (
+                <span key={a.id} title={a.name} className="text-sm">
+                  {a.icon}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="font-bold text-lime-400">{formatCurrency(getValue(rep))}</p>
+            <p className="text-xs text-zinc-500">{rep.totalTransactions} deals</p>
+          </div>
+        </div>
+      ))}
+      <button
+        onClick={onViewFull}
+        className="w-full py-2 text-sm font-medium text-lime-400 hover:text-lime-300 flex items-center justify-center gap-1"
+      >
+        View Full Leaderboard
+        <ChevronRight size={16} />
+      </button>
+    </div>
+  );
+}
+
+// =============================================================================
+// Commission Summary Stats Component
+// =============================================================================
+
+interface CommissionSummaryProps {
+  summary: LeaderboardData['summary'];
+  period: PeriodType;
+}
+
+function CommissionSummary({ summary, period }: CommissionSummaryProps) {
+  const formatCurrency = (amount: number): string => {
+    if (amount >= 1000000) {
+      return `$${(amount / 1000000).toFixed(2)}M`;
+    }
+    if (amount >= 1000) {
+      return `$${(amount / 1000).toFixed(1)}K`;
+    }
+    return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+  };
+
+  const periodValue = period === 'week'
+    ? summary.weeklyTotal
+    : period === 'month'
+      ? summary.monthlyTotal
+      : summary.ytdTotal;
+
+  const periodLabel = period === 'week' ? 'This Week' : period === 'month' ? 'This Month' : 'Year to Date';
+
+  return (
+    <div className="grid grid-cols-3 gap-4">
+      <div className="text-center p-3 bg-zinc-800/50 rounded-lg">
+        <p className="text-xs text-zinc-500 uppercase tracking-wider">{periodLabel}</p>
+        <p className="text-2xl font-bold text-lime-400 mt-1">{formatCurrency(periodValue)}</p>
+      </div>
+      <div className="text-center p-3 bg-zinc-800/50 rounded-lg">
+        <p className="text-xs text-zinc-500 uppercase tracking-wider">All-Time Total</p>
+        <p className="text-2xl font-bold text-white mt-1">{formatCurrency(summary.totalTeamCommissions)}</p>
+      </div>
+      <div className="text-center p-3 bg-zinc-800/50 rounded-lg">
+        <p className="text-xs text-zinc-500 uppercase tracking-wider">Total Transactions</p>
+        <p className="text-2xl font-bold text-blue-400 mt-1">{summary.totalTransactions.toLocaleString()}</p>
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
 // Main Page Component
 // =============================================================================
 
 export default function MeetingsPage() {
   const [config, setConfig] = useState<MeetingConfig | null>(null);
+  const [leaderboardData, setLeaderboardData] = useState<LeaderboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [period, setPeriod] = useState<PeriodType>('week');
 
   // Fetch meeting configuration
   useEffect(() => {
@@ -348,6 +579,32 @@ export default function MeetingsPage() {
 
     fetchConfig();
   }, []);
+
+  // Fetch leaderboard data
+  const fetchLeaderboard = useCallback(async () => {
+    try {
+      setLeaderboardLoading(true);
+      const res = await fetch('/api/command-center/meetings/leaderboard');
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+      const json = await res.json();
+      if (json.success) {
+        setLeaderboardData(json.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch leaderboard:', err);
+    } finally {
+      setLeaderboardLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLeaderboard();
+    // Auto-refresh leaderboard every 2 minutes
+    const interval = setInterval(fetchLeaderboard, 120000);
+    return () => clearInterval(interval);
+  }, [fetchLeaderboard]);
 
   // Format date for display
   const formatDate = (dateStr: string | null) => {
@@ -430,13 +687,20 @@ export default function MeetingsPage() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <QuickActionButton
+          icon={Monitor}
+          label="Presentation Mode"
+          description="Full-screen meeting dashboard"
+          href="/command-center/meetings/present"
+          variant="primary"
+        />
         <QuickActionButton
           icon={Play}
-          label="Launch Presentation"
+          label="Launch Meeting App"
           description="Open meeting system in new tab"
           href="https://rcrs-meeting-system.vercel.app"
-          variant="primary"
+          variant="secondary"
           external
         />
         <QuickActionButton
@@ -444,7 +708,7 @@ export default function MeetingsPage() {
           label="Prep Meeting"
           description="Prepare content for next meeting"
           href="/command-center/meetings/prep"
-          variant="secondary"
+          variant="outline"
         />
         <QuickActionButton
           icon={Archive}
@@ -485,6 +749,53 @@ export default function MeetingsPage() {
         />
       </div>
 
+      {/* Sales Leaderboard Section */}
+      <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
+        <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Trophy className="h-6 w-6 text-lime-400" />
+            <div>
+              <h2 className="text-lg font-semibold text-white">Sales Leaderboard</h2>
+              <p className="text-sm text-zinc-500">Commission rankings - $2.6M+ total</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <PeriodToggle selected={period} onChange={setPeriod} />
+            <button
+              onClick={fetchLeaderboard}
+              className={cn(
+                'p-2 rounded-lg hover:bg-zinc-800 transition',
+                leaderboardLoading && 'animate-spin'
+              )}
+              title="Refresh data"
+            >
+              <RefreshCw className="h-5 w-5 text-zinc-400" />
+            </button>
+          </div>
+        </div>
+        <div className="p-4">
+          {leaderboardLoading && !leaderboardData ? (
+            <div className="flex items-center justify-center py-12">
+              <LoadingSpinner size="lg" />
+            </div>
+          ) : leaderboardData ? (
+            <div className="space-y-6">
+              <CommissionSummary summary={leaderboardData.summary} period={period} />
+              <MiniLeaderboard
+                leaderboard={leaderboardData.leaderboard}
+                period={period}
+                onViewFull={() => window.open('/command-center/meetings/present', '_blank')}
+              />
+            </div>
+          ) : (
+            <div className="text-center py-12 text-zinc-500">
+              <Trophy className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p className="text-sm">Unable to load leaderboard data</p>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Meeting Agenda Preview */}
       <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
         <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
@@ -493,7 +804,7 @@ export default function MeetingsPage() {
             <p className="text-sm text-zinc-500">18 slides - {totalDuration} estimated</p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="px-2 py-1 rounded text-xs font-medium bg-blue-500/20 text-blue-400">Opener</span>
+            <span className="px-2 py-1 rounded text-xs font-medium bg-brand-green/20 text-blue-400">Opener</span>
             <span className="px-2 py-1 rounded text-xs font-medium bg-lime-500/20 text-lime-400">Business</span>
             <span className="px-2 py-1 rounded text-xs font-medium bg-purple-500/20 text-purple-400">Team</span>
             <span className="px-2 py-1 rounded text-xs font-medium bg-orange-500/20 text-orange-400">Closer</span>

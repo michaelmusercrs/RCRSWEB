@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Plus, Edit, Trash2, Eye, Search, Phone, Mail,
   User, Save, X, Loader2, ExternalLink, MapPin, RefreshCw, Users, Sparkles
@@ -42,7 +43,7 @@ const teamCategories = [
 
 const categoryColors: Record<string, { bg: string; text: string; border: string }> = {
   'Leadership': { bg: 'bg-brand-green/20', text: 'text-brand-green', border: 'border-brand-green/30' },
-  'Regional Partner': { bg: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-500/30' },
+  'Regional Partner': { bg: 'bg-brand-green/20', text: 'text-blue-400', border: 'border-blue-500/30' },
   'Office': { bg: 'bg-purple-500/20', text: 'text-purple-400', border: 'border-purple-500/30' },
   'Production': { bg: 'bg-orange-500/20', text: 'text-orange-400', border: 'border-orange-500/30' },
   'Partners & Advisors': { bg: 'bg-cyan-500/20', text: 'text-cyan-400', border: 'border-cyan-500/30' },
@@ -231,10 +232,12 @@ export default function TeamAdmin() {
                 {/* Photo */}
                 <div className="relative h-56 bg-gradient-to-br from-neutral-800 to-neutral-900">
                   {member.profileImage ? (
-                    <img
+                    <Image
                       src={member.profileImage}
                       alt={member.name}
-                      className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                      fill
+                      unoptimized={true}
+                      className="object-cover object-top group-hover:scale-105 transition-transform duration-500"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
@@ -391,12 +394,14 @@ function TeamEditor({
           {/* Profile Image Preview */}
           <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
             <div className="flex items-start gap-6">
-              <div className="w-32 h-32 bg-gradient-to-br from-neutral-800 to-neutral-900 rounded-2xl overflow-hidden flex-shrink-0 border border-white/10">
+              <div className="w-32 h-32 bg-gradient-to-br from-neutral-800 to-neutral-900 rounded-2xl overflow-hidden flex-shrink-0 border border-white/10 relative">
                 {formData.profileImage ? (
-                  <img
+                  <Image
                     src={formData.profileImage}
                     alt={formData.name}
-                    className="w-full h-full object-cover"
+                    fill
+                    unoptimized={true}
+                    className="object-cover"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">

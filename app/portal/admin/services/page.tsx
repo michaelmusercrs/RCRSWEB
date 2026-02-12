@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import AdminLayout from '@/components/AdminLayout';
 import {
   Edit, Eye, Search, Save, X, Loader2, ExternalLink,
@@ -16,7 +17,7 @@ const iconMap: Record<string, React.ElementType> = {
 
 const categoryColors = {
   'Primary': { bg: 'bg-brand-green/20', text: 'text-brand-green', border: 'border-brand-green/30' },
-  'Additional': { bg: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-500/30' },
+  'Additional': { bg: 'bg-brand-green/20', text: 'text-blue-400', border: 'border-blue-500/30' },
 };
 
 export default function ServicesAdmin() {
@@ -108,12 +109,14 @@ export default function ServicesAdmin() {
             >
               <div className="flex items-start gap-5">
                 {/* Image */}
-                <div className="w-24 h-24 bg-gradient-to-br from-neutral-800 to-neutral-900 rounded-xl overflow-hidden flex-shrink-0 border border-white/10">
+                <div className="w-24 h-24 bg-gradient-to-br from-neutral-800 to-neutral-900 rounded-xl overflow-hidden flex-shrink-0 border border-white/10 relative">
                   {service.image ? (
-                    <img
+                    <Image
                       src={service.image}
                       alt={service.title}
-                      className="w-full h-full object-cover"
+                      fill
+                      unoptimized={true}
+                      className="object-cover"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
@@ -240,12 +243,14 @@ function ServiceEditor({
           </label>
           <div className="flex flex-col md:flex-row gap-6">
             {/* Image Preview */}
-            <div className="w-full md:w-48 h-32 bg-gradient-to-br from-neutral-800 to-neutral-900 rounded-xl overflow-hidden flex-shrink-0 border border-white/10">
+            <div className="w-full md:w-48 h-32 bg-gradient-to-br from-neutral-800 to-neutral-900 rounded-xl overflow-hidden flex-shrink-0 border border-white/10 relative">
               {formData.image && !imageError ? (
-                <img
+                <Image
                   src={formData.image}
                   alt="Preview"
-                  className="w-full h-full object-cover"
+                  fill
+                  unoptimized={true}
+                  className="object-cover"
                   onError={() => setImageError(true)}
                 />
               ) : (
@@ -285,11 +290,11 @@ function ServiceEditor({
                       setFormData({ ...formData, image: img });
                       setImageError(false);
                     }}
-                    className={`w-12 h-12 rounded-lg overflow-hidden border transition-colors ${
+                    className={`w-12 h-12 rounded-lg overflow-hidden border transition-colors relative ${
                       formData.image === img ? 'border-brand-green' : 'border-white/10 hover:border-brand-green/50'
                     }`}
                   >
-                    <img src={img} alt="" className="w-full h-full object-cover" />
+                    <Image src={img} alt="" fill unoptimized={true} className="object-cover" />
                     {formData.image === img && (
                       <div className="absolute inset-0 bg-brand-green/20 flex items-center justify-center">
                         <Check size={16} className="text-brand-green" />

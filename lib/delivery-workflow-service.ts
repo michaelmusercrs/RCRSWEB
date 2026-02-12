@@ -51,8 +51,7 @@ export type PhotoType =
   | 'job_site_before'
   | 'job_site_after'
   | 'qc_inspection'
-  | 'damage_report'
-  | 'signature';
+  | 'damage_report';
 
 // Activity Log Types
 export interface ActivityLogEntry {
@@ -61,7 +60,7 @@ export interface ActivityLogEntry {
   ticketId: string;
   ticketType: TicketType;
   action: string;
-  actionType: 'status_change' | 'photo_upload' | 'note_added' | 'assignment' | 'stock_edit' | 'location_update' | 'signature' | 'other';
+  actionType: 'status_change' | 'photo_upload' | 'note_added' | 'assignment' | 'stock_edit' | 'location_update' | 'other';
   performedBy: string;
   performedByName: string;
   performedByRole: string;
@@ -183,9 +182,6 @@ export interface DeliveryTicket {
   gpsLoadLocation?: string;
   gpsDeliveryLocation?: string;
   gpsPickupLocation?: string;
-  customerSignature?: string;
-  signedBy?: string;
-
   // Return/Pickup specific
   returnReason?: string;
   pickupReason?: string;
@@ -294,7 +290,17 @@ class DeliveryWorkflowService {
     const doc = await this.getDoc();
     let sheet = doc.sheetsByTitle[name];
     if (!sheet) {
-      sheet = await doc.addSheet({ title: name, headerValues: headers });
+      sheet = await doc.addSheet({ title: name, headerValues: headers, gridProperties: { columnCount: Math.max(headers.length + 5, 26) } });
+    } else {
+      // Ensure headers exist - fix for sheets created without headers
+      try {
+        await sheet.loadHeaderRow();
+      } catch {
+        if (sheet.gridProperties.columnCount < headers.length) {
+          await sheet.resize({ rowCount: sheet.gridProperties.rowCount, columnCount: headers.length + 5 });
+        }
+        await sheet.setHeaderRow(headers);
+      }
     }
     return sheet;
   }
@@ -321,7 +327,7 @@ class DeliveryWorkflowService {
       'assignedDriver', 'assignedDriverName', 'assignedVehicle', 'scheduledDate', 'scheduledTime', 'assignedAt',
       'materialsPulledAt', 'materialsPulledBy', 'loadVerifiedAt', 'loadVerifiedBy',
       'departedAt', 'arrivedAt', 'deliveredAt', 'pickedUpAt', 'proofCapturedAt', 'qcPhotosAt', 'completedAt',
-      'deliveryNotes', 'gpsLoadLocation', 'gpsDeliveryLocation', 'gpsPickupLocation', 'customerSignature', 'signedBy',
+      'deliveryNotes', 'gpsLoadLocation', 'gpsDeliveryLocation', 'gpsPickupLocation',
       'returnReason', 'pickupReason', 'relatedTicketId',
       'photoCount', 'checklistComplete', 'invoiceId', 'invoiceStatus'
     ];
@@ -491,8 +497,6 @@ class DeliveryWorkflowService {
       gpsLoadLocation: row.get('gpsLoadLocation'),
       gpsDeliveryLocation: row.get('gpsDeliveryLocation'),
       gpsPickupLocation: row.get('gpsPickupLocation'),
-      customerSignature: row.get('customerSignature'),
-      signedBy: row.get('signedBy'),
       returnReason: row.get('returnReason'),
       pickupReason: row.get('pickupReason'),
       relatedTicketId: row.get('relatedTicketId'),
@@ -666,14 +670,12 @@ class DeliveryWorkflowService {
     return this.rowToTicket(row);
   }
 
-  async captureProof(ticketId: string, signature?: string, signedBy?: string): Promise<DeliveryTicket | null> {
+  async captureProof(ticketId: string): Promise<DeliveryTicket | null> {
     const row = await this.getTicketRow(ticketId);
     if (!row) return null;
 
     row.set('status', 'proof_captured');
     row.set('proofCapturedAt', new Date().toISOString());
-    if (signature) row.set('customerSignature', signature);
-    if (signedBy) row.set('signedBy', signedBy);
     await row.save();
 
     await this.updateChecklistStep(ticketId, 'capture_proof', row.get('assignedDriverName'));
@@ -793,7 +795,7 @@ class DeliveryWorkflowService {
       { step: 'arrive', description: 'Arrive at job site', required: true },
       { step: 'unload', description: 'Unload materials at job site', required: true },
       { step: 'take_delivery_photo', description: 'Take photo of delivered materials', required: true },
-      { step: 'capture_proof', description: 'Capture customer signature', required: true },
+      { step: 'capture_proof', description: 'Take delivery proof photos', required: true },
       { step: 'qc_photos', description: 'Take job site QC photos', required: false },
     ];
 
@@ -805,7 +807,7 @@ class DeliveryWorkflowService {
       { step: 'take_before_photo', description: 'Take photo before loading', required: true },
       { step: 'load_materials', description: 'Load materials onto truck', required: true },
       { step: 'take_loaded_photo', description: 'Take photo of loaded materials', required: true },
-      { step: 'capture_proof', description: 'Get signature confirming pickup', required: true },
+      { step: 'capture_proof', description: 'Take pickup proof photos', required: true },
       { step: 'return_to_warehouse', description: 'Return materials to warehouse', required: true },
     ];
 
@@ -817,7 +819,7 @@ class DeliveryWorkflowService {
       { step: 'take_condition_photo', description: 'Take photos of material condition', required: true },
       { step: 'load_returns', description: 'Load return materials', required: true },
       { step: 'take_loaded_photo', description: 'Take photo of loaded returns', required: true },
-      { step: 'capture_proof', description: 'Get signature confirming return', required: true },
+      { step: 'capture_proof', description: 'Take return proof photos', required: true },
       { step: 'process_at_warehouse', description: 'Process returns at warehouse', required: true },
       { step: 'update_inventory', description: 'Update inventory with returned items', required: true },
     ];
@@ -1548,7 +1550,7 @@ class DeliveryWorkflowService {
   }
 
   generateCompletionVoiceScript(ticket: DeliveryTicket): string {
-    return `${ticket.ticketType === 'delivery' ? 'Delivery' : ticket.ticketType === 'pickup' ? 'Pickup' : 'Return'} complete for ${ticket.jobName}. Please capture signature and photos before departing.`;
+    return `${ticket.ticketType === 'delivery' ? 'Delivery' : ticket.ticketType === 'pickup' ? 'Pickup' : 'Return'} complete for ${ticket.jobName}. Please take delivery verification photos before departing.`;
   }
 }
 

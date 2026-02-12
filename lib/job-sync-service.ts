@@ -107,11 +107,19 @@ class JobSyncService {
   private async getOrCreateSheet(sheetName: string, headers: string[]) {
     const doc = await this.getDoc();
     let sheet = doc.sheetsByTitle[sheetName];
-
     if (!sheet) {
-      sheet = await doc.addSheet({ title: sheetName, headerValues: headers });
+      sheet = await doc.addSheet({ title: sheetName, headerValues: headers, gridProperties: { columnCount: Math.max(headers.length + 5, 26) } });
+    } else {
+      // Ensure headers exist - fix for sheets created without headers
+      try {
+        await sheet.loadHeaderRow();
+      } catch {
+        if (sheet.gridProperties.columnCount < headers.length) {
+          await sheet.resize({ rowCount: sheet.gridProperties.rowCount, columnCount: headers.length + 5 });
+        }
+        await sheet.setHeaderRow(headers);
+      }
     }
-
     return sheet;
   }
 
@@ -371,6 +379,23 @@ class JobSyncService {
 
   // ============ JOBNIMBUS INTEGRATION ============
 
+  private mapStatusToJobNimbus(status: JobRecord['jobStatus']): string {
+    const statusMap: Record<string, string> = {
+      lead: 'Lead',
+      estimate: 'Estimate Sent',
+      contract: 'Contract Signed',
+      scheduled: 'Scheduled',
+      in_progress: 'Work In Progress',
+      completed: 'Complete',
+      cancelled: 'Cancelled'
+    };
+    return statusMap[status] || 'Lead';
+  }
+
+  /**
+   * Sync a job to JobNimbus.
+   * Creates/finds a JN contact for the customer, then creates/updates a JN job record.
+   */
   async syncToJobNimbus(jobId: string): Promise<SyncResult> {
     const job = await this.getJob(jobId);
     if (!job) {
@@ -384,6 +409,7 @@ class JobSyncService {
     }
 
     const apiKey = process.env.JOBNIMBUS_API_KEY;
+    const baseUrl = process.env.JOBNIMBUS_API_URL || 'https://app.jobnimbus.com/api1';
     if (!apiKey) {
       return {
         success: false,
@@ -394,94 +420,185 @@ class JobSyncService {
       };
     }
 
+    const headers = {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    };
+
     try {
-      // Prepare JobNimbus payload
-      const payload = {
-        display_name: job.jobName,
-        status_name: this.mapStatusToJobNimbus(job.jobStatus),
-        primary: {
-          first_name: job.customerName.split(' ')[0],
-          last_name: job.customerName.split(' ').slice(1).join(' '),
-          email: job.customerEmail,
-          phone: job.customerPhone
-        },
+      // Step 1: Ensure we have a JN contact for this customer
+      let contactJnid = job.jobNimbusId; // Legacy: this field was used for contact ID
+
+      if (!contactJnid) {
+        // Search for existing contact by email or phone
+        let existingContact = null;
+        if (job.customerEmail) {
+          const searchRes = await fetch(`${baseUrl}/contacts?filter=email:"${job.customerEmail}"&limit=1`, { headers });
+          if (searchRes.ok) {
+            const data = await searchRes.json();
+            existingContact = data.results?.[0] || null;
+          }
+        }
+        if (!existingContact && job.customerPhone) {
+          const normalizedPhone = job.customerPhone.replace(/\D/g, '');
+          const searchRes = await fetch(`${baseUrl}/contacts?filter=mobile_phone:"${normalizedPhone}"&limit=1`, { headers });
+          if (searchRes.ok) {
+            const data = await searchRes.json();
+            existingContact = data.results?.[0] || null;
+          }
+        }
+
+        if (existingContact) {
+          contactJnid = existingContact.jnid;
+        } else {
+          // Create a new contact
+          const nameParts = (job.customerName || '').split(/\s+/);
+          const contactPayload = {
+            first_name: nameParts[0] || 'Unknown',
+            last_name: nameParts.slice(1).join(' ') || '',
+            email: job.customerEmail,
+            mobile_phone: job.customerPhone,
+            address_line1: job.customerAddress,
+            city: job.customerCity,
+            state_text: job.customerState,
+            zip: job.customerZip,
+            status: 'Lead',
+            source: 'RCRS Portal',
+          };
+
+          const createRes = await fetch(`${baseUrl}/contacts`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(contactPayload)
+          });
+
+          if (createRes.ok) {
+            const data = await createRes.json();
+            contactJnid = data.jnid;
+          } else {
+            throw new Error(`Failed to create JN contact: ${createRes.status}`);
+          }
+        }
+
+        // Save the contact jnid back to our record
+        if (contactJnid) {
+          await this.createOrUpdateJob({
+            jobId,
+            jobNimbusId: contactJnid,
+          });
+        }
+      }
+
+      if (!contactJnid) {
+        throw new Error('Could not create or find JobNimbus contact');
+      }
+
+      // Step 2: Create or update the JN job record
+      const jnStatus = this.mapStatusToJobNimbus(job.jobStatus);
+      const jobPayload = {
+        name: job.jobName || `RCRS Job ${jobId}`,
+        description: job.notes || `Job type: ${job.jobType}. Project manager: ${job.projectManager || 'TBD'}.`,
+        status_name: jnStatus,
+        primary: { jnid: contactJnid },
         address_line1: job.customerAddress,
         city: job.customerCity,
         state_text: job.customerState,
         zip: job.customerZip,
-        custom_fields: {
-          project_manager: job.projectManager,
-          material_cost: job.actualMaterialCost,
-          material_charged: job.totalMaterialCharged,
-          material_profit: job.materialProfit,
-          total_deliveries: job.totalDeliveries,
-          total_returns: job.totalReturns
-        }
+        sales_rep_name: job.salesRep || job.projectManager || '',
       };
+
+      // Check if we have a JN job ID already stored (look for it in notes or a dedicated field)
+      // For now, always check for existing jobs on this contact
+      const jobsRes = await fetch(`${baseUrl}/jobs?filter=primary.jnid:"${contactJnid}"&limit=50`, { headers });
+      let existingJob = null;
+      if (jobsRes.ok) {
+        const data = await jobsRes.json();
+        // Match by name or by our portal job ID in description
+        existingJob = (data.results || []).find((j: any) =>
+          j.name === job.jobName ||
+          (j.description || '').includes(jobId)
+        );
+      }
 
       let result: SyncResult;
 
-      if (job.jobNimbusId) {
-        // Update existing contact
-        const response = await fetch(`https://app.jobnimbus.com/api1/contacts/${job.jobNimbusId}`, {
+      if (existingJob) {
+        // Update existing JN job
+        const updateRes = await fetch(`${baseUrl}/jobs/${existingJob.jnid}`, {
           method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(payload)
+          headers,
+          body: JSON.stringify({
+            ...jobPayload,
+            description: `${job.notes || ''}\n[Portal Job ID: ${jobId}]`.trim(),
+          })
         });
 
-        if (response.ok) {
+        if (updateRes.ok) {
           result = {
             success: true,
             jobId,
-            jobNimbusId: job.jobNimbusId,
+            jobNimbusId: existingJob.jnid,
             action: 'updated',
-            message: 'Successfully updated in JobNimbus',
+            message: `JN job updated (contact: ${contactJnid}, job: ${existingJob.jnid})`,
             timestamp: new Date().toISOString()
           };
         } else {
-          throw new Error(`JobNimbus API error: ${response.status}`);
+          throw new Error(`Failed to update JN job: ${updateRes.status}`);
         }
       } else {
-        // Create new contact
-        const response = await fetch('https://app.jobnimbus.com/api1/contacts', {
+        // Create new JN job
+        const createRes = await fetch(`${baseUrl}/jobs`, {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(payload)
+          headers,
+          body: JSON.stringify({
+            ...jobPayload,
+            description: `${job.notes || ''}\n[Portal Job ID: ${jobId}]`.trim(),
+          })
         });
 
-        if (response.ok) {
-          const data = await response.json();
+        if (createRes.ok) {
+          const data = await createRes.json();
           result = {
             success: true,
             jobId,
             jobNimbusId: data.jnid,
             action: 'created',
-            message: 'Successfully created in JobNimbus',
+            message: `JN job created (contact: ${contactJnid}, job: ${data.jnid})`,
             timestamp: new Date().toISOString()
           };
 
-          // Update local record with JobNimbus ID
-          await this.createOrUpdateJob({
-            jobId,
-            jobNimbusId: data.jnid,
-            syncedToJobNimbus: 'true',
-            lastJobNimbusSync: new Date().toISOString()
-          });
+          // Add a note on the new JN job
+          try {
+            await fetch(`${baseUrl}/activities`, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({
+                primary: { jnid: contactJnid },
+                related: { jnid: data.jnid },
+                note: `[RCRS Portal] Job "${job.jobName}" synced from portal. Status: ${jnStatus}. Contract: $${job.contractAmount || 0}.`,
+                record_type_name: 'Note',
+                is_active: true,
+              })
+            });
+          } catch {
+            // Note creation is non-critical
+          }
         } else {
-          throw new Error(`JobNimbus API error: ${response.status}`);
+          throw new Error(`Failed to create JN job: ${createRes.status}`);
         }
       }
 
+      // Update local record with sync timestamp
+      await this.createOrUpdateJob({
+        jobId,
+        syncedToJobNimbus: 'true',
+        lastJobNimbusSync: new Date().toISOString()
+      });
+
       // Log sync
       await this.logSync(result);
-
       return result;
+
     } catch (error) {
       const result: SyncResult = {
         success: false,
@@ -493,19 +610,6 @@ class JobSyncService {
       await this.logSync(result);
       return result;
     }
-  }
-
-  private mapStatusToJobNimbus(status: JobRecord['jobStatus']): string {
-    const statusMap: Record<string, string> = {
-      lead: 'Lead',
-      estimate: 'Estimate',
-      contract: 'Contract',
-      scheduled: 'Scheduled',
-      in_progress: 'In Progress',
-      completed: 'Completed',
-      cancelled: 'Cancelled'
-    };
-    return statusMap[status] || 'Lead';
   }
 
   async syncAllPendingToJobNimbus(): Promise<SyncResult[]> {

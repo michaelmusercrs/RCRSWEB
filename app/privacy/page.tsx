@@ -13,7 +13,7 @@ export default function PrivacyPolicyPage() {
     <div className="min-h-screen bg-black/80 backdrop-blur-sm">
       <div className="container mx-auto px-4 py-16 max-w-4xl">
         <h1 className="text-4xl font-bold text-white mb-8">Privacy Policy</h1>
-        <p className="text-gray-400 mb-8">Last Updated: December 2, 2024</p>
+        <p className="text-gray-400 mb-8">Last Updated: February 6, 2026</p>
 
         <div className="prose prose-invert prose-lg max-w-none space-y-8">
           <section>
@@ -129,12 +129,67 @@ export default function PrivacyPolicyPage() {
             </ul>
           </section>
 
-          <section>
-            <h2 className="text-2xl font-bold text-white mb-4">Cookies and Tracking</h2>
-            <p className="text-gray-300">
+          <section id="cookies">
+            <h2 className="text-2xl font-bold text-white mb-4">Cookies and Tracking Technologies</h2>
+            <p className="text-gray-300 mb-4">
               Our website uses cookies and similar tracking technologies to enhance your experience,
-              analyze website traffic, and understand where our visitors come from. You can control
-              cookie settings through your browser preferences.
+              analyze website traffic, and deliver personalized advertising. We use the following types of cookies:
+            </p>
+
+            <div className="space-y-4 mb-4">
+              <div className="bg-white/5 p-4 rounded-lg border border-white/10">
+                <h3 className="text-white font-semibold mb-2">Essential Cookies</h3>
+                <p className="text-gray-400 text-sm">
+                  Required for basic site functionality such as navigation and secure areas.
+                  These cookies cannot be disabled.
+                </p>
+              </div>
+
+              <div className="bg-white/5 p-4 rounded-lg border border-white/10">
+                <h3 className="text-white font-semibold mb-2">Analytics Cookies (Google Analytics 4)</h3>
+                <p className="text-gray-400 text-sm">
+                  Help us understand how visitors interact with our website by collecting and
+                  reporting information anonymously. This includes pages visited, time spent,
+                  and how you arrived at our site.
+                </p>
+              </div>
+
+              <div className="bg-white/5 p-4 rounded-lg border border-white/10">
+                <h3 className="text-white font-semibold mb-2">Marketing Cookies</h3>
+                <p className="text-gray-400 text-sm">
+                  Used to deliver relevant advertisements and track campaign performance.
+                  We use Facebook Pixel and Google Ads remarketing to show you relevant
+                  ads on other platforms based on your visit to our site.
+                </p>
+              </div>
+            </div>
+
+            <p className="text-gray-300 mb-4">
+              <strong>Cookie Consent:</strong> When you first visit our website, you will see a
+              cookie consent banner. You can choose to accept all cookies, accept only essential
+              cookies, or manage your preferences at any time.
+            </p>
+
+            <p className="text-gray-300">
+              <strong>Do Not Track:</strong> We respect the Do Not Track (DNT) browser setting.
+              If you have DNT enabled, we will not collect analytics or marketing data from your visit.
+              You can control cookie settings through your browser preferences or by using the cookie
+              consent banner on our website.
+            </p>
+          </section>
+
+          <section id="third-party">
+            <h2 className="text-2xl font-bold text-white mb-4">Third-Party Services</h2>
+            <p className="text-gray-300 mb-4">We use the following third-party services that may collect data:</p>
+            <ul className="list-disc list-inside text-gray-300 space-y-2">
+              <li><strong>Google Analytics 4:</strong> Website analytics and traffic analysis</li>
+              <li><strong>Google Ads:</strong> Advertising and remarketing campaigns</li>
+              <li><strong>Facebook/Meta Pixel:</strong> Advertising and audience targeting</li>
+              <li><strong>Vercel:</strong> Website hosting and performance analytics</li>
+            </ul>
+            <p className="text-gray-300 mt-4">
+              Each of these services has their own privacy policy governing the use of your data.
+              We encourage you to review their policies for more information.
             </p>
           </section>
 

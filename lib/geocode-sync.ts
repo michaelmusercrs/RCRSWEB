@@ -1,0 +1,306 @@
+// Geocode Sync Service
+// Batch geocodes all contacts from JobNimbus AND Google Sheets Customers,
+// then stores lat/lng in the Geocoded_Contacts sheet.
+//
+// Uses Nominatim (free, no API key) with 1 req/sec rate limit.
+
+import { jobNimbusService, isJobNimbusConfigured } from './jobnimbus-service';
+import { geocodeWithNominatim } from './nominatim-geocoder';
+import { googleSheetsService, GeocodedContactRecord } from './google-sheets-service';
+
+export interface SyncProgress {
+  status: 'idle' | 'fetching' | 'geocoding' | 'saving' | 'complete' | 'error';
+  totalContacts: number;
+  geocoded: number;
+  skipped: number;
+  saved: number;
+  errors: number;
+  startedAt?: string;
+  completedAt?: string;
+  errorMessage?: string;
+}
+
+// In-memory progress tracker (resets on server restart)
+let currentSync: SyncProgress = {
+  status: 'idle',
+  totalContacts: 0,
+  geocoded: 0,
+  skipped: 0,
+  saved: 0,
+  errors: 0,
+};
+
+export function getSyncProgress(): SyncProgress {
+  return { ...currentSync };
+}
+
+// Convert a rep name from JN to a slug (lowercase, hyphenated)
+function repNameToSlug(name?: string): string {
+  if (!name) return '';
+  return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+}
+
+// Build full address string from JN contact or job fields
+function buildAddress(record: {
+  address_line1?: string;
+  city?: string;
+  state_text?: string;
+  zip?: string;
+}): string {
+  const parts = [
+    record.address_line1,
+    record.city,
+    record.state_text,
+    record.zip,
+  ].filter(Boolean);
+  return parts.join(', ');
+}
+
+// Build full address from Google Sheets customer record
+function buildCustomerAddress(customer: {
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+}): string {
+  const parts = [
+    customer.address,
+    customer.city,
+    customer.state,
+    customer.zip,
+  ].filter(Boolean);
+  return parts.join(', ');
+}
+
+export async function runGeocodeSync(): Promise<SyncProgress> {
+  if (currentSync.status === 'fetching' || currentSync.status === 'geocoding' || currentSync.status === 'saving') {
+    return currentSync; // Already running
+  }
+
+  currentSync = {
+    status: 'fetching',
+    totalContacts: 0,
+    geocoded: 0,
+    skipped: 0,
+    saved: 0,
+    errors: 0,
+    startedAt: new Date().toISOString(),
+  };
+
+  try {
+    // ─── 1. Get existing geocoded contacts to skip already-done ones ─────
+    console.log('[GeocodeSync] Loading existing geocoded contacts...');
+    const existingGeocoded = await googleSheetsService.getGeocodedContacts();
+    const existingJnids = new Set(existingGeocoded.map(c => c.jnid));
+    console.log(`[GeocodeSync] ${existingJnids.size} already geocoded`);
+
+    // ─── 2. Collect contacts from all sources ────────────────────────────
+    interface ContactToGeocode {
+      id: string;           // jnid or customerId
+      name: string;
+      address: string;
+      salesRep: string;
+      status: string;
+      type: string;         // 'contact' | 'lead' | 'install' | 'customer'
+      source: 'jobnimbus' | 'sheets';
+      updatedAt: string;
+    }
+
+    const allContacts: ContactToGeocode[] = [];
+
+    // ─── 2a. Fetch from JobNimbus ────────────────────────────────────────
+    if (isJobNimbusConfigured()) {
+      console.log('[GeocodeSync] Fetching contacts from JobNimbus...');
+      try {
+        const jnContacts = await jobNimbusService.syncContacts();
+        for (const c of jnContacts) {
+          const address = buildAddress(c);
+          if (address.length <= 5) continue;
+          if (existingJnids.has(c.jnid)) continue;
+
+          // Determine type from status
+          const statusLower = (c.status || '').toLowerCase();
+          let type = 'contact';
+          if (statusLower.includes('complete') || statusLower.includes('closed')) {
+            type = 'install';
+          } else if (statusLower.includes('lead') || statusLower.includes('new')) {
+            type = 'lead';
+          }
+
+          allContacts.push({
+            id: c.jnid,
+            name: jobNimbusService.getContactName(c),
+            address,
+            salesRep: repNameToSlug(c.sales_rep_name),
+            status: c.status || '',
+            type,
+            source: 'jobnimbus',
+            updatedAt: c.updated_at ? new Date(c.updated_at * 1000).toISOString() : '',
+          });
+        }
+        console.log(`[GeocodeSync] ${allContacts.length} JN contacts need geocoding`);
+      } catch (err) {
+        console.warn('[GeocodeSync] JobNimbus fetch failed:', err);
+      }
+    } else {
+      console.log('[GeocodeSync] JobNimbus not configured, skipping');
+    }
+
+    // ─── 2b. Fetch from Google Sheets Customers ──────────────────────────
+    console.log('[GeocodeSync] Fetching customers from Google Sheets...');
+    try {
+      const customers = await googleSheetsService.getCustomers();
+      let sheetsAdded = 0;
+      for (const c of customers) {
+        const address = buildCustomerAddress(c);
+        if (address.length <= 5) continue;
+
+        // Use customerId as the unique key, prefixed to avoid collision with JN ids
+        const geocodeId = `sheets-${c.customerId}`;
+        if (existingJnids.has(geocodeId)) continue;
+
+        allContacts.push({
+          id: geocodeId,
+          name: c.name,
+          address,
+          salesRep: repNameToSlug(c.salesRep),
+          status: 'customer',
+          type: 'contact',
+          source: 'sheets',
+          updatedAt: c.updatedAt || '',
+        });
+        sheetsAdded++;
+      }
+      console.log(`[GeocodeSync] ${sheetsAdded} Sheets customers need geocoding`);
+    } catch (err) {
+      console.warn('[GeocodeSync] Google Sheets customer fetch failed:', err);
+    }
+
+    currentSync.totalContacts = allContacts.length + existingJnids.size;
+    currentSync.skipped = existingJnids.size;
+
+    if (allContacts.length === 0) {
+      console.log('[GeocodeSync] All contacts already geocoded');
+      currentSync.status = 'complete';
+      currentSync.completedAt = new Date().toISOString();
+      return currentSync;
+    }
+
+    console.log(`[GeocodeSync] Geocoding ${allContacts.length} contacts via Nominatim (1/sec)...`);
+    currentSync.status = 'geocoding';
+
+    // ─── 3. Geocode sequentially (1 per second, Nominatim requirement) ───
+    const geocodedRecords: GeocodedContactRecord[] = [];
+
+    for (let i = 0; i < allContacts.length; i++) {
+      const contact = allContacts[i];
+
+      try {
+        const result = await geocodeWithNominatim(contact.address);
+
+        if (result) {
+          currentSync.geocoded++;
+
+          const record: GeocodedContactRecord = {
+            jnid: contact.id,
+            name: contact.name,
+            address: result.displayName || contact.address,
+            lat: String(result.lat),
+            lng: String(result.lng),
+            placeId: result.placeId,
+            type: contact.type,
+            salesRep: contact.salesRep,
+            jobStatus: contact.status,
+            lastInteraction: contact.updatedAt,
+            interactionType: contact.type,
+            createdAt: new Date().toISOString(),
+          };
+
+          geocodedRecords.push(record);
+        } else {
+          currentSync.errors++;
+        }
+      } catch (err) {
+        currentSync.errors++;
+        console.warn(`[GeocodeSync] Failed to geocode "${contact.address}":`, err);
+      }
+
+      // Log progress every 10 contacts
+      if ((i + 1) % 10 === 0 || i + 1 === allContacts.length) {
+        console.log(`[GeocodeSync] Progress: ${i + 1}/${allContacts.length} (${currentSync.geocoded} success, ${currentSync.errors} failed)`);
+      }
+    }
+
+    // ─── 4. Save to Google Sheets ────────────────────────────────────────
+    currentSync.status = 'saving';
+    console.log(`[GeocodeSync] Saving ${geocodedRecords.length} geocoded contacts to Sheets...`);
+
+    if (geocodedRecords.length > 0) {
+      const saveResult = await googleSheetsService.addGeocodedContactsBatch(geocodedRecords);
+      currentSync.saved = saveResult.added;
+      currentSync.errors += saveResult.errors;
+    }
+
+    currentSync.status = 'complete';
+    currentSync.completedAt = new Date().toISOString();
+
+    console.log(`[GeocodeSync] Complete: ${currentSync.saved} saved, ${currentSync.errors} errors, ${currentSync.skipped} skipped (already geocoded)`);
+
+    return currentSync;
+  } catch (error) {
+    currentSync.status = 'error';
+    currentSync.errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    currentSync.completedAt = new Date().toISOString();
+    console.error('[GeocodeSync] Error:', error);
+    return currentSync;
+  }
+}
+
+/**
+ * Geocode a single contact and save to the Geocoded_Contacts sheet.
+ * Used for real-time geocoding when new leads/contacts are created.
+ * Returns the geocoded record or null if geocoding failed.
+ */
+export async function geocodeAndSaveContact(params: {
+  id: string;
+  name: string;
+  address: string;
+  salesRep?: string;
+  type?: string;
+  status?: string;
+}): Promise<GeocodedContactRecord | null> {
+  if (!params.address || params.address.length < 5 || params.address === 'Not provided') {
+    return null;
+  }
+
+  try {
+    const result = await geocodeWithNominatim(params.address);
+    if (!result) return null;
+
+    const record: GeocodedContactRecord = {
+      jnid: params.id,
+      name: params.name,
+      address: result.displayName || params.address,
+      lat: String(result.lat),
+      lng: String(result.lng),
+      placeId: result.placeId,
+      type: params.type || 'lead',
+      salesRep: params.salesRep || '',
+      jobStatus: params.status || '',
+      lastInteraction: new Date().toISOString(),
+      interactionType: params.type || 'lead',
+      createdAt: new Date().toISOString(),
+    };
+
+    const saved = await googleSheetsService.addGeocodedContact(record);
+    if (saved) {
+      console.log(`[GeocodeSync] Geocoded and saved: "${params.name}" at ${result.lat},${result.lng}`);
+      return record;
+    }
+
+    return record; // Return even if save failed (geocoding succeeded)
+  } catch (error) {
+    console.error(`[GeocodeSync] Failed to geocode contact "${params.name}":`, error);
+    return null;
+  }
+}

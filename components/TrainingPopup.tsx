@@ -39,8 +39,8 @@ export default function TrainingPopup() {
   const topThree = leaderboard.slice(0, 3);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-2xl bg-gradient-to-br from-neutral-900 via-neutral-900 to-neutral-950 border border-white/10 rounded-3xl shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in overflow-y-auto">
+      <div className="relative w-full max-w-2xl bg-gradient-to-br from-neutral-900 via-neutral-900 to-neutral-950 border border-white/10 rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[95vh] max-h-[95dvh] overflow-y-auto">
         {/* Decorative gradient */}
         <div className="absolute -top-32 -right-32 w-64 h-64 bg-brand-green rounded-full blur-[100px] opacity-20" />
         <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-blue-500 rounded-full blur-[100px] opacity-10" />

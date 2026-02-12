@@ -16,6 +16,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { StatCard, DataTable, LoadingSpinner, Column } from '@/components/command-center';
+import { ResponseTimeDashboard } from '@/components/command-center/ResponseTimeDashboard';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
 
@@ -189,7 +190,7 @@ function Podium({ leaderboard, onRepClick }: PodiumProps) {
     'from-orange-600 to-amber-700', // Bronze (3rd)
   ];
   const icons = [
-    <Medal key="silver" className="h-8 w-8 text-gray-300" />,
+    <Medal key="silver" className="h-8 w-8 text-neutral-400" />,
     <Crown key="gold" className="h-10 w-10 text-yellow-300" />,
     <Award key="bronze" className="h-7 w-7 text-orange-400" />,
   ];
@@ -234,7 +235,7 @@ function Podium({ leaderboard, onRepClick }: PodiumProps) {
                 <p className="text-lg font-bold text-brand-green">
                   {formatCurrency(rep.totalCommissions)}
                 </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-neutral-500">
                   {rep.transactionCount} deals
                 </p>
               </div>
@@ -271,16 +272,16 @@ function PeriodToggle({ selected, onChange }: PeriodToggleProps) {
   ];
 
   return (
-    <div className="flex gap-2 bg-zinc-900 p-1 rounded-lg">
+    <div className="flex gap-2 bg-zinc-900 p-1 rounded-lg overflow-x-auto flex-shrink-0" style={{ WebkitOverflowScrolling: 'touch' }}>
       {periods.map(({ value, label }) => (
         <button
           key={value}
           onClick={() => onChange(value)}
           className={cn(
-            'px-4 py-2 text-sm font-medium rounded-md transition-all',
+            'px-4 py-2 text-sm font-medium rounded-md transition-all whitespace-nowrap flex-shrink-0',
             selected === value
               ? 'bg-brand-green text-black'
-              : 'text-gray-400 hover:text-white hover:bg-zinc-800'
+              : 'text-neutral-500 hover:text-white hover:bg-zinc-800'
           )}
         >
           {label}
@@ -380,7 +381,7 @@ export default function SalesLeaderboardPage() {
               className={cn(
                 'font-bold',
                 rank === 1 && 'text-yellow-400',
-                rank === 2 && 'text-gray-400',
+                rank === 2 && 'text-neutral-500',
                 rank === 3 && 'text-orange-500'
               )}
             >
@@ -407,9 +408,9 @@ export default function SalesLeaderboardPage() {
               className={cn(
                 'w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold',
                 row.rank === 1 ? 'bg-yellow-500/20 text-yellow-400' :
-                row.rank === 2 ? 'bg-gray-500/20 text-gray-400' :
+                row.rank === 2 ? 'bg-gray-400/20 text-neutral-400' :
                 row.rank === 3 ? 'bg-orange-500/20 text-orange-400' :
-                'bg-zinc-700 text-gray-300'
+                'bg-zinc-700 text-neutral-400'
               )}
             >
               {name.charAt(0)}
@@ -480,7 +481,7 @@ export default function SalesLeaderboardPage() {
       header: '',
       width: 'w-10',
       render: () => (
-        <ChevronRight className="h-4 w-4 text-gray-500" />
+        <ChevronRight className="h-4 w-4 text-neutral-500" />
       ),
     },
   ];
@@ -500,7 +501,7 @@ export default function SalesLeaderboardPage() {
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
         <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-6 max-w-md">
           <h2 className="text-xl font-bold text-red-400 mb-2">Error Loading Data</h2>
-          <p className="text-gray-400 mb-4">{error}</p>
+          <p className="text-neutral-500 mb-4">{error}</p>
           <button
             onClick={() => setPeriod(period)}
             className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
@@ -516,21 +517,21 @@ export default function SalesLeaderboardPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-            <Trophy className="h-8 w-8 text-brand-green" />
-            Sales Leaderboard
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-3 flex-wrap">
+            <Trophy className="h-7 w-7 sm:h-8 sm:w-8 text-brand-green flex-shrink-0" />
+            <span>Sales Leaderboard</span>
           </h1>
-          <p className="text-gray-400 mt-1">
+          <p className="text-neutral-500 mt-1 text-sm sm:text-base">
             Track team performance and commissions
           </p>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
           <PeriodToggle selected={period} onChange={setPeriod} />
           <Link
             href="/command-center/sales/achievements"
-            className="px-4 py-2 bg-amber-500/20 text-amber-400 rounded-lg hover:bg-amber-500/30 transition flex items-center gap-2"
+            className="px-4 py-2 bg-amber-500/20 text-amber-400 rounded-lg hover:bg-amber-500/30 transition flex items-center gap-2 whitespace-nowrap flex-shrink-0"
           >
             <Award className="h-4 w-4" />
             Achievements
@@ -570,7 +571,7 @@ export default function SalesLeaderboardPage() {
 
       {/* Podium for Top 3 */}
       {data?.data.leaderboard && data.data.leaderboard.length >= 3 && (
-        <div className="bg-[#1a1a1a] rounded-xl p-6 border border-gray-800">
+        <div className="bg-zinc-900 rounded-xl p-6 border border-gray-800">
           <h2 className="text-lg font-semibold text-white mb-4 text-center">
             Top Performers
           </h2>
@@ -583,12 +584,12 @@ export default function SalesLeaderboardPage() {
 
       {/* Full Leaderboard Table */}
       {data?.data.leaderboard && (
-        <div className="bg-[#1a1a1a] rounded-xl border border-gray-800 overflow-hidden">
+        <div className="bg-zinc-900 rounded-xl border border-gray-800 overflow-hidden">
           <div className="p-4 border-b border-gray-800">
             <h2 className="text-lg font-semibold text-white">
               Full Rankings
             </h2>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-neutral-500">
               Click on a rep to view detailed stats and DNA profile
             </p>
           </div>
@@ -603,9 +604,12 @@ export default function SalesLeaderboardPage() {
         </div>
       )}
 
+      {/* Response Time Analytics */}
+      <ResponseTimeDashboard variant="card" />
+
       {/* Period Info */}
       {data?.data.summary.dateRange && (
-        <p className="text-center text-sm text-gray-500">
+        <p className="text-center text-sm text-neutral-500">
           Data from {data.data.summary.dateRange.start || 'beginning'} to{' '}
           {data.data.summary.dateRange.end || 'present'}
           {data.cached && ' (cached)'}

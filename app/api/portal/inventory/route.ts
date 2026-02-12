@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { deliveryPortalService } from '@/lib/delivery-portal-service';
 import { GoogleSpreadsheet } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
+import { groupMeService, getGroupMeConfigFromEnv } from '@/lib/groupme-service';
 
 // Service account auth for adding items
 const DELIVERY_SHEETS_ID = process.env.DELIVERY_SHEETS_ID || process.env.GOOGLE_SHEETS_ID;
@@ -12,6 +14,9 @@ const serviceAccountAuth = new JWT({
 });
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category') || undefined;
@@ -41,6 +46,9 @@ export async function GET(request: NextRequest) {
 
 // POST - Add new inventory item
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const data = await request.json();
     const {
@@ -60,6 +68,20 @@ export async function POST(request: NextRequest) {
 
     if (!productName) {
       return NextResponse.json({ error: 'Product name is required' }, { status: 400 });
+    }
+
+    // Validate numeric fields
+    if (unitCost !== undefined && (typeof unitCost !== 'number' || unitCost < 0)) {
+      return NextResponse.json({ error: 'Unit cost must be a non-negative number' }, { status: 400 });
+    }
+    if (currentQty !== undefined && (typeof currentQty !== 'number' || currentQty < 0)) {
+      return NextResponse.json({ error: 'Current quantity must be a non-negative number' }, { status: 400 });
+    }
+    if (minQty !== undefined && (typeof minQty !== 'number' || minQty < 0)) {
+      return NextResponse.json({ error: 'Minimum quantity must be a non-negative number' }, { status: 400 });
+    }
+    if (maxQty !== undefined && (typeof maxQty !== 'number' || maxQty < 0)) {
+      return NextResponse.json({ error: 'Maximum quantity must be a non-negative number' }, { status: 400 });
     }
 
     // Connect to Google Sheets
@@ -127,6 +149,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const data = await request.json();
     const { action, productId, ...params } = data;
@@ -134,9 +159,33 @@ export async function PATCH(request: NextRequest) {
     switch (action) {
       case 'updateQty':
         await deliveryPortalService.updateInventoryQty(productId, params.qtyChange, params.reason);
+
+        // Check for low stock after update and send GroupMe notification
+        try {
+          const groupMeConfig = getGroupMeConfigFromEnv();
+          if (groupMeConfig.enabled && groupMeConfig.botId && groupMeConfig.notifyOn.lowInventory) {
+            const lowStockItems = await deliveryPortalService.getLowStockItems();
+            const updatedItem = lowStockItems.find((item: any) => item.productId === productId);
+            if (updatedItem) {
+              const notification = groupMeService.createLowInventoryNotification({
+                productName: updatedItem.productName,
+                currentQty: updatedItem.currentQty,
+                minQty: updatedItem.minQty,
+                location: updatedItem.location,
+              });
+              await groupMeService.sendNotification(groupMeConfig, notification);
+            }
+          }
+        } catch (notifyError) {
+          console.error('Failed to send low inventory notification:', notifyError);
+        }
+
         return NextResponse.json({ success: true });
 
       case 'submitCount':
+        if (params.actualQty === undefined || typeof params.actualQty !== 'number' || params.actualQty < 0) {
+          return NextResponse.json({ error: 'Valid actualQty is required (must be a non-negative number)' }, { status: 400 });
+        }
         const result = await deliveryPortalService.submitInventoryCount(
           productId,
           params.actualQty,
@@ -159,7 +208,7 @@ export async function PATCH(request: NextRequest) {
         const row = rows.find(r => r.get('productId') === productId);
 
         if (!row) {
-          return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+          return NextResponse.json({ error: `Item not found: ${productId}` }, { status: 404 });
         }
 
         // Update fields
@@ -192,5 +241,42 @@ export async function PATCH(request: NextRequest) {
   } catch (error) {
     console.error('Error updating inventory:', error);
     return NextResponse.json({ error: 'Failed to update inventory' }, { status: 500 });
+  }
+}
+
+// DELETE - Remove inventory item from Google Sheets
+export async function DELETE(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const productId = searchParams.get('productId');
+
+    if (!productId) {
+      return NextResponse.json({ error: 'productId is required' }, { status: 400 });
+    }
+
+    const doc = new GoogleSpreadsheet(DELIVERY_SHEETS_ID!, serviceAccountAuth);
+    await doc.loadInfo();
+    const sheet = doc.sheetsByTitle['Inventory'];
+
+    if (!sheet) {
+      return NextResponse.json({ error: 'Inventory sheet not found' }, { status: 404 });
+    }
+
+    const rows = await sheet.getRows();
+    const rowIndex = rows.findIndex(r => r.get('productId') === productId);
+
+    if (rowIndex === -1) {
+      return NextResponse.json({ error: `Item not found: ${productId}` }, { status: 404 });
+    }
+
+    await rows[rowIndex].delete();
+
+    return NextResponse.json({ success: true, message: `Item ${productId} deleted` });
+  } catch (error) {
+    console.error('Error deleting inventory item:', error);
+    return NextResponse.json({ error: 'Failed to delete inventory item' }, { status: 500 });
   }
 }

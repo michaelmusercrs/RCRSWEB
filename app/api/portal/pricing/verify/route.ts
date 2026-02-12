@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { priceVerificationService } from '@/lib/price-verification-service';
 
 // POST /api/portal/pricing/verify - Verify invoice prices against agreed pricing
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const data = await request.json();
     const { supplier, lineItems, invoiceNumber, invoiceDate, createAlerts = true } = data;

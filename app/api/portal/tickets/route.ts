@@ -1,7 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { deliveryWorkflowService, TicketStatus, TicketType, MaterialItem } from '@/lib/delivery-workflow-service';
+import { groupMeService, getGroupMeConfigFromEnv } from '@/lib/groupme-service';
+import { deliveryReminderService } from '@/lib/delivery-reminder-service';
+
+// Helper function to send delivery notification (GroupMe + customer auto-notify)
+async function sendDeliveryNotification(ticket: any, status: string) {
+  try {
+    // Send GroupMe office notification (existing behavior)
+    const groupMeConfig = getGroupMeConfigFromEnv();
+    if (groupMeConfig.enabled && groupMeConfig.botId && groupMeConfig.notifyOn.deliveryUpdates) {
+      const notification = groupMeService.createDeliveryUpdateNotification({
+        ticketId: ticket.ticketId,
+        jobName: ticket.jobName || 'Unknown Job',
+        jobAddress: ticket.jobAddress || 'Unknown Address',
+        status: status,
+        driverName: ticket.assignedDriverName,
+      });
+      await groupMeService.sendNotification(groupMeConfig, notification);
+    }
+
+    // Send auto-notification to customer via reminder service
+    await deliveryReminderService.sendStatusNotification(ticket, ticket.status as TicketStatus);
+  } catch (error) {
+    console.error('Failed to send delivery notification:', error);
+  }
+}
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const { searchParams } = new URL(request.url);
     const ticketId = searchParams.get('ticketId');
@@ -31,7 +60,8 @@ export async function GET(request: NextRequest) {
       limit: limit ? parseInt(limit) : undefined,
     });
 
-    return NextResponse.json({ tickets });
+    // Return array directly for driver portal compatibility
+    return NextResponse.json(tickets);
   } catch (error) {
     console.error('Tickets API GET error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
@@ -39,6 +69,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const body = await request.json();
     const { action, ...data } = body;
@@ -104,25 +137,35 @@ export async function POST(request: NextRequest) {
 
       case 'start-delivery': {
         const ticket = await deliveryWorkflowService.startDelivery(data.ticketId);
+        if (ticket) {
+          await sendDeliveryNotification(ticket, 'En Route');
+        }
         return NextResponse.json({ success: true, ticket });
       }
 
       case 'mark-arrived': {
         const ticket = await deliveryWorkflowService.markArrived(data.ticketId, data.gpsLocation);
+        if (ticket) {
+          await sendDeliveryNotification(ticket, 'Arrived');
+        }
         return NextResponse.json({ success: true, ticket });
       }
 
       case 'complete-delivery': {
         const ticket = await deliveryWorkflowService.completeDelivery(data.ticketId, data.notes);
+        if (ticket) {
+          await sendDeliveryNotification(ticket, 'Delivered');
+        }
         return NextResponse.json({ success: true, ticket });
       }
 
       case 'capture-proof': {
         const ticket = await deliveryWorkflowService.captureProof(
-          data.ticketId,
-          data.signature,
-          data.signedBy
+          data.ticketId
         );
+        if (ticket) {
+          await sendDeliveryNotification(ticket, 'Proof Captured');
+        }
         return NextResponse.json({ success: true, ticket });
       }
 
@@ -133,6 +176,9 @@ export async function POST(request: NextRequest) {
 
       case 'complete-ticket': {
         const ticket = await deliveryWorkflowService.completeTicket(data.ticketId);
+        if (ticket) {
+          await sendDeliveryNotification(ticket, 'Completed');
+        }
         return NextResponse.json({ success: true, ticket });
       }
 

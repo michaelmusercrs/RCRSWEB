@@ -215,14 +215,16 @@ export default function PMPortal() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4">
-        <div className="bg-neutral-900 rounded-2xl p-8 max-w-md w-full text-center">
-          <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+      <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 flex items-center justify-center p-4">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 max-w-md w-full text-center">
+          <div className="w-16 h-16 rounded-2xl bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="text-yellow-500" size={32} />
+          </div>
           <h1 className="text-xl font-bold text-white mb-2">Access Required</h1>
-          <p className="text-neutral-400 mb-6">Please log in to access the Project Manager portal.</p>
+          <p className="text-zinc-400 mb-6">Please log in to access the Project Manager portal.</p>
           <Link
             href="/portal"
-            className="inline-flex items-center gap-2 bg-brand-green hover:bg-brand-green/90 text-white font-medium px-6 py-3 rounded-xl transition-colors"
+            className="inline-flex items-center gap-2 bg-brand-green hover:bg-lime-400 text-black font-medium px-6 py-3 rounded-xl transition-colors"
           >
             <ArrowLeft size={18} />
             Back to Portal
@@ -307,7 +309,7 @@ export default function PMPortal() {
               </div>
               <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800">
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                  <div className="w-10 h-10 bg-brand-green/20 rounded-lg flex items-center justify-center">
                     <Truck className="text-blue-500" size={20} />
                   </div>
                   <span className="text-neutral-400">In Progress</span>
@@ -344,7 +346,7 @@ export default function PMPortal() {
                   <div key={ticket.ticketId} className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                        ticket.ticketType === 'delivery' ? 'bg-blue-500/20' :
+                        ticket.ticketType === 'delivery' ? 'bg-brand-green/20' :
                         ticket.ticketType === 'pickup' ? 'bg-orange-500/20' : 'bg-purple-500/20'
                       }`}>
                         {ticket.ticketType === 'delivery' ? <Truck className="text-blue-500" size={20} /> :
@@ -359,7 +361,7 @@ export default function PMPortal() {
                     <div className="text-right">
                       <span className={`px-2 py-1 rounded text-xs font-medium ${
                         ticket.status === 'completed' ? 'bg-green-500/20 text-green-400' :
-                        ticket.status === 'en_route' ? 'bg-blue-500/20 text-blue-400' :
+                        ticket.status === 'en_route' ? 'bg-brand-green/20 text-blue-400' :
                         'bg-yellow-500/20 text-yellow-400'
                       }`}>
                         {ticket.status.replace(/_/g, ' ')}
@@ -371,8 +373,21 @@ export default function PMPortal() {
                   </div>
                 ))}
                 {myTickets.length === 0 && (
-                  <div className="p-8 text-center text-neutral-400">
-                    No orders yet. Create your first order!
+                  <div className="flex flex-col items-center py-12 gap-4">
+                    <div className="w-16 h-16 rounded-2xl bg-zinc-800/50 flex items-center justify-center">
+                      <Package className="text-zinc-500" size={32} />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-white font-medium">No orders yet</p>
+                      <p className="text-zinc-500 text-sm">Create your first order to get started</p>
+                    </div>
+                    <button
+                      onClick={() => setActiveTab('create')}
+                      className="mt-2 px-4 py-2 bg-brand-green text-black font-medium rounded-lg hover:bg-lime-400 transition-colors flex items-center gap-2"
+                    >
+                      <Plus size={18} />
+                      Create Order
+                    </button>
                   </div>
                 )}
               </div>
@@ -684,7 +699,7 @@ export default function PMPortal() {
                 <div key={ticket.ticketId} className="p-4 hover:bg-neutral-800/50 transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                      <div className="w-12 h-12 bg-brand-green/20 rounded-lg flex items-center justify-center">
                         <Truck className="text-blue-500" size={24} />
                       </div>
                       <div>
@@ -704,7 +719,7 @@ export default function PMPortal() {
                     <div className="text-right">
                       <span className={`px-2 py-1 rounded text-xs font-medium ${
                         ticket.status === 'completed' ? 'bg-green-500/20 text-green-400' :
-                        ticket.status === 'en_route' ? 'bg-blue-500/20 text-blue-400' :
+                        ticket.status === 'en_route' ? 'bg-brand-green/20 text-blue-400' :
                         'bg-yellow-500/20 text-yellow-400'
                       }`}>
                         {ticket.status.replace(/_/g, ' ')}
@@ -772,7 +787,7 @@ export default function PMPortal() {
                     <div className="text-right">
                       <span className={`px-2 py-1 rounded text-xs font-medium ${
                         ticket.status === 'completed' ? 'bg-green-500/20 text-green-400' :
-                        ticket.status === 'picked_up' ? 'bg-blue-500/20 text-blue-400' :
+                        ticket.status === 'picked_up' ? 'bg-brand-green/20 text-blue-400' :
                         'bg-yellow-500/20 text-yellow-400'
                       }`}>
                         {ticket.status.replace(/_/g, ' ')}

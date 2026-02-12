@@ -90,7 +90,9 @@ function mapTeamRoleToRole(teamRole: TeamRole): Role {
     admin: 'Admin',
     office: 'Office',
     project_manager: 'Manager',
+    manager: 'Manager',
     driver: 'Driver',
+    sales: 'Sales',
     viewer: 'Sales', // Viewers have similar access to Sales
   };
   return mapping[teamRole] || 'Sales';
@@ -371,7 +373,7 @@ export function CommandCenterLayout({ children }: CommandCenterLayoutProps) {
       <div className="flex min-h-screen items-center justify-center bg-zinc-950">
         <div className="flex flex-col items-center gap-4">
           <div className="h-12 w-12 animate-spin rounded-full border-4 border-zinc-800 border-t-lime-500" />
-          <p className="text-sm text-zinc-500">Loading Command Center...</p>
+          <p className="text-sm text-zinc-500">Loading RoofStack...</p>
         </div>
       </div>
     );
@@ -383,10 +385,10 @@ export function CommandCenterLayout({ children }: CommandCenterLayoutProps) {
       <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 px-4">
         <div className="text-center">
           <h1 className="mb-2 text-2xl font-bold text-white">
-            RCRS Command Center
+            RoofStack
           </h1>
           <p className="mb-6 text-zinc-400">
-            Please log in to access the Command Center.
+            Please log in to access RoofStack.
           </p>
           <Link
             href="/portal"
@@ -423,9 +425,9 @@ export function CommandCenterLayout({ children }: CommandCenterLayoutProps) {
               className="flex items-center gap-2 text-lg font-bold text-white"
             >
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-lime-500">
-                <span className="text-sm font-black text-zinc-900">RC</span>
+                <span className="text-sm font-black text-zinc-900">RS</span>
               </div>
-              <span className="truncate">Command Center</span>
+              <span className="truncate">RoofStack</span>
             </Link>
           )}
           <button
@@ -518,9 +520,9 @@ export function CommandCenterLayout({ children }: CommandCenterLayoutProps) {
             onClick={() => setIsMobileMenuOpen(false)}
           >
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-lime-500">
-              <span className="text-sm font-black text-zinc-900">RC</span>
+              <span className="text-sm font-black text-zinc-900">RS</span>
             </div>
-            <span>Command Center</span>
+            <span>RoofStack</span>
           </Link>
           <button
             onClick={() => setIsMobileMenuOpen(false)}
@@ -620,7 +622,7 @@ export function CommandCenterLayout({ children }: CommandCenterLayoutProps) {
               className="flex items-center gap-2 lg:hidden"
             >
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-lime-500">
-                <span className="text-sm font-black text-zinc-900">RC</span>
+                <span className="text-sm font-black text-zinc-900">RS</span>
               </div>
             </Link>
 
@@ -669,13 +671,13 @@ export function CommandCenterLayout({ children }: CommandCenterLayoutProps) {
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 p-4 lg:p-6">{children}</main>
+        <main className="flex-1 p-4 lg:p-6 overflow-x-auto min-w-0">{children}</main>
 
         {/* Footer */}
-        <footer className="border-t border-zinc-800 bg-zinc-900/50 px-4 py-4 lg:px-6">
-          <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+        <footer className="border-t border-zinc-800 bg-zinc-900/50 px-4 py-4 lg:px-6 overflow-x-auto">
+          <div className="flex flex-col items-center justify-between gap-4 sm:flex-row min-w-max sm:min-w-0">
             {/* Quick Links */}
-            <nav className="flex flex-wrap items-center justify-center gap-4 text-sm" aria-label="Footer navigation">
+            <nav className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-sm" aria-label="Footer navigation">
               <Link
                 href="/command-center"
                 className="text-zinc-500 transition-colors hover:text-zinc-300"
@@ -738,25 +740,27 @@ function getPageTitle(pathname: string): string {
 
   // Map route segments to titles
   const titles: Record<string, string> = {
-    dashboard: 'Dashboard',
-    sales: 'Sales & Commissions',
+    dashboard: 'HQ',
+    sales: 'Sales',
     leaderboard: 'Leaderboard',
     commissions: 'Commissions',
     'my-stats': 'My Stats',
-    inventory: 'Inventory',
+    inventory: 'Materials',
     costs: 'Costs & Pricing',
     edit: 'Edit',
     manage: 'Manage',
-    marketing: 'Marketing Hub',
+    marketing: 'Marketing',
     phone: 'Phone System',
     all: 'All Records',
     team: 'Team',
-    billing: 'Billing',
+    billing: 'Finance',
     schedule: 'Schedule',
     reports: 'Reports',
     export: 'Export',
     settings: 'Settings',
     meetings: 'Meetings',
+    documents: 'Documents',
+    agents: 'Agents',
   };
 
   // Build title from segments

@@ -311,35 +311,4 @@ function setupSheets() {
   Logger.log("Sheets setup complete!");
 }
 
-// Test function
-function testContact() {
-  var testData = {
-    parameter: {
-      name: "Test User",
-      email: "test@example.com",
-      phone: "(256) 555-1234",
-      subject: "Test Submission",
-      message: "This is a test."
-    }
-  };
-  var result = doPost(testData);
-  Logger.log(result.getContent());
-}
-
-function testReferral() {
-  var testData = {
-    parameter: {
-      formType: "referral",
-      referrerName: "John Doe",
-      referrerPhone: "(256) 111-2222",
-      referrerEmail: "john@example.com",
-      referralName: "Jane Smith",
-      referralPhone: "(256) 333-4444",
-      referralAddress: "123 Main St, Huntsville AL",
-      salesRep: "Chris Muse",
-      notes: "Great neighbor"
-    }
-  };
-  var result = doPost(testData);
-  Logger.log(result.getContent());
-}
+// Test functions removed - test via the website forms

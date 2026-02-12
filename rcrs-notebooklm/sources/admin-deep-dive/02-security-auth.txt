@@ -1,0 +1,1901 @@
+# RCRS Security, Auth & Team Management
+Generated: 2026-02-11 11:23
+Source: River City Roofing Solutions Platform
+
+---
+
+## Authentication Service
+
+/**
+ * Secure Authentication Service
+ *
+ * This service provides:
+ * - JWT token generation and validation
+ * - Secure password/PIN hashing
+ * - Rate limiting for auth endpoints
+ * - Failed attempt tracking and lockout
+ * - Session management
+ */
+
+import { cookies } from 'next/headers';
+
+// ============================================
+// CONFIGURATION
+// ============================================
+
+const JWT_SECRET = process.env.JWT_SECRET || process.env.AUTH_SECRET;
+const JWT_EXPIRES_IN = 60 * 60 * 8; // 8 hours in seconds
+const REFRESH_TOKEN_EXPIRES_IN = 60 * 60 * 24 * 7; // 7 days in seconds
+
+// Rate limiting configuration
+const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_DURATION = 30 * 60 * 1000; // 30 minutes
+
+// ============================================
+// TYPES
+// ============================================
+
+export interface AuthUser {
+  userId: string;
+  name: string;
+  email: string;
+  role: string;
+  permissions: string[];
+}
+
+export interface JWTPayload {
+  sub: string; // User ID
+  name: string;
+  email: string;
+  role: string;
+  permissions: string[];
+  iat: number;
+  exp: number;
+  type: 'access' | 'refresh';
+}
+
+export interface AuthResult {
+  success: boolean;
+  user?: AuthUser;
+  accessToken?: string;
+  refreshToken?: string;
+  error?: string;
+  remainingAttempts?: number;
+  lockoutMinutes?: number;
+}
+
+interface RateLimitEntry {
+  attempts: number;
+  firstAttempt: number;
+  lockedUntil?: number;
+}
+
+// ============================================
+// IN-MEMORY RATE LIMITING (Use Redis in production)
+// ============================================
+
+const rateLimitStore = new Map<string, RateLimitEntry>();
+
+// Clean up expired entries periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of rateLimitStore.entries()) {
+    if (entry.lockedUntil && entry.lockedUntil < now) {
+      rateLimitStore.delete(key);
+    } else if (now - entry.firstAttempt > RATE_LIMIT_WINDOW) {
+      rateLimitStore.delete(key);
+    }
+  }
+}, 60000); // Clean every minute
+
+// ============================================
+// SIMPLE CRYPTO (For production use proper crypto libraries)
+// ============================================
+
+function base64UrlEncode(str: string): string {
+  return Buffer.from(str)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
+}
+
+function base64UrlDecode(str: string): string {
+  let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (base64.length % 4) {
+    base64 += '=';
+  }
+  return Buffer.from(base64, 'base64').toString();
+}
+
+function createHmac(data: string, secret: string): string {
+  // Simple HMAC-like signature (use crypto.createHmac in production)
+  const crypto = require('crypto');
+  return crypto.createHmac('sha256', secret).update(data).digest('base64url');
+}
+
+function hashPin(pin: string, salt: string): string {
+  const crypto = require('crypto');
+  return crypto.createHash('sha256').update(pin + salt).digest('hex');
+}
+
+// ============================================
+// JWT FUNCTIONS
+// ============================================
+
+export function generateAccessToken(user: AuthUser): string {
+  if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is not set');
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const payload: JWTPayload = {
+    sub: user.userId,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    permissions: user.permissions,
+    iat: now,
+    exp: now + JWT_EXPIRES_IN,
+    type: 'access',
+  };
+
+  const header = base64UrlEncode(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+  const payloadStr = base64UrlEncode(JSON.stringify(payload));
+  const signature = createHmac(`${header}.${payloadStr}`, JWT_SECRET);
+
+  return `${header}.${payloadStr}.${signature}`;
+}
+
+export function generateRefreshToken(user: AuthUser): string {
+  if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is not set');
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const payload: JWTPayload = {
+    sub: user.userId,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    permissions: user.permissions,
+    iat: now,
+    exp: now + REFRESH_TOKEN_EXPIRES_IN,
+    type: 'refresh',
+  };
+
+  const header = base64UrlEncode(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+  const payloadStr = base64UrlEncode(JSON.stringify(payload));
+  const signature = createHmac(`${header}.${payloadStr}`, JWT_SECRET);
+
+  return `${header}.${payloadStr}.${signature}`;
+}
+
+export function verifyToken(token: string): { valid: boolean; payload?: JWTPayload; error?: string } {
+  if (!JWT_SECRET) {
+    return { valid: false, error: 'JWT_SECRET not configured' };
+  }
+
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      return { valid: false, error: 'Invalid token format' };
+    }
+
+    const [header, payloadStr, signature] = parts;
+    const expectedSignature = createHmac(`${header}.${payloadStr}`, JWT_SECRET);
+
+    if (signature !== expectedSignature) {
+      return { valid: false, error: 'Invalid signature' };
+    }
+
+    const payload = JSON.parse(base64UrlDecode(payloadStr)) as JWTPayload;
+
+    // Check expiration
+    const now = Math.floor(Date.now() / 1000);
+    if (payload.exp < now) {
+      return { valid: false, error: 'Token expired' };
+    }
+
+    return { valid: true, payload };
+  } catch (error) {
+    return { valid: false, error: 'Token verification failed' };
+  }
+}
+
+// ============================================
+// RATE LIMITING
+// ============================================
+
+export function checkRateLimit(identifier: string): { allowed: boolean; remainingAttempts?: number; lockoutMinutes?: number } {
+  const now = Date.now();
+  const entry = rateLimitStore.get(identifier);
+
+  // Check if locked out
+  if (entry?.lockedUntil && entry.lockedUntil > now) {
+    const lockoutMinutes = Math.ceil((entry.lockedUntil - now) / 60000);
+    return { allowed: false, remainingAttempts: 0, lockoutMinutes };
+  }
+
+  // Check if window expired
+  if (entry && now - entry.firstAttempt > RATE_LIMIT_WINDOW) {
+    rateLimitStore.delete(identifier);
+    return { allowed: true, remainingAttempts: MAX_LOGIN_ATTEMPTS };
+  }
+
+  // Check attempts
+  if (entry && entry.attempts >= MAX_LOGIN_ATTEMPTS) {
+    // Lock out the user
+    entry.lockedUntil = now + LOCKOUT_DURATION;
+    rateLimitStore.set(identifier, entry);
+    const lockoutMinutes = Math.ceil(LOCKOUT_DURATION / 60000);
+    return { allowed: false, remainingAttempts: 0, lockoutMinutes };
+  }
+
+  const remainingAttempts = entry ? MAX_LOGIN_ATTEMPTS - entry.attempts : MAX_LOGIN_ATTEMPTS;
+  return { allowed: true, remainingAttempts };
+}
+
+export function recordLoginAttempt(identifier: string, success: boolean): void {
+  if (success) {
+    rateLimitStore.delete(identifier);
+    return;
+  }
+
+  const now = Date.now();
+  const entry = rateLimitStore.get(identifier);
+
+  if (entry) {
+    entry.attempts++;
+    rateLimitStore.set(identifier, entry);
+  } else {
+    rateLimitStore.set(identifier, { attempts: 1, firstAttempt: now });
+  }
+}
+
+export function clearRateLimit(identifier: string): void {
+  rateLimitStore.delete(identifier);
+}
+
+// ============================================
+// COOKIE MANAGEMENT
+// ============================================
+
+export async function setAuthCookies(accessToken: string, refreshToken: string): Promise<void> {
+  const cookieStore = await cookies();
+
+  // Access token cookie - httpOnly, secure, same-site strict
+  cookieStore.set('access_token', accessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: JWT_EXPIRES_IN,
+    path: '/',
+  });
+
+  // Refresh token cookie - httpOnly, secure, same-site strict
+  cookieStore.set('refresh_token', refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: REFRESH_TOKEN_EXPIRES_IN,
+    path: '/',
+  });
+}
+
+export async function clearAuthCookies(): Promise<void> {
+  const cookieStore = await cookies();
+
+  cookieStore.set('access_token', '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 0,
+    path: '/',
+  });
+
+  cookieStore.set('refresh_token', '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 0,
+    path: '/',
+  });
+}
+
+export async function getTokenFromCookies(): Promise<string | undefined> {
+  const cookieStore = await cookies();
+  return cookieStore.get('access_token')?.value;
+}
+
+export async function getRefreshTokenFromCookies(): Promise<string | undefined> {
+  const cookieStore = await cookies();
+  return cookieStore.get('refresh_token')?.value;
+}
+
+// ============================================
+// SESSION VALIDATION
+// ============================================
+
+export async function validateSession(): Promise<{ valid: boolean; user?: AuthUser; error?: string }> {
+  const token = await getTokenFromCookies();
+
+  if (!token) {
+    return { valid: false, error: 'No session token' };
+  }
+
+  const result = verifyToken(token);
+
+  if (!result.valid || !result.payload) {
+    return { valid: false, error: result.error || 'Invalid token' };
+  }
+
+  if (result.payload.type !== 'access') {
+    return { valid: false, error: 'Invalid token type' };
+  }
+
+  return {
+    valid: true,
+    user: {
+      userId: result.payload.sub,
+      name: result.payload.name,
+      email: result.payload.email,
+      role: result.payload.role,
+      permissions: result.payload.permissions,
+    },
+  };
+}
+
+export async function refreshSession(): Promise<AuthResult> {
+  const refreshToken = await getRefreshTokenFromCookies();
+
+  if (!refreshToken) {
+    return { success: false, error: 'No refresh token' };
+  }
+
+  const result = verifyToken(refreshToken);
+
+  if (!result.valid || !result.payload) {
+    return { success: false, error: result.error || 'Invalid refresh token' };
+  }
+
+  if (result.payload.type !== 'refresh') {
+    return { success: false, error: 'Invalid token type' };
+  }
+
+  // Generate new tokens
+  const user: AuthUser = {
+    userId: result.payload.sub,
+    name: result.payload.name,
+    email: result.payload.email,
+    role: result.payload.role,
+    permissions: result.payload.permissions,
+  };
+
+  const newAccessToken = generateAccessToken(user);
+  const newRefreshToken = generateRefreshToken(user);
+
+  await setAuthCookies(newAccessToken, newRefreshToken);
+
+  return {
+    success: true,
+    user,
+    accessToken: newAccessToken,
+    refreshToken: newRefreshToken,
+  };
+}
+
+// ============================================
+// PIN VALIDATION WITH ENHANCED SECURITY
+// ============================================
+
+export function validatePin(inputPin: string, storedPin: string, salt?: string): boolean {
+  // If salt is provided, compare hashes
+  if (salt) {
+    return hashPin(inputPin, salt) === storedPin;
+  }
+
+  // Fallback to direct comparison (for legacy data)
+  // Use timing-safe comparison to prevent timing attacks
+  if (inputPin.length !== storedPin.length) {
+    return false;
+  }
+
+  let result = 0;
+  for (let i = 0; i < inputPin.length; i++) {
+    result |= inputPin.charCodeAt(i) ^ storedPin.charCodeAt(i);
+  }
+  return result === 0;
+}
+
+export function generateSecurePin(length: number = 6): string {
+  const crypto = require('crypto');
+  const max = Math.pow(10, length) - 1;
+  const min = Math.pow(10, length - 1);
+  const randomNum = crypto.randomInt(min, max + 1);
+  return randomNum.toString().padStart(length, '0');
+}
+
+export function generateSalt(): string {
+  const crypto = require('crypto');
+  return crypto.randomBytes(16).toString('hex');
+}
+
+// ============================================
+// IP EXTRACTION
+// ============================================
+
+export function getClientIP(request: Request): string {
+  const forwarded = request.headers.get('x-forwarded-for');
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
+  }
+
+  const realIP = request.headers.get('x-real-ip');
+  if (realIP) {
+    return realIP;
+  }
+
+  return 'unknown';
+}
+
+// ============================================
+// ROUTE AUTH HELPERS
+// ============================================
+
+/**
+ * Require authenticated session for API routes.
+ * Returns user if authenticated, or a 401 NextResponse if not.
+ * Usage:
+ *   const auth = await requireAuth();
+ *   if (!auth.authenticated) return auth.response;
+ *   // auth.user is now available
+ */
+export async function requireAuth(): Promise<
+  { authenticated: true; user: AuthUser } | { authenticated: false; response: Response }
+> {
+  // Auth bypass for pre-launch testing only
+  // IMPORTANT: Set AUTH_BYPASS_MODE=false or remove it before going live
+  if (process.env.AUTH_BYPASS_MODE === 'true' && process.env.NODE_ENV !== 'production') {
+    return {
+      authenticated: true,
+      user: {
+        userId: 'bypass',
+        name: 'Bypass User',
+        email: 'admin@rcrsal.com',
+        role: 'admin',
+        permissions: ['*'],
+      },
+    };
+  }
+
+  const session = await validateSession();
+  if (!session.valid || !session.user) {
+    const { NextResponse } = await import('next/server');
+    return {
+      authenticated: false,
+      response: NextResponse.json(
+        { success: false, error: 'Authentication required' },
+        { status: 401 }
+      ),
+    };
+  }
+
+  return { authenticated: true, user: session.user };
+}
+
+/**
+ * Require admin role for API routes.
+ * Returns user if admin, 401 if not authenticated, 403 if wrong role.
+ */
+export async function requireAdmin(): Promise<
+  { authenticated: true; user: AuthUser } | { authenticated: false; response: Response }
+> {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth;
+
+  if (auth.user.role !== 'admin' && auth.user.role !== 'owner') {
+    const { NextResponse } = await import('next/server');
+    return {
+      authenticated: false,
+      response: NextResponse.json(
+        { success: false, error: 'Admin access required' },
+        { status: 403 }
+      ),
+    };
+  }
+
+  return auth;
+}
+
+// ============================================
+// SECURITY HEADERS
+// ============================================
+
+export function getSecurityHeaders(): Record<string, string> {
+  return {
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'X-XSS-Protection': '1; mode=block',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  };
+}
+
+
+---
+
+## Team Roles & Permissions
+
+// Team Member Roles and Permissions for River City Roofing Portal
+// Role hierarchy: owner > admin > manager > sales > office > project_manager > driver > viewer
+//
+// ROLE ASSIGNMENTS (Updated 2026-02-10 from Google Workspace):
+// - OWNER (Michael Muse, Chris Muse): Full system access
+// - ADMIN (Sara Hill): Full system access, approval authority
+// - MANAGER (Destin Mccary): Operations oversight, view all, limited edit
+// - OFFICE (Tia Muse Morris): Billing, inventory, scheduling
+// - PROJECT_MANAGER (Bart Roberts, John Cordonis): Job scheduling, inventory coordination
+// - SALES (Aaron Lussi, Adam Rudell, Boston Muse, Brendon Muse, Greg Muse, Hunter Rivers, Joseph Dowd): Own leads/jobs, personal stats
+// - DRIVER (Richard Geahr, Travis Wages): Delivery queue, route navigation, photo upload
+// - INACTIVE: Tae Orr, Rick, Rudy (not in Google Workspace)
+// - CUSTOMER: External - job status, weather alerts, document viewing
+
+export type TeamRole = 'owner' | 'admin' | 'manager' | 'sales' | 'office' | 'project_manager' | 'driver' | 'viewer';
+
+export interface TeamMember {
+  id: string;
+  name: string;
+  slug: string;
+  email: string;
+  phone?: string;
+  role: TeamRole;
+  pin?: string; // 4-digit PIN for driver login
+  isActive: boolean;
+  permissions: string[];
+  createdAt: string;
+}
+
+// Define team members - Updated from PDF (items for web.pdf)
+export const TEAM_MEMBERS: TeamMember[] = [
+  // Owners - Full access to everything
+  {
+    id: 'RVR-135',
+    name: 'Michael Muse',
+    slug: 'michael-muse',
+    email: 'michaelmuse@rivercityroofingsolutions.com',
+    phone: '256-221-4290',
+    role: 'owner',
+    pin: '1135',
+    isActive: true,
+    permissions: ['*'], // All permissions
+    createdAt: '2024-01-01'
+  },
+  {
+    id: 'RVR-138',
+    name: 'Chris Muse',
+    slug: 'chris-muse',
+    email: 'chrismuse@rivercityroofingsolutions.com',
+    phone: '256-648-1224',
+    role: 'owner',
+    pin: '1138',
+    isActive: true,
+    permissions: ['*'],
+    createdAt: '2024-01-01'
+  },
+
+  // Admin - Full access
+  {
+    id: 'RVR-131',
+    name: 'Sara Hill',
+    slug: 'sara-hill',
+    email: 'sara@rivercityroofingsolutions.com',
+    phone: '256-810-3594',
+    role: 'admin',
+    pin: '1131',
+    isActive: true,
+    permissions: ['*'],
+    createdAt: '2024-01-15'
+  },
+  // Manager - Operations Oversight
+  {
+    id: 'RVR-132',
+    name: 'Destin Mccary',
+    slug: 'destin',
+    email: 'destin@rivercityroofingsolutions.com',
+    phone: '256-905-7738',
+    role: 'manager',
+    pin: '1132',
+    isActive: true,
+    permissions: [
+      'view_dashboard',
+      'view_all_data',
+      'manage_billing',
+      'manage_inventory',
+      'view_tickets',
+      'update_ticket_status',
+      'create_invoices',
+      'manage_vendors',
+      'view_reports',
+      'export_reports',
+      'view_schedule',
+      'edit_schedule',
+      'manage_stock',
+      'view_team_performance',
+      'assign_deliveries',
+      'view_inventory_costs',
+      'enter_leads',
+      'lead_distro_manage'
+    ],
+    createdAt: '2024-02-01'
+  },
+
+  // Office Staff
+  {
+    id: 'RVR-133',
+    name: 'Tia Muse Morris',
+    slug: 'tia',
+    email: 'tia@rivercityroofingsolutions.com',
+    phone: '256-394-8396',
+    role: 'office',
+    pin: '1133',
+    isActive: true,
+    permissions: [
+      'view_dashboard',
+      'manage_billing',
+      'manage_inventory',
+      'view_tickets',
+      'update_ticket_status',
+      'create_invoices',
+      'manage_vendors',
+      'view_reports',
+      'view_schedule',
+      'manage_stock',
+      'enter_leads',
+      'lead_distro_manage'
+    ],
+    createdAt: '2024-02-01'
+  },
+  {
+    id: 'RVR-134',
+    name: 'Bart Roberts',
+    slug: 'bart',
+    email: 'bart@rivercityroofingsolutions.com',
+    phone: '256-654-0747',
+    role: 'project_manager',
+    pin: '1134',
+    isActive: true,
+    permissions: [
+      'view_dashboard',
+      'create_material_orders',
+      'create_delivery_tickets',
+      'create_pickup_tickets',
+      'create_return_tickets',
+      'schedule_events',
+      'view_schedule',
+      'view_own_tickets',
+      'update_own_tickets',
+      'view_inventory',
+      'view_drivers',
+      'enter_leads'
+    ],
+    createdAt: '2024-03-15'
+  },
+  {
+    id: 'RVR-137',
+    name: 'John Cordonis',
+    slug: 'john',
+    email: 'john@rivercityroofingsolutions.com',
+    phone: '256-654-0875',
+    role: 'project_manager',
+    pin: '1137',
+    isActive: true,
+    permissions: [
+      'view_dashboard',
+      'create_material_orders',
+      'create_delivery_tickets',
+      'create_pickup_tickets',
+      'create_return_tickets',
+      'schedule_events',
+      'view_schedule',
+      'view_own_tickets',
+      'update_own_tickets',
+      'view_inventory',
+      'view_drivers',
+      'enter_leads'
+    ],
+    createdAt: '2024-02-15'
+  },
+
+  // Drivers - View assigned, complete deliveries
+  {
+    id: 'RVR-136',
+    name: 'Richard Geahr',
+    slug: 'richard',
+    email: 'richard@rivercityroofingsolutions.com',
+    phone: '256-701-7376',
+    role: 'driver',
+    pin: '1136', // Driver login PIN from PDF
+    isActive: true,
+    permissions: [
+      'view_assigned_tickets',
+      'update_delivery_status',
+      'upload_photos',
+      'capture_signature',
+      'view_route',
+      'view_checklist',
+      'complete_checklist',
+      'edit_stock_qty',
+      'create_pickup_tickets',
+      'create_return_tickets',
+      'log_gps_activity'
+    ],
+    createdAt: '2024-04-01'
+  },
+  {
+    id: 'a8ad2e33',
+    name: 'Tae Orr',
+    slug: 'tae',
+    email: 'tae@rcrsal.com',
+    phone: '256-200-3467',
+    role: 'driver',
+    pin: '2033', // Driver login PIN from PDF
+    isActive: false, // Not in Google Workspace - inactive
+    permissions: [
+      'view_assigned_tickets',
+      'update_delivery_status',
+      'upload_photos',
+      'capture_signature',
+      'view_route',
+      'view_checklist',
+      'complete_checklist',
+      'edit_stock_qty',
+      'create_pickup_tickets',
+      'create_return_tickets',
+      'log_gps_activity'
+    ],
+    createdAt: '2024-05-01'
+  },
+
+  // Sales Representatives - Lead management, inspections, quotes
+  {
+    id: 'RVR-201',
+    name: 'Hunter Rivers',
+    slug: 'hunter',
+    email: 'hunter@rivercityroofingsolutions.com',
+    phone: '256-221-0548',
+    role: 'sales',
+    pin: '2010',
+    isActive: true,
+    permissions: [
+      'view_dashboard',
+      'view_leads',
+      'manage_leads',
+      'view_own_leads',
+      'update_lead_status',
+      'schedule_inspections',
+      'create_quotes',
+      'send_quotes',
+      'view_own_stats',
+      'view_leaderboard',
+      'upload_photos',
+      'view_customer_portal',
+      'send_customer_messages',
+      'view_schedule'
+    ],
+    createdAt: '2024-01-15'
+  },
+  {
+    id: 'RVR-202',
+    name: 'Aaron Lussi',
+    slug: 'aaron',
+    email: 'aaron@rivercityroofingsolutions.com',
+    phone: '256-656-7856',
+    role: 'sales',
+    pin: '2020',
+    isActive: true,
+    permissions: [
+      'view_dashboard',
+      'view_leads',
+      'manage_leads',
+      'view_own_leads',
+      'update_lead_status',
+      'schedule_inspections',
+      'create_quotes',
+      'send_quotes',
+      'view_own_stats',
+      'view_leaderboard',
+      'upload_photos',
+      'view_customer_portal',
+      'send_customer_messages',
+      'view_schedule'
+    ],
+    createdAt: '2024-02-01'
+  },
+  {
+    id: 'RVR-203',
+    name: 'Greg Muse',
+    slug: 'greg',
+    email: 'greg@rivercityroofingsolutions.com',
+    phone: '256-221-1809',
+    role: 'sales',
+    pin: '2030',
+    isActive: true,
+    permissions: [
+      'view_dashboard',
+      'view_leads',
+      'manage_leads',
+      'view_own_leads',
+      'update_lead_status',
+      'schedule_inspections',
+      'create_quotes',
+      'send_quotes',
+      'view_own_stats',
+      'view_leaderboard',
+      'upload_photos',
+      'view_customer_portal',
+      'send_customer_messages',
+      'view_schedule'
+    ],
+    createdAt: '2024-03-01'
+  },
+  {
+    id: 'RVR-204',
+    name: 'Brendon Muse',
+    slug: 'brendon',
+    email: 'brendon@rivercityroofingsolutions.com',
+    phone: '256-616-6174',
+    role: 'sales',
+    pin: '2040',
+    isActive: true,
+    permissions: [
+      'view_dashboard',
+      'view_leads',
+      'manage_leads',
+      'view_own_leads',
+      'update_lead_status',
+      'schedule_inspections',
+      'create_quotes',
+      'send_quotes',
+      'view_own_stats',
+      'view_leaderboard',
+      'upload_photos',
+      'view_customer_portal',
+      'send_customer_messages',
+      'view_schedule'
+    ],
+    createdAt: '2024-01-01'
+  },
+  {
+    id: 'RVR-205',
+    name: 'Rick',
+    slug: 'rick',
+    email: 'rick@rcrsal.com',
+    phone: '',
+    role: 'sales',
+    pin: '2050',
+    isActive: false, // Not in Google Workspace - inactive
+    permissions: [
+      'view_dashboard',
+      'view_leads',
+      'manage_leads',
+      'view_own_leads',
+      'update_lead_status',
+      'schedule_inspections',
+      'create_quotes',
+      'send_quotes',
+      'view_own_stats',
+      'view_leaderboard',
+      'upload_photos',
+      'view_customer_portal',
+      'send_customer_messages',
+      'view_schedule'
+    ],
+    createdAt: '2024-04-01'
+  },
+  {
+    id: 'RVR-206',
+    name: 'Rudy',
+    slug: 'rudy',
+    email: 'rudy@rcrsal.com',
+    phone: '',
+    role: 'sales',
+    pin: '2060',
+    isActive: false, // Not in Google Workspace - inactive
+    permissions: [
+      'view_dashboard',
+      'view_leads',
+      'manage_leads',
+      'view_own_leads',
+      'update_lead_status',
+      'schedule_inspections',
+      'create_quotes',
+      'send_quotes',
+      'view_own_stats',
+      'view_leaderboard',
+      'upload_photos',
+      'view_customer_portal',
+      'send_customer_messages',
+      'view_schedule'
+    ],
+    createdAt: '2024-05-01'
+  },
+  {
+    id: 'RVR-207',
+    name: 'Adam Rudell',
+    slug: 'adam',
+    email: 'adam@rivercityroofingsolutions.com',
+    phone: '256-654-3631',
+    role: 'sales',
+    pin: '2070',
+    isActive: true,
+    permissions: [
+      'view_dashboard',
+      'view_leads',
+      'manage_leads',
+      'view_own_leads',
+      'update_lead_status',
+      'schedule_inspections',
+      'create_quotes',
+      'send_quotes',
+      'view_own_stats',
+      'view_leaderboard',
+      'upload_photos',
+      'view_customer_portal',
+      'send_customer_messages',
+      'view_schedule'
+    ],
+    createdAt: '2024-06-01'
+  },
+  {
+    id: 'RVR-208',
+    name: 'Boston Muse',
+    slug: 'boston',
+    email: 'boston@rivercityroofingsolutions.com',
+    phone: '',
+    role: 'sales',
+    pin: '2080',
+    isActive: true,
+    permissions: [
+      'view_dashboard',
+      'view_leads',
+      'manage_leads',
+      'view_own_leads',
+      'update_lead_status',
+      'schedule_inspections',
+      'create_quotes',
+      'send_quotes',
+      'view_own_stats',
+      'view_leaderboard',
+      'upload_photos',
+      'view_customer_portal',
+      'send_customer_messages',
+      'view_schedule'
+    ],
+    createdAt: '2026-02-10'
+  },
+  {
+    id: 'RVR-209',
+    name: 'Joseph Dowd',
+    slug: 'joseph',
+    email: 'joseph@rivercityroofingsolutions.com',
+    phone: '256-751-7297',
+    role: 'sales',
+    pin: '2090',
+    isActive: true,
+    permissions: [
+      'view_dashboard',
+      'view_leads',
+      'manage_leads',
+      'view_own_leads',
+      'update_lead_status',
+      'schedule_inspections',
+      'create_quotes',
+      'send_quotes',
+      'view_own_stats',
+      'view_leaderboard',
+      'upload_photos',
+      'view_customer_portal',
+      'send_customer_messages',
+      'view_schedule'
+    ],
+    createdAt: '2026-02-10'
+  },
+
+  // Additional Drivers
+  {
+    id: 'RVR-140',
+    name: 'Travis Wages',
+    slug: 'travis',
+    email: 'travis@rivercityroofingsolutions.com',
+    phone: '256-466-0956',
+    role: 'driver',
+    pin: '1140',
+    isActive: true,
+    permissions: [
+      'view_assigned_tickets',
+      'update_delivery_status',
+      'upload_photos',
+      'capture_signature',
+      'view_route',
+      'view_checklist',
+      'complete_checklist',
+      'edit_stock_qty',
+      'create_pickup_tickets',
+      'create_return_tickets',
+      'log_gps_activity'
+    ],
+    createdAt: '2026-02-10'
+  }
+];
+
+// Role-based portal access
+export const ROLE_PORTAL_ACCESS: Record<TeamRole, string[]> = {
+  owner: ['/portal/pm', '/portal/office', '/portal/billing', '/portal/inventory', '/portal/driver', '/portal/admin', '/portal/sales', '/portal/manager', '/portal/chat', '/command-center'],
+  admin: ['/portal/pm', '/portal/office', '/portal/billing', '/portal/inventory', '/portal/driver', '/portal/admin', '/portal/sales', '/portal/manager', '/portal/chat', '/command-center'],
+  manager: ['/portal/dashboard', '/portal/manager', '/portal/office', '/portal/billing', '/portal/inventory', '/portal/schedule', '/portal/reports', '/portal/chat', '/command-center'],
+  sales: ['/portal/dashboard', '/portal/sales', '/portal/inventory', '/portal/schedule', '/portal/chat', '/command-center/sales'],
+  office: ['/portal/dashboard', '/portal/office', '/portal/billing', '/portal/inventory', '/portal/schedule', '/portal/chat', '/command-center'],
+  project_manager: ['/portal/dashboard', '/portal/pm', '/portal/inventory', '/portal/schedule', '/portal/chat', '/command-center'],
+  driver: ['/portal/dashboard', '/portal/driver', '/portal/inventory', '/portal/chat'],
+  viewer: ['/portal/dashboard', '/portal/office', '/portal/reports', '/portal/chat'] // Read-only view
+};
+
+// Command Center module access by role
+export const COMMAND_CENTER_ACCESS: Record<TeamRole, string[]> = {
+  owner: ['dashboard', 'sales', 'inventory', 'marketing', 'phone', 'meetings', 'team', 'settings', 'reports', 'billing', 'schedule', 'leads'],
+  admin: ['dashboard', 'sales', 'inventory', 'marketing', 'phone', 'meetings', 'team', 'settings', 'reports', 'billing', 'schedule', 'leads'],
+  manager: ['dashboard', 'sales', 'inventory', 'phone', 'meetings', 'team', 'reports', 'schedule', 'leads'],
+  sales: ['dashboard', 'sales', 'phone', 'meetings', 'schedule', 'leads'],
+  office: ['dashboard', 'inventory', 'phone', 'meetings', 'billing', 'schedule', 'leads'],
+  project_manager: ['dashboard', 'inventory', 'meetings', 'schedule'],
+  driver: ['dashboard'],
+  viewer: ['dashboard', 'reports']
+};
+
+// Permission descriptions
+export const PERMISSION_DESCRIPTIONS: Record<string, string> = {
+  '*': 'Full access to all features',
+  'view_dashboard': 'View main dashboard',
+  'manage_billing': 'Create and manage invoices, billing records',
+  'manage_inventory': 'Full inventory management',
+  'view_tickets': 'View all tickets',
+  'view_own_tickets': 'View only own tickets',
+  'update_ticket_status': 'Update any ticket status',
+  'update_own_tickets': 'Update own tickets only',
+  'create_invoices': 'Create and send invoices',
+  'manage_vendors': 'Manage vendor purchases',
+  'view_reports': 'View all reports',
+  'view_schedule': 'View calendar and schedule',
+  'manage_stock': 'Adjust stock levels',
+  'create_material_orders': 'Create new material orders',
+  'create_delivery_tickets': 'Create delivery tickets',
+  'create_pickup_tickets': 'Create pickup tickets',
+  'create_return_tickets': 'Create return tickets',
+  'schedule_events': 'Schedule deliveries and events',
+  'view_inventory': 'View inventory levels',
+  'view_drivers': 'View driver information',
+  'view_assigned_tickets': 'View assigned tickets only',
+  'update_delivery_status': 'Update delivery status',
+  'upload_photos': 'Upload delivery/proof photos',
+  'capture_signature': 'Capture customer signatures',
+  'view_route': 'View optimized route',
+  'view_checklist': 'View delivery checklist',
+  'complete_checklist': 'Complete checklist items',
+  'edit_stock_qty': 'Edit stock quantities (logged)',
+  'log_gps_activity': 'Log GPS activities',
+  // Sales-specific permissions
+  'view_leads': 'View all leads',
+  'manage_leads': 'Manage and assign leads',
+  'view_own_leads': 'View only assigned leads',
+  'update_lead_status': 'Update lead status',
+  'schedule_inspections': 'Schedule roof inspections',
+  'create_quotes': 'Create quotes for customers',
+  'send_quotes': 'Send quotes to customers',
+  'view_own_stats': 'View personal performance stats',
+  'view_leaderboard': 'View sales leaderboard',
+  'view_customer_portal': 'View customer portal data',
+  'send_customer_messages': 'Send messages to customers',
+  // Lead distribution permissions
+  'lead_distro_admin': 'Configure lead distribution algorithm and weights',
+  'lead_distro_manage': 'Toggle rep availability and view lead distribution',
+  'enter_leads': 'Enter new leads into the system',
+  'view_lead_distro': 'View lead distribution settings and history'
+};
+
+// Helper functions
+export function getTeamMember(id: string): TeamMember | undefined {
+  return TEAM_MEMBERS.find(m => m.id === id);
+}
+
+export function getTeamMemberByEmail(email: string): TeamMember | undefined {
+  return TEAM_MEMBERS.find(m => m.email.toLowerCase() === email.toLowerCase());
+}
+
+export function getTeamMemberByPin(pin: string): TeamMember | undefined {
+  return TEAM_MEMBERS.find(m => m.pin === pin && m.role === 'driver');
+}
+
+export function getTeamMembersByRole(role: TeamRole): TeamMember[] {
+  return TEAM_MEMBERS.filter(m => m.role === role && m.isActive);
+}
+
+export function hasPermission(member: TeamMember, permission: string): boolean {
+  if (member.permissions.includes('*')) return true;
+  return member.permissions.includes(permission);
+}
+
+export function canAccessPortal(member: TeamMember, portalPath: string): boolean {
+  const allowedPortals = ROLE_PORTAL_ACCESS[member.role];
+  return allowedPortals.some(path => portalPath.startsWith(path));
+}
+
+export function getDrivers(): TeamMember[] {
+  return getTeamMembersByRole('driver');
+}
+
+export function getProjectManagers(): TeamMember[] {
+  return getTeamMembersByRole('project_manager');
+}
+
+export function getOfficeStaff(): TeamMember[] {
+  return getTeamMembersByRole('office');
+}
+
+// Role display names
+export const ROLE_DISPLAY_NAMES: Record<TeamRole, string> = {
+  owner: 'Owner',
+  admin: 'Administrator',
+  manager: 'Manager',
+  sales: 'Sales Rep',
+  office: 'Office Staff',
+  project_manager: 'Project Manager',
+  driver: 'Driver',
+  viewer: 'Viewer'
+};
+
+// Role colors for UI
+export const ROLE_COLORS: Record<TeamRole, string> = {
+  owner: 'bg-purple-500',
+  admin: 'bg-red-500',
+  manager: 'bg-blue-600',
+  sales: 'bg-green-500',
+  office: 'bg-cyan-500',
+  project_manager: 'bg-indigo-500',
+  driver: 'bg-orange-500',
+  viewer: 'bg-gray-500'
+};
+
+// Check if a role can access a Command Center module
+export function canAccessCommandCenterModule(role: TeamRole, module: string): boolean {
+  const allowedModules = COMMAND_CENTER_ACCESS[role];
+  return allowedModules?.includes(module) ?? false;
+}
+
+// Get all Command Center modules accessible by a role
+export function getAccessibleCommandCenterModules(role: TeamRole): string[] {
+  return COMMAND_CENTER_ACCESS[role] ?? [];
+}
+
+// Check if role has elevated access (owner, admin, or manager)
+export function hasElevatedAccess(role: TeamRole): boolean {
+  return role === 'owner' || role === 'admin' || role === 'manager';
+}
+
+// Check if role has full admin access
+export function hasAdminAccess(role: TeamRole): boolean {
+  return role === 'owner' || role === 'admin';
+}
+
+// Check if role is manager level (can view all but not edit all)
+export function isManagerRole(role: TeamRole): boolean {
+  return role === 'manager';
+}
+
+// Get managers
+export function getManagers(): TeamMember[] {
+  return getTeamMembersByRole('manager');
+}
+
+// Check if role can manage team members
+export function canManageTeam(role: TeamRole): boolean {
+  return role === 'owner' || role === 'admin';
+}
+
+// Check if role can view sales data
+export function canViewSales(role: TeamRole): boolean {
+  return ['owner', 'admin', 'manager', 'sales'].includes(role);
+}
+
+// Check if role is a sales rep
+export function isSalesRole(role: TeamRole): boolean {
+  return role === 'sales';
+}
+
+// Get all sales reps
+export function getSalesReps(): TeamMember[] {
+  return getTeamMembersByRole('sales');
+}
+
+// Check if role can manage inventory
+export function canManageInventory(role: TeamRole): boolean {
+  return ['owner', 'admin', 'manager', 'office'].includes(role);
+}
+
+// Check if role can access marketing
+export function canAccessMarketing(role: TeamRole): boolean {
+  return ['owner', 'admin'].includes(role);
+}
+
+// Convert TeamRole to CommandCenterRole for the permission system
+export type CommandCenterRole = 'owner' | 'admin' | 'manager' | 'sales' | 'sales_manager' | 'office_manager' | 'project_manager' | 'driver';
+
+export function toCommandCenterRole(teamRole: TeamRole): CommandCenterRole {
+  switch (teamRole) {
+    case 'owner':
+      return 'owner';
+    case 'admin':
+      return 'admin';
+    case 'manager':
+      return 'manager';
+    case 'sales':
+      return 'sales';
+    case 'office':
+      return 'office_manager';
+    case 'project_manager':
+      return 'project_manager';
+    case 'driver':
+      return 'driver';
+    case 'viewer':
+      return 'driver'; // Viewers have minimal access like drivers
+    default:
+      return 'driver';
+  }
+}
+
+// Role hierarchy levels
+export const ROLE_HIERARCHY: Record<TeamRole, number> = {
+  owner: 100,
+  admin: 90,
+  manager: 80,
+  sales: 50,
+  office: 50,
+  project_manager: 50,
+  driver: 30,
+  viewer: 10,
+};
+
+// Check if role1 is higher than or equal to role2
+export function isRoleAtLeast(userRole: TeamRole, requiredRole: TeamRole): boolean {
+  return ROLE_HIERARCHY[userRole] >= ROLE_HIERARCHY[requiredRole];
+}
+
+// Role descriptions for UI
+export const ROLE_DESCRIPTIONS: Record<TeamRole, string> = {
+  owner: 'Full system access with all permissions',
+  admin: 'Full system access with approval authority',
+  manager: 'Operations oversight with view-all access',
+  sales: 'Lead and customer management for own assignments',
+  office: 'Billing, inventory, and schedule management',
+  project_manager: 'Job scheduling and delivery coordination',
+  driver: 'Delivery queue and route management',
+  viewer: 'Read-only access to reports',
+};
+
+// Check if user can enter leads
+export function canEnterLeads(role: TeamRole): boolean {
+  return ['owner', 'admin', 'manager', 'office', 'project_manager'].includes(role);
+}
+
+// Check if user can manage lead distribution (toggle reps on/off)
+export function canManageLeadDistro(role: TeamRole): boolean {
+  return ['owner', 'admin', 'manager', 'office'].includes(role);
+}
+
+// Check if user can configure lead distribution algorithm
+export function canAdminLeadDistro(role: TeamRole): boolean {
+  return ['owner', 'admin'].includes(role);
+}
+
+// Get all reps eligible for lead distribution (sales reps + owners who sell)
+export function getLeadEligibleReps(): TeamMember[] {
+  return TEAM_MEMBERS.filter(m =>
+    m.isActive && (m.role === 'sales' || (m.role === 'owner' && m.slug !== 'admin'))
+  );
+}
+
+// =============================================================================
+// TEAM ACCESS OVERRIDES
+// =============================================================================
+
+// All Command Center modules
+export const ALL_COMMAND_CENTER_MODULES = [
+  'dashboard', 'sales', 'inventory', 'marketing', 'phone',
+  'meetings', 'team', 'leads', 'reports', 'billing', 'schedule', 'settings'
+] as const;
+
+export type CommandCenterModule = typeof ALL_COMMAND_CENTER_MODULES[number];
+
+// Module display names
+export const MODULE_DISPLAY_NAMES: Record<string, string> = {
+  dashboard: 'Dashboard',
+  sales: 'Sales',
+  inventory: 'Inventory',
+  marketing: 'Marketing',
+  phone: 'Phone System',
+  meetings: 'Meetings',
+  team: 'Team',
+  leads: 'Leads',
+  reports: 'Reports',
+  billing: 'Billing',
+  schedule: 'Schedule',
+  settings: 'Settings',
+};
+
+export interface AccessOverride {
+  memberId: string;
+  moduleOverrides: Record<string, boolean>;
+  updatedBy: string;
+  updatedAt: string;
+}
+
+// In-memory cache for overrides (populated from API)
+let accessOverridesCache: Map<string, AccessOverride> = new Map();
+
+// Set overrides cache (called after API fetch)
+export function setAccessOverridesCache(overrides: AccessOverride[]) {
+  accessOverridesCache = new Map();
+  for (const override of overrides) {
+    accessOverridesCache.set(override.memberId, override);
+  }
+}
+
+// Get cached override for a member
+export function getCachedOverride(memberId: string): AccessOverride | undefined {
+  return accessOverridesCache.get(memberId);
+}
+
+// Calculate effective access for a member (role defaults + overrides)
+export function getEffectiveAccess(memberId: string, role: TeamRole, overrides?: Record<string, boolean>): string[] {
+  const defaults = COMMAND_CENTER_ACCESS[role] || [];
+  const memberOverrides = overrides || getCachedOverride(memberId)?.moduleOverrides;
+
+  if (!memberOverrides) return [...defaults];
+
+  const effective = new Set(defaults);
+  for (const [module, enabled] of Object.entries(memberOverrides)) {
+    if (enabled) {
+      effective.add(module);
+    } else {
+      effective.delete(module);
+    }
+  }
+  return Array.from(effective);
+}
+
+// Check if a member has custom overrides
+export function hasCustomOverrides(memberId: string): boolean {
+  const override = getCachedOverride(memberId);
+  if (!override) return false;
+  return Object.keys(override.moduleOverrides).length > 0;
+}
+
+// Get override count for a member
+export function getOverrideCount(memberId: string): number {
+  const override = getCachedOverride(memberId);
+  if (!override) return 0;
+  return Object.keys(override.moduleOverrides).length;
+}
+
+
+---
+
+## Team Admin Guide
+
+# Team Admin Dashboard Guide
+
+Complete guide to managing team members through the admin panel.
+
+---
+
+## 🎉 What's Been Built
+
+A complete team member management system with:
+
+✅ **List all team members** - See all 17 team members at a glance
+✅ **Search & filter** - Find members by name, position, email, or category
+✅ **Add new members** - Create new team member profiles
+✅ **Edit existing** - Update any team member information
+✅ **Delete members** - Remove team members (with confirmation)
+✅ **Reorder members** - Change display order with up/down buttons
+✅ **Image upload** - Upload profile and truck images
+✅ **Categories** - Filter by Leadership, Office, Production, etc.
+✅ **Full profiles** - Name, position, email, phone, bio, social media, images
+
+---
+
+## 🚀 Quick Start
+
+### Access the Dashboard
+
+1. **Navigate to:**
+   ```
+   http://localhost:3000/admin/team
+   ```
+
+2. **Login** with admin password (default: `admin123`)
+
+3. **You'll see** all 17 current team members
+
+---
+
+## 📋 Features Breakdown
+
+### 1. **View Team Members**
+
+**What you see:**
+- Profile image (or placeholder)
+- Name and position
+- Email and phone
+- Category badge
+- Display order number
+
+**Sorting:**
+- Automatically sorted by `displayOrder`
+- Lower numbers appear first
+
+---
+
+### 2. **Search**
+
+**Search bar** at the top searches:
+- ✅ Member name
+- ✅ Position/title
+- ✅ Email address
+
+**Example:** Type "inspector" to find all Sales Inspectors
+
+---
+
+### 3. **Filter by Category**
+
+**Dropdown** to filter by:
+- Leadership
+- Regional Partner
+- Office
+- Production
+- Partners & Advisors
+- In Loving Memory
+- All Categories (shows everyone)
+
+---
+
+### 4. **Add New Member**
+
+**Steps:**
+
+1. Click **"Add Member"** button (green, top right)
+2. Fill in the form:
+
+**Required fields:**
+- ✅ Name
+- ✅ Position
+- ✅ Email
+- ✅ Category
+
+**Optional fields:**
+- Phone
+- Region
+- Tagline (one-liner)
+- Bio (full description)
+- Profile image URL
+- Truck image URL
+- Social media links (Facebook, Instagram, X)
+
+3. Click **"Save"**
+4. New member appears in list
+
+**Auto-generated:**
+- Slug (from name, e.g., "John Doe" → "john-doe")
+- Display order (auto-assigned to end)
+
+---
+
+### 5. **Edit Existing Member**
+
+**Steps:**
+
+1. Find the member in list
+2. Click blue **Edit** button (pencil icon)
+3. Modal opens with all current data
+4. Change any fields
+5. Click **"Save"**
+6. Changes appear immediately
+
+**Note:** Slug cannot be changed (it's the unique identifier)
+
+---
+
+### 6. **Delete Member**
+
+**Steps:**
+
+1. Find the member
+2. Click red **Delete** button (trash icon)
+3. Confirm deletion
+4. Member removed from list
+
+**Warning:** This is permanent! (for now, no undo)
+
+---
+
+### 7. **Reorder Members**
+
+**Display order** determines how members appear on the public team page.
+
+**To reorder:**
+
+1. Find member to move
+2. Click **up arrow** (↑) or **down arrow** (↓)
+3. Member swaps position with neighbor
+4. Order saved automatically
+
+**Notes:**
+- Can't move first member up
+- Can't move last member down
+- Only works within filtered view
+
+---
+
+### 8. **Upload Images**
+
+**Two image fields:**
+- Profile image (headshot)
+- Truck image (if applicable)
+
+**Option A: Paste URL**
+- If image already uploaded, paste URL directly
+- Format: `/uploads/filename.jpg`
+
+**Option B: Upload Button**
+- Click **Upload** button (cloud icon)
+- Opens upload page in new window
+- Upload image
+- URL auto-fills when done
+
+**Image requirements:**
+- Formats: JPG, PNG, WebP, GIF
+- Max size: 10MB
+- Recommended: 800x800px for profiles
+
+---
+
+## 🗂️ Data Storage
+
+### How It Works
+
+**Initial load:**
+- Copies team data from `lib/teamData.ts`
+- Creates `data/team-members.json`
+
+**All changes:**
+- Saved to `data/team-members.json`
+- Original `teamData.ts` unchanged (backup)
+
+**To reset:**
+- Delete `data/team-members.json`
+- Refresh page
+- Will recreate from `teamData.ts`
+
+---
+
+## 🔌 API Endpoints
+
+### 1. List/Create Members
+
+**GET** `/api/admin/team-members`
+- Returns all team members
+- Query params: `?category=Production&search=john`
+
+**POST** `/api/admin/team-members`
+- Creates new member
+- Body: Team member object
+
+**PUT** `/api/admin/team-members`
+- Bulk reorder
+- Body: `{ members: [{ slug, displayOrder }] }`
+
+### 2. Individual Member
+
+**GET** `/api/admin/team-members/[slug]`
+- Returns single member
+
+**PUT** `/api/admin/team-members/[slug]`
+- Updates member
+- Body: Updated fields
+
+**DELETE** `/api/admin/team-members/[slug]`
+- Deletes member
+
+---
+
+## 📊 Team Data Structure
+
+```typescript
+interface TeamMember {
+  slug: string;                    // Unique identifier
+  name: string;                    // Full name
+  company: string;                 // Company name
+  category: string;                // Leadership, Office, etc.
+  position: string;                // Job title
+  phone: string;                   // Phone number
+  email: string;                   // Primary email
+  altEmail: string;                // Alternate email
+  displayOrder: number;            // Sort order
+  bio: string;                     // Full biography
+  tagline?: string;                // One-liner
+  region?: string;                 // Geographic region
+  launchDate?: string;             // Launch date
+  profileImage?: string;           // Profile photo URL
+  truckImage?: string;             // Truck photo URL
+  facebook?: string;               // Facebook URL
+  instagram?: string;              // Instagram URL
+  x?: string;                      // X/Twitter URL
+  keyStrengths?: string[];         // Array of strengths
+  responsibilities?: string[];     // Array of duties
+}
+```
+
+---
+
+## 🎨 UI Components
+
+### Search Bar
+- Real-time search as you type
+- Searches: name, position, email
+- Clear with X button
+
+### Category Filter
+- Dropdown menu
+- Shows all categories
+- "All Categories" shows everyone
+
+### Member Cards
+- Clean card layout
+- Profile image on left
+- Details in center
+- Actions on right
+
+### Add/Edit Modal
+- Full-screen overlay
+- Scrollable form
+- Cancel or Save
+- Real-time preview for images
+
+### Reorder Buttons
+- Up/down arrows
+- Disabled at top/bottom
+- Instant feedback
+
+---
+
+## 💡 Tips & Best Practices
+
+### Images
+- **Upload first** to admin/upload
+- **Then copy URL** to team form
+- Use consistent image sizes
+- Optimize images before upload
+- Name files clearly (e.g., `john-doe-profile.jpg`)
+
+### Display Order
+- Lower numbers = higher priority
+- Leadership usually 1-5
+- Office staff 6-10
+- Production 10-20
+- Keep related roles together
+
+### Categories
+- Use existing categories
+- Be consistent
+- "Regional Partner" for area leads
+- "Partners & Advisors" for external
+- "In Loving Memory" for remembrance
+
+### Bios
+- **Tagline:** 1 sentence
+- **Bio:** 2-3 paragraphs
+- Include:
+  - Role/responsibilities
+  - Experience/background
+  - Personal interests
+  - Family info (if applicable)
+
+### Email
+- Use company email
+- Format: `firstname@rcrsal.com`
+- Alt email same unless has multiple
+
+---
+
+## 🐛 Troubleshooting
+
+### Members not loading
+
+**Check:**
+1. `npm run dev` is running
+2. No console errors (F12)
+3. `data/` directory exists
+4. API routes working
+
+**Fix:**
+```bash
+# Create data directory
+mkdir data
+
+# Restart server
+npm run dev
+```
+
+---
+
+### Can't save changes
+
+**Check:**
+1. Required fields filled (Name, Email, Position, Category)
+2. Email format valid
+3. No console errors
+
+**Fix:**
+- Fill all required fields (marked with *)
+- Check email is `name@domain.com` format
+- Check browser console for errors
+
+---
+
+### Images not showing
+
+**Check:**
+1. URL format: `/uploads/filename.jpg`
+2. Image file exists in `public/uploads/`
+3. Image uploaded successfully
+4. No typos in URL
+
+**Fix:**
+- Use absolute path starting with `/`
+- Upload image first via admin/upload
+- Copy exact URL from upload page
+- Check file actually in public/uploads
+
+---
+
+### Display order not changing
+
+**Check:**
+1. Using up/down arrows (not editing displayOrder directly)
+2. Not at top/bottom of list
+3. Filter not hiding other members
+
+**Fix:**
+- Use arrow buttons only
+- Can't move first member up or last down
+- Clear filters to see full list
+
+---
+
+### Slug already exists error
+
+**Cause:** Name generates duplicate slug
+
+**Fix:**
+1. Change name slightly (add middle initial)
+2. Or delete old member first
+3. Or edit existing instead of creating new
+
+---
+
+## 🔐 Security Notes
+
+### Current Setup
+
+✅ **Admin panel** - Password protected
+✅ **API routes** - Server-side only
+✅ **Data file** - Not in public folder
+❌ **No user roles** - Single admin password
+
+### For Production
+
+**Recommended:**
+1. Use proper auth (NextAuth, Clerk, Auth0)
+2. Add role-based access control
+3. Add audit logging
+4. Validate all inputs server-side
+5. Add rate limiting
+6. Use database instead of JSON file
+
+---
+
+## 📈 Future Enhancements
+
+### Possible Additions
+
+- **Drag-and-drop reordering** (instead of up/down buttons)
+- **Bulk operations** (delete multiple, bulk edit)
+- **Image cropping** (built into upload)
+- **Undo/redo** (restore deleted members)
+- **History/versions** (see past changes)
+- **Duplicate member** (copy to create similar)
+- **Export** (download team data as CSV)
+- **Import** (bulk upload via CSV)
+- **Search by multiple fields** (advanced filters)
+- **Sort options** (by name, date added, etc.)
+
+---
+
+## 📁 File Structure
+
+```
+app/
+├── admin/
+│   ├── team/
+│   │   ├── page.tsx                 ← Team admin page
+│   │   └── TeamManageClient.tsx     ← Main component
+│   └── layout.tsx                   ← Admin layout (has team link)
+└── api/
+    └── admin/
+        ├── team-members/
+        │   ├── route.ts              ← List/create/reorder
+        │   └── [slug]/
+        │       └── route.ts          ← Get/update/delete
+        └── upload/
+            └── route.ts              ← Image upload (already exists)
+
+lib/
+└── teamData.ts                       ← Original team data (backup)
+
+data/
+└── team-members.json                 ← Live data (auto-created)
+
+docs/
+└── TEAM_ADMIN_GUIDE.md              ← This file
+```
+
+---
+
+## ✅ Testing Checklist
+
+Before going live:
+
+- [ ] Can view all 17 members
+- [ ] Search works (try "inspector")
+- [ ] Filter works (try "Office")
+- [ ] Can add new member
+- [ ] Can edit existing member
+- [ ] Can delete member (test with dummy)
+- [ ] Can reorder with up/down
+- [ ] Can upload profile image
+- [ ] Can upload truck image
+- [ ] Social media links save
+- [ ] Changes persist after refresh
+- [ ] Mobile responsive
+- [ ] No console errors
+
+---
+
+## 🎊 You're Done!
+
+Your team admin dashboard is fully functional!
+
+**Access it at:** http://localhost:3000/admin/team
+
+**Questions?** Check troubleshooting section above.
+
+**Need more features?** See "Future Enhancements" for ideas.
+
+---
+
+_Created: November 13, 2025 for River City Roofing Solutions_
+
+
+---

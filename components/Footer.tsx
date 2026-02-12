@@ -85,6 +85,11 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/check-my-address" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
+                  Storm Check
+                </Link>
+              </li>
+              <li>
                 <Link href="/contact" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
                   Free Inspection
                 </Link>
@@ -119,6 +124,11 @@ export default function Footer() {
               <li>
                 <Link href="/referral-rewards" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
                   Referral Rewards
+                </Link>
+              </li>
+              <li>
+                <Link href="/bni" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
+                  BNI Partners
                 </Link>
               </li>
             </ul>

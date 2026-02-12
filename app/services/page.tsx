@@ -1,8 +1,9 @@
 import Link from 'next/link';
-import { getPrimaryServices, getAdditionalServices } from '@/lib/servicesData';
+import { getPrimaryServices, getAdditionalServices, services } from '@/lib/servicesData';
 import { Home, Wrench, Building2, CloudRain, Flame, Shield, Search, AlertTriangle, Droplet, Wind, Paintbrush, ArrowRight, CheckCircle2 } from 'lucide-react';
 import VideoBackground from '@/components/VideoBackground';
-import { generateMetadata as genMeta } from '@/lib/seo';
+import StructuredData from '@/components/StructuredData';
+import { generateMetadata as genMeta, generateCollectionPageSchema, generateBreadcrumbSchema } from '@/lib/seo';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = genMeta({
@@ -30,8 +31,21 @@ export default function ServicesPage() {
   const primaryServices = getPrimaryServices();
   const additionalServices = getAdditionalServices();
 
+  const collectionSchema = generateCollectionPageSchema({
+    name: 'Roofing Services - Replacement, Repair & Storm Damage',
+    description: 'Complete roofing services in Decatur, Huntsville & North Alabama. Residential & commercial roof replacement, repairs, storm damage restoration, and free inspections.',
+    url: '/services',
+    numberOfItems: services.length,
+  });
+
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: 'Services', url: '/services' },
+  ]);
+
   return (
     <div className="min-h-screen">
+      <StructuredData data={[collectionSchema, breadcrumbSchema]} />
       {/* Hero Section */}
       <section className="min-h-[50vh] flex items-center justify-center">
         <div className="container mx-auto px-4 text-center text-white">

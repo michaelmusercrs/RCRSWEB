@@ -95,13 +95,14 @@ const DESTIN_USER_ID = 'RVR-132';
 const SARA_USER_ID = 'RVR-131';
 const TAE_USER_ID = 'a8ad2e33';
 
+// Vendor list - phone numbers should be configured in vendor management settings
 const SUPPLIERS = [
-  { id: 'vendor-001', name: 'ABC Supply', contactName: 'Regional Rep', phone: '256-555-0001' },
-  { id: 'vendor-002', name: 'Beacon Roofing Supply', contactName: 'Sales Team', phone: '256-555-0002' },
-  { id: 'vendor-003', name: 'Gulf Eagle Supply', contactName: 'Account Manager', phone: '256-555-0003' },
-  { id: 'vendor-004', name: 'Littrell Lumber Mill', contactName: 'Operations', phone: '256-555-0004' },
-  { id: 'vendor-005', name: 'Majestic Metals', contactName: 'Sales', phone: '256-555-0005' },
-  { id: 'vendor-006', name: 'Advanced Building Products', contactName: 'Customer Service', phone: '256-555-0006' }
+  { id: 'vendor-001', name: 'ABC Supply', contactName: 'Regional Rep', phone: '' },
+  { id: 'vendor-002', name: 'Beacon Roofing Supply', contactName: 'Sales Team', phone: '' },
+  { id: 'vendor-003', name: 'Gulf Eagle Supply', contactName: 'Account Manager', phone: '' },
+  { id: 'vendor-004', name: 'Littrell Lumber Mill', contactName: 'Operations', phone: '' },
+  { id: 'vendor-005', name: 'Majestic Metals', contactName: 'Sales', phone: '' },
+  { id: 'vendor-006', name: 'Advanced Building Products', contactName: 'Customer Service', phone: '' }
 ];
 
 let restockTickets: RestockTicket[] = [];

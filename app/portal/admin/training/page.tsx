@@ -6,7 +6,7 @@ import {
   BookOpen, ChevronDown, ChevronRight, CheckCircle2,
   FileText, Users, Image, Package, Truck, BarChart3,
   Play, Clock, Target, AlertCircle, HelpCircle, Phone, Mail,
-  Sparkles, GraduationCap, Award, Trophy, Flame
+  Sparkles, GraduationCap, Award, Trophy, Flame, UserCheck, Percent
 } from 'lucide-react';
 import AdminLayout from '@/components/AdminLayout';
 import Leaderboard from '@/components/Leaderboard';
@@ -253,7 +253,7 @@ const trainingSections: Section[] = [
     title: 'Blog Management',
     icon: FileText,
     color: 'text-blue-400',
-    bgColor: 'bg-blue-500/20',
+    bgColor: 'bg-brand-green/20',
     lessons: [
       {
         id: 'view-posts',
@@ -1760,7 +1760,7 @@ const trainingSections: Section[] = [
   },
   {
     id: 'driver',
-    title: 'Driver Portal',
+    title: 'Logistics',
     icon: Truck,
     color: 'text-sky-400',
     bgColor: 'bg-sky-500/20',
@@ -1775,7 +1775,7 @@ const trainingSections: Section[] = [
           '🔐 LOGIN PROCESS:',
           '1. Go to Portal main page',
           '   - www.rivercityroofingsolutions.com/portal',
-          '2. Select "Driver Portal"',
+          '2. Select "Logistics"',
           '3. Enter your 4-digit PIN',
           '4. Tap "Login"',
           '5. View your assigned deliveries',
@@ -2089,7 +2089,7 @@ const trainingSections: Section[] = [
         title: 'Using Portal Features',
         duration: '6 min',
         content: [
-          'Master all the features available in the Driver Portal.',
+          'Master all the features available in Logistics.',
           '',
           '📱 MAIN FEATURES:',
           '',
@@ -2282,14 +2282,62 @@ const trainingSections: Section[] = [
   },
 ];
 
+// Types for admin training stats
+interface ModuleStat {
+  moduleId: string;
+  moduleName: string;
+  completedCount: number;
+  totalUsers: number;
+  completionPercent: number;
+}
+
+interface UserTrainingStat {
+  userId: string;
+  userName: string;
+  completedModules: string[];
+  totalCompleted: number;
+  totalModules: number;
+  completionPercent: number;
+}
+
+interface TrainingStats {
+  stats: {
+    totalUsers: number;
+    fullyCompleted: number;
+    avgCompletion: number;
+    totalRecords: number;
+  };
+  moduleStats: ModuleStat[];
+  users: UserTrainingStat[];
+}
+
 export default function AdminTrainingPage() {
   const [expandedSection, setExpandedSection] = useState<string | null>('portal-overview');
   const [expandedLesson, setExpandedLesson] = useState<string | null>('getting-started');
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [pointsEarned, setPointsEarned] = useState<number | null>(null);
+  const [showAdminStats, setShowAdminStats] = useState(false);
+  const [adminStats, setAdminStats] = useState<TrainingStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
 
   const { progress, markLessonComplete, markModuleComplete, settings } = useTraining();
   const completedLessons = progress.completedLessons;
+
+  // Fetch admin training stats when the panel is opened
+  useEffect(() => {
+    if (showAdminStats && !adminStats && !statsLoading) {
+      setStatsLoading(true);
+      fetch('/api/admin/training-stats')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            setAdminStats(data);
+          }
+        })
+        .catch(err => console.error('Failed to fetch training stats:', err))
+        .finally(() => setStatsLoading(false));
+    }
+  }, [showAdminStats, adminStats, statsLoading]);
 
   const toggleSection = (sectionId: string) => {
     setExpandedSection(expandedSection === sectionId ? null : sectionId);
@@ -2343,6 +2391,18 @@ export default function AdminTrainingPage() {
               <span className="text-sm font-bold text-orange-400">{progress.streak}</span>
             </div>
           )}
+          {/* Admin Stats toggle */}
+          <button
+            onClick={() => setShowAdminStats(!showAdminStats)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-medium transition-all ${
+              showAdminStats
+                ? 'bg-brand-green text-black'
+                : 'bg-white/5 hover:bg-white/10 text-neutral-400'
+            }`}
+          >
+            <BarChart3 size={16} />
+            <span className="hidden sm:inline">Team Stats</span>
+          </button>
           {/* Leaderboard toggle */}
           <button
             onClick={() => setShowLeaderboard(!showLeaderboard)}
@@ -2382,6 +2442,174 @@ export default function AdminTrainingPage() {
       {showLeaderboard && (
         <div className="mb-8">
           <Leaderboard showUserComparison={true} />
+        </div>
+      )}
+
+      {/* Admin Team Training Stats */}
+      {showAdminStats && (
+        <div className="mb-8 space-y-6">
+          {statsLoading ? (
+            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-8 text-center">
+              <div className="animate-spin w-8 h-8 border-2 border-brand-green border-t-transparent rounded-full mx-auto mb-3" />
+              <p className="text-neutral-400 text-sm">Loading team training stats...</p>
+            </div>
+          ) : adminStats ? (
+            <>
+              {/* Summary Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 bg-brand-green/20 rounded-xl flex items-center justify-center">
+                      <Users className="text-blue-400" size={20} />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-white">{adminStats.stats.totalUsers}</p>
+                      <p className="text-xs text-neutral-400">Team Members</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 bg-brand-green/20 rounded-xl flex items-center justify-center">
+                      <UserCheck className="text-brand-green" size={20} />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-white">{adminStats.stats.fullyCompleted}</p>
+                      <p className="text-xs text-neutral-400">Fully Completed</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 bg-yellow-500/20 rounded-xl flex items-center justify-center">
+                      <Percent className="text-yellow-400" size={20} />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-white">{adminStats.stats.avgCompletion}%</p>
+                      <p className="text-xs text-neutral-400">Avg Completion</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 bg-violet-500/20 rounded-xl flex items-center justify-center">
+                      <BookOpen className="text-violet-400" size={20} />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-white">{adminStats.stats.totalRecords}</p>
+                      <p className="text-xs text-neutral-400">Total Completions</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Module Completion Bars */}
+              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
+                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                  <BarChart3 className="text-brand-green" size={20} />
+                  Module Completion Rates
+                </h3>
+                <div className="space-y-4">
+                  {adminStats.moduleStats.map(mod => (
+                    <div key={mod.moduleId}>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-sm text-neutral-300">{mod.moduleName}</span>
+                        <span className="text-sm font-medium text-neutral-400">
+                          {mod.completedCount}/{mod.totalUsers} ({mod.completionPercent}%)
+                        </span>
+                      </div>
+                      <div className="h-2.5 bg-white/5 rounded-full overflow-hidden">
+                        <div
+                          className="h-2.5 bg-gradient-to-r from-brand-green to-emerald-400 rounded-full transition-all duration-500"
+                          style={{ width: `${mod.completionPercent}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Team Member Table */}
+              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
+                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                  <Users className="text-brand-green" size={20} />
+                  Team Member Progress
+                </h3>
+                {adminStats.users.length === 0 ? (
+                  <p className="text-neutral-400 text-sm text-center py-6">
+                    No training data recorded yet. Team members will appear here as they complete modules.
+                  </p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-white/5">
+                          <th className="text-left py-3 px-3 text-neutral-400 font-medium">Team Member</th>
+                          <th className="text-center py-3 px-3 text-neutral-400 font-medium">Completed</th>
+                          <th className="text-center py-3 px-3 text-neutral-400 font-medium">Progress</th>
+                          <th className="text-left py-3 px-3 text-neutral-400 font-medium hidden md:table-cell">Modules</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {adminStats.users.map(user => (
+                          <tr key={user.userId} className="border-b border-white/5 hover:bg-white/[0.02]">
+                            <td className="py-3 px-3">
+                              <span className="font-medium text-white">{user.userName}</span>
+                            </td>
+                            <td className="py-3 px-3 text-center">
+                              <span className="text-neutral-300">{user.totalCompleted}/{user.totalModules}</span>
+                            </td>
+                            <td className="py-3 px-3">
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-2 rounded-full transition-all ${
+                                      user.completionPercent === 100
+                                        ? 'bg-brand-green'
+                                        : user.completionPercent >= 50
+                                          ? 'bg-yellow-400'
+                                          : 'bg-orange-400'
+                                    }`}
+                                    style={{ width: `${user.completionPercent}%` }}
+                                  />
+                                </div>
+                                <span className="text-xs font-medium text-neutral-400 w-10 text-right">
+                                  {user.completionPercent}%
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-3 px-3 hidden md:table-cell">
+                              <div className="flex flex-wrap gap-1.5">
+                                {adminStats.moduleStats.map(mod => {
+                                  const completed = user.completedModules.includes(mod.moduleId);
+                                  return (
+                                    <span
+                                      key={mod.moduleId}
+                                      title={mod.moduleName}
+                                      className={`inline-block w-2.5 h-2.5 rounded-full ${
+                                        completed ? 'bg-brand-green' : 'bg-white/10'
+                                      }`}
+                                    />
+                                  );
+                                })}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-8 text-center">
+              <AlertCircle className="text-neutral-400 mx-auto mb-3" size={32} />
+              <p className="text-neutral-400 text-sm">
+                Unable to load team training stats. Google Sheets may not be configured.
+              </p>
+            </div>
+          )}
         </div>
       )}
 
@@ -2512,7 +2740,7 @@ export default function AdminTrainingPage() {
                             </div>
 
                             {lesson.tips && lesson.tips.length > 0 && (
-                              <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-5 mb-4">
+                              <div className="bg-brand-green/10 border border-blue-500/20 rounded-xl p-5 mb-4">
                                 <div className="flex items-center gap-2 mb-3">
                                   <Sparkles className="text-blue-400" size={16} />
                                   <span className="text-sm font-medium text-blue-400">Pro Tips</span>
@@ -2577,16 +2805,15 @@ export default function AdminTrainingPage() {
         </div>
       </div>
 
-      {/* Download Guide */}
+      {/* Training Hub Link */}
       <div className="mt-6 text-center">
-        <a
-          href="/RCRS-Training-Guide.md"
-          download="RCRS-Training-Guide.md"
+        <Link
+          href="/portal/training"
           className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-brand-green transition-colors"
         >
           <BookOpen size={14} />
-          Download Full Training Guide (PDF)
-        </a>
+          Open Training Hub
+        </Link>
       </div>
     </AdminLayout>
   );

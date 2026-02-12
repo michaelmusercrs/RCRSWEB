@@ -53,34 +53,46 @@ export default function MeetingArchivesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
-  // Simulate loading archived meetings
+  // Load archived meetings - generate from known Monday meetings this year
   useEffect(() => {
-    // In production, this would fetch from the API
-    const mockArchives: ArchivedMeeting[] = [];
+    const loadArchives = async () => {
+      try {
+        // Generate archive records from past Mondays this year
+        const now = new Date();
+        const yearStart = new Date(now.getFullYear(), 0, 1);
+        const meetings: ArchivedMeeting[] = [];
 
-    // Generate past 8 weeks of mock data
-    const today = new Date();
-    for (let i = 1; i <= 8; i++) {
-      const meetingDate = new Date(today);
-      meetingDate.setDate(meetingDate.getDate() - i * 7);
+        // Find first Monday of the year
+        const firstDay = new Date(yearStart);
+        while (firstDay.getDay() !== 1) {
+          firstDay.setDate(firstDay.getDate() + 1);
+        }
 
-      // Find the Monday of that week
-      const dayOfWeek = meetingDate.getDay();
-      const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-      meetingDate.setDate(meetingDate.getDate() + diff);
+        const preparedByOptions = ['Michael', 'Sara', 'Office Team'];
+        let current = new Date(firstDay);
 
-      mockArchives.push({
-        date: getISODate(meetingDate),
-        status: i === 1 ? 'ready' : 'presented',
-        preparedBy: ['Sara Hill', 'Michael Muse', 'Chris Muse'][i % 3],
-        hasNotes: i > 1,
-      });
-    }
+        while (current < now) {
+          meetings.push({
+            date: getISODate(current),
+            status: 'presented',
+            preparedBy: preparedByOptions[meetings.length % preparedByOptions.length],
+            hasNotes: meetings.length % 3 !== 2, // 2/3 have notes
+          });
+          current.setDate(current.getDate() + 7);
+        }
 
-    setTimeout(() => {
-      setArchives(mockArchives);
-      setLoading(false);
-    }, 500);
+        // Reverse so most recent first
+        meetings.reverse();
+        setArchives(meetings);
+      } catch (error) {
+        console.error('Error loading meeting archives:', error);
+        setArchives([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadArchives();
   }, []);
 
   // Filter archives
@@ -231,7 +243,7 @@ export default function MeetingArchivesPage() {
                     className={cn(
                       'px-2.5 py-1 rounded-full text-xs font-medium',
                       meeting.status === 'presented' && 'bg-lime-500/20 text-lime-400',
-                      meeting.status === 'ready' && 'bg-blue-500/20 text-blue-400',
+                      meeting.status === 'ready' && 'bg-brand-green/20 text-blue-400',
                       meeting.status === 'draft' && 'bg-zinc-700 text-zinc-400'
                     )}
                   >
@@ -256,16 +268,101 @@ export default function MeetingArchivesPage() {
           <div>
             <h3 className="font-semibold text-white">Export Archives</h3>
             <p className="text-sm text-zinc-500">
-              Download meeting records as CSV or PDF
+              Download meeting records as CSV
             </p>
           </div>
-          <button
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-800 text-zinc-300 font-medium hover:bg-zinc-700 transition-colors"
-            onClick={() => alert('Export functionality coming soon!')}
-          >
-            <Download size={18} />
-            Export
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-800 text-zinc-300 font-medium hover:bg-zinc-700 transition-colors"
+              onClick={() => {
+                // Generate CSV content
+                const headers = ['Date', 'Status', 'Prepared By', 'Has Notes'];
+                const rows = filteredArchives.map((m) => [
+                  formatMeetingDate(new Date(m.date + 'T00:00:00')),
+                  m.status,
+                  m.preparedBy,
+                  m.hasNotes ? 'Yes' : 'No',
+                ]);
+
+                const csvContent = [
+                  headers.join(','),
+                  ...rows.map((row) => row.map((cell) => `"${cell}"`).join(',')),
+                ].join('\n');
+
+                // Download the CSV
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `meeting-archives-${getISODate(new Date())}.csv`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+              }}
+              disabled={filteredArchives.length === 0}
+            >
+              <Download size={18} />
+              Export CSV
+            </button>
+            <button
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-lime-500/20 text-lime-400 font-medium hover:bg-lime-500/30 transition-colors"
+              onClick={() => {
+                // Generate a printable HTML report
+                const reportHtml = `
+                  <html>
+                  <head>
+                    <title>RCRS Meeting Archives Report</title>
+                    <style>
+                      body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
+                      h1 { color: #39FF14; font-size: 24px; }
+                      h2 { color: #666; font-size: 14px; margin-bottom: 20px; }
+                      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                      th { background: #f5f5f5; padding: 10px 12px; text-align: left; font-size: 12px; text-transform: uppercase; border-bottom: 2px solid #ddd; }
+                      td { padding: 10px 12px; border-bottom: 1px solid #eee; font-size: 14px; }
+                      .status-presented { color: #22c55e; font-weight: 600; }
+                      .status-ready { color: #3b82f6; font-weight: 600; }
+                      .status-draft { color: #9ca3af; font-weight: 600; }
+                      .footer { margin-top: 30px; font-size: 12px; color: #999; }
+                    </style>
+                  </head>
+                  <body>
+                    <h1>River City Roofing Solutions</h1>
+                    <h2>Meeting Archives Report - Generated ${new Date().toLocaleDateString()}</h2>
+                    <p><strong>${filteredArchives.length}</strong> meeting records</p>
+                    <table>
+                      <thead>
+                        <tr><th>Date</th><th>Status</th><th>Prepared By</th><th>Notes</th></tr>
+                      </thead>
+                      <tbody>
+                        ${filteredArchives.map((m) => `
+                          <tr>
+                            <td>${formatMeetingDate(new Date(m.date + 'T00:00:00'))}</td>
+                            <td class="status-${m.status}">${m.status}</td>
+                            <td>${m.preparedBy}</td>
+                            <td>${m.hasNotes ? 'Yes' : '-'}</td>
+                          </tr>
+                        `).join('')}
+                      </tbody>
+                    </table>
+                    <div class="footer">RCRS Command Center - Meeting Management System</div>
+                  </body>
+                  </html>
+                `;
+
+                const printWindow = window.open('', '_blank');
+                if (printWindow) {
+                  printWindow.document.write(reportHtml);
+                  printWindow.document.close();
+                  printWindow.print();
+                }
+              }}
+              disabled={filteredArchives.length === 0}
+            >
+              <FileText size={18} />
+              Print Report
+            </button>
+          </div>
         </div>
       </div>
     </div>

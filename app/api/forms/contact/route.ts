@@ -1,10 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { formService } from '@/lib/form-service';
+import { createFormRateLimiter, withRateLimit } from '@/lib/rate-limiter';
+
+const formRateLimiter = createFormRateLimiter();
 
 export async function POST(request: NextRequest) {
+  return withRateLimit(request, formRateLimiter, async () => {
   try {
     const body = await request.json();
-    const { name, email, phone, subject, message, preferredInspector, sourcePage } = body;
+    const {
+      name,
+      email,
+      phone,
+      address,
+      subject,
+      message,
+      preferredInspector,
+      sourcePage,
+      // Lead source attribution
+      leadSource,
+      leadSourceDetail,
+      marketingSource,
+    } = body;
 
     // Validate required fields
     if (!name || !email || !subject || !message) {
@@ -23,7 +40,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Submit the form
+    // Submit the form to Google Sheets
     const result = await formService.submitContactForm({
       name,
       email,
@@ -32,7 +49,40 @@ export async function POST(request: NextRequest) {
       message,
       preferredInspector: preferredInspector || 'First Available',
       sourcePage: sourcePage || 'Contact Page',
+      // Lead source attribution
+      leadSource: leadSource || 'Direct',
+      leadSourceDetail: leadSourceDetail || '',
+      marketingSource: marketingSource || 'Website - Direct',
     });
+
+    // Also create a lead in the portal system (fire-and-forget)
+    // Only if we have enough data (phone + address are optional on contact form)
+    if (result.success && phone) {
+      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.rivercityroofingsolutions.com';
+      try {
+        await fetch(`${baseUrl}/api/leads/new`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            email,
+            phone: phone || '',
+            address: address || 'Not provided',
+            source: 'contact_form',
+            sourceDetails: `${sourcePage || 'Contact Page'} - ${subject}`,
+            serviceType: subject,
+            message,
+            preferredRepSlug: preferredInspector !== 'First Available' ? preferredInspector : undefined,
+            sendNotifications: true,
+            notifyTeam: true,
+          }),
+        });
+        console.log(`Contact form → lead created for ${name} (${email})`);
+      } catch (leadErr) {
+        // Non-blocking: form submission succeeded even if lead creation fails
+        console.warn('Contact form lead creation failed:', leadErr);
+      }
+    }
 
     return NextResponse.json(result, { status: result.success ? 200 : 500 });
   } catch (error) {
@@ -42,4 +92,5 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+  });
 }

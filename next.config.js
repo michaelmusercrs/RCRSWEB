@@ -13,12 +13,22 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'placehold.co',
+        hostname: 'rivercityroofingsolutions.com',
         pathname: '/**',
       },
       {
         protocol: 'https',
-        hostname: 'rivercityroofingsolutions.com',
+        hostname: 'www.rivercityroofingsolutions.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'rcrsal.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.rcrsal.com',
         pathname: '/**',
       },
     ],

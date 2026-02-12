@@ -2,10 +2,14 @@
 // Handles 2-way sync between portal data and Google Sheets
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { inventorySheetsSync } from '@/lib/inventory-sheets-sync';
 
 // GET - Check sync status or fetch data from sheets
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   const searchParams = request.nextUrl.searchParams;
   const action = searchParams.get('action');
   const type = searchParams.get('type');
@@ -70,6 +74,9 @@ export async function GET(request: NextRequest) {
 
 // POST - Sync data to Google Sheets
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const body = await request.json();
     const { action, type, data } = body;

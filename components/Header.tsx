@@ -11,7 +11,8 @@ import { Button } from '@/components/ui/button';
 const navigation = [
   { name: 'Services', href: '/services' },
   { name: 'Service Areas', href: '/service-areas' },
-  { name: 'Team', href: '/team' },
+  { name: 'Storm Check', href: '/check-my-address' },
+  { name: 'Team', href: '/about#team' },
   { name: 'Blog', href: '/blog' },
   { name: 'About', href: '/about' },
   { name: 'Contact', href: '/contact' },
@@ -31,16 +32,47 @@ export default function Header() {
   const pathname = usePathname();
   const isHomePage = pathname === '/';
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const [formError, setFormError] = useState('');
+  const [formLoading, setFormLoading] = useState(false);
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would typically send the form data to your backend
-    console.log('Form submitted:', formData);
-    setFormSubmitted(true);
-    setTimeout(() => {
-      setContactFormOpen(false);
-      setFormSubmitted(false);
-      setFormData({ name: '', phone: '', email: '', message: '' });
-    }, 2000);
+    setFormError('');
+    setFormLoading(true);
+
+    try {
+      const response = await fetch('/api/forms/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          phone: formData.phone,
+          email: formData.email || undefined,
+          subject: 'Quick Quote Request',
+          message: formData.message,
+          sourcePage: 'Header Popup',
+          leadSource: 'Website',
+          leadSourceDetail: 'Header Quick Quote',
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setFormSubmitted(true);
+        setTimeout(() => {
+          setContactFormOpen(false);
+          setFormSubmitted(false);
+          setFormData({ name: '', phone: '', email: '', message: '' });
+        }, 2000);
+      } else {
+        setFormError(result.message || 'Something went wrong. Please call us at (256) 274-8530.');
+      }
+    } catch {
+      setFormError('Unable to send message. Please call us at (256) 274-8530.');
+    } finally {
+      setFormLoading(false);
+    }
   };
 
   return (
@@ -95,20 +127,15 @@ export default function Header() {
           </div>
         </nav>
 
-        {/* Hidden spacer */}
-        <nav className="hidden">
-
-        </nav>
-
         {/* Mobile Menu Overlay */}
         {mobileMenuOpen && (
-          <div className="lg:hidden absolute left-0 right-0 top-full bg-white z-[100] overflow-y-auto max-h-[80vh] shadow-xl">
+          <div className="lg:hidden absolute left-0 right-0 top-full bg-white z-[100] overflow-y-auto max-h-[80vh] max-h-[80dvh] shadow-xl overflow-x-hidden">
             <div className="px-4 py-6 space-y-6">
               {navigation.map((item) => (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className="block text-2xl font-semibold text-gray-800 hover:text-[#0066CC] transition-colors duration-300 py-3"
+                  className="block text-2xl font-semibold text-gray-800 hover:text-brand-green transition-colors duration-300 py-3"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {item.name}
@@ -122,7 +149,7 @@ export default function Header() {
                   <Link
                     key={loc.name}
                     href={loc.href}
-                    className="block text-xl font-semibold text-gray-700 hover:text-[#0066CC] transition-colors duration-300 py-2 pl-4"
+                    className="block text-xl font-semibold text-gray-700 hover:text-brand-green transition-colors duration-300 py-2 pl-4"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     {loc.name}
@@ -132,7 +159,7 @@ export default function Header() {
               <div className="pt-6 border-t space-y-4">
                 <a
                   href="tel:256-274-8530"
-                  className="flex items-center gap-3 text-xl font-semibold text-gray-800 hover:text-[#0066CC] transition-colors py-3"
+                  className="flex items-center gap-3 text-xl font-semibold text-gray-800 hover:text-brand-green transition-colors py-3"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   <Phone className="w-6 h-6" />
@@ -140,7 +167,7 @@ export default function Header() {
                 </a>
                 <Button
                   asChild
-                  className="w-full bg-[#39FF14] hover:bg-[#2ecc11] text-black font-bold py-4 text-lg rounded-md transition-all duration-300 hover:scale-105 shadow-lg"
+                  className="w-full bg-brand-green hover:bg-lime-400 text-black font-bold py-4 text-lg rounded-md transition-all duration-300 hover:scale-105 shadow-lg"
                 >
                   <Link href="/contact" onClick={() => setMobileMenuOpen(false)}>
                     Free Inspection
@@ -156,7 +183,7 @@ export default function Header() {
       <div className="fixed bottom-6 right-6 z-50">
         <Button
           onClick={() => setContactFormOpen(true)}
-          className="bg-[#39FF14] hover:bg-[#2ecc11] text-black font-bold w-16 h-16 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 flex items-center justify-center"
+          className="bg-brand-green hover:bg-lime-400 text-black font-bold w-16 h-16 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 flex items-center justify-center"
           aria-label="Get a Quote"
         >
           <MessageCircle className="w-8 h-8" />
@@ -165,7 +192,7 @@ export default function Header() {
 
       {/* Contact Form Popup */}
       {contactFormOpen && (
-        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4">
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 overflow-y-auto">
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -173,7 +200,7 @@ export default function Header() {
           />
 
           {/* Form Container */}
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom-4 duration-300">
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] max-h-[90dvh] overflow-y-auto animate-in slide-in-from-bottom-4 duration-300 my-auto">
             {/* Header */}
             <div className="bg-black text-white p-6 rounded-t-2xl">
               <div className="flex items-center justify-between">
@@ -261,11 +288,16 @@ export default function Header() {
                     />
                   </div>
 
+                  {formError && (
+                    <p className="text-red-600 text-sm text-center bg-red-50 p-2 rounded">{formError}</p>
+                  )}
+
                   <Button
                     type="submit"
-                    className="w-full bg-brand-green hover:bg-lime-400 text-black font-bold py-4 text-lg rounded-lg transition-all duration-300"
+                    disabled={formLoading}
+                    className="w-full bg-brand-green hover:bg-lime-400 text-black font-bold py-4 text-lg rounded-lg transition-all duration-300 disabled:opacity-50"
                   >
-                    Send Message
+                    {formLoading ? 'Sending...' : 'Send Message'}
                   </Button>
 
                   <p className="text-center text-sm text-gray-500">

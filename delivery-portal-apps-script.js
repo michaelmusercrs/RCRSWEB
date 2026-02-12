@@ -180,10 +180,9 @@ function addSampleDrivers(ss) {
   const sheet = ss.getSheetByName(CONFIG.SHEETS.DRIVERS);
   if (sheet.getLastRow() > 1) return; // Already has data
 
-  const drivers = [
-    ['D001', 'Sample Driver 1', '256-555-0001', 'driver1@rcrs.com', 'Ford F-350', 'ABC-1234', 'Available', '', 0, 0, '', '', ''],
-    ['D002', 'Sample Driver 2', '256-555-0002', 'driver2@rcrs.com', 'Chevy 3500', 'XYZ-5678', 'Available', '', 0, 0, '', '', '']
-  ];
+  // Drivers should be added manually via the admin interface
+  // No sample drivers are created automatically
+  const drivers = [];
 
   if (drivers.length > 0) {
     sheet.getRange(2, 1, drivers.length, drivers[0].length).setValues(drivers);
@@ -1024,45 +1023,4 @@ function generateDeliveryReport(startDate, endDate) {
   };
 }
 
-/**
- * Test function - create a sample order
- */
-function testCreateOrder() {
-  const result = createMaterialOrder({
-    jobName: 'Test Job - Smith Residence',
-    jobAddress: '123 Main St, Huntsville, AL 35801',
-    customerName: 'John Smith',
-    customerPhone: '256-555-1234',
-    projectManager: 'Chris Muse',
-    pmEmail: 'chris@rcrs.com',
-    pmPhone: '256-555-0001',
-    materials: '30 bundles OC Duration (Onyx Black), 5 rolls synthetic underlayment, 2 rolls ice & water shield',
-    specialInstructions: 'Gate code: 1234. Stack materials in driveway.',
-    requestedDeliveryDate: '2024-12-03',
-    priority: 'Normal',
-    createdBy: 'Test Script'
-  });
-
-  Logger.log(result);
-  return result;
-}
-
-/**
- * Test function - create a sample delivery
- */
-function testCreateDelivery() {
-  const result = createDelivery({
-    orderId: 'ORD-20241202-1',
-    driver: 'D001',
-    scheduledDate: '2024-12-03',
-    scheduledTime: '8:00 AM',
-    jobName: 'Test Job - Smith Residence',
-    jobAddress: '123 Main St, Huntsville, AL 35801',
-    customerName: 'John Smith',
-    customerPhone: '256-555-1234',
-    materials: '30 bundles OC Duration (Onyx Black), 5 rolls synthetic underlayment'
-  });
-
-  Logger.log(result);
-  return result;
-}
+// Test functions removed - use the admin interface to create orders and deliveries

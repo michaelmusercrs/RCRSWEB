@@ -9,10 +9,19 @@ import {
   Settings, FileText, LogOut, ChevronRight, Loader2, Clock,
   AlertCircle, CheckCircle, MapPin, Bell, Shield, Home,
   TrendingUp, Box, ClipboardList, Eye, Sparkles, UserCircle,
-  BookOpen, Image as ImageIcon, Globe, Link2, Phone, Command
+  BookOpen, Image as ImageIcon, Globe, Link2, Phone, Command, Edit3,
+  Target, Megaphone, Plus, MessageSquare, Zap, Sliders
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { TeamRole } from '@/lib/team-roles';
+import WeeklyNumbersWidget from '@/components/portal/WeeklyNumbersWidget';
+
+interface RecentActivity {
+  action: string;
+  detail: string;
+  time: string;
+  color: string;
+}
 
 interface DashboardStats {
   activeDeliveries: number;
@@ -21,6 +30,7 @@ interface DashboardStats {
   totalRevenue: number;
   lowStockItems: number;
   upcomingSchedule: number;
+  recentActivity?: RecentActivity[];
 }
 
 // Role-specific navigation items
@@ -28,44 +38,81 @@ const getRoleNavigation = (role: TeamRole) => {
   const allNav = {
     // Admin/Owner sees everything
     adminNav: [
-      { id: 'command-center', label: 'Command Center', href: '/command-center', icon: Command, color: 'bg-gradient-to-r from-lime-500/30 to-emerald-500/30 text-lime-400 ring-1 ring-lime-500/30' },
-      { id: 'operations', label: 'Operations Center', href: '/portal/admin/operations', icon: Shield, color: 'bg-red-500/20 text-red-400' },
-      { id: 'customers', label: 'Customer Portals', href: '/portal/customers', icon: Link2, color: 'bg-teal-500/20 text-teal-400' },
-      { id: 'office', label: 'Office Portal', href: '/portal/office', icon: BarChart3, color: 'bg-emerald-500/20 text-emerald-400' },
-      { id: 'pm', label: 'PM Portal', href: '/portal/pm', icon: Package, color: 'bg-cyan-500/20 text-cyan-400' },
-      { id: 'billing', label: 'Billing', href: '/portal/billing', icon: DollarSign, color: 'bg-green-500/20 text-green-400' },
-      { id: 'inventory', label: 'Inventory', href: '/portal/inventory', icon: Box, color: 'bg-orange-500/20 text-orange-400' },
+      { id: 'command-center', label: 'RoofStack HQ', href: '/command-center', icon: Command, color: 'bg-gradient-to-r from-lime-500/30 to-emerald-500/30 text-lime-400 ring-1 ring-lime-500/30' },
+      { id: 'monday-notes', label: 'My Monday Notes', href: '/portal/monday-notes', icon: Megaphone, color: 'bg-gradient-to-r from-amber-500/30 to-yellow-500/30 text-amber-400 ring-1 ring-amber-500/30' },
+      { id: 'chat', label: 'Chat', href: '/portal/chat', icon: MessageSquare, color: 'bg-gradient-to-r from-sky-500/30 to-blue-500/30 text-sky-400 ring-1 ring-sky-500/30' },
+      { id: 'my-profile', label: 'Edit My Profile', href: '/portal/my-profile', icon: Edit3, color: 'bg-lime-500/20 text-lime-400' },
+      { id: 'profile-approvals', label: 'Profile Approvals', href: '/portal/admin/profile-approvals', icon: CheckCircle, color: 'bg-yellow-500/20 text-yellow-400' },
+      { id: 'operations', label: 'Operations', href: '/portal/admin/operations', icon: Shield, color: 'bg-red-500/20 text-red-400' },
+      { id: 'customers', label: 'MyProject Portals', href: '/portal/customers', icon: Link2, color: 'bg-teal-500/20 text-teal-400' },
+      { id: 'office', label: 'Operations', href: '/portal/office', icon: BarChart3, color: 'bg-emerald-500/20 text-emerald-400' },
+      { id: 'pm', label: 'Logistics', href: '/portal/pm', icon: Package, color: 'bg-cyan-500/20 text-cyan-400' },
+      { id: 'billing', label: 'Finance', href: '/portal/billing', icon: DollarSign, color: 'bg-green-500/20 text-green-400' },
+      { id: 'inventory', label: 'Materials', href: '/portal/inventory', icon: Box, color: 'bg-orange-500/20 text-orange-400' },
       { id: 'phone', label: 'Phone System', href: '/phone-portal.html', icon: Phone, color: 'bg-sky-500/20 text-sky-400' },
       { id: 'schedule', label: 'Schedule', href: '/portal/schedule', icon: Calendar, color: 'bg-purple-500/20 text-purple-400' },
-      { id: 'reports', label: 'Reports', href: '/portal/reports', icon: BarChart3, color: 'bg-blue-500/20 text-blue-400' },
+      { id: 'reports', label: 'Reports', href: '/portal/reports', icon: BarChart3, color: 'bg-brand-green/20 text-blue-400' },
       { id: 'users', label: 'User Management', href: '/portal/admin/users', icon: Users, color: 'bg-pink-500/20 text-pink-400' },
-      { id: 'team', label: 'Team Bios', href: '/portal/admin/team', icon: UserCircle, color: 'bg-indigo-500/20 text-indigo-400' },
+      { id: 'team', label: 'Team Bios', href: '/portal/admin/team', icon: UserCircle, color: 'bg-brand-green/20 text-indigo-400' },
       { id: 'blog', label: 'Blog Posts', href: '/portal/admin/blog', icon: BookOpen, color: 'bg-amber-500/20 text-amber-400' },
       { id: 'images', label: 'Image Library', href: '/portal/admin/images', icon: ImageIcon, color: 'bg-rose-500/20 text-rose-400' },
-      { id: 'admin', label: 'Website Settings', href: '/portal/admin', icon: Settings, color: 'bg-violet-500/20 text-violet-400' },
+      { id: 'admin', label: 'Settings', href: '/portal/admin', icon: Settings, color: 'bg-violet-500/20 text-violet-400' },
+      { id: 'lead-distro', label: 'Lead Distribution', href: '/portal/admin/lead-distro', icon: Target, color: 'bg-gradient-to-r from-green-500/30 to-lime-500/30 text-green-400 ring-1 ring-green-500/30' },
+      { id: 'lead-config', label: 'Lead Config', href: '/portal/admin/lead-distribution', icon: Sliders, color: 'bg-gradient-to-r from-violet-500/30 to-purple-500/30 text-violet-400 ring-1 ring-violet-500/30' },
+      { id: 'notifications', label: 'Notification Settings', href: '/portal/settings/notifications', icon: Bell, color: 'bg-gradient-to-r from-rose-500/30 to-pink-500/30 text-rose-400 ring-1 ring-rose-500/30' },
+      { id: 'new-lead-wizard', label: 'New Lead Wizard', href: '/portal/office/new-lead', icon: Zap, color: 'bg-gradient-to-r from-brand-green/30 to-emerald-500/30 text-brand-green ring-1 ring-brand-green/30' },
+      { id: 'new-lead', label: 'Quick Lead Entry', href: '/portal/leads/new', icon: Plus, color: 'bg-brand-green/20 text-brand-green' },
+      { id: 'geocode-sync', label: 'Geocode Sync', href: '/portal/admin/lead-distro', icon: MapPin, color: 'bg-brand-green/20 text-blue-400' },
     ],
     // Office staff
     officeNav: [
-      { id: 'office', label: 'Order Management', href: '/portal/office', icon: ClipboardList, color: 'bg-emerald-500/20 text-emerald-400' },
-      { id: 'billing', label: 'Billing & Invoices', href: '/portal/billing', icon: DollarSign, color: 'bg-green-500/20 text-green-400' },
-      { id: 'inventory', label: 'Inventory', href: '/portal/inventory', icon: Box, color: 'bg-orange-500/20 text-orange-400' },
+      { id: 'monday-notes', label: 'My Monday Notes', href: '/portal/monday-notes', icon: Megaphone, color: 'bg-gradient-to-r from-amber-500/30 to-yellow-500/30 text-amber-400 ring-1 ring-amber-500/30' },
+      { id: 'chat', label: 'Chat', href: '/portal/chat', icon: MessageSquare, color: 'bg-gradient-to-r from-sky-500/30 to-blue-500/30 text-sky-400 ring-1 ring-sky-500/30' },
+      { id: 'my-profile', label: 'Edit My Profile', href: '/portal/my-profile', icon: Edit3, color: 'bg-lime-500/20 text-lime-400' },
+      { id: 'new-lead-wizard', label: 'New Lead Wizard', href: '/portal/office/new-lead', icon: Zap, color: 'bg-gradient-to-r from-brand-green/30 to-emerald-500/30 text-brand-green ring-1 ring-brand-green/30' },
+      { id: 'office', label: 'Operations', href: '/portal/office', icon: ClipboardList, color: 'bg-emerald-500/20 text-emerald-400' },
+      { id: 'billing', label: 'Finance', href: '/portal/billing', icon: DollarSign, color: 'bg-green-500/20 text-green-400' },
+      { id: 'inventory', label: 'Materials', href: '/portal/inventory', icon: Box, color: 'bg-orange-500/20 text-orange-400' },
       { id: 'phone', label: 'Phone System', href: '/phone-portal.html', icon: Phone, color: 'bg-sky-500/20 text-sky-400' },
       { id: 'schedule', label: 'Schedule', href: '/portal/schedule', icon: Calendar, color: 'bg-purple-500/20 text-purple-400' },
-      { id: 'reports', label: 'Reports', href: '/portal/reports', icon: BarChart3, color: 'bg-blue-500/20 text-blue-400' },
+      { id: 'reports', label: 'Reports', href: '/portal/reports', icon: BarChart3, color: 'bg-brand-green/20 text-blue-400' },
+      { id: 'new-lead', label: 'Quick Lead Entry', href: '/portal/leads/new', icon: Plus, color: 'bg-brand-green/20 text-brand-green' },
     ],
     // Project Manager
     pmNav: [
+      { id: 'monday-notes', label: 'My Monday Notes', href: '/portal/monday-notes', icon: Megaphone, color: 'bg-gradient-to-r from-amber-500/30 to-yellow-500/30 text-amber-400 ring-1 ring-amber-500/30' },
+      { id: 'chat', label: 'Chat', href: '/portal/chat', icon: MessageSquare, color: 'bg-gradient-to-r from-sky-500/30 to-blue-500/30 text-sky-400 ring-1 ring-sky-500/30' },
+      { id: 'my-profile', label: 'Edit My Profile', href: '/portal/my-profile', icon: Edit3, color: 'bg-lime-500/20 text-lime-400' },
       { id: 'pm', label: 'Create Orders', href: '/portal/pm', icon: Package, color: 'bg-cyan-500/20 text-cyan-400' },
       { id: 'schedule', label: 'Schedule', href: '/portal/schedule', icon: Calendar, color: 'bg-purple-500/20 text-purple-400' },
+      { id: 'new-lead', label: 'Enter New Lead', href: '/portal/leads/new', icon: Plus, color: 'bg-brand-green/20 text-brand-green' },
     ],
     // Driver
     driverNav: [
-      { id: 'driver', label: 'My Deliveries', href: '/portal/driver', icon: Truck, color: 'bg-blue-500/20 text-blue-400' },
+      { id: 'monday-notes', label: 'My Monday Notes', href: '/portal/monday-notes', icon: Megaphone, color: 'bg-gradient-to-r from-amber-500/30 to-yellow-500/30 text-amber-400 ring-1 ring-amber-500/30' },
+      { id: 'chat', label: 'Chat', href: '/portal/chat', icon: MessageSquare, color: 'bg-gradient-to-r from-sky-500/30 to-blue-500/30 text-sky-400 ring-1 ring-sky-500/30' },
+      { id: 'my-profile', label: 'Edit My Profile', href: '/portal/my-profile', icon: Edit3, color: 'bg-lime-500/20 text-lime-400' },
+      { id: 'driver', label: 'My Deliveries', href: '/portal/driver', icon: Truck, color: 'bg-brand-green/20 text-blue-400' },
     ],
     // Viewer
     viewerNav: [
+      { id: 'my-profile', label: 'Edit My Profile', href: '/portal/my-profile', icon: Edit3, color: 'bg-lime-500/20 text-lime-400' },
       { id: 'office', label: 'View Orders', href: '/portal/office', icon: Eye, color: 'bg-emerald-500/20 text-emerald-400' },
-      { id: 'reports', label: 'Reports', href: '/portal/reports', icon: BarChart3, color: 'bg-blue-500/20 text-blue-400' },
+      { id: 'reports', label: 'Reports', href: '/portal/reports', icon: BarChart3, color: 'bg-brand-green/20 text-blue-400' },
+    ],
+    // Sales Reps - Mobile-optimized sales portal
+    salesNav: [
+      { id: 'sales-portal', label: 'Sales Dashboard', href: '/portal/sales', icon: Target, color: 'bg-gradient-to-r from-green-500/30 to-emerald-500/30 text-green-400 ring-1 ring-green-500/30' },
+      { id: 'monday-notes', label: 'My Monday Notes', href: '/portal/monday-notes', icon: Megaphone, color: 'bg-gradient-to-r from-amber-500/30 to-yellow-500/30 text-amber-400 ring-1 ring-amber-500/30' },
+      { id: 'chat', label: 'Chat', href: '/portal/chat', icon: MessageSquare, color: 'bg-gradient-to-r from-sky-500/30 to-blue-500/30 text-sky-400 ring-1 ring-sky-500/30' },
+      { id: 'my-profile', label: 'Edit My Profile', href: '/portal/my-profile', icon: Edit3, color: 'bg-lime-500/20 text-lime-400' },
+      { id: 'leads', label: 'My Leads', href: '/portal/sales/leads', icon: Users, color: 'bg-brand-green/20 text-blue-400' },
+      { id: 'performance', label: 'My Performance', href: '/portal/sales/performance', icon: TrendingUp, color: 'bg-purple-500/20 text-purple-400' },
+      { id: 'schedule', label: 'Schedule', href: '/portal/schedule', icon: Calendar, color: 'bg-orange-500/20 text-orange-400' },
+      { id: 'phone', label: 'Phone System', href: '/phone-portal.html', icon: Phone, color: 'bg-sky-500/20 text-sky-400' },
+      { id: 'new-lead', label: 'Enter New Lead', href: '/portal/leads/new', icon: Plus, color: 'bg-brand-green/20 text-brand-green' },
+      { id: 'lead-settings', label: 'Lead Preferences', href: '/portal/sales/settings', icon: Settings, color: 'bg-neutral-500/20 text-neutral-400' },
+      { id: 'notifications', label: 'Notification Settings', href: '/portal/settings/notifications', icon: Bell, color: 'bg-rose-500/20 text-rose-400' },
     ],
   };
 
@@ -73,6 +120,13 @@ const getRoleNavigation = (role: TeamRole) => {
     case 'owner':
     case 'admin':
       return allNav.adminNav;
+    case 'manager':
+      return [
+        ...allNav.adminNav,
+        { id: 'lead-controls', label: 'Rep Lead Controls', href: '/portal/manager/lead-controls', icon: Users, color: 'bg-orange-500/20 text-orange-400' },
+      ]; // Managers have similar access to admin plus lead controls
+    case 'sales':
+      return allNav.salesNav;
     case 'office':
       return allNav.officeNav;
     case 'project_manager':
@@ -90,6 +144,8 @@ const getRoleNavigation = (role: TeamRole) => {
 const roleLabels: Record<TeamRole, { label: string; color: string }> = {
   owner: { label: 'Owner', color: 'bg-gradient-to-r from-amber-500 to-yellow-500 text-black' },
   admin: { label: 'Administrator', color: 'bg-gradient-to-r from-red-500 to-rose-500 text-white' },
+  manager: { label: 'Manager', color: 'bg-gradient-to-r from-orange-500 to-amber-500 text-white' },
+  sales: { label: 'Sales Rep', color: 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' },
   office: { label: 'Office Staff', color: 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white' },
   project_manager: { label: 'Project Manager', color: 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white' },
   driver: { label: 'Driver', color: 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white' },
@@ -136,7 +192,18 @@ export default function Dashboard() {
   if (isLoading || !user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 flex items-center justify-center">
-        <Loader2 className="animate-spin text-brand-green" size={48} />
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-green/20 to-emerald-500/20 border border-brand-green/30 flex items-center justify-center">
+              <Loader2 className="animate-spin text-brand-green" size={32} />
+            </div>
+            <div className="absolute inset-0 rounded-2xl border-2 border-brand-green/30 animate-ping" />
+          </div>
+          <div className="text-center">
+            <p className="text-white font-medium">Loading Dashboard</p>
+            <p className="text-sm text-neutral-500">Please wait...</p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -201,8 +268,8 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-white tracking-tight">Dashboard</h1>
-                  <p className="text-sm text-neutral-400">River City Roofing Portal</p>
+                  <h1 className="text-xl font-bold text-white tracking-tight">RoofStack</h1>
+                  <p className="text-sm text-neutral-400">Everything Under One Roof</p>
                 </div>
               </div>
 
@@ -254,8 +321,8 @@ export default function Dashboard() {
                 : user.role === 'project_manager'
                 ? "Create material orders and manage your job schedules."
                 : user.role === 'office' || user.role === 'viewer'
-                ? "Manage orders, billing, and inventory from here."
-                : "Full access to all portal features and system administration."
+                ? "Manage operations, finance, and materials from here."
+                : "Full access to all RoofStack features and system administration."
               }
             </p>
           </div>
@@ -284,29 +351,40 @@ export default function Dashboard() {
             ))}
           </div>
 
+          {/* Weekly Numbers Widget - Show for sales reps and managers */}
+          {['sales', 'owner', 'admin', 'manager'].includes(user.role) && (
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <ClipboardList size={18} className="text-brand-green flex-shrink-0" />
+                Weekly Numbers
+              </h3>
+              <WeeklyNumbersWidget compact />
+            </div>
+          )}
+
           {/* Navigation Grid */}
-          <div className="mb-8">
+          <div className="mb-8 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <Package size={18} className="text-brand-green" />
+              <Package size={18} className="text-brand-green flex-shrink-0" />
               Quick Access
             </h3>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 min-w-0">
               {navigation.map((item) => (
                 <Link
                   key={item.id}
                   href={item.href}
                   className="group relative overflow-hidden rounded-2xl border border-white/5 hover:border-white/10 bg-white/[0.02] p-5 transition-all duration-300 hover:bg-white/[0.05]"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-xl ${item.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                  <div className="flex items-center gap-4 min-w-0">
+                    <div className={`w-12 h-12 rounded-xl ${item.color} flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0`}>
                       <item.icon size={24} />
                     </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-white group-hover:text-brand-green transition-colors">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-white group-hover:text-brand-green transition-colors truncate">
                         {item.label}
                       </h4>
                     </div>
-                    <ChevronRight size={18} className="text-neutral-500 group-hover:text-brand-green group-hover:translate-x-1 transition-all" />
+                    <ChevronRight size={18} className="text-neutral-500 group-hover:text-brand-green group-hover:translate-x-1 transition-all flex-shrink-0" />
                   </div>
                 </Link>
               ))}
@@ -321,22 +399,26 @@ export default function Dashboard() {
                 Recent Activity
               </h3>
               <div className="space-y-3">
-                {[
-                  { action: 'Delivery completed', detail: 'Job #1234 - 123 Oak St', time: '5 min ago', color: 'text-green-400' },
-                  { action: 'New order created', detail: 'Job #1235 - 456 Pine Ave', time: '15 min ago', color: 'text-blue-400' },
-                  { action: 'Invoice sent', detail: 'INV-2024-0089 - $2,450.00', time: '1 hour ago', color: 'text-purple-400' },
-                ].map((activity, i) => (
-                  <div key={i} className="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-2 h-2 rounded-full ${activity.color.replace('text-', 'bg-')}`} />
-                      <div>
-                        <p className="text-sm font-medium text-white">{activity.action}</p>
-                        <p className="text-xs text-neutral-500">{activity.detail}</p>
-                      </div>
-                    </div>
-                    <span className="text-xs text-neutral-500">{activity.time}</span>
+                {isLoadingStats ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="animate-spin text-neutral-400" size={24} />
                   </div>
-                ))}
+                ) : stats?.recentActivity && stats.recentActivity.length > 0 ? (
+                  stats.recentActivity.map((activity, i) => (
+                    <div key={i} className="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full ${activity.color.replace('text-', 'bg-')}`} />
+                        <div>
+                          <p className="text-sm font-medium text-white">{activity.action}</p>
+                          <p className="text-xs text-neutral-500">{activity.detail}</p>
+                        </div>
+                      </div>
+                      <span className="text-xs text-neutral-500">{activity.time}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center text-neutral-500 py-4">No recent activity</p>
+                )}
               </div>
             </div>
           )}

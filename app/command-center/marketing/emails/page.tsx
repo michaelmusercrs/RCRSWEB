@@ -32,7 +32,7 @@ import { EMAILS, EmailTemplate, EmailType } from '@/lib/marketing-data';
 const EMAIL_TYPE_STYLES: Record<EmailType, { bg: string; text: string; label: string }> = {
   welcome: { bg: 'bg-lime-500/20', text: 'text-lime-400', label: 'Welcome' },
   storm: { bg: 'bg-red-500/20', text: 'text-red-400', label: 'Storm Alert' },
-  financing: { bg: 'bg-blue-500/20', text: 'text-blue-400', label: 'Financing' },
+  financing: { bg: 'bg-brand-green/20', text: 'text-blue-400', label: 'Financing' },
   seasonal: { bg: 'bg-amber-500/20', text: 'text-amber-400', label: 'Seasonal' },
   followup: { bg: 'bg-purple-500/20', text: 'text-purple-400', label: 'Follow-up' },
 };

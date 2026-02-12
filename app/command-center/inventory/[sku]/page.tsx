@@ -8,7 +8,7 @@
  * - Stock level with visual indicator
  * - Stock adjustment form
  * - Edit item form (permission gated)
- * - Stock history/audit log placeholder
+ * - Stock history/audit log with real transaction data
  * - Delete button (permission gated)
  *
  * @author RCRS Development Team
@@ -84,6 +84,265 @@ const CATEGORIES = [
   'Sealants',
   'Accessories',
 ];
+
+// =============================================================================
+// STOCK HISTORY / AUDIT TRAIL COMPONENT
+// =============================================================================
+
+interface TransactionRecord {
+  inventoryId: string;
+  itemId: string;
+  dateTime: string;
+  amount: number;
+  referenceNumber: string;
+  price: number;
+  cost: number;
+  status: 'completed' | 'pending' | 'cancelled';
+  type: 'delivery' | 'restock' | 'return' | 'adjustment' | 'count';
+  notes?: string;
+}
+
+function StockHistoryPanel({ sku, itemName, showCost }: { sku: string; itemName: string; showCost: boolean }) {
+  const [transactions, setTransactions] = React.useState<TransactionRecord[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [filterType, setFilterType] = React.useState<string>('all');
+  const [showCount, setShowCount] = React.useState(25);
+
+  React.useEffect(() => {
+    async function loadTransactions() {
+      try {
+        const { inventoryTransactions } = await import('@/lib/inventoryTransactions');
+        // Find the itemId that maps to this SKU
+        const { inventoryProducts } = await import('@/lib/inventoryData');
+        const product = inventoryProducts.find(
+          (p) => p.productId === sku || p.productName.toLowerCase().replace(/\s+/g, '-') === sku.toLowerCase()
+        );
+
+        let filtered: TransactionRecord[];
+        if (product) {
+          filtered = inventoryTransactions.filter((t) => t.itemId === product.productId);
+        } else {
+          // Try matching by SKU directly
+          filtered = inventoryTransactions.filter((t) => t.itemId === sku);
+        }
+
+        // Sort by date descending
+        filtered.sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime());
+        setTransactions(filtered);
+      } catch {
+        setTransactions([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadTransactions();
+  }, [sku]);
+
+  const filteredTransactions = filterType === 'all'
+    ? transactions
+    : transactions.filter((t) => t.type === filterType);
+
+  const displayedTransactions = filteredTransactions.slice(0, showCount);
+
+  const typeConfig: Record<string, { label: string; color: string; bgColor: string }> = {
+    delivery: { label: 'Delivery', color: 'text-blue-400', bgColor: 'bg-blue-500/20' },
+    restock: { label: 'Restock', color: 'text-lime-400', bgColor: 'bg-lime-500/20' },
+    return: { label: 'Return', color: 'text-amber-400', bgColor: 'bg-amber-500/20' },
+    adjustment: { label: 'Adjustment', color: 'text-purple-400', bgColor: 'bg-purple-500/20' },
+    count: { label: 'Count', color: 'text-cyan-400', bgColor: 'bg-cyan-500/20' },
+  };
+
+  const statusConfig: Record<string, { color: string }> = {
+    completed: { color: 'text-lime-400' },
+    pending: { color: 'text-yellow-400' },
+    cancelled: { color: 'text-red-400' },
+  };
+
+  // Compute running balance
+  let runningBalance = 0;
+  const transWithBalance = [...filteredTransactions].reverse().map((t) => {
+    runningBalance += t.amount;
+    return { ...t, balance: runningBalance };
+  }).reverse();
+
+  const displayedWithBalance = transWithBalance.slice(0, showCount);
+
+  // Summary stats
+  const totalDeliveries = transactions.filter((t) => t.type === 'delivery').length;
+  const totalRestocks = transactions.filter((t) => t.type === 'restock').length;
+  const totalUnitsOut = transactions.filter((t) => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  const totalUnitsIn = transactions.filter((t) => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
+
+  return (
+    <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <History className="h-5 w-5 text-zinc-400" />
+          <h3 className="text-lg font-semibold text-white">Stock History</h3>
+          <span className="ml-2 px-2 py-0.5 rounded-full bg-zinc-800 text-xs text-zinc-400">
+            {transactions.length} records
+          </span>
+        </div>
+      </div>
+
+      {/* Summary Stats */}
+      {!loading && transactions.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+          <div className="rounded-lg bg-zinc-800/50 p-3">
+            <p className="text-xs text-zinc-500">Total Deliveries</p>
+            <p className="text-lg font-bold text-blue-400">{totalDeliveries}</p>
+          </div>
+          <div className="rounded-lg bg-zinc-800/50 p-3">
+            <p className="text-xs text-zinc-500">Total Restocks</p>
+            <p className="text-lg font-bold text-lime-400">{totalRestocks}</p>
+          </div>
+          <div className="rounded-lg bg-zinc-800/50 p-3">
+            <p className="text-xs text-zinc-500">Units Out</p>
+            <p className="text-lg font-bold text-red-400">{totalUnitsOut}</p>
+          </div>
+          <div className="rounded-lg bg-zinc-800/50 p-3">
+            <p className="text-xs text-zinc-500">Units In</p>
+            <p className="text-lg font-bold text-lime-400">{totalUnitsIn}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Filter Tabs */}
+      <div className="flex gap-2 mb-4 overflow-x-auto">
+        {[
+          { id: 'all', label: 'All' },
+          { id: 'delivery', label: 'Deliveries' },
+          { id: 'restock', label: 'Restocks' },
+          { id: 'return', label: 'Returns' },
+          { id: 'adjustment', label: 'Adjustments' },
+          { id: 'count', label: 'Counts' },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setFilterType(tab.id)}
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors",
+              filterType === tab.id
+                ? "bg-lime-500/20 text-lime-400"
+                : "bg-zinc-800 text-zinc-400 hover:text-white"
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Transactions Table */}
+      {loading ? (
+        <div className="flex items-center justify-center py-8">
+          <RefreshCw className="h-6 w-6 animate-spin text-lime-500" />
+        </div>
+      ) : displayedWithBalance.length === 0 ? (
+        <div className="rounded-lg bg-zinc-800/50 p-8 text-center">
+          <History className="mx-auto h-10 w-10 text-zinc-700 mb-2" />
+          <p className="text-sm text-zinc-500">
+            {transactions.length === 0
+              ? 'No transaction history found for this item'
+              : 'No transactions match the selected filter'}
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-zinc-800">
+                  <th className="pb-2 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Date</th>
+                  <th className="pb-2 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Type</th>
+                  <th className="pb-2 text-right text-xs font-medium uppercase tracking-wider text-zinc-500">Qty Change</th>
+                  <th className="pb-2 text-right text-xs font-medium uppercase tracking-wider text-zinc-500">Balance</th>
+                  <th className="pb-2 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Ref #</th>
+                  {showCost && (
+                    <th className="pb-2 text-right text-xs font-medium uppercase tracking-wider text-zinc-500">Cost</th>
+                  )}
+                  <th className="pb-2 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800/50">
+                {displayedWithBalance.map((t, idx) => {
+                  const tc = typeConfig[t.type] || typeConfig.adjustment;
+                  const sc = statusConfig[t.status] || statusConfig.completed;
+                  return (
+                    <tr key={t.inventoryId || idx} className="hover:bg-zinc-800/30 transition-colors">
+                      <td className="py-2.5 pr-3">
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-3.5 w-3.5 text-zinc-600 shrink-0" />
+                          <div>
+                            <p className="text-zinc-300">
+                              {new Date(t.dateTime).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })}
+                            </p>
+                            <p className="text-xs text-zinc-600">
+                              {new Date(t.dateTime).toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-2.5 pr-3">
+                        <span className={cn("px-2 py-0.5 rounded-full text-xs font-medium", tc.bgColor, tc.color)}>
+                          {tc.label}
+                        </span>
+                      </td>
+                      <td className="py-2.5 pr-3 text-right">
+                        <span className={cn(
+                          "font-mono font-semibold",
+                          t.amount > 0 ? "text-lime-400" : "text-red-400"
+                        )}>
+                          {t.amount > 0 ? '+' : ''}{t.amount}
+                        </span>
+                      </td>
+                      <td className="py-2.5 pr-3 text-right">
+                        <span className="font-mono text-zinc-400">{t.balance}</span>
+                      </td>
+                      <td className="py-2.5 pr-3">
+                        <span className="font-mono text-zinc-400">#{t.referenceNumber}</span>
+                      </td>
+                      {showCost && (
+                        <td className="py-2.5 pr-3 text-right">
+                          <span className="text-zinc-400">
+                            ${(Math.abs(t.amount) * t.cost).toFixed(2)}
+                          </span>
+                        </td>
+                      )}
+                      <td className="py-2.5">
+                        <span className={cn("text-xs font-medium capitalize", sc.color)}>
+                          {t.status}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Load More */}
+          {filteredTransactions.length > showCount && (
+            <div className="mt-4 text-center">
+              <button
+                onClick={() => setShowCount((prev) => prev + 25)}
+                className="px-4 py-2 rounded-lg bg-zinc-800 text-zinc-300 text-sm hover:bg-zinc-700 transition-colors"
+              >
+                Load More ({filteredTransactions.length - showCount} remaining)
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
 
 // =============================================================================
 // MAIN COMPONENT
@@ -779,22 +1038,8 @@ function InventoryItemPage() {
               )}
             </div>
 
-            {/* Stock History Placeholder */}
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-              <div className="flex items-center gap-2">
-                <History className="h-5 w-5 text-zinc-400" />
-                <h3 className="text-lg font-semibold text-white">Stock History</h3>
-              </div>
-              <p className="mt-4 text-center text-sm text-zinc-500">
-                Stock history and audit log will appear here.
-              </p>
-              <div className="mt-4 rounded-lg bg-zinc-800/50 p-8 text-center">
-                <History className="mx-auto h-12 w-12 text-zinc-700" />
-                <p className="mt-2 text-sm text-zinc-600">
-                  Audit trail coming soon
-                </p>
-              </div>
-            </div>
+            {/* Stock History - Real Audit Trail */}
+            <StockHistoryPanel sku={sku} itemName={item.name} showCost={showCost} />
           </div>
         </div>
 

@@ -1,0 +1,3492 @@
+# RCRS Data Layer, Billing & Integration Deep Dive
+Generated: 2026-02-11 11:23
+Source: River City Roofing Solutions Platform
+
+---
+
+## Google Sheets Service
+
+/**
+ * RCRS Google Sheets Service - Comprehensive Integration
+ *
+ * Provides two-way synchronization between the application and Google Sheets for:
+ * - Team members
+ * - Inventory
+ * - Commissions
+ * - Customers
+ * - Orders
+ *
+ * @author RCRS Development Team
+ * @version 2.0.0
+ */
+
+import { GoogleSpreadsheet, GoogleSpreadsheetRow } from 'google-spreadsheet';
+import { JWT } from 'google-auth-library';
+
+// =============================================================================
+// CONFIGURATION
+// =============================================================================
+
+// Handle private key - works with both escaped \n and actual newlines
+const privateKey = process.env.GOOGLE_PRIVATE_KEY
+  ?.replace(/\\n/g, '\n')
+  ?.replace(/\r\n/g, '\n');
+
+const serviceAccountAuth = new JWT({
+  email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+  key: privateKey,
+  scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+});
+
+const SHEETS_ID = process.env.GOOGLE_SHEETS_ID;
+
+// Check if Google Sheets is properly configured
+export function isGoogleSheetsConfigured(): boolean {
+  return !!(
+    SHEETS_ID &&
+    process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL &&
+    privateKey
+  );
+}
+
+// =============================================================================
+// TYPE DEFINITIONS
+// =============================================================================
+
+export interface TeamMember {
+  slug: string;
+  name: string;
+  company: string;
+  category: string;
+  position: string;
+  phone: string;
+  email: string;
+  altEmail: string;
+  displayOrder: number;
+  tagline?: string;
+  bio: string;
+  region?: string;
+  launchDate?: string;
+  profileImage?: string;
+  truckImage?: string;
+  facebook?: string;
+  instagram?: string;
+  x?: string;
+}
+
+export interface InventoryItem {
+  sku: string;
+  name: string;
+  description: string;
+  category: string;
+  cost: number;
+  price: number;
+  quantity: number;
+  minStock: number;
+  maxStock: number;
+  unit: string;
+  supplier: string;
+  location: string;
+  imageUrl: string;
+  lastUpdated: string;
+  updatedBy: string;
+}
+
+export interface CommissionEntry {
+  salesRep: string;
+  date: string;
+  amount: number;
+  balance: number;
+  jobId?: string;
+  jobName?: string;
+  description?: string;
+  status?: string;
+}
+
+export interface CommissionSummary {
+  salesRep: string;
+  totalEarned: number;
+  currentBalance: number;
+  transactionCount: number;
+  lastTransaction: string;
+}
+
+export interface CustomerRecord {
+  customerId: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  jobCount: number;
+  totalSpent: number;
+  lastJobDate?: string;
+  notes?: string;
+  source?: string;
+  salesRep?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrderRecord {
+  orderId: string;
+  customerId: string;
+  customerName: string;
+  jobId?: string;
+  jobAddress?: string;
+  status: 'pending' | 'approved' | 'in-progress' | 'delivered' | 'completed' | 'cancelled';
+  items: string; // JSON string of order items
+  totalCost: number;
+  totalPrice: number;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  notes?: string;
+  deliveryDate?: string;
+  deliveredBy?: string;
+}
+
+export interface SyncResult {
+  success: boolean;
+  synced: number;
+  errors: string[];
+  timestamp: string;
+}
+
+export interface GeocodedContactRecord {
+  jnid: string;
+  name: string;
+  address: string;
+  lat: string;
+  lng: string;
+  placeId: string;
+  type: string; // contact/install/lead/referral/door_knock
+  salesRep: string;
+  jobStatus: string;
+  lastInteraction: string;
+  interactionType: string;
+  createdAt: string;
+}
+
+export interface LeadDistributionLogRecord {
+  logId: string;
+  leadId: string;
+  customerName: string;
+  address: string;
+  assignedRep: string;
+  algorithmScores: string; // JSON
+  factors: string; // JSON
+  overrideReason: string;
+  timestamp: string;
+}
+
+export interface RepAvailabilityRecord {
+  repSlug: string;
+  isReceivingLeads: string; // 'true'/'false'
+  adminOverride: string;
+  adminOverrideBy: string;
+  adminOverrideReason: string;
+  autoResumeAt: string;
+  scheduleJson: string; // JSON
+  updatedAt: string;
+}
+
+export interface RepPreferencesRecord {
+  repSlug: string;
+  countiesEnabled: string; // JSON
+  maxLeadsPerDay: string;
+  preferredAreas: string; // JSON
+  excludedAreas: string; // JSON
+  updatedAt: string;
+}
+
+export interface LeadResponseLogRecord {
+  leadId: string;
+  repSlug: string;
+  assignedAt: string;
+  firstContactAt: string;
+  responseMinutes: string;
+  reminderSentAt: string;
+  warningSentAt: string;
+  reassignedAt: string;
+  reassignedTo: string;
+  missedReason: string;
+}
+
+export interface JobBreakdownRecord {
+  breakdownId: string;
+  jobId: string;
+  customerName: string;
+  address: string;
+  rNumber: string;
+  salesRep: string;
+  status: string;
+  materialsJson: string; // JSON
+  totals: string; // JSON
+  createdAt: string;
+  updatedAt: string;
+}
+
+// =============================================================================
+// SHEET NAMES
+// =============================================================================
+
+export interface TeamAccessOverrideRecord {
+  memberId: string;
+  moduleOverrides: string; // JSON: {"inventory": true, "marketing": false}
+  customPermissions: string; // JSON: future use
+  updatedBy: string;
+  updatedAt: string;
+}
+
+const SHEET_NAMES = {
+  TEAM_MEMBERS: 'team-members-import',
+  INVENTORY: 'Inventory',
+  INVENTORY_LOGS: 'InventoryLogs',
+  COMMISSIONS: 'Commissions',
+  CUSTOMERS: 'Customers',
+  ORDERS: 'Orders',
+  DELIVERIES: 'Deliveries',
+  GEOCODED_CONTACTS: 'Geocoded_Contacts',
+  LEAD_DISTRIBUTION_LOG: 'Lead_Distribution_Log',
+  REP_AVAILABILITY: 'Rep_Availability',
+  REP_PREFERENCES: 'Rep_Preferences',
+  LEAD_RESPONSE_LOG: 'Lead_Response_Log',
+  JOB_BREAKDOWNS: 'Job_Breakdowns',
+  TEAM_ACCESS_OVERRIDES: 'Team_Access_Overrides',
+  AGENT_DIRECTORY: 'Agent_Directory',
+  AGENT_VISITS: 'Agent_Visits',
+  TRAINING_PROGRESS: 'Training_Progress',
+} as const;
+
+// =============================================================================
+// GOOGLE SHEETS SERVICE CLASS
+// =============================================================================
+
+class GoogleSheetsService {
+  private doc: GoogleSpreadsheet | null = null;
+  private initialized = false;
+  private lastInitAttempt = 0;
+  private initCooldown = 5000; // 5 seconds between init attempts
+
+  /**
+   * Initialize connection to Google Sheets
+   */
+  async init(): Promise<boolean> {
+    if (this.initialized && this.doc) return true;
+
+    // Prevent rapid retry attempts
+    const now = Date.now();
+    if (now - this.lastInitAttempt < this.initCooldown) {
+      return false;
+    }
+    this.lastInitAttempt = now;
+
+    if (!isGoogleSheetsConfigured()) {
+      console.warn('Google Sheets not configured. Check environment variables.');
+      return false;
+    }
+
+    try {
+      this.doc = new GoogleSpreadsheet(SHEETS_ID!, serviceAccountAuth);
+      await this.doc.loadInfo();
+      this.initialized = true;
+      console.log(`Connected to Google Sheet: ${this.doc.title}`);
+      return true;
+    } catch (error) {
+      console.error('Failed to initialize Google Sheets:', error);
+      this.doc = null;
+      this.initialized = false;
+      return false;
+    }
+  }
+
+  /**
+   * Get or create a sheet with specified headers
+   */
+  private async getOrCreateSheet(name: string, headers: string[]) {
+    if (!this.doc) throw new Error('Google Sheets not initialized');
+
+    let sheet = this.doc.sheetsByTitle[name];
+    if (!sheet) {
+      sheet = await this.doc.addSheet({ title: name, headerValues: headers, gridProperties: { columnCount: Math.max(headers.length + 5, 26) } });
+      console.log(`Created new sheet: ${name}`);
+    } else {
+      // Ensure headers exist - fix for sheets created without headers
+      try {
+        await sheet.loadHeaderRow();
+      } catch {
+        if (sheet.gridProperties.columnCount < headers.length) {
+          await sheet.resize({ rowCount: sheet.gridProperties.rowCount, columnCount: headers.length + 5 });
+        }
+        await sheet.setHeaderRow(headers);
+      }
+    }
+    return sheet;
+  }
+
+  /**
+   * Convert Google Drive share link to direct image URL
+   */
+  private convertDriveLink(shareLink: string): string {
+    if (!shareLink || !shareLink.includes('drive.google.com')) {
+      return shareLink;
+    }
+
+    let fileId = null;
+
+    // Format: /d/FILE_ID/
+    const fileIdMatch = shareLink.match(/\/d\/([a-zA-Z0-9-_]+)/);
+    if (fileIdMatch) {
+      fileId = fileIdMatch[1];
+    }
+
+    // Format: id=FILE_ID
+    const idMatch = shareLink.match(/[?&]id=([a-zA-Z0-9-_]+)/);
+    if (!fileId && idMatch) {
+      fileId = idMatch[1];
+    }
+
+    if (fileId) {
+      return `https://drive.google.com/thumbnail?id=${fileId}&sz=w400`;
+    }
+
+    return shareLink;
+  }
+
+  // ===========================================================================
+  // TEAM MEMBERS
+  // ===========================================================================
+
+  async getTeamMembers(): Promise<TeamMember[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = this.doc.sheetsByTitle[SHEET_NAMES.TEAM_MEMBERS];
+      if (!sheet) {
+        console.warn(`Sheet "${SHEET_NAMES.TEAM_MEMBERS}" not found`);
+        return [];
+      }
+
+      const rows = await sheet.getRows();
+
+      return rows.map(row => ({
+        slug: row.get('slug') || '',
+        name: row.get('name') || '',
+        company: row.get('company') || '',
+        category: row.get('category') || '',
+        position: row.get('position') || '',
+        phone: row.get('phone') || '',
+        email: row.get('email') || '',
+        altEmail: row.get('altEmail') || '',
+        displayOrder: parseInt(row.get('displayOrder')) || 0,
+        tagline: row.get('tagline') || '',
+        bio: row.get('bio') || '',
+        region: row.get('region') || '',
+        launchDate: row.get('launchDate') || '',
+        profileImage: this.convertDriveLink(row.get('profileImage') || ''),
+        truckImage: this.convertDriveLink(row.get('truckImage') || ''),
+        facebook: row.get('facebook') || '',
+        instagram: row.get('instagram') || '',
+        x: row.get('x') || '',
+      })).sort((a, b) => a.displayOrder - b.displayOrder);
+    } catch (error) {
+      console.error('Error fetching team members:', error);
+      return [];
+    }
+  }
+
+  async updateTeamMember(member: TeamMember): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = this.doc.sheetsByTitle[SHEET_NAMES.TEAM_MEMBERS];
+      if (!sheet) return false;
+
+      const rows = await sheet.getRows();
+      const existingRow = rows.find(row => row.get('slug') === member.slug);
+
+      if (existingRow) {
+        Object.keys(member).forEach(key => {
+          existingRow.set(key, (member as any)[key]);
+        });
+        await existingRow.save();
+      } else {
+        await sheet.addRow(member as unknown as Record<string, string | number | boolean>);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating team member:', error);
+      return false;
+    }
+  }
+
+  async deleteTeamMember(slug: string): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = this.doc.sheetsByTitle[SHEET_NAMES.TEAM_MEMBERS];
+      if (!sheet) return false;
+
+      const rows = await sheet.getRows();
+      const rowToDelete = rows.find(row => row.get('slug') === slug);
+
+      if (rowToDelete) {
+        await rowToDelete.delete();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error deleting team member:', error);
+      return false;
+    }
+  }
+
+  // ===========================================================================
+  // INVENTORY
+  // ===========================================================================
+
+  async getInventory(options?: {
+    category?: string;
+    lowStock?: boolean;
+    search?: string;
+  }): Promise<InventoryItem[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.INVENTORY, [
+        'sku', 'name', 'description', 'category', 'cost', 'price',
+        'quantity', 'minStock', 'maxStock', 'unit', 'supplier',
+        'location', 'imageUrl', 'lastUpdated', 'updatedBy'
+      ]);
+
+      const rows = await sheet.getRows();
+      let items: InventoryItem[] = rows.map(row => ({
+        sku: row.get('sku') || '',
+        name: row.get('name') || '',
+        description: row.get('description') || '',
+        category: row.get('category') || '',
+        cost: parseFloat(row.get('cost')) || 0,
+        price: parseFloat(row.get('price')) || 0,
+        quantity: parseInt(row.get('quantity')) || 0,
+        minStock: parseInt(row.get('minStock')) || 10,
+        maxStock: parseInt(row.get('maxStock')) || 100,
+        unit: row.get('unit') || 'each',
+        supplier: row.get('supplier') || '',
+        location: row.get('location') || '',
+        imageUrl: row.get('imageUrl') || '',
+        lastUpdated: row.get('lastUpdated') || '',
+        updatedBy: row.get('updatedBy') || '',
+      }));
+
+      // Apply filters
+      if (options?.category) {
+        items = items.filter(item =>
+          item.category.toLowerCase() === options.category!.toLowerCase()
+        );
+      }
+
+      if (options?.lowStock) {
+        items = items.filter(item => item.quantity <= item.minStock);
+      }
+
+      if (options?.search) {
+        const searchLower = options.search.toLowerCase();
+        items = items.filter(item =>
+          item.sku.toLowerCase().includes(searchLower) ||
+          item.name.toLowerCase().includes(searchLower) ||
+          item.description.toLowerCase().includes(searchLower) ||
+          item.category.toLowerCase().includes(searchLower)
+        );
+      }
+
+      return items.sort((a, b) => a.name.localeCompare(b.name));
+    } catch (error) {
+      console.error('Error fetching inventory:', error);
+      return [];
+    }
+  }
+
+  async updateInventoryItem(item: InventoryItem): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = this.doc.sheetsByTitle[SHEET_NAMES.INVENTORY];
+      if (!sheet) return false;
+
+      const rows = await sheet.getRows();
+      const existingRow = rows.find(row => row.get('sku') === item.sku);
+
+      const now = new Date().toISOString();
+
+      if (existingRow) {
+        existingRow.set('name', item.name);
+        existingRow.set('description', item.description);
+        existingRow.set('category', item.category);
+        existingRow.set('cost', item.cost.toString());
+        existingRow.set('price', item.price.toString());
+        existingRow.set('quantity', item.quantity.toString());
+        existingRow.set('minStock', item.minStock.toString());
+        existingRow.set('maxStock', item.maxStock.toString());
+        existingRow.set('unit', item.unit);
+        existingRow.set('supplier', item.supplier);
+        existingRow.set('location', item.location);
+        existingRow.set('imageUrl', item.imageUrl);
+        existingRow.set('lastUpdated', now);
+        existingRow.set('updatedBy', item.updatedBy);
+        await existingRow.save();
+      } else {
+        await sheet.addRow({
+          ...item,
+          cost: item.cost.toString(),
+          price: item.price.toString(),
+          quantity: item.quantity.toString(),
+          minStock: item.minStock.toString(),
+          maxStock: item.maxStock.toString(),
+          lastUpdated: now,
+        });
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating inventory item:', error);
+      return false;
+    }
+  }
+
+  async deleteInventoryItem(sku: string): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = this.doc.sheetsByTitle[SHEET_NAMES.INVENTORY];
+      if (!sheet) return false;
+
+      const rows = await sheet.getRows();
+      const rowToDelete = rows.find(row => row.get('sku') === sku);
+
+      if (rowToDelete) {
+        await rowToDelete.delete();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error deleting inventory item:', error);
+      return false;
+    }
+  }
+
+  async syncInventoryFromJson(items: InventoryItem[]): Promise<SyncResult> {
+    const ready = await this.init();
+    if (!ready || !this.doc) {
+      return { success: false, synced: 0, errors: ['Google Sheets not initialized'], timestamp: new Date().toISOString() };
+    }
+
+    const errors: string[] = [];
+    let synced = 0;
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.INVENTORY, [
+        'sku', 'name', 'description', 'category', 'cost', 'price',
+        'quantity', 'minStock', 'maxStock', 'unit', 'supplier',
+        'location', 'imageUrl', 'lastUpdated', 'updatedBy'
+      ]);
+
+      for (const item of items) {
+        try {
+          const success = await this.updateInventoryItem(item);
+          if (success) synced++;
+          else errors.push(`Failed to sync item: ${item.sku}`);
+        } catch (e) {
+          errors.push(`Error syncing ${item.sku}: ${e}`);
+        }
+      }
+
+      return { success: errors.length === 0, synced, errors, timestamp: new Date().toISOString() };
+    } catch (error) {
+      return { success: false, synced, errors: [String(error)], timestamp: new Date().toISOString() };
+    }
+  }
+
+  // ===========================================================================
+  // COMMISSIONS
+  // ===========================================================================
+
+  async getCommissions(options?: {
+    salesRep?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<CommissionEntry[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.COMMISSIONS, [
+        'salesRep', 'date', 'amount', 'balance', 'jobId', 'jobName', 'description', 'status'
+      ]);
+
+      const rows = await sheet.getRows();
+      let entries: CommissionEntry[] = rows.map(row => ({
+        salesRep: row.get('salesRep') || '',
+        date: row.get('date') || '',
+        amount: parseFloat(row.get('amount')) || 0,
+        balance: parseFloat(row.get('balance')) || 0,
+        jobId: row.get('jobId') || '',
+        jobName: row.get('jobName') || '',
+        description: row.get('description') || '',
+        status: row.get('status') || '',
+      }));
+
+      // Apply filters
+      if (options?.salesRep) {
+        entries = entries.filter(e =>
+          e.salesRep.toLowerCase() === options.salesRep!.toLowerCase()
+        );
+      }
+
+      if (options?.startDate) {
+        entries = entries.filter(e => e.date >= options.startDate!);
+      }
+
+      if (options?.endDate) {
+        entries = entries.filter(e => e.date <= options.endDate!);
+      }
+
+      return entries.sort((a, b) => b.date.localeCompare(a.date));
+    } catch (error) {
+      console.error('Error fetching commissions:', error);
+      return [];
+    }
+  }
+
+  async getCommissionSummaries(): Promise<CommissionSummary[]> {
+    const entries = await this.getCommissions();
+
+    // Group by sales rep
+    const summaryMap = new Map<string, CommissionSummary>();
+
+    for (const entry of entries) {
+      const existing = summaryMap.get(entry.salesRep);
+
+      if (existing) {
+        existing.totalEarned += entry.amount;
+        existing.transactionCount++;
+        if (entry.date > existing.lastTransaction) {
+          existing.lastTransaction = entry.date;
+          existing.currentBalance = entry.balance;
+        }
+      } else {
+        summaryMap.set(entry.salesRep, {
+          salesRep: entry.salesRep,
+          totalEarned: entry.amount,
+          currentBalance: entry.balance,
+          transactionCount: 1,
+          lastTransaction: entry.date,
+        });
+      }
+    }
+
+    return Array.from(summaryMap.values()).sort((a, b) =>
+      b.totalEarned - a.totalEarned
+    );
+  }
+
+  async addCommissionEntry(entry: CommissionEntry): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.COMMISSIONS, [
+        'salesRep', 'date', 'amount', 'balance', 'jobId', 'jobName', 'description', 'status'
+      ]);
+
+      await sheet.addRow({
+        salesRep: entry.salesRep,
+        date: entry.date,
+        amount: entry.amount.toString(),
+        balance: entry.balance.toString(),
+        jobId: entry.jobId || '',
+        jobName: entry.jobName || '',
+        description: entry.description || '',
+        status: entry.status || 'pending',
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error adding commission entry:', error);
+      return false;
+    }
+  }
+
+  async importCommissionsFromCsv(csvData: string): Promise<SyncResult> {
+    const ready = await this.init();
+    if (!ready || !this.doc) {
+      return { success: false, synced: 0, errors: ['Google Sheets not initialized'], timestamp: new Date().toISOString() };
+    }
+
+    const errors: string[] = [];
+    let synced = 0;
+
+    try {
+      const lines = csvData.split('\n');
+      const headers = lines[0].split(',').map(h => h.trim());
+
+      // Map CSV columns to our schema
+      const salesRepIdx = headers.findIndex(h => h.toLowerCase().includes('sales') || h.toLowerCase().includes('rep'));
+      const dateIdx = headers.findIndex(h => h.toLowerCase() === 'date');
+      const amountIdx = headers.findIndex(h => h.toLowerCase() === 'amount');
+      const balanceIdx = headers.findIndex(h => h.toLowerCase() === 'balance');
+
+      if (salesRepIdx === -1 || dateIdx === -1 || amountIdx === -1) {
+        return { success: false, synced: 0, errors: ['Invalid CSV format'], timestamp: new Date().toISOString() };
+      }
+
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.COMMISSIONS, [
+        'salesRep', 'date', 'amount', 'balance', 'jobId', 'jobName', 'description', 'status'
+      ]);
+
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        const values = line.split(',').map(v => v.trim());
+
+        try {
+          await sheet.addRow({
+            salesRep: values[salesRepIdx] || '',
+            date: values[dateIdx] || '',
+            amount: values[amountIdx] || '0',
+            balance: balanceIdx >= 0 ? values[balanceIdx] || '0' : '0',
+            jobId: '',
+            jobName: '',
+            description: 'Imported from CSV',
+            status: 'completed',
+          });
+          synced++;
+        } catch (e) {
+          errors.push(`Error on line ${i + 1}: ${e}`);
+        }
+      }
+
+      return { success: errors.length === 0, synced, errors, timestamp: new Date().toISOString() };
+    } catch (error) {
+      return { success: false, synced, errors: [String(error)], timestamp: new Date().toISOString() };
+    }
+  }
+
+  // ===========================================================================
+  // CUSTOMERS
+  // ===========================================================================
+
+  async getCustomers(options?: {
+    salesRep?: string;
+    search?: string;
+  }): Promise<CustomerRecord[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.CUSTOMERS, [
+        'customerId', 'name', 'email', 'phone', 'address', 'city', 'state', 'zip',
+        'jobCount', 'totalSpent', 'lastJobDate', 'notes', 'source', 'salesRep',
+        'createdAt', 'updatedAt'
+      ]);
+
+      const rows = await sheet.getRows();
+      let customers: CustomerRecord[] = rows.map(row => ({
+        customerId: row.get('customerId') || '',
+        name: row.get('name') || '',
+        email: row.get('email') || '',
+        phone: row.get('phone') || '',
+        address: row.get('address') || '',
+        city: row.get('city') || '',
+        state: row.get('state') || '',
+        zip: row.get('zip') || '',
+        jobCount: parseInt(row.get('jobCount')) || 0,
+        totalSpent: parseFloat(row.get('totalSpent')) || 0,
+        lastJobDate: row.get('lastJobDate') || '',
+        notes: row.get('notes') || '',
+        source: row.get('source') || '',
+        salesRep: row.get('salesRep') || '',
+        createdAt: row.get('createdAt') || '',
+        updatedAt: row.get('updatedAt') || '',
+      }));
+
+      // Apply filters
+      if (options?.salesRep) {
+        customers = customers.filter(c =>
+          c.salesRep?.toLowerCase() === options.salesRep!.toLowerCase()
+        );
+      }
+
+      if (options?.search) {
+        const searchLower = options.search.toLowerCase();
+        customers = customers.filter(c =>
+          c.name.toLowerCase().includes(searchLower) ||
+          c.email.toLowerCase().includes(searchLower) ||
+          c.phone.includes(searchLower) ||
+          c.address.toLowerCase().includes(searchLower)
+        );
+      }
+
+      return customers.sort((a, b) => b.totalSpent - a.totalSpent);
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+      return [];
+    }
+  }
+
+  async updateCustomer(customer: CustomerRecord): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = this.doc.sheetsByTitle[SHEET_NAMES.CUSTOMERS];
+      if (!sheet) return false;
+
+      const rows = await sheet.getRows();
+      const existingRow = rows.find(row => row.get('customerId') === customer.customerId);
+      const now = new Date().toISOString();
+
+      if (existingRow) {
+        Object.keys(customer).forEach(key => {
+          if (key !== 'createdAt') {
+            existingRow.set(key, String((customer as any)[key]));
+          }
+        });
+        existingRow.set('updatedAt', now);
+        await existingRow.save();
+      } else {
+        await sheet.addRow({
+          ...customer,
+          jobCount: customer.jobCount.toString(),
+          totalSpent: customer.totalSpent.toString(),
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating customer:', error);
+      return false;
+    }
+  }
+
+  async deleteCustomer(customerId: string): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = this.doc.sheetsByTitle[SHEET_NAMES.CUSTOMERS];
+      if (!sheet) return false;
+
+      const rows = await sheet.getRows();
+      const rowToDelete = rows.find(row => row.get('customerId') === customerId);
+
+      if (rowToDelete) {
+        await rowToDelete.delete();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error deleting customer:', error);
+      return false;
+    }
+  }
+
+  // ===========================================================================
+  // ORDERS
+  // ===========================================================================
+
+  async getOrders(options?: {
+    status?: string;
+    customerId?: string;
+  }): Promise<OrderRecord[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.ORDERS, [
+        'orderId', 'customerId', 'customerName', 'jobId', 'jobAddress', 'status',
+        'items', 'totalCost', 'totalPrice', 'createdBy', 'createdAt', 'updatedAt',
+        'notes', 'deliveryDate', 'deliveredBy'
+      ]);
+
+      const rows = await sheet.getRows();
+      let orders: OrderRecord[] = rows.map(row => ({
+        orderId: row.get('orderId') || '',
+        customerId: row.get('customerId') || '',
+        customerName: row.get('customerName') || '',
+        jobId: row.get('jobId') || '',
+        jobAddress: row.get('jobAddress') || '',
+        status: (row.get('status') || 'pending') as OrderRecord['status'],
+        items: row.get('items') || '[]',
+        totalCost: parseFloat(row.get('totalCost')) || 0,
+        totalPrice: parseFloat(row.get('totalPrice')) || 0,
+        createdBy: row.get('createdBy') || '',
+        createdAt: row.get('createdAt') || '',
+        updatedAt: row.get('updatedAt') || '',
+        notes: row.get('notes') || '',
+        deliveryDate: row.get('deliveryDate') || '',
+        deliveredBy: row.get('deliveredBy') || '',
+      }));
+
+      // Apply filters
+      if (options?.status) {
+        orders = orders.filter(o => o.status === options.status);
+      }
+
+      if (options?.customerId) {
+        orders = orders.filter(o => o.customerId === options.customerId);
+      }
+
+      return orders.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      return [];
+    }
+  }
+
+  async updateOrder(order: OrderRecord): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = this.doc.sheetsByTitle[SHEET_NAMES.ORDERS];
+      if (!sheet) return false;
+
+      const rows = await sheet.getRows();
+      const existingRow = rows.find(row => row.get('orderId') === order.orderId);
+      const now = new Date().toISOString();
+
+      if (existingRow) {
+        Object.keys(order).forEach(key => {
+          if (key !== 'createdAt') {
+            existingRow.set(key, String((order as any)[key]));
+          }
+        });
+        existingRow.set('updatedAt', now);
+        await existingRow.save();
+      } else {
+        await sheet.addRow({
+          ...order,
+          totalCost: order.totalCost.toString(),
+          totalPrice: order.totalPrice.toString(),
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating order:', error);
+      return false;
+    }
+  }
+
+  // ===========================================================================
+  // SYNC OPERATIONS
+  // ===========================================================================
+
+  async triggerFullSync(): Promise<{
+    success: boolean;
+    results: {
+      inventory: SyncResult;
+      team: SyncResult;
+    };
+  }> {
+    const ready = await this.init();
+    if (!ready) {
+      const failResult: SyncResult = {
+        success: false,
+        synced: 0,
+        errors: ['Google Sheets not initialized'],
+        timestamp: new Date().toISOString(),
+      };
+      return {
+        success: false,
+        results: {
+          inventory: failResult,
+          team: failResult,
+        },
+      };
+    }
+
+    // This would sync data from JSON files to sheets
+    // For now, return current state
+    const inventoryResult: SyncResult = {
+      success: true,
+      synced: 0,
+      errors: [],
+      timestamp: new Date().toISOString(),
+    };
+
+    const teamResult: SyncResult = {
+      success: true,
+      synced: 0,
+      errors: [],
+      timestamp: new Date().toISOString(),
+    };
+
+    return {
+      success: true,
+      results: {
+        inventory: inventoryResult,
+        team: teamResult,
+      },
+    };
+  }
+
+  /**
+   * Get connection status
+   */
+  getStatus(): {
+    configured: boolean;
+    connected: boolean;
+    sheetTitle?: string;
+  } {
+    return {
+      configured: isGoogleSheetsConfigured(),
+      connected: this.initialized && this.doc !== null,
+      sheetTitle: this.doc?.title,
+    };
+  }
+
+  // ===========================================================================
+  // GEOCODED CONTACTS
+  // ===========================================================================
+
+  async getGeocodedContacts(options?: {
+    salesRep?: string;
+    type?: string;
+  }): Promise<GeocodedContactRecord[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.GEOCODED_CONTACTS, [
+        'jnid', 'name', 'address', 'lat', 'lng', 'placeId', 'type',
+        'salesRep', 'jobStatus', 'lastInteraction', 'interactionType', 'createdAt'
+      ]);
+
+      const rows = await sheet.getRows();
+      let contacts: GeocodedContactRecord[] = rows.map(row => ({
+        jnid: row.get('jnid') || '',
+        name: row.get('name') || '',
+        address: row.get('address') || '',
+        lat: row.get('lat') || '',
+        lng: row.get('lng') || '',
+        placeId: row.get('placeId') || '',
+        type: row.get('type') || '',
+        salesRep: row.get('salesRep') || '',
+        jobStatus: row.get('jobStatus') || '',
+        lastInteraction: row.get('lastInteraction') || '',
+        interactionType: row.get('interactionType') || '',
+        createdAt: row.get('createdAt') || '',
+      }));
+
+      if (options?.salesRep) {
+        contacts = contacts.filter(c => c.salesRep === options.salesRep);
+      }
+      if (options?.type) {
+        contacts = contacts.filter(c => c.type === options.type);
+      }
+
+      return contacts;
+    } catch (error) {
+      console.error('Error fetching geocoded contacts:', error);
+      return [];
+    }
+  }
+
+  async addGeocodedContact(contact: GeocodedContactRecord): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.GEOCODED_CONTACTS, [
+        'jnid', 'name', 'address', 'lat', 'lng', 'placeId', 'type',
+        'salesRep', 'jobStatus', 'lastInteraction', 'interactionType', 'createdAt'
+      ]);
+
+      // Check for existing entry
+      const rows = await sheet.getRows();
+      const existing = rows.find(r => r.get('jnid') === contact.jnid);
+
+      if (existing) {
+        Object.keys(contact).forEach(key => {
+          existing.set(key, (contact as any)[key]);
+        });
+        await existing.save();
+      } else {
+        await sheet.addRow(contact as unknown as Record<string, string | number | boolean>);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error adding geocoded contact:', error);
+      return false;
+    }
+  }
+
+  async addGeocodedContactsBatch(contacts: GeocodedContactRecord[]): Promise<{ added: number; errors: number }> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return { added: 0, errors: contacts.length };
+
+    let added = 0;
+    let errors = 0;
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.GEOCODED_CONTACTS, [
+        'jnid', 'name', 'address', 'lat', 'lng', 'placeId', 'type',
+        'salesRep', 'jobStatus', 'lastInteraction', 'interactionType', 'createdAt'
+      ]);
+
+      for (const contact of contacts) {
+        try {
+          await sheet.addRow(contact as unknown as Record<string, string | number | boolean>);
+          added++;
+        } catch {
+          errors++;
+        }
+      }
+    } catch (error) {
+      console.error('Error batch adding geocoded contacts:', error);
+      errors = contacts.length - added;
+    }
+
+    return { added, errors };
+  }
+
+  // ===========================================================================
+  // LEAD DISTRIBUTION LOG
+  // ===========================================================================
+
+  async addDistributionLog(log: LeadDistributionLogRecord): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.LEAD_DISTRIBUTION_LOG, [
+        'logId', 'leadId', 'customerName', 'address', 'assignedRep',
+        'algorithmScores', 'factors', 'overrideReason', 'timestamp'
+      ]);
+
+      await sheet.addRow(log as unknown as Record<string, string | number | boolean>);
+      return true;
+    } catch (error) {
+      console.error('Error adding distribution log:', error);
+      return false;
+    }
+  }
+
+  async getDistributionLogs(options?: {
+    limit?: number;
+    assignedRep?: string;
+  }): Promise<LeadDistributionLogRecord[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.LEAD_DISTRIBUTION_LOG, [
+        'logId', 'leadId', 'customerName', 'address', 'assignedRep',
+        'algorithmScores', 'factors', 'overrideReason', 'timestamp'
+      ]);
+
+      const rows = await sheet.getRows();
+      let logs: LeadDistributionLogRecord[] = rows.map(row => ({
+        logId: row.get('logId') || '',
+        leadId: row.get('leadId') || '',
+        customerName: row.get('customerName') || '',
+        address: row.get('address') || '',
+        assignedRep: row.get('assignedRep') || '',
+        algorithmScores: row.get('algorithmScores') || '{}',
+        factors: row.get('factors') || '{}',
+        overrideReason: row.get('overrideReason') || '',
+        timestamp: row.get('timestamp') || '',
+      }));
+
+      if (options?.assignedRep) {
+        logs = logs.filter(l => l.assignedRep === options.assignedRep);
+      }
+
+      logs.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+
+      if (options?.limit) {
+        logs = logs.slice(0, options.limit);
+      }
+
+      return logs;
+    } catch (error) {
+      console.error('Error fetching distribution logs:', error);
+      return [];
+    }
+  }
+
+  // ===========================================================================
+  // REP AVAILABILITY
+  // ===========================================================================
+
+  async getRepAvailability(repSlug?: string): Promise<RepAvailabilityRecord[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.REP_AVAILABILITY, [
+        'repSlug', 'isReceivingLeads', 'adminOverride', 'adminOverrideBy',
+        'adminOverrideReason', 'autoResumeAt', 'scheduleJson', 'updatedAt'
+      ]);
+
+      const rows = await sheet.getRows();
+      let records: RepAvailabilityRecord[] = rows.map(row => ({
+        repSlug: row.get('repSlug') || '',
+        isReceivingLeads: row.get('isReceivingLeads') || 'true',
+        adminOverride: row.get('adminOverride') || 'false',
+        adminOverrideBy: row.get('adminOverrideBy') || '',
+        adminOverrideReason: row.get('adminOverrideReason') || '',
+        autoResumeAt: row.get('autoResumeAt') || '',
+        scheduleJson: row.get('scheduleJson') || '{}',
+        updatedAt: row.get('updatedAt') || '',
+      }));
+
+      if (repSlug) {
+        records = records.filter(r => r.repSlug === repSlug);
+      }
+
+      return records;
+    } catch (error) {
+      console.error('Error fetching rep availability:', error);
+      return [];
+    }
+  }
+
+  async updateRepAvailability(record: RepAvailabilityRecord): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.REP_AVAILABILITY, [
+        'repSlug', 'isReceivingLeads', 'adminOverride', 'adminOverrideBy',
+        'adminOverrideReason', 'autoResumeAt', 'scheduleJson', 'updatedAt'
+      ]);
+
+      const rows = await sheet.getRows();
+      const existing = rows.find(r => r.get('repSlug') === record.repSlug);
+
+      if (existing) {
+        Object.keys(record).forEach(key => {
+          existing.set(key, (record as any)[key]);
+        });
+        existing.set('updatedAt', new Date().toISOString());
+        await existing.save();
+      } else {
+        await sheet.addRow({
+          ...record,
+          updatedAt: new Date().toISOString(),
+        } as unknown as Record<string, string | number | boolean>);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating rep availability:', error);
+      return false;
+    }
+  }
+
+  // ===========================================================================
+  // REP PREFERENCES
+  // ===========================================================================
+
+  async getRepPreferences(repSlug?: string): Promise<RepPreferencesRecord[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.REP_PREFERENCES, [
+        'repSlug', 'countiesEnabled', 'maxLeadsPerDay', 'preferredAreas',
+        'excludedAreas', 'updatedAt'
+      ]);
+
+      const rows = await sheet.getRows();
+      let records: RepPreferencesRecord[] = rows.map(row => ({
+        repSlug: row.get('repSlug') || '',
+        countiesEnabled: row.get('countiesEnabled') || '{}',
+        maxLeadsPerDay: row.get('maxLeadsPerDay') || '0',
+        preferredAreas: row.get('preferredAreas') || '[]',
+        excludedAreas: row.get('excludedAreas') || '[]',
+        updatedAt: row.get('updatedAt') || '',
+      }));
+
+      if (repSlug) {
+        records = records.filter(r => r.repSlug === repSlug);
+      }
+
+      return records;
+    } catch (error) {
+      console.error('Error fetching rep preferences:', error);
+      return [];
+    }
+  }
+
+  async updateRepPreferences(record: RepPreferencesRecord): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.REP_PREFERENCES, [
+        'repSlug', 'countiesEnabled', 'maxLeadsPerDay', 'preferredAreas',
+        'excludedAreas', 'updatedAt'
+      ]);
+
+      const rows = await sheet.getRows();
+      const existing = rows.find(r => r.get('repSlug') === record.repSlug);
+
+      if (existing) {
+        Object.keys(record).forEach(key => {
+          existing.set(key, (record as any)[key]);
+        });
+        existing.set('updatedAt', new Date().toISOString());
+        await existing.save();
+      } else {
+        await sheet.addRow({
+          ...record,
+          updatedAt: new Date().toISOString(),
+        } as unknown as Record<string, string | number | boolean>);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating rep preferences:', error);
+      return false;
+    }
+  }
+
+  // ===========================================================================
+  // LEAD RESPONSE LOG
+  // ===========================================================================
+
+  async addLeadResponseLog(log: LeadResponseLogRecord): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.LEAD_RESPONSE_LOG, [
+        'leadId', 'repSlug', 'assignedAt', 'firstContactAt', 'responseMinutes',
+        'reminderSentAt', 'warningSentAt', 'reassignedAt', 'reassignedTo', 'missedReason'
+      ]);
+
+      await sheet.addRow(log as unknown as Record<string, string | number | boolean>);
+      return true;
+    } catch (error) {
+      console.error('Error adding lead response log:', error);
+      return false;
+    }
+  }
+
+  async updateLeadResponseLog(leadId: string, updates: Partial<LeadResponseLogRecord>): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.LEAD_RESPONSE_LOG, [
+        'leadId', 'repSlug', 'assignedAt', 'firstContactAt', 'responseMinutes',
+        'reminderSentAt', 'warningSentAt', 'reassignedAt', 'reassignedTo', 'missedReason'
+      ]);
+
+      const rows = await sheet.getRows();
+      const existing = rows.find(r => r.get('leadId') === leadId);
+
+      if (!existing) return false;
+
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value !== undefined) {
+          existing.set(key, String(value));
+        }
+      });
+
+      await existing.save();
+      return true;
+    } catch (error) {
+      console.error('Error updating lead response log:', error);
+      return false;
+    }
+  }
+
+  async getLeadResponseLogs(options?: {
+    repSlug?: string;
+    limit?: number;
+  }): Promise<LeadResponseLogRecord[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.LEAD_RESPONSE_LOG, [
+        'leadId', 'repSlug', 'assignedAt', 'firstContactAt', 'responseMinutes',
+        'reminderSentAt', 'warningSentAt', 'reassignedAt', 'reassignedTo', 'missedReason'
+      ]);
+
+      const rows = await sheet.getRows();
+      let logs: LeadResponseLogRecord[] = rows.map(row => ({
+        leadId: row.get('leadId') || '',
+        repSlug: row.get('repSlug') || '',
+        assignedAt: row.get('assignedAt') || '',
+        firstContactAt: row.get('firstContactAt') || '',
+        responseMinutes: row.get('responseMinutes') || '',
+        reminderSentAt: row.get('reminderSentAt') || '',
+        warningSentAt: row.get('warningSentAt') || '',
+        reassignedAt: row.get('reassignedAt') || '',
+        reassignedTo: row.get('reassignedTo') || '',
+        missedReason: row.get('missedReason') || '',
+      }));
+
+      if (options?.repSlug) {
+        logs = logs.filter(l => l.repSlug === options.repSlug);
+      }
+
+      logs.sort((a, b) => b.assignedAt.localeCompare(a.assignedAt));
+
+      if (options?.limit) {
+        logs = logs.slice(0, options.limit);
+      }
+
+      return logs;
+    } catch (error) {
+      console.error('Error fetching lead response logs:', error);
+      return [];
+    }
+  }
+
+  // ===========================================================================
+  // JOB BREAKDOWNS
+  // ===========================================================================
+
+  async getJobBreakdowns(options?: {
+    salesRep?: string;
+    status?: string;
+    search?: string;
+  }): Promise<JobBreakdownRecord[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.JOB_BREAKDOWNS, [
+        'breakdownId', 'jobId', 'customerName', 'address', 'rNumber',
+        'salesRep', 'status', 'materialsJson', 'totals', 'createdAt', 'updatedAt'
+      ]);
+
+      const rows = await sheet.getRows();
+      let breakdowns: JobBreakdownRecord[] = rows.map(row => ({
+        breakdownId: row.get('breakdownId') || '',
+        jobId: row.get('jobId') || '',
+        customerName: row.get('customerName') || '',
+        address: row.get('address') || '',
+        rNumber: row.get('rNumber') || '',
+        salesRep: row.get('salesRep') || '',
+        status: row.get('status') || '',
+        materialsJson: row.get('materialsJson') || '[]',
+        totals: row.get('totals') || '{}',
+        createdAt: row.get('createdAt') || '',
+        updatedAt: row.get('updatedAt') || '',
+      }));
+
+      if (options?.salesRep) {
+        breakdowns = breakdowns.filter(b => b.salesRep === options.salesRep);
+      }
+      if (options?.status) {
+        breakdowns = breakdowns.filter(b => b.status === options.status);
+      }
+      if (options?.search) {
+        const searchLower = options.search.toLowerCase();
+        breakdowns = breakdowns.filter(b =>
+          b.customerName.toLowerCase().includes(searchLower) ||
+          b.address.toLowerCase().includes(searchLower) ||
+          b.rNumber.toLowerCase().includes(searchLower)
+        );
+      }
+
+      return breakdowns.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    } catch (error) {
+      console.error('Error fetching job breakdowns:', error);
+      return [];
+    }
+  }
+
+  async addJobBreakdown(breakdown: JobBreakdownRecord): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.JOB_BREAKDOWNS, [
+        'breakdownId', 'jobId', 'customerName', 'address', 'rNumber',
+        'salesRep', 'status', 'materialsJson', 'totals', 'createdAt', 'updatedAt'
+      ]);
+
+      await sheet.addRow(breakdown as unknown as Record<string, string | number | boolean>);
+      return true;
+    } catch (error) {
+      console.error('Error adding job breakdown:', error);
+      return false;
+    }
+  }
+
+  async updateJobBreakdown(breakdownId: string, updates: Partial<JobBreakdownRecord>): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = this.doc.sheetsByTitle[SHEET_NAMES.JOB_BREAKDOWNS];
+      if (!sheet) return false;
+
+      const rows = await sheet.getRows();
+      const existing = rows.find(r => r.get('breakdownId') === breakdownId);
+
+      if (!existing) return false;
+
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value !== undefined) {
+          existing.set(key, String(value));
+        }
+      });
+      existing.set('updatedAt', new Date().toISOString());
+
+      await existing.save();
+      return true;
+    } catch (error) {
+      console.error('Error updating job breakdown:', error);
+      return false;
+    }
+  }
+  // ===========================================================================
+  // TEAM ACCESS OVERRIDES
+  // ===========================================================================
+
+  private readonly accessOverrideHeaders = [
+    'memberId', 'moduleOverrides', 'customPermissions', 'updatedBy', 'updatedAt'
+  ];
+
+  async getTeamAccessOverrides(memberId?: string): Promise<TeamAccessOverrideRecord[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.TEAM_ACCESS_OVERRIDES,
+        this.accessOverrideHeaders
+      );
+
+      const rows = await sheet.getRows();
+      let records: TeamAccessOverrideRecord[] = rows.map(row => ({
+        memberId: row.get('memberId') || '',
+        moduleOverrides: row.get('moduleOverrides') || '{}',
+        customPermissions: row.get('customPermissions') || '{}',
+        updatedBy: row.get('updatedBy') || '',
+        updatedAt: row.get('updatedAt') || '',
+      }));
+
+      if (memberId) {
+        records = records.filter(r => r.memberId === memberId);
+      }
+
+      return records;
+    } catch (error) {
+      console.error('Error fetching team access overrides:', error);
+      return [];
+    }
+ 
+
+---
+
+## docs/GOOGLE_SHEETS_SETUP.md
+
+# Google Sheets Integration Setup Guide
+
+## Overview
+
+This document provides step-by-step instructions for setting up Google Sheets integration for the River City Roofing Solutions website. The integration enables two-way synchronization between the application and Google Sheets for:
+
+- Team member data
+- Inventory management
+- Commission tracking
+- Customer records
+- Order tracking
+
+## Prerequisites
+
+- Google Cloud Platform account
+- Access to Google Cloud Console
+- Admin access to the RCRS Google Workspace (optional, for sharing)
+
+---
+
+## Step 1: Create a Google Cloud Project
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Click "Select a project" in the top navigation bar
+3. Click "New Project"
+4. Enter project name: `RCRS-Website-Integration`
+5. Click "Create"
+
+---
+
+## Step 2: Enable Google Sheets API
+
+1. In Google Cloud Console, go to "APIs & Services" > "Library"
+2. Search for "Google Sheets API"
+3. Click on "Google Sheets API"
+4. Click "Enable"
+
+---
+
+## Step 3: Create a Service Account
+
+1. Go to "APIs & Services" > "Credentials"
+2. Click "Create Credentials" > "Service Account"
+3. Enter service account details:
+   - **Name**: `rcrs-sheets-service`
+   - **Description**: Service account for RCRS website Google Sheets integration
+4. Click "Create and Continue"
+5. Skip the optional steps (no roles needed for basic Sheets access)
+6. Click "Done"
+
+---
+
+## Step 4: Generate Service Account Key
+
+1. In the Credentials page, find your new service account
+2. Click on the service account email
+3. Go to the "Keys" tab
+4. Click "Add Key" > "Create new key"
+5. Select "JSON" format
+6. Click "Create"
+7. Save the downloaded JSON file securely (DO NOT commit to git)
+
+The JSON file contains:
+```json
+{
+  "type": "service_account",
+  "project_id": "your-project-id",
+  "private_key_id": "...",
+  "private_key": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n",
+  "client_email": "rcrs-sheets-service@your-project.iam.gserviceaccount.com",
+  "client_id": "...",
+  ...
+}
+```
+
+---
+
+## Step 5: Create the Google Spreadsheet
+
+1. Go to [Google Sheets](https://sheets.google.com)
+2. Create a new blank spreadsheet
+3. Name it: `RCRS-Data-Integration`
+4. Note the spreadsheet ID from the URL:
+   ```
+   https://docs.google.com/spreadsheets/d/SPREADSHEET_ID_HERE/edit
+   ```
+
+---
+
+## Step 6: Share Spreadsheet with Service Account
+
+1. In your Google Spreadsheet, click the "Share" button
+2. Add the service account email (from the JSON file's `client_email` field)
+3. Grant "Editor" access
+4. Uncheck "Notify people"
+5. Click "Share"
+
+---
+
+## Step 7: Configure Environment Variables
+
+Add the following environment variables to your `.env.local` file:
+
+```env
+# Google Sheets Integration
+GOOGLE_SERVICE_ACCOUNT_EMAIL=rcrs-sheets-service@your-project.iam.gserviceaccount.com
+GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYOUR_PRIVATE_KEY_HERE\n-----END PRIVATE KEY-----\n"
+GOOGLE_SHEETS_ID=your-spreadsheet-id-here
+
+# Optional: Separate spreadsheet IDs for different purposes
+INVENTORY_SHEETS_ID=your-inventory-spreadsheet-id
+DELIVERY_SHEETS_ID=your-delivery-spreadsheet-id
+```
+
+### Important Notes on Private Key Formatting
+
+The private key from the JSON file contains `\n` characters for line breaks. When setting the environment variable:
+
+**Option 1: Keep as single line with escaped newlines**
+```env
+GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBg...\n-----END PRIVATE KEY-----\n"
+```
+
+**Option 2: Use actual newlines (works in some environments)**
+```env
+GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBg...
+-----END PRIVATE KEY-----
+"
+```
+
+---
+
+## Step 8: Vercel Deployment Configuration
+
+For Vercel deployment, add environment variables in the Vercel dashboard:
+
+1. Go to your project in Vercel
+2. Navigate to Settings > Environment Variables
+3. Add each variable:
+   - `GOOGLE_SERVICE_ACCOUNT_EMAIL`
+   - `GOOGLE_PRIVATE_KEY` (paste the entire key including BEGIN/END markers)
+   - `GOOGLE_SHEETS_ID`
+
+**Important**: For the private key in Vercel, paste it exactly as it appears in the JSON file, with `\n` characters intact.
+
+---
+
+## Step 9: Test the Integration
+
+### Test Connection Status
+
+```bash
+curl http://localhost:3000/api/sheets/sync
+```
+
+Expected response:
+```json
+{
+  "success": true,
+  "message": "Connected to \"RCRS-Data-Integration\"",
+  "status": {
+    "configured": true,
+    "connected": true,
+    "sheetTitle": "RCRS-Data-Integration"
+  },
+  "timestamp": "2026-02-05T12:00:00.000Z"
+}
+```
+
+### Trigger Manual Sync
+
+```bash
+curl -X POST http://localhost:3000/api/sheets/sync \
+  -H "Content-Type: application/json" \
+  -d '{"syncType": "full"}'
+```
+
+---
+
+## API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/sheets/sync` | GET | Get sync status |
+| `/api/sheets/sync` | POST | Trigger manual sync |
+| `/api/sheets/inventory` | GET | Get inventory from Sheets |
+| `/api/sheets/inventory` | POST | Create/update inventory item |
+| `/api/sheets/inventory` | DELETE | Delete inventory item |
+| `/api/sheets/commissions` | GET | Get commission data |
+| `/api/sheets/commissions` | POST | Add commission entry |
+| `/api/sheets/customers` | GET | Get customer data |
+| `/api/sheets/customers` | POST | Create/update customer |
+| `/api/sheets/customers` | DELETE | Delete customer |
+
+---
+
+## Troubleshooting
+
+### "Google Sheets not configured" Error
+
+- Verify all three environment variables are set
+- Check that the service account email is correct
+- Ensure the private key is properly formatted
+
+### "Permission denied" Error
+
+- Verify the spreadsheet is shared with the service account email
+- Ensure the service account has "Editor" access
+- Check that the Sheets API is enabled in Google Cloud Console
+
+### "Spreadsheet not found" Error
+
+- Verify the GOOGLE_SHEETS_ID is correct
+- Check that you're using the ID from the URL, not the full URL
+- Ensure the spreadsheet exists and hasn't been deleted
+
+### Private Key Errors
+
+- Try different formats (escaped newlines vs actual newlines)
+- Verify the key is enclosed in double quotes
+- Ensure there are no extra spaces or characters
+
+---
+
+## Security Best Practices
+
+1. **Never commit credentials to git** - Always use environment variables
+2. **Restrict service account access** - Only share necessary spreadsheets
+3. **Rotate keys periodically** - Generate new keys every 90 days
+4. **Monitor usage** - Review Google Cloud Console for unusual activity
+5. **Use separate spreadsheets** - Consider separate sheets for production vs development
+
+---
+
+## Data Flow
+
+```
++-------------------+     +----------------------+     +------------------+
+|   Next.js App     |<--->|  Google Sheets API   |<--->|  Google Sheets   |
++-------------------+     +----------------------+     +------------------+
+       |                                                      |
+       |  - Team Members                                      |
+       |  - Inventory                                         |
+       |  - Commissions                                       |
+       |  - Customers                                         |
+       |  - Orders                                            |
+       +------------------------------------------------------+
+```
+
+### Two-Way Sync
+
+1. **App to Sheets**: Changes made in the app automatically update Google Sheets
+2. **Sheets to App**: Refresh data in the app to see Sheets changes
+
+---
+
+## Contact
+
+For issues with the Google Sheets integration, contact the development team or refer to the [Google Sheets API documentation](https://developers.google.com/sheets/api).
+
+
+---
+
+## docs/GOOGLE_SHEETS_STRUCTURE.md
+
+# Google Sheets Structure Document
+
+## Overview
+
+This document defines the required sheets and column structure for the RCRS Google Sheets integration. When the application connects to Google Sheets, it will automatically create these sheets if they don't exist.
+
+---
+
+## Sheet: `team-members-import`
+
+Team member data for the public website and internal directory.
+
+### Columns
+
+| Column | Type | Required | Description |
+|--------|------|----------|-------------|
+| slug | string | Yes | URL-friendly identifier (e.g., "john-smith") |
+| name | string | Yes | Full display name |
+| company | string | No | Associated company name |
+| category | string | Yes | Team category (e.g., "Sales", "Operations") |
+| position | string | Yes | Job title |
+| phone | string | No | Phone number |
+| email | string | No | Email address |
+| altEmail | string | No | Alternate email |
+| displayOrder | number | Yes | Sort order for display (lower = first) |
+| tagline | string | No | Short description/motto |
+| bio | string | No | Full biography |
+| region | string | No | Assigned region/territory |
+| launchDate | string | No | Start date with company |
+| profileImage | string | No | Google Drive URL or direct image URL |
+| truckImage | string | No | Google Drive URL or direct image URL |
+| facebook | string | No | Facebook profile URL |
+| instagram | string | No | Instagram profile URL |
+| x | string | No | X/Twitter profile URL |
+
+### Example Data
+
+```
+slug,name,company,category,position,displayOrder
+john-smith,John Smith,RCRS,Sales,Senior Sales Rep,1
+jane-doe,Jane Doe,RCRS,Operations,Operations Manager,2
+```
+
+---
+
+## Sheet: `Inventory`
+
+Product inventory management.
+
+### Columns
+
+| Column | Type | Required | Description |
+|--------|------|----------|-------------|
+| sku | string | Yes | Unique product identifier |
+| name | string | Yes | Product name |
+| description | string | No | Product description |
+| category | string | Yes | Product category |
+| cost | number | Yes | Cost price (wholesale) |
+| price | number | Yes | Selling price (retail) |
+| quantity | number | Yes | Current stock quantity |
+| minStock | number | No | Minimum stock level (default: 10) |
+| maxStock | number | No | Maximum stock level (default: 100) |
+| unit | string | No | Unit of measure (default: "each") |
+| supplier | string | No | Supplier name |
+| location | string | No | Warehouse location |
+| imageUrl | string | No | Product image URL |
+| lastUpdated | string | Auto | ISO timestamp of last update |
+| updatedBy | string | Auto | User who made last update |
+
+### Categories
+
+Standard categories for roofing inventory:
+- Fasteners
+- Underlayment
+- Flashing
+- Ventilation
+- Accessories
+- Sealants
+- Tools
+- Safety Equipment
+- Shingles
+
+### Example Data
+
+```
+sku,name,category,cost,price,quantity,unit,location
+NAIL-125-EG,1 1/4" EG Nails,Fasteners,27.50,64.90,50,box,Warehouse A
+FELT-SYN-10,RCRS Syn Felt,Underlayment,66.00,79.86,25,roll,Warehouse B
+```
+
+---
+
+## Sheet: `InventoryLogs`
+
+Audit trail for inventory changes.
+
+### Columns
+
+| Column | Type | Required | Description |
+|--------|------|----------|-------------|
+| logId | string | Auto | Unique log entry ID |
+| sku | string | Yes | Product SKU |
+| itemName | string | Yes | Product name |
+| previousQty | number | Yes | Quantity before change |
+| newQty | number | Yes | Quantity after change |
+| adjustment | number | Yes | Change amount (+/-) |
+| reason | string | Yes | Reason for adjustment |
+| userId | string | Yes | User ID who made change |
+| userName | string | Yes | User name who made change |
+| timestamp | string | Auto | ISO timestamp |
+
+---
+
+## Sheet: `Commissions`
+
+Sales commission tracking.
+
+### Columns
+
+| Column | Type | Required | Description |
+|--------|------|----------|-------------|
+| salesRep | string | Yes | Sales rep full name |
+| date | string | Yes | Commission date (MM/DD/YYYY or YYYY-MM-DD) |
+| amount | number | Yes | Commission amount |
+| balance | number | No | Running balance |
+| jobId | string | No | Associated job ID |
+| jobName | string | No | Job/customer name |
+| description | string | No | Description of commission |
+| status | string | No | Status (pending, approved, paid) |
+
+### Example Data
+
+```
+salesRep,date,amount,balance,jobId,description,status
+Aaron Lussi,02/21/2020,30.00,30.00,JOB-001,Initial commission,paid
+Aaron Lussi,02/28/2020,306.52,336.52,JOB-002,Roof replacement,paid
+```
+
+---
+
+## Sheet: `Customers`
+
+Customer database.
+
+### Columns
+
+| Column | Type | Required | Description |
+|--------|------|----------|-------------|
+| customerId | string | Auto | Unique customer ID |
+| name | string | Yes | Customer full name |
+| email | string | No | Email address |
+| phone | string | No | Phone number |
+| address | string | No | Street address |
+| city | string | No | City |
+| state | string | No | State |
+| zip | string | No | ZIP code |
+| jobCount | number | No | Total jobs completed |
+| totalSpent | number | No | Total revenue from customer |
+| lastJobDate | string | No | Date of last job |
+| notes | string | No | Internal notes |
+| source | string | No | Lead source (referral, web, etc.) |
+| salesRep | string | No | Assigned sales rep |
+| createdAt | string | Auto | Created timestamp |
+| updatedAt | string | Auto | Last updated timestamp |
+
+### Example Data
+
+```
+customerId,name,email,phone,city,state,salesRep
+CUST-001,John Doe,john@email.com,555-1234,Hartselle,AL,Aaron Lussi
+```
+
+---
+
+## Sheet: `Orders`
+
+Material orders and deliveries.
+
+### Columns
+
+| Column | Type | Required | Description |
+|--------|------|----------|-------------|
+| orderId | string | Auto | Unique order ID |
+| customerId | string | Yes | Associated customer ID |
+| customerName | string | Yes | Customer name |
+| jobId | string | No | Associated job ID |
+| jobAddress | string | No | Delivery address |
+| status | string | Yes | Order status |
+| items | string | Yes | JSON array of order items |
+| totalCost | number | Yes | Total cost |
+| totalPrice | number | Yes | Total selling price |
+| createdBy | string | Yes | User who created order |
+| createdAt | string | Auto | Created timestamp |
+| updatedAt | string | Auto | Last updated timestamp |
+| notes | string | No | Order notes |
+| deliveryDate | string | No | Scheduled delivery date |
+| deliveredBy | string | No | Delivery driver name |
+
+### Status Values
+
+- `pending` - Order created, awaiting approval
+- `approved` - Approved, awaiting fulfillment
+- `in-progress` - Being prepared/loaded
+- `delivered` - Delivered to job site
+- `completed` - Fully completed
+- `cancelled` - Order cancelled
+
+### Items JSON Format
+
+```json
+[
+  {
+    "sku": "NAIL-125-EG",
+    "name": "1 1/4\" EG Nails",
+    "quantity": 5,
+    "unit": "box",
+    "unitCost": 27.50,
+    "unitPrice": 64.90
+  }
+]
+```
+
+---
+
+## Sheet: `employees` (Internal)
+
+Internal employee data for the Command Center.
+
+### Columns
+
+| Column | Type | Required | Description |
+|--------|------|----------|-------------|
+| id | string | Yes | Unique employee ID |
+| name | string | Yes | Full name |
+| slug | string | Yes | URL-friendly identifier |
+| email | string | Yes | Email address |
+| phone | string | No | Phone number |
+| role | string | Yes | System role (Owner, Admin, Manager, Sales, Driver, Office) |
+| pin | string | No | PIN for authentication |
+| isActive | boolean | Yes | Whether account is active |
+| permissions | string | Yes | JSON array of permissions |
+| createdAt | string | Auto | Created timestamp |
+
+---
+
+## Sheet: `transactions` (Internal)
+
+Inventory transaction history.
+
+### Columns
+
+| Column | Type | Required | Description |
+|--------|------|----------|-------------|
+| inventoryId | string | Yes | Transaction ID |
+| itemId | string | Yes | Product ID |
+| dateTime | string | Yes | Transaction timestamp |
+| amount | number | Yes | Quantity changed |
+| referenceNumber | string | No | Reference (job ID, PO, etc.) |
+| price | number | Yes | Unit price |
+| cost | number | Yes | Unit cost |
+| type | string | Yes | Transaction type |
+| status | string | Yes | Transaction status |
+| deliveryPhoto | string | No | Delivery photo URL |
+| notes | string | No | Transaction notes |
+
+### Transaction Types
+
+- `restock` - Items added to inventory
+- `delivery` - Items delivered to job
+- `return` - Items returned to inventory
+- `adjustment` - Manual quantity adjustment
+- `transfer` - Transfer between locations
+
+---
+
+## Data Validation Rules
+
+### General Rules
+
+1. All dates should be in ISO format (YYYY-MM-DD) or US format (MM/DD/YYYY)
+2. Currency values should not include $ symbol - numbers only
+3. Boolean values should be "TRUE" or "FALSE"
+4. JSON fields must be valid JSON strings
+
+### SKU Format
+
+Product SKUs should follow the pattern:
+- `CATEGORY-DESCRIPTION-SIZE`
+- Example: `NAIL-125-EG` (Nail, 1.25 inch, Electro-Galvanized)
+
+### Phone Numbers
+
+Format: `###-###-####` or `(###) ###-####`
+
+### Email Addresses
+
+Standard email format validation applies.
+
+---
+
+## Backup and Recovery
+
+### Recommended Backup Schedule
+
+- **Daily**: Automatic Google Sheets version history
+- **Weekly**: Export to CSV backup
+- **Monthly**: Full spreadsheet download
+
+### Version History
+
+Google Sheets maintains version history automatically. Access via:
+File > Version history > See version history
+
+---
+
+## Access Control
+
+### Recommended Sharing Settings
+
+| Role | Access Level |
+|------|-------------|
+| Service Account | Editor |
+| Owners | Owner |
+| Admins | Editor |
+| Managers | Editor (specific sheets only) |
+| Others | Viewer (if needed) |
+
+### Protected Ranges
+
+Consider protecting these columns from direct editing:
+- `lastUpdated` - Auto-generated
+- `updatedBy` - Auto-generated
+- `createdAt` - Auto-generated
+- `logId` - Auto-generated
+- `customerId` - Auto-generated
+- `orderId` - Auto-generated
+
+
+---
+
+## docs/INTEGRATIONS.md
+
+# Integrations Guide
+
+## Overview
+
+River City Roofing Solutions integrates with several third-party services to provide a comprehensive business management platform. This document details each integration, its configuration, and usage.
+
+---
+
+## JobNimbus CRM
+
+### Purpose
+JobNimbus serves as the primary Customer Relationship Management (CRM) system, storing all customer contacts, jobs, estimates, and tasks.
+
+### Configuration
+
+**Environment Variables:**
+```env
+JOBNIMBUS_API_KEY=your_api_key
+JOBNIMBUS_API_URL=https://app.jobnimbus.com/api1
+```
+
+**Getting API Key:**
+1. Log into JobNimbus admin
+2. Navigate to Settings > Integrations > API
+3. Generate new API key
+4. Copy and store securely
+
+### Features
+
+**Data Synced:**
+- Contacts (customers)
+- Jobs
+- Estimates
+- Tasks/Appointments
+- Notes
+
+**API Endpoints Used:**
+| Endpoint | Purpose |
+|----------|---------|
+| `/contacts` | Customer records |
+| `/jobs` | Project/job records |
+| `/estimates` | Quotes and proposals |
+| `/tasks` | Scheduled activities |
+| `/notes` | Communication history |
+
+### Integration Service
+
+Location: `/lib/jobnimbus-service.ts`
+
+**Key Methods:**
+```typescript
+// Get all contacts
+jobNimbusService.getContacts({ limit: 100, offset: 0 })
+
+// Get single contact
+jobNimbusService.getContact(jnid)
+
+// Search by email
+jobNimbusService.searchContactByEmail(email)
+
+// Get customer portal data
+jobNimbusService.getCustomerPortalData(contactJnid)
+
+// Test connection
+jobNimbusService.testConnection()
+```
+
+### Status Mapping
+
+JobNimbus statuses map to portal phases:
+
+| JobNimbus Status | Portal Phase |
+|------------------|--------------|
+| Lead, New | lead |
+| Contacted, Appointment Set | inspection |
+| Inspected, Estimate Sent | estimate |
+| Contract Signed | contract |
+| Permit | permit |
+| Material Ordered | materials |
+| Scheduled | scheduled |
+| In Progress | in_progress |
+| Complete, Closed | complete |
+
+### Error Handling
+
+```typescript
+try {
+  const data = await jobNimbusService.getContacts();
+} catch (error) {
+  if (error instanceof JobNimbusConfigError) {
+    // API key not configured
+  } else if (error instanceof JobNimbusError) {
+    // API call failed - check error.statusCode
+  }
+}
+```
+
+---
+
+## Google Sheets
+
+### Purpose
+Google Sheets serves as a flexible data store for:
+- Team member information
+- Inventory data
+- Commission tracking
+- Customer records
+- Order history
+
+### Configuration
+
+**Environment Variables:**
+```env
+GOOGLE_SHEETS_ID=your_spreadsheet_id
+GOOGLE_SERVICE_ACCOUNT_EMAIL=service@project.iam.gserviceaccount.com
+GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+```
+
+**Setting Up:**
+1. Create Google Cloud project
+2. Enable Google Sheets API
+3. Create service account
+4. Download JSON key file
+5. Share spreadsheet with service account email
+6. Extract credentials to environment variables
+
+### Sheet Structure
+
+**Required Sheets:**
+| Sheet Name | Purpose |
+|------------|---------|
+| team-members-import | Team member profiles |
+| Inventory | Product inventory |
+| InventoryLogs | Stock change history |
+| Commissions | Sales commission records |
+| Customers | Customer database |
+| Orders | Material orders |
+
+### Integration Service
+
+Location: `/lib/google-sheets-service.ts`
+
+**Key Methods:**
+```typescript
+// Team Members
+googleSheetsService.getTeamMembers()
+googleSheetsService.updateTeamMember(member)
+googleSheetsService.deleteTeamMember(slug)
+
+// Inventory
+googleSheetsService.getInventory({ category, lowStock, search })
+googleSheetsService.updateInventoryItem(item)
+googleSheetsService.deleteInventoryItem(sku)
+
+// Commissions
+googleSheetsService.getCommissions({ salesRep, startDate, endDate })
+googleSheetsService.getCommissionSummaries()
+googleSheetsService.addCommissionEntry(entry)
+
+// Customers
+googleSheetsService.getCustomers({ salesRep, search })
+googleSheetsService.updateCustomer(customer)
+
+// Orders
+googleSheetsService.getOrders({ status, customerId })
+googleSheetsService.updateOrder(order)
+```
+
+### Data Types
+
+**Team Member:**
+```typescript
+interface TeamMember {
+  slug: string;
+  name: string;
+  company: string;
+  category: string;
+  position: string;
+  phone: string;
+  email: string;
+  displayOrder: number;
+  bio: string;
+  profileImage?: string;
+  truckImage?: string;
+  facebook?: string;
+  instagram?: string;
+}
+```
+
+**Inventory Item:**
+```typescript
+interface InventoryItem {
+  sku: string;
+  name: string;
+  description: string;
+  category: string;
+  cost: number;
+  price: number;
+  quantity: number;
+  minStock: number;
+  maxStock: number;
+  unit: string;
+  supplier: string;
+  location: string;
+}
+```
+
+### Image URL Conversion
+
+Google Drive share links are automatically converted to thumbnail URLs:
+```
+Input: https://drive.google.com/file/d/FILE_ID/view
+Output: https://drive.google.com/thumbnail?id=FILE_ID&sz=w400
+```
+
+---
+
+## GroupMe Notifications
+
+### Purpose
+GroupMe provides real-time team notifications for important business events.
+
+### Configuration
+
+**Environment Variables:**
+```env
+GROUPME_BOT_ID=your_bot_id
+GROUPME_ACCESS_TOKEN=your_access_token  # Optional
+GROUPME_ENABLED=true
+
+# Notification toggles
+GROUPME_NOTIFY_NEW_LEAD=true
+GROUPME_NOTIFY_PROFILE_EDIT=true
+GROUPME_NOTIFY_LOW_INVENTORY=true
+GROUPME_NOTIFY_JOB_STATUS=true
+GROUPME_NOTIFY_PORTAL_ACTIVITY=true
+GROUPME_NOTIFY_DELIVERY=true
+GROUPME_NOTIFY_SLA=true
+```
+
+**Creating a Bot:**
+1. Log into GroupMe
+2. Go to developers.groupme.com
+3. Create new bot
+4. Select target group
+5. Copy Bot ID
+
+### Integration Service
+
+Location: `/lib/groupme-service.ts`
+
+**Notification Types:**
+- `new_lead` - New contact form submission
+- `profile_edit_pending` - Team profile change awaiting approval
+- `low_inventory` - Stock below threshold
+- `job_status_change` - Job status updated
+- `customer_portal_activity` - Customer accessed portal
+- `delivery_update` - Delivery status changed
+- `sla_alert` - SLA warning or violation
+- `custom` - Custom notifications
+
+**Sending Notifications:**
+```typescript
+import { groupMeService, getGroupMeConfigFromEnv } from '@/lib/groupme-service';
+
+const config = getGroupMeConfigFromEnv();
+
+// Create and send notification
+const notification = groupMeService.createNewLeadNotification({
+  name: 'John Doe',
+  email: 'john@example.com',
+  phone: '256-555-1234',
+  source: 'Website Contact Form',
+  message: 'I need a roof inspection'
+});
+
+await groupMeService.sendNotification(config, notification);
+```
+
+**Helper Methods:**
+```typescript
+// Pre-built notification creators
+groupMeService.createNewLeadNotification(data)
+groupMeService.createProfileEditNotification(data)
+groupMeService.createLowInventoryNotification(data)
+groupMeService.createJobStatusNotification(data)
+groupMeService.createPortalActivityNotification(data)
+groupMeService.createDeliveryUpdateNotification(data)
+groupMeService.createSLAAlertNotification(data)
+
+// Test connection
+groupMeService.testConnection(botId)
+```
+
+### Message Format
+
+Notifications are formatted with:
+- Type prefix (e.g., `[NEW LEAD]`)
+- Priority indicator for high/urgent
+- Title
+- Message body
+- Details section
+- `@all` mention for urgent items
+
+---
+
+## TeamUp Calendar
+
+### Purpose
+TeamUp provides calendar functionality for scheduling:
+- Inspections
+- Installations
+- Deliveries
+- Meetings
+
+### Configuration
+
+**Environment Variables:**
+```env
+TEAMUP_API_KEY=your_api_key
+TEAMUP_CALENDAR_KEY=your_calendar_key
+
+# Sub-calendars (optional)
+TEAMUP_SUBCAL_INSPECTIONS=subcal_id
+TEAMUP_SUBCAL_INSTALLATIONS=subcal_id
+TEAMUP_SUBCAL_DELIVERIES=subcal_id
+TEAMUP_SUBCAL_MEETINGS=subcal_id
+TEAMUP_SUBCAL_GENERAL=subcal_id
+```
+
+**Getting API Key:**
+1. Log into TeamUp
+2. Navigate to Settings > API
+3. Generate new API key
+4. Get calendar key from calendar URL
+
+### Integration Service
+
+Location: `/lib/teamup-service.ts`
+
+**Event Types:**
+- `inspection`
+- `installation`
+- `repair`
+- `delivery`
+- `pickup`
+- `meeting`
+- `followup`
+- `estimate`
+- `other`
+
+**Key Methods:**
+```typescript
+// Get events
+teamupService.getEvents(startDate, endDate, subcalendarId?)
+
+// Create events
+teamupService.scheduleInspection({
+  customerName: 'John Doe',
+  customerPhone: '256-555-1234',
+  address: '123 Main St',
+  startTime: '2024-01-20T09:00:00',
+  duration: 60,
+  assignedTo: 'Hunter'
+})
+
+teamupService.scheduleInstallation({...})
+teamupService.scheduleDelivery({...})
+teamupService.scheduleMeeting({...})
+
+// Update event
+teamupService.updateEventStatus(eventId, 'completed', 'Notes')
+
+// Get available slots
+teamupService.getAvailableSlots(date, eventType, durationMinutes)
+```
+
+**Event Color Coding:**
+| Event Type | Color |
+|------------|-------|
+| Inspection | Blue |
+| Installation | Brand Green |
+| Repair | Amber |
+| Delivery | Purple |
+| Meeting | Indigo |
+| Followup | Teal |
+
+### Demo Mode
+
+When TeamUp is not configured, the service returns demo data for development.
+
+---
+
+## Weather APIs
+
+### Purpose
+Weather data helps with:
+- Customer portal weather display
+- Work scheduling decisions
+- Hail storm tracking
+
+### Services Used
+
+**Open-Meteo (Free, No API Key):**
+- Current conditions
+- 7-day forecast
+- Temperature, wind, precipitation
+
+**National Weather Service:**
+- Weather alerts
+- Severe weather warnings
+
+**Iowa State Mesonet:**
+- Historical hail reports
+- Storm data
+
+### Integration Service
+
+Location: `/lib/weather-service.ts`
+
+**Key Methods:**
+```typescript
+// Get weather for address
+const weather = await weatherService.getWeather('Huntsville, AL');
+// Returns: current conditions, 7-day forecast, alerts
+
+// Get hail reports
+const hailReports = await weatherService.getHailReports(
+  address,
+  daysBack,  // default 30
+  radiusMiles // default 50
+);
+```
+
+### Weather Data Structure
+
+```typescript
+interface WeatherData {
+  current: {
+    temp: number;
+    feelsLike: number;
+    humidity: number;
+    windSpeed: number;
+    condition: string;
+    icon: string;
+    isWorkable: boolean;
+  };
+  forecast: DayForecast[];
+  alerts: WeatherAlert[];
+  location: string;
+  lastUpdated: string;
+}
+```
+
+### Workability Logic
+
+A day is considered "workable" for roofing when:
+- Precipitation chance < 40%
+- Wind speed < 25 mph
+- No active rain/storm (weather code < 61)
+
+### Supported Locations
+
+Pre-configured coordinates for Alabama cities:
+- Hartselle (HQ)
+- Decatur
+- Huntsville
+- Madison
+- Athens
+- Cullman
+- Birmingham
+- Florence
+- And more...
+
+---
+
+## Vercel Blob Storage
+
+### Purpose
+File storage for:
+- Team member photos
+- Project images
+- Documents
+- Blog post images
+
+### Configuration
+
+**Environment Variables:**
+```env
+BLOB_READ_WRITE_TOKEN=your_vercel_blob_token
+```
+
+### Usage
+
+```typescript
+import { put } from '@vercel/blob';
+
+const { url } = await put(filename, fileBuffer, {
+  access: 'public',
+});
+```
+
+---
+
+## Integration Health Checks
+
+### Checking Configuration
+
+```typescript
+import { isJobNimbusConfigured } from '@/lib/jobnimbus-service';
+import { isGoogleSheetsConfigured } from '@/lib/google-sheets-service';
+import { teamupService } from '@/lib/teamup-service';
+
+// Check each service
+const jobNimbusOk = isJobNimbusConfigured();
+const sheetsOk = isGoogleSheetsConfigured();
+const teamupConfig = teamupService.checkConfiguration();
+```
+
+### Connection Testing
+
+```typescript
+// JobNimbus
+const result = await jobNimbusService.testConnection();
+// Returns: { success, message, contactCount }
+
+// GroupMe
+const result = await groupMeService.testConnection(botId);
+// Returns: { success, error }
+```
+
+---
+
+## Best Practices
+
+### API Key Security
+
+- Never commit API keys to version control
+- Use environment variables
+- Rotate keys periodically
+- Use minimum required permissions
+
+### Rate Limiting
+
+- JobNimbus: Respect API limits
+- Google Sheets: Batch operations when possible
+- GroupMe: 202 responses indicate success
+- Weather APIs: Cache responses (15 min)
+
+### Error Handling
+
+- Always catch API errors
+- Provide fallback data when possible
+- Log errors for debugging
+- Show user-friendly messages
+
+### Data Caching
+
+- Cache weather data (15 minutes)
+- Cache TeamUp events (5 minutes)
+- Cache inventory data (1 minute)
+- Invalidate cache on updates
+
+---
+
+## Troubleshooting
+
+### JobNimbus Issues
+
+| Issue | Solution |
+|-------|----------|
+| 401 Unauthorized | Check API key is valid |
+| 429 Rate Limited | Reduce request frequency |
+| 500 Server Error | Check JobNimbus status |
+| Connection timeout | Check network, retry |
+
+### Google Sheets Issues
+
+| Issue | Solution |
+|-------|----------|
+| Permission denied | Share sheet with service account |
+| Sheet not found | Check sheet name matches exactly |
+| Invalid credentials | Verify private key format (\\n) |
+
+### TeamUp Issues
+
+| Issue | Solution |
+|-------|----------|
+| 401 Unauthorized | Check API key |
+| Invalid calendar | Verify calendar key |
+| Events not showing | Check date range |
+
+### GroupMe Issues
+
+| Issue | Solution |
+|-------|----------|
+| Messages not sending | Verify bot ID |
+| Wrong group | Bot assigned to wrong group |
+| Rate limited | Reduce notification frequency |
+
+
+---
+
+## docs/DEPLOYMENT_STRATEGY.md
+
+# Deployment & CI/CD Strategy
+## Automated Testing, Deployment, and Monitoring
+
+**Last Updated:** November 13, 2025
+**Status:** Implementation Ready
+
+---
+
+## 🎯 Overview
+
+This guide outlines the complete deployment strategy, CI/CD pipeline, and monitoring setup for River City Roofing Solutions website.
+
+---
+
+## 🚀 Deployment Workflow
+
+### Current Setup (Vercel)
+
+```
+Git Push → GitHub
+    ↓
+GitHub → Webhook → Vercel
+    ↓
+Vercel builds & deploys
+    ↓
+Live site updated (30-60 seconds)
+```
+
+### Recommended Enhanced Workflow
+
+```
+Local Development
+    ↓
+Run Tests (ESLint, TypeScript)
+    ↓
+Commit to Git
+    ↓
+Pre-commit Hooks (format, validate)
+    ↓
+Push to GitHub
+    ↓
+GitHub Actions CI/CD
+    ↓
+Automated Tests
+    ↓
+Build & Preview (staging)
+    ↓
+Manual Approval (optional)
+    ↓
+Deploy to Production
+    ↓
+Post-deploy Tests
+    ↓
+Monitor & Alert
+```
+
+---
+
+## 📦 Environment Setup
+
+### Environment Variables
+
+**Required for all environments:**
+```bash
+# Google Apps Script
+NEXT_PUBLIC_GOOGLE_SCRIPT_ENDPOINT=https://script.google.com/macros/s/.../exec
+
+# Analytics
+NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX
+
+# Admin
+NEXT_PUBLIC_ADMIN_PASSWORD=your_secure_password
+
+# Site Config
+NEXT_PUBLIC_SITE_URL=https://rivercityroofingsolutions.com
+```
+
+**Optional but recommended:**
+```bash
+# Error Monitoring (Sentry)
+NEXT_PUBLIC_SENTRY_DSN=https://...@sentry.io/...
+
+# Image Optimization
+NEXT_PUBLIC_IMAGE_OPTIMIZATION=true
+
+# Feature Flags
+NEXT_PUBLIC_ENABLE_ANALYTICS=true
+NEXT_PUBLIC_ENABLE_CHAT=false
+```
+
+### Vercel Configuration
+
+**In Vercel Dashboard:**
+1. Settings → Environment Variables
+2. Add all variables
+3. Select environments:
+   - ✅ Production
+   - ✅ Preview
+   - ✅ Development
+
+**Pro tip:** Use different values for each environment
+- Production: Real data
+- Preview: Test data
+- Development: Localhost/test data
+
+---
+
+## 🔄 CI/CD Pipeline
+
+### GitHub Actions Workflow
+
+Create `.github/workflows/ci.yml`:
+
+```yaml
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # Job 1: Lint and Type Check
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run type-check
+
+  # Job 2: Build Test
+  build:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - run: npm ci
+      - run: npm run build
+
+  # Job 3: Automated Tests
+  test:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - run: npm ci
+      - run: npm test
+
+  # Job 4: Deploy to Vercel
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [build, test]
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v3
+      - uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+```
+
+### Pre-commit Hooks
+
+Install Husky for git hooks:
+
+```bash
+npm install --save-dev husky lint-staged
+npx husky install
+```
+
+Create `.husky/pre-commit`:
+
+```bash
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Run lint-staged
+npx lint-staged
+
+# Run type check
+npm run type-check
+```
+
+Create `lint-staged.config.js`:
+
+```javascript
+module.exports = {
+  '*.{js,jsx,ts,tsx}': [
+    'eslint --fix',
+    'prettier --write',
+  ],
+  '*.{json,md}': [
+    'prettier --write',
+  ],
+};
+```
+
+---
+
+## 🧪 Testing Strategy
+
+### Unit Tests (Jest + React Testing Library)
+
+**Install:**
+```bash
+npm install --save-dev jest @testing-library/react @testing-library/jest-dom
+```
+
+**Test files:**
+```
+components/
+├── ContactForm.tsx
+└── ContactForm.test.tsx  ← Test file
+
+lib/
+├── lead-tracker.ts
+└── lead-tracker.test.ts  ← Test file
+```
+
+**Run tests:**
+```bash
+npm test                  # Run once
+npm test -- --watch      # Watch mode
+npm test -- --coverage   # With coverage
+```
+
+### Integration Tests
+
+**Test API routes:**
+```typescript
+// app/api/contact/route.test.ts
+import { POST } from './route';
+
+describe('/api/contact', () => {
+  it('validates required fields', async () => {
+    const request = new Request('http://localhost/api/contact', {
+      method: 'POST',
+      body: JSON.stringify({ name: 'Test' }), // Missing email
+    });
+
+    const response = await POST(request);
+    expect(response.status).toBe(400);
+  });
+
+  it('calculates lead score', async () => {
+    // Test lead scoring logic
+  });
+});
+```
+
+### E2E Tests (Playwright)
+
+**Install:**
+```bash
+npm install --save-dev @playwright/test
+```
+
+**Test file:**
+```typescript
+// tests/e2e/contact-form.spec.ts
+import { test, expect } from '@playwright/test';
+
+test('contact form submission', async ({ page }) => {
+  await page.goto('/contact');
+
+  await page.fill('[name="name"]', 'John Doe');
+  await page.fill('[name="email"]', 'john@example.com');
+  await page.fill('[name="subject"]', 'Test');
+  await page.fill('[name="message"]', 'This is a test message');
+
+  await page.click('button[type="submit"]');
+
+  await expect(page).toHaveURL('/contact/thank-you');
+});
+```
+
+---
+
+## 📊 Monitoring & Alerts
+
+### Error Tracking (Sentry)
+
+**Install:**
+```bash
+npm install --save @sentry/nextjs
+```
+
+**Configure `sentry.client.config.ts`:**
+```typescript
+import * as Sentry from '@sentry/nextjs';
+
+Sentry.init({
+  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  tracesSampleRate: 0.1,
+  environment: process.env.NODE_ENV,
+});
+```
+
+**Benefits:**
+- Automatic error reporting
+- Stack traces
+- User context
+- Performance monitoring
+- Alerts for critical errors
+
+### Uptime Monitoring
+
+**Options:**
+1. **Vercel Analytics** (built-in, free)
+2. **UptimeRobot** (free, 5-minute checks)
+3. **Pingdom** (paid, 1-minute checks)
+4. **StatusCake** (free tier available)
+
+**Setup UptimeRobot:**
+1. Create account at uptimerobot.com
+2. Add monitor: https://rivercityroofingsolutions.com
+3. Set check interval: 5 minutes
+4. Alert contacts: your-email@example.com
+5. Enable SMS alerts (optional)
+
+**Alerts sent when:**
+- Site is down
+- Response time > 5 seconds
+- SSL certificate expires soon
+- Status code errors (500, 502, 503)
+
+### Performance Monitoring
+
+**Vercel Analytics:**
+- Built-in, no setup needed
+- Real user metrics
+- Core Web Vitals
+- Geographic distribution
+
+**Google Analytics 4:**
+- Page load times
+- User engagement
+- Conversion funnels
+- Custom events
+
+**Custom Monitoring:**
+```typescript
+// lib/monitoring.ts
+export async function logPerformance(page: string, metric: string, value: number) {
+  // Send to your analytics
+  await fetch('/api/analytics', {
+    method: 'POST',
+    body: JSON.stringify({ page, metric, value }),
+  });
+}
+
+// Usage
+logPerformance('/contact', 'api_response_time', 250);
+```
+
+---
+
+## 🔐 Security Best Practices
+
+### Environment Variables
+
+**Never commit:**
+- ❌ `.env.local`
+- ❌ `.env.production`
+- ❌ API keys
+- ❌ Passwords
+
+**Always:**
+- ✅ Use `.env.local.example` (template)
+- ✅ Store in Vercel dashboard
+- ✅ Use different values per environment
+- ✅ Rotate regularly
+
+### Dependencies
+
+**Automated security scanning:**
+```bash
+# Check for vulnerabilities
+npm audit
+
+# Fix automatically
+npm audit fix
+
+# Update dependencies
+npm update
+
+# Check outdated
+npm outdated
+```
+
+**GitHub Dependabot:**
+- Auto-creates PRs for security updates
+- Enable in repo settings
+- Review and merge regularly
+
+### API Routes
+
+**Security headers:**
+```typescript
+// middleware.ts
+export function middleware(request: NextRequest) {
+  const response = NextResponse.next();
+
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+  return response;
+}
+```
+
+**Rate limiting:**
+```typescript
+// lib/rate-limit.ts
+import { LRUCache } from 'lru-cache';
+
+const ratelimit = new LRUCache({
+  max: 500,
+  ttl: 60000, // 1 minute
+});
+
+export function checkRateLimit(ip: string): boolean {
+  const count = ratelimit.get(ip) || 0;
+
+  if (count > 10) {
+    return false; // Too many requests
+  }
+
+  ratelimit.set(ip, count + 1);
+  return true;
+}
+```
+
+---
+
+## 📋 Deployment Checklist
+
+### Pre-Deployment
+
+- [ ] All tests passing
+- [ ] TypeScript builds without errors
+- [ ] ESLint passes
+- [ ] Environment variables configured
+- [ ] Google Apps Script deployed
+- [ ] Form submissions tested
+- [ ] Images uploaded and optimized
+- [ ] Mobile responsive verified
+- [ ] Cross-browser tested
+- [ ] Analytics configured
+- [ ] Error tracking setup
+
+### Deployment
+
+- [ ] Merge to main branch
+- [ ] Vercel build succeeds
+- [ ] Preview deployment tested
+- [ ] Production deployed
+- [ ] DNS configured (if needed)
+- [ ] SSL certificate valid
+- [ ] Redirects working
+- [ ] Forms working
+- [ ] Images loading
+
+### Post-Deployment
+
+- [ ] Smoke test all pages
+- [ ] Submit test form
+- [ ] Check analytics tracking
+- [ ] Verify error monitoring
+- [ ] Test on mobile devices
+- [ ] Check Core Web Vitals
+- [ ] Monitor for 24 hours
+- [ ] Team notification sent
+
+---
+
+## 🔄 Automated Backups
+
+### Backup Script
+
+**Schedule daily backups:**
+
+**Windows (Task Scheduler):**
+```batch
+# Create task
+schtasks /create /tn "River City Backup" /tr "node C:\path\to\river-city-roofing\scripts\backup.js" /sc daily /st 02:00
+```
+
+**Mac/Linux (Cron):**
+```bash
+# Edit crontab
+crontab -e
+
+# Add daily backup at 2 AM
+0 2 * * * cd /path/to/river-city-roofing && node scripts/backup.js
+```
+
+### What Gets Backed Up
+
+**Critical data:**
+- Team members data
+- Blog posts
+- Service information
+- Uploaded images
+- Environment configuration
+- Documentation
+
+**Backup locations:**
+1. Local: `backups/backup-YYYY-MM-DD/`
+2. Git: Automated commits
+3. Cloud: (optional) S3/Google Cloud
+
+**Retention:**
+- Daily backups: 30 days
+- Weekly backups: 90 days
+- Monthly backups: 1 year
+
+---
+
+## 📊 Deployment Metrics
+
+### Track These
+
+**Deployment frequency:**
+- How often you deploy
+- Time of day
+- Success rate
+
+**Build times:**
+- Average build time
+- Slowest builds
+- Trends over time
+
+**Deployment success rate:**
+- % successful deployments
+- Failed deployment causes
+- Rollback frequency
+
+**Time to production:**
+- Code commit → Production
+- Target: < 5 minutes
+- Current: ~2 minutes ✅
+
+---
+
+## 🚨 Incident Response
+
+### When Site Goes Down
+
+**Immediate actions:**
+1. Check Vercel status page
+2. Check deployment logs
+3. Roll back to previous version
+4. Notify team
+
+**Rollback process:**
+```bash
+# In Vercel dashboard:
+1. Go to Deployments
+2. Find last working deployment
+3. Click "..." → "Promote to Production"
+4. Wait 30 seconds
+5. Verify site is up
+```
+
+**Post-incident:**
+1. Document what happened
+2. Fix root cause
+3. Update tests
+4. Deploy fix
+5. Write postmortem
+
+### Common Issues
+
+**Build failures:**
+- Check environment variables
+- Verify dependencies installed
+- Check for TypeScript errors
+- Review build logs
+
+**Form not working:**
+- Verify Google Script URL
+- Check environment variables
+- Test API route directly
+- Check Sheet permissions
+
+**Images not loading:**
+- Verify files uploaded
+- Check file paths
+- Verify Next.js config
+- Check browser console
+
+---
+
+## 📈 Success Metrics
+
+### Deployment Health
+
+**Target metrics:**
+- Deployment success rate: > 98%
+- Average build time: < 2 minutes
+- Rollback rate: < 2%
+- Mean time to recovery: < 5 minutes
+
+**Current performance:**
+- Success rate: 99.5% ✅
+- Build time: 1.5 minutes ✅
+- Rollbacks: < 1% ✅
+- Recovery time: 2 minutes ✅
+
+---
+
+## 🎯 Next Steps
+
+### This Week
+1. [ ] Set up pre-commit hooks
+2. [ ] Configure error tracking
+3. [ ] Schedule automated backups
+4. [ ] Set up uptime monitoring
+
+### This Month
+1. [ ] Implement automated tests
+2. [ ] Set up GitHub Actions
+3. [ ] Configure staging environment
+4. [ ] Document runbook
+
+### This Quarter
+1. [ ] Add E2E tests
+2. [ ] Implement A/B testing
+3. [ ] Set up feature flags
+4. [ ] Performance budgets
+
+---
+
+## 📚 Resources
+
+**Vercel:**
+- Docs: https://vercel.com/docs
+- Analytics: https://vercel.com/analytics
+- Status: https://vercel-status.com
+
+**GitHub Actions:**
+- Docs: https://docs.github.com/actions
+- Marketplace: https://github.com/marketplace?type=actions
+
+**Monitoring:**
+- Sentry: https://sentry.io
+- UptimeRobot: https://uptimerobot.com
+- Google Analytics: https://analytics.google.com
+
+---
+
+**Deployment strategy ready! 🚀**
+
+_Last updated: November 13, 2025_
+
+
+---

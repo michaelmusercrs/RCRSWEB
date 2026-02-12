@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Calendar, User, ArrowRight } from 'lucide-react';
 import VideoBackground from '@/components/VideoBackground';
-import { generateMetadata as genMeta } from '@/lib/seo';
+import StructuredData from '@/components/StructuredData';
+import { generateMetadata as genMeta, generateCollectionPageSchema, generateBreadcrumbSchema } from '@/lib/seo';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = genMeta({
@@ -16,8 +17,21 @@ export const metadata: Metadata = genMeta({
 });
 
 export default function BlogPage() {
+  const collectionSchema = generateCollectionPageSchema({
+    name: 'Roofing Blog - Tips, Guides & Expert Advice',
+    description: 'Expert roofing tips and guides for North Alabama homeowners. Learn about roof maintenance, materials, storm prep, and when to replace your roof.',
+    url: '/blog',
+    numberOfItems: blogPosts.length,
+  });
+
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: 'Blog', url: '/blog' },
+  ]);
+
   return (
     <div className="min-h-screen text-white">
+      <StructuredData data={[collectionSchema, breadcrumbSchema]} />
       {/* Hero Section */}
       <section className="min-h-[50vh] flex items-center justify-center px-6 py-12 md:py-16">
         <div className="max-w-6xl mx-auto text-center text-white">
@@ -46,7 +60,7 @@ export default function BlogPage() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {blogPosts.map((post) => (
+            {[...blogPosts].reverse().map((post) => (
               <Link key={post.id} href={`/blog/${post.slug}`} className="block">
                 <Card className="border-neutral-800 overflow-hidden hover:border-brand-green transition-all duration-300 group bg-black cursor-pointer h-full">
                   {/* Featured Image */}

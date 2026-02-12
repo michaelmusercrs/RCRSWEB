@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { priceVerificationService } from '@/lib/price-verification-service';
 
 // GET /api/portal/pricing/audit - Get audit summary
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const { searchParams } = new URL(request.url);
 
@@ -23,6 +27,9 @@ export async function GET(request: NextRequest) {
 
 // POST /api/portal/pricing/audit - Setup pricing sheets
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const data = await request.json();
     const { action } = data;

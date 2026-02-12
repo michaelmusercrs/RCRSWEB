@@ -171,7 +171,7 @@ export const jobTickets: Ticket[] = [
     city: 'Huntsville',
     state: 'AL',
     customerName: 'Robert Johnson',
-    customerPhone: '256-555-0101',
+    customerPhone: '',
     materials: [
       { productId: 'item-125', productName: 'RCRS Syn Felt', quantity: 10, unitCost: 66.00, unitPrice: 79.86, totalCost: 660.00, totalPrice: 798.60 },
       { productId: 'item-126', productName: 'Ice & Water Shield', quantity: 5, unitCost: 62.70, unitPrice: 114.22, totalCost: 313.50, totalPrice: 571.10 },
@@ -197,7 +197,7 @@ export const jobTickets: Ticket[] = [
     city: 'Decatur',
     state: 'AL',
     customerName: 'Smith Properties LLC',
-    customerPhone: '256-555-0102',
+    customerPhone: '',
     materials: [
       { productId: 'item-127', productName: 'Ridge Vent 4LF', quantity: 50, unitCost: 7.15, unitPrice: 10.20, totalCost: 357.50, totalPrice: 510.00 },
       { productId: 'item-130', productName: 'Sealant', quantity: 20, unitCost: 9.35, unitPrice: 10.00, totalCost: 187.00, totalPrice: 200.00 }
@@ -222,7 +222,7 @@ export const jobTickets: Ticket[] = [
     city: 'Madison',
     state: 'AL',
     customerName: 'Sarah Williams',
-    customerPhone: '256-555-0103',
+    customerPhone: '',
     materials: [
       { productId: 'item-128', productName: 'Bullet Boot 1.5"', quantity: 10, unitCost: 7.50, unitPrice: 9.00, totalCost: 75.00, totalPrice: 90.00 },
       { productId: 'item-129', productName: 'Bullet Boot 4"', quantity: 8, unitCost: 16.50, unitPrice: 21.00, totalCost: 132.00, totalPrice: 168.00 },

@@ -6,12 +6,12 @@ import { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const quickActionVariants = cva(
-  'inline-flex flex-col items-center justify-center gap-2 rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#1a1a1a] disabled:cursor-not-allowed disabled:opacity-50',
+  'inline-flex flex-col items-center justify-center gap-2 rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-900 disabled:cursor-not-allowed disabled:opacity-50',
   {
     variants: {
       variant: {
         default:
-          'bg-[#242424] border-gray-700 text-gray-200 hover:bg-gray-700/50 hover:border-brand-green/50 focus:ring-brand-green',
+          'bg-zinc-800 border-gray-700 text-gray-200 hover:bg-gray-700/50 hover:border-brand-green/50 focus:ring-brand-green',
         primary:
           'bg-brand-green/10 border-brand-green/30 text-brand-green hover:bg-brand-green/20 hover:border-brand-green focus:ring-brand-green',
         success:

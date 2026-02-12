@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Upload, Trash2, Copy, Check, Search, Grid,
   List, Image as ImageIcon, X, Loader2, ExternalLink, FolderOpen
@@ -70,7 +71,7 @@ const sampleImages: ImageFile[] = [
 
 const categoryColors: Record<string, { bg: string; text: string; border: string }> = {
   'Team': { bg: 'bg-emerald-500/20', text: 'text-emerald-400', border: 'border-emerald-500/30' },
-  'Services': { bg: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-500/30' },
+  'Services': { bg: 'bg-brand-green/20', text: 'text-blue-400', border: 'border-blue-500/30' },
   'Certifications': { bg: 'bg-amber-500/20', text: 'text-amber-400', border: 'border-amber-500/30' },
   'Areas': { bg: 'bg-purple-500/20', text: 'text-purple-400', border: 'border-purple-500/30' },
   'Blog': { bg: 'bg-cyan-500/20', text: 'text-cyan-400', border: 'border-cyan-500/30' },
@@ -226,11 +227,13 @@ export default function ImageGallery() {
                 onClick={() => setSelectedImage(image)}
                 className="group relative bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden cursor-pointer hover:border-white/20 hover:bg-white/[0.04] transition-all duration-300"
               >
-                <div className="aspect-square bg-gradient-to-br from-neutral-800 to-neutral-900">
-                  <img
+                <div className="aspect-square bg-gradient-to-br from-neutral-800 to-neutral-900 relative">
+                  <Image
                     src={image.path}
                     alt={image.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    fill
+                    unoptimized={true}
+                    className="object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
@@ -268,11 +271,13 @@ export default function ImageGallery() {
                 key={image.path}
                 className="bg-white/[0.02] border border-white/5 rounded-xl p-3 flex items-center gap-4 hover:bg-white/[0.04] hover:border-white/10 transition-all"
               >
-                <div className="w-16 h-16 bg-gradient-to-br from-neutral-800 to-neutral-900 rounded-xl overflow-hidden flex-shrink-0 border border-white/10">
-                  <img
+                <div className="w-16 h-16 bg-gradient-to-br from-neutral-800 to-neutral-900 rounded-xl overflow-hidden flex-shrink-0 border border-white/10 relative">
+                  <Image
                     src={image.path}
                     alt={image.name}
-                    className="w-full h-full object-cover"
+                    fill
+                    unoptimized={true}
+                    className="object-cover"
                   />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -338,11 +343,13 @@ export default function ImageGallery() {
 
             {/* Image */}
             <div className="bg-white/[0.02] border border-white/10 rounded-2xl overflow-hidden">
-              <div className="bg-gradient-to-br from-neutral-800 to-neutral-900">
-                <img
+              <div className="bg-gradient-to-br from-neutral-800 to-neutral-900 relative w-full" style={{ minHeight: '300px', maxHeight: '70vh' }}>
+                <Image
                   src={selectedImage.path}
                   alt={selectedImage.name}
-                  className="w-full max-h-[70vh] object-contain"
+                  fill
+                  unoptimized={true}
+                  className="object-contain"
                 />
               </div>
               <div className="p-6 border-t border-white/5">

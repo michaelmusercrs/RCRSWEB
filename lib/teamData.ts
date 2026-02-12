@@ -225,7 +225,7 @@ export const teamMembers: TeamMember[] = [
     company: 'River City Roofing Solutions',
     category: 'Office',
     position: 'Marketing Director',
-    phone: '256-555-0104',
+    phone: '', // Contact via email
     email: 'boston@rcrsal.com',
     altEmail: 'boston@rcrsal.com',
     displayOrder: 8,
@@ -461,7 +461,7 @@ export const teamMembers: TeamMember[] = [
     company: 'River City Roofing Solutions',
     category: 'Production',
     position: 'Sales Inspector',
-    phone: '256-555-0103',
+    phone: '', // Contact via email
     email: 'travis@rcrsal.com',
     altEmail: 'travis@rcrsal.com',
     displayOrder: 17,

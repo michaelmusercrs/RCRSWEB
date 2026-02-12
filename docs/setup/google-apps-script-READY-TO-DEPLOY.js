@@ -302,47 +302,8 @@ function createErrorResponse(message) {
 // TESTING FUNCTION (OPTIONAL)
 // ========================================
 
-/**
- * Test function to verify everything works
- * Run this from the script editor to test
- */
-function testFormSubmission() {
-  console.log('🧪 Testing form submission...');
-
-  // Create test data
-  const testEvent = {
-    parameter: {
-      name: 'Test Customer',
-      email: 'michaelmuse@rivercityroofingsolutions.com', // Will send test to your email
-      phone: '256-555-1234',
-      subject: 'Test Inspection Request - DELETE THIS ROW',
-      message: 'This is a test submission from Google Apps Script. If you see this in your Sheet and received emails, everything is working! You can delete this test row.',
-      preferredInspector: 'First Available'
-    }
-  };
-
-  // Run the form handler
-  const result = doPost(testEvent);
-
-  // Log result
-  const resultContent = result.getContent();
-  console.log('✅ Test result:', resultContent);
-
-  // Instructions
-  console.log('');
-  console.log('📧 CHECK YOUR EMAIL:');
-  console.log('   1. michaelmuse@rivercityroofingsolutions.com - Should have 2 emails (confirmation + notification)');
-  console.log('   2. office@rcrsal.com - Should have notification');
-  console.log('');
-  console.log('📊 CHECK YOUR GOOGLE SHEET:');
-  console.log('   Open: https://docs.google.com/spreadsheets/d/' + SHEET_ID);
-  console.log('   Look for new row with test data');
-  console.log('');
-  console.log('✅ If you got emails and see sheet row - IT WORKS!');
-  console.log('❌ If not, check the Executions tab for errors');
-  console.log('');
-  console.log('🚀 NEXT STEP: Deploy as web app!');
-}
+// Test function removed - test via the website contact form after deployment
+// After deploying, submit a test through the live website
 
 /**
  * Gets the current deployment URL

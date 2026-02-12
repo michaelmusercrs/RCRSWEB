@@ -190,7 +190,7 @@ const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
           placeholder={placeholder}
           disabled={disabled}
           className={cn(
-            'w-full rounded-lg border border-gray-700 bg-[#242424] text-white placeholder:text-gray-500',
+            'w-full rounded-lg border border-gray-700 bg-zinc-800 text-white placeholder:text-gray-500',
             'transition-colors duration-200',
             'focus:outline-none focus:ring-2 focus:ring-brand-green focus:border-brand-green',
             'disabled:cursor-not-allowed disabled:opacity-50',

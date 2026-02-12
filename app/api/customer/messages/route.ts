@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 
 const JOBNIMBUS_API_KEY = process.env.JOBNIMBUS_API_KEY;
 const JOBNIMBUS_API_URL = process.env.JOBNIMBUS_API_URL || 'https://app.jobnimbus.com/api1';
 
 export async function POST(request: Request) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const body = await request.json();
     const { customerId, content } = body;
@@ -12,16 +16,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Demo mode
-    if (!JOBNIMBUS_API_KEY || customerId === 'demo-customer') {
-      return NextResponse.json({
-        success: true,
-        message: {
-          id: Date.now().toString(),
-          content,
-          timestamp: new Date().toISOString(),
+    // SECURITY: Prevent horizontal privilege escalation.
+    // Customers can ONLY send messages for their own account.
+    if (auth.user.role === 'customer' && auth.user.userId !== customerId) {
+      console.warn(
+        `SECURITY: Horizontal privilege escalation attempt (messages POST). ` +
+        `User ${auth.user.userId} tried to send message as customer ${customerId}`
+      );
+      return NextResponse.json(
+        { success: false, error: 'Access denied: you can only send messages from your own account' },
+        { status: 403 }
+      );
+    }
+
+    // Require API key - no demo mode
+    if (!JOBNIMBUS_API_KEY) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Messaging is not configured',
+          message: 'Please contact River City Roofing at 256-274-8530 for assistance.'
         },
-      });
+        { status: 500 }
+      );
     }
 
     // Create a note in JobNimbus
@@ -60,6 +77,9 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   const { searchParams } = new URL(request.url);
   const customerId = searchParams.get('customerId');
 
@@ -67,20 +87,29 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: false, error: 'Customer ID required' }, { status: 400 });
   }
 
-  // Demo mode
-  if (!JOBNIMBUS_API_KEY || customerId === 'demo-customer') {
-    return NextResponse.json({
-      success: true,
-      messages: [
-        {
-          id: 'welcome-msg',
-          from: 'River City Roofing',
-          content: 'Welcome to your customer portal! Let us know if you have any questions about your project.',
-          timestamp: new Date().toISOString(),
-          isCustomer: false,
-        },
-      ],
-    });
+  // SECURITY: Prevent horizontal privilege escalation.
+  // Customers can ONLY read their own messages.
+  if (auth.user.role === 'customer' && auth.user.userId !== customerId) {
+    console.warn(
+      `SECURITY: Horizontal privilege escalation attempt (messages GET). ` +
+      `User ${auth.user.userId} tried to read messages for customer ${customerId}`
+    );
+    return NextResponse.json(
+      { success: false, error: 'Access denied: you can only view your own messages' },
+      { status: 403 }
+    );
+  }
+
+  // Require API key - no demo mode
+  if (!JOBNIMBUS_API_KEY) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Messaging is not configured',
+        message: 'Please contact River City Roofing at 256-274-8530 for assistance.'
+      },
+      { status: 500 }
+    );
   }
 
   try {

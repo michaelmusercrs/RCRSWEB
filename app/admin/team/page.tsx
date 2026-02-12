@@ -10,8 +10,8 @@ export default function TeamAdminPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Team Members</h1>
-        <p className="text-gray-600 mt-2">
+        <h1 className="text-3xl font-bold text-white">Team Members</h1>
+        <p className="text-neutral-400 mt-2">
           Manage your team members - add, edit, delete, and reorder
         </p>
       </div>

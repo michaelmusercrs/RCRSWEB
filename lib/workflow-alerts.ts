@@ -311,7 +311,7 @@ class WorkflowAlertsService {
       warnings.push('No load verification photos uploaded - consider adding before departure');
     }
 
-    if (newStatus === 'completed' && !ticket.customerSignature) {
+    if (newStatus === 'completed' && !(ticket as unknown as Record<string, unknown>).customerSignature) {
       warnings.push('No customer signature captured');
     }
 
@@ -402,7 +402,7 @@ class WorkflowAlertsService {
     const deliveryCount = completedTickets.length;
 
     // Calculate compliance
-    const withSignature = completedTickets.filter(t => t.customerSignature).length;
+    const withSignature = completedTickets.filter(t => (t as unknown as Record<string, unknown>).customerSignature).length;
     const withEnoughPhotos = completedTickets.filter(t => t.photoCount >= 2).length;
     const withChecklist = completedTickets.filter(t => t.checklistComplete).length;
 

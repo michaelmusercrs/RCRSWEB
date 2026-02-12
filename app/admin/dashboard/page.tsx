@@ -24,14 +24,14 @@ const adminSections = [
     description: 'Edit and manage your team profiles',
     icon: Users,
     href: '/admin/team',
-    color: 'bg-blue-500/10 text-blue-600',
+    color: 'bg-brand-green/10 text-blue-400',
   },
   {
     title: 'Locations',
     description: 'Update service area pages and content',
     icon: MapPin,
     href: '/admin/locations',
-    color: 'bg-brand-green/10 text-brand-blue',
+    color: 'bg-brand-green/10 text-brand-green',
   },
   {
     title: 'Reviews',
@@ -52,7 +52,7 @@ const adminSections = [
     description: 'Configure contact form endpoint',
     icon: Settings,
     href: '/admin/forms',
-    color: 'bg-red-500/10 text-red-600',
+    color: 'bg-red-500/10 text-red-400',
   },
 ];
 
@@ -98,7 +98,7 @@ export default function AdminDashboard() {
             ) : gitHubStatus.connected ? (
               <CheckCircle className="h-5 w-5 text-brand-blue" />
             ) : (
-              <AlertCircle className="h-5 w-5 text-red-600" />
+              <AlertCircle className="h-5 w-5 text-red-400" />
             )}
             GitHub Connection Status
           </CardTitle>
@@ -133,7 +133,7 @@ export default function AdminDashboard() {
                       href="https://github.com/settings/tokens"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-400 hover:underline"
+                      className="text-brand-green hover:underline"
                     >
                       GitHub Settings → Personal Access Tokens
                     </a>

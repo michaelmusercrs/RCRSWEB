@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Phone, Mail, MapPin, Loader2, CheckCircle2 } from 'lucide-react';
+import { trackingService, getLeadSourceSummary, getJobNimbusSource } from '@/lib/tracking-service';
 
 interface ContactFormProps {
   showContactInfo?: boolean;
@@ -21,15 +22,31 @@ export default function ContactForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState('');
+  const [formStarted, setFormStarted] = useState(false);
   const router = useRouter();
+
+  // Track form start on first interaction
+  const handleFormInteraction = () => {
+    if (!formStarted) {
+      setFormStarted(true);
+      trackingService.trackFormStart('contact_form');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError('');
 
+    // Track form submit attempt
+    trackingService.trackFormSubmit('contact_form');
+
     const form = e.currentTarget;
     const formData = new FormData(form);
+
+    // Get lead source data for attribution
+    const leadSource = getLeadSourceSummary();
+    const jobNimbusSource = getJobNimbusSource();
 
     try {
       const response = await fetch('/api/forms/contact', {
@@ -44,14 +61,26 @@ export default function ContactForm({
           smsConsent: formData.get('smsConsent') === 'on',
           preferredInspector: preselectedTeamMember || 'First Available',
           sourcePage: sourcePage,
+          // Lead source attribution
+          leadSource: leadSource,
+          leadSourceDetail: jobNimbusSource.lead_source_detail,
+          marketingSource: jobNimbusSource.lead_source,
         }),
       });
 
       const result = await response.json();
 
       if (result.success) {
+        // Track successful form completion
+        trackingService.trackFormComplete('contact_form', {
+          form_name: 'contact_form',
+          service_type: formData.get('subject') as string,
+          source_page: sourcePage,
+        });
+
         setIsSubmitted(true);
         form.reset();
+        setFormStarted(false);
       } else {
         setError(result.message || 'Something went wrong. Please try again.');
       }
@@ -107,6 +136,7 @@ export default function ContactForm({
           <div className="space-y-4">
             <a
               href="tel:256-274-8530"
+              onClick={() => trackingService.trackPhoneClick('256-274-8530', sourcePage)}
               className={`flex items-center gap-4 p-4 rounded-xl border transition-colors ${
                 darkMode ? 'border-white/20 hover:border-brand-green/50 bg-white/5' : 'border-gray-200 hover:border-brand-blue/50 bg-gray-50'
               }`}
@@ -122,6 +152,7 @@ export default function ContactForm({
 
             <a
               href="mailto:rcrs@rivercityroofingsolutions.com"
+              onClick={() => trackingService.trackEmailClick('rcrs@rivercityroofingsolutions.com', sourcePage)}
               className={`flex items-center gap-4 p-4 rounded-xl border transition-colors ${
                 darkMode ? 'border-white/20 hover:border-brand-green/50 bg-white/5' : 'border-gray-200 hover:border-brand-blue/50 bg-gray-50'
               }`}
@@ -167,7 +198,7 @@ export default function ContactForm({
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} onFocus={handleFormInteraction} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="name" className={`block text-sm font-medium mb-1 ${labelClass}`}>

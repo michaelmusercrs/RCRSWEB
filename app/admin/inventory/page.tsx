@@ -328,7 +328,7 @@ export default function AdminInventoryPage() {
                     resetForm();
                     setShowAddModal(true);
                   }}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#00FF00] hover:bg-[#00DD00] text-black font-medium text-sm transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-green hover:bg-lime-400 text-black font-medium text-sm transition-colors"
                 >
                   <Plus size={16} />
                   Add Item
@@ -450,7 +450,7 @@ export default function AdminInventoryPage() {
                   onClick={() => setActiveTab(tab.id as FilterTab)}
                   className={`px-4 py-2 rounded-lg text-sm transition-colors ${
                     activeTab === tab.id
-                      ? 'bg-[#00FF00] text-black font-medium'
+                      ? 'bg-brand-green text-black font-medium'
                       : 'text-neutral-400 hover:text-white'
                   }`}
                 >
@@ -468,7 +468,7 @@ export default function AdminInventoryPage() {
                   placeholder="Search items..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-[#00FF00]/50 transition-colors"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-brand-green/50 transition-colors"
                 />
               </div>
 
@@ -476,7 +476,7 @@ export default function AdminInventoryPage() {
                 <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="appearance-none px-4 py-2.5 pr-10 bg-white/[0.02] border border-white/5 rounded-xl text-white focus:outline-none focus:border-[#00FF00]/50 transition-colors cursor-pointer"
+                  className="appearance-none px-4 py-2.5 pr-10 bg-white/[0.02] border border-white/5 rounded-xl text-white focus:outline-none focus:border-brand-green/50 transition-colors cursor-pointer"
                 >
                   <option value="all">All Categories</option>
                   {categories.map(cat => (
@@ -491,7 +491,7 @@ export default function AdminInventoryPage() {
           {/* Inventory Table */}
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <Loader2 size={32} className="text-[#00FF00] animate-spin" />
+              <Loader2 size={32} className="text-brand-green animate-spin" />
             </div>
           ) : error ? (
             <div className="text-center py-20">
@@ -628,7 +628,7 @@ export default function AdminInventoryPage() {
                     name="productName"
                     value={formData.productName}
                     onChange={handleFormChange}
-                    className="w-full px-4 py-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-[#00FF00]/50 transition-colors"
+                    className="w-full px-4 py-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-brand-green/50 transition-colors"
                     placeholder="Enter product name"
                     required
                   />
@@ -643,7 +643,7 @@ export default function AdminInventoryPage() {
                     name="productId"
                     value={formData.productId}
                     onChange={handleFormChange}
-                    className="w-full px-4 py-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-[#00FF00]/50 transition-colors"
+                    className="w-full px-4 py-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-brand-green/50 transition-colors"
                     placeholder="Auto-generated if empty"
                     disabled={!!editingItem}
                   />
@@ -658,7 +658,7 @@ export default function AdminInventoryPage() {
                     name="sku"
                     value={formData.sku}
                     onChange={handleFormChange}
-                    className="w-full px-4 py-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-[#00FF00]/50 transition-colors"
+                    className="w-full px-4 py-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-brand-green/50 transition-colors"
                     placeholder="SKU code"
                   />
                 </div>
@@ -673,7 +673,7 @@ export default function AdminInventoryPage() {
                     value={formData.category}
                     onChange={handleFormChange}
                     list="categories"
-                    className="w-full px-4 py-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-[#00FF00]/50 transition-colors"
+                    className="w-full px-4 py-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-brand-green/50 transition-colors"
                     placeholder="e.g., Fasteners"
                   />
                   <datalist id="categories">
@@ -691,7 +691,7 @@ export default function AdminInventoryPage() {
                     name="unit"
                     value={formData.unit}
                     onChange={handleFormChange}
-                    className="w-full px-4 py-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-white focus:outline-none focus:border-[#00FF00]/50 transition-colors"
+                    className="w-full px-4 py-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-white focus:outline-none focus:border-brand-green/50 transition-colors"
                   >
                     <option value="each">Each</option>
                     <option value="box">Box</option>
@@ -712,7 +712,7 @@ export default function AdminInventoryPage() {
                     name="currentQty"
                     value={formData.currentQty}
                     onChange={handleFormChange}
-                    className="w-full px-4 py-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-[#00FF00]/50 transition-colors"
+                    className="w-full px-4 py-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-brand-green/50 transition-colors"
                     min="0"
                   />
                 </div>
@@ -726,7 +726,7 @@ export default function AdminInventoryPage() {
                     name="minQty"
                     value={formData.minQty}
                     onChange={handleFormChange}
-                    className="w-full px-4 py-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-[#00FF00]/50 transition-colors"
+                    className="w-full px-4 py-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-brand-green/50 transition-colors"
                     min="0"
                   />
                 </div>
@@ -740,7 +740,7 @@ export default function AdminInventoryPage() {
                     name="maxQty"
                     value={formData.maxQty}
                     onChange={handleFormChange}
-                    className="w-full px-4 py-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-[#00FF00]/50 transition-colors"
+                    className="w-full px-4 py-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-brand-green/50 transition-colors"
                     min="0"
                   />
                 </div>
@@ -754,7 +754,7 @@ export default function AdminInventoryPage() {
                     name="unitCost"
                     value={formData.unitCost}
                     onChange={handleFormChange}
-                    className="w-full px-4 py-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-[#00FF00]/50 transition-colors"
+                    className="w-full px-4 py-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-brand-green/50 transition-colors"
                     min="0"
                     step="0.01"
                   />
@@ -769,7 +769,7 @@ export default function AdminInventoryPage() {
                     name="location"
                     value={formData.location}
                     onChange={handleFormChange}
-                    className="w-full px-4 py-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-[#00FF00]/50 transition-colors"
+                    className="w-full px-4 py-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-brand-green/50 transition-colors"
                     placeholder="e.g., Warehouse A"
                   />
                 </div>
@@ -783,7 +783,7 @@ export default function AdminInventoryPage() {
                     name="supplier"
                     value={formData.supplier}
                     onChange={handleFormChange}
-                    className="w-full px-4 py-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-[#00FF00]/50 transition-colors"
+                    className="w-full px-4 py-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-brand-green/50 transition-colors"
                     placeholder="Supplier name"
                   />
                 </div>
@@ -797,7 +797,7 @@ export default function AdminInventoryPage() {
                     value={formData.notes}
                     onChange={handleFormChange}
                     rows={2}
-                    className="w-full px-4 py-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-[#00FF00]/50 transition-colors resize-none"
+                    className="w-full px-4 py-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-brand-green/50 transition-colors resize-none"
                     placeholder="Optional notes"
                   />
                 </div>
@@ -819,7 +819,7 @@ export default function AdminInventoryPage() {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="flex items-center gap-2 px-6 py-2 bg-[#00FF00] hover:bg-[#00DD00] text-black font-medium rounded-xl transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-6 py-2 bg-brand-green hover:bg-lime-400 text-black font-medium rounded-xl transition-colors disabled:opacity-50"
               >
                 {saving ? (
                   <>

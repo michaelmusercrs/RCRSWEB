@@ -251,50 +251,50 @@ export default function PricingAuditPage() {
         {/* Summary Cards */}
         {alertSummary && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-red-100 rounded-lg">
-                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                  <AlertTriangle className="w-5 h-5 text-red-400" />
                 </div>
                 <div>
-                  <p className="text-sm text-red-600 font-medium">Total Overcharges</p>
-                  <p className="text-2xl font-bold text-red-700">{formatCurrency(alertSummary.totalOvercharges)}</p>
+                  <p className="text-sm text-red-400 font-medium">Total Overcharges</p>
+                  <p className="text-2xl font-bold text-red-400">{formatCurrency(alertSummary.totalOvercharges)}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-yellow-100 rounded-lg">
-                  <Clock className="w-5 h-5 text-yellow-600" />
+                  <Clock className="w-5 h-5 text-yellow-400" />
                 </div>
                 <div>
-                  <p className="text-sm text-yellow-600 font-medium">Pending Credits</p>
-                  <p className="text-2xl font-bold text-yellow-700">{formatCurrency(alertSummary.pendingCredits)}</p>
+                  <p className="text-sm text-yellow-400 font-medium">Pending Credits</p>
+                  <p className="text-2xl font-bold text-yellow-400">{formatCurrency(alertSummary.pendingCredits)}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+            <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-green-100 rounded-lg">
-                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  <CheckCircle2 className="w-5 h-5 text-green-400" />
                 </div>
                 <div>
-                  <p className="text-sm text-green-600 font-medium">Credits Received</p>
-                  <p className="text-2xl font-bold text-green-700">{formatCurrency(alertSummary.creditsReceived)}</p>
+                  <p className="text-sm text-green-400 font-medium">Credits Received</p>
+                  <p className="text-2xl font-bold text-green-400">{formatCurrency(alertSummary.creditsReceived)}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+            <div className="bg-brand-green/10 border border-blue-500/20 rounded-xl p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-100 rounded-lg">
-                  <AlertCircle className="w-5 h-5 text-blue-600" />
+                  <AlertCircle className="w-5 h-5 text-blue-400" />
                 </div>
                 <div>
-                  <p className="text-sm text-blue-600 font-medium">Open Alerts</p>
-                  <p className="text-2xl font-bold text-blue-700">{alertSummary.new + alertSummary.underReview}</p>
+                  <p className="text-sm text-blue-400 font-medium">Open Alerts</p>
+                  <p className="text-2xl font-bold text-blue-400">{alertSummary.new + alertSummary.underReview}</p>
                 </div>
               </div>
             </div>
@@ -302,7 +302,7 @@ export default function PricingAuditPage() {
         )}
 
         {/* Tabs */}
-        <div className="border-b border-gray-200">
+        <div className="border-b border-white/10">
           <nav className="flex gap-4">
             {[
               { id: 'alerts', label: 'Price Alerts', icon: AlertTriangle },
@@ -316,7 +316,7 @@ export default function PricingAuditPage() {
                 className={`flex items-center gap-2 px-4 py-3 border-b-2 font-medium transition-colors ${
                   activeTab === tab.id
                     ? 'border-brand-blue text-brand-blue'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    : 'border-transparent text-neutral-500 hover:text-neutral-300'
                 }`}
               >
                 <tab.icon className="w-4 h-4" />
@@ -341,7 +341,7 @@ export default function PricingAuditPage() {
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg"
+                    className="px-3 py-2 border border-white/10 rounded-lg"
                   >
                     <option value="all">All Statuses</option>
                     <option value="New">New</option>
@@ -354,7 +354,7 @@ export default function PricingAuditPage() {
                   <select
                     value={supplierFilter}
                     onChange={(e) => setSupplierFilter(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg"
+                    className="px-3 py-2 border border-white/10 rounded-lg"
                   >
                     <option value="all">All Suppliers</option>
                     {uniqueSuppliers.map(s => (
@@ -364,53 +364,53 @@ export default function PricingAuditPage() {
                 </div>
 
                 {/* Alerts Table */}
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="bg-neutral-900 rounded-xl border border-white/10 overflow-hidden">
                   <table className="w-full">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-white/5">
                       <tr>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Date</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Product</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Supplier</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Invoice #</th>
-                        <th className="px-4 py-3 text-right text-sm font-medium text-gray-600">Agreed</th>
-                        <th className="px-4 py-3 text-right text-sm font-medium text-gray-600">Charged</th>
-                        <th className="px-4 py-3 text-right text-sm font-medium text-gray-600">Overcharge</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Status</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Actions</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-neutral-400">Date</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-neutral-400">Product</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-neutral-400">Supplier</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-neutral-400">Invoice #</th>
+                        <th className="px-4 py-3 text-right text-sm font-medium text-neutral-400">Agreed</th>
+                        <th className="px-4 py-3 text-right text-sm font-medium text-neutral-400">Charged</th>
+                        <th className="px-4 py-3 text-right text-sm font-medium text-neutral-400">Overcharge</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-neutral-400">Status</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-neutral-400">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200">
+                    <tbody className="divide-y divide-white/10">
                       {filteredAlerts.length === 0 ? (
                         <tr>
-                          <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                          <td colSpan={9} className="px-4 py-8 text-center text-neutral-500">
                             No price alerts found. Use "Verify Invoice" to check for discrepancies.
                           </td>
                         </tr>
                       ) : (
                         filteredAlerts.map(alert => (
-                          <tr key={alert.alertId} className="hover:bg-gray-50">
+                          <tr key={alert.alertId} className="hover:bg-white/5">
                             <td className="px-4 py-3 text-sm">
                               {new Date(alert.alertDate).toLocaleDateString()}
                             </td>
                             <td className="px-4 py-3 text-sm font-medium">{alert.productName}</td>
                             <td className="px-4 py-3 text-sm">{alert.supplier}</td>
                             <td className="px-4 py-3 text-sm">{alert.invoiceNumber}</td>
-                            <td className="px-4 py-3 text-sm text-right text-green-600">
+                            <td className="px-4 py-3 text-sm text-right text-green-400">
                               {formatCurrency(alert.agreedPrice)}
                             </td>
-                            <td className="px-4 py-3 text-sm text-right text-red-600">
+                            <td className="px-4 py-3 text-sm text-right text-red-400">
                               {formatCurrency(alert.invoicedPrice)}
                             </td>
-                            <td className="px-4 py-3 text-sm text-right font-bold text-red-700">
+                            <td className="px-4 py-3 text-sm text-right font-bold text-red-400">
                               {formatCurrency(alert.totalOvercharge)}
                             </td>
                             <td className="px-4 py-3">
                               <span className={`px-2 py-1 text-xs rounded-full ${
-                                alert.status === 'New' ? 'bg-red-100 text-red-700' :
-                                alert.status === 'Under Review' ? 'bg-yellow-100 text-yellow-700' :
-                                alert.status === 'Disputed' ? 'bg-orange-100 text-orange-700' :
-                                alert.status === 'Resolved' ? 'bg-blue-100 text-blue-700' :
-                                'bg-green-100 text-green-700'
+                                alert.status === 'New' ? 'bg-red-500/20 text-red-400' :
+                                alert.status === 'Under Review' ? 'bg-yellow-500/20 text-yellow-400' :
+                                alert.status === 'Disputed' ? 'bg-orange-500/20 text-orange-400' :
+                                alert.status === 'Resolved' ? 'bg-brand-green/20 text-blue-400' :
+                                'bg-green-500/20 text-green-400'
                               }`}>
                                 {alert.status}
                               </span>
@@ -419,7 +419,7 @@ export default function PricingAuditPage() {
                               <select
                                 value={alert.status}
                                 onChange={(e) => updateAlertStatus(alert.alertId, e.target.value)}
-                                className="text-sm border border-gray-300 rounded px-2 py-1"
+                                className="text-sm border border-white/10 rounded px-2 py-1"
                               >
                                 <option value="New">New</option>
                                 <option value="Under Review">Under Review</option>
@@ -440,37 +440,37 @@ export default function PricingAuditPage() {
             {/* Verify Invoice Tab */}
             {activeTab === 'verify' && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <div className="bg-neutral-900 rounded-xl border border-white/10 p-6">
                   <h3 className="font-semibold text-lg mb-4">Verify Invoice Prices</h3>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-sm text-neutral-400 mb-4">
                     Enter invoice details to check against agreed pricing. Any overcharges will create alerts.
                   </p>
 
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Supplier</label>
+                      <label className="block text-sm font-medium text-neutral-300 mb-1">Supplier</label>
                       <input
                         type="text"
                         value={verifySupplier}
                         onChange={(e) => setVerifySupplier(e.target.value)}
                         placeholder="e.g., ABC Supply, SRS Distribution"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                        className="w-full px-3 py-2 border border-white/10 rounded-lg"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Invoice Number</label>
+                      <label className="block text-sm font-medium text-neutral-300 mb-1">Invoice Number</label>
                       <input
                         type="text"
                         value={verifyInvoiceNum}
                         onChange={(e) => setVerifyInvoiceNum(e.target.value)}
                         placeholder="Invoice #"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                        className="w-full px-3 py-2 border border-white/10 rounded-lg"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-neutral-300 mb-1">
                         Line Items (SKU, Price, Qty per line)
                       </label>
                       <textarea
@@ -478,9 +478,9 @@ export default function PricingAuditPage() {
                         onChange={(e) => setVerifyLineItems(e.target.value)}
                         placeholder="SKU123, 45.99, 10&#10;SKU456, 23.50, 5&#10;SKU789, 156.00, 2"
                         rows={6}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm"
+                        className="w-full px-3 py-2 border border-white/10 rounded-lg font-mono text-sm"
                       />
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-neutral-500 mt-1">
                         Format: SKU, Unit Price, Quantity (one item per line)
                       </p>
                     </div>
@@ -500,24 +500,24 @@ export default function PricingAuditPage() {
                   </div>
                 </div>
 
-                <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <div className="bg-neutral-900 rounded-xl border border-white/10 p-6">
                   <h3 className="font-semibold text-lg mb-4">Verification Results</h3>
 
                   {!verificationResult ? (
-                    <div className="text-center py-12 text-gray-500">
+                    <div className="text-center py-12 text-neutral-500">
                       Enter invoice details and click "Verify Prices" to see results
                     </div>
                   ) : (
                     <div className="space-y-4">
                       {/* Summary */}
                       <div className={`p-4 rounded-lg ${
-                        verificationResult.hasOvercharges ? 'bg-red-50 border border-red-200' : 'bg-green-50 border border-green-200'
+                        verificationResult.hasOvercharges ? 'bg-red-500/10 border border-red-500/20' : 'bg-green-500/10 border border-green-500/20'
                       }`}>
-                        <p className={`font-medium ${verificationResult.hasOvercharges ? 'text-red-700' : 'text-green-700'}`}>
+                        <p className={`font-medium ${verificationResult.hasOvercharges ? 'text-red-400' : 'text-green-400'}`}>
                           {verificationResult.message}
                         </p>
                         {verificationResult.hasOvercharges && (
-                          <p className="text-sm text-red-600 mt-1">
+                          <p className="text-sm text-red-400 mt-1">
                             {verificationResult.discrepancyCount} item(s) overcharged by {formatCurrency(verificationResult.totalDiscrepancy)}
                           </p>
                         )}
@@ -529,21 +529,21 @@ export default function PricingAuditPage() {
                           <div
                             key={idx}
                             className={`p-3 rounded-lg border ${
-                              item.status === 'OK' ? 'bg-green-50 border-green-200' :
-                              item.status === 'Overcharge' ? 'bg-red-50 border-red-200' :
-                              item.status === 'Unknown Product' ? 'bg-yellow-50 border-yellow-200' :
-                              'bg-gray-50 border-gray-200'
+                              item.status === 'OK' ? 'bg-green-50 border-green-500/20' :
+                              item.status === 'Overcharge' ? 'bg-red-50 border-red-500/20' :
+                              item.status === 'Unknown Product' ? 'bg-yellow-50 border-yellow-500/20' :
+                              'bg-white/5 border-white/10'
                             }`}
                           >
                             <div className="flex justify-between items-start">
                               <div>
                                 <p className="font-medium text-sm">{item.sku}</p>
-                                <p className="text-xs text-gray-600">{item.productName}</p>
+                                <p className="text-xs text-neutral-400">{item.productName}</p>
                               </div>
                               <span className={`px-2 py-1 text-xs rounded ${
-                                item.status === 'OK' ? 'bg-green-100 text-green-700' :
-                                item.status === 'Overcharge' ? 'bg-red-100 text-red-700' :
-                                'bg-yellow-100 text-yellow-700'
+                                item.status === 'OK' ? 'bg-green-500/20 text-green-400' :
+                                item.status === 'Overcharge' ? 'bg-red-500/20 text-red-400' :
+                                'bg-yellow-500/20 text-yellow-400'
                               }`}>
                                 {item.status}
                               </span>
@@ -551,19 +551,19 @@ export default function PricingAuditPage() {
                             {item.status !== 'Unknown Product' && (
                               <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
                                 <div>
-                                  <span className="text-gray-500">Agreed: </span>
-                                  <span className="text-green-600 font-medium">{formatCurrency(item.agreedPrice)}</span>
+                                  <span className="text-neutral-500">Agreed: </span>
+                                  <span className="text-green-400 font-medium">{formatCurrency(item.agreedPrice)}</span>
                                 </div>
                                 <div>
-                                  <span className="text-gray-500">Invoiced: </span>
-                                  <span className={item.status === 'Overcharge' ? 'text-red-600 font-medium' : ''}>
+                                  <span className="text-neutral-500">Invoiced: </span>
+                                  <span className={item.status === 'Overcharge' ? 'text-red-400 font-medium' : ''}>
                                     {formatCurrency(item.unitPrice)}
                                   </span>
                                 </div>
                                 {item.status === 'Overcharge' && (
                                   <div>
-                                    <span className="text-gray-500">Overcharge: </span>
-                                    <span className="text-red-600 font-bold">
+                                    <span className="text-neutral-500">Overcharge: </span>
+                                    <span className="text-red-400 font-bold">
                                       {formatCurrency(item.priceDiff * item.quantity)}
                                     </span>
                                   </div>
@@ -583,12 +583,12 @@ export default function PricingAuditPage() {
             {activeTab === 'pricing' && (
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-neutral-400">
                     {pricing.length} products with agreed pricing
                   </p>
                   <button
                     onClick={() => setShowAddPricing(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-brand-green text-white rounded-lg hover:bg-brand-green/90"
+                    className="flex items-center gap-2 px-4 py-2 bg-brand-green text-black rounded-lg hover:bg-brand-green/90"
                   >
                     <Plus className="w-4 h-4" />
                     Add Pricing
@@ -597,7 +597,7 @@ export default function PricingAuditPage() {
 
                 {/* Add Pricing Form */}
                 {showAddPricing && (
-                  <div className="bg-white rounded-xl border border-gray-200 p-6">
+                  <div className="bg-neutral-900 rounded-xl border border-white/10 p-6">
                     <h3 className="font-semibold text-lg mb-4">Add Agreed Pricing</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <input
@@ -605,28 +605,28 @@ export default function PricingAuditPage() {
                         placeholder="Product Name"
                         value={newPricing.productName}
                         onChange={(e) => setNewPricing({ ...newPricing, productName: e.target.value })}
-                        className="px-3 py-2 border border-gray-300 rounded-lg"
+                        className="px-3 py-2 border border-white/10 rounded-lg"
                       />
                       <input
                         type="text"
                         placeholder="Supplier"
                         value={newPricing.supplier}
                         onChange={(e) => setNewPricing({ ...newPricing, supplier: e.target.value })}
-                        className="px-3 py-2 border border-gray-300 rounded-lg"
+                        className="px-3 py-2 border border-white/10 rounded-lg"
                       />
                       <input
                         type="text"
                         placeholder="SKU"
                         value={newPricing.sku}
                         onChange={(e) => setNewPricing({ ...newPricing, sku: e.target.value })}
-                        className="px-3 py-2 border border-gray-300 rounded-lg"
+                        className="px-3 py-2 border border-white/10 rounded-lg"
                       />
                       <input
                         type="text"
                         placeholder="Category"
                         value={newPricing.category}
                         onChange={(e) => setNewPricing({ ...newPricing, category: e.target.value })}
-                        className="px-3 py-2 border border-gray-300 rounded-lg"
+                        className="px-3 py-2 border border-white/10 rounded-lg"
                       />
                       <input
                         type="number"
@@ -634,7 +634,7 @@ export default function PricingAuditPage() {
                         placeholder="Agreed Price"
                         value={newPricing.agreedPrice}
                         onChange={(e) => setNewPricing({ ...newPricing, agreedPrice: e.target.value })}
-                        className="px-3 py-2 border border-gray-300 rounded-lg"
+                        className="px-3 py-2 border border-white/10 rounded-lg"
                       />
                       <input
                         type="number"
@@ -642,40 +642,40 @@ export default function PricingAuditPage() {
                         placeholder="List Price"
                         value={newPricing.listPrice}
                         onChange={(e) => setNewPricing({ ...newPricing, listPrice: e.target.value })}
-                        className="px-3 py-2 border border-gray-300 rounded-lg"
+                        className="px-3 py-2 border border-white/10 rounded-lg"
                       />
                       <input
                         type="text"
                         placeholder="Contract #"
                         value={newPricing.contractNumber}
                         onChange={(e) => setNewPricing({ ...newPricing, contractNumber: e.target.value })}
-                        className="px-3 py-2 border border-gray-300 rounded-lg"
+                        className="px-3 py-2 border border-white/10 rounded-lg"
                       />
                       <input
                         type="date"
                         placeholder="Effective Date"
                         value={newPricing.effectiveDate}
                         onChange={(e) => setNewPricing({ ...newPricing, effectiveDate: e.target.value })}
-                        className="px-3 py-2 border border-gray-300 rounded-lg"
+                        className="px-3 py-2 border border-white/10 rounded-lg"
                       />
                       <input
                         type="date"
                         placeholder="Expiration Date"
                         value={newPricing.expirationDate}
                         onChange={(e) => setNewPricing({ ...newPricing, expirationDate: e.target.value })}
-                        className="px-3 py-2 border border-gray-300 rounded-lg"
+                        className="px-3 py-2 border border-white/10 rounded-lg"
                       />
                     </div>
                     <div className="flex gap-2 mt-4">
                       <button
                         onClick={addPricing}
-                        className="px-4 py-2 bg-brand-green text-white rounded-lg"
+                        className="px-4 py-2 bg-brand-green text-black rounded-lg"
                       >
                         Save Pricing
                       </button>
                       <button
                         onClick={() => setShowAddPricing(false)}
-                        className="px-4 py-2 border border-gray-300 rounded-lg"
+                        className="px-4 py-2 border border-white/10 rounded-lg"
                       >
                         Cancel
                       </button>
@@ -684,41 +684,41 @@ export default function PricingAuditPage() {
                 )}
 
                 {/* Pricing Table */}
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="bg-neutral-900 rounded-xl border border-white/10 overflow-hidden">
                   <table className="w-full">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-white/5">
                       <tr>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Product</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Supplier</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">SKU</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Category</th>
-                        <th className="px-4 py-3 text-right text-sm font-medium text-gray-600">List Price</th>
-                        <th className="px-4 py-3 text-right text-sm font-medium text-gray-600">Agreed Price</th>
-                        <th className="px-4 py-3 text-right text-sm font-medium text-gray-600">Discount</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Expires</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-neutral-400">Product</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-neutral-400">Supplier</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-neutral-400">SKU</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-neutral-400">Category</th>
+                        <th className="px-4 py-3 text-right text-sm font-medium text-neutral-400">List Price</th>
+                        <th className="px-4 py-3 text-right text-sm font-medium text-neutral-400">Agreed Price</th>
+                        <th className="px-4 py-3 text-right text-sm font-medium text-neutral-400">Discount</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-neutral-400">Expires</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200">
+                    <tbody className="divide-y divide-white/10">
                       {pricing.length === 0 ? (
                         <tr>
-                          <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                          <td colSpan={8} className="px-4 py-8 text-center text-neutral-500">
                             No agreed pricing records. Add your supplier contracts to start tracking.
                           </td>
                         </tr>
                       ) : (
                         pricing.map(item => (
-                          <tr key={item.productId} className="hover:bg-gray-50">
+                          <tr key={item.productId} className="hover:bg-white/5">
                             <td className="px-4 py-3 text-sm font-medium">{item.productName}</td>
                             <td className="px-4 py-3 text-sm">{item.supplier}</td>
                             <td className="px-4 py-3 text-sm font-mono">{item.sku}</td>
                             <td className="px-4 py-3 text-sm">{item.category}</td>
-                            <td className="px-4 py-3 text-sm text-right text-gray-500">
+                            <td className="px-4 py-3 text-sm text-right text-neutral-500">
                               {formatCurrency(item.listPrice)}
                             </td>
-                            <td className="px-4 py-3 text-sm text-right font-medium text-green-600">
+                            <td className="px-4 py-3 text-sm text-right font-medium text-green-400">
                               {formatCurrency(item.agreedPrice)}
                             </td>
-                            <td className="px-4 py-3 text-sm text-right text-blue-600">
+                            <td className="px-4 py-3 text-sm text-right text-blue-400">
                               {item.discountPercent}%
                             </td>
                             <td className="px-4 py-3 text-sm">
@@ -737,42 +737,42 @@ export default function PricingAuditPage() {
             {activeTab === 'audit' && auditSummary && (
               <div className="space-y-6">
                 {/* Period Summary */}
-                <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <div className="bg-neutral-900 rounded-xl border border-white/10 p-6">
                   <h3 className="font-semibold text-lg mb-4">
                     Audit Summary: {auditSummary.period}
                   </h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center p-4 bg-gray-50 rounded-lg">
-                      <p className="text-3xl font-bold text-gray-900">{auditSummary.totalInvoices}</p>
-                      <p className="text-sm text-gray-600">Total Invoices</p>
+                    <div className="text-center p-4 bg-white/5 rounded-lg">
+                      <p className="text-3xl font-bold text-white">{auditSummary.totalInvoices}</p>
+                      <p className="text-sm text-neutral-400">Total Invoices</p>
                     </div>
-                    <div className="text-center p-4 bg-gray-50 rounded-lg">
-                      <p className="text-3xl font-bold text-gray-900">{formatCurrency(auditSummary.totalSpend)}</p>
-                      <p className="text-sm text-gray-600">Total Spend</p>
+                    <div className="text-center p-4 bg-white/5 rounded-lg">
+                      <p className="text-3xl font-bold text-white">{formatCurrency(auditSummary.totalSpend)}</p>
+                      <p className="text-sm text-neutral-400">Total Spend</p>
                     </div>
                     <div className="text-center p-4 bg-red-50 rounded-lg">
-                      <p className="text-3xl font-bold text-red-700">{formatCurrency(auditSummary.totalOvercharges)}</p>
-                      <p className="text-sm text-red-600">Total Overcharges</p>
+                      <p className="text-3xl font-bold text-red-400">{formatCurrency(auditSummary.totalOvercharges)}</p>
+                      <p className="text-sm text-red-400">Total Overcharges</p>
                     </div>
                     <div className="text-center p-4 bg-green-50 rounded-lg">
-                      <p className="text-3xl font-bold text-green-700">{formatCurrency(auditSummary.creditsReceived)}</p>
-                      <p className="text-sm text-green-600">Credits Received</p>
+                      <p className="text-3xl font-bold text-green-400">{formatCurrency(auditSummary.creditsReceived)}</p>
+                      <p className="text-sm text-green-400">Credits Received</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Top Overcharged Products */}
                 {auditSummary.topOverchargedProducts.length > 0 && (
-                  <div className="bg-white rounded-xl border border-gray-200 p-6">
+                  <div className="bg-neutral-900 rounded-xl border border-white/10 p-6">
                     <h3 className="font-semibold text-lg mb-4">Top Overcharged Products</h3>
                     <div className="space-y-3">
                       {auditSummary.topOverchargedProducts.map((product, idx) => (
                         <div key={idx} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
                           <div>
                             <p className="font-medium">{product.productName}</p>
-                            <p className="text-sm text-gray-600">{product.supplier} - {product.occurrences} occurrences</p>
+                            <p className="text-sm text-neutral-400">{product.supplier} - {product.occurrences} occurrences</p>
                           </div>
-                          <p className="text-lg font-bold text-red-700">{formatCurrency(product.totalOvercharge)}</p>
+                          <p className="text-lg font-bold text-red-400">{formatCurrency(product.totalOvercharge)}</p>
                         </div>
                       ))}
                     </div>
@@ -781,26 +781,26 @@ export default function PricingAuditPage() {
 
                 {/* Supplier Summary */}
                 {auditSummary.supplierSummary.length > 0 && (
-                  <div className="bg-white rounded-xl border border-gray-200 p-6">
+                  <div className="bg-neutral-900 rounded-xl border border-white/10 p-6">
                     <h3 className="font-semibold text-lg mb-4">Supplier Summary</h3>
                     <table className="w-full">
-                      <thead className="bg-gray-50">
+                      <thead className="bg-white/5">
                         <tr>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Supplier</th>
-                          <th className="px-4 py-3 text-right text-sm font-medium text-gray-600">Invoices</th>
-                          <th className="px-4 py-3 text-right text-sm font-medium text-gray-600">Total Spend</th>
-                          <th className="px-4 py-3 text-right text-sm font-medium text-gray-600">Discrepancies</th>
-                          <th className="px-4 py-3 text-right text-sm font-medium text-gray-600">Overcharge Amount</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-neutral-400">Supplier</th>
+                          <th className="px-4 py-3 text-right text-sm font-medium text-neutral-400">Invoices</th>
+                          <th className="px-4 py-3 text-right text-sm font-medium text-neutral-400">Total Spend</th>
+                          <th className="px-4 py-3 text-right text-sm font-medium text-neutral-400">Discrepancies</th>
+                          <th className="px-4 py-3 text-right text-sm font-medium text-neutral-400">Overcharge Amount</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-200">
+                      <tbody className="divide-y divide-white/10">
                         {auditSummary.supplierSummary.map((supplier, idx) => (
                           <tr key={idx}>
                             <td className="px-4 py-3 font-medium">{supplier.supplier}</td>
                             <td className="px-4 py-3 text-right">{supplier.invoiceCount}</td>
                             <td className="px-4 py-3 text-right">{formatCurrency(supplier.totalSpend)}</td>
                             <td className="px-4 py-3 text-right">{supplier.discrepancies}</td>
-                            <td className="px-4 py-3 text-right font-medium text-red-600">
+                            <td className="px-4 py-3 text-right font-medium text-red-400">
                               {formatCurrency(supplier.overchargeAmount)}
                             </td>
                           </tr>

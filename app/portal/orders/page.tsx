@@ -21,9 +21,18 @@ import {
   Upload,
   X,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  RefreshCw,
+  Navigation,
+  Eye,
+  RotateCcw,
+  Receipt,
+  Ticket,
+  Loader2,
+  ClipboardCheck
 } from 'lucide-react';
 import { inventoryProducts } from '@/lib/inventoryData';
+import AddressAutocomplete, { AddressResult } from '@/components/AddressAutocomplete';
 
 interface MaterialOrderItem {
   productId: string;
@@ -102,6 +111,8 @@ export default function MaterialOrdersPage() {
 
   const [selectedProduct, setSelectedProduct] = useState('');
   const [productQty, setProductQty] = useState(1);
+  const [creatingTicketFor, setCreatingTicketFor] = useState<string | null>(null);
+  const [orderTicketMap, setOrderTicketMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchOrders();
@@ -120,6 +131,33 @@ export default function MaterialOrdersPage() {
       setLoading(false);
     }
   }
+
+  const createTicketFromOrder = async (orderId: string) => {
+    setCreatingTicketFor(orderId);
+    try {
+      const response = await fetch('/api/portal/material-orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create-ticket-from-order',
+          orderId,
+          createdBy: 'current-user',
+          createdByName: 'User',
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.ticket?.ticketId) {
+          setOrderTicketMap(prev => ({ ...prev, [orderId]: data.ticket.ticketId }));
+        }
+      }
+    } catch (error) {
+      console.error('Error creating ticket:', error);
+    } finally {
+      setCreatingTicketFor(null);
+    }
+  };
 
   const toggleOrderExpand = (orderId: string) => {
     const newExpanded = new Set(expandedOrders);
@@ -212,17 +250,17 @@ export default function MaterialOrdersPage() {
 
   const getStatusBadge = (status: string) => {
     const colors: Record<string, string> = {
-      Draft: 'bg-gray-100 text-gray-800',
-      Pending: 'bg-yellow-100 text-yellow-800',
-      Approved: 'bg-blue-100 text-blue-800',
-      Ordered: 'bg-purple-100 text-purple-800',
-      Shipped: 'bg-cyan-100 text-cyan-800',
-      Delivered: 'bg-green-100 text-green-800',
-      Cancelled: 'bg-red-100 text-red-800'
+      Draft: 'bg-white/10 text-neutral-300',
+      Pending: 'bg-yellow-500/20 text-yellow-400',
+      Approved: 'bg-brand-green/20 text-blue-400',
+      Ordered: 'bg-purple-500/20 text-purple-400',
+      Shipped: 'bg-cyan-500/20 text-cyan-400',
+      Delivered: 'bg-green-500/20 text-green-400',
+      Cancelled: 'bg-red-500/20 text-red-400'
     };
 
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[status] || 'bg-gray-100 text-gray-800'}`}>
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[status] || 'bg-white/10 text-neutral-300'}`}>
         {status}
       </span>
     );
@@ -230,9 +268,9 @@ export default function MaterialOrdersPage() {
 
   const getPriorityBadge = (priority: string) => {
     const colors: Record<string, string> = {
-      Normal: 'bg-gray-100 text-gray-600',
-      Rush: 'bg-orange-100 text-orange-800',
-      Urgent: 'bg-red-100 text-red-800'
+      Normal: 'bg-white/10 text-neutral-400',
+      Rush: 'bg-orange-500/20 text-orange-400',
+      Urgent: 'bg-red-500/20 text-red-400'
     };
 
     return (
@@ -267,7 +305,18 @@ export default function MaterialOrdersPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="w-16 h-16 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center">
+              <Package className="text-green-400" size={32} />
+            </div>
+            <div className="absolute inset-0 rounded-2xl border-2 border-green-500/30 animate-ping opacity-50" />
+          </div>
+          <div className="text-center">
+            <h2 className="text-lg font-semibold text-neutral-900">Loading Orders</h2>
+            <p className="text-sm text-neutral-500 mt-1">Fetching material orders...</p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -286,13 +335,22 @@ export default function MaterialOrdersPage() {
               <p className="text-sm text-neutral-500">Create and manage material order requests</p>
             </div>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            New Order
-          </button>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/portal/delivery"
+              className="flex items-center gap-2 px-4 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-50 transition-colors"
+            >
+              <Truck className="w-4 h-4" />
+              Delivery Management
+            </Link>
+            <Link
+              href="/portal/orders/new"
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              New Order
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -334,7 +392,7 @@ export default function MaterialOrdersPage() {
       <div className="px-6 py-4">
         <div className="space-y-4">
           {filteredOrders.map((order) => (
-            <div key={order.orderId} className="bg-white rounded-lg border border-neutral-200 overflow-hidden">
+            <div key={order.orderId} className="bg-neutral-900 rounded-lg border border-neutral-200 overflow-hidden">
               {/* Order Header */}
               <div
                 className="p-4 cursor-pointer hover:bg-neutral-50"
@@ -343,7 +401,7 @@ export default function MaterialOrdersPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-                      <Package className="w-5 h-5 text-green-600" />
+                      <Package className="w-5 h-5 text-green-400" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
@@ -398,7 +456,7 @@ export default function MaterialOrdersPage() {
                         </div>
                       </div>
                       {order.specialInstructions && (
-                        <div className="mt-4 p-3 bg-yellow-50 rounded-lg text-sm text-yellow-800">
+                        <div className="mt-4 p-3 bg-yellow-50 rounded-lg text-sm text-yellow-400">
                           <strong>Instructions:</strong> {order.specialInstructions}
                         </div>
                       )}
@@ -419,10 +477,84 @@ export default function MaterialOrdersPage() {
                         ))}
                         <div className="flex items-center justify-between pt-2 font-medium">
                           <span>Total</span>
-                          <span className="text-green-600">{formatCurrency(order.totalPrice)}</span>
+                          <span className="text-green-400">{formatCurrency(order.totalPrice)}</span>
                         </div>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Linked Ticket */}
+                  {orderTicketMap[order.orderId] && (
+                    <div className="mt-3 p-3 bg-green-50 rounded-lg text-sm">
+                      <div className="flex items-center gap-2 text-green-400">
+                        <Ticket className="w-4 h-4" />
+                        <span>
+                          Delivery Ticket: <strong>{orderTicketMap[order.orderId]}</strong>
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="mt-4 pt-4 border-t border-neutral-200 flex flex-wrap gap-2">
+                    <Link
+                      href={`/portal/orders/${order.orderId}`}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                    >
+                      <Eye className="w-4 h-4" />
+                      View Details
+                    </Link>
+                    {!orderTicketMap[order.orderId] && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          createTicketFromOrder(order.orderId);
+                        }}
+                        disabled={creatingTicketFor === order.orderId}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 text-sm disabled:opacity-50"
+                      >
+                        {creatingTicketFor === order.orderId ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Ticket className="w-4 h-4" />
+                        )}
+                        Create Ticket
+                      </button>
+                    )}
+                    <Link
+                      href="/portal/driver/loading"
+                      className="flex items-center gap-1 px-3 py-1.5 bg-white/10 text-neutral-300 rounded-lg hover:bg-white/10 text-sm"
+                    >
+                      <ClipboardCheck className="w-4 h-4" />
+                      Loading Checklist
+                    </Link>
+                    {(order.status === 'Shipped' || order.status === 'Delivered') && (
+                      <Link
+                        href={`/portal/orders/${order.orderId}?tab=tracking`}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-brand-green/20 text-blue-400 rounded-lg hover:bg-blue-200 text-sm"
+                      >
+                        <Navigation className="w-4 h-4" />
+                        Track Delivery
+                      </Link>
+                    )}
+                    {order.status === 'Delivered' && (
+                      <>
+                        <Link
+                          href={`/portal/orders/${order.orderId}/return`}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-orange-500/20 text-orange-400 rounded-lg hover:bg-orange-200 text-sm"
+                        >
+                          <RotateCcw className="w-4 h-4" />
+                          Create Return
+                        </Link>
+                        <Link
+                          href={`/portal/orders/${order.orderId}?tab=invoice`}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-purple-500/20 text-purple-400 rounded-lg hover:bg-purple-200 text-sm"
+                        >
+                          <Receipt className="w-4 h-4" />
+                          View Invoice
+                        </Link>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
@@ -503,12 +635,23 @@ export default function MaterialOrdersPage() {
               {/* Address */}
               <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-1">Shipping Address</label>
-                <input
-                  type="text"
-                  value={newOrder.shippingAddress}
-                  onChange={(e) => setNewOrder({ ...newOrder, shippingAddress: e.target.value })}
-                  className="w-full border border-neutral-300 rounded-lg px-3 py-2"
-                  placeholder="Street address"
+                <AddressAutocomplete
+                  onAddressSelect={(result: AddressResult) => {
+                    const streetParts: string[] = [];
+                    if (result.streetNumber) streetParts.push(result.streetNumber);
+                    if (result.street) streetParts.push(result.street);
+                    const streetAddr = streetParts.length > 0 ? streetParts.join(' ') : result.formattedAddress.split(',')[0];
+                    setNewOrder({
+                      ...newOrder,
+                      shippingAddress: streetAddr,
+                      city: result.city || newOrder.city,
+                      state: result.state || newOrder.state,
+                      zipCode: result.zip || newOrder.zipCode,
+                    });
+                  }}
+                  defaultValue={newOrder.shippingAddress}
+                  placeholder="Start typing address..."
+                  className="!bg-white !border-neutral-300 !text-neutral-900 !placeholder-neutral-400 focus:!ring-2 focus:!ring-green-500 focus:!border-green-500"
                 />
               </div>
 
@@ -610,7 +753,7 @@ export default function MaterialOrdersPage() {
                           <span className="font-medium">{formatCurrency(item.totalPrice)}</span>
                           <button
                             onClick={() => removeProductFromOrder(item.productId)}
-                            className="text-red-500 hover:text-red-700"
+                            className="text-red-500 hover:text-red-400"
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -619,7 +762,7 @@ export default function MaterialOrdersPage() {
                     ))}
                     <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg font-medium">
                       <span>Total</span>
-                      <span className="text-green-600">{formatCurrency(calculateTotals().totalPrice)}</span>
+                      <span className="text-green-400">{formatCurrency(calculateTotals().totalPrice)}</span>
                     </div>
                   </div>
                 )}

@@ -7,7 +7,7 @@
  * - Extension info (number, name, email, role)
  * - Voicemail status
  * - Call forwarding settings
- * - Recent calls placeholder
+ * - Call history with FreePBX integration
  * - Quick actions
  *
  * @author RCRS Development Team
@@ -51,48 +51,49 @@ import {
 import { cn } from '@/lib/utils';
 
 // =============================================================================
-// PLACEHOLDER DATA
+// CALL HISTORY - Local demo data + FreePBX integration hook
 // =============================================================================
 
-// Recent calls placeholder data
-const RECENT_CALLS_PLACEHOLDER = [
-  {
-    id: '1',
-    type: 'incoming' as const,
-    number: '(256) 555-0123',
-    name: 'John Smith',
-    duration: '3:45',
-    time: '10:30 AM',
-    date: 'Today',
-  },
-  {
-    id: '2',
-    type: 'outgoing' as const,
-    number: '(256) 555-0456',
-    name: 'ABC Roofing Supplies',
-    duration: '12:20',
-    time: '9:15 AM',
-    date: 'Today',
-  },
-  {
-    id: '3',
-    type: 'missed' as const,
-    number: '(256) 555-0789',
-    name: 'Unknown',
-    duration: null,
-    time: '4:45 PM',
-    date: 'Yesterday',
-  },
-  {
-    id: '4',
-    type: 'incoming' as const,
-    number: '(256) 555-0321',
-    name: 'Sarah Johnson',
-    duration: '8:12',
-    time: '2:30 PM',
-    date: 'Yesterday',
-  },
-];
+interface CallRecord {
+  id: string;
+  type: 'incoming' | 'outgoing' | 'missed';
+  number: string;
+  name: string;
+  duration: string | null;
+  time: string;
+  date: string;
+}
+
+// Generate demo call records for an extension
+function generateDemoCallHistory(extensionNumber: string): CallRecord[] {
+  const names = [
+    'John Smith', 'Sarah Johnson', 'Mike Davis', 'Emily Brown',
+    'ABC Supply Co.', 'Insurance Adjuster', 'Customer Service',
+    'Regional Office', 'Home Depot Pro', 'Bob Williams',
+  ];
+  const types: Array<'incoming' | 'outgoing' | 'missed'> = ['incoming', 'outgoing', 'missed'];
+  const records: CallRecord[] = [];
+  const now = new Date();
+
+  for (let i = 0; i < 15; i++) {
+    const callDate = new Date(now.getTime() - i * 3600000 * (2 + Math.random() * 6));
+    const type = types[Math.floor(Math.random() * (i < 2 ? 3 : 2))]; // More missed calls recently
+    const durationMinutes = type === 'missed' ? 0 : Math.floor(Math.random() * 15) + 1;
+    const durationSeconds = type === 'missed' ? 0 : Math.floor(Math.random() * 60);
+
+    records.push({
+      id: `call-${extensionNumber}-${i}`,
+      type,
+      number: `(256) ${String(200 + Math.floor(Math.random() * 800)).padStart(3, '0')}-${String(1000 + Math.floor(Math.random() * 9000))}`,
+      name: names[i % names.length],
+      duration: type === 'missed' ? null : `${durationMinutes}:${String(durationSeconds).padStart(2, '0')}`,
+      time: callDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+      date: callDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    });
+  }
+
+  return records;
+}
 
 // =============================================================================
 // SUB-COMPONENTS
@@ -185,10 +186,59 @@ export default function ExtensionDetailPage() {
   const canViewAll = hasPermission('phone.viewAll');
   const canEdit = canManage || isOwnExtension;
 
-  // Placeholder state for settings
+  // Settings state
   const [dndEnabled, setDndEnabled] = React.useState(false);
   const [forwardingEnabled, setForwardingEnabled] = React.useState(false);
   const [forwardNumber, setForwardNumber] = React.useState('');
+
+  // Call history state
+  const [callHistory, setCallHistory] = React.useState<CallRecord[]>([]);
+  const [callHistoryLoading, setCallHistoryLoading] = React.useState(true);
+  const [pbxConnected, setPbxConnected] = React.useState(false);
+  const [pbxIpAddress, setPbxIpAddress] = React.useState('');
+  const [showPbxSetup, setShowPbxSetup] = React.useState(false);
+  const [callFilterType, setCallFilterType] = React.useState<string>('all');
+
+  // Load call history
+  React.useEffect(() => {
+    async function loadCallHistory() {
+      try {
+        // Try to fetch from FreePBX API first
+        const savedPbxIp = typeof window !== 'undefined' ? localStorage.getItem('rcrs-pbx-ip') : null;
+        if (savedPbxIp) {
+          setPbxIpAddress(savedPbxIp);
+          try {
+            const response = await fetch(`/api/command-center/phone/calls?extension=${extensionNumber}&pbxIp=${savedPbxIp}`, {
+              signal: AbortSignal.timeout(5000),
+            });
+            if (response.ok) {
+              const data = await response.json();
+              if (data.success && data.calls) {
+                setCallHistory(data.calls);
+                setPbxConnected(true);
+                setCallHistoryLoading(false);
+                return;
+              }
+            }
+          } catch {
+            // PBX not reachable, fall through to demo data
+          }
+        }
+
+        // Fall back to demo data
+        setCallHistory(generateDemoCallHistory(extensionNumber));
+        setPbxConnected(false);
+      } catch {
+        setCallHistory(generateDemoCallHistory(extensionNumber));
+      } finally {
+        setCallHistoryLoading(false);
+      }
+    }
+
+    if (extensionNumber) {
+      loadCallHistory();
+    }
+  }, [extensionNumber]);
 
   // If extension not found
   if (!extension) {
@@ -216,7 +266,7 @@ export default function ExtensionDetailPage() {
   const statusConfig = {
     online: { color: 'bg-lime-500', text: 'text-lime-400', label: 'Available' },
     busy: { color: 'bg-yellow-500', text: 'text-yellow-400', label: 'On Call' },
-    ringing: { color: 'bg-blue-500', text: 'text-blue-400', label: 'Ringing' },
+    ringing: { color: 'bg-brand-green', text: 'text-blue-400', label: 'Ringing' },
     dnd: { color: 'bg-red-500', text: 'text-red-400', label: 'Do Not Disturb' },
     offline: { color: 'bg-zinc-500', text: 'text-zinc-400', label: 'Offline' },
   };
@@ -377,43 +427,149 @@ export default function ExtensionDetailPage() {
           <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-white">Recent Calls</h2>
-              <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-zinc-500">
-                Placeholder Data
-              </span>
+              <div className="flex items-center gap-2">
+                {pbxConnected ? (
+                  <span className="flex items-center gap-1.5 rounded-full bg-lime-500/20 px-2.5 py-0.5 text-xs font-medium text-lime-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-lime-400" />
+                    PBX Connected
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => setShowPbxSetup(!showPbxSetup)}
+                    className="flex items-center gap-1.5 rounded-full bg-amber-500/20 px-2.5 py-0.5 text-xs font-medium text-amber-400 hover:bg-amber-500/30 transition-colors"
+                  >
+                    <Settings size={12} />
+                    Demo Data - Connect PBX
+                  </button>
+                )}
+              </div>
             </div>
 
-            <div className="space-y-2">
-              {RECENT_CALLS_PLACEHOLDER.map((call) => (
-                <div
-                  key={call.id}
-                  className="flex items-center gap-4 rounded-lg border border-zinc-800 bg-zinc-800/30 p-3"
-                >
-                  <CallTypeIcon type={call.type} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-white">
-                      {call.name}
-                    </p>
-                    <p className="text-sm text-zinc-500">{call.number}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-zinc-400">{call.time}</p>
-                    <p className="text-xs text-zinc-600">{call.date}</p>
-                  </div>
-                  {call.duration && (
-                    <div className="flex items-center gap-1 text-sm text-zinc-500">
-                      <Clock size={12} />
-                      {call.duration}
-                    </div>
-                  )}
+            {/* PBX Setup Panel */}
+            {showPbxSetup && !pbxConnected && (
+              <div className="mb-4 rounded-lg border border-amber-500/20 bg-amber-500/5 p-4">
+                <h3 className="text-sm font-semibold text-amber-400 mb-2">Connect to FreePBX</h3>
+                <p className="text-xs text-zinc-400 mb-3">
+                  Enter your FreePBX server IP address to pull live call data via the CDR API.
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={pbxIpAddress}
+                    onChange={(e) => setPbxIpAddress(e.target.value)}
+                    placeholder="e.g., 192.168.1.100"
+                    className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder-zinc-500 focus:border-lime-500 focus:outline-none"
+                  />
+                  <button
+                    onClick={() => {
+                      if (pbxIpAddress) {
+                        localStorage.setItem('rcrs-pbx-ip', pbxIpAddress);
+                        setShowPbxSetup(false);
+                        setCallHistoryLoading(true);
+                        // Trigger reload
+                        window.location.reload();
+                      }
+                    }}
+                    className="rounded-lg bg-lime-500 px-4 py-2 text-sm font-medium text-black hover:bg-lime-400 transition-colors"
+                  >
+                    Connect
+                  </button>
                 </div>
+                <p className="text-xs text-zinc-600 mt-2">
+                  Requires FreePBX REST API access. Default port: 80/443.
+                </p>
+              </div>
+            )}
+
+            {/* Call Type Filters */}
+            <div className="flex gap-2 mb-4">
+              {[
+                { id: 'all', label: 'All' },
+                { id: 'incoming', label: 'Incoming' },
+                { id: 'outgoing', label: 'Outgoing' },
+                { id: 'missed', label: 'Missed' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setCallFilterType(tab.id)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
+                    callFilterType === tab.id
+                      ? "bg-lime-500/20 text-lime-400"
+                      : "bg-zinc-800 text-zinc-400 hover:text-white"
+                  )}
+                >
+                  {tab.label}
+                </button>
               ))}
             </div>
 
-            <div className="mt-4 flex items-center justify-center rounded-lg border border-dashed border-zinc-700 bg-zinc-800/20 p-4">
-              <p className="text-sm text-zinc-500">
-                Call history integration coming soon
-              </p>
-            </div>
+            {/* Call Records */}
+            {callHistoryLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-lime-500/30 border-t-lime-500" />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {callHistory
+                  .filter((call) => callFilterType === 'all' || call.type === callFilterType)
+                  .map((call) => (
+                    <div
+                      key={call.id}
+                      className="flex items-center gap-4 rounded-lg border border-zinc-800 bg-zinc-800/30 p-3 hover:bg-zinc-800/50 transition-colors"
+                    >
+                      <CallTypeIcon type={call.type} />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium text-white">
+                          {call.name}
+                        </p>
+                        <p className="text-sm text-zinc-500">{call.number}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-zinc-400">{call.time}</p>
+                        <p className="text-xs text-zinc-600">{call.date}</p>
+                      </div>
+                      {call.duration && (
+                        <div className="flex items-center gap-1 text-sm text-zinc-500">
+                          <Clock size={12} />
+                          {call.duration}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                {callHistory.filter((call) => callFilterType === 'all' || call.type === callFilterType).length === 0 && (
+                  <div className="rounded-lg bg-zinc-800/30 p-6 text-center">
+                    <Phone className="h-8 w-8 text-zinc-700 mx-auto mb-2" />
+                    <p className="text-sm text-zinc-500">No calls match this filter</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Call Summary Stats */}
+            {!callHistoryLoading && callHistory.length > 0 && (
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                <div className="rounded-lg bg-zinc-800/50 p-3 text-center">
+                  <p className="text-lg font-bold text-lime-400">
+                    {callHistory.filter((c) => c.type === 'incoming').length}
+                  </p>
+                  <p className="text-xs text-zinc-500">Incoming</p>
+                </div>
+                <div className="rounded-lg bg-zinc-800/50 p-3 text-center">
+                  <p className="text-lg font-bold text-blue-400">
+                    {callHistory.filter((c) => c.type === 'outgoing').length}
+                  </p>
+                  <p className="text-xs text-zinc-500">Outgoing</p>
+                </div>
+                <div className="rounded-lg bg-zinc-800/50 p-3 text-center">
+                  <p className="text-lg font-bold text-red-400">
+                    {callHistory.filter((c) => c.type === 'missed').length}
+                  </p>
+                  <p className="text-xs text-zinc-500">Missed</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -494,11 +650,11 @@ export default function ExtensionDetailPage() {
                 <div className="flex-1">
                   <p className="font-medium text-white">Voicemail Box</p>
                   <p className="text-sm text-zinc-400">
-                    <span className="text-purple-400">3</span> new messages
+                    Dial <span className="font-mono text-purple-400">*97</span> to check messages
                   </p>
                 </div>
-                <span className="rounded-full bg-purple-500/20 px-2 py-0.5 text-xs font-medium text-purple-400">
-                  Placeholder
+                <span className="rounded-full bg-lime-500/20 px-2 py-0.5 text-xs font-medium text-lime-400">
+                  Active
                 </span>
               </div>
             </div>

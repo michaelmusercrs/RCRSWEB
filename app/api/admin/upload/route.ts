@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth-service';
 import formidable, { File as FormidableFile } from 'formidable';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -64,8 +65,8 @@ async function parseForm(req: NextRequest): Promise<{
   });
 
   return new Promise((resolve, reject) => {
-    // Create a mock request object for formidable
-    const mockReq = {
+    // Create a request-like object for formidable parser
+    const reqAdapter = {
       headers,
       on: () => {},
       once: () => {},
@@ -73,7 +74,7 @@ async function parseForm(req: NextRequest): Promise<{
       // Provide the buffer as if it were being read from a stream
     } as any;
 
-    form.parse(mockReq, (err, fields, files) => {
+    form.parse(reqAdapter, (err, fields, files) => {
       if (err) {
         reject(err);
       } else {
@@ -81,9 +82,9 @@ async function parseForm(req: NextRequest): Promise<{
       }
     });
 
-    // Simulate data events
-    mockReq.emit('data', buffer);
-    mockReq.emit('end');
+    // Simulate data events for the parser
+    reqAdapter.emit('data', buffer);
+    reqAdapter.emit('end');
   });
 }
 
@@ -124,6 +125,9 @@ async function handleFileUpload(req: NextRequest): Promise<{
  * Handles image upload with validation and optimization
  */
 export async function POST(req: NextRequest) {
+  const auth = await requireAdmin();
+  if (!auth.authenticated) return auth.response;
+
   try {
     // Parse uploaded file
     const { file, filename, mimetype, size } = await handleFileUpload(req);
@@ -235,6 +239,9 @@ export async function POST(req: NextRequest) {
  * Lists all uploaded images
  */
 export async function GET() {
+  const auth = await requireAdmin();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const uploadDir = getUploadDir();
 
@@ -320,6 +327,9 @@ export async function GET() {
  * Deletes an uploaded image and its variants
  */
 export async function DELETE(req: NextRequest) {
+  const auth = await requireAdmin();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const { searchParams } = new URL(req.url);
     const filename = searchParams.get('filename');

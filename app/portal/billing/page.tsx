@@ -1,17 +1,30 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft, DollarSign, AlertTriangle, FileText, Package, Truck,
   CheckCircle2, Clock, RefreshCw, Loader2, Search, Filter, Bell,
   ShoppingCart, Building, AlertCircle, TrendingUp, TrendingDown,
   Eye, Printer, Download, ChevronRight, Calendar, Store, Receipt,
-  Shield, XCircle, Check, Flag, BarChart3
+  Shield, XCircle, Check, Flag, BarChart3, Plus, Send,
+  CreditCard, ArrowRight
 } from 'lucide-react';
 import type { BillingRecord, BillingAlert, VendorPurchase } from '@/lib/billing-workflow-service';
 
-type TabType = 'dashboard' | 'records' | 'purchases' | 'alerts' | 'reconciliation';
+type TabType = 'dashboard' | 'invoices' | 'records' | 'purchases' | 'alerts' | 'reconciliation';
+
+interface InvoiceItem {
+  invoiceId: string;
+  invoiceNumber: string;
+  customerName: string;
+  jobName: string;
+  amount: number;
+  status: 'draft' | 'sent' | 'viewed' | 'paid' | 'overdue' | 'cancelled';
+  dueDate: string;
+  createdAt: string;
+  paidAt?: string;
+}
 
 const vendorNames: Record<string, string> = {
   in_house: 'In-House Inventory',
@@ -25,7 +38,7 @@ const vendorNames: Record<string, string> = {
 
 const statusColors: Record<string, string> = {
   pending_review: 'bg-yellow-500',
-  approved: 'bg-blue-500',
+  approved: 'bg-brand-green',
   materials_out: 'bg-purple-500',
   delivered: 'bg-cyan-500',
   pending_billing: 'bg-orange-500',
@@ -34,15 +47,24 @@ const statusColors: Record<string, string> = {
   credit_pending: 'bg-amber-500',
   credited: 'bg-teal-500',
   disputed: 'bg-red-500',
-  write_off: 'bg-gray-500',
+  write_off: 'bg-white/50',
   flagged: 'bg-red-600'
+};
+
+const invoiceStatusConfig: Record<string, { color: string; label: string }> = {
+  draft: { color: 'bg-zinc-500/20 text-zinc-400', label: 'Draft' },
+  sent: { color: 'bg-brand-green/20 text-blue-400', label: 'Sent' },
+  viewed: { color: 'bg-purple-500/20 text-purple-400', label: 'Viewed' },
+  paid: { color: 'bg-green-500/20 text-green-400', label: 'Paid' },
+  overdue: { color: 'bg-red-500/20 text-red-400', label: 'Overdue' },
+  cancelled: { color: 'bg-neutral-500/20 text-neutral-400', label: 'Cancelled' },
 };
 
 const alertSeverityColors: Record<string, string> = {
   critical: 'bg-red-500 text-white',
   high: 'bg-orange-500 text-white',
   medium: 'bg-yellow-500 text-black',
-  low: 'bg-blue-500 text-white'
+  low: 'bg-brand-green text-black'
 };
 
 export default function BillingPortalPage() {
@@ -50,13 +72,18 @@ export default function BillingPortalPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [invoiceStatusFilter, setInvoiceStatusFilter] = useState('');
 
   // Data states
   const [dashboardStats, setDashboardStats] = useState<any>(null);
   const [billingRecords, setBillingRecords] = useState<BillingRecord[]>([]);
+  const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
   const [vendorPurchases, setVendorPurchases] = useState<VendorPurchase[]>([]);
   const [alerts, setAlerts] = useState<BillingAlert[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [receivablesSummary, setReceivablesSummary] = useState<{
+    total: number; current: number; overdue: number; overdueCount: number;
+  }>({ total: 0, current: 0, overdue: 0, overdueCount: 0 });
 
   useEffect(() => {
     loadAllData();
@@ -65,12 +92,13 @@ export default function BillingPortalPage() {
   const loadAllData = async () => {
     setIsLoading(true);
     try {
-      const [dashboardRes, recordsRes, purchasesRes, alertsRes, notificationsRes] = await Promise.all([
+      const [dashboardRes, recordsRes, purchasesRes, alertsRes, notificationsRes, invoicesRes] = await Promise.all([
         fetch('/api/portal/billing?action=dashboard'),
         fetch('/api/portal/billing?action=records'),
         fetch('/api/portal/billing?action=purchases'),
         fetch('/api/portal/billing?action=alerts&unresolved=true'),
-        fetch('/api/portal/billing?action=notifications')
+        fetch('/api/portal/billing?action=notifications'),
+        fetch('/api/portal/invoices').catch(() => null),
       ]);
 
       const [dashboardData, recordsData, purchasesData, alertsData, notificationsData] = await Promise.all([
@@ -86,6 +114,34 @@ export default function BillingPortalPage() {
       setVendorPurchases(purchasesData.purchases || []);
       setAlerts(alertsData.alerts || []);
       setNotifications(notificationsData.notifications || []);
+
+      // Process invoices
+      if (invoicesRes?.ok) {
+        const invoicesData = await invoicesRes.json();
+        const invoiceList: InvoiceItem[] = (Array.isArray(invoicesData) ? invoicesData : invoicesData.invoices || []).map((inv: any) => ({
+          invoiceId: inv.invoiceId || inv.id,
+          invoiceNumber: inv.invoiceNumber || `INV-${inv.id}`,
+          customerName: inv.customerName || inv.jobName || 'Unknown',
+          jobName: inv.jobName || '',
+          amount: inv.total || inv.amount || 0,
+          status: inv.status || 'draft',
+          dueDate: inv.dueDate || inv.createdAt,
+          createdAt: inv.createdAt,
+          paidAt: inv.paidAt,
+        }));
+        setInvoices(invoiceList);
+
+        // Calculate receivables
+        const unpaid = invoiceList.filter((i: InvoiceItem) => i.status !== 'paid' && i.status !== 'cancelled');
+        const now = new Date();
+        const overdueItems = unpaid.filter((i: InvoiceItem) => new Date(i.dueDate) < now);
+        setReceivablesSummary({
+          total: unpaid.reduce((sum: number, i: InvoiceItem) => sum + i.amount, 0),
+          current: unpaid.filter((i: InvoiceItem) => new Date(i.dueDate) >= now).reduce((sum: number, i: InvoiceItem) => sum + i.amount, 0),
+          overdue: overdueItems.reduce((sum: number, i: InvoiceItem) => sum + i.amount, 0),
+          overdueCount: overdueItems.length,
+        });
+      }
     } catch (error) {
       console.error('Error loading billing data:', error);
     } finally {
@@ -102,8 +158,6 @@ export default function BillingPortalPage() {
       });
 
       const html = await response.text();
-
-      // Open in new window for printing
       const printWindow = window.open('', '_blank');
       if (printWindow) {
         printWindow.document.write(html);
@@ -124,7 +178,7 @@ export default function BillingPortalPage() {
           action: 'update-billing-status',
           billingId,
           newStatus,
-          updatedBy: 'Office Portal',
+          updatedBy: 'Operations',
           updatedByName: 'Office Staff',
           reason
         })
@@ -143,7 +197,7 @@ export default function BillingPortalPage() {
         body: JSON.stringify({
           action: 'resolve-alert',
           alertId,
-          resolvedBy: 'Office Portal',
+          resolvedBy: 'Operations',
           resolution
         })
       });
@@ -168,6 +222,24 @@ export default function BillingPortalPage() {
     }
   };
 
+  const handleMarkInvoicePaid = async (invoiceId: string) => {
+    try {
+      await fetch('/api/portal/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'mark-paid',
+          invoiceId,
+          paymentMethod: 'check',
+          reference: `Payment received ${new Date().toLocaleDateString()}`,
+        })
+      });
+      loadAllData();
+    } catch (error) {
+      console.error('Error marking invoice paid:', error);
+    }
+  };
+
   const filteredRecords = billingRecords.filter(record => {
     const matchesSearch = !searchTerm ||
       record.jobName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -176,12 +248,31 @@ export default function BillingPortalPage() {
     return matchesSearch && matchesStatus;
   });
 
+  const filteredInvoices = invoices.filter(inv => {
+    const matchesSearch = !searchTerm ||
+      inv.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      inv.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      inv.jobName.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = !invoiceStatusFilter || inv.status === invoiceStatusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-neutral-900 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="animate-spin mx-auto text-brand-green" size={48} />
-          <p className="text-neutral-400 mt-4">Loading billing portal...</p>
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-500/30 flex items-center justify-center">
+              <DollarSign className="text-green-400" size={28} />
+            </div>
+            <div className="absolute inset-0 rounded-2xl">
+              <Loader2 className="absolute -top-2 -right-2 animate-spin text-brand-green" size={20} />
+            </div>
+          </div>
+          <div className="text-center">
+            <p className="text-white font-medium">Loading Finance</p>
+            <p className="text-sm text-neutral-500">Fetching records...</p>
+          </div>
         </div>
       </div>
     );
@@ -197,8 +288,8 @@ export default function BillingPortalPage() {
               <ArrowLeft size={20} />
             </Link>
             <div>
-              <h1 className="text-xl font-bold text-white">Billing & Accounting</h1>
-              <p className="text-sm text-neutral-400">Loss Prevention & Invoice Management</p>
+              <h1 className="text-xl font-bold text-white">Billing & Invoicing</h1>
+              <p className="text-sm text-neutral-400">Invoice Management & Loss Prevention</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -228,6 +319,7 @@ export default function BillingPortalPage() {
         <div className="max-w-7xl mx-auto flex overflow-x-auto">
           {[
             { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+            { id: 'invoices', label: 'Invoices', icon: FileText, count: invoices.filter(i => i.status !== 'paid' && i.status !== 'cancelled').length },
             { id: 'records', label: 'Billing Records', icon: Receipt },
             { id: 'purchases', label: 'Vendor Purchases', icon: Store },
             { id: 'alerts', label: 'Alerts', icon: AlertTriangle, count: alerts.length },
@@ -256,10 +348,61 @@ export default function BillingPortalPage() {
 
       <div className="max-w-7xl mx-auto p-4">
         {/* Dashboard Tab */}
-        {activeTab === 'dashboard' && dashboardStats && (
+        {activeTab === 'dashboard' && (
           <div className="space-y-6">
+            {/* Receivables Summary */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-neutral-800 border border-brand-green/30 rounded-xl p-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 bg-brand-green/20 rounded-lg flex items-center justify-center">
+                    <DollarSign className="text-brand-green" size={20} />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-brand-green">${receivablesSummary.total.toLocaleString()}</p>
+                    <p className="text-sm text-neutral-400">Total Receivables</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-neutral-800 border border-blue-500/30 rounded-xl p-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 bg-brand-green/20 rounded-lg flex items-center justify-center">
+                    <CreditCard className="text-blue-400" size={20} />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-blue-400">${receivablesSummary.current.toLocaleString()}</p>
+                    <p className="text-sm text-neutral-400">Current</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-neutral-800 border border-red-500/30 rounded-xl p-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
+                    <AlertCircle className="text-red-400" size={20} />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-red-400">${receivablesSummary.overdue.toLocaleString()}</p>
+                    <p className="text-sm text-neutral-400">Overdue ({receivablesSummary.overdueCount})</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-neutral-800 border border-orange-500/30 rounded-xl p-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                    <Shield className="text-orange-400" size={20} />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-orange-400">{dashboardStats?.pendingApprovals?.count || 0}</p>
+                    <p className="text-sm text-neutral-400">Need Approval</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Critical Alerts Banner */}
-            {dashboardStats.activeAlerts?.critical > 0 && (
+            {dashboardStats?.activeAlerts?.critical > 0 && (
               <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-center gap-4">
                 <AlertTriangle className="text-red-500" size={24} />
                 <div className="flex-1">
@@ -277,128 +420,51 @@ export default function BillingPortalPage() {
               </div>
             )}
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-neutral-800 border border-red-500/30 rounded-xl p-4">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
-                    <AlertCircle className="text-red-400" size={20} />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-red-400">{dashboardStats.overdueItems?.count || 0}</p>
-                    <p className="text-sm text-neutral-400">Overdue Billing</p>
-                  </div>
-                </div>
-                <p className="text-red-400/70 text-sm">
-                  ${(dashboardStats.overdueItems?.amount || 0).toLocaleString()} unbilled
-                </p>
-              </div>
-
-              <div className="bg-neutral-800 border border-yellow-500/30 rounded-xl p-4">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 bg-yellow-500/20 rounded-lg flex items-center justify-center">
-                    <Clock className="text-yellow-400" size={20} />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-yellow-400">{dashboardStats.unbilledDeliveries?.count || 0}</p>
-                    <p className="text-sm text-neutral-400">Pending Billing</p>
-                  </div>
-                </div>
-                <p className="text-yellow-400/70 text-sm">
-                  ${(dashboardStats.unbilledDeliveries?.amount || 0).toLocaleString()} to bill
-                </p>
-              </div>
-
-              <div className="bg-neutral-800 border border-orange-500/30 rounded-xl p-4">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                    <Shield className="text-orange-400" size={20} />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-orange-400">{dashboardStats.pendingApprovals?.count || 0}</p>
-                    <p className="text-sm text-neutral-400">Need Approval</p>
-                  </div>
-                </div>
-                <p className="text-orange-400/70 text-sm">
-                  ${(dashboardStats.pendingApprovals?.amount || 0).toLocaleString()} pending
-                </p>
-              </div>
-
-              <div className="bg-neutral-800 border border-purple-500/30 rounded-xl p-4">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                    <Store className="text-purple-400" size={20} />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-purple-400">{dashboardStats.vendorPaymentsDue?.count || 0}</p>
-                    <p className="text-sm text-neutral-400">Vendor Due</p>
-                  </div>
-                </div>
-                <p className="text-purple-400/70 text-sm">
-                  ${(dashboardStats.vendorPaymentsDue?.amount || 0).toLocaleString()} to pay
-                </p>
-              </div>
-            </div>
-
             {/* Weekly Summary */}
-            <div className="grid md:grid-cols-3 gap-4">
-              <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-white">Weekly Billed</h3>
-                  <TrendingUp className="text-green-400" size={24} />
+            {dashboardStats && (
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-white">Weekly Billed</h3>
+                    <TrendingUp className="text-green-400" size={24} />
+                  </div>
+                  <p className="text-3xl font-bold text-green-400">
+                    ${(dashboardStats.weeklyTotals?.billed || 0).toLocaleString()}
+                  </p>
                 </div>
-                <p className="text-3xl font-bold text-green-400">
-                  ${(dashboardStats.weeklyTotals?.billed || 0).toLocaleString()}
-                </p>
-              </div>
-
-              <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-white">Weekly Cost</h3>
-                  <TrendingDown className="text-red-400" size={24} />
+                <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-white">Weekly Cost</h3>
+                    <TrendingDown className="text-red-400" size={24} />
+                  </div>
+                  <p className="text-3xl font-bold text-red-400">
+                    ${(dashboardStats.weeklyTotals?.cost || 0).toLocaleString()}
+                  </p>
                 </div>
-                <p className="text-3xl font-bold text-red-400">
-                  ${(dashboardStats.weeklyTotals?.cost || 0).toLocaleString()}
-                </p>
-              </div>
-
-              <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-white">Weekly Profit</h3>
-                  <DollarSign className="text-brand-green" size={24} />
-                </div>
-                <p className="text-3xl font-bold text-brand-green">
-                  ${(dashboardStats.weeklyTotals?.profit || 0).toLocaleString()}
-                </p>
-              </div>
-            </div>
-
-            {/* Today's Activity */}
-            <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Today's Activity</h3>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="text-center p-4 bg-neutral-700/50 rounded-lg">
-                  <Truck className="mx-auto text-blue-400 mb-2" size={24} />
-                  <p className="text-2xl font-bold text-white">{dashboardStats.todayActivity?.deliveries || 0}</p>
-                  <p className="text-sm text-neutral-400">Deliveries</p>
-                </div>
-                <div className="text-center p-4 bg-neutral-700/50 rounded-lg">
-                  <Package className="mx-auto text-orange-400 mb-2" size={24} />
-                  <p className="text-2xl font-bold text-white">{dashboardStats.todayActivity?.returns || 0}</p>
-                  <p className="text-sm text-neutral-400">Returns</p>
-                </div>
-                <div className="text-center p-4 bg-neutral-700/50 rounded-lg">
-                  <ShoppingCart className="mx-auto text-purple-400 mb-2" size={24} />
-                  <p className="text-2xl font-bold text-white">{dashboardStats.todayActivity?.purchases || 0}</p>
-                  <p className="text-sm text-neutral-400">Purchases</p>
+                <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-white">Weekly Profit</h3>
+                    <DollarSign className="text-brand-green" size={24} />
+                  </div>
+                  <p className="text-3xl font-bold text-brand-green">
+                    ${(dashboardStats.weeklyTotals?.profit || 0).toLocaleString()}
+                  </p>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Quick Actions */}
             <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <Link
+                  href="/command-center/billing/breakdowns"
+                  className="p-4 bg-neutral-700 rounded-lg hover:bg-neutral-600 text-left"
+                >
+                  <FileText className="text-brand-green mb-2" size={24} />
+                  <p className="text-white font-medium">Generate Invoice</p>
+                  <p className="text-neutral-500 text-sm">From breakdown</p>
+                </Link>
                 <button
                   onClick={handleRunDailyCheck}
                   className="p-4 bg-neutral-700 rounded-lg hover:bg-neutral-600 text-left"
@@ -408,26 +474,18 @@ export default function BillingPortalPage() {
                   <p className="text-neutral-500 text-sm">Find overdue items</p>
                 </button>
                 <button
-                  onClick={() => setActiveTab('records')}
+                  onClick={() => setActiveTab('invoices')}
                   className="p-4 bg-neutral-700 rounded-lg hover:bg-neutral-600 text-left"
                 >
                   <Receipt className="text-blue-400 mb-2" size={24} />
-                  <p className="text-white font-medium">View Unbilled</p>
-                  <p className="text-neutral-500 text-sm">Ready to invoice</p>
-                </button>
-                <button
-                  onClick={() => setActiveTab('purchases')}
-                  className="p-4 bg-neutral-700 rounded-lg hover:bg-neutral-600 text-left"
-                >
-                  <Store className="text-purple-400 mb-2" size={24} />
-                  <p className="text-white font-medium">Vendor Purchases</p>
-                  <p className="text-neutral-500 text-sm">Track expenses</p>
+                  <p className="text-white font-medium">View Invoices</p>
+                  <p className="text-neutral-500 text-sm">{invoices.length} total</p>
                 </button>
                 <button
                   onClick={() => setActiveTab('reconciliation')}
                   className="p-4 bg-neutral-700 rounded-lg hover:bg-neutral-600 text-left"
                 >
-                  <FileText className="text-cyan-400 mb-2" size={24} />
+                  <BarChart3 className="text-cyan-400 mb-2" size={24} />
                   <p className="text-white font-medium">Run Reconciliation</p>
                   <p className="text-neutral-500 text-sm">Generate report</p>
                 </button>
@@ -436,10 +494,135 @@ export default function BillingPortalPage() {
           </div>
         )}
 
+        {/* Invoices Tab */}
+        {activeTab === 'invoices' && (
+          <div className="space-y-4">
+            {/* Search & Filter */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" size={18} />
+                <input
+                  type="text"
+                  placeholder="Search invoices..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full bg-neutral-800 border border-neutral-700 rounded-lg pl-10 pr-4 py-2 text-white"
+                />
+              </div>
+              <select
+                value={invoiceStatusFilter}
+                onChange={(e) => setInvoiceStatusFilter(e.target.value)}
+                className="bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white"
+              >
+                <option value="">All Statuses</option>
+                <option value="draft">Draft</option>
+                <option value="sent">Sent</option>
+                <option value="paid">Paid</option>
+                <option value="overdue">Overdue</option>
+              </select>
+              <Link
+                href="/command-center/billing/breakdowns"
+                className="flex items-center gap-2 px-4 py-2 bg-brand-green text-black rounded-lg hover:bg-brand-green/90 font-medium"
+              >
+                <Plus size={18} />
+                New Invoice
+              </Link>
+            </div>
+
+            {/* Invoice List */}
+            <div className="bg-neutral-800 border border-neutral-700 rounded-xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-neutral-700">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-neutral-400 uppercase">Invoice</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-neutral-400 uppercase">Customer / Job</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-neutral-400 uppercase">Amount</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-neutral-400 uppercase">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-neutral-400 uppercase">Due Date</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-neutral-400 uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-700">
+                    {filteredInvoices.length > 0 ? (
+                      filteredInvoices.map(inv => (
+                        <tr key={inv.invoiceId} className="hover:bg-neutral-700/50">
+                          <td className="px-4 py-3">
+                            <p className="text-white font-medium text-sm">{inv.invoiceNumber}</p>
+                            <p className="text-neutral-500 text-xs">{new Date(inv.createdAt).toLocaleDateString()}</p>
+                          </td>
+                          <td className="px-4 py-3">
+                            <p className="text-white">{inv.customerName}</p>
+                            <p className="text-neutral-500 text-xs">{inv.jobName}</p>
+                          </td>
+                          <td className="px-4 py-3">
+                            <p className="text-brand-green font-bold">${inv.amount.toLocaleString()}</p>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                              invoiceStatusConfig[inv.status]?.color || 'bg-neutral-500/20 text-neutral-400'
+                            }`}>
+                              {invoiceStatusConfig[inv.status]?.label || inv.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <p className={`text-sm ${
+                              new Date(inv.dueDate) < new Date() && inv.status !== 'paid' ? 'text-red-400' : 'text-neutral-300'
+                            }`}>
+                              {new Date(inv.dueDate).toLocaleDateString()}
+                            </p>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleGeneratePDF('invoice', {
+                                  invoiceNumber: inv.invoiceNumber,
+                                  customerName: inv.customerName,
+                                  jobName: inv.jobName,
+                                  total: inv.amount,
+                                })}
+                                className="p-1.5 bg-brand-green/20 text-brand-green rounded hover:bg-brand-green/30"
+                                title="Print Invoice"
+                              >
+                                <Printer size={14} />
+                              </button>
+                              {inv.status !== 'paid' && inv.status !== 'cancelled' && (
+                                <button
+                                  onClick={() => handleMarkInvoicePaid(inv.invoiceId)}
+                                  className="p-1.5 bg-green-500/20 text-green-400 rounded hover:bg-green-500/30"
+                                  title="Mark Paid"
+                                >
+                                  <Check size={14} />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-12 text-center">
+                          <FileText className="mx-auto text-neutral-600 mb-3" size={40} />
+                          <p className="text-neutral-400">No invoices found</p>
+                          <Link
+                            href="/command-center/billing/breakdowns"
+                            className="mt-3 inline-flex items-center gap-2 text-brand-green text-sm hover:text-brand-green/80"
+                          >
+                            <Plus size={16} /> Generate from breakdown
+                          </Link>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Billing Records Tab */}
         {activeTab === 'records' && (
           <div className="space-y-4">
-            {/* Search & Filter */}
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" size={18} />
@@ -468,7 +651,6 @@ export default function BillingPortalPage() {
               </select>
             </div>
 
-            {/* Records Table */}
             <div className="bg-neutral-800 border border-neutral-700 rounded-xl overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -496,7 +678,7 @@ export default function BillingPortalPage() {
                         </td>
                         <td className="px-4 py-3">
                           <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            record.transactionType === 'material_delivery' ? 'bg-blue-500/20 text-blue-400' :
+                            record.transactionType === 'material_delivery' ? 'bg-brand-green/20 text-blue-400' :
                             record.transactionType === 'material_return' ? 'bg-orange-500/20 text-orange-400' :
                             'bg-purple-500/20 text-purple-400'
                           }`}>
@@ -545,7 +727,7 @@ export default function BillingPortalPage() {
                             {record.billingStatus === 'pending_review' && (
                               <button
                                 onClick={() => handleUpdateStatus(record.billingId, 'approved', 'Approved by office')}
-                                className="p-1.5 bg-blue-500/20 text-blue-400 rounded hover:bg-blue-500/30"
+                                className="p-1.5 bg-brand-green/20 text-blue-400 rounded hover:bg-brand-green/30"
                                 title="Approve"
                               >
                                 <Check size={14} />
@@ -715,7 +897,7 @@ export default function BillingPortalPage() {
                           action: 'run-reconciliation',
                           periodStart: weekAgo.toISOString(),
                           periodEnd: now.toISOString(),
-                          generatedBy: 'Office Portal'
+                          generatedBy: 'Operations'
                         })
                       });
                       const result = await response.json();
@@ -733,7 +915,6 @@ export default function BillingPortalPage() {
                   <p className="text-white font-semibold text-lg">Weekly Reconciliation</p>
                   <p className="text-neutral-400 text-sm mt-1">Compare deliveries vs billing for the past week</p>
                 </button>
-
                 <button
                   onClick={() => handleRunDailyCheck()}
                   className="p-6 bg-neutral-700 rounded-xl hover:bg-neutral-600 text-left"
@@ -745,45 +926,24 @@ export default function BillingPortalPage() {
               </div>
             </div>
 
-            {/* Loss Prevention Summary */}
             <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-white mb-4">Loss Prevention Safeguards</h3>
               <div className="space-y-4">
-                <div className="flex items-center gap-4 p-4 bg-neutral-700/50 rounded-lg">
-                  <CheckCircle2 className="text-green-400" size={24} />
-                  <div>
-                    <p className="text-white font-medium">Automatic Billing Deadline</p>
-                    <p className="text-neutral-400 text-sm">Materials must be billed within 3 days of delivery</p>
+                {[
+                  { title: 'Automatic Billing Deadline', desc: 'Materials must be billed within 3 days of delivery' },
+                  { title: 'Approval Required', desc: 'Orders over $5,000 or unusual quantities need manager approval' },
+                  { title: 'Markup Validation', desc: 'Alerts for markups below 15% or above 100%' },
+                  { title: 'Vendor Purchase Tracking', desc: 'All vendor purchases must be assigned to jobs and billed' },
+                  { title: 'Return Credit Tracking', desc: 'Returns are tracked until credit is applied' },
+                ].map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-4 p-4 bg-neutral-700/50 rounded-lg">
+                    <CheckCircle2 className="text-green-400" size={24} />
+                    <div>
+                      <p className="text-white font-medium">{item.title}</p>
+                      <p className="text-neutral-400 text-sm">{item.desc}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-4 p-4 bg-neutral-700/50 rounded-lg">
-                  <CheckCircle2 className="text-green-400" size={24} />
-                  <div>
-                    <p className="text-white font-medium">Approval Required</p>
-                    <p className="text-neutral-400 text-sm">Orders over $5,000 or unusual quantities need manager approval</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4 p-4 bg-neutral-700/50 rounded-lg">
-                  <CheckCircle2 className="text-green-400" size={24} />
-                  <div>
-                    <p className="text-white font-medium">Markup Validation</p>
-                    <p className="text-neutral-400 text-sm">Alerts for markups below 15% or above 100%</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4 p-4 bg-neutral-700/50 rounded-lg">
-                  <CheckCircle2 className="text-green-400" size={24} />
-                  <div>
-                    <p className="text-white font-medium">Vendor Purchase Tracking</p>
-                    <p className="text-neutral-400 text-sm">All vendor purchases must be assigned to jobs and billed</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4 p-4 bg-neutral-700/50 rounded-lg">
-                  <CheckCircle2 className="text-green-400" size={24} />
-                  <div>
-                    <p className="text-white font-medium">Return Credit Tracking</p>
-                    <p className="text-neutral-400 text-sm">Returns are tracked until credit is applied</p>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
           </div>

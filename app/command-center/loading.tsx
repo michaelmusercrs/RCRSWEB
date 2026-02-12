@@ -35,7 +35,7 @@ export default function CommandCenterLoading() {
         <div className="flex flex-col items-center gap-2">
           <div className="flex items-center gap-3">
             <Loader2 className="w-5 h-5 text-brand-green animate-spin" />
-            <span className="text-lg font-medium text-white">Loading Command Center</span>
+            <span className="text-lg font-medium text-white">Loading RoofStack</span>
           </div>
           <p className="text-sm text-neutral-400">Initializing your dashboard...</p>
         </div>

@@ -101,15 +101,15 @@ export default function AdminUploadPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Upload Images</h1>
-        <p className="text-gray-600 mt-2">
+        <h1 className="text-3xl font-bold text-white">Upload Images</h1>
+        <p className="text-neutral-400 mt-2">
           Upload and manage images for blog posts, team members, and projects
         </p>
       </div>
 
       {/* Upload Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Upload New Image</h2>
+      <div className="bg-neutral-900 rounded-lg border border-white/10 p-6">
+        <h2 className="text-xl font-semibold text-white mb-4">Upload New Image</h2>
         <ImageUpload
           onUploadComplete={handleUploadComplete}
           onUploadError={(error) => {
@@ -119,13 +119,13 @@ export default function AdminUploadPage() {
       </div>
 
       {/* Uploaded Images Gallery */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="bg-neutral-900 rounded-lg border border-white/10 p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-gray-900">Uploaded Images</h2>
+          <h2 className="text-xl font-semibold text-white">Uploaded Images</h2>
           <button
             onClick={fetchImages}
             disabled={isLoading}
-            className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="flex items-center space-x-2 px-4 py-2 text-sm text-neutral-400 hover:text-white border border-white/10 rounded-lg hover:bg-white/5 transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
@@ -136,8 +136,8 @@ export default function AdminUploadPage() {
         {isLoading && (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
-              <RefreshCw className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-2" />
-              <p className="text-gray-600">Loading images...</p>
+              <RefreshCw className="w-8 h-8 text-neutral-500 animate-spin mx-auto mb-2" />
+              <p className="text-neutral-400">Loading images...</p>
             </div>
           </div>
         )}
@@ -145,16 +145,16 @@ export default function AdminUploadPage() {
         {/* Empty state */}
         {!isLoading && uploadedImages.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <ImageIcon className="w-16 h-16 text-gray-300 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No images uploaded yet</h3>
-            <p className="text-gray-600">Upload your first image using the form above</p>
+            <ImageIcon className="w-16 h-16 text-neutral-400 mb-4" />
+            <h3 className="text-lg font-semibold text-white mb-2">No images uploaded yet</h3>
+            <p className="text-neutral-400">Upload your first image using the form above</p>
           </div>
         )}
 
         {/* Images grid */}
         {!isLoading && uploadedImages.length > 0 && (
           <div className="space-y-4">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-neutral-400">
               Total: <strong>{uploadedImages.length}</strong> image{uploadedImages.length !== 1 ? 's' : ''}
             </p>
 
@@ -162,10 +162,10 @@ export default function AdminUploadPage() {
               {uploadedImages.map((image) => (
                 <div
                   key={image.filename}
-                  className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow"
+                  className="bg-neutral-900 border border-white/10 rounded-lg overflow-hidden hover:border-white/20 transition-shadow"
                 >
                   {/* Image preview */}
-                  <div className="relative aspect-video bg-gray-100">
+                  <div className="relative aspect-video bg-white/10">
                     <Image
                       src={image.url}
                       alt={image.filename}
@@ -178,10 +178,10 @@ export default function AdminUploadPage() {
                   <div className="p-4 space-y-3">
                     {/* Filename */}
                     <div>
-                      <p className="text-sm font-medium text-gray-900 truncate" title={image.filename}>
+                      <p className="text-sm font-medium text-white truncate" title={image.filename}>
                         {image.filename}
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-neutral-500 mt-1">
                         {image.metadata?.width} × {image.metadata?.height} • {image.size}
                       </p>
                     </div>
@@ -193,12 +193,12 @@ export default function AdminUploadPage() {
                           type="text"
                           value={image.url}
                           readOnly
-                          className="flex-1 px-2 py-1 text-xs font-mono bg-gray-50 border border-gray-300 rounded truncate"
+                          className="flex-1 px-2 py-1 text-xs font-mono bg-white/5 border border-white/10 rounded truncate"
                           onClick={(e) => e.currentTarget.select()}
                         />
                         <button
                           onClick={() => handleCopyUrl(image.url)}
-                          className="p-1 text-gray-600 hover:text-gray-900 transition-colors"
+                          className="p-1 text-neutral-400 hover:text-white transition-colors"
                           title="Copy URL"
                         >
                           {copiedUrl === image.url ? (
@@ -211,12 +211,12 @@ export default function AdminUploadPage() {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center space-x-2 pt-2 border-t border-gray-200">
+                    <div className="flex items-center space-x-2 pt-2 border-t border-white/10">
                       <a
                         href={image.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+                        className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs font-medium text-neutral-300 bg-white/10 hover:bg-white/10 rounded transition-colors"
                       >
                         <ExternalLink className="w-3 h-3" />
                         <span>View</span>
@@ -224,7 +224,7 @@ export default function AdminUploadPage() {
                       <button
                         onClick={() => handleDeleteImage(image.filename)}
                         disabled={isDeleting === image.filename}
-                        className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded transition-colors disabled:opacity-50"
+                        className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs font-medium text-red-400 bg-red-50 hover:bg-red-100 rounded transition-colors disabled:opacity-50"
                       >
                         <Trash2 className="w-3 h-3" />
                         <span>{isDeleting === image.filename ? 'Deleting...' : 'Delete'}</span>
@@ -239,30 +239,30 @@ export default function AdminUploadPage() {
       </div>
 
       {/* Usage Instructions */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">How to Use Images</h3>
-        <div className="space-y-3 text-sm text-gray-700">
+      <div className="bg-white/5 border border-white/10 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-white mb-4">How to Use Images</h3>
+        <div className="space-y-3 text-sm text-neutral-300">
           <div>
             <strong>1. Upload an image</strong>
-            <p className="text-gray-600 mt-1">
+            <p className="text-neutral-400 mt-1">
               Use the upload form above to add images. Accepted formats: JPEG, PNG, WebP, GIF (max 10MB)
             </p>
           </div>
           <div>
             <strong>2. Copy the image URL</strong>
-            <p className="text-gray-600 mt-1">
+            <p className="text-neutral-400 mt-1">
               Click the copy button next to the URL to copy it to your clipboard
             </p>
           </div>
           <div>
             <strong>3. Use in your content</strong>
-            <p className="text-gray-600 mt-1">
+            <p className="text-neutral-400 mt-1">
               Paste the URL in blog posts, team member profiles, or anywhere you need images
             </p>
           </div>
           <div>
             <strong>4. Multiple sizes generated</strong>
-            <p className="text-gray-600 mt-1">
+            <p className="text-neutral-400 mt-1">
               Each upload creates multiple optimized sizes (thumbnail, small, medium, large) for better performance
             </p>
           </div>

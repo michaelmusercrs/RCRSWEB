@@ -3,6 +3,7 @@
 import { AuthProvider } from '@/lib/auth-context';
 import { TrainingProvider } from '@/lib/training-context';
 import TrainingPopup from '@/components/TrainingPopup';
+import ChatWidget from '@/components/portal/ChatWidget';
 
 export default function PortalLayout({
   children,
@@ -14,6 +15,7 @@ export default function PortalLayout({
       <TrainingProvider>
         {children}
         <TrainingPopup />
+        <ChatWidget />
       </TrainingProvider>
     </AuthProvider>
   );

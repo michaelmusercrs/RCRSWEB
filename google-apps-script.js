@@ -85,19 +85,4 @@ function sendReferralEmail(data, sourcePage) {
   Logger.log('Referral email sent to ' + COMPANY_EMAIL);
 }
 
-// TEST FUNCTION - Run this in Google Apps Script to test
-function testContactForm() {
-  var mockEvent = {
-    parameter: {
-      formType: 'contact',
-      sourcePage: 'Test',
-      name: 'Test User',
-      email: 'test@test.com',
-      phone: '256-555-1234',
-      subject: 'Test Message',
-      message: 'This is a test from Google Apps Script'
-    }
-  };
-  doPost(mockEvent);
-  Logger.log('Test complete - check ' + COMPANY_EMAIL + ' for email');
-}
+// Test function removed - test via the website contact form

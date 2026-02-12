@@ -132,9 +132,29 @@ export default function CustomerPortal() {
   const [uploading, setUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
 
+  // Fetch portal data on mount
   useEffect(() => {
     fetchPortalData();
   }, [token]);
+
+  // Poll for new messages every 30 seconds when on messages tab
+  useEffect(() => {
+    if (activeTab !== 'messages' || !data) return;
+
+    const pollInterval = setInterval(() => {
+      // Silently refresh portal data to get new messages
+      fetch(`/api/customer/${token}`)
+        .then(res => res.ok ? res.json() : null)
+        .then(result => {
+          if (result && result.messages) {
+            setData(prev => prev ? { ...prev, messages: result.messages } : prev);
+          }
+        })
+        .catch(() => {}); // Silent fail for polling
+    }, 30000);
+
+    return () => clearInterval(pollInterval);
+  }, [activeTab, data, token]);
 
   const fetchPortalData = async () => {
     try {
@@ -624,16 +644,85 @@ export default function CustomerPortal() {
         {/* Messages Tab */}
         {activeTab === 'messages' && (
           <div className="space-y-6">
+            {/* Rep Contact Card */}
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center text-white">
+                  {salesRep.photo ? (
+                    <Image src={salesRep.photo} alt={salesRep.name} width={40} height={40} className="w-10 h-10 rounded-full object-cover" />
+                  ) : (
+                    <User size={20} />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-neutral-800">Chat with {salesRep.name}</p>
+                  <p className="text-xs text-neutral-500">Your {salesRep.position} -- messages are monitored during business hours</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Message History */}
+            <div className="space-y-3">
+              {messages.length === 0 ? (
+                <div className="bg-white rounded-xl shadow-sm p-8 text-center">
+                  <MessageSquare className="text-neutral-300 mx-auto mb-4" size={48} />
+                  <h3 className="font-semibold text-neutral-800 mb-2">No Messages Yet</h3>
+                  <p className="text-neutral-500">Send your first message below. Your rep will be notified immediately.</p>
+                </div>
+              ) : (
+                messages.map((msg) => (
+                  <div
+                    key={msg.messageId}
+                    className={`rounded-xl p-4 ${
+                      msg.direction === 'outbound'
+                        ? 'bg-green-50 border border-green-100 ml-8'
+                        : 'bg-white shadow-sm mr-8'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        {msg.direction === 'outbound' ? (
+                          <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center">
+                            <User size={12} className="text-white" />
+                          </div>
+                        ) : (
+                          <div className="w-6 h-6 bg-neutral-200 rounded-full flex items-center justify-center">
+                            <User size={12} className="text-neutral-600" />
+                          </div>
+                        )}
+                        <span className="text-sm font-medium text-neutral-800">
+                          {msg.direction === 'outbound' ? (msg.sentBy || salesRep.name || 'River City Roofing') : 'You'}
+                        </span>
+                      </div>
+                      <span className="text-xs text-neutral-400">
+                        {new Date(msg.sentAt).toLocaleDateString()} at{' '}
+                        {new Date(msg.sentAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    {msg.subject && (
+                      <p className="text-sm font-medium text-neutral-700 mb-1">{msg.subject}</p>
+                    )}
+                    <p className="text-neutral-600">{msg.content}</p>
+                  </div>
+                ))
+              )}
+            </div>
+
             {/* Message Input */}
-            <div className="bg-white rounded-xl shadow-sm p-5">
-              <h3 className="font-semibold text-neutral-800 mb-3">Send a Message</h3>
+            <div className="bg-white rounded-xl shadow-sm p-5 sticky bottom-0">
               <div className="flex gap-3">
                 <textarea
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Type your message here..."
-                  rows={3}
+                  placeholder={`Message ${salesRep.name || 'your rep'}...`}
+                  rows={2}
                   className="flex-1 border border-neutral-200 rounded-xl px-4 py-3 text-neutral-800 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      sendMessage();
+                    }
+                  }}
                 />
                 <button
                   onClick={sendMessage}
@@ -650,45 +739,12 @@ export default function CustomerPortal() {
               {messageSent && (
                 <p className="text-sm text-green-600 mt-2 flex items-center gap-2">
                   <CheckCircle size={16} />
-                  Message sent successfully!
+                  Message sent! {salesRep.name || 'Your rep'} has been notified.
                 </p>
               )}
-            </div>
-
-            {/* Message History */}
-            <div className="space-y-4">
-              {messages.length === 0 ? (
-                <div className="bg-white rounded-xl shadow-sm p-8 text-center">
-                  <MessageSquare className="text-neutral-300 mx-auto mb-4" size={48} />
-                  <h3 className="font-semibold text-neutral-800 mb-2">No Messages Yet</h3>
-                  <p className="text-neutral-500">Your conversation history will appear here.</p>
-                </div>
-              ) : (
-                messages.map((msg) => (
-                  <div
-                    key={msg.messageId}
-                    className={`rounded-xl p-4 ${
-                      msg.direction === 'outbound'
-                        ? 'bg-green-50 border border-green-100 ml-8'
-                        : 'bg-white shadow-sm mr-8'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-neutral-800">
-                        {msg.direction === 'outbound' ? 'River City Roofing' : 'You'}
-                      </span>
-                      <span className="text-xs text-neutral-400">
-                        {new Date(msg.sentAt).toLocaleDateString()} at{' '}
-                        {new Date(msg.sentAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                      </span>
-                    </div>
-                    {msg.subject && (
-                      <p className="text-sm font-medium text-neutral-700 mb-1">{msg.subject}</p>
-                    )}
-                    <p className="text-neutral-600">{msg.content}</p>
-                  </div>
-                ))
-              )}
+              <p className="text-xs text-neutral-400 mt-2">
+                Press Enter to send, Shift+Enter for new line
+              </p>
             </div>
           </div>
         )}
@@ -815,12 +871,12 @@ export default function CustomerPortal() {
               <span className="text-sm text-neutral-600">River City Roofing Solutions</span>
             </div>
             <div className="flex items-center gap-4 text-sm text-neutral-500">
-              <a href="tel:+12565551234" className="hover:text-green-600 flex items-center gap-1">
+              <a href="tel:+12562748530" className="hover:text-green-600 flex items-center gap-1">
                 <Phone size={14} />
-                (256) 555-1234
+                (256) 274-8530
               </a>
               <span>•</span>
-              <span>Huntsville, AL</span>
+              <span>Decatur, AL</span>
             </div>
           </div>
         </div>

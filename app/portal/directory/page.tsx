@@ -56,13 +56,13 @@ export default function EmployeeDirectoryPage() {
   const getRoleBadgeColor = (role: EmployeeRole) => {
     const colors: Record<EmployeeRole, string> = {
       Owner: 'bg-amber-100 text-amber-800 border-amber-200',
-      Admin: 'bg-red-100 text-red-800 border-red-200',
-      Production: 'bg-blue-100 text-blue-800 border-blue-200',
-      'Sales Inspector': 'bg-green-100 text-green-800 border-green-200',
-      Contractor: 'bg-purple-100 text-purple-800 border-purple-200',
-      Vendor: 'bg-gray-100 text-gray-800 border-gray-200'
+      Admin: 'bg-red-500/20 text-red-400 border-red-500/20',
+      Production: 'bg-brand-green/20 text-blue-400 border-blue-500/20',
+      'Sales Inspector': 'bg-green-500/20 text-green-400 border-green-500/20',
+      Contractor: 'bg-purple-500/20 text-purple-400 border-purple-200',
+      Vendor: 'bg-white/10 text-neutral-300 border-white/10'
     };
-    return colors[role] || 'bg-gray-100 text-gray-800 border-gray-200';
+    return colors[role] || 'bg-white/10 text-neutral-300 border-white/10';
   };
 
   return (
@@ -86,7 +86,7 @@ export default function EmployeeDirectoryPage() {
       <div className="px-6 py-4">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {Object.entries(roleCounts).map(([role, count]) => (
-            <div key={role} className="bg-white rounded-lg border border-neutral-200 p-4">
+            <div key={role} className="bg-neutral-900 rounded-lg border border-neutral-200 p-4">
               <div className="text-sm text-neutral-500 mb-1">{role}</div>
               <div className="text-2xl font-bold text-neutral-900">{count}</div>
             </div>
@@ -153,7 +153,7 @@ export default function EmployeeDirectoryPage() {
           {filteredEmployees.map((employee) => (
             <div
               key={employee.id}
-              className="bg-white rounded-lg border border-neutral-200 overflow-hidden hover:shadow-lg transition-shadow"
+              className="bg-neutral-900 rounded-lg border border-neutral-200 overflow-hidden hover:border-white/20 transition-shadow"
             >
               {/* Header with image */}
               <div className="relative h-32 bg-gradient-to-br from-green-500 to-emerald-600">
@@ -203,7 +203,7 @@ export default function EmployeeDirectoryPage() {
                   {employee.phone && (
                     <a
                       href={`tel:${employee.phone}`}
-                      className="flex items-center gap-2 text-sm text-neutral-600 hover:text-green-600"
+                      className="flex items-center gap-2 text-sm text-neutral-600 hover:text-green-400"
                     >
                       <Phone className="w-4 h-4" />
                       {employee.phone}
@@ -212,7 +212,7 @@ export default function EmployeeDirectoryPage() {
                   {employee.email && (
                     <a
                       href={`mailto:${employee.email}`}
-                      className="flex items-center gap-2 text-sm text-neutral-600 hover:text-green-600 truncate"
+                      className="flex items-center gap-2 text-sm text-neutral-600 hover:text-green-400 truncate"
                     >
                       <Mail className="w-4 h-4 flex-shrink-0" />
                       <span className="truncate">{employee.email}</span>

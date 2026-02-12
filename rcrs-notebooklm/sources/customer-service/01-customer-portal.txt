@@ -1,0 +1,3218 @@
+# RCRS Customer Portal & Service System
+Generated: 2026-02-11 11:23
+Source: River City Roofing Solutions Platform
+
+---
+
+## Customer Portal Service
+
+// Customer Portal Service
+// Manages customer access tokens, documents, and portal data
+
+import crypto from 'crypto';
+import { googleSheetsService } from './google-sheets-service';
+
+export interface CustomerPortalAccess {
+  accessToken: string;
+  customerId: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  customerAddress: string;
+  salesRepId: string;
+  salesRepName: string;
+  salesRepSlug: string;
+  jobId?: string;
+  createdAt: string;
+  expiresAt?: string; // Optional expiration
+  lastAccessedAt?: string;
+  isActive: boolean;
+}
+
+export interface CustomerAppointment {
+  appointmentId: string;
+  customerId: string;
+  type: 'inspection' | 'estimate' | 'install_start' | 'install_complete' | 'final_walkthrough' | 'other';
+  title: string;
+  description?: string;
+  scheduledDate: string;
+  scheduledTime: string;
+  duration: number; // minutes
+  status: 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'rescheduled';
+  assignedTo: string;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface CustomerDocument {
+  documentId: string;
+  customerId: string;
+  type: 'estimate' | 'contract' | 'invoice' | 'warranty' | 'permit' | 'inspection_report' | 'photo' | 'other';
+  title: string;
+  description?: string;
+  fileUrl: string;
+  fileType: string; // pdf, jpg, png, etc.
+  fileSize?: number;
+  uploadedAt: string;
+  uploadedBy: string;
+  isVisible: boolean; // Whether customer can see this
+}
+
+export interface CustomerMessage {
+  messageId: string;
+  customerId: string;
+  direction: 'inbound' | 'outbound';
+  channel: 'sms' | 'email' | 'portal';
+  subject?: string;
+  content: string;
+  sentAt: string;
+  readAt?: string;
+  sentBy?: string;
+}
+
+export interface WeatherForecast {
+  date: string;
+  dayOfWeek: string;
+  high: number;
+  low: number;
+  condition: string;
+  icon: string;
+  precipChance: number;
+  windSpeed: number;
+  humidity: number;
+}
+
+export interface HailReport {
+  reportId: string;
+  date: string;
+  location: string;
+  distance: number; // miles from customer address
+  hailSize: string; // e.g., "1.25 inch"
+  source: string; // NWS, HailRecon, etc.
+  severity: 'minor' | 'moderate' | 'severe';
+  latitude: number;
+  longitude: number;
+}
+
+export interface PortalSettings {
+  showWeather: boolean;
+  showHailReports: boolean;
+  showAppointments: boolean;
+  showDocuments: boolean;
+  showMessages: boolean;
+  showJobProgress: boolean;
+  allowFileUpload: boolean;
+  allowMessages: boolean;
+}
+
+export interface RepPortalSettings {
+  repSlug: string;
+  repName: string;
+  // Each setting can be: true (enabled), false (disabled), or null (inherit from global)
+  showWeather: boolean | null;
+  showHailReports: boolean | null;
+  showAppointments: boolean | null;
+  showDocuments: boolean | null;
+  showMessages: boolean | null;
+  showJobProgress: boolean | null;
+  allowFileUpload: boolean | null;
+  allowMessages: boolean | null;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export const DEFAULT_PORTAL_SETTINGS: PortalSettings = {
+  showWeather: true,
+  showHailReports: true,
+  showAppointments: true,
+  showDocuments: true,
+  showMessages: true,
+  showJobProgress: true,
+  allowFileUpload: true,
+  allowMessages: true,
+};
+
+export interface CustomerCallRecord {
+  callId: string;
+  direction: 'inbound' | 'outbound';
+  status: 'completed' | 'missed' | 'voicemail';
+  startTime: string;
+  duration: number;
+  repName: string;
+  notes?: string;
+  recordingAvailable?: boolean;
+}
+
+export interface CustomerPortalData {
+  customer: CustomerPortalAccess;
+  salesRep: {
+    name: string;
+    slug: string;
+    phone: string;
+    email: string;
+    photo: string;
+    position: string;
+  };
+  appointments: CustomerAppointment[];
+  documents: CustomerDocument[];
+  messages: CustomerMessage[];
+  calls?: CustomerCallRecord[];
+  jobStatus?: {
+    phase: string;
+    progress: number;
+    nextMilestone: string;
+    estimatedCompletion?: string;
+  };
+  weather?: WeatherForecast[];
+  hailReports?: HailReport[];
+  settings?: PortalSettings;
+}
+
+class CustomerPortalService {
+  // Generate secure access token
+  generateAccessToken(): string {
+    return crypto.randomBytes(32).toString('hex');
+  }
+
+  // Generate short link code for SMS
+  generateShortCode(): string {
+    return crypto.randomBytes(4).toString('hex').toUpperCase();
+  }
+
+  // Create customer portal access
+  createPortalAccess(data: {
+    customerName: string;
+    customerEmail: string;
+    customerPhone: string;
+    customerAddress: string;
+    salesRepId: string;
+    salesRepName: string;
+    salesRepSlug: string;
+    jobId?: string;
+  }): CustomerPortalAccess {
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000); // 90 days from now
+
+    return {
+      accessToken: this.generateAccessToken(),
+      customerId: `CUST-${Date.now()}-${this.generateShortCode()}`,
+      customerName: data.customerName,
+      customerEmail: data.customerEmail,
+      customerPhone: data.customerPhone,
+      customerAddress: data.customerAddress,
+      salesRepId: data.salesRepId,
+      salesRepName: data.salesRepName,
+      salesRepSlug: data.salesRepSlug,
+      jobId: data.jobId,
+      createdAt: now.toISOString(),
+      expiresAt: expiresAt.toISOString(),
+      isActive: true,
+    };
+  }
+
+  // Generate customer portal URL
+  getPortalUrl(accessToken: string): string {
+    return `https://rivercityroofingsolutions.com/my/${accessToken}`;
+  }
+
+  // Generate sales rep intro link
+  getSalesRepIntroUrl(salesRepSlug: string, customerToken?: string): string {
+    const base = `https://rivercityroofingsolutions.com/team/${salesRepSlug}`;
+    return customerToken ? `${base}?ref=${customerToken}` : base;
+  }
+
+  // Format phone for SMS
+  formatPhoneForSMS(phone: string): string {
+    return phone.replace(/\D/g, '').replace(/^1/, '');
+  }
+
+  // Generate SMS message templates
+  getSMSTemplates(customer: CustomerPortalAccess) {
+    const repUrl = this.getSalesRepIntroUrl(customer.salesRepSlug);
+    const portalUrl = this.getPortalUrl(customer.accessToken);
+
+    return {
+      intro: `Hi ${customer.customerName.split(' ')[0]}! This is ${customer.salesRepName} from River City Roofing. Here's my profile with contact info: ${repUrl} - Looking forward to helping with your roof!`,
+
+      portalInvite: `Hi ${customer.customerName.split(' ')[0]}! Your River City Roofing customer portal is ready. View appointments, documents & more: ${portalUrl}`,
+
+      appointmentReminder: (apt: CustomerAppointment) =>
+        `Reminder: Your ${apt.title} is scheduled for ${apt.scheduledDate} at ${apt.scheduledTime}. Questions? Reply to this text or call ${customer.salesRepName}.`,
+
+      estimateReady: `Great news ${customer.customerName.split(' ')[0]}! Your roof estimate is ready to view: ${portalUrl} - ${customer.salesRepName}`,
+
+      installScheduled: (date: string) =>
+        `Your roof installation is scheduled to begin ${date}! View details & weather forecast: ${portalUrl}`,
+
+      jobComplete: `Congratulations! Your new roof is complete. View warranty info & final photos: ${portalUrl} - Thank you for choosing River City Roofing!`,
+    };
+  }
+
+  // Generate email templates
+  getEmailTemplates(customer: CustomerPortalAccess) {
+    const repUrl = this.getSalesRepIntroUrl(customer.salesRepSlug);
+    const portalUrl = this.getPortalUrl(customer.accessToken);
+
+    return {
+      intro: {
+        subject: `Meet Your Roofing Specialist - ${customer.salesRepName}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #16a34a;">Welcome to River City Roofing!</h2>
+            <p>Hi ${customer.customerName},</p>
+            <p>Thank you for your interest in River City Roofing Solutions. I'm ${customer.salesRepName}, and I'll be your dedicated roofing specialist.</p>
+            <p>Learn more about me and my experience:</p>
+            <a href="${repUrl}" style="display: inline-block; background: #16a34a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; margin: 16px 0;">View My Profile</a>
+            <p>I look forward to helping you with your roofing needs!</p>
+            <p>Best regards,<br>${customer.salesRepName}<br>River City Roofing Solutions</p>
+          </div>
+        `,
+      },
+
+      portalInvite: {
+        subject: `Your Customer Portal is Ready - River City Roofing`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #16a34a;">Your Customer Portal is Ready!</h2>
+            <p>Hi ${customer.customerName},</p>
+            <p>We've set up a personal portal just for you where you can:</p>
+            <ul>
+              <li>View upcoming appointments</li>
+              <li>Access estimates, contracts & invoices</li>
+              <li>Track your project status</li>
+              <li>See weather forecasts for install days</li>
+              <li>Contact your sales rep directly</li>
+            </ul>
+            <a href="${portalUrl}" style="display: inline-block; background: #16a34a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; margin: 16px 0;">Access Your Portal</a>
+            <p>Questions? Reply to this email or call us anytime.</p>
+            <p>- The River City Roofing Team</p>
+          </div>
+        `,
+      },
+    };
+  }
+
+  // Fetch weather forecast (using Open-Meteo - free, no API key needed)
+  async getWeatherForecast(latitude: number, longitude: number): Promise<WeatherForecast[]> {
+    try {
+      const response = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code,wind_speed_10m_max&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=America/Chicago&forecast_days=5`
+      );
+
+      if (!response.ok) throw new Error('Weather API error');
+
+      const data = await response.json();
+      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+      return data.daily.time.map((date: string, i: number) => {
+        const weatherCode = data.daily.weather_code[i];
+        return {
+          date,
+          dayOfWeek: days[new Date(date).getDay()],
+          high: Math.round(data.daily.temperature_2m_max[i]),
+          low: Math.round(data.daily.temperature_2m_min[i]),
+          condition: this.getWeatherCondition(weatherCode),
+          icon: this.getWeatherIcon(weatherCode),
+          precipChance: data.daily.precipitation_probability_max[i] || 0,
+          windSpeed: Math.round(data.daily.wind_speed_10m_max[i]),
+          humidity: 0, // Not available in free tier
+        };
+      });
+    } catch (error) {
+      console.error('Error fetching weather:', error);
+      return [];
+    }
+  }
+
+  // Convert weather code to condition string
+  private getWeatherCondition(code: number): string {
+    const conditions: Record<number, string> = {
+      0: 'Clear',
+      1: 'Mainly Clear',
+      2: 'Partly Cloudy',
+      3: 'Overcast',
+      45: 'Foggy',
+      48: 'Foggy',
+      51: 'Light Drizzle',
+      53: 'Drizzle',
+      55: 'Heavy Drizzle',
+      61: 'Light Rain',
+      63: 'Rain',
+      65: 'Heavy Rain',
+      71: 'Light Snow',
+      73: 'Snow',
+      75: 'Heavy Snow',
+      77: 'Snow Grains',
+      80: 'Light Showers',
+      81: 'Showers',
+      82: 'Heavy Showers',
+      85: 'Snow Showers',
+      86: 'Heavy Snow Showers',
+      95: 'Thunderstorm',
+      96: 'Thunderstorm with Hail',
+      99: 'Severe Thunderstorm',
+    };
+    return conditions[code] || 'Unknown';
+  }
+
+  // Get weather icon
+  private getWeatherIcon(code: number): string {
+    if (code === 0) return 'sun';
+    if (code <= 3) return 'cloud-sun';
+    if (code <= 48) return 'cloud';
+    if (code <= 55) return 'cloud-drizzle';
+    if (code <= 65) return 'cloud-rain';
+    if (code <= 77) return 'cloud-snow';
+    if (code <= 82) return 'cloud-rain';
+    if (code <= 86) return 'cloud-snow';
+    return 'cloud-lightning';
+  }
+
+  // Fetch NWS hail reports (free API)
+  async getHailReports(latitude: number, longitude: number, daysBack: number = 30): Promise<HailReport[]> {
+    try {
+      // NWS Storm Reports API
+      const endDate = new Date();
+      const startDate = new Date(endDate.getTime() - daysBack * 24 * 60 * 60 * 1000);
+
+      const startStr = startDate.toISOString().slice(0, 10);
+      const endStr = endDate.toISOString().slice(0, 10);
+
+      // Using Iowa State Mesonet (free, comprehensive)
+      const response = await fetch(
+        `https://mesonet.agron.iastate.edu/geojson/lsr.php?sts=${startStr}T00:00:00Z&ets=${endStr}T23:59:59Z&wfos=HUN&type=H`
+      );
+
+      if (!response.ok) return [];
+
+      const data = await response.json();
+      const reports: HailReport[] = [];
+
+      if (data.features) {
+        data.features.forEach((feature: any, index: number) => {
+          const props = feature.properties;
+          const coords = feature.geometry.coordinates;
+
+          // Calculate distance from customer
+          const distance = this.calculateDistance(
+            latitude, longitude,
+            coords[1], coords[0]
+          );
+
+          // Only include reports within 50 miles
+          if (distance <= 50) {
+            reports.push({
+              reportId: `HAIL-${index}-${Date.now()}`,
+              date: props.valid || props.utc_valid,
+              location: props.city || 'Unknown',
+              distance: Math.round(distance * 10) / 10,
+              hailSize: props.magnitude ? `${props.magnitude} inch` : 'Unknown',
+              source: 'NWS',
+              severity: this.getHailSeverity(props.magnitude),
+              latitude: coords[1],
+              longitude: coords[0],
+            });
+          }
+        });
+      }
+
+      return reports.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    } catch (error) {
+      console.error('Error fetching hail reports:', error);
+      return [];
+    }
+  }
+
+  // Determine hail severity based on size
+  private getHailSeverity(size: number): 'minor' | 'moderate' | 'severe' {
+    if (!size || size < 1) return 'minor';
+    if (size < 1.75) return 'moderate';
+    return 'severe';
+  }
+
+  // Calculate distance between two GPS points
+  private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 3959; // Earth's radius in miles
+    const dLat = this.toRad(lat2 - lat1);
+    const dLon = this.toRad(lon2 - lon1);
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(this.toRad(lat1)) * Math.cos(this.toRad(lat2)) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  }
+
+  private toRad(deg: number): number {
+    return deg * Math.PI / 180;
+  }
+
+  // Global settings - cached in memory, persisted to Google Sheets
+  private globalSettings: PortalSettings = { ...DEFAULT_PORTAL_SETTINGS };
+  private globalSettingsLoaded = false;
+
+  // Get global portal settings
+  getGlobalSettings(): PortalSettings {
+    return { ...this.globalSettings };
+  }
+
+  // Load global settings from Google Sheets
+  async loadGlobalSettings(): Promise<PortalSettings> {
+    try {
+      const ready = await googleSheetsService.init();
+      if (!ready) return this.getGlobalSettings();
+
+      const doc = (googleSheetsService as any).doc;
+      if (!doc) return this.getGlobalSettings();
+
+      let sheet = doc.sheetsByTitle['Portal_Global_Settings'];
+      if (!sheet) {
+        this.globalSettingsLoaded = true;
+        return this.getGlobalSettings();
+      }
+
+      const rows = await sheet.getRows();
+      if (rows.length > 0) {
+        const row = rows[0];
+        this.globalSettings = {
+          showWeather: row.get('showWeather') === 'true',
+          showHailReports: row.get('showHailReports') === 'true',
+          showAppointments: row.get('showAppointments') === 'true',
+          showDocuments: row.get('showDocuments') === 'true',
+          showMessages: row.get('showMessages') === 'true',
+          showJobProgress: row.get('showJobProgress') === 'true',
+          allowFileUpload: row.get('allowFileUpload') === 'true',
+          allowMessages: row.get('allowMessages') === 'true',
+        };
+      }
+
+      this.globalSettingsLoaded = true;
+      return this.getGlobalSettings();
+    } catch (error) {
+      console.error('Error loading global portal settings:', error);
+      return this.getGlobalSettings();
+    }
+  }
+
+  // Save global portal settings to Google Sheets
+  async saveGlobalSettings(settings: PortalSettings): Promise<void> {
+    this.globalSettings = { ...settings };
+
+    try {
+      const ready = await googleSheetsService.init();
+      if (!ready) throw new Error('Google Sheets not initialized');
+
+      const doc = (googleSheetsService as any).doc;
+      if (!doc) throw new Error('Google Sheets doc not available');
+
+      const headers = [
+        'showWeather', 'showHailReports', 'showAppointments', 'showDocuments',
+        'showMessages', 'showJobProgress', 'allowFileUpload', 'allowMessages',
+        'updatedAt', 'updatedBy'
+      ];
+
+      let sheet = doc.sheetsByTitle['Portal_Global_Settings'];
+      if (!sheet) {
+        sheet = await doc.addSheet({ title: 'Portal_Global_Settings', headerValues: headers });
+      }
+
+      const rows = await sheet.getRows();
+      const rowData: Record<string, string> = {
+        showWeather: String(settings.showWeather),
+        showHailReports: String(settings.showHailReports),
+        showAppointments: String(settings.showAppointments),
+        showDocuments: String(settings.showDocuments),
+        showMessages: String(settings.showMessages),
+        showJobProgress: String(settings.showJobProgress),
+        allowFileUpload: String(settings.allowFileUpload),
+        allowMessages: String(settings.allowMessages),
+        updatedAt: new Date().toISOString(),
+        updatedBy: 'admin',
+      };
+
+      if (rows.length > 0) {
+        const row = rows[0];
+        Object.entries(rowData).forEach(([key, value]) => {
+          row.set(key, value);
+        });
+        await row.save();
+      } else {
+        await sheet.addRow(rowData);
+      }
+    } catch (error) {
+      console.error('Error saving global portal settings:', error);
+      throw error;
+    }
+  }
+
+  // Get per-rep portal settings overrides
+  async getRepSettings(repSlug: string): Promise<RepPortalSettings | null> {
+    try {
+      const ready = await googleSheetsService.init();
+      if (!ready) return null;
+
+      const doc = (googleSheetsService as any).doc;
+      if (!doc) return null;
+
+      const sheet = doc.sheetsByTitle['Portal_Rep_Settings'];
+      if (!sheet) return null;
+
+      const rows = await sheet.getRows();
+      const row = rows.find((r: any) => r.get('repSlug') === repSlug);
+      if (!row) return null;
+
+      return {
+        repSlug: row.get('repSlug'),
+        repName: row.get('repName'),
+        showWeather: this.parseNullableBoolean(row.get('showWeather')),
+        showHailReports: this.parseNullableBoolean(row.get('showHailReports')),
+        showAppointments: this.parseNullableBoolean(row.get('showAppointments')),
+        showDocuments: this.parseNullableBoolean(row.get('showDocuments')),
+        showMessages: this.parseNullableBoolean(row.get('showMessages')),
+        showJobProgress: this.parseNullableBoolean(row.get('showJobProgress')),
+        allowFileUpload: this.parseNullableBoolean(row.get('allowFileUpload')),
+        allowMessages: this.parseNullableBoolean(row.get('allowMessages')),
+        updatedAt: row.get('updatedAt') || '',
+        updatedBy: row.get('updatedBy') || '',
+      };
+    } catch (error) {
+      console.error('Error getting rep portal settings:', error);
+      return null;
+    }
+  }
+
+  // Get all rep settings
+  async getAllRepSettings(): Promise<RepPortalSettings[]> {
+    try {
+      const ready = await googleSheetsService.init();
+      if (!ready) return [];
+
+      const doc = (googleSheetsService as any).doc;
+      if (!doc) return [];
+
+      const sheet = doc.sheetsByTitle['Portal_Rep_Settings'];
+      if (!sheet) return [];
+
+      const rows = await sheet.getRows();
+      return rows.map((row: any) => ({
+        repSlug: row.get('repSlug') || '',
+        repName: row.get('repName') || '',
+        showWeather: this.parseNullableBoolean(row.get('showWeather')),
+        showHailReports: this.parseNullableBoolean(row.get('showHailReports')),
+        showAppointments: this.parseNullableBoolean(row.get('showAppointments')),
+        showDocuments: this.parseNullableBoolean(row.get('showDocuments')),
+        showMessages: this.parseNullableBoolean(row.get('showMessages')),
+        showJobProgress: this.parseNullableBoolean(row.get('showJobProgress')),
+        allowFileUpload: this.parseNullableBoolean(row.get('allowFileUpload')),
+        allowMessages: this.parseNullableBoolean(row.get('allowMessages')),
+        updatedAt: row.get('updatedAt') || '',
+        updatedBy: row.get('updatedBy') || '',
+      }));
+    } catch (error) {
+      console.error('Error getting all rep portal settings:', error);
+      return [];
+    }
+  }
+
+  // Save per-rep portal settings overrides
+  async saveRepSettings(repSlug: string, settings: Partial<RepPortalSettings>): Promise<void> {
+    try {
+      const ready = await googleSheetsService.init();
+      if (!ready) throw new Error('Google Sheets not initialized');
+
+      const doc = (googleSheetsService as any).doc;
+      if (!doc) throw new Error('Google Sheets doc not available');
+
+      const headers = [
+        'repSlug', 'repName', 'showWeather', 'showHailReports', 'showAppointments',
+        'showDocuments', 'showMessages', 'showJobProgress', 'allowFileUpload',
+        'allowMessages', 'updatedAt', 'updatedBy'
+      ];
+
+      let sheet = doc.sheetsByTitle['Portal_Rep_Settings'];
+      if (!sheet) {
+        sheet = await doc.addSheet({ title: 'Portal_Rep_Settings', headerValues: headers });
+      }
+
+      const rows = await sheet.getRows();
+      const existingRow = rows.find((r: any) => r.get('repSlug') === repSlug);
+
+      const serializeNullable = (val: boolean | null | undefined): string => {
+        if (val === null || val === undefined) return 'null';
+        return String(val);
+      };
+
+      const rowData: Record<string, string> = {
+        repSlug,
+        repName: settings.repName || existingRow?.get('repName') || '',
+        showWeather: serializeNullable(settings.showWeather),
+        showHailReports: serializeNullable(settings.showHailReports),
+        showAppointments: serializeNullable(settings.showAppointments),
+        showDocuments: serializeNullable(settings.showDocuments),
+        showMessages: serializeNullable(settings.showMessages),
+        showJobProgress: serializeNullable(settings.showJobProgress),
+        allowFileUpload: serializeNullable(settings.allowFileUpload),
+        allowMessages: serializeNullable(settings.allowMessages),
+        updatedAt: new Date().toISOString(),
+        updatedBy: settings.updatedBy || 'admin',
+      };
+
+      if (existingRow) {
+        Object.entries(rowData).forEach(([key, value]) => {
+          existingRow.set(key, value);
+        });
+        await existingRow.save();
+      } else {
+        await sheet.addRow(rowData);
+      }
+    } catch (error) {
+      console.error('Error saving rep portal settings:', error);
+      throw error;
+    }
+  }
+
+  // Get effective settings for a rep (global merged with rep overrides)
+  async getEffectiveSettings(repSlug: string): Promise<PortalSettings> {
+    if (!this.globalSettingsLoaded) {
+      await this.loadGlobalSettings();
+    }
+
+    const global = this.getGlobalSettings();
+    const repSettings = await this.getRepSettings(repSlug);
+
+    if (!repSettings) return global;
+
+    // Merge: rep override takes precedence, null means inherit from global
+    const settingKeys: (keyof PortalSettings)[] = [
+      'showWeather', 'showHailReports', 'showAppointments', 'showDocuments',
+      'showMessages', 'showJobProgress', 'allowFileUpload', 'allowMessages'
+    ];
+
+    const effective: PortalSettings = { ...global };
+    for (const key of settingKeys) {
+      const repValue = repSettings[key];
+      if (repValue !== null && repValue !== undefined) {
+        effective[key] = repValue as boolean;
+      }
+    }
+
+    return effective;
+  }
+
+  // Parse a nullable boolean from a string
+  private parseNullableBoolean(value: string | undefined | null): boolean | null {
+    if (!value || value === 'null' || value === '') return null;
+    return value === 'true';
+  }
+
+  // Job status phases
+  getJobPhases() {
+    return [
+      { id: 'lead', label: 'Lead', progress: 0 },
+      { id: 'inspection', label: 'Inspection Scheduled', progress: 10 },
+      { id: 'estimate', label: 'Estimate Provided', progress: 20 },
+      { id: 'contract', label: 'Contract Signed', progress: 30 },
+      { id: 'permit', label: 'Permit Approved', progress: 40 },
+      { id: 'materials', label: 'Materials Ordered', progress: 50 },
+      { id: 'scheduled', label: 'Install Scheduled', progress: 60 },
+      { id: 'in_progress', label: 'Installation In Progress', progress: 75 },
+      { id: 'quality_check', label: 'Quality Check', progress: 90 },
+      { id: 'complete', label: 'Project Complete', progress: 100 },
+    ];
+  }
+}
+
+export const customerPortalService = new CustomerPortalService();
+
+
+---
+
+## app\portal\customers\page.tsx
+
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  Loader2, Users, Plus, Copy, Send, Eye, EyeOff, Trash2,
+  Phone, Mail, MapPin, Calendar, FileText, MessageSquare,
+  CheckCircle, XCircle, RefreshCw, ExternalLink, Search,
+  ChevronDown, Settings, Link2, Database, AlertCircle
+} from 'lucide-react';
+import { useAuth } from '@/lib/auth-context';
+import { TEAM_MEMBERS } from '@/lib/team-roles';
+
+interface PortalSettings {
+  showWeather: boolean;
+  showHailReports: boolean;
+  showAppointments: boolean;
+  showDocuments: boolean;
+  showMessages: boolean;
+  showJobProgress: boolean;
+  allowFileUpload: boolean;
+  allowMessages: boolean;
+}
+
+interface CustomerPortal {
+  accessToken: string;
+  customerId: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  customerAddress: string;
+  salesRepName: string;
+  salesRepSlug: string;
+  jobId: string;
+  createdAt: string;
+  lastAccessedAt: string;
+  isActive: boolean;
+  notificationSent: boolean;
+  notificationChannel: string;
+  portalUrl: string;
+  settings?: PortalSettings;
+}
+
+// JobNimbus search result types
+interface JobNimbusContact {
+  jnid: string;
+  displayName: string;
+  firstName?: string;
+  lastName?: string;
+  email: string;
+  phone: string;
+  address: string;
+  addressLine1?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  status?: string;
+  salesRep?: string;
+  salesRepId?: string;
+}
+
+interface JobNimbusJob {
+  jnid: string;
+  number?: string;
+  name?: string;
+  status?: string;
+  phase?: string;
+  salesRep?: string;
+  salesRepId?: string;
+  contactId?: string;
+  address: string;
+  addressLine1?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+}
+
+export default function CustomerPortalsPage() {
+  const router = useRouter();
+  const { user, isLoading: authLoading } = useAuth();
+  const [portals, setPortals] = useState<CustomerPortal[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  // New customer form
+  const [newCustomer, setNewCustomer] = useState({
+    customerName: '',
+    customerEmail: '',
+    customerPhone: '',
+    customerAddress: '',
+    salesRepSlug: '',
+    jobNimbusContactId: '',
+    jobNimbusJobId: '',
+  });
+  const [creating, setCreating] = useState(false);
+
+  // JobNimbus integration state
+  const [jnSearchQuery, setJnSearchQuery] = useState('');
+  const [jnSearching, setJnSearching] = useState(false);
+  const [jnSearchResults, setJnSearchResults] = useState<{
+    contacts: JobNimbusContact[];
+    jobs: JobNimbusJob[];
+  } | null>(null);
+  const [selectedJnContact, setSelectedJnContact] = useState<JobNimbusContact | null>(null);
+  const [selectedJnJob, setSelectedJnJob] = useState<JobNimbusJob | null>(null);
+  const [createMode, setCreateMode] = useState<'jobnimbus' | 'manual'>('jobnimbus');
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/portal');
+    } else if (user && !['owner', 'admin', 'office', 'project_manager'].includes(user.role)) {
+      router.push('/portal/dashboard');
+    } else if (user) {
+      fetchPortals();
+    }
+  }, [user, authLoading, router]);
+
+  const fetchPortals = async () => {
+    try {
+      const response = await fetch('/api/admin/customer-portal');
+      if (response.ok) {
+        const data = await response.json();
+        setPortals(data.portals || []);
+      }
+    } catch (error) {
+      console.error('Error fetching portals:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Search JobNimbus for customers/jobs
+  const searchJobNimbus = useCallback(async (query: string) => {
+    if (!query || query.length < 2) {
+      setJnSearchResults(null);
+      return;
+    }
+
+    setJnSearching(true);
+    try {
+      const response = await fetch(`/api/jobnimbus/search?q=${encodeURIComponent(query)}&type=all&limit=10`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setJnSearchResults(data.results);
+        }
+      }
+    } catch (error) {
+      console.error('Error searching JobNimbus:', error);
+    } finally {
+      setJnSearching(false);
+    }
+  }, []);
+
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (jnSearchQuery) {
+        searchJobNimbus(jnSearchQuery);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [jnSearchQuery, searchJobNimbus]);
+
+  // Select a contact from JobNimbus results
+  const selectJobNimbusContact = async (contact: JobNimbusContact) => {
+    setSelectedJnContact(contact);
+    setNewCustomer({
+      ...newCustomer,
+      customerName: contact.displayName,
+      customerEmail: contact.email || '',
+      customerPhone: contact.phone || '',
+      customerAddress: contact.address || '',
+      jobNimbusContactId: contact.jnid,
+      salesRepSlug: findSalesRepSlug(contact.salesRep) || newCustomer.salesRepSlug,
+    });
+    setJnSearchResults(null);
+    setJnSearchQuery('');
+  };
+
+  // Select a job from JobNimbus results
+  const selectJobNimbusJob = async (job: JobNimbusJob) => {
+    setSelectedJnJob(job);
+
+    // If job has a contact, fetch the contact details
+    if (job.contactId) {
+      try {
+        const response = await fetch(`/api/jobnimbus/job/${job.jnid}?includeContact=true`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.contact) {
+            setSelectedJnContact({
+              jnid: data.contact.jnid,
+              displayName: data.contact.displayName,
+              firstName: data.contact.firstName,
+              lastName: data.contact.lastName,
+              email: data.contact.email || '',
+              phone: data.contact.phone || '',
+              address: data.contact.address?.full || job.address,
+            });
+            setNewCustomer({
+              ...newCustomer,
+              customerName: data.contact.displayName,
+              customerEmail: data.contact.email || '',
+              customerPhone: data.contact.phone || '',
+              customerAddress: data.job.address?.full || job.address || '',
+              jobNimbusContactId: data.contact.jnid,
+              jobNimbusJobId: job.jnid,
+              salesRepSlug: findSalesRepSlug(job.salesRep) || findSalesRepSlug(data.contact.salesRep) || newCustomer.salesRepSlug,
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching job details:', error);
+      }
+    } else {
+      setNewCustomer({
+        ...newCustomer,
+        customerName: job.name || '',
+        customerAddress: job.address || '',
+        jobNimbusJobId: job.jnid,
+        salesRepSlug: findSalesRepSlug(job.salesRep) || newCustomer.salesRepSlug,
+      });
+    }
+
+    setJnSearchResults(null);
+    setJnSearchQuery('');
+  };
+
+  // Find sales rep slug from name
+  const findSalesRepSlug = (name?: string): string => {
+    if (!name) return '';
+    const rep = salesReps.find(r =>
+      r.name.toLowerCase().includes(name.toLowerCase()) ||
+      name.toLowerCase().includes(r.name.toLowerCase())
+    );
+    return rep?.slug || '';
+  };
+
+  // Clear JobNimbus selection
+  const clearJobNimbusSelection = () => {
+    setSelectedJnContact(null);
+    setSelectedJnJob(null);
+    setNewCustomer({
+      customerName: '',
+      customerEmail: '',
+      customerPhone: '',
+      customerAddress: '',
+      salesRepSlug: '',
+      jobNimbusContactId: '',
+      jobNimbusJobId: '',
+    });
+  };
+
+  const createPortal = async () => {
+    if (!newCustomer.customerName || (!newCustomer.customerEmail && !newCustomer.customerPhone)) {
+      alert('Please enter customer name and at least email or phone');
+      return;
+    }
+
+    setCreating(true);
+    try {
+      const response = await fetch('/api/admin/customer-portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...newCustomer,
+          source: selectedJnContact || selectedJnJob ? 'jobnimbus' : 'manual',
+        }),
+      });
+
+      if (response.ok) {
+        setShowCreateModal(false);
+        clearJobNimbusSelection();
+        setCreateMode('jobnimbus');
+        fetchPortals();
+      }
+    } catch (error) {
+      console.error('Error creating portal:', error);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const togglePortalStatus = async (accessToken: string, currentStatus: boolean) => {
+    try {
+      const response = await fetch('/api/admin/customer-portal', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accessToken,
+          action: currentStatus ? 'deactivate' : 'activate',
+        }),
+      });
+
+      if (response.ok) {
+        fetchPortals();
+      }
+    } catch (error) {
+      console.error('Error toggling portal:', error);
+    }
+  };
+
+  const copyToClipboard = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(id);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  const filteredPortals = portals.filter(p =>
+    p.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.customerEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.customerPhone.includes(searchTerm)
+  );
+
+  const salesReps = TEAM_MEMBERS.filter(m =>
+    ['owner', 'admin', 'project_manager'].includes(m.role) && m.isActive
+  );
+
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-green/20 to-emerald-500/20 border border-brand-green/30 flex items-center justify-center">
+              <Users className="text-brand-green" size={32} />
+            </div>
+            <div className="absolute inset-0 rounded-2xl border-2 border-brand-green/30 animate-ping" />
+          </div>
+          <div className="text-center">
+            <h2 className="text-lg font-semibold text-white">Loading Portals</h2>
+            <p className="text-sm text-zinc-400 mt-1">Fetching customer data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-neutral-950">
+      {/* Header */}
+      <header className="bg-neutral-900 border-b border-neutral-800 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => router.push('/portal/dashboard')}
+                className="text-neutral-400 hover:text-white"
+              >
+                ← Back
+              </button>
+              <div>
+                <h1 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Users className="text-brand-green" size={24} />
+                  Customer Portals
+                </h1>
+                <p className="text-sm text-neutral-400">{portals.length} customer portals</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-brand-green text-black font-medium rounded-lg hover:bg-brand-green/90 transition-colors"
+            >
+              <Plus size={18} />
+              Create Portal
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Search */}
+      <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500" size={20} />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search by name, email, or phone..."
+            className="w-full bg-neutral-900 border border-neutral-800 rounded-xl pl-12 pr-4 py-3 text-white placeholder-neutral-500 focus:outline-none focus:border-brand-green/50"
+          />
+        </div>
+      </div>
+
+      {/* Portals List */}
+      <div className="max-w-7xl mx-auto px-4 pb-8">
+        {filteredPortals.length === 0 ? (
+          <div className="bg-neutral-900 rounded-xl p-12 text-center border border-neutral-800">
+            <Users className="text-neutral-600 mx-auto mb-4" size={48} />
+            <h3 className="text-lg font-semibold text-white mb-2">No Customer Portals</h3>
+            <p className="text-neutral-400 mb-6">Create your first customer portal to share project info with homeowners.</p>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="px-6 py-3 bg-brand-green text-black font-medium rounded-lg hover:bg-brand-green/90"
+            >
+              Create First Portal
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredPortals.map((portal) => (
+              <div
+                key={portal.accessToken}
+                className={`bg-neutral-900 rounded-xl border ${
+                  portal.isActive ? 'border-neutral-800' : 'border-red-900/50'
+                } overflow-hidden`}
+              >
+                <div className="p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-lg font-semibold text-white">{portal.customerName}</h3>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          portal.isActive
+                            ? 'bg-green-500/20 text-green-400'
+                            : 'bg-red-500/20 text-red-400'
+                        }`}>
+                          {portal.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                        {portal.notificationSent && (
+                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400">
+                            Notified via {portal.notificationChannel}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap gap-4 text-sm text-neutral-400 mb-4">
+                        {portal.customerEmail && (
+                          <span className="flex items-center gap-1">
+                            <Mail size={14} />
+                            {portal.customerEmail}
+                          </span>
+                        )}
+                        {portal.customerPhone && (
+                          <span className="flex items-center gap-1">
+                            <Phone size={14} />
+                            {portal.customerPhone}
+                          </span>
+                        )}
+                        {portal.customerAddress && (
+                          <span className="flex items-center gap-1">
+                            <MapPin size={14} />
+                            {portal.customerAddress}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 text-xs text-neutral-500">
+                        <span>Rep: {portal.salesRepName}</span>
+                        <span>•</span>
+                        <span>Created: {new Date(portal.createdAt).toLocaleDateString()}</span>
+                        {portal.lastAccessedAt && (
+                          <>
+                            <span>•</span>
+                            <span>Last visited: {new Date(portal.lastAccessedAt).toLocaleDateString()}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => copyToClipboard(portal.portalUrl, portal.accessToken)}
+                        className={`p-2 rounded-lg transition-colors ${
+                          copied === portal.accessToken
+                            ? 'bg-green-500/20 text-green-400'
+                            : 'bg-neutral-800 text-neutral-400 hover:text-white'
+                        }`}
+                        title="Copy portal link"
+                      >
+                        {copied === portal.accessToken ? <CheckCircle size={18} /> : <Copy size={18} />}
+                      </button>
+                      <a
+                        href={portal.portalUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 bg-neutral-800 rounded-lg text-neutral-400 hover:text-white transition-colors"
+                        title="Open portal"
+                      >
+                        <ExternalLink size={18} />
+                      </a>
+                      <button
+                        onClick={() => setShowSettingsModal(portal.accessToken)}
+                        className="p-2 bg-neutral-800 rounded-lg text-neutral-400 hover:text-white transition-colors"
+                        title="Settings"
+                      >
+                        <Settings size={18} />
+                      </button>
+                      <button
+                        onClick={() => togglePortalStatus(portal.accessToken, portal.isActive)}
+                        className={`p-2 rounded-lg transition-colors ${
+                          portal.isActive
+                            ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                            : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                        }`}
+                        title={portal.isActive ? 'Deactivate' : 'Activate'}
+                      >
+                        {portal.isActive ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Quick Actions */}
+                  <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-neutral-800">
+                    <button
+                      onClick={() => {
+                        const smsText = `Hi ${portal.customerName.split(' ')[0]}! Your River City Roofing customer portal is ready. View appointments, documents & more: ${portal.portalUrl}`;
+                        window.open(`sms:${portal.customerPhone}?body=${encodeURIComponent(smsText)}`);
+                      }}
+                      disabled={!portal.customerPhone}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 text-blue-400 rounded-lg text-sm hover:bg-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Send size={14} />
+                      Send SMS
+                    </button>
+                    <button
+                      onClick={() => {
+                        const subject = 'Your Customer Portal is Ready - River City Roofing';
+                        const body = `Hi ${portal.customerName.split(' ')[0]},\n\nYour River City Roofing customer portal is ready! You can view appointments, documents, and more here:\n\n${portal.portalUrl}\n\nIf you have any questions, reply to this email.\n\n- River City Roofing Solutions`;
+                        window.open(`mailto:${portal.customerEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+                      }}
+                      disabled={!portal.customerEmail}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/20 text-purple-400 rounded-lg text-sm hover:bg-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Mail size={14} />
+                      Send Email
+                    </button>
+                    <button
+                      onClick={() => copyToClipboard(
+                        `Hi ${portal.customerName.split(' ')[0]}! Your River City Roofing customer portal is ready. View appointments, documents & more: ${portal.portalUrl}`,
+                        `sms-${portal.accessToken}`
+                      )}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-neutral-800 text-neutral-400 rounded-lg text-sm hover:text-white"
+                    >
+                      <Copy size={14} />
+                      {copied === `sms-${portal.accessToken}` ? 'Copied!' : 'Copy Message'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Create Portal Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-neutral-900 rounded-2xl max-w-lg w-full p-6 border border-neutral-800 my-8">
+            <h2 className="text-xl font-bold text-white mb-2">Create Customer Portal</h2>
+            <p className="text-neutral-400 text-sm mb-6">Search JobNimbus or enter customer details manually</p>
+
+            {/* Mode Toggle */}
+            <div className="flex gap-2 mb-6">
+              <button
+                onClick={() => {
+                  setCreateMode('jobnimbus');
+                  clearJobNimbusSelection();
+                }}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                  createMode === 'jobnimbus'
+                    ? 'bg-brand-green text-black'
+                    : 'bg-neutral-800 text-neutral-400 hover:text-white'
+                }`}
+              >
+                <Database size={16} />
+                From JobNimbus
+              </button>
+              <button
+                onClick={() => {
+                  setCreateMode('manual');
+                  clearJobNimbusSelection();
+                }}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                  createMode === 'manual'
+                    ? 'bg-brand-green text-black'
+                    : 'bg-neutral-800 text-neutral-400 hover:text-white'
+                }`}
+              >
+                <Plus size={16} />
+                Manual Entry
+              </button>
+            </div>
+
+            {/* JobNimbus Search Mode */}
+            {createMode === 'jobnimbus' && !selectedJnContact && !selectedJnJob && (
+              <div className="space-y-4">
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500" size={18} />
+                  <input
+                    type="text"
+                    value={jnSearchQuery}
+                    onChange={(e) => setJnSearchQuery(e.target.value)}
+                    placeholder="Search by name, email, phone, or address..."
+                    className="w-full bg-neutral-800 border border-neutral-700 rounded-xl pl-11 pr-4 py-3 text-white placeholder-neutral-500 focus:outline-none focus:border-brand-green/50"
+                    autoFocus
+                  />
+                  {jnSearching && (
+                    <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 text-brand-green animate-spin" size={18} />
+                  )}
+                </div>
+
+                {/* Search Results */}
+                {jnSearchResults && (jnSearchResults.contacts.length > 0 || jnSearchResults.jobs.length > 0) && (
+                  <div className="max-h-64 overflow-y-auto space-y-2 border border-neutral-800 rounded-xl p-2">
+                    {jnSearchResults.contacts.length > 0 && (
+                      <>
+                        <p className="text-xs font-medium text-neutral-500 uppercase px-2 pt-1">Contacts</p>
+                        {jnSearchResults.contacts.map((contact) => (
+                          <button
+                            key={contact.jnid}
+                            onClick={() => selectJobNimbusContact(contact)}
+                            className="w-full text-left p-3 bg-neutral-800 hover:bg-neutral-750 rounded-lg transition-colors"
+                          >
+                            <p className="font-medium text-white">{contact.displayName}</p>
+                            <div className="flex flex-wrap gap-2 mt-1 text-xs text-neutral-400">
+                              {contact.email && <span>{contact.email}</span>}
+                              {contact.phone && <span>{contact.phone}</span>}
+                            </div>
+                            {contact.address && (
+                              <p className="text-xs text-neutral-500 mt-1 truncate">{contact.address}</p>
+                            )}
+                          </button>
+                        ))}
+                      </>
+                    )}
+                    {jnSearchResults.jobs.length > 0 && (
+                      <>
+                        <p className="text-xs font-medium text-neutral-500 uppercase px-2 pt-2">Jobs</p>
+                        {jnSearchResults.jobs.map((job) => (
+                          <button
+                            key={job.jnid}
+                            onClick={() => selectJobNimbusJob(job)}
+                            className="w-full text-left p-3 bg-neutral-800 hover:bg-neutral-750 rounded-lg transition-colors"
+                          >
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-white">{job.name || job.number || 'Unnamed Job'}</p>
+                              {job.status && (
+                                <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded text-xs">
+                                  {job.status}
+                                </span>
+                              )}
+                            </div>
+                            {job.address && (
+                              <p className="text-xs text-neutral-400 mt-1 truncate">{job.address}</p>
+                            )}
+                            {job.salesRep && (
+                              <p className="text-xs text-neutral-500 mt-1">Rep: {job.salesRep}</p>
+                            )}
+                          </button>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {jnSearchQuery && !jnSearching && jnSearchResults &&
+                  jnSearchResults.contacts.length === 0 && jnSearchResults.jobs.length === 0 && (
+                  <div className="text-center py-6 text-neutral-500">
+                    <AlertCircle className="mx-auto mb-2" size={24} />
+                    <p>No results found in JobNimbus</p>
+                    <button
+                      onClick={() => setCreateMode('manual')}
+                      className="text-brand-green text-sm mt-2 hover:underline"
+                    >
+                      Create manually instead
+                    </button>
+                  </div>
+                )}
+
+                {!jnSearchQuery && (
+                  <div className="text-center py-8 text-neutral-500">
+                    <Database className="mx-auto mb-3 text-neutral-600" size={32} />
+                    <p className="text-sm">Search JobNimbus for existing customers</p>
+                    <p className="text-xs text-neutral-600 mt-1">Portal will be auto-populated with real data</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Selected JobNimbus Record */}
+            {(selectedJnContact || selectedJnJob) && (
+              <div className="mb-4 p-4 bg-green-500/10 border border-green-500/30 rounded-xl">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="text-green-500" size={18} />
+                    <span className="text-green-400 font-medium text-sm">
+                      Linked to JobNimbus
+                    </span>
+                  </div>
+                  <button
+                    onClick={clearJobNimbusSelection}
+                    className="text-neutral-400 hover:text-white"
+                  >
+                    <XCircle size={18} />
+                  </button>
+                </div>
+                {selectedJnContact && (
+                  <p className="text-sm text-neutral-300 mt-2">
+                    Contact: {selectedJnContact.displayName}
+                  </p>
+                )}
+                {selectedJnJob && (
+                  <p className="text-sm text-neutral-300 mt-1">
+                    Job: {selectedJnJob.name || selectedJnJob.number} - {selectedJnJob.status}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Customer Details Form (shown after JN selection or in manual mode) */}
+            {(createMode === 'manual' || selectedJnContact || selectedJnJob) && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-300 mb-2">
+                    Customer Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={newCustomer.customerName}
+                    onChange={(e) => setNewCustomer({ ...newCustomer, customerName: e.target.value })}
+                    placeholder="John Smith"
+                    className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-4 py-3 text-white placeholder-neutral-500 focus:outline-none focus:border-brand-green/50"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-300 mb-2">
+                      Phone
+                    </label>
+                    <input
+                      type="tel"
+                      value={newCustomer.customerPhone}
+                      onChange={(e) => setNewCustomer({ ...newCustomer, customerPhone: e.target.value })}
+                      placeholder="(256) 555-1234"
+                      className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-4 py-3 text-white placeholder-neutral-500 focus:outline-none focus:border-brand-green/50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-300 mb-2">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      value={newCustomer.customerEmail}
+                      onChange={(e) => setNewCustomer({ ...newCustomer, customerEmail: e.target.value })}
+                      placeholder="john@example.com"
+                      className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-4 py-3 text-white placeholder-neutral-500 focus:outline-none focus:border-brand-green/50"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-neutral-300 mb-2">
+                    Address
+                  </label>
+                  <input
+                    type="text"
+                    value={newCustomer.customerAddress}
+                    onChange={(e) => setNewCustomer({ ...newCustomer, customerAddress: e.target.value })}
+                    placeholder="123 Main St, Huntsville, AL 35801"
+                    className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-4 py-3 text-white placeholder-neutral-500 focus:outline-none focus:border-brand-green/50"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-neutral-300 mb-2">
+                    Assigned Sales Rep
+                  </label>
+                  <select
+                    value={newCustomer.salesRepSlug}
+                    onChange={(e) => setNewCustomer({ ...newCustomer, salesRepSlug: e.target.value })}
+                    className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-brand-green/50"
+                  >
+                    <option value="">Select a rep...</option>
+                    {salesReps.map((rep) => (
+                      <option key={rep.id} value={rep.slug}>{rep.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Show JobNimbus IDs if linked */}
+                {(newCustomer.jobNimbusContactId || newCustomer.jobNimbusJobId) && (
+                  <div className="text-xs text-neutral-500 pt-2 border-t border-neutral-800">
+                    {newCustomer.jobNimbusContactId && (
+                      <p>JN Contact ID: {newCustomer.jobNimbusContactId}</p>
+                    )}
+                    {newCustomer.jobNimbusJobId && (
+                      <p>JN Job ID: {newCustomer.jobNimbusJobId}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowCreateModal(false);
+                  clearJobNimbusSelection();
+                  setCreateMode('jobnimbus');
+                }}
+                className="flex-1 px-4 py-3 bg-neutral-800 text-white rounded-xl hover:bg-neutral-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={createPortal}
+                disabled={creating || !newCustomer.customerName || (!newCustomer.customerEmail && !newCustomer.customerPhone)}
+                className="flex-1 px-4 py-3 bg-brand-green text-black font-medium rounded-xl hover:bg-brand-green/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {creating && <Loader2 className="animate-spin" size={18} />}
+                Create Portal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Settings Modal */}
+      {showSettingsModal && (
+        <PortalSettingsModal
+          accessToken={showSettingsModal}
+          portal={portals.find(p => p.accessToken === showSettingsModal)}
+          onClose={() => setShowSettingsModal(null)}
+          onSave={() => {
+            setShowSettingsModal(null);
+            fetchPortals();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// Portal Settings Modal Component
+function PortalSettingsModal({
+  accessToken,
+  portal,
+  onClose,
+  onSave,
+}: {
+  accessToken: string;
+  portal?: CustomerPortal;
+  onClose: () => void;
+  onSave: () => void;
+}) {
+  const defaultSettings: PortalSettings = {
+    showWeather: true,
+    showHailReports: true,
+    showAppointments: true,
+    showDocuments: true,
+    showMessages: true,
+    showJobProgress: true,
+    allowFileUpload: true,
+    allowMessages: true,
+  };
+
+  const [settings, setSettings] = useState<PortalSettings>(
+    portal?.settings || defaultSettings
+  );
+  const [saving, setSaving] = useState(false);
+
+  const handleSaveSettings = async () => {
+    setSaving(true);
+    try {
+      const response = await fetch('/api/admin/customer-portal', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accessToken,
+          action: 'update-settings',
+          settings,
+        }),
+      });
+
+      if (response.ok) {
+        onSave();
+      }
+    } catch (error) {
+      console.error('Error saving settings:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="bg-neutral-900 rounded-2xl max-w-lg w-full p-6 border border-neutral-800">
+        <h2 className="text-xl font-bold text-white mb-2">Portal Settings</h2>
+        <p className="text-neutral-400 text-sm mb-6">Control what this customer can see and do</p>
+
+        <div className="space-y-4">
+          <h3 className="text-sm font-medium text-neutral-300 uppercase tracking-wider">Visible Sections</h3>
+
+          {[
+            { key: 'showJobProgress', label: 'Job Progress Tracker', desc: 'Show project phases and progress bar' },
+            { key: 'showAppointments', label: 'Appointments', desc: 'Show scheduled appointments' },
+            { key: 'showDocuments', label: 'Documents', desc: 'Show estimates, invoices, contracts' },
+            { key: 'showMessages', label: 'Message History', desc: 'Show communication history' },
+            { key: 'showWeather', label: 'Weather Forecast', desc: 'Show 5-day weather forecast' },
+            { key: 'showHailReports', label: 'Hail Reports', desc: 'Show nearby hail activity' },
+          ].map((item) => (
+            <label key={item.key} className="flex items-center justify-between p-3 bg-neutral-800 rounded-xl cursor-pointer hover:bg-neutral-750">
+              <div>
+                <p className="text-white font-medium">{item.label}</p>
+                <p className="text-sm text-neutral-400">{item.desc}</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={settings[item.key as keyof typeof settings]}
+                onChange={(e) => setSettings({ ...settings, [item.key]: e.target.checked })}
+                className="w-5 h-5 rounded bg-neutral-700 border-neutral-600 text-brand-green focus:ring-brand-green/50"
+              />
+            </label>
+          ))}
+
+          <h3 className="text-sm font-medium text-neutral-300 uppercase tracking-wider mt-6">Customer Actions</h3>
+
+          {[
+            { key: 'allowFileUpload', label: 'Allow File Uploads', desc: 'Customer can upload photos/documents' },
+            { key: 'allowMessages', label: 'Allow Messages', desc: 'Customer can send messages to rep' },
+          ].map((item) => (
+            <label key={item.key} className="flex items-center justify-between p-3 bg-neutral-800 rounded-xl cursor-pointer hover:bg-neutral-750">
+              <div>
+                <p className="text-white font-medium">{item.label}</p>
+                <p className="text-sm text-neutral-400">{item.desc}</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={settings[item.key as keyof typeof settings]}
+                onChange={(e) => setSettings({ ...settings, [item.key]: e.target.checked })}
+                className="w-5 h-5 rounded bg-neutral-700 border-neutral-600 text-brand-green focus:ring-brand-green/50"
+              />
+            </label>
+          ))}
+        </div>
+
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-3 bg-neutral-800 text-white rounded-xl hover:bg-neutral-700 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSaveSettings}
+            disabled={saving}
+            className="flex-1 px-4 py-3 bg-brand-green text-black font-medium rounded-xl hover:bg-brand-green/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {saving && <Loader2 className="animate-spin" size={18} />}
+            Save Settings
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+---
+
+## app\portal\sales\customers\page.tsx
+
+'use client';
+
+import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import {
+  Phone, MessageSquare, Mail, MapPin, Clock, User,
+  Loader2, Home, Search, Plus, Users, X, ArrowLeft,
+  ExternalLink, Copy, Send, CheckCircle,
+  BarChart3, Building, Filter, RefreshCw, Briefcase,
+  DollarSign
+} from 'lucide-react';
+import { useAuth } from '@/lib/auth-context';
+
+// =============================================================================
+// Types
+// =============================================================================
+
+interface JNContact {
+  jnid: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  status: string;
+  source: string;
+  salesRep: string;
+  lastActivity: string;
+  notesPreview: string;
+  jobCount: number;
+  totalJobValue: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// =============================================================================
+// Status Configuration
+// =============================================================================
+
+const statusColors: Record<string, string> = {
+  Lead: 'bg-blue-500/20 text-blue-400 ring-blue-500/30',
+  New: 'bg-blue-500/20 text-blue-400 ring-blue-500/30',
+  Contacted: 'bg-purple-500/20 text-purple-400 ring-purple-500/30',
+  'Appointment Set': 'bg-cyan-500/20 text-cyan-400 ring-cyan-500/30',
+  Inspected: 'bg-orange-500/20 text-orange-400 ring-orange-500/30',
+  'Estimate Sent': 'bg-yellow-500/20 text-yellow-400 ring-yellow-500/30',
+  'Contract Signed': 'bg-green-500/20 text-green-400 ring-green-500/30',
+  'Material Ordered': 'bg-indigo-500/20 text-indigo-400 ring-indigo-500/30',
+  'Work In Progress': 'bg-amber-500/20 text-amber-400 ring-amber-500/30',
+  Complete: 'bg-emerald-500/20 text-emerald-400 ring-emerald-500/30',
+  Completed: 'bg-emerald-500/20 text-emerald-400 ring-emerald-500/30',
+  Lost: 'bg-red-500/20 text-red-400 ring-red-500/30',
+  Cancelled: 'bg-red-500/20 text-red-400 ring-red-500/30',
+};
+
+function StatusBadge({ status }: { status: string }) {
+  const color = statusColors[status] || 'bg-neutral-500/20 text-neutral-400 ring-neutral-500/30';
+  return (
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ring-1 ${color}`}>
+      {status || 'Unknown'}
+    </span>
+  );
+}
+
+// =============================================================================
+// Customers Page - Real JN Data
+// =============================================================================
+
+export default function CustomersPage() {
+  const router = useRouter();
+  const { user, isLoading } = useAuth();
+
+  const [contacts, setContacts] = useState<JNContact[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [showFilters, setShowFilters] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [repName, setRepName] = useState('');
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push('/portal');
+    }
+  }, [user, isLoading, router]);
+
+  // Fetch contacts from JN
+  const fetchContacts = async () => {
+    if (!user) return;
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch('/api/portal/jobnimbus/my-contacts');
+      if (!response.ok) {
+        throw new Error('Failed to load contacts from JobNimbus');
+      }
+      const data = await response.json();
+      if (data.success) {
+        setContacts(data.contacts || []);
+        setRepName(data.repName || '');
+      } else {
+        throw new Error(data.error || 'Failed to load contacts');
+      }
+    } catch (err) {
+      console.error('Error fetching contacts:', err);
+      setError(err instanceof Error ? err.message : 'Unable to load contacts');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchContacts();
+  }, [user]);
+
+  // Filter and search
+  const filteredContacts = useMemo(() => {
+    let result = [...contacts];
+
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter(c =>
+        c.name.toLowerCase().includes(term) ||
+        c.address.toLowerCase().includes(term) ||
+        c.city.toLowerCase().includes(term) ||
+        c.email.toLowerCase().includes(term) ||
+        c.phone.includes(term) ||
+        c.status.toLowerCase().includes(term)
+      );
+    }
+
+    if (statusFilter !== 'all') {
+      result = result.filter(c => c.status === statusFilter);
+    }
+
+    return result;
+  }, [contacts, searchTerm, statusFilter]);
+
+  // Get unique statuses for filter
+  const uniqueStatuses = useMemo(() => {
+    const statuses = new Set(contacts.map(c => c.status).filter(Boolean));
+    return Array.from(statuses).sort();
+  }, [contacts]);
+
+  // Action handlers
+  const handleCall = (contact: JNContact) => {
+    window.location.href = `tel:${contact.phone}`;
+  };
+
+  const handleText = (contact: JNContact) => {
+    window.location.href = `sms:${contact.phone}?body=${encodeURIComponent(
+      `Hi ${contact.name.split(' ')[0]}, this is your rep from River City Roofing Solutions.`
+    )}`;
+  };
+
+  const handleEmail = (contact: JNContact) => {
+    window.location.href = `mailto:${contact.email}`;
+  };
+
+  const handleDirections = (contact: JNContact) => {
+    const address = `${contact.address}, ${contact.city}, ${contact.state} ${contact.zip}`;
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`, '_blank');
+  };
+
+  const handleCopyPhone = async (contact: JNContact) => {
+    try {
+      await navigator.clipboard.writeText(contact.phone);
+      setCopiedId(contact.jnid);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      // Fallback
+    }
+  };
+
+  if (isLoading || !user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 flex items-center justify-center">
+        <Loader2 className="animate-spin text-brand-green" size={48} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950">
+      {/* Background Pattern */}
+      <div className="fixed inset-0 opacity-30 pointer-events-none">
+        <div className="absolute inset-0" style={{
+          backgroundImage: `radial-gradient(circle at 25px 25px, rgba(255,255,255,0.03) 2px, transparent 0)`,
+          backgroundSize: '50px 50px'
+        }} />
+      </div>
+
+      <div className="relative z-10 pb-24">
+        {/* Header */}
+        <header className="border-b border-white/5 backdrop-blur-xl bg-black/20 sticky top-0 z-20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/portal/sales"
+                  className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
+                >
+                  <ArrowLeft size={20} className="text-neutral-400" />
+                </Link>
+                <div>
+                  <h1 className="text-lg sm:text-xl font-bold text-white tracking-tight">My Customers</h1>
+                  <p className="text-xs text-neutral-400">
+                    {loading ? 'Loading from JobNimbus...' : (
+                      <>
+                        {filteredContacts.length} customer{filteredContacts.length !== 1 ? 's' : ''}
+                        {repName && <span className="text-neutral-500"> | {repName}</span>}
+                      </>
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={fetchContacts}
+                  disabled={loading}
+                  className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
+                  title="Refresh from JobNimbus"
+                >
+                  <RefreshCw size={18} className={`text-neutral-400 ${loading ? 'animate-spin' : ''}`} />
+                </button>
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+                    showFilters ? 'bg-brand-green/20 text-brand-green' : 'bg-white/5 text-neutral-400 hover:bg-white/10'
+                  }`}
+                >
+                  <Filter size={18} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+          {/* Search Bar */}
+          <div className="mb-4">
+            <div className="relative">
+              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500" />
+              <input
+                type="text"
+                placeholder="Search by name, address, phone, status..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-white/[0.02] border border-white/5 rounded-xl pl-12 pr-4 py-3 text-white placeholder-neutral-500 focus:outline-none focus:border-brand-green/50 focus:ring-1 focus:ring-brand-green/30"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Filters */}
+          {showFilters && (
+            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 mb-4">
+              <label className="text-xs text-neutral-400 mb-2 block">Filter by Status</label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setStatusFilter('all')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    statusFilter === 'all'
+                      ? 'bg-brand-green/20 text-brand-green ring-1 ring-brand-green/30'
+                      : 'bg-white/5 text-neutral-400 hover:bg-white/10'
+                  }`}
+                >
+                  All
+                </button>
+                {uniqueStatuses.map(status => (
+                  <button
+                    key={status}
+                    onClick={() => setStatusFilter(status)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                      statusFilter === status
+                        ? (statusColors[status] || 'bg-neutral-500/20 text-neutral-400')
+                        : 'bg-white/5 text-neutral-400 hover:bg-white/10'
+                    }`}
+                  >
+                    {status}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 mb-4 text-center">
+              <p className="text-sm text-red-400 mb-2">{error}</p>
+              <button
+                onClick={fetchContacts}
+                className="text-sm text-brand-green hover:text-brand-green/80 font-medium"
+              >
+                Try Again
+              </button>
+            </div>
+          )}
+
+          {/* Loading State */}
+          {loading && (
+            <div className="flex flex-col items-center justify-center py-20">
+              <Loader2 className="animate-spin text-brand-green mb-4" size={40} />
+              <p className="text-sm text-neutral-400">Loading contacts from JobNimbus...</p>
+            </div>
+          )}
+
+          {/* Contacts List */}
+          {!loading && !error && filteredContacts.length > 0 && (
+            <div className="space-y-3">
+              {filteredContacts.map((contact) => (
+                <div
+                  key={contact.jnid}
+                  className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 hover:bg-white/[0.04] transition-colors"
+                >
+                  {/* Contact Info */}
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <h4 className="font-semibold text-white">{contact.name}</h4>
+                        <StatusBadge status={contact.status} />
+                      </div>
+                      {(contact.address || contact.city) && (
+                        <div className="flex items-center gap-2 text-sm text-neutral-400">
+                          <MapPin size={14} />
+                          <span>
+                            {[contact.address, contact.city, contact.state].filter(Boolean).join(', ')}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-4 mt-2 text-xs text-neutral-500">
+                        {contact.phone && <span>{contact.phone}</span>}
+                        {contact.email && <span>{contact.email}</span>}
+                      </div>
+                      {contact.lastActivity && (
+                        <div className="flex items-center gap-1.5 mt-1.5 text-xs text-neutral-500">
+                          <Clock size={12} />
+                          <span>Updated: {new Date(contact.lastActivity).toLocaleDateString()}</span>
+                        </div>
+                      )}
+                      {contact.source && (
+                        <div className="mt-1 text-xs text-neutral-500">
+                          Source: {contact.source}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="grid grid-cols-5 gap-2">
+                    <button
+                      onClick={() => handleCall(contact)}
+                      disabled={!contact.phone}
+                      className="flex flex-col items-center justify-center p-2.5 bg-green-500/20 hover:bg-green-500/30 rounded-xl transition-colors active:scale-95 disabled:opacity-30"
+                    >
+                      <Phone size={18} className="text-green-400" />
+                      <span className="text-[10px] text-green-400 mt-0.5">Call</span>
+                    </button>
+                    <button
+                      onClick={() => handleText(contact)}
+                      disabled={!contact.phone}
+                      className="flex flex-col items-center justify-center p-2.5 bg-blue-500/20 hover:bg-blue-500/30 rounded-xl transition-colors active:scale-95 disabled:opacity-30"
+                    >
+                      <MessageSquare size={18} className="text-blue-400" />
+                      <span className="text-[10px] text-blue-400 mt-0.5">Text</span>
+                    </button>
+                    <button
+                      onClick={() => handleEmail(contact)}
+                      disabled={!contact.email}
+                      className="flex flex-col items-center justify-center p-2.5 bg-purple-500/20 hover:bg-purple-500/30 rounded-xl transition-colors active:scale-95 disabled:opacity-30"
+                    >
+                      <Mail size={18} className="text-purple-400" />
+                      <span className="text-[10px] text-purple-400 mt-0.5">Email</span>
+                    </button>
+                    <button
+                      onClick={() => handleDirections(contact)}
+                      disabled={!contact.address}
+                      className="flex flex-col items-center justify-center p-2.5 bg-orange-500/20 hover:bg-orange-500/30 rounded-xl transition-colors active:scale-95 disabled:opacity-30"
+                    >
+                      <MapPin size={18} className="text-orange-400" />
+                      <span className="text-[10px] text-orange-400 mt-0.5">Map</span>
+                    </button>
+                    <Link
+                      href={`/portal/sales/customers/${contact.jnid}`}
+                      className="flex flex-col items-center justify-center p-2.5 bg-brand-green/20 hover:bg-brand-green/30 rounded-xl transition-colors active:scale-95"
+                    >
+                      <ExternalLink size={18} className="text-brand-green" />
+                      <span className="text-[10px] text-brand-green mt-0.5">Details</span>
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!loading && !error && filteredContacts.length === 0 && (
+            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-12 text-center">
+              <Users size={48} className="text-neutral-600 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-white mb-2">
+                {contacts.length === 0 ? 'No customers found in JobNimbus' : 'No matching customers'}
+              </h3>
+              <p className="text-sm text-neutral-500 mb-4">
+                {contacts.length === 0
+                  ? `No contacts are assigned to you (${repName}) in JobNimbus yet.`
+                  : 'Try adjusting your search or filters.'}
+              </p>
+              {contacts.length > 0 && (
+                <button
+                  onClick={() => { setSearchTerm(''); setStatusFilter('all'); }}
+                  className="text-sm text-brand-green hover:text-brand-green/80"
+                >
+                  Clear all filters
+                </button>
+              )}
+            </div>
+          )}
+        </main>
+
+        {/* Bottom Navigation */}
+        <nav className="fixed bottom-0 left-0 right-0 bg-black/90 backdrop-blur-xl border-t border-white/5 px-4 py-2 z-30 sm:hidden">
+          <div className="flex items-center justify-around">
+            <Link href="/portal/sales" className="flex flex-col items-center p-2 text-neutral-400 hover:text-white">
+              <Home size={20} />
+              <span className="text-xs mt-1">Home</span>
+            </Link>
+            <Link href="/portal/sales/leads" className="flex flex-col items-center p-2 text-neutral-400 hover:text-white">
+              <Users size={20} />
+              <span className="text-xs mt-1">Leads</span>
+            </Link>
+            <button className="flex flex-col items-center p-3 -mt-4 bg-brand-green rounded-full text-black">
+              <Plus size={24} />
+            </button>
+            <Link href="/portal/sales/customers" className="flex flex-col items-center p-2 text-brand-green">
+              <User size={20} />
+              <span className="text-xs mt-1">Customers</span>
+            </Link>
+            <Link href="/portal/dashboard" className="flex flex-col items-center p-2 text-neutral-400 hover:text-white">
+              <Building size={20} />
+              <span className="text-xs mt-1">Portal</span>
+            </Link>
+          </div>
+        </nav>
+      </div>
+    </div>
+  );
+}
+
+
+---
+
+## app\portal\sales\customers\[id]\page.tsx
+
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import Link from 'next/link';
+import {
+  Phone, MessageSquare, Calendar, FileText, MapPin, Clock, User,
+  Loader2, ArrowLeft, Mail, Home, Send, Camera,
+  CheckCircle, AlertCircle, Edit, Plus, X, DollarSign, Building,
+  ExternalLink, Copy, Star, History, Paperclip, Download,
+  MessageCircle, Save, BarChart3, Users, Briefcase, Receipt,
+  ClipboardList, RefreshCw
+} from 'lucide-react';
+import { useAuth } from '@/lib/auth-context';
+
+// =============================================================================
+// Types
+// =============================================================================
+
+interface ContactData {
+  jnid: string;
+  name: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  mobilePhone: string;
+  homePhone: string;
+  workPhone: string;
+  address: string;
+  addressLine2: string;
+  city: string;
+  state: string;
+  zip: string;
+  status: string;
+  portalPhase: string;
+  source: string;
+  salesRep: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface JobData {
+  jnid: string;
+  number: string;
+  name: string;
+  description: string;
+  status: string;
+  portalStatus: string;
+  address: string;
+  salesRep: string;
+  startDate: string;
+  endDate: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface EstimateData {
+  jnid: string;
+  number: string;
+  status: string;
+  amount: number;
+  tax: number;
+  total: number;
+  description: string;
+  pdfUrl: string;
+  publicUrl: string;
+  createdAt: string;
+}
+
+interface TaskData {
+  jnid: string;
+  title: string;
+  description: string;
+  type: string;
+  status: string;
+  startDate: string;
+  endDate: string;
+  assignedTo: string[];
+}
+
+interface NoteData {
+  jnid: string;
+  content: string;
+  type: string;
+  author: string;
+  createdAt: string;
+  isPortalNote: boolean;
+}
+
+interface AttachmentData {
+  jnid: string;
+  filename: string;
+  description: string;
+  url: string;
+  thumbnailUrl: string;
+  contentType: string;
+  size: number;
+  createdAt: string;
+}
+
+interface InvoiceData {
+  jnid: string;
+  number: string;
+  status: string;
+  amount: number;
+  amountPaid: number;
+  balance: number;
+  total: number;
+  dueDate: string;
+  pdfUrl: string;
+  publicUrl: string;
+  createdAt: string;
+}
+
+interface FullCustomerData {
+  contact: ContactData;
+  jobs: JobData[];
+  estimates: EstimateData[];
+  tasks: TaskData[];
+  notes: NoteData[];
+  attachments: AttachmentData[];
+  invoices: InvoiceData[];
+}
+
+// =============================================================================
+// Status Configurations
+// =============================================================================
+
+const jobStatusColors: Record<string, string> = {
+  Lead: 'bg-blue-500/20 text-blue-400 ring-blue-500/30',
+  New: 'bg-blue-500/20 text-blue-400 ring-blue-500/30',
+  Contacted: 'bg-purple-500/20 text-purple-400 ring-purple-500/30',
+  'Appointment Set': 'bg-cyan-500/20 text-cyan-400 ring-cyan-500/30',
+  Inspected: 'bg-orange-500/20 text-orange-400 ring-orange-500/30',
+  'Estimate Sent': 'bg-yellow-500/20 text-yellow-400 ring-yellow-500/30',
+  'Contract Signed': 'bg-green-500/20 text-green-400 ring-green-500/30',
+  'Material Ordered': 'bg-indigo-500/20 text-indigo-400 ring-indigo-500/30',
+  'Work In Progress': 'bg-amber-500/20 text-amber-400 ring-amber-500/30',
+  Complete: 'bg-emerald-500/20 text-emerald-400 ring-emerald-500/30',
+  Completed: 'bg-emerald-500/20 text-emerald-400 ring-emerald-500/30',
+  Lost: 'bg-red-500/20 text-red-400 ring-red-500/30',
+  Cancelled: 'bg-red-500/20 text-red-400 ring-red-500/30',
+};
+
+function StatusBadge({ status }: { status: string }) {
+  const color = jobStatusColors[status] || 'bg-neutral-500/20 text-neutral-400 ring-neutral-500/30';
+  return (
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ring-1 ${color}`}>
+      {status}
+    </span>
+  );
+}
+
+// Status options for update modal
+const statusOptions = [
+  'Lead', 'New', 'Contacted', 'Appointment Set', 'Inspected',
+  'Estimate Sent', 'Contract Signed', 'Material Ordered',
+  'Work In Progress', 'Complete', 'Lost', 'Cancelled',
+];
+
+// Map JN status values to our portal status keys for the update-status API
+const jnStatusToPortalKey: Record<string, string> = {
+  'Lead': 'lead',
+  'New': 'new',
+  'Contacted': 'contacted',
+  'Appointment Set': 'scheduled',
+  'Inspected': 'inspected',
+  'Estimate Sent': 'estimate',
+  'Contract Signed': 'contract',
+  'Material Ordered': 'material_ordered',
+  'Work In Progress': 'in_progress',
+  'Complete': 'complete',
+  'Completed': 'completed',
+  'Lost': 'closed_lost',
+  'Cancelled': 'cancelled',
+};
+
+// =============================================================================
+// Customer Detail Page
+// =============================================================================
+
+export default function CustomerDetailPage() {
+  const router = useRouter();
+  const params = useParams();
+  const { user, isLoading } = useAuth();
+  const contactJnid = params.id as string;
+
+  const [data, setData] = useState<FullCustomerData | null>(null);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'overview' | 'jobs' | 'activity' | 'estimates' | 'documents' | 'invoices'>('overview');
+  const [showAddNote, setShowAddNote] = useState(false);
+  const [newNote, setNewNote] = useState('');
+  const [isSavingNote, setIsSavingNote] = useState(false);
+  const [showUpdateStatus, setShowUpdateStatus] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [selectedJobJnid, setSelectedJobJnid] = useState<string | null>(null);
+
+  // Load customer data from JobNimbus API
+  const loadCustomerData = async () => {
+    if (!contactJnid) return;
+    setIsLoadingData(true);
+    setError(null);
+    try {
+      // Fetch full customer data from JobNimbus via our API route
+      const response = await fetch(`/api/portal/jobnimbus/customer/${contactJnid}`);
+      if (!response.ok) {
+        throw new Error('Failed to load customer data');
+      }
+      const result = await response.json();
+      if (result.success && result.data) {
+        setData(result.data);
+        // Auto-select the first job if any
+        if (result.data.jobs.length > 0) {
+          setSelectedJobJnid(result.data.jobs[0].jnid);
+        }
+      } else {
+        setError(result.error || 'Customer not found');
+      }
+    } catch (err) {
+      console.error('Error loading customer:', err);
+      setError('Unable to load customer data. Please try again.');
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user && contactJnid) {
+      loadCustomerData();
+    }
+  }, [user, contactJnid]);
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push('/portal');
+    }
+  }, [user, isLoading, router]);
+
+  // Handle actions
+  const handleCall = () => {
+    if (data?.contact.phone) window.location.href = `tel:${data.contact.phone}`;
+  };
+
+  const handleText = () => {
+    if (data?.contact.phone) window.location.href = `sms:${data.contact.phone}`;
+  };
+
+  const handleEmail = () => {
+    if (data?.contact.email) window.location.href = `mailto:${data.contact.email}`;
+  };
+
+  const handleDirections = () => {
+    if (data?.contact) {
+      const address = `${data.contact.address}, ${data.contact.city}, ${data.contact.state} ${data.contact.zip}`;
+      window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`, '_blank');
+    }
+  };
+
+  const handleCopy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Fallback
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+  };
+
+  // Add note to JN
+  const handleAddNote = async () => {
+    if (!newNote.trim() || !data) return;
+    setIsSavingNote(true);
+    try {
+      const response = await fetch('/api/portal/jobnimbus/notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contactJnid: data.contact.jnid,
+          jobJnid: selectedJobJnid,
+          content: newNote.trim(),
+        }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        // Refresh data to show new note
+        await loadCustomerData();
+        setNewNote('');
+        setShowAddNote(false);
+      } else {
+        alert(result.error || 'Failed to add note');
+      }
+    } catch {
+      alert('Failed to add note. Please try again.');
+    } finally {
+      setIsSavingNote(false);
+    }
+  };
+
+  // Update job status in JN
+  const handleStatusUpdate = async (newStatus: string) => {
+    if (!selectedJobJnid) return;
+    setUpdatingStatus(true);
+    try {
+      const portalStatusKey = jnStatusToPortalKey[newStatus] || newStatus.toLowerCase();
+      const response = await fetch('/api/portal/jobnimbus/update-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobJnid: selectedJobJnid,
+          newStatus: portalStatusKey,
+        }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        // Refresh data
+        await loadCustomerData();
+        setShowUpdateStatus(false);
+      } else {
+        alert(result.message || 'Failed to update status');
+      }
+    } catch {
+      alert('Failed to update status. Please try again.');
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  };
+
+  if (isLoading || !user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 flex items-center justify-center">
+        <Loader2 className="animate-spin text-brand-green" size={48} />
+      </div>
+    );
+  }
+
+  if (isLoadingData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="animate-spin text-brand-green mx-auto mb-4" size={48} />
+          <p className="text-neutral-400">Loading customer from JobNimbus...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 flex items-center justify-center p-4">
+        <div className="bg-white/[0.02] border border-red-500/20 rounded-2xl p-8 max-w-md text-center">
+          <AlertCircle size={48} className="text-red-400 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-white mb-2">Error</h2>
+          <p className="text-neutral-400 mb-4">{error || 'Customer not found'}</p>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => router.back()}
+              className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-neutral-300"
+            >
+              Go Back
+            </button>
+            <button
+              onClick={loadCustomerData}
+              className="px-4 py-2 bg-brand-green/20 hover:bg-brand-green/30 rounded-xl text-brand-green"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const contact = data.contact;
+  const selectedJob = data.jobs.find(j => j.jnid === selectedJobJnid);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950">
+      {/* Background Pattern */}
+      <div className="fixed inset-0 opacity-30 pointer-events-none">
+        <div className="absolute inset-0" style={{
+          backgroundImage: `radial-gradient(circle at 25px 25px, rgba(255,255,255,0.03) 2px, transparent 0)`,
+          backgroundSize: '50px 50px'
+        }} />
+      </div>
+
+      <div className="relative z-10 pb-24">
+        {/* Header */}
+        <header className="border-b border-white/5 backdrop-blur-xl bg-black/20 sticky top-0 z-20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => router.back()}
+                  className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
+                >
+                  <ArrowLeft size={20} className="text-neutral-400" />
+                </button>
+                <div>
+                  <h1 className="text-lg font-bold text-white tracking-tight">{contact.name}</h1>
+                  <div className="flex items-center gap-2">
+                    <StatusBadge status={contact.status || 'Unknown'} />
+                    <span className="text-xs text-neutral-500">
+                      {data.jobs.length} job{data.jobs.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={loadCustomerData}
+                  className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
+                  title="Refresh"
+                >
+                  <RefreshCw size={18} className="text-neutral-400" />
+                </button>
+                {selectedJobJnid && (
+                  <button
+                    onClick={() => setShowUpdateStatus(true)}
+                    className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
+                    title="Update Status"
+                  >
+                    <Edit size={18} className="text-neutral-400" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Quick Actions */}
+        <div className="sticky top-[73px] z-10 bg-black/80 backdrop-blur-xl border-b border-white/5 px-4 py-3">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-5 gap-2">
+              <button onClick={handleCall} className="flex flex-col items-center justify-center p-3 bg-green-500/20 hover:bg-green-500/30 rounded-xl transition-colors active:scale-95">
+                <Phone size={22} className="text-green-400" />
+                <span className="text-[10px] text-green-400 mt-1">Call</span>
+              </button>
+              <button onClick={handleText} className="flex flex-col items-center justify-center p-3 bg-blue-500/20 hover:bg-blue-500/30 rounded-xl transition-colors active:scale-95">
+                <MessageSquare size={22} className="text-blue-400" />
+                <span className="text-[10px] text-blue-400 mt-1">Text</span>
+              </button>
+              <button onClick={handleEmail} className="flex flex-col items-center justify-center p-3 bg-purple-500/20 hover:bg-purple-500/30 rounded-xl transition-colors active:scale-95">
+                <Mail size={22} className="text-purple-400" />
+                <span className="text-[10px] text-purple-400 mt-1">Email</span>
+              </button>
+              <button onClick={handleDirections} className="flex flex-col items-center justify-center p-3 bg-cyan-500/20 hover:bg-cyan-500/30 rounded-xl transition-colors active:scale-95">
+                <MapPin size={22} className="text-cyan-400" />
+                <span className="text-[10px] text-cyan-400 mt-1">Map</span>
+              </button>
+              <button onClick={() => setShowAddNote(true)} className="flex flex-col items-center justify-center p-3 bg-orange-500/20 hover:bg-orange-500/30 rounded-xl transition-colors active:scale-95">
+                <FileText size={22} className="text-orange-400" />
+                <span className="text-[10px] text-orange-400 mt-1">Note</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+          {/* Tab Navigation */}
+          <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 mb-4 overflow-x-auto">
+            {(['overview', 'jobs', 'activity', 'estimates', 'documents', 'invoices'] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`flex-1 min-w-[70px] px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                  activeTab === tab
+                    ? 'bg-brand-green text-black'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                {tab === 'jobs' && data.jobs.length > 0 && (
+                  <span className="ml-1 text-xs opacity-70">({data.jobs.length})</span>
+                )}
+                {tab === 'activity' && data.notes.length > 0 && (
+                  <span className="ml-1 text-xs opacity-70">({data.notes.length})</span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* ==================== OVERVIEW TAB ==================== */}
+          {activeTab === 'overview' && (
+            <div className="space-y-4">
+              {/* Contact Info */}
+              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4">
+                <h3 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
+                  <User size={16} className="text-brand-green" />
+                  Contact Information
+                </h3>
+                <div className="space-y-3">
+                  {contact.phone && (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Phone size={16} className="text-neutral-500" />
+                        <span className="text-white">{contact.phone}</span>
+                      </div>
+                      <button onClick={() => handleCopy(contact.phone)} className="p-2 hover:bg-white/5 rounded-lg">
+                        <Copy size={14} className="text-neutral-500" />
+                      </button>
+                    </div>
+                  )}
+                  {contact.email && (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Mail size={16} className="text-neutral-500" />
+                        <span className="text-white">{contact.email}</span>
+                      </div>
+                      <button onClick={() => handleCopy(contact.email)} className="p-2 hover:bg-white/5 rounded-lg">
+                        <Copy size={14} className="text-neutral-500" />
+                      </button>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-3">
+                    <MapPin size={16} className="text-neutral-500" />
+                    <span className="text-white">
+                      {[contact.address, contact.addressLine2, contact.city, contact.state, contact.zip].filter(Boolean).join(', ')}
+                    </span>
+                  </div>
+                  {contact.salesRep && (
+                    <div className="flex items-center gap-3">
+                      <Users size={16} className="text-neutral-500" />
+                      <span className="text-neutral-300">Rep: <span className="text-white">{contact.salesRep}</span></span>
+                    </div>
+                  )}
+                  {contact.source && (
+                    <div className="flex items-center gap-3">
+                      <Star size={16} className="text-neutral-500" />
+                      <span className="text-neutral-300">Source: <span className="text-white">{contact.source}</span></span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Quick Summary */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 text-center">
+                  <p className="text-xl font-bold text-white">{data.jobs.length}</p>
+                  <p className="text-xs text-neutral-500">Jobs</p>
+                </div>
+                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 text-center">
+                  <p className="text-xl font-bold text-white">{data.estimates.length}</p>
+                  <p className="text-xs text-neutral-500">Estimates</p>
+                </div>
+                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 text-center">
+                  <p className="text-xl font-bold text-green-400">
+                    ${data.estimates.reduce((sum, e) => sum + e.total, 0).toLocaleString()}
+                  </p>
+                  <p className="text-xs text-neutral-500">Est. Value</p>
+                </div>
+                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 text-center">
+                  <p className="text-xl font-bold text-white">{data.invoices.length}</p>
+                  <p className="text-xs text-neutral-500">Invoices</p>
+                </div>
+              </div>
+
+              {/* Active Job */}
+              {selectedJob && (
+                <div className="bg-white/[0.02] border border-brand-green/20 rounded-2xl p-4">
+                  <h3 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
+                    <Briefcase size={16} className="text-brand-green" />
+                    Active Job
+                  </h3>
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <p className="font-medium text-white">{selectedJob.name}</p>
+                      {selectedJob.number && (
+                        <p className="text-xs text-neutral-500">#{selectedJob.number}</p>
+                      )}
+                    </div>
+                    <StatusBadge status={selectedJob.status} />
+                  </div>
+                  {selectedJob.description && (
+                    <p className="text-sm text-neutral-400 mb-2">{selectedJob.description}</p>
+                  )}
+                  <div className="flex gap-4 text-xs text-neutral-500">
+                    {selectedJob.startDate && (
+                      <span>Start: {new Date(selectedJob.startDate).toLocaleDateString()}</span>
+                    )}
+                    {selectedJob.endDate && (
+                      <span>End: {new Date(selectedJob.endDate).toLocaleDateString()}</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Recent Notes Preview */}
+              {data.notes.length > 0 && (
+                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-medium text-white flex items-center gap-2">
+                      <History size={16} className="text-brand-green" />
+                      Recent Activity
+                    </h3>
+                    <button
+                      onClick={() => setActiveTab('activity')}
+                      className="text-xs text-brand-green hover:text-brand-green/80"
+                    >
+                      View All
+                    </button>
+                  </div>
+                  {data.notes.slice(0, 3).map(note => (
+                    <div key={note.jnid} className="mb-3 last:mb-0 pb-3 last:pb-0 border-b last:border-0 border-white/5">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`text-xs font-medium ${note.isPortalNote ? 'text-brand-green' : 'text-neutral-400'}`}>
+                          {note.author}
+                        </span>
+                        <span className="text-xs text-neutral-500">
+                          {note.createdAt ? new Date(note.createdAt).toLocaleDateString() : ''}
+                        </span>
+                      </div>
+                      <p className="text-sm text-neutral-300 line-clamp-2">{note.content}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Tasks */}
+              {data.tasks.length > 0 && (
+                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4">
+                  <h3 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
+                    <ClipboardList size={16} className="text-brand-green" />
+                    Tasks & Appointments
+                  </h3>
+                  {data.tasks.map(task => (
+                    <div key={task.jnid} className="mb-3 last:mb-0 pb-3 last:pb-0 border-b last:border-0 border-white/5">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium text-white">{task.title}</span>
+                        <span className="text-xs text-neutral-500">{task.status}</span>
+                      </div>
+                      {task.description && (
+                        <p className="text-xs text-neutral-400">{task.description}</p>
+                      )}
+                      <div className="flex gap-3 mt-1 text-xs text-neutral-500">
+                        {task.startDate && <span>{new Date(task.startDate).toLocaleDateString()}</span>}
+                        {task.type && <span>{task.type}</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ==================== JOBS TAB ==================== */}
+          {activeTab === 'jobs' && (
+            <div className="space-y-3">
+              {data.jobs.length > 0 ? (
+                data.jobs.map(job => (
+                  <div
+                    key={job.jnid}
+                    onClick={() => setSelectedJobJnid(job.jnid)}
+                    className={`bg-white/[0.02] border rounded-2xl p-4 cursor-pointer transition-colors ${
+                      selectedJobJnid === job.jnid ? 'border-brand-green/40' : 'border-white/5 hover:border-white/10'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <h4 className="font-medium text-white">{job.name}</h4>
+                        {job.number && <p className="text-xs text-neutral-500">#{job.number}</p>}
+                      </div>
+                      <StatusBadge status={job.status} />
+                    </div>
+                    {job.description && (
+                      <p className="text-sm text-neutral-400 mb-2 line-clamp-2">{job.description}</p>
+                    )}
+                    {job.address && (
+                      <div className="flex items-center gap-2 text-xs text-neutral-500 mb-1">
+                        <MapPin size={12} />
+                        <span>{job.address}</span>
+                      </div>
+                    )}
+                    <div className="flex gap-4 text-xs text-neutral-500">
+                      {job.salesRep && <span>Rep: {job.salesRep}</span>}
+                      {job.createdAt && <span>Created: {new Date(job.createdAt).toLocaleDateString()}</span>}
+                    </div>
+                    {selectedJobJnid === job.jnid && (
+                      <div className="mt-3 pt-3 border-t border-white/5 flex gap-2">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setShowUpdateStatus(true); }}
+                          className="flex-1 py-2 bg-brand-green/20 hover:bg-brand-green/30 rounded-lg text-sm text-brand-green font-medium transition-colors"
+                        >
+                          Update Status
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setShowAddNote(true); }}
+                          className="flex-1 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm text-neutral-300 font-medium transition-colors"
+                        >
+                          Add Note
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-12 text-center">
+                  <Briefcase size={48} className="text-neutral-600 mx-auto mb-3" />
+                  <p className="text-neutral-500">No jobs found for this contact</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ==================== ACTIVITY TAB ==================== */}
+          {activeTab === 'activity' && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium text-neutral-400">Activity Timeline</h3>
+                <button
+                  onClick={() => setShowAddNote(true)}
+                  className="text-xs text-brand-green hover:text-brand-green/80 flex items-center gap-1"
+                >
+                  <Plus size={14} /> Add Note
+                </button>
+              </div>
+              {data.notes.length > 0 ? (
+                data.notes.map(note => (
+                  <div key={note.jnid} className="bg-white/[0.02] border border-white/5 rounded-xl p-3">
+                    <div className="flex items-start gap-3">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                        note.isPortalNote ? 'bg-brand-green/20' : 'bg-white/5'
+                      }`}>
+                        <MessageCircle size={16} className={note.isPortalNote ? 'text-brand-green' : 'text-neutral-400'} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className={`text-xs font-medium ${note.isPortalNote ? 'text-brand-green' : 'text-neutral-400'}`}>
+                            {note.author}
+                            {note.isPortalNote && ' (Portal)'}
+                          </span>
+                          <span className="text-xs text-neutral-500">
+                            {note.createdAt ? new Date(note.createdAt).toLocaleDateString('en-US', {
+                              month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+                            }) : ''}
+                          </span>
+                        </div>
+                        <p className="text-sm text-neutral-300 whitespace-pre-wrap">{note.content}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-12 text-center">
+                  <MessageCircle size={48} className="text-neutral-600 mx-auto mb-3" />
+                  <p className="text-neutral-500">No activity notes yet</p>
+                  <button
+                    onClick={() => setShowAddNote(true)}
+                    className="mt-3 text-sm text-brand-green hover:text-brand-green/80"
+                  >
+                    Add the first note
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ==================== ESTIMATES TAB ==================== */}
+          {activeTab === 'estimates' && (
+            <div className="space-y-3">
+              {data.estimates.length > 0 ? (
+                data.estimates.map(est => (
+                  <div key={est.jnid} className="bg-white/[0.02] border border-white/5 rounded-2xl p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <span className="text-xl font-bold text-green-400">${est.total.toLocaleString()}</span>
+                        {est.number && <span className="ml-2 text-xs text-neutral-500">#{est.number}</span>}
+                      </div>
+                      <StatusBadge status={est.status || 'Draft'} />
+                    </div>
+                    {est.description && (
+                      <p className="text-sm text-neutral-400 mb-2">{est.description}</p>
+                    )}
+                    <div className="flex items-center justify-between text-xs text-neutral-500 mb-3">
+                      <span>Created {est.createdAt ? new Date(est.createdAt).toLocaleDateString() : 'N/A'}</span>
+                      {est.tax > 0 && <span>Tax: ${est.tax.toLocaleString()}</span>}
+                    </div>
+                    {(est.pdfUrl || est.publicUrl) && (
+                      <div className="flex gap-2">
+                        {est.publicUrl && (
+                          <a
+                            href={est.publicUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 py-2 bg-brand-green/20 hover:bg-brand-green/30 rounded-lg text-sm text-brand-green font-medium transition-colors text-center"
+                          >
+                            View Estimate
+                          </a>
+                        )}
+                        {est.pdfUrl && (
+                          <a
+                            href={est.pdfUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm text-neutral-300 font-medium transition-colors text-center"
+                          >
+                            Download PDF
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-12 text-center">
+                  <Receipt size={48} className="text-neutral-600 mx-auto mb-3" />
+                  <p className="text-neutral-500">No estimates found</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ==================== DOCUMENTS TAB ==================== */}
+          {activeTab === 'documents' && (
+            <div className="space-y-3">
+              {data.attachments.length > 0 ? (
+                data.attachments.map(doc => (
+                  <div key={doc.jnid} className="bg-white/[0.02] border border-white/5 rounded-xl p-3">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+                        doc.contentType?.startsWith('image/') ? 'bg-purple-500/20' :
+                        doc.contentType === 'application/pdf' ? 'bg-red-500/20' :
+                        'bg-white/5'
+                      }`}>
+                        {doc.contentType?.startsWith('image/') ? (
+                          <Camera size={18} className="text-purple-400" />
+                        ) : doc.contentType === 'application/pdf' ? (
+                          <FileText size={18} className="text-red-400" />
+                        ) : (
+                          <Paperclip size={18} className="text-neutral-400" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white truncate">{doc.filename}</p>
+                        <div className="flex items-center gap-3 text-xs text-neutral-500">
+                          <span>{formatBytes(doc.size)}</span>
+                          {doc.createdAt && <span>{new Date(doc.createdAt).toLocaleDateString()}</span>}
+                        </div>
+                      </div>
+                      {doc.url && (
+                        <a
+                          href={doc.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center"
+                        >
+                          <Download size={16} className="text-neutral-400" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-12 text-center">
+                  <Paperclip size={48} className="text-neutral-600 mx-auto mb-3" />
+                  <p className="text-neutral-500">No documents attached</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ==================== INVOICES TAB ==================== */}
+          {activeTab === 'invoices' && (
+            <div className="space-y-3">
+              {data.invoices.length > 0 ? (
+                data.invoices.map(inv => (
+                  <div key={inv.jnid} className="bg-white/[0.02] border border-white/5 rounded-2xl p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <span className="text-xl font-bold text-white">${inv.total.toLocaleString()}</span>
+                        {inv.number && <span className="ml-2 text-xs text-neutral-500">#{inv.number}</span>}
+                      </div>
+                      <StatusBadge status={inv.status || 'Pending'} />
+                    </div>
+                    <div className="grid grid-cols-3 gap-3 mb-3">
+                      <div>
+                        <p className="text-xs text-neutral-500">Paid</p>
+                        <p className="text-sm font-medium text-green-400">${inv.amountPaid.toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-neutral-500">Balance</p>
+                        <p className={`text-sm font-medium ${inv.balance > 0 ? 'text-yellow-400' : 'text-green-400'}`}>
+                          ${inv.balance.toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-neutral-500">Due</p>
+                        <p className="text-sm text-neutral-300">
+                          {inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                    {(inv.pdfUrl || inv.publicUrl) && (
+                      <div className="flex gap-2">
+                        {inv.publicUrl && (
+                          <a href={inv.publicUrl} target="_blank" rel="noopener noreferrer" className="flex-1 py-2 bg-brand-green/20 hover:bg-brand-green/30 rounded-lg text-sm text-brand-green font-medium transition-colors text-center">
+                            View Invoice
+                          </a>
+                        )}
+                        {inv.pdfUrl && (
+                          <a href={inv.pdfUrl} target="_blank" rel="noopener noreferrer" className="flex-1 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm text-neutral-300 font-medium transition-colors text-center">
+                            Download PDF
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-12 text-center">
+                  <DollarSign size={48} className="text-neutral-600 mx-auto mb-3" />
+                  <p className="text-neutral-500">No invoices found</p>
+                </div>
+              )}
+            </div>
+          )}
+        </main>
+
+        {/* Bottom Navigation */}
+        <nav className="fixed bottom-0 left-0 right-0 bg-black/90 backdrop-blur-xl border-t border-white/5 px-4 py-2 z-30 sm:hidden">
+          <div className="flex items-center justify-around">
+            <Link href="/portal/sales" className="flex flex-col items-center p-2 text-neutral-400 hover:text-white">
+              <Home size={20} />
+              <span className="text-xs mt-1">Home</span>
+            </Link>
+            <Link href="/portal/sales/customers" className="flex flex-col items-center p-2 text-neutral-400 hover:text-white">
+              <Users size={20} />
+              <span className="text-xs mt-1">Customers</span>
+            </Link>
+            <button onClick={handleCall} className="flex flex-col items-center p-3 -mt-4 bg-brand-green rounded-full text-black">
+              <Phone size={24} />
+            </button>
+            <Link href="/portal/sales/performance" className="flex flex-col items-center p-2 text-neutral-400 hover:text-white">
+              <BarChart3 size={20} />
+              <span className="text-xs mt-1">Stats</span>
+            </Link>
+            <Link href="/portal/dashboard" className="flex flex-col items-center p-2 text-neutral-400 hover:text-white">
+              <Building size={20} />
+              <span className="text-xs mt-1">Portal</span>
+            </Link>
+          </div>
+        </nav>
+      </div>
+
+      {/* ==================== ADD NOTE MODAL ==================== */}
+      {showAddNote && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
+          <div className="bg-neutral-900 border border-white/10 rounded-2xl w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-white/5">
+              <h3 className="text-lg font-semibold text-white">Add Note to JobNimbus</h3>
+              <button
+                onClick={() => { setShowAddNote(false); setNewNote(''); }}
+                className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center"
+              >
+                <X size={18} className="text-neutral-400" />
+              </button>
+            </div>
+            <div className="p-4">
+              <div className="mb-3">
+                <p className="text-xs text-neutral-400 mb-1">This note will be synced to JobNimbus</p>
+                {selectedJob && (
+                  <p className="text-xs text-brand-green">Attached to job: {selectedJob.name}</p>
+                )}
+              </div>
+              <textarea
+                value={newNote}
+                onChange={(e) => setNewNote(e.target.value)}
+                placeholder="Enter your note..."
+                rows={4}
+                className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-4 py-3 text-white placeholder-neutral-500 focus:outline-none focus:border-brand-green/50 focus:ring-1 focus:ring-brand-green/30 resize-none"
+              />
+              <button
+                onClick={handleAddNote}
+                disabled={!newNote.trim() || isSavingNote}
+                className="w-full mt-4 py-3 bg-brand-green hover:bg-brand-green/90 disabled:bg-neutral-700 disabled:cursor-not-allowed rounded-xl text-black font-semibold transition-colors flex items-center justify-center gap-2"
+              >
+                {isSavingNote ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    Saving to JobNimbus...
+                  </>
+                ) : (
+                  <>
+                    <Send size={18} />
+                    Save Note
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== UPDATE STATUS MODAL ==================== */}
+      {showUpdateStatus && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
+          <div className="bg-neutral-900 border border-white/10 rounded-2xl w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-white/5">
+              <div>
+                <h3 className="text-lg font-semibold text-white">Update Job Status</h3>
+                <p className="text-xs text-neutral-400 mt-1">Changes sync to JobNimbus in real-time</p>
+              </div>
+              <button
+                onClick={() => setShowUpdateStatus(false)}
+                className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center"
+              >
+                <X size={18} className="text-neutral-400" />
+              </button>
+            </div>
+            <div className="p-4 space-y-2 max-h-96 overflow-y-auto">
+              {statusOptions.map((status) => {
+                const isCurrentStatus = selectedJob?.status === status;
+                const color = jobStatusColors[status] || 'bg-neutral-500/20 text-neutral-400 ring-neutral-500/30';
+                return (
+                  <button
+                    key={status}
+                    onClick={() => !isCurrentStatus && handleStatusUpdate(status)}
+                    disabled={updatingStatus || isCurrentStatus}
+                    className={`w-full flex items-center justify-between p-3 rounded-xl transition-colors ${
+                      isCurrentStatus ? color : 'bg-white/[0.02] hover:bg-white/[0.05] text-neutral-300'
+                    } ${updatingStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <span className="font-medium">{status}</span>
+                    {isCurrentStatus && <CheckCircle size={18} />}
+                    {updatingStatus && !isCurrentStatus && (
+                      <Loader2 size={16} className="animate-spin text-neutral-500" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+---

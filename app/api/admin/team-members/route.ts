@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { teamMembers, TeamMember } from '@/lib/teamData';
+import { requireAdmin } from '@/lib/auth-service';
 
 // Path to store team data (JSON file for now)
 const DATA_FILE = path.join(process.cwd(), 'data', 'team-members.json');
@@ -53,6 +54,9 @@ async function writeTeamMembers(members: TeamMember[]): Promise<void> {
  * Returns all team members
  */
 export async function GET(req: NextRequest) {
+  const auth = await requireAdmin();
+  if (!auth.authenticated) return auth.response;
+
   try {
     // Use in-memory team data directly (Vercel has read-only filesystem)
     const members = [...teamMembers];
@@ -106,6 +110,9 @@ export async function GET(req: NextRequest) {
  * Creates a new team member
  */
 export async function POST(req: NextRequest) {
+  const auth = await requireAdmin();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const body = await req.json();
 
@@ -198,6 +205,9 @@ export async function POST(req: NextRequest) {
  * Updates displayOrder for multiple team members
  */
 export async function PUT(req: NextRequest) {
+  const auth = await requireAdmin();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const body = await req.json();
 

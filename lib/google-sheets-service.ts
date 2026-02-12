@@ -1,10 +1,28 @@
-import { GoogleSpreadsheet } from 'google-spreadsheet';
+/**
+ * RCRS Google Sheets Service - Comprehensive Integration
+ *
+ * Provides two-way synchronization between the application and Google Sheets for:
+ * - Team members
+ * - Inventory
+ * - Commissions
+ * - Customers
+ * - Orders
+ *
+ * @author RCRS Development Team
+ * @version 2.0.0
+ */
+
+import { GoogleSpreadsheet, GoogleSpreadsheetRow } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
+
+// =============================================================================
+// CONFIGURATION
+// =============================================================================
 
 // Handle private key - works with both escaped \n and actual newlines
 const privateKey = process.env.GOOGLE_PRIVATE_KEY
-  ?.replace(/\\n/g, '\n')  // Handle escaped \n from env files
-  ?.replace(/\r\n/g, '\n'); // Normalize Windows line endings
+  ?.replace(/\\n/g, '\n')
+  ?.replace(/\r\n/g, '\n');
 
 const serviceAccountAuth = new JWT({
   email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
@@ -12,9 +30,22 @@ const serviceAccountAuth = new JWT({
   scopes: ['https://www.googleapis.com/auth/spreadsheets'],
 });
 
-const doc = new GoogleSpreadsheet(process.env.GOOGLE_SHEETS_ID!, serviceAccountAuth);
+const SHEETS_ID = process.env.GOOGLE_SHEETS_ID;
 
-interface TeamMember {
+// Check if Google Sheets is properly configured
+export function isGoogleSheetsConfigured(): boolean {
+  return !!(
+    SHEETS_ID &&
+    process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL &&
+    privateKey
+  );
+}
+
+// =============================================================================
+// TYPE DEFINITIONS
+// =============================================================================
+
+export interface TeamMember {
   slug: string;
   name: string;
   company: string;
@@ -35,22 +66,316 @@ interface TeamMember {
   x?: string;
 }
 
-class GoogleSheetsService {
-  private initialized = false;
+export interface InventoryItem {
+  sku: string;
+  name: string;
+  description: string;
+  category: string;
+  cost: number;
+  price: number;
+  quantity: number;
+  minStock: number;
+  maxStock: number;
+  unit: string;
+  supplier: string;
+  location: string;
+  imageUrl: string;
+  lastUpdated: string;
+  updatedBy: string;
+}
 
-  async init() {
-    if (!this.initialized) {
-      await doc.loadInfo();
+export interface CommissionEntry {
+  salesRep: string;
+  date: string;
+  amount: number;
+  balance: number;
+  jobId?: string;
+  jobName?: string;
+  description?: string;
+  status?: string;
+}
+
+export interface CommissionSummary {
+  salesRep: string;
+  totalEarned: number;
+  currentBalance: number;
+  transactionCount: number;
+  lastTransaction: string;
+}
+
+export interface CustomerRecord {
+  customerId: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  jobCount: number;
+  totalSpent: number;
+  lastJobDate?: string;
+  notes?: string;
+  source?: string;
+  salesRep?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrderRecord {
+  orderId: string;
+  customerId: string;
+  customerName: string;
+  jobId?: string;
+  jobAddress?: string;
+  status: 'pending' | 'approved' | 'in-progress' | 'delivered' | 'completed' | 'cancelled';
+  items: string; // JSON string of order items
+  totalCost: number;
+  totalPrice: number;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  notes?: string;
+  deliveryDate?: string;
+  deliveredBy?: string;
+}
+
+export interface SyncResult {
+  success: boolean;
+  synced: number;
+  errors: string[];
+  timestamp: string;
+}
+
+export interface GeocodedContactRecord {
+  jnid: string;
+  name: string;
+  address: string;
+  lat: string;
+  lng: string;
+  placeId: string;
+  type: string; // contact/install/lead/referral/door_knock
+  salesRep: string;
+  jobStatus: string;
+  lastInteraction: string;
+  interactionType: string;
+  createdAt: string;
+}
+
+export interface LeadDistributionLogRecord {
+  logId: string;
+  leadId: string;
+  customerName: string;
+  address: string;
+  assignedRep: string;
+  algorithmScores: string; // JSON
+  factors: string; // JSON
+  overrideReason: string;
+  timestamp: string;
+}
+
+export interface RepAvailabilityRecord {
+  repSlug: string;
+  isReceivingLeads: string; // 'true'/'false'
+  adminOverride: string;
+  adminOverrideBy: string;
+  adminOverrideReason: string;
+  autoResumeAt: string;
+  scheduleJson: string; // JSON
+  updatedAt: string;
+}
+
+export interface RepPreferencesRecord {
+  repSlug: string;
+  countiesEnabled: string; // JSON
+  maxLeadsPerDay: string;
+  preferredAreas: string; // JSON
+  excludedAreas: string; // JSON
+  updatedAt: string;
+}
+
+export interface LeadResponseLogRecord {
+  leadId: string;
+  repSlug: string;
+  assignedAt: string;
+  firstContactAt: string;
+  responseMinutes: string;
+  reminderSentAt: string;
+  warningSentAt: string;
+  reassignedAt: string;
+  reassignedTo: string;
+  missedReason: string;
+}
+
+export interface JobBreakdownRecord {
+  breakdownId: string;
+  jobId: string;
+  customerName: string;
+  address: string;
+  rNumber: string;
+  salesRep: string;
+  status: string;
+  materialsJson: string; // JSON
+  totals: string; // JSON
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RepWeeklyNumbersRecord {
+  week: string; // YYYY-Wnn format
+  repName: string;
+  repEmail: string;
+  doorsKnocked: number;
+  appointmentsSet: number;
+  inspectionsCompleted: number;
+  estimatesGiven: number;
+  contractsSigned: number;
+  revenueClosed: number;
+  leadsGenerated: number;
+  followUpsMade: number;
+  notes: string;
+  submittedAt: string;
+}
+
+export interface CustomerPortalLogRecord {
+  logId: string;
+  customerName: string;
+  customerEmail: string;
+  jobId: string;
+  action: string; // portal_opened, document_viewed, message_sent, appointment_scheduled, payment_viewed, photo_viewed, document_downloaded, file_uploaded, tab_changed
+  timestamp: string;
+  ipAddress: string;
+  userAgent: string;
+  details: string; // JSON string with action-specific data
+}
+
+export interface CustomerPortalDataRecord {
+  customerId: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  address: string;
+  jobId: string;
+  jobStatus: string;
+  portalToken: string;
+  portalCreatedAt: string;
+  lastAccessed: string;
+  totalVisits: number;
+  messagesSent: number;
+  documentsViewed: number;
+  notes: string;
+}
+
+// =============================================================================
+// SHEET NAMES
+// =============================================================================
+
+export interface TeamAccessOverrideRecord {
+  memberId: string;
+  moduleOverrides: string; // JSON: {"inventory": true, "marketing": false}
+  customPermissions: string; // JSON: future use
+  updatedBy: string;
+  updatedAt: string;
+}
+
+const SHEET_NAMES = {
+  TEAM_MEMBERS: 'team-members-import',
+  INVENTORY: 'Inventory',
+  INVENTORY_LOGS: 'InventoryLogs',
+  COMMISSIONS: 'Commissions',
+  CUSTOMERS: 'Customers',
+  ORDERS: 'Orders',
+  DELIVERIES: 'Deliveries',
+  GEOCODED_CONTACTS: 'Geocoded_Contacts',
+  LEAD_DISTRIBUTION_LOG: 'Lead_Distribution_Log',
+  REP_AVAILABILITY: 'Rep_Availability',
+  REP_PREFERENCES: 'Rep_Preferences',
+  LEAD_RESPONSE_LOG: 'Lead_Response_Log',
+  JOB_BREAKDOWNS: 'Job_Breakdowns',
+  TEAM_ACCESS_OVERRIDES: 'Team_Access_Overrides',
+  AGENT_DIRECTORY: 'Agent_Directory',
+  AGENT_VISITS: 'Agent_Visits',
+  TRAINING_PROGRESS: 'Training_Progress',
+  INVOICES: 'Invoices',
+  REP_WEEKLY_NUMBERS: 'RepWeeklyNumbers',
+  CUSTOMER_PORTAL_LOG: 'CustomerPortalLog',
+  CUSTOMER_PORTAL_DATA: 'CustomerPortalData',
+} as const;
+
+// =============================================================================
+// GOOGLE SHEETS SERVICE CLASS
+// =============================================================================
+
+class GoogleSheetsService {
+  private doc: GoogleSpreadsheet | null = null;
+  private initialized = false;
+  private lastInitAttempt = 0;
+  private initCooldown = 5000; // 5 seconds between init attempts
+
+  /**
+   * Initialize connection to Google Sheets
+   */
+  async init(): Promise<boolean> {
+    if (this.initialized && this.doc) return true;
+
+    // Prevent rapid retry attempts
+    const now = Date.now();
+    if (now - this.lastInitAttempt < this.initCooldown) {
+      return false;
+    }
+    this.lastInitAttempt = now;
+
+    if (!isGoogleSheetsConfigured()) {
+      console.warn('Google Sheets not configured. Check environment variables.');
+      return false;
+    }
+
+    try {
+      this.doc = new GoogleSpreadsheet(SHEETS_ID!, serviceAccountAuth);
+      await this.doc.loadInfo();
       this.initialized = true;
+      console.log(`Connected to Google Sheet: ${this.doc.title}`);
+      return true;
+    } catch (error) {
+      console.error('Failed to initialize Google Sheets:', error);
+      this.doc = null;
+      this.initialized = false;
+      return false;
     }
   }
 
+  /**
+   * Get or create a sheet with specified headers
+   */
+  private async getOrCreateSheet(name: string, headers: string[]) {
+    if (!this.doc) throw new Error('Google Sheets not initialized');
+
+    let sheet = this.doc.sheetsByTitle[name];
+    if (!sheet) {
+      sheet = await this.doc.addSheet({ title: name, headerValues: headers, gridProperties: { columnCount: Math.max(headers.length + 5, 26) } });
+      console.log(`Created new sheet: ${name}`);
+    } else {
+      // Ensure headers exist - fix for sheets created without headers
+      try {
+        await sheet.loadHeaderRow();
+      } catch {
+        if (sheet.gridProperties.columnCount < headers.length) {
+          await sheet.resize({ rowCount: sheet.gridProperties.rowCount, columnCount: headers.length + 5 });
+        }
+        await sheet.setHeaderRow(headers);
+      }
+    }
+    return sheet;
+  }
+
+  /**
+   * Convert Google Drive share link to direct image URL
+   */
   private convertDriveLink(shareLink: string): string {
     if (!shareLink || !shareLink.includes('drive.google.com')) {
       return shareLink;
     }
 
-    // Extract file ID from various Google Drive URL formats
     let fileId = null;
 
     // Format: /d/FILE_ID/
@@ -66,73 +391,1923 @@ class GoogleSheetsService {
     }
 
     if (fileId) {
-      // Use thumbnail API for better compatibility (size=s400 for 400px width)
       return `https://drive.google.com/thumbnail?id=${fileId}&sz=w400`;
     }
 
     return shareLink;
   }
 
-  async getTeamMembers(): Promise<TeamMember[]> {
-    await this.init();
-    const sheet = doc.sheetsByTitle['team-members-import'];
-    if (!sheet) throw new Error('team-members-import sheet not found');
-    
-    const rows = await sheet.getRows();
-    
-    return rows.map(row => ({
-      slug: row.get('slug'),
-      name: row.get('name'),
-      company: row.get('company'),
-      category: row.get('category'),
-      position: row.get('position'),
-      phone: row.get('phone'),
-      email: row.get('email'),
-      altEmail: row.get('altEmail'),
-      displayOrder: parseInt(row.get('displayOrder')) || 0,
-      tagline: row.get('tagline'),
-      bio: row.get('bio'),
-      region: row.get('region'),
-      launchDate: row.get('launchDate'),
-      profileImage: this.convertDriveLink(row.get('profileImage')),
-      truckImage: this.convertDriveLink(row.get('truckImage')),
-      facebook: row.get('facebook'),
-      instagram: row.get('instagram'),
-      x: row.get('x'),
-    })).sort((a, b) => a.displayOrder - b.displayOrder);
-  }
+  // ===========================================================================
+  // TEAM MEMBERS
+  // ===========================================================================
 
-  async updateTeamMember(member: TeamMember): Promise<void> {
-    await this.init();
-    const sheet = doc.sheetsByTitle['team-members-import'];
-    if (!sheet) throw new Error('team-members-import sheet not found');
-    
-    const rows = await sheet.getRows();
-    const existingRow = rows.find(row => row.get('slug') === member.slug);
-    
-    if (existingRow) {
-      Object.keys(member).forEach(key => {
-        existingRow.set(key, (member as any)[key]);
-      });
-      await existingRow.save();
-    } else {
-      await sheet.addRow(member as unknown as Record<string, string | number | boolean>);
+  async getTeamMembers(): Promise<TeamMember[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = this.doc.sheetsByTitle[SHEET_NAMES.TEAM_MEMBERS];
+      if (!sheet) {
+        console.warn(`Sheet "${SHEET_NAMES.TEAM_MEMBERS}" not found`);
+        return [];
+      }
+
+      const rows = await sheet.getRows();
+
+      return rows.map(row => ({
+        slug: row.get('slug') || '',
+        name: row.get('name') || '',
+        company: row.get('company') || '',
+        category: row.get('category') || '',
+        position: row.get('position') || '',
+        phone: row.get('phone') || '',
+        email: row.get('email') || '',
+        altEmail: row.get('altEmail') || '',
+        displayOrder: parseInt(row.get('displayOrder')) || 0,
+        tagline: row.get('tagline') || '',
+        bio: row.get('bio') || '',
+        region: row.get('region') || '',
+        launchDate: row.get('launchDate') || '',
+        profileImage: this.convertDriveLink(row.get('profileImage') || ''),
+        truckImage: this.convertDriveLink(row.get('truckImage') || ''),
+        facebook: row.get('facebook') || '',
+        instagram: row.get('instagram') || '',
+        x: row.get('x') || '',
+      })).sort((a, b) => a.displayOrder - b.displayOrder);
+    } catch (error) {
+      console.error('Error fetching team members:', error);
+      return [];
     }
   }
 
-  async deleteTeamMember(slug: string): Promise<void> {
-    await this.init();
-    const sheet = doc.sheetsByTitle['team-members-import'];
-    if (!sheet) throw new Error('team-members-import sheet not found');
-    
-    const rows = await sheet.getRows();
-    const rowToDelete = rows.find(row => row.get('slug') === slug);
-    
-    if (rowToDelete) {
-      await rowToDelete.delete();
+  async updateTeamMember(member: TeamMember): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = this.doc.sheetsByTitle[SHEET_NAMES.TEAM_MEMBERS];
+      if (!sheet) return false;
+
+      const rows = await sheet.getRows();
+      const existingRow = rows.find(row => row.get('slug') === member.slug);
+
+      if (existingRow) {
+        Object.keys(member).forEach(key => {
+          existingRow.set(key, (member as any)[key]);
+        });
+        await existingRow.save();
+      } else {
+        await sheet.addRow(member as unknown as Record<string, string | number | boolean>);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating team member:', error);
+      return false;
+    }
+  }
+
+  async deleteTeamMember(slug: string): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = this.doc.sheetsByTitle[SHEET_NAMES.TEAM_MEMBERS];
+      if (!sheet) return false;
+
+      const rows = await sheet.getRows();
+      const rowToDelete = rows.find(row => row.get('slug') === slug);
+
+      if (rowToDelete) {
+        await rowToDelete.delete();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error deleting team member:', error);
+      return false;
+    }
+  }
+
+  // ===========================================================================
+  // INVENTORY
+  // ===========================================================================
+
+  async getInventory(options?: {
+    category?: string;
+    lowStock?: boolean;
+    search?: string;
+  }): Promise<InventoryItem[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.INVENTORY, [
+        'sku', 'name', 'description', 'category', 'cost', 'price',
+        'quantity', 'minStock', 'maxStock', 'unit', 'supplier',
+        'location', 'imageUrl', 'lastUpdated', 'updatedBy'
+      ]);
+
+      const rows = await sheet.getRows();
+      let items: InventoryItem[] = rows.map(row => ({
+        sku: row.get('sku') || '',
+        name: row.get('name') || '',
+        description: row.get('description') || '',
+        category: row.get('category') || '',
+        cost: parseFloat(row.get('cost')) || 0,
+        price: parseFloat(row.get('price')) || 0,
+        quantity: parseInt(row.get('quantity')) || 0,
+        minStock: parseInt(row.get('minStock')) || 10,
+        maxStock: parseInt(row.get('maxStock')) || 100,
+        unit: row.get('unit') || 'each',
+        supplier: row.get('supplier') || '',
+        location: row.get('location') || '',
+        imageUrl: row.get('imageUrl') || '',
+        lastUpdated: row.get('lastUpdated') || '',
+        updatedBy: row.get('updatedBy') || '',
+      }));
+
+      // Apply filters
+      if (options?.category) {
+        items = items.filter(item =>
+          item.category.toLowerCase() === options.category!.toLowerCase()
+        );
+      }
+
+      if (options?.lowStock) {
+        items = items.filter(item => item.quantity <= item.minStock);
+      }
+
+      if (options?.search) {
+        const searchLower = options.search.toLowerCase();
+        items = items.filter(item =>
+          item.sku.toLowerCase().includes(searchLower) ||
+          item.name.toLowerCase().includes(searchLower) ||
+          item.description.toLowerCase().includes(searchLower) ||
+          item.category.toLowerCase().includes(searchLower)
+        );
+      }
+
+      return items.sort((a, b) => a.name.localeCompare(b.name));
+    } catch (error) {
+      console.error('Error fetching inventory:', error);
+      return [];
+    }
+  }
+
+  async updateInventoryItem(item: InventoryItem): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = this.doc.sheetsByTitle[SHEET_NAMES.INVENTORY];
+      if (!sheet) return false;
+
+      const rows = await sheet.getRows();
+      const existingRow = rows.find(row => row.get('sku') === item.sku);
+
+      const now = new Date().toISOString();
+
+      if (existingRow) {
+        existingRow.set('name', item.name);
+        existingRow.set('description', item.description);
+        existingRow.set('category', item.category);
+        existingRow.set('cost', item.cost.toString());
+        existingRow.set('price', item.price.toString());
+        existingRow.set('quantity', item.quantity.toString());
+        existingRow.set('minStock', item.minStock.toString());
+        existingRow.set('maxStock', item.maxStock.toString());
+        existingRow.set('unit', item.unit);
+        existingRow.set('supplier', item.supplier);
+        existingRow.set('location', item.location);
+        existingRow.set('imageUrl', item.imageUrl);
+        existingRow.set('lastUpdated', now);
+        existingRow.set('updatedBy', item.updatedBy);
+        await existingRow.save();
+      } else {
+        await sheet.addRow({
+          ...item,
+          cost: item.cost.toString(),
+          price: item.price.toString(),
+          quantity: item.quantity.toString(),
+          minStock: item.minStock.toString(),
+          maxStock: item.maxStock.toString(),
+          lastUpdated: now,
+        });
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating inventory item:', error);
+      return false;
+    }
+  }
+
+  async deleteInventoryItem(sku: string): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = this.doc.sheetsByTitle[SHEET_NAMES.INVENTORY];
+      if (!sheet) return false;
+
+      const rows = await sheet.getRows();
+      const rowToDelete = rows.find(row => row.get('sku') === sku);
+
+      if (rowToDelete) {
+        await rowToDelete.delete();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error deleting inventory item:', error);
+      return false;
+    }
+  }
+
+  async syncInventoryFromJson(items: InventoryItem[]): Promise<SyncResult> {
+    const ready = await this.init();
+    if (!ready || !this.doc) {
+      return { success: false, synced: 0, errors: ['Google Sheets not initialized'], timestamp: new Date().toISOString() };
+    }
+
+    const errors: string[] = [];
+    let synced = 0;
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.INVENTORY, [
+        'sku', 'name', 'description', 'category', 'cost', 'price',
+        'quantity', 'minStock', 'maxStock', 'unit', 'supplier',
+        'location', 'imageUrl', 'lastUpdated', 'updatedBy'
+      ]);
+
+      for (const item of items) {
+        try {
+          const success = await this.updateInventoryItem(item);
+          if (success) synced++;
+          else errors.push(`Failed to sync item: ${item.sku}`);
+        } catch (e) {
+          errors.push(`Error syncing ${item.sku}: ${e}`);
+        }
+      }
+
+      return { success: errors.length === 0, synced, errors, timestamp: new Date().toISOString() };
+    } catch (error) {
+      return { success: false, synced, errors: [String(error)], timestamp: new Date().toISOString() };
+    }
+  }
+
+  // ===========================================================================
+  // COMMISSIONS
+  // ===========================================================================
+
+  async getCommissions(options?: {
+    salesRep?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<CommissionEntry[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.COMMISSIONS, [
+        'salesRep', 'date', 'amount', 'balance', 'jobId', 'jobName', 'description', 'status'
+      ]);
+
+      const rows = await sheet.getRows();
+      let entries: CommissionEntry[] = rows.map(row => ({
+        salesRep: row.get('salesRep') || '',
+        date: row.get('date') || '',
+        amount: parseFloat(row.get('amount')) || 0,
+        balance: parseFloat(row.get('balance')) || 0,
+        jobId: row.get('jobId') || '',
+        jobName: row.get('jobName') || '',
+        description: row.get('description') || '',
+        status: row.get('status') || '',
+      }));
+
+      // Apply filters
+      if (options?.salesRep) {
+        entries = entries.filter(e =>
+          e.salesRep.toLowerCase() === options.salesRep!.toLowerCase()
+        );
+      }
+
+      if (options?.startDate) {
+        entries = entries.filter(e => e.date >= options.startDate!);
+      }
+
+      if (options?.endDate) {
+        entries = entries.filter(e => e.date <= options.endDate!);
+      }
+
+      return entries.sort((a, b) => b.date.localeCompare(a.date));
+    } catch (error) {
+      console.error('Error fetching commissions:', error);
+      return [];
+    }
+  }
+
+  async getCommissionSummaries(): Promise<CommissionSummary[]> {
+    const entries = await this.getCommissions();
+
+    // Group by sales rep
+    const summaryMap = new Map<string, CommissionSummary>();
+
+    for (const entry of entries) {
+      const existing = summaryMap.get(entry.salesRep);
+
+      if (existing) {
+        existing.totalEarned += entry.amount;
+        existing.transactionCount++;
+        if (entry.date > existing.lastTransaction) {
+          existing.lastTransaction = entry.date;
+          existing.currentBalance = entry.balance;
+        }
+      } else {
+        summaryMap.set(entry.salesRep, {
+          salesRep: entry.salesRep,
+          totalEarned: entry.amount,
+          currentBalance: entry.balance,
+          transactionCount: 1,
+          lastTransaction: entry.date,
+        });
+      }
+    }
+
+    return Array.from(summaryMap.values()).sort((a, b) =>
+      b.totalEarned - a.totalEarned
+    );
+  }
+
+  async addCommissionEntry(entry: CommissionEntry): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.COMMISSIONS, [
+        'salesRep', 'date', 'amount', 'balance', 'jobId', 'jobName', 'description', 'status'
+      ]);
+
+      await sheet.addRow({
+        salesRep: entry.salesRep,
+        date: entry.date,
+        amount: entry.amount.toString(),
+        balance: entry.balance.toString(),
+        jobId: entry.jobId || '',
+        jobName: entry.jobName || '',
+        description: entry.description || '',
+        status: entry.status || 'pending',
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error adding commission entry:', error);
+      return false;
+    }
+  }
+
+  async importCommissionsFromCsv(csvData: string): Promise<SyncResult> {
+    const ready = await this.init();
+    if (!ready || !this.doc) {
+      return { success: false, synced: 0, errors: ['Google Sheets not initialized'], timestamp: new Date().toISOString() };
+    }
+
+    const errors: string[] = [];
+    let synced = 0;
+
+    try {
+      const lines = csvData.split('\n');
+      const headers = lines[0].split(',').map(h => h.trim());
+
+      // Map CSV columns to our schema
+      const salesRepIdx = headers.findIndex(h => h.toLowerCase().includes('sales') || h.toLowerCase().includes('rep'));
+      const dateIdx = headers.findIndex(h => h.toLowerCase() === 'date');
+      const amountIdx = headers.findIndex(h => h.toLowerCase() === 'amount');
+      const balanceIdx = headers.findIndex(h => h.toLowerCase() === 'balance');
+
+      if (salesRepIdx === -1 || dateIdx === -1 || amountIdx === -1) {
+        return { success: false, synced: 0, errors: ['Invalid CSV format'], timestamp: new Date().toISOString() };
+      }
+
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.COMMISSIONS, [
+        'salesRep', 'date', 'amount', 'balance', 'jobId', 'jobName', 'description', 'status'
+      ]);
+
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        const values = line.split(',').map(v => v.trim());
+
+        try {
+          await sheet.addRow({
+            salesRep: values[salesRepIdx] || '',
+            date: values[dateIdx] || '',
+            amount: values[amountIdx] || '0',
+            balance: balanceIdx >= 0 ? values[balanceIdx] || '0' : '0',
+            jobId: '',
+            jobName: '',
+            description: 'Imported from CSV',
+            status: 'completed',
+          });
+          synced++;
+        } catch (e) {
+          errors.push(`Error on line ${i + 1}: ${e}`);
+        }
+      }
+
+      return { success: errors.length === 0, synced, errors, timestamp: new Date().toISOString() };
+    } catch (error) {
+      return { success: false, synced, errors: [String(error)], timestamp: new Date().toISOString() };
+    }
+  }
+
+  // ===========================================================================
+  // CUSTOMERS
+  // ===========================================================================
+
+  async getCustomers(options?: {
+    salesRep?: string;
+    search?: string;
+  }): Promise<CustomerRecord[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.CUSTOMERS, [
+        'customerId', 'name', 'email', 'phone', 'address', 'city', 'state', 'zip',
+        'jobCount', 'totalSpent', 'lastJobDate', 'notes', 'source', 'salesRep',
+        'createdAt', 'updatedAt'
+      ]);
+
+      const rows = await sheet.getRows();
+      let customers: CustomerRecord[] = rows.map(row => ({
+        customerId: row.get('customerId') || '',
+        name: row.get('name') || '',
+        email: row.get('email') || '',
+        phone: row.get('phone') || '',
+        address: row.get('address') || '',
+        city: row.get('city') || '',
+        state: row.get('state') || '',
+        zip: row.get('zip') || '',
+        jobCount: parseInt(row.get('jobCount')) || 0,
+        totalSpent: parseFloat(row.get('totalSpent')) || 0,
+        lastJobDate: row.get('lastJobDate') || '',
+        notes: row.get('notes') || '',
+        source: row.get('source') || '',
+        salesRep: row.get('salesRep') || '',
+        createdAt: row.get('createdAt') || '',
+        updatedAt: row.get('updatedAt') || '',
+      }));
+
+      // Apply filters
+      if (options?.salesRep) {
+        customers = customers.filter(c =>
+          c.salesRep?.toLowerCase() === options.salesRep!.toLowerCase()
+        );
+      }
+
+      if (options?.search) {
+        const searchLower = options.search.toLowerCase();
+        customers = customers.filter(c =>
+          c.name.toLowerCase().includes(searchLower) ||
+          c.email.toLowerCase().includes(searchLower) ||
+          c.phone.includes(searchLower) ||
+          c.address.toLowerCase().includes(searchLower)
+        );
+      }
+
+      return customers.sort((a, b) => b.totalSpent - a.totalSpent);
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+      return [];
+    }
+  }
+
+  async updateCustomer(customer: CustomerRecord): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = this.doc.sheetsByTitle[SHEET_NAMES.CUSTOMERS];
+      if (!sheet) return false;
+
+      const rows = await sheet.getRows();
+      const existingRow = rows.find(row => row.get('customerId') === customer.customerId);
+      const now = new Date().toISOString();
+
+      if (existingRow) {
+        Object.keys(customer).forEach(key => {
+          if (key !== 'createdAt') {
+            existingRow.set(key, String((customer as any)[key]));
+          }
+        });
+        existingRow.set('updatedAt', now);
+        await existingRow.save();
+      } else {
+        await sheet.addRow({
+          ...customer,
+          jobCount: customer.jobCount.toString(),
+          totalSpent: customer.totalSpent.toString(),
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating customer:', error);
+      return false;
+    }
+  }
+
+  async deleteCustomer(customerId: string): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = this.doc.sheetsByTitle[SHEET_NAMES.CUSTOMERS];
+      if (!sheet) return false;
+
+      const rows = await sheet.getRows();
+      const rowToDelete = rows.find(row => row.get('customerId') === customerId);
+
+      if (rowToDelete) {
+        await rowToDelete.delete();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error deleting customer:', error);
+      return false;
+    }
+  }
+
+  // ===========================================================================
+  // ORDERS
+  // ===========================================================================
+
+  async getOrders(options?: {
+    status?: string;
+    customerId?: string;
+  }): Promise<OrderRecord[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.ORDERS, [
+        'orderId', 'customerId', 'customerName', 'jobId', 'jobAddress', 'status',
+        'items', 'totalCost', 'totalPrice', 'createdBy', 'createdAt', 'updatedAt',
+        'notes', 'deliveryDate', 'deliveredBy'
+      ]);
+
+      const rows = await sheet.getRows();
+      let orders: OrderRecord[] = rows.map(row => ({
+        orderId: row.get('orderId') || '',
+        customerId: row.get('customerId') || '',
+        customerName: row.get('customerName') || '',
+        jobId: row.get('jobId') || '',
+        jobAddress: row.get('jobAddress') || '',
+        status: (row.get('status') || 'pending') as OrderRecord['status'],
+        items: row.get('items') || '[]',
+        totalCost: parseFloat(row.get('totalCost')) || 0,
+        totalPrice: parseFloat(row.get('totalPrice')) || 0,
+        createdBy: row.get('createdBy') || '',
+        createdAt: row.get('createdAt') || '',
+        updatedAt: row.get('updatedAt') || '',
+        notes: row.get('notes') || '',
+        deliveryDate: row.get('deliveryDate') || '',
+        deliveredBy: row.get('deliveredBy') || '',
+      }));
+
+      // Apply filters
+      if (options?.status) {
+        orders = orders.filter(o => o.status === options.status);
+      }
+
+      if (options?.customerId) {
+        orders = orders.filter(o => o.customerId === options.customerId);
+      }
+
+      return orders.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      return [];
+    }
+  }
+
+  async updateOrder(order: OrderRecord): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = this.doc.sheetsByTitle[SHEET_NAMES.ORDERS];
+      if (!sheet) return false;
+
+      const rows = await sheet.getRows();
+      const existingRow = rows.find(row => row.get('orderId') === order.orderId);
+      const now = new Date().toISOString();
+
+      if (existingRow) {
+        Object.keys(order).forEach(key => {
+          if (key !== 'createdAt') {
+            existingRow.set(key, String((order as any)[key]));
+          }
+        });
+        existingRow.set('updatedAt', now);
+        await existingRow.save();
+      } else {
+        await sheet.addRow({
+          ...order,
+          totalCost: order.totalCost.toString(),
+          totalPrice: order.totalPrice.toString(),
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating order:', error);
+      return false;
+    }
+  }
+
+  // ===========================================================================
+  // SYNC OPERATIONS
+  // ===========================================================================
+
+  async triggerFullSync(): Promise<{
+    success: boolean;
+    results: {
+      inventory: SyncResult;
+      team: SyncResult;
+    };
+  }> {
+    const ready = await this.init();
+    if (!ready) {
+      const failResult: SyncResult = {
+        success: false,
+        synced: 0,
+        errors: ['Google Sheets not initialized'],
+        timestamp: new Date().toISOString(),
+      };
+      return {
+        success: false,
+        results: {
+          inventory: failResult,
+          team: failResult,
+        },
+      };
+    }
+
+    // This would sync data from JSON files to sheets
+    // For now, return current state
+    const inventoryResult: SyncResult = {
+      success: true,
+      synced: 0,
+      errors: [],
+      timestamp: new Date().toISOString(),
+    };
+
+    const teamResult: SyncResult = {
+      success: true,
+      synced: 0,
+      errors: [],
+      timestamp: new Date().toISOString(),
+    };
+
+    return {
+      success: true,
+      results: {
+        inventory: inventoryResult,
+        team: teamResult,
+      },
+    };
+  }
+
+  /**
+   * Get connection status
+   */
+  getStatus(): {
+    configured: boolean;
+    connected: boolean;
+    sheetTitle?: string;
+  } {
+    return {
+      configured: isGoogleSheetsConfigured(),
+      connected: this.initialized && this.doc !== null,
+      sheetTitle: this.doc?.title,
+    };
+  }
+
+  // ===========================================================================
+  // GEOCODED CONTACTS
+  // ===========================================================================
+
+  async getGeocodedContacts(options?: {
+    salesRep?: string;
+    type?: string;
+  }): Promise<GeocodedContactRecord[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.GEOCODED_CONTACTS, [
+        'jnid', 'name', 'address', 'lat', 'lng', 'placeId', 'type',
+        'salesRep', 'jobStatus', 'lastInteraction', 'interactionType', 'createdAt'
+      ]);
+
+      const rows = await sheet.getRows();
+      let contacts: GeocodedContactRecord[] = rows.map(row => ({
+        jnid: row.get('jnid') || '',
+        name: row.get('name') || '',
+        address: row.get('address') || '',
+        lat: row.get('lat') || '',
+        lng: row.get('lng') || '',
+        placeId: row.get('placeId') || '',
+        type: row.get('type') || '',
+        salesRep: row.get('salesRep') || '',
+        jobStatus: row.get('jobStatus') || '',
+        lastInteraction: row.get('lastInteraction') || '',
+        interactionType: row.get('interactionType') || '',
+        createdAt: row.get('createdAt') || '',
+      }));
+
+      if (options?.salesRep) {
+        contacts = contacts.filter(c => c.salesRep === options.salesRep);
+      }
+      if (options?.type) {
+        contacts = contacts.filter(c => c.type === options.type);
+      }
+
+      return contacts;
+    } catch (error) {
+      console.error('Error fetching geocoded contacts:', error);
+      return [];
+    }
+  }
+
+  async addGeocodedContact(contact: GeocodedContactRecord): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.GEOCODED_CONTACTS, [
+        'jnid', 'name', 'address', 'lat', 'lng', 'placeId', 'type',
+        'salesRep', 'jobStatus', 'lastInteraction', 'interactionType', 'createdAt'
+      ]);
+
+      // Check for existing entry
+      const rows = await sheet.getRows();
+      const existing = rows.find(r => r.get('jnid') === contact.jnid);
+
+      if (existing) {
+        Object.keys(contact).forEach(key => {
+          existing.set(key, (contact as any)[key]);
+        });
+        await existing.save();
+      } else {
+        await sheet.addRow(contact as unknown as Record<string, string | number | boolean>);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error adding geocoded contact:', error);
+      return false;
+    }
+  }
+
+  async addGeocodedContactsBatch(contacts: GeocodedContactRecord[]): Promise<{ added: number; errors: number }> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return { added: 0, errors: contacts.length };
+
+    let added = 0;
+    let errors = 0;
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.GEOCODED_CONTACTS, [
+        'jnid', 'name', 'address', 'lat', 'lng', 'placeId', 'type',
+        'salesRep', 'jobStatus', 'lastInteraction', 'interactionType', 'createdAt'
+      ]);
+
+      for (const contact of contacts) {
+        try {
+          await sheet.addRow(contact as unknown as Record<string, string | number | boolean>);
+          added++;
+        } catch {
+          errors++;
+        }
+      }
+    } catch (error) {
+      console.error('Error batch adding geocoded contacts:', error);
+      errors = contacts.length - added;
+    }
+
+    return { added, errors };
+  }
+
+  // ===========================================================================
+  // LEAD DISTRIBUTION LOG
+  // ===========================================================================
+
+  async addDistributionLog(log: LeadDistributionLogRecord): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.LEAD_DISTRIBUTION_LOG, [
+        'logId', 'leadId', 'customerName', 'address', 'assignedRep',
+        'algorithmScores', 'factors', 'overrideReason', 'timestamp'
+      ]);
+
+      await sheet.addRow(log as unknown as Record<string, string | number | boolean>);
+      return true;
+    } catch (error) {
+      console.error('Error adding distribution log:', error);
+      return false;
+    }
+  }
+
+  async getDistributionLogs(options?: {
+    limit?: number;
+    assignedRep?: string;
+  }): Promise<LeadDistributionLogRecord[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.LEAD_DISTRIBUTION_LOG, [
+        'logId', 'leadId', 'customerName', 'address', 'assignedRep',
+        'algorithmScores', 'factors', 'overrideReason', 'timestamp'
+      ]);
+
+      const rows = await sheet.getRows();
+      let logs: LeadDistributionLogRecord[] = rows.map(row => ({
+        logId: row.get('logId') || '',
+        leadId: row.get('leadId') || '',
+        customerName: row.get('customerName') || '',
+        address: row.get('address') || '',
+        assignedRep: row.get('assignedRep') || '',
+        algorithmScores: row.get('algorithmScores') || '{}',
+        factors: row.get('factors') || '{}',
+        overrideReason: row.get('overrideReason') || '',
+        timestamp: row.get('timestamp') || '',
+      }));
+
+      if (options?.assignedRep) {
+        logs = logs.filter(l => l.assignedRep === options.assignedRep);
+      }
+
+      logs.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+
+      if (options?.limit) {
+        logs = logs.slice(0, options.limit);
+      }
+
+      return logs;
+    } catch (error) {
+      console.error('Error fetching distribution logs:', error);
+      return [];
+    }
+  }
+
+  // ===========================================================================
+  // REP AVAILABILITY
+  // ===========================================================================
+
+  async getRepAvailability(repSlug?: string): Promise<RepAvailabilityRecord[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.REP_AVAILABILITY, [
+        'repSlug', 'isReceivingLeads', 'adminOverride', 'adminOverrideBy',
+        'adminOverrideReason', 'autoResumeAt', 'scheduleJson', 'updatedAt'
+      ]);
+
+      const rows = await sheet.getRows();
+      let records: RepAvailabilityRecord[] = rows.map(row => ({
+        repSlug: row.get('repSlug') || '',
+        isReceivingLeads: row.get('isReceivingLeads') || 'true',
+        adminOverride: row.get('adminOverride') || 'false',
+        adminOverrideBy: row.get('adminOverrideBy') || '',
+        adminOverrideReason: row.get('adminOverrideReason') || '',
+        autoResumeAt: row.get('autoResumeAt') || '',
+        scheduleJson: row.get('scheduleJson') || '{}',
+        updatedAt: row.get('updatedAt') || '',
+      }));
+
+      if (repSlug) {
+        records = records.filter(r => r.repSlug === repSlug);
+      }
+
+      return records;
+    } catch (error) {
+      console.error('Error fetching rep availability:', error);
+      return [];
+    }
+  }
+
+  async updateRepAvailability(record: RepAvailabilityRecord): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.REP_AVAILABILITY, [
+        'repSlug', 'isReceivingLeads', 'adminOverride', 'adminOverrideBy',
+        'adminOverrideReason', 'autoResumeAt', 'scheduleJson', 'updatedAt'
+      ]);
+
+      const rows = await sheet.getRows();
+      const existing = rows.find(r => r.get('repSlug') === record.repSlug);
+
+      if (existing) {
+        Object.keys(record).forEach(key => {
+          existing.set(key, (record as any)[key]);
+        });
+        existing.set('updatedAt', new Date().toISOString());
+        await existing.save();
+      } else {
+        await sheet.addRow({
+          ...record,
+          updatedAt: new Date().toISOString(),
+        } as unknown as Record<string, string | number | boolean>);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating rep availability:', error);
+      return false;
+    }
+  }
+
+  // ===========================================================================
+  // REP PREFERENCES
+  // ===========================================================================
+
+  async getRepPreferences(repSlug?: string): Promise<RepPreferencesRecord[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.REP_PREFERENCES, [
+        'repSlug', 'countiesEnabled', 'maxLeadsPerDay', 'preferredAreas',
+        'excludedAreas', 'updatedAt'
+      ]);
+
+      const rows = await sheet.getRows();
+      let records: RepPreferencesRecord[] = rows.map(row => ({
+        repSlug: row.get('repSlug') || '',
+        countiesEnabled: row.get('countiesEnabled') || '{}',
+        maxLeadsPerDay: row.get('maxLeadsPerDay') || '0',
+        preferredAreas: row.get('preferredAreas') || '[]',
+        excludedAreas: row.get('excludedAreas') || '[]',
+        updatedAt: row.get('updatedAt') || '',
+      }));
+
+      if (repSlug) {
+        records = records.filter(r => r.repSlug === repSlug);
+      }
+
+      return records;
+    } catch (error) {
+      console.error('Error fetching rep preferences:', error);
+      return [];
+    }
+  }
+
+  async updateRepPreferences(record: RepPreferencesRecord): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.REP_PREFERENCES, [
+        'repSlug', 'countiesEnabled', 'maxLeadsPerDay', 'preferredAreas',
+        'excludedAreas', 'updatedAt'
+      ]);
+
+      const rows = await sheet.getRows();
+      const existing = rows.find(r => r.get('repSlug') === record.repSlug);
+
+      if (existing) {
+        Object.keys(record).forEach(key => {
+          existing.set(key, (record as any)[key]);
+        });
+        existing.set('updatedAt', new Date().toISOString());
+        await existing.save();
+      } else {
+        await sheet.addRow({
+          ...record,
+          updatedAt: new Date().toISOString(),
+        } as unknown as Record<string, string | number | boolean>);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating rep preferences:', error);
+      return false;
+    }
+  }
+
+  // ===========================================================================
+  // LEAD RESPONSE LOG
+  // ===========================================================================
+
+  async addLeadResponseLog(log: LeadResponseLogRecord): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.LEAD_RESPONSE_LOG, [
+        'leadId', 'repSlug', 'assignedAt', 'firstContactAt', 'responseMinutes',
+        'reminderSentAt', 'warningSentAt', 'reassignedAt', 'reassignedTo', 'missedReason'
+      ]);
+
+      await sheet.addRow(log as unknown as Record<string, string | number | boolean>);
+      return true;
+    } catch (error) {
+      console.error('Error adding lead response log:', error);
+      return false;
+    }
+  }
+
+  async updateLeadResponseLog(leadId: string, updates: Partial<LeadResponseLogRecord>): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.LEAD_RESPONSE_LOG, [
+        'leadId', 'repSlug', 'assignedAt', 'firstContactAt', 'responseMinutes',
+        'reminderSentAt', 'warningSentAt', 'reassignedAt', 'reassignedTo', 'missedReason'
+      ]);
+
+      const rows = await sheet.getRows();
+      const existing = rows.find(r => r.get('leadId') === leadId);
+
+      if (!existing) return false;
+
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value !== undefined) {
+          existing.set(key, String(value));
+        }
+      });
+
+      await existing.save();
+      return true;
+    } catch (error) {
+      console.error('Error updating lead response log:', error);
+      return false;
+    }
+  }
+
+  async getLeadResponseLogs(options?: {
+    repSlug?: string;
+    limit?: number;
+  }): Promise<LeadResponseLogRecord[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.LEAD_RESPONSE_LOG, [
+        'leadId', 'repSlug', 'assignedAt', 'firstContactAt', 'responseMinutes',
+        'reminderSentAt', 'warningSentAt', 'reassignedAt', 'reassignedTo', 'missedReason'
+      ]);
+
+      const rows = await sheet.getRows();
+      let logs: LeadResponseLogRecord[] = rows.map(row => ({
+        leadId: row.get('leadId') || '',
+        repSlug: row.get('repSlug') || '',
+        assignedAt: row.get('assignedAt') || '',
+        firstContactAt: row.get('firstContactAt') || '',
+        responseMinutes: row.get('responseMinutes') || '',
+        reminderSentAt: row.get('reminderSentAt') || '',
+        warningSentAt: row.get('warningSentAt') || '',
+        reassignedAt: row.get('reassignedAt') || '',
+        reassignedTo: row.get('reassignedTo') || '',
+        missedReason: row.get('missedReason') || '',
+      }));
+
+      if (options?.repSlug) {
+        logs = logs.filter(l => l.repSlug === options.repSlug);
+      }
+
+      logs.sort((a, b) => b.assignedAt.localeCompare(a.assignedAt));
+
+      if (options?.limit) {
+        logs = logs.slice(0, options.limit);
+      }
+
+      return logs;
+    } catch (error) {
+      console.error('Error fetching lead response logs:', error);
+      return [];
+    }
+  }
+
+  // ===========================================================================
+  // JOB BREAKDOWNS
+  // ===========================================================================
+
+  async getJobBreakdowns(options?: {
+    salesRep?: string;
+    status?: string;
+    search?: string;
+  }): Promise<JobBreakdownRecord[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.JOB_BREAKDOWNS, [
+        'breakdownId', 'jobId', 'customerName', 'address', 'rNumber',
+        'salesRep', 'status', 'materialsJson', 'totals', 'createdAt', 'updatedAt'
+      ]);
+
+      const rows = await sheet.getRows();
+      let breakdowns: JobBreakdownRecord[] = rows.map(row => ({
+        breakdownId: row.get('breakdownId') || '',
+        jobId: row.get('jobId') || '',
+        customerName: row.get('customerName') || '',
+        address: row.get('address') || '',
+        rNumber: row.get('rNumber') || '',
+        salesRep: row.get('salesRep') || '',
+        status: row.get('status') || '',
+        materialsJson: row.get('materialsJson') || '[]',
+        totals: row.get('totals') || '{}',
+        createdAt: row.get('createdAt') || '',
+        updatedAt: row.get('updatedAt') || '',
+      }));
+
+      if (options?.salesRep) {
+        breakdowns = breakdowns.filter(b => b.salesRep === options.salesRep);
+      }
+      if (options?.status) {
+        breakdowns = breakdowns.filter(b => b.status === options.status);
+      }
+      if (options?.search) {
+        const searchLower = options.search.toLowerCase();
+        breakdowns = breakdowns.filter(b =>
+          b.customerName.toLowerCase().includes(searchLower) ||
+          b.address.toLowerCase().includes(searchLower) ||
+          b.rNumber.toLowerCase().includes(searchLower)
+        );
+      }
+
+      return breakdowns.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    } catch (error) {
+      console.error('Error fetching job breakdowns:', error);
+      return [];
+    }
+  }
+
+  async addJobBreakdown(breakdown: JobBreakdownRecord): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.JOB_BREAKDOWNS, [
+        'breakdownId', 'jobId', 'customerName', 'address', 'rNumber',
+        'salesRep', 'status', 'materialsJson', 'totals', 'createdAt', 'updatedAt'
+      ]);
+
+      await sheet.addRow(breakdown as unknown as Record<string, string | number | boolean>);
+      return true;
+    } catch (error) {
+      console.error('Error adding job breakdown:', error);
+      return false;
+    }
+  }
+
+  async updateJobBreakdown(breakdownId: string, updates: Partial<JobBreakdownRecord>): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = this.doc.sheetsByTitle[SHEET_NAMES.JOB_BREAKDOWNS];
+      if (!sheet) return false;
+
+      const rows = await sheet.getRows();
+      const existing = rows.find(r => r.get('breakdownId') === breakdownId);
+
+      if (!existing) return false;
+
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value !== undefined) {
+          existing.set(key, String(value));
+        }
+      });
+      existing.set('updatedAt', new Date().toISOString());
+
+      await existing.save();
+      return true;
+    } catch (error) {
+      console.error('Error updating job breakdown:', error);
+      return false;
+    }
+  }
+  // ===========================================================================
+  // TEAM ACCESS OVERRIDES
+  // ===========================================================================
+
+  private readonly accessOverrideHeaders = [
+    'memberId', 'moduleOverrides', 'customPermissions', 'updatedBy', 'updatedAt'
+  ];
+
+  async getTeamAccessOverrides(memberId?: string): Promise<TeamAccessOverrideRecord[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.TEAM_ACCESS_OVERRIDES,
+        this.accessOverrideHeaders
+      );
+
+      const rows = await sheet.getRows();
+      let records: TeamAccessOverrideRecord[] = rows.map(row => ({
+        memberId: row.get('memberId') || '',
+        moduleOverrides: row.get('moduleOverrides') || '{}',
+        customPermissions: row.get('customPermissions') || '{}',
+        updatedBy: row.get('updatedBy') || '',
+        updatedAt: row.get('updatedAt') || '',
+      }));
+
+      if (memberId) {
+        records = records.filter(r => r.memberId === memberId);
+      }
+
+      return records;
+    } catch (error) {
+      console.error('Error fetching team access overrides:', error);
+      return [];
+    }
+  }
+
+  async saveTeamAccessOverride(record: TeamAccessOverrideRecord): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.TEAM_ACCESS_OVERRIDES,
+        this.accessOverrideHeaders
+      );
+
+      const rows = await sheet.getRows();
+      const existing = rows.find(r => r.get('memberId') === record.memberId);
+
+      if (existing) {
+        existing.set('moduleOverrides', record.moduleOverrides);
+        existing.set('customPermissions', record.customPermissions);
+        existing.set('updatedBy', record.updatedBy);
+        existing.set('updatedAt', new Date().toISOString());
+        await existing.save();
+      } else {
+        await sheet.addRow({
+          ...record,
+          updatedAt: new Date().toISOString(),
+        } as unknown as Record<string, string | number | boolean>);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error saving team access override:', error);
+      return false;
+    }
+  }
+
+  async deleteTeamAccessOverride(memberId: string): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = this.doc.sheetsByTitle[SHEET_NAMES.TEAM_ACCESS_OVERRIDES];
+      if (!sheet) return false;
+
+      const rows = await sheet.getRows();
+      const row = rows.find(r => r.get('memberId') === memberId);
+
+      if (row) {
+        await row.delete();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error deleting team access override:', error);
+      return false;
+    }
+  }
+
+  // ===========================================================================
+  // AGENT DIRECTORY & VISITS
+  // ===========================================================================
+
+  private readonly agentHeaders = [
+    'id', 'name', 'company', 'phone', 'email', 'address', 'notes',
+    'isActive', 'assignedRep', 'createdAt', 'updatedAt'
+  ];
+
+  private readonly visitHeaders = [
+    'id', 'agentId', 'agentName', 'visitedBy', 'visitDate', 'notes',
+    'jobsReferred', 'followUpDate', 'createdAt'
+  ];
+
+  async getAgents(): Promise<Record<string, string>[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.AGENT_DIRECTORY,
+        this.agentHeaders
+      );
+
+      const rows = await sheet.getRows();
+      return rows.map(row => {
+        const record: Record<string, string> = {};
+        for (const h of this.agentHeaders) {
+          record[h] = row.get(h) || '';
+        }
+        return record;
+      });
+    } catch (error) {
+      console.error('Error fetching agents:', error);
+      return [];
+    }
+  }
+
+  async saveAgent(agent: Record<string, string>): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.AGENT_DIRECTORY,
+        this.agentHeaders
+      );
+
+      const rows = await sheet.getRows();
+      const existing = rows.find(r => r.get('id') === agent.id);
+
+      if (existing) {
+        for (const h of this.agentHeaders) {
+          if (agent[h] !== undefined) existing.set(h, agent[h]);
+        }
+        existing.set('updatedAt', new Date().toISOString());
+        await existing.save();
+      } else {
+        await sheet.addRow({
+          ...agent,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        } as unknown as Record<string, string | number | boolean>);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error saving agent:', error);
+      return false;
+    }
+  }
+
+  async getAgentVisits(agentId?: string): Promise<Record<string, string>[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.AGENT_VISITS,
+        this.visitHeaders
+      );
+
+      const rows = await sheet.getRows();
+      let records = rows.map(row => {
+        const record: Record<string, string> = {};
+        for (const h of this.visitHeaders) {
+          record[h] = row.get(h) || '';
+        }
+        return record;
+      });
+
+      if (agentId) {
+        records = records.filter(r => r.agentId === agentId);
+      }
+
+      return records;
+    } catch (error) {
+      console.error('Error fetching agent visits:', error);
+      return [];
+    }
+  }
+
+  async logAgentVisit(visit: Record<string, string>): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.AGENT_VISITS,
+        this.visitHeaders
+      );
+
+      await sheet.addRow({
+        ...visit,
+        createdAt: new Date().toISOString(),
+      } as unknown as Record<string, string | number | boolean>);
+
+      return true;
+    } catch (error) {
+      console.error('Error logging agent visit:', error);
+      return false;
+    }
+  }
+
+  // ===========================================================================
+  // TRAINING PROGRESS
+  // ===========================================================================
+
+  private readonly trainingProgressHeaders = [
+    'id', 'userId', 'userName', 'moduleId', 'moduleName',
+    'score', 'passed', 'completedAt', 'createdAt'
+  ];
+
+  async getTrainingProgress(userId?: string): Promise<Record<string, string>[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.TRAINING_PROGRESS,
+        this.trainingProgressHeaders
+      );
+
+      const rows = await sheet.getRows();
+      let records = rows.map(row => {
+        const record: Record<string, string> = {};
+        for (const h of this.trainingProgressHeaders) {
+          record[h] = row.get(h) || '';
+        }
+        return record;
+      });
+
+      if (userId) {
+        records = records.filter(r => r.userId === userId);
+      }
+
+      return records;
+    } catch (error) {
+      console.error('Error fetching training progress:', error);
+      return [];
+    }
+  }
+
+  async recordTrainingCompletion(record: Record<string, string>): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.TRAINING_PROGRESS,
+        this.trainingProgressHeaders
+      );
+
+      // Check for existing completion of same module by same user
+      const rows = await sheet.getRows();
+      const existing = rows.find(
+        r => r.get('userId') === record.userId && r.get('moduleId') === record.moduleId
+      );
+
+      if (existing) {
+        // Update existing record
+        for (const h of this.trainingProgressHeaders) {
+          if (record[h] !== undefined) {
+            existing.set(h, record[h]);
+          }
+        }
+        await existing.save();
+      } else {
+        await sheet.addRow({
+          ...record,
+          createdAt: new Date().toISOString(),
+        } as unknown as Record<string, string | number | boolean>);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error recording training completion:', error);
+      return false;
+    }
+  }
+
+  // ===========================================================================
+  // REP WEEKLY NUMBERS
+  // ===========================================================================
+
+  private readonly weeklyNumbersHeaders = [
+    'week', 'repName', 'repEmail', 'doorsKnocked', 'appointmentsSet',
+    'inspectionsCompleted', 'estimatesGiven', 'contractsSigned',
+    'revenueClosed', 'leadsGenerated', 'followUpsMade', 'notes', 'submittedAt'
+  ];
+
+  async getRepWeeklyNumbers(options?: {
+    repEmail?: string;
+    weekStart?: string;
+    weekEnd?: string;
+  }): Promise<RepWeeklyNumbersRecord[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.REP_WEEKLY_NUMBERS,
+        this.weeklyNumbersHeaders
+      );
+
+      const rows = await sheet.getRows();
+      let records: RepWeeklyNumbersRecord[] = rows.map(row => ({
+        week: row.get('week') || '',
+        repName: row.get('repName') || '',
+        repEmail: row.get('repEmail') || '',
+        doorsKnocked: parseInt(row.get('doorsKnocked')) || 0,
+        appointmentsSet: parseInt(row.get('appointmentsSet')) || 0,
+        inspectionsCompleted: parseInt(row.get('inspectionsCompleted')) || 0,
+        estimatesGiven: parseInt(row.get('estimatesGiven')) || 0,
+        contractsSigned: parseInt(row.get('contractsSigned')) || 0,
+        revenueClosed: parseFloat(row.get('revenueClosed')) || 0,
+        leadsGenerated: parseInt(row.get('leadsGenerated')) || 0,
+        followUpsMade: parseInt(row.get('followUpsMade')) || 0,
+        notes: row.get('notes') || '',
+        submittedAt: row.get('submittedAt') || '',
+      }));
+
+      if (options?.repEmail) {
+        records = records.filter(r =>
+          r.repEmail.toLowerCase() === options.repEmail!.toLowerCase()
+        );
+      }
+
+      if (options?.weekStart) {
+        records = records.filter(r => r.week >= options.weekStart!);
+      }
+
+      if (options?.weekEnd) {
+        records = records.filter(r => r.week <= options.weekEnd!);
+      }
+
+      return records.sort((a, b) => b.week.localeCompare(a.week));
+    } catch (error) {
+      console.error('Error fetching rep weekly numbers:', error);
+      return [];
+    }
+  }
+
+  async addRepWeeklyNumbers(record: RepWeeklyNumbersRecord): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.REP_WEEKLY_NUMBERS,
+        this.weeklyNumbersHeaders
+      );
+
+      await sheet.addRow({
+        week: record.week,
+        repName: record.repName,
+        repEmail: record.repEmail,
+        doorsKnocked: record.doorsKnocked.toString(),
+        appointmentsSet: record.appointmentsSet.toString(),
+        inspectionsCompleted: record.inspectionsCompleted.toString(),
+        estimatesGiven: record.estimatesGiven.toString(),
+        contractsSigned: record.contractsSigned.toString(),
+        revenueClosed: record.revenueClosed.toString(),
+        leadsGenerated: record.leadsGenerated.toString(),
+        followUpsMade: record.followUpsMade.toString(),
+        notes: record.notes,
+        submittedAt: record.submittedAt,
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error adding rep weekly numbers:', error);
+      return false;
+    }
+  }
+
+  async updateRepWeeklyNumbers(
+    week: string,
+    repEmail: string,
+    updates: Partial<RepWeeklyNumbersRecord>
+  ): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.REP_WEEKLY_NUMBERS,
+        this.weeklyNumbersHeaders
+      );
+
+      const rows = await sheet.getRows();
+      const existing = rows.find(
+        r => r.get('week') === week && r.get('repEmail')?.toLowerCase() === repEmail.toLowerCase()
+      );
+
+      if (!existing) return false;
+
+      const numericFields = [
+        'doorsKnocked', 'appointmentsSet', 'inspectionsCompleted',
+        'estimatesGiven', 'contractsSigned', 'revenueClosed',
+        'leadsGenerated', 'followUpsMade'
+      ];
+
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value !== undefined && key !== 'week' && key !== 'repEmail') {
+          existing.set(key, numericFields.includes(key) ? String(value) : String(value));
+        }
+      });
+
+      existing.set('submittedAt', new Date().toISOString());
+      await existing.save();
+
+      return true;
+    } catch (error) {
+      console.error('Error updating rep weekly numbers:', error);
+      return false;
+    }
+  }
+  // ===========================================================================
+  // CUSTOMER PORTAL LOG
+  // ===========================================================================
+
+  private readonly portalLogHeaders = [
+    'logId', 'customerName', 'customerEmail', 'jobId', 'action',
+    'timestamp', 'ipAddress', 'userAgent', 'details'
+  ];
+
+  async addPortalLog(log: CustomerPortalLogRecord): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.CUSTOMER_PORTAL_LOG,
+        this.portalLogHeaders
+      );
+
+      await sheet.addRow({
+        logId: log.logId,
+        customerName: log.customerName,
+        customerEmail: log.customerEmail,
+        jobId: log.jobId,
+        action: log.action,
+        timestamp: log.timestamp,
+        ipAddress: log.ipAddress,
+        userAgent: log.userAgent,
+        details: log.details,
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error adding portal log:', error);
+      return false;
+    }
+  }
+
+  async getPortalLogs(options?: {
+    customerEmail?: string;
+    customerId?: string;
+    action?: string;
+    limit?: number;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<CustomerPortalLogRecord[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.CUSTOMER_PORTAL_LOG,
+        this.portalLogHeaders
+      );
+
+      const rows = await sheet.getRows();
+      let logs: CustomerPortalLogRecord[] = rows.map(row => ({
+        logId: row.get('logId') || '',
+        customerName: row.get('customerName') || '',
+        customerEmail: row.get('customerEmail') || '',
+        jobId: row.get('jobId') || '',
+        action: row.get('action') || '',
+        timestamp: row.get('timestamp') || '',
+        ipAddress: row.get('ipAddress') || '',
+        userAgent: row.get('userAgent') || '',
+        details: row.get('details') || '{}',
+      }));
+
+      if (options?.customerEmail) {
+        logs = logs.filter(l =>
+          l.customerEmail.toLowerCase() === options.customerEmail!.toLowerCase()
+        );
+      }
+
+      if (options?.customerId) {
+        // Match by customerId found in the details JSON
+        logs = logs.filter(l => {
+          try {
+            const d = JSON.parse(l.details);
+            return d.customerId === options.customerId;
+          } catch {
+            return false;
+          }
+        });
+      }
+
+      if (options?.action) {
+        logs = logs.filter(l => l.action === options.action);
+      }
+
+      if (options?.startDate) {
+        logs = logs.filter(l => l.timestamp >= options.startDate!);
+      }
+
+      if (options?.endDate) {
+        logs = logs.filter(l => l.timestamp <= options.endDate!);
+      }
+
+      logs.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+
+      if (options?.limit) {
+        logs = logs.slice(0, options.limit);
+      }
+
+      return logs;
+    } catch (error) {
+      console.error('Error fetching portal logs:', error);
+      return [];
+    }
+  }
+
+  // ===========================================================================
+  // CUSTOMER PORTAL DATA
+  // ===========================================================================
+
+  private readonly portalDataHeaders = [
+    'customerId', 'customerName', 'customerEmail', 'customerPhone',
+    'address', 'jobId', 'jobStatus', 'portalToken', 'portalCreatedAt',
+    'lastAccessed', 'totalVisits', 'messagesSent', 'documentsViewed', 'notes'
+  ];
+
+  async getPortalData(customerId?: string): Promise<CustomerPortalDataRecord[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.CUSTOMER_PORTAL_DATA,
+        this.portalDataHeaders
+      );
+
+      const rows = await sheet.getRows();
+      let records: CustomerPortalDataRecord[] = rows.map(row => ({
+        customerId: row.get('customerId') || '',
+        customerName: row.get('customerName') || '',
+        customerEmail: row.get('customerEmail') || '',
+        customerPhone: row.get('customerPhone') || '',
+        address: row.get('address') || '',
+        jobId: row.get('jobId') || '',
+        jobStatus: row.get('jobStatus') || '',
+        portalToken: row.get('portalToken') || '',
+        portalCreatedAt: row.get('portalCreatedAt') || '',
+        lastAccessed: row.get('lastAccessed') || '',
+        totalVisits: parseInt(row.get('totalVisits')) || 0,
+        messagesSent: parseInt(row.get('messagesSent')) || 0,
+        documentsViewed: parseInt(row.get('documentsViewed')) || 0,
+        notes: row.get('notes') || '',
+      }));
+
+      if (customerId) {
+        records = records.filter(r => r.customerId === customerId);
+      }
+
+      return records;
+    } catch (error) {
+      console.error('Error fetching portal data:', error);
+      return [];
+    }
+  }
+
+  async upsertPortalData(record: CustomerPortalDataRecord): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.CUSTOMER_PORTAL_DATA,
+        this.portalDataHeaders
+      );
+
+      const rows = await sheet.getRows();
+      const existing = rows.find(r => r.get('customerId') === record.customerId);
+
+      if (existing) {
+        existing.set('customerName', record.customerName);
+        existing.set('customerEmail', record.customerEmail);
+        existing.set('customerPhone', record.customerPhone);
+        existing.set('address', record.address);
+        existing.set('jobId', record.jobId);
+        existing.set('jobStatus', record.jobStatus);
+        existing.set('portalToken', record.portalToken);
+        existing.set('lastAccessed', record.lastAccessed);
+        existing.set('totalVisits', record.totalVisits.toString());
+        existing.set('messagesSent', record.messagesSent.toString());
+        existing.set('documentsViewed', record.documentsViewed.toString());
+        if (record.notes) existing.set('notes', record.notes);
+        await existing.save();
+      } else {
+        await sheet.addRow({
+          customerId: record.customerId,
+          customerName: record.customerName,
+          customerEmail: record.customerEmail,
+          customerPhone: record.customerPhone,
+          address: record.address,
+          jobId: record.jobId,
+          jobStatus: record.jobStatus,
+          portalToken: record.portalToken,
+          portalCreatedAt: record.portalCreatedAt || new Date().toISOString(),
+          lastAccessed: record.lastAccessed,
+          totalVisits: record.totalVisits.toString(),
+          messagesSent: record.messagesSent.toString(),
+          documentsViewed: record.documentsViewed.toString(),
+          notes: record.notes,
+        });
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error upserting portal data:', error);
+      return false;
+    }
+  }
+
+  async incrementPortalVisit(customerId: string): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.CUSTOMER_PORTAL_DATA,
+        this.portalDataHeaders
+      );
+
+      const rows = await sheet.getRows();
+      const existing = rows.find(r => r.get('customerId') === customerId);
+
+      if (existing) {
+        const currentVisits = parseInt(existing.get('totalVisits')) || 0;
+        existing.set('totalVisits', (currentVisits + 1).toString());
+        existing.set('lastAccessed', new Date().toISOString());
+        await existing.save();
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Error incrementing portal visit:', error);
+      return false;
+    }
+  }
+
+  async incrementPortalStat(
+    customerId: string,
+    stat: 'messagesSent' | 'documentsViewed'
+  ): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.CUSTOMER_PORTAL_DATA,
+        this.portalDataHeaders
+      );
+
+      const rows = await sheet.getRows();
+      const existing = rows.find(r => r.get('customerId') === customerId);
+
+      if (existing) {
+        const currentVal = parseInt(existing.get(stat)) || 0;
+        existing.set(stat, (currentVal + 1).toString());
+        await existing.save();
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error(`Error incrementing portal stat ${stat}:`, error);
+      return false;
     }
   }
 }
 
+// Export singleton instance
 export const googleSheetsService = new GoogleSheetsService();
-export type { TeamMember };

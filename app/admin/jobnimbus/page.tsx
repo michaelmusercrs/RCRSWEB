@@ -121,15 +121,15 @@ export default function JobNimbusPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">JobNimbus Integration</h1>
-          <p className="text-gray-500 mt-1">Manage contacts, jobs, and sync data</p>
+          <h1 className="text-2xl font-bold text-white">JobNimbus Integration</h1>
+          <p className="text-neutral-500 mt-1">Manage contacts, jobs, and sync data</p>
         </div>
         <div className="flex items-center gap-3">
           <a
             href="https://app.jobnimbus.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-neutral-400 hover:text-white border border-white/10 rounded-lg transition-colors"
           >
             <ExternalLink className="w-4 h-4" />
             Open JobNimbus
@@ -148,47 +148,47 @@ export default function JobNimbusPage() {
       {/* Stats Cards */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+          <div className="bg-neutral-900 rounded-xl p-6 border border-white/10 ">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Users className="w-6 h-6 text-blue-600" />
+              <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                <Users className="w-6 h-6 text-blue-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Total Contacts</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalContacts}</p>
+                <p className="text-sm text-neutral-500">Total Contacts</p>
+                <p className="text-2xl font-bold text-white">{stats.totalContacts}</p>
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+          <div className="bg-neutral-900 rounded-xl p-6 border border-white/10 ">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+              <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center">
                 <Briefcase className="w-6 h-6 text-purple-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Total Jobs</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalJobs}</p>
+                <p className="text-sm text-neutral-500">Total Jobs</p>
+                <p className="text-2xl font-bold text-white">{stats.totalJobs}</p>
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+          <div className="bg-neutral-900 rounded-xl p-6 border border-white/10 ">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <RefreshCw className="w-6 h-6 text-green-600" />
+              <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center">
+                <RefreshCw className="w-6 h-6 text-green-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Active Jobs</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.activeJobs}</p>
+                <p className="text-sm text-neutral-500">Active Jobs</p>
+                <p className="text-2xl font-bold text-white">{stats.activeJobs}</p>
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+          <div className="bg-neutral-900 rounded-xl p-6 border border-white/10 ">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                <CheckCircle2 className="w-6 h-6 text-gray-600" />
+              <div className="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center">
+                <CheckCircle2 className="w-6 h-6 text-neutral-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Completed</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.completedJobs}</p>
+                <p className="text-sm text-neutral-500">Completed</p>
+                <p className="text-2xl font-bold text-white">{stats.completedJobs}</p>
               </div>
             </div>
           </div>
@@ -197,9 +197,9 @@ export default function JobNimbusPage() {
 
       {/* Last Sync Info */}
       {lastSync && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-blue-600" />
-          <span className="text-sm text-blue-700">
+        <div className="bg-brand-green/10 border border-blue-500/20 rounded-lg p-3 flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-blue-400" />
+          <span className="text-sm text-blue-400">
             Last synced: {new Date(lastSync).toLocaleString()}
           </span>
         </div>
@@ -207,17 +207,17 @@ export default function JobNimbusPage() {
 
       {/* Error Alert */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
           <div>
-            <p className="text-red-800 font-medium">Error</p>
-            <p className="text-red-600 text-sm">{error}</p>
+            <p className="text-red-400 font-medium">Error</p>
+            <p className="text-red-400 text-sm">{error}</p>
           </div>
         </div>
       )}
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-white/10">
         <div className="flex gap-4">
           {[
             { id: 'contacts', label: 'Contacts', icon: Users },
@@ -230,8 +230,8 @@ export default function JobNimbusPage() {
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
                 className={`flex items-center gap-2 px-4 py-3 border-b-2 font-medium transition-colors ${
                   activeTab === tab.id
-                    ? 'border-brand-green text-black'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    ? 'border-brand-green text-brand-green'
+                    : 'border-transparent text-neutral-500 hover:text-neutral-300'
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -244,13 +244,13 @@ export default function JobNimbusPage() {
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500" />
         <input
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder={`Search ${activeTab}...`}
-          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-green focus:border-transparent"
+          className="w-full pl-10 pr-4 py-3 border border-white/10 rounded-lg focus:ring-2 focus:ring-brand-green focus:border-transparent bg-white/5 text-white"
         />
       </div>
 
@@ -263,38 +263,38 @@ export default function JobNimbusPage() {
         <>
           {/* Contacts Tab */}
           {activeTab === 'contacts' && (
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="bg-neutral-900 rounded-xl border border-white/10 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
+                  <thead className="bg-white/5 border-b border-white/10">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
                         Contact
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
                         Phone
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
                         Address
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
                         Status
                       </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-white/10">
                     {filteredContacts.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                        <td colSpan={5} className="px-6 py-12 text-center text-neutral-500">
                           No contacts found
                         </td>
                       </tr>
                     ) : (
                       filteredContacts.map((contact) => (
-                        <tr key={contact.jnid} className="hover:bg-gray-50">
+                        <tr key={contact.jnid} className="hover:bg-white/5">
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 bg-brand-green/20 rounded-full flex items-center justify-center">
@@ -303,30 +303,30 @@ export default function JobNimbusPage() {
                                 </span>
                               </div>
                               <div>
-                                <p className="font-medium text-gray-900">{contact.display_name}</p>
-                                <p className="text-sm text-gray-500">{contact.email}</p>
+                                <p className="font-medium text-white">{contact.display_name}</p>
+                                <p className="text-sm text-neutral-500">{contact.email}</p>
                               </div>
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <div className="flex items-center gap-2 text-gray-600">
+                            <div className="flex items-center gap-2 text-neutral-400">
                               <Phone className="w-4 h-4" />
                               {contact.phone || '-'}
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <div className="flex items-center gap-2 text-gray-600 max-w-xs truncate">
+                            <div className="flex items-center gap-2 text-neutral-400 max-w-xs truncate">
                               <MapPin className="w-4 h-4 flex-shrink-0" />
                               {contact.address || '-'}
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
+                            <span className="px-2 py-1 text-xs font-medium rounded-full bg-brand-green/20 text-blue-400">
                               {contact.status || 'Active'}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-right">
-                            <button className="text-gray-400 hover:text-gray-600">
+                            <button className="text-neutral-500 hover:text-neutral-400">
                               <ChevronRight className="w-5 h-5" />
                             </button>
                           </td>
@@ -341,49 +341,49 @@ export default function JobNimbusPage() {
 
           {/* Jobs Tab */}
           {activeTab === 'jobs' && (
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="bg-neutral-900 rounded-xl border border-white/10 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
+                  <thead className="bg-white/5 border-b border-white/10">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
                         Job
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
                         Customer
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
                         Address
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
                         Status
                       </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-white/10">
                     {filteredJobs.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                        <td colSpan={5} className="px-6 py-12 text-center text-neutral-500">
                           No jobs found
                         </td>
                       </tr>
                     ) : (
                       filteredJobs.map((job) => (
-                        <tr key={job.jnid} className="hover:bg-gray-50">
+                        <tr key={job.jnid} className="hover:bg-white/5">
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                              <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
                                 <Briefcase className="w-5 h-5 text-purple-600" />
                               </div>
-                              <p className="font-medium text-gray-900">{job.name || 'Untitled Job'}</p>
+                              <p className="font-medium text-white">{job.name || 'Untitled Job'}</p>
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-gray-600">{job.contact_name || '-'}</td>
+                          <td className="px-6 py-4 text-neutral-400">{job.contact_name || '-'}</td>
                           <td className="px-6 py-4">
-                            <div className="flex items-center gap-2 text-gray-600 max-w-xs truncate">
+                            <div className="flex items-center gap-2 text-neutral-400 max-w-xs truncate">
                               <MapPin className="w-4 h-4 flex-shrink-0" />
                               {job.address || '-'}
                             </div>
@@ -392,17 +392,17 @@ export default function JobNimbusPage() {
                             <span
                               className={`px-2 py-1 text-xs font-medium rounded-full ${
                                 job.status?.toLowerCase().includes('complete')
-                                  ? 'bg-green-100 text-green-700'
+                                  ? 'bg-green-500/20 text-green-400'
                                   : job.status?.toLowerCase().includes('progress')
-                                  ? 'bg-yellow-100 text-yellow-700'
-                                  : 'bg-blue-100 text-blue-700'
+                                  ? 'bg-yellow-500/20 text-yellow-400'
+                                  : 'bg-brand-green/20 text-blue-400'
                               }`}
                             >
                               {job.status || 'New'}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-right">
-                            <button className="text-gray-400 hover:text-gray-600">
+                            <button className="text-neutral-500 hover:text-neutral-400">
                               <ChevronRight className="w-5 h-5" />
                             </button>
                           </td>

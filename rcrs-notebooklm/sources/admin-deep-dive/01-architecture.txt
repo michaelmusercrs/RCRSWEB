@@ -1,0 +1,1481 @@
+# RCRS Full System Architecture & API Reference
+Generated: 2026-02-11 11:23
+Source: River City Roofing Solutions Platform
+
+---
+
+## Architecture Documentation
+
+# River City Roofing Solutions - Architecture Documentation
+
+**Last Updated:** February 9, 2026
+**Framework:** Next.js 14.2 with TypeScript, Tailwind CSS
+**Deployment:** Vercel (prj_7s9kclvyqkMQhOHS4fHWpBJLEruG)
+**Domain:** www.rivercityroofingsolutions.com
+
+---
+
+## System Overview
+
+River City Roofing Solutions (RCRS) is a full-stack web application combining a public marketing website with an internal operations portal. The public site handles SEO-optimized content, lead generation, and customer-facing features. The portal system manages sales operations, inventory, deliveries, billing, and team coordination.
+
+### Architecture Diagram
+
+```
+                          +---------------------+
+                          |      Vercel CDN     |
+                          |   (Static + Edge)   |
+                          +----------+----------+
+                                     |
+                    +----------------+----------------+
+                    |                                 |
+            +-------+-------+              +----------+---------+
+            | PUBLIC PAGES  |              |   API ROUTES       |
+            | (SSG / SSR)   |              |   /api/*           |
+            +-------+-------+              +----------+---------+
+                    |                                 |
+                    |                    +------------+------------+
+                    |                    |            |            |
+              +-----------+     +--------+--+  +-----+-----+  +--+--------+
+              | Static    |     | Google    |  | JobNimbus |  | Vercel    |
+              | Data (TS) |     | Sheets    |  | CRM API   |  | Blob      |
+              +-----------+     +-----------+  +-----------+  +-----------+
+              blogData.ts       (17+ tabs)     Contacts/Jobs   File storage
+              teamData.ts                      Estimates/Tasks
+              servicesData.ts
+              reviewsData.ts
+```
+
+---
+
+## Data Flow
+
+### 1. Google Sheets as Backend Database
+
+Google Sheets serves as the primary data store for dynamic operations data. The application connects via a service account using the `google-spreadsheet` library.
+
+**Connection:** `lib/google-sheets-service.ts` (main) and `lib/cms-sheets-service.ts` (CMS operations)
+
+**Sheet Tabs (SHEET_NAMES from google-sheets-service.ts):**
+
+| Sheet Name | Purpose |
+|---|---|
+| `team-members-import` | Team member data synced from CMS |
+| `Inventory` | Current inventory levels and product catalog |
+| `InventoryLogs` | Inventory change audit trail |
+| `Commissions` | Sales commission tracking |
+| `Customers` | Customer records and portal access |
+| `Orders` | Material orders and status tracking |
+| `Deliveries` | Delivery tickets and routing |
+| `Geocoded_Contacts` | Location-indexed contacts for lead distribution |
+| `Lead_Distribution_Log` | Lead assignment history |
+| `Rep_Availability` | Sales rep availability/status |
+| `Rep_Preferences` | Rep territory and lead preferences |
+| `Lead_Response_Log` | Lead response time tracking |
+| `Job_Breakdowns` | Job cost breakdowns and estimates |
+| `Team_Access_Overrides` | Per-user permission overrides |
+| `Agent_Directory` | Insurance agent contacts |
+| `Agent_Visits` | Agent visit tracking |
+| `Training_Progress` | Employee training completion |
+
+**CMS Sheet Tabs (from cms-sheets-service.ts):**
+
+| Sheet Name | Purpose |
+|---|---|
+| `blog-posts` | Blog post CMS management |
+| `team-members-import` | Team data CMS sync |
+| `images` | Image library management |
+| `settings` | Site-wide settings |
+| `page-views` | Page view analytics |
+| `profile-views` | Team profile view tracking |
+
+### 2. Static Data Files (TypeScript)
+
+Public-facing content is stored as TypeScript files for build-time optimization:
+
+- `lib/blogData.ts` - 68 blog posts with full content
+- `lib/teamData.ts` - 17 team members with bios, photos, social links
+- `lib/servicesData.ts` - Service definitions and service area data
+- `lib/reviewsData.ts` - Customer reviews
+- `lib/inventoryData.ts` - Product catalog base data
+
+### 3. Data Flow: Form Submissions
+
+```
+User Form Submit
+     |
+     v
+/api/forms/contact (or /referral)
+     |
+     v
+form-service.ts
+     |
+     +---> Google Sheets (row append)
+     |
+     +---> Google Apps Script (email notification)
+     |
+     +---> GroupMe (team notification, when configured)
+```
+
+### 4. Data Flow: Lead Distribution
+
+```
+New Lead (form or JobNimbus webhook)
+     |
+     v
+lead-distribution-service.ts
+     |
+     +---> Check Rep_Availability
+     +---> Check Rep_Preferences (territory match)
+     +---> Round-robin or proximity assignment
+     +---> Log to Lead_Distribution_Log
+     +---> Notify assigned rep
+```
+
+---
+
+## Authentication System
+
+### Admin Auth (JWT-based)
+
+- **Entry point:** `/api/admin/auth` - POST with admin password
+- **Token:** JWT signed with `JWT_SECRET`, stored in httpOnly cookie
+- **Middleware:** `requireAdmin()` function in API routes
+- **Bypass:** `AUTH_BYPASS_MODE=true` env var for pre-user testing
+- **Single admin password** stored in `ADMIN_PASSWORD` env var
+
+### Portal Auth (PIN + Email)
+
+- **Entry point:** `/api/portal/auth` - POST with email + PIN
+- **Team members:** Defined in `lib/team-roles.ts` with PINs
+- **Roles:** owner, admin, manager, sales, office, project_manager, driver, viewer
+- **Context:** `lib/auth-context.tsx` provides `useAuth()` hook
+- **Route guards:** `ROLE_ROUTES` mapping in auth-context determines access
+
+### Customer Auth (Token-based)
+
+- **Entry point:** `/api/customer/dashboard` and `/my/[token]`
+- **Token:** Generated per-customer, stored in Customers sheet
+- **Portal generator:** `lib/portal-generator.ts` creates unique customer portals
+
+### Role Hierarchy
+
+```
+owner > admin > manager > sales/office > project_manager > driver > viewer
+```
+
+**Key role assignments:**
+- `owner`: Chris Muse, Michael Muse - full access
+- `admin`: Sara Hill - full access
+- `manager`: Destin - operations oversight
+- `sales`: John, Bart, Tia, Boston - own leads/jobs
+- `project_manager`: Job scheduling, inventory
+- `driver`: Delivery queue, route navigation
+
+---
+
+## Key Services (lib/)
+
+| Service | File | Purpose |
+|---|---|---|
+| **Google Sheets** | `google-sheets-service.ts` | Core data CRUD for all sheets |
+| **CMS Sheets** | `cms-sheets-service.ts` | Blog/team/image CMS operations |
+| **Form Service** | `form-service.ts` | Contact and referral form processing |
+| **Portal Auth** | `portal-auth.ts` | Role-based permissions system |
+| **Team Roles** | `team-roles.ts` | Team member definitions with PINs |
+| **Auth Context** | `auth-context.tsx` | Client-side auth state and route guards |
+| **Lead Distribution** | `lead-distribution-service.ts` | Automated lead assignment |
+| **Lead Portal** | `lead-portal-service.ts` | Lead management API |
+| **Order Workflow** | `order-workflow-service.ts` | Material order lifecycle |
+| **Delivery Workflow** | `delivery-workflow-service.ts` | Delivery ticket management |
+| **Delivery Portal** | `delivery-portal-service.ts` | Driver-facing delivery operations |
+| **Route Optimization** | `route-optimization-service.ts` | Delivery route planning |
+| **Billing Workflow** | `billing-workflow-service.ts` | Invoice and billing management |
+| **Invoice PDF** | `invoice-pdf-service.ts` | PDF invoice generation |
+| **Scheduling** | `scheduling-service.ts` | Job and calendar scheduling |
+| **Job Sync** | `job-sync-service.ts` | JobNimbus CRM synchronization |
+| **Inventory Sync** | `inventory-sheets-sync.ts` | Sheets-based inventory management |
+| **Price Verification** | `price-verification-service.ts` | Material price checking |
+| **Restock Workflow** | `restock-workflow-service.ts` | Inventory restock requests |
+| **Return/Pickup** | `return-pickup-service.ts` | Material return processing |
+| **Reports** | `reports-service.ts` | Business analytics and reporting |
+| **Weather** | `weather-service.ts` | Weather alerts for service areas |
+| **GroupMe** | `groupme-service.ts` | Team notification integration |
+| **TeamUp** | `teamup-service.ts` | Calendar integration |
+| **Tracking** | `tracking-service.ts` | GA/FB pixel consent-aware tracking |
+| **SEO** | `seo.ts` | Metadata and structured data generation |
+| **Analytics** | `analytics.ts` | Internal analytics tracking |
+| **Feature Flags** | `feature-flags.ts` | Feature toggle system |
+| **Cache** | `cache.ts` | Server-side caching layer |
+
+---
+
+## API Route Organization
+
+All API routes are under `app/api/` with auth middleware applied via `requireAuth()` or `requireAdmin()`.
+
+### Public Routes (no auth required)
+
+| Route | Methods | Purpose |
+|---|---|---|
+| `/api/forms/contact` | POST | Contact form submission |
+| `/api/forms/referral` | POST | Referral form submission |
+| `/api/contact` | POST | Legacy contact endpoint |
+| `/api/referral` | POST | Legacy referral endpoint |
+| `/api/team-members` | GET | Public team member data |
+| `/api/weather/*` | GET | Weather forecasts and alerts |
+
+### Admin Routes (requireAdmin)
+
+| Route | Methods | Purpose |
+|---|---|---|
+| `/api/admin/auth` | POST | Admin login |
+| `/api/admin/settings` | GET, POST | System settings |
+| `/api/admin/upload` | POST | File upload to Vercel Blob |
+| `/api/admin/team-members` | GET, POST, PUT | Team management |
+| `/api/admin/jobnimbus/*` | GET | JobNimbus CRM integration |
+| `/api/admin/system/*` | GET, POST | System status, API keys, audit log, features, maintenance |
+| `/api/admin/portal-management` | GET, POST | Portal administration |
+| `/api/admin/lead-distro` | GET, POST | Lead distribution configuration |
+
+### Portal Routes (requireAuth)
+
+| Route | Methods | Purpose |
+|---|---|---|
+| `/api/portal/auth` | POST | Portal login (email + PIN) |
+| `/api/portal/dashboard` | GET | Dashboard stats |
+| `/api/portal/inventory` | GET, POST, PUT, DELETE | Inventory CRUD |
+| `/api/portal/orders` | GET, POST | Material orders |
+| `/api/portal/orders/workflow` | POST | Order status transitions |
+| `/api/portal/delivery` | GET, POST | Delivery management |
+| `/api/portal/deliveries` | GET | Delivery list |
+| `/api/portal/drivers` | GET | Driver list |
+| `/api/portal/tickets` | GET, POST | Delivery tickets |
+| `/api/portal/tickets/checklist` | POST | Ticket checklist updates |
+| `/api/portal/tickets/photos` | POST | Delivery photo uploads |
+| `/api/portal/billing` | GET, POST | Billing records |
+| `/api/portal/billing/pdf` | GET | Invoice PDF generation |
+| `/api/portal/pricing` | GET, POST | Material pricing |
+| `/api/portal/pricing/alerts` | GET | Price alert notifications |
+| `/api/portal/pricing/verify` | POST | Price verification |
+| `/api/portal/pricing/audit` | GET | Price audit trail |
+| `/api/portal/tasks` | GET, POST | Task management |
+| `/api/portal/schedule` | GET, POST | Scheduling |
+| `/api/portal/locations` | GET | Location tracking |
+| `/api/portal/users` | GET, POST | User management |
+| `/api/portal/transactions` | GET | Transaction history |
+| `/api/portal/restock` | GET, POST | Restock requests |
+| `/api/portal/sync` | POST | Data synchronization |
+| `/api/portal/generate` | POST | Portal generation |
+| `/api/portal/invoices` | GET, POST | Invoice management |
+| `/api/portal/workflow` | POST | Workflow transitions |
+| `/api/portal/qr/[token]` | GET | QR code-based portal access |
+
+### Profile Routes (requireAuth)
+
+| Route | Methods | Purpose |
+|---|---|---|
+| `/api/profile` | GET, POST | User profile |
+| `/api/profile/images` | GET, POST | Profile image management |
+| `/api/profile/reviews` | GET, POST | Profile reviews |
+| `/api/profile/submit-edit` | POST | Profile edit requests |
+| `/api/profile/pending` | GET | Pending edits |
+| `/api/profile/pending-count` | GET | Pending edit count |
+| `/api/profile/approve` | POST | Approve profile edits |
+| `/api/profile/my-edits` | GET | Own edit history |
+
+### Utility Routes
+
+| Route | Methods | Purpose |
+|---|---|---|
+| `/api/sheets/*` | GET, POST | Google Sheets sync, inventory, commissions, customers |
+| `/api/cms/*` | GET, POST | Content management (blog, team, images, setup) |
+| `/api/analytics/*` | GET, POST | Page and profile view tracking |
+| `/api/calendar/*` | GET, POST | Calendar slots and scheduling |
+| `/api/calls/*` | GET, POST | Call tracking and analytics |
+| `/api/documents` | GET, POST | Document management |
+| `/api/invoices/*` | GET, POST | Invoice CRUD and generation |
+| `/api/breakdown` | GET, POST | Job cost breakdowns |
+| `/api/jobnimbus/*` | GET | JobNimbus job and search |
+| `/api/notifications/*` | POST | GroupMe and portal notifications |
+| `/api/command-center/*` | GET | Sales, team, meetings, financial, calls, inventory, stats |
+| `/api/customer/*` | GET | Customer dashboard and messages |
+| `/api/leads/new` | POST | New lead creation |
+| `/api/webhooks/*` | POST | External webhook handlers |
+
+---
+
+## Portal System Overview
+
+The portal serves multiple user roles with distinct dashboards:
+
+### Portal Pages (app/portal/)
+
+| Page | Role(s) | Purpose |
+|---|---|---|
+| `/portal` | All | Login page (email + PIN) |
+| `/portal/dashboard` | All | Role-specific dashboard |
+| `/portal/sales` | Sales | Sales pipeline and stats |
+| `/portal/sales/leads` | Sales | Lead management |
+| `/portal/sales/customers` | Sales | Customer management |
+| `/portal/sales/performance` | Sales | Performance metrics |
+| `/portal/sales/settings` | Sales | Personal preferences |
+| `/portal/manager` | Manager | Operations overview |
+| `/portal/manager/lead-controls` | Manager | Lead distribution controls |
+| `/portal/office` | Office | Office operations hub |
+| `/portal/pm` | PM | Project management |
+| `/portal/driver` | Driver | Delivery queue |
+| `/portal/driver/loading` | Driver | Load verification |
+| `/portal/delivery` | PM/Manager | Delivery management |
+| `/portal/delivery/route` | Driver | Active route navigation |
+| `/portal/delivery/[id]` | Driver | Individual delivery details |
+| `/portal/inventory` | Multiple | Inventory management |
+| `/portal/orders` | Multiple | Material orders |
+| `/portal/orders/new` | PM/Manager | Create new order |
+| `/portal/orders/[id]` | Multiple | Order details |
+| `/portal/orders/[id]/return` | PM/Manager | Return processing |
+| `/portal/billing` | Manager/Admin | Billing and invoicing |
+| `/portal/schedule` | Multiple | Scheduling calendar |
+| `/portal/reports` | Manager/Admin | Business reports |
+| `/portal/tasks` | Multiple | Task management |
+| `/portal/customers` | Multiple | Customer portal management |
+| `/portal/documents` | Multiple | Document sharing |
+| `/portal/directory` | All | Team directory |
+| `/portal/locations` | Manager/Admin | Location tracking |
+| `/portal/transactions` | Manager/Admin | Transaction history |
+| `/portal/monday-notes` | All | Weekly meeting notes |
+| `/portal/monday-notes/admin` | Admin | Meeting notes summary |
+| `/portal/my-profile` | All | Personal profile |
+| `/portal/my-profile/images` | All | Profile images |
+| `/portal/my-profile/reviews` | All | Personal reviews |
+| `/portal/training` | All | Training modules |
+| `/portal/admin` | Admin/Owner | Admin dashboard |
+| `/portal/admin/team` | Admin | Team management |
+| `/portal/admin/blog` | Admin | Blog CMS |
+| `/portal/admin/services` | Admin | Services CMS |
+| `/portal/admin/areas` | Admin | Service areas CMS |
+| `/portal/admin/images` | Admin | Image library |
+| `/portal/admin/users` | Admin | User management |
+| `/portal/admin/pricing` | Admin | Pricing management |
+| `/portal/admin/operations` | Admin | Operations dashboard |
+| `/portal/admin/training` | Admin | Training management |
+| `/portal/admin/lead-distro` | Admin | Lead distribution config |
+| `/portal/admin/portal-settings` | Admin | Portal settings |
+| `/portal/admin/profile-approvals` | Admin | Profile edit approvals |
+
+---
+
+## External Integrations
+
+| Integration | Purpose | Config |
+|---|---|---|
+| **Google Sheets** | Primary database | Service account + Sheet ID |
+| **Google Apps Script** | Email notifications on form submit | Script endpoint URL |
+| **Google Analytics** | Website analytics (G-Y8PB85BZC5) | GA ID in env |
+| **JobNimbus** | CRM - contacts, jobs, estimates, tasks | API key + URL |
+| **Vercel Blob** | File storage (images, documents) | Blob token |
+| **GroupMe** | Team notifications | Bot ID + access token (not yet configured) |
+| **TeamUp** | Calendar integration | API key + calendar key (not yet configured) |
+| **Facebook Pixel** | Ad tracking | Pixel ID (not yet configured) |
+| **Google Ads** | Ad conversion tracking | Ads ID (not yet configured) |
+| **Twilio** | SMS notifications | Account SID + auth token (not yet configured) |
+| **SendGrid** | Email service | API key (not yet configured) |
+
+---
+
+## SEO System
+
+The SEO system is centralized in `lib/seo.ts` with reusable schema generators:
+
+- **Metadata generation:** `generateMetadata()` - creates Next.js Metadata objects with OG, Twitter, canonical URLs
+- **Structured data:** Multiple JSON-LD generators for RoofingContractor, Article, Service, Person, FAQ, Breadcrumb, etc.
+- **Reusable component:** `components/StructuredData.tsx` - renders JSON-LD script tags
+- **Site config:** Centralized in `siteConfig` object (name, URLs, phone, address, social links)
+
+---
+
+## Public Site Structure
+
+```
+/ .......................... Homepage (SSG)
+/about .................... About page
+/blog ..................... Blog index (68 posts)
+/blog/[slug] .............. Individual blog post
+/team ..................... Team listing (17 members)
+/team/[slug] .............. Individual team member profile
+/services ................. Services index
+/services/[slug] .......... Individual service page
+/service-areas ............ Service areas index
+/service-areas/[slug] ..... Individual service area page
+/locations/huntsville ..... Huntsville location page
+/locations/decatur ........ Decatur location page
+/locations/madison ........ Madison location page
+/contact .................. Contact form
+/contact/thank-you ........ Form submission thank you
+/referral-rewards ......... Referral program
+/bni ...................... BNI networking page
+/privacy .................. Privacy policy
+/terms .................... Terms of service
+/p/[shortCode] ............ Short URL redirects
+/my/[token] ............... Customer portal (token-based)
+```
+
+---
+
+## Build and Deployment
+
+- **Build:** `next build` generates 300+ static pages
+- **Deployment:** Vercel auto-deploys from GitHub (main branch)
+- **Environment:** Variables managed via Vercel dashboard and `.env.local`
+- **Performance:** Vercel Speed Insights integrated, Image optimization via `next/image`
+- **Caching:** Server-side cache layer in `lib/cache.ts`
+
+---
+
+## Component Library
+
+### UI Components (components/ui/)
+Standard shadcn/ui components (Button, Card, etc.)
+
+### Custom Components (components/)
+| Component | Purpose |
+|---|---|
+| `Header.tsx` | Site navigation header |
+| `Footer.tsx` | Site footer with links |
+| `StructuredData.tsx` | Reusable JSON-LD structured data injection |
+| `ContactForm.tsx` | Multi-purpose contact form |
+| `ReferralForm.tsx` | Referral submission form |
+| `ReferralCalculator.tsx` | Referral reward calculator |
+| `FloatingContactButton.tsx` | Fixed-position CTA button |
+| `PromoBanner.tsx` | Top promotional banner |
+| `CookieConsent.tsx` | GDPR/cookie consent banner |
+| `TrackingProvider.tsx` | Analytics consent-aware wrapper |
+| `GlobalVideoBackground.tsx` | Site-wide video background |
+| `VideoBackground.tsx` | Per-page video background |
+| `AnimatedHeroText.tsx` | Animated hero text effect |
+| `RotatingText.tsx` | Rotating text carousel |
+| `ScrollReveal.tsx` | Scroll-triggered animations |
+| `WeatherWidget.tsx` | Weather display widget |
+| `StormAlert.tsx` | Storm warning notifications |
+| `AdminLayout.tsx` | Admin page layout wrapper |
+| `TrainingPopup.tsx` | Training module popup |
+| `RoleTrainingPopup.tsx` | Role-specific training |
+| `FeatureUpdatesPopup.tsx` | Feature announcement popup |
+| `MaintenanceBanner.tsx` | Maintenance mode banner |
+| `EnvironmentBadge.tsx` | Dev/staging environment indicator |
+| `Leaderboard.tsx` | Sales leaderboard |
+| `CallHistory.tsx` | Call tracking display |
+| `CustomerCallHistory.tsx` | Customer-specific call log |
+| `AddressAutocomplete.tsx` | Address input with autocomplete |
+| `SettingsMenu.tsx` | Portal settings menu |
+
+
+---
+
+## System Overview
+
+# River City Roofing Solutions - System Overview
+
+## Introduction
+
+River City Roofing Solutions (RCRS) is a comprehensive Next.js 14 web application that serves as both a public-facing website and an internal operations platform for a roofing company based in Hartselle, Alabama. The system integrates multiple third-party services to streamline operations from lead generation to job completion.
+
+---
+
+## Architecture Diagram
+
+```
+                                    +----------------------------------+
+                                    |         RCRS Platform            |
+                                    |         (Next.js 14)             |
+                                    +----------------------------------+
+                                                   |
+         +-------------------------+---------------+---------------+-------------------------+
+         |                         |               |               |                         |
+         v                         v               v               v                         v
++----------------+       +----------------+  +------------+  +----------------+     +----------------+
+|  Public Site   |       | Admin Portal   |  |  Command   |  | Team Portal    |     | Customer Portal|
+|                |       |                |  |  Center    |  |                |     |                |
+| - Home         |       | - Dashboard    |  | - Sales    |  | - PM Portal    |     | - Job Status   |
+| - Services     |       | - Inventory    |  | - Inventory|  | - Office Portal|     | - Appointments |
+| - About        |       | - Team Mgmt    |  | - Phone    |  | - Driver Portal|     | - Weather      |
+| - Contact      |       | - Blog/CMS     |  | - Meetings |  | - Billing      |     | - Messages     |
+| - Locations    |       | - Marketing    |  | - Reports  |  | - Schedule     |     |                |
++----------------+       +----------------+  +------------+  +----------------+     +----------------+
+         |                         |               |               |                         |
+         +-------------------------+---------------+---------------+-------------------------+
+                                                   |
+                          +------------------------+------------------------+
+                          |                        |                        |
+                          v                        v                        v
+                +------------------+     +------------------+     +------------------+
+                |   Integrations   |     |    Data Layer    |     |   File Storage   |
+                |                  |     |                  |     |                  |
+                | - JobNimbus CRM  |     | - Google Sheets  |     | - Vercel Blob    |
+                | - TeamUp Calendar|     | - Local JSON     |     |                  |
+                | - GroupMe        |     |                  |     |                  |
+                | - Weather APIs   |     |                  |     |                  |
+                +------------------+     +------------------+     +------------------+
+```
+
+---
+
+## Core Components
+
+### 1. Public Website (`/app`)
+The customer-facing website showcasing services, team, and contact information.
+
+| Route | Purpose |
+|-------|---------|
+| `/` | Homepage with service overview |
+| `/about` | Company information and history |
+| `/services` | Roofing services offered |
+| `/services/[slug]` | Individual service details |
+| `/team/[slug]` | Team member profiles |
+| `/contact` | Contact form |
+| `/blog` | Blog posts |
+| `/locations` | Service area pages |
+| `/service-areas` | Geographic coverage |
+
+### 2. Admin Portal (`/app/admin`)
+Content management and administrative functions.
+
+| Route | Purpose |
+|-------|---------|
+| `/admin` | Admin dashboard |
+| `/admin/inventory` | Inventory management |
+| `/admin/team` | Team member management |
+| `/admin/blog` | Blog post editor |
+| `/admin/upload` | File/image uploads |
+| `/admin/marketing` | Marketing tools |
+| `/admin/social-ads` | Social media ad management |
+| `/admin/jobnimbus` | CRM integration settings |
+
+### 3. Command Center (`/app/command-center`)
+Internal operations dashboard for management.
+
+| Route | Purpose |
+|-------|---------|
+| `/command-center` | Main dashboard |
+| `/command-center/sales` | Sales leaderboard |
+| `/command-center/inventory` | Inventory overview |
+| `/command-center/marketing` | Marketing campaigns |
+| `/command-center/phone` | Phone system |
+| `/command-center/meetings` | Meeting management |
+| `/command-center/schedule` | Calendar view |
+| `/command-center/reports` | Business reports |
+
+### 4. Team Portal (`/app/portal`)
+Role-based internal portal for employees.
+
+| Route | Role | Purpose |
+|-------|------|---------|
+| `/portal` | All | Login page |
+| `/portal/dashboard` | All | Personal dashboard |
+| `/portal/driver` | Driver | Delivery workflow |
+| `/portal/pm` | PM | Project management |
+| `/portal/office` | Office | Office operations |
+| `/portal/manager` | Manager | Manager dashboard |
+| `/portal/billing` | Office+ | Billing management |
+| `/portal/inventory` | Office+ | Inventory management |
+| `/portal/admin` | Admin | System administration |
+
+### 5. Customer Portal (`/app/customer`)
+Self-service portal for customers.
+
+| Route | Purpose |
+|-------|---------|
+| `/customer` | Customer login |
+| `/customer/dashboard` | Job status, weather, messages |
+| `/my/[token]` | Token-based access |
+
+---
+
+## Data Flow
+
+### Lead Generation Flow
+```
+Contact Form --> /api/contact --> JobNimbus CRM
+                           |
+                           +--> GroupMe Notification
+                           |
+                           +--> Google Sheets (backup)
+```
+
+### Delivery Workflow
+```
+Material Order --> Schedule Delivery --> Assign Driver
+        |                                    |
+        v                                    v
+   Inventory Check            Driver Mobile View
+        |                           |
+        v                           +---> GPS Tracking
+   Pull Materials                   |
+        |                           +---> Photo Upload
+        v                           |
+   Load Verification                +---> Signature Capture
+        |                           |
+        v                           v
+   Dispatch ----------------> Delivery Complete
+                                    |
+                                    v
+                            GroupMe Notification
+```
+
+### Customer Portal Flow
+```
+Customer Login --> Email/Phone/Access Code
+        |
+        +--> Lookup in JobNimbus
+        |
+        v
+   Dashboard View
+        |
+        +---> Job Status (from JobNimbus)
+        +---> Weather (from Open-Meteo)
+        +---> Appointments (from TeamUp)
+        +---> Messages (in-app)
+```
+
+---
+
+## Technology Stack
+
+### Frontend
+- **Framework**: Next.js 14 (App Router)
+- **UI Library**: React 18
+- **Styling**: Tailwind CSS
+- **UI Components**: Radix UI, Lucide Icons
+- **Charts**: Recharts
+
+### Backend
+- **Runtime**: Node.js (Next.js API Routes)
+- **Authentication**: Session-based (PIN + Email)
+- **File Storage**: Vercel Blob
+
+### Integrations
+| Service | Purpose | Library |
+|---------|---------|---------|
+| Google Sheets | Data persistence | `google-spreadsheet` |
+| JobNimbus | CRM | REST API |
+| TeamUp | Calendar | REST API |
+| GroupMe | Team notifications | REST API |
+| Open-Meteo | Weather data | REST API |
+| NWS | Weather alerts | REST API |
+
+### Hosting
+- **Platform**: Vercel
+- **Analytics**: Vercel Analytics
+- **Speed Insights**: Vercel Speed Insights
+
+---
+
+## Authentication & Roles
+
+### Role Hierarchy
+```
+owner > admin > office > project_manager > driver > viewer
+```
+
+### Role Capabilities
+
+| Role | Portal Access | Permissions |
+|------|--------------|-------------|
+| Owner | All | Full system access |
+| Admin | All | Full system access |
+| Office | Office, Billing, Inventory | Manage billing, inventory, view reports |
+| Project Manager | PM Portal | Create orders, schedule, view inventory |
+| Driver | Driver Portal | View assigned tickets, update status, photos |
+| Viewer | Read-only | View dashboards only |
+
+### Authentication Methods
+1. **Email Login**: For staff (office, PM, admin, owner)
+2. **PIN Login**: 4-digit PIN for drivers (quick mobile access)
+3. **Access Code**: Customer portal access
+
+---
+
+## Environment Variables
+
+```env
+# Google Sheets
+GOOGLE_SHEETS_ID=
+GOOGLE_SERVICE_ACCOUNT_EMAIL=
+GOOGLE_PRIVATE_KEY=
+
+# JobNimbus CRM
+JOBNIMBUS_API_KEY=
+JOBNIMBUS_API_URL=
+
+# TeamUp Calendar
+TEAMUP_API_KEY=
+TEAMUP_CALENDAR_KEY=
+TEAMUP_SUBCAL_INSPECTIONS=
+TEAMUP_SUBCAL_INSTALLATIONS=
+TEAMUP_SUBCAL_DELIVERIES=
+TEAMUP_SUBCAL_MEETINGS=
+
+# GroupMe Notifications
+GROUPME_BOT_ID=
+GROUPME_ACCESS_TOKEN=
+GROUPME_ENABLED=
+
+# Vercel Blob Storage
+BLOB_READ_WRITE_TOKEN=
+```
+
+---
+
+## Key Files & Directories
+
+```
+river-city-roofing/
+├── app/                    # Next.js App Router pages
+│   ├── admin/              # Admin portal
+│   ├── api/                # API routes
+│   ├── command-center/     # Command center
+│   ├── customer/           # Customer portal
+│   ├── portal/             # Team portal
+│   └── ...                 # Public pages
+├── components/             # React components
+├── lib/                    # Business logic & services
+│   ├── jobnimbus-service.ts
+│   ├── google-sheets-service.ts
+│   ├── groupme-service.ts
+│   ├── teamup-service.ts
+│   ├── weather-service.ts
+│   ├── team-roles.ts
+│   ├── auth-context.tsx
+│   └── ...
+├── public/                 # Static assets
+└── docs/                   # Documentation
+```
+
+---
+
+## Security Considerations
+
+1. **API Key Protection**: All third-party API keys stored as environment variables
+2. **Session-Based Auth**: User sessions stored in browser sessionStorage
+3. **Role-Based Access Control**: Routes protected by role checks
+4. **PIN Hashing**: Driver PINs stored for quick lookup (consider hashing in production)
+5. **Rate Limiting**: API endpoints include rate limiting service
+
+---
+
+## Deployment
+
+The application is designed for Vercel deployment:
+
+1. Connect GitHub repository to Vercel
+2. Configure environment variables in Vercel dashboard
+3. Deploy automatically on push to main branch
+
+Build command: `npm run build`
+Output directory: `.next`
+
+
+---
+
+## API Reference
+
+# API Reference
+
+## Overview
+
+River City Roofing Solutions uses Next.js API Routes for backend functionality. All endpoints are located under `/api/` and return JSON responses.
+
+---
+
+## Authentication
+
+### Portal Authentication
+
+**Endpoint:** `POST /api/portal/auth`
+
+Handles team member authentication via PIN or email.
+
+**Request Body:**
+```json
+{
+  "action": "login-pin",
+  "pin": "1234"
+}
+```
+
+Or:
+```json
+{
+  "action": "login-passcode",
+  "email": "user@rcrsal.com",
+  "passcode": "ABC123"
+}
+```
+
+Or:
+```json
+{
+  "action": "check-permission",
+  "userId": "RVR-135",
+  "permission": "view_dashboard"
+}
+```
+
+**Response (Success):**
+```json
+{
+  "success": true,
+  "user": {
+    "userId": "RVR-135",
+    "name": "John Doe",
+    "email": "john@rcrsal.com",
+    "role": "driver",
+    "permissions": ["view_assigned_tickets", "update_delivery_status"]
+  }
+}
+```
+
+**Response (Failure):**
+```json
+{
+  "success": false,
+  "error": "Invalid PIN"
+}
+```
+
+---
+
+### Customer Authentication
+
+**Endpoint:** `POST /api/customer/auth`
+
+Authenticates customers via email, phone, or access code.
+
+**Request Body:**
+```json
+{
+  "method": "email",
+  "email": "customer@example.com"
+}
+```
+
+Or:
+```json
+{
+  "method": "phone",
+  "phone": "256-555-1234"
+}
+```
+
+Or:
+```json
+{
+  "method": "code",
+  "accessCode": "ABC123XYZ"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "customer": {
+    "id": "JN-12345",
+    "name": "Customer Name",
+    "email": "customer@example.com"
+  }
+}
+```
+
+---
+
+## JobNimbus Integration
+
+### Get JobNimbus Data
+
+**Endpoint:** `GET /api/admin/jobnimbus`
+
+Retrieves contacts and jobs from JobNimbus CRM.
+
+**Query Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| type | string | Data type: contacts, jobs, estimates, tasks |
+| limit | number | Results per page (default: 100) |
+| offset | number | Pagination offset |
+
+**Response:**
+```json
+{
+  "success": true,
+  "contacts": [...],
+  "jobs": [...],
+  "stats": {
+    "totalContacts": 150,
+    "totalJobs": 75,
+    "activeJobs": 25,
+    "completedJobs": 50
+  },
+  "lastSync": "2024-01-15T10:30:00Z"
+}
+```
+
+### Sync JobNimbus
+
+**Endpoint:** `POST /api/admin/jobnimbus/sync`
+
+Triggers a manual sync with JobNimbus.
+
+**Response:**
+```json
+{
+  "success": true,
+  "synced": {
+    "contacts": 150,
+    "jobs": 75
+  },
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+---
+
+## Team Members
+
+### List Team Members
+
+**Endpoint:** `GET /api/team-members`
+
+Returns all team members for public display.
+
+**Response:**
+```json
+[
+  {
+    "slug": "john-doe",
+    "name": "John Doe",
+    "position": "Project Manager",
+    "phone": "256-555-1234",
+    "email": "john@rcrsal.com",
+    "bio": "...",
+    "profileImage": "https://..."
+  }
+]
+```
+
+### Admin Team Members
+
+**Endpoint:** `GET /api/admin/team-members`
+
+Returns all team members with admin details.
+
+**Endpoint:** `POST /api/admin/team-members`
+
+Creates a new team member.
+
+**Endpoint:** `PUT /api/admin/team-members/[slug]`
+
+Updates a team member.
+
+**Endpoint:** `DELETE /api/admin/team-members/[slug]`
+
+Deletes a team member.
+
+---
+
+## Portal Endpoints
+
+### Dashboard
+
+**Endpoint:** `GET /api/portal/dashboard`
+
+Returns dashboard statistics.
+
+**Response:**
+```json
+{
+  "deliveries": {
+    "todayTotal": 5,
+    "completedToday": 3,
+    "pending": 2
+  },
+  "orders": {
+    "pending": 8,
+    "thisWeek": 15
+  },
+  "inventory": {
+    "lowStockItems": 12,
+    "totalValue": 125000,
+    "totalProducts": 350
+  }
+}
+```
+
+### Tickets
+
+**Endpoint:** `GET /api/portal/tickets`
+
+Returns delivery tickets.
+
+**Query Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| driverId | string | Filter by driver |
+| date | string | Filter by date (YYYY-MM-DD) |
+| ticketId | string | Get specific ticket |
+
+**Endpoint:** `POST /api/portal/tickets`
+
+Updates ticket status or creates new ticket.
+
+**Request Body:**
+```json
+{
+  "action": "verify-load",
+  "ticketId": "TKT-001",
+  "verifiedBy": "John Doe",
+  "gpsLocation": "34.4434,-86.9353"
+}
+```
+
+**Actions Available:**
+- `verify-load`
+- `start-delivery`
+- `mark-arrived`
+- `complete-delivery`
+- `capture-proof`
+- `upload-qc`
+- `complete-ticket`
+
+### Ticket Checklist
+
+**Endpoint:** `GET /api/portal/tickets/checklist`
+
+Returns checklist items for a ticket.
+
+**Query Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| ticketId | string | Ticket ID |
+
+### Ticket Photos
+
+**Endpoint:** `GET /api/portal/tickets/photos`
+
+Returns photos for a ticket.
+
+**Endpoint:** `POST /api/portal/tickets/photos`
+
+Uploads a photo for a ticket.
+
+---
+
+### Orders
+
+**Endpoint:** `GET /api/portal/orders`
+
+Returns material orders.
+
+**Endpoint:** `POST /api/portal/orders`
+
+Creates a new material order.
+
+**Request Body:**
+```json
+{
+  "jobName": "Smith Residence",
+  "jobAddress": "123 Main St, Huntsville, AL 35801",
+  "customerName": "John Smith",
+  "customerPhone": "256-555-1234",
+  "projectManager": "Bart Roberts",
+  "materials": "30 bundles OC Duration (Onyx Black)",
+  "specialInstructions": "Gate code: 1234",
+  "requestedDeliveryDate": "2024-01-20",
+  "priority": "Normal",
+  "createdBy": "Manager Portal"
+}
+```
+
+### Deliveries
+
+**Endpoint:** `GET /api/portal/deliveries`
+
+Returns all deliveries.
+
+**Endpoint:** `POST /api/portal/deliveries`
+
+Schedules a new delivery.
+
+### Drivers
+
+**Endpoint:** `GET /api/portal/drivers`
+
+Returns all drivers with status.
+
+**Response:**
+```json
+[
+  {
+    "id": "RVR-136",
+    "name": "Richard Geahr",
+    "status": "Available",
+    "vehicle": "Truck 1"
+  }
+]
+```
+
+---
+
+### Inventory
+
+**Endpoint:** `GET /api/portal/inventory`
+
+Returns inventory items.
+
+**Query Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| category | string | Filter by category |
+| lowStock | boolean | Only low stock items |
+| search | string | Search term |
+
+**Endpoint:** `POST /api/portal/inventory`
+
+Updates inventory item.
+
+### Pricing
+
+**Endpoint:** `GET /api/portal/pricing`
+
+Returns pricing data.
+
+**Endpoint:** `POST /api/portal/pricing/verify`
+
+Verifies pricing is correct.
+
+**Endpoint:** `GET /api/portal/pricing/alerts`
+
+Returns pricing alerts.
+
+---
+
+### Schedule
+
+**Endpoint:** `GET /api/portal/schedule`
+
+Returns scheduled events.
+
+**Query Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| startDate | string | Start date (YYYY-MM-DD) |
+| endDate | string | End date (YYYY-MM-DD) |
+
+---
+
+### Billing
+
+**Endpoint:** `GET /api/portal/billing`
+
+Returns billing records.
+
+**Endpoint:** `POST /api/portal/billing`
+
+Creates billing record.
+
+**Endpoint:** `GET /api/portal/billing/pdf`
+
+Generates invoice PDF.
+
+### Invoices
+
+**Endpoint:** `GET /api/portal/invoices`
+
+Returns invoices.
+
+---
+
+## Command Center
+
+### Sales Data
+
+**Endpoint:** `GET /api/command-center/sales`
+
+Returns sales data for leaderboard.
+
+**Response:**
+```json
+{
+  "leaderboard": [
+    {
+      "name": "Hunter",
+      "monthlySales": 45200,
+      "yearlySales": 320000,
+      "rank": 1
+    }
+  ],
+  "totals": {
+    "monthlyTotal": 125000,
+    "yearlyTotal": 1500000
+  }
+}
+```
+
+### Team Data
+
+**Endpoint:** `GET /api/command-center/team`
+
+Returns team status and metrics.
+
+### Inventory Overview
+
+**Endpoint:** `GET /api/command-center/inventory`
+
+Returns inventory summary for command center.
+
+### Meetings
+
+**Endpoint:** `GET /api/command-center/meetings`
+
+Returns meeting data.
+
+---
+
+## Customer Portal
+
+### Customer Dashboard
+
+**Endpoint:** `GET /api/customer/dashboard`
+
+Returns customer's project data.
+
+**Response:**
+```json
+{
+  "project": {
+    "status": "in_progress",
+    "phase": "Installation",
+    "address": "123 Main St"
+  },
+  "weather": {
+    "current": {...},
+    "forecast": [...]
+  },
+  "appointments": [...],
+  "messages": [...]
+}
+```
+
+### Customer Messages
+
+**Endpoint:** `GET /api/customer/messages`
+
+Returns customer messages.
+
+**Endpoint:** `POST /api/customer/messages`
+
+Sends a new message.
+
+### Customer Token Access
+
+**Endpoint:** `GET /api/customer/[token]`
+
+Token-based customer data access.
+
+**Endpoint:** `POST /api/customer/[token]/upload`
+
+Customer document upload.
+
+---
+
+## Forms
+
+### Contact Form
+
+**Endpoint:** `POST /api/contact`
+
+Or: `POST /api/forms/contact`
+
+Submits contact form.
+
+**Request Body:**
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "phone": "256-555-1234",
+  "subject": "Roof Inspection Request",
+  "message": "I need a roof inspection..."
+}
+```
+
+### Referral Form
+
+**Endpoint:** `POST /api/referral`
+
+Or: `POST /api/forms/referral`
+
+Submits referral.
+
+---
+
+## CMS
+
+### Blog Posts
+
+**Endpoint:** `GET /api/cms/blog`
+
+Returns blog posts.
+
+**Endpoint:** `POST /api/cms/blog`
+
+Creates/updates blog post.
+
+### Images
+
+**Endpoint:** `GET /api/cms/images`
+
+Returns uploaded images.
+
+**Endpoint:** `POST /api/cms/images`
+
+Uploads new image.
+
+### Team (CMS)
+
+**Endpoint:** `GET /api/cms/team`
+
+Returns team data for CMS.
+
+---
+
+## Analytics
+
+### Page Views
+
+**Endpoint:** `POST /api/analytics/page-views`
+
+Records page view.
+
+### Profile Views
+
+**Endpoint:** `POST /api/analytics/profile-views`
+
+Records team member profile view.
+
+---
+
+## Webhooks
+
+### JobNimbus Webhook
+
+**Endpoint:** `POST /api/webhooks/jobnimbus`
+
+Receives webhooks from JobNimbus.
+
+---
+
+## Upload
+
+### Admin Upload
+
+**Endpoint:** `POST /api/admin/upload`
+
+Uploads file to Vercel Blob storage.
+
+**Request:** `multipart/form-data`
+
+**Response:**
+```json
+{
+  "success": true,
+  "url": "https://blob.vercel-storage.com/..."
+}
+```
+
+---
+
+## Error Responses
+
+All endpoints return consistent error format:
+
+**400 Bad Request:**
+```json
+{
+  "success": false,
+  "error": "Missing required field: email"
+}
+```
+
+**401 Unauthorized:**
+```json
+{
+  "success": false,
+  "error": "Invalid credentials"
+}
+```
+
+**404 Not Found:**
+```json
+{
+  "success": false,
+  "error": "Resource not found"
+}
+```
+
+**500 Server Error:**
+```json
+{
+  "success": false,
+  "error": "Internal server error"
+}
+```
+
+---
+
+## Rate Limiting
+
+API endpoints implement rate limiting:
+- General endpoints: 100 requests/minute
+- Auth endpoints: 10 requests/minute
+- Upload endpoints: 20 requests/minute
+
+Exceeded limits return:
+```json
+{
+  "success": false,
+  "error": "Rate limit exceeded",
+  "retryAfter": 60
+}
+```
+
+---
+
+## Environment Requirements
+
+Required environment variables for API functionality:
+
+```
+# Required for JobNimbus
+JOBNIMBUS_API_KEY=
+JOBNIMBUS_API_URL=
+
+# Required for Google Sheets
+GOOGLE_SHEETS_ID=
+GOOGLE_SERVICE_ACCOUNT_EMAIL=
+GOOGLE_PRIVATE_KEY=
+
+# Required for TeamUp
+TEAMUP_API_KEY=
+TEAMUP_CALENDAR_KEY=
+
+# Required for GroupMe
+GROUPME_BOT_ID=
+GROUPME_ENABLED=
+
+# Required for file uploads
+BLOB_READ_WRITE_TOKEN=
+```
+
+
+---

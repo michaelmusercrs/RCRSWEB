@@ -4,7 +4,28 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { MapPin, Phone, Clock, CheckCircle2, Award, Shield } from 'lucide-react';
-import { generateMetadata as genMeta } from '@/lib/seo';
+import StructuredData from '@/components/StructuredData';
+import { generateMetadata as genMeta, generateFAQSchema, generateBreadcrumbSchema, siteConfig } from '@/lib/seo';
+
+// FAQ data for Huntsville - used for both display and schema
+const huntsvilleFAQs = [
+  {
+    question: 'Do you offer free roof inspections in Huntsville?',
+    answer: 'Yes! We provide free, no-obligation roof inspections for all Huntsville-area homes. Our certified inspectors will assess your roof\'s condition and provide a detailed report with photos.',
+  },
+  {
+    question: 'How quickly can you respond to storm damage in Huntsville?',
+    answer: 'We offer 24/7 emergency services for storm damage. We can typically have a crew at your Huntsville property within hours for emergency tarping and temporary repairs.',
+  },
+  {
+    question: 'Do you help with insurance claims for Alabama storms?',
+    answer: 'Absolutely! We have extensive experience working with insurance companies on storm and hail damage claims in Alabama. We\'ll handle all documentation, photos, and communication with your insurance adjuster.',
+  },
+  {
+    question: 'What roofing materials do you install in Huntsville?',
+    answer: 'We install all major roofing types including asphalt shingles (IKO Dynasty, Owens Corning, GAF), metal roofing, TPO commercial systems, and specialty materials. We\'ll help you choose the best option for Alabama\'s climate.',
+  },
+];
 
 export const metadata: Metadata = genMeta({
   title: 'Roof Repair & Replacement Huntsville AL',
@@ -14,80 +35,89 @@ export const metadata: Metadata = genMeta({
 });
 
 export default function HuntsvillePage() {
+  // Generate FAQ and Breadcrumb schemas
+  const faqSchema = generateFAQSchema(huntsvilleFAQs);
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: 'Locations', url: '/service-areas' },
+    { name: 'Huntsville', url: '/locations/huntsville' },
+  ]);
+
+  const localBusinessSchema = {
+    "@context": "https://schema.org",
+    "@type": "RoofingContractor",
+    "name": "River City Roofing Solutions - Huntsville",
+    "image": `${siteConfig.url}/logo.png`,
+    "@id": `${siteConfig.url}/locations/huntsville`,
+    "url": `${siteConfig.url}/locations/huntsville`,
+    "telephone": siteConfig.phoneTel,
+    "priceRange": "$$",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": siteConfig.address.streetAddress,
+      "addressLocality": siteConfig.address.addressLocality,
+      "addressRegion": siteConfig.address.addressRegion,
+      "postalCode": siteConfig.address.postalCode,
+      "addressCountry": siteConfig.address.addressCountry
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": 34.7304,
+      "longitude": -86.5861
+    },
+    "areaServed": {
+      "@type": "City",
+      "name": "Huntsville",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Huntsville",
+        "addressRegion": "AL"
+      }
+    },
+    "openingHoursSpecification": [
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        "opens": "08:00",
+        "closes": "17:00"
+      }
+    ],
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "5",
+      "reviewCount": "200"
+    }
+  };
+
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Schema Markup for Local SEO */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "RoofingContractor",
-            "name": "River City Roofing Solutions - Huntsville",
-            "image": "https://www.rivercityroofingsolutions.com/logo.png",
-            "@id": "https://www.rivercityroofingsolutions.com/locations/huntsville",
-            "url": "https://www.rivercityroofingsolutions.com/locations/huntsville",
-            "telephone": "+1-256-274-8530",
-            "priceRange": "$$",
-            "address": {
-              "@type": "PostalAddress",
-              "streetAddress": "3325 Central Pkwy SW #B",
-              "addressLocality": "Decatur",
-              "addressRegion": "AL",
-              "postalCode": "35603",
-              "addressCountry": "US"
-            },
-            "geo": {
-              "@type": "GeoCoordinates",
-              "latitude": 34.7304,
-              "longitude": -86.5861
-            },
-            "areaServed": {
-              "@type": "City",
-              "name": "Huntsville",
-              "address": {
-                "@type": "PostalAddress",
-                "addressLocality": "Huntsville",
-                "addressRegion": "AL"
-              }
-            },
-            "openingHoursSpecification": [
-              {
-                "@type": "OpeningHoursSpecification",
-                "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-                "opens": "08:00",
-                "closes": "17:00"
-              }
-            ],
-            "aggregateRating": {
-              "@type": "AggregateRating",
-              "ratingValue": "5",
-              "reviewCount": "47"
-            }
-          })
-        }}
-      />
+      {/* Schema Markup for Local SEO - LocalBusiness, FAQ, and Breadcrumb */}
+      <StructuredData data={[localBusinessSchema, faqSchema, breadcrumbSchema]} />
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-b from-brand-green to-lime-300 text-black px-6 py-12 md:py-16">
-        <div className="max-w-6xl mx-auto text-center">
+      <section className="relative min-h-[50vh] flex items-center text-white">
+        <div className="absolute inset-0 z-0">
+          <Image src="/uploads/area-huntsville-rocket.jpg" alt="US Space and Rocket Center in Huntsville Alabama - roofing services" fill className="object-cover" priority />
+          <div className="absolute inset-0 bg-black/60" />
+        </div>
+        <div className="max-w-6xl mx-auto text-center relative z-10 px-6 py-12 md:py-16">
           <div className="inline-block mb-4">
-            <span className="text-xs uppercase tracking-widest font-bold flex items-center gap-2 justify-center">
+            <span className="text-xs uppercase tracking-widest font-bold flex items-center gap-2 justify-center text-brand-green">
               <MapPin className="h-4 w-4" />
               Huntsville, Alabama
             </span>
           </div>
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter mb-6 leading-tight">
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter mb-6 leading-tight drop-shadow-lg">
             Huntsville Roofing Experts
           </h1>
-          <p className="text-lg md:text-xl max-w-2xl mx-auto text-black/75 leading-relaxed mb-8">
+          <p className="text-lg md:text-xl max-w-2xl mx-auto text-white/80 leading-relaxed mb-8">
             Professional roof repair, replacement, and storm damage services in Huntsville, AL. Free estimates and insurance claim assistance.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" className="bg-black text-brand-green hover:bg-neutral-900 font-bold uppercase tracking-widest">
+            <Button asChild size="lg" className="bg-brand-green text-black hover:bg-lime-400 font-bold uppercase tracking-widest">
               <Link href="/contact">Get Free Estimate</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="border-2 border-black text-black hover:bg-black hover:text-brand-green font-bold uppercase tracking-widest">
+            <Button asChild size="lg" variant="outline" className="border-2 border-white text-white hover:bg-white hover:text-black font-bold uppercase tracking-widest">
               <a href="tel:256-274-8530">Call (256) 274-8530</a>
             </Button>
           </div>
@@ -208,9 +238,9 @@ export default function HuntsvillePage() {
                   ))}
                 </div>
                 <p className="text-neutral-300 italic mb-4">
-                  "Excellent service and handled our insurance claim perfectly! Beautiful work on our Huntsville home."
+                  "Outstanding work from start to finish. They made the insurance process easy and our new roof looks amazing. Best roofing company in Huntsville!"
                 </p>
-                <p className="text-brand-green font-bold">- JS, Madison</p>
+                <p className="text-brand-green font-bold">- MR, Huntsville</p>
               </CardContent>
             </Card>
 
