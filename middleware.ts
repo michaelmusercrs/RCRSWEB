@@ -31,6 +31,7 @@ const PUBLIC_PREFIXES = [
   '/blog/',
   '/locations/',
   '/service-areas/',
+  '/team/',
 ];
 
 // Internal portal prefixes allowed on rcrsal.com
@@ -49,6 +50,7 @@ const STATIC_PREFIXES = [
   '/icons',
   '/fonts',
   '/assets',
+  '/uploads',
 ];
 
 const STATIC_EXTENSIONS = [
@@ -164,10 +166,9 @@ export function middleware(request: NextRequest) {
       return NextResponse.next();
     }
 
-    // Redirect portal/admin/command-center routes to rcrsal.com
+    // Allow portal routes on the public domain too (rcrsal.com SSL not configured yet)
     if (isPortalRoute(pathname)) {
-      const redirectUrl = new URL(pathname + request.nextUrl.search, PORTAL_URL);
-      return NextResponse.redirect(redirectUrl, 308);
+      return NextResponse.next();
     }
 
     // For any other unrecognized route on the public domain, let Next.js handle it
