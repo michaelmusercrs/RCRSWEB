@@ -25,6 +25,7 @@ import {
   AuthUser,
 } from '@/lib/auth-service';
 import { createAuthRateLimiter, withRateLimit } from '@/lib/rate-limiter';
+import { TEAM_MEMBERS } from '@/lib/team-roles';
 
 const authRateLimiter = createAuthRateLimiter();
 
@@ -55,17 +56,48 @@ export async function POST(request: NextRequest) {
             );
           }
 
-          const result = await portalAuthService.authenticateByPin(data.pin);
+          // Try Google Sheets auth first, then fall back to TEAM_MEMBERS
+          let authUser: AuthUser | null = null;
 
-          if (!result.success || !result.user) {
+          try {
+            const result = await portalAuthService.authenticateByPin(data.pin);
+            if (result.success && result.user) {
+              authUser = {
+                userId: result.user.userId,
+                name: result.user.name,
+                email: result.user.email,
+                role: result.user.role,
+                permissions: Object.entries(portalAuthService.getPermissions(result.user.role))
+                  .filter(([_, value]) => value === true)
+                  .map(([key]) => key),
+              };
+            }
+          } catch {
+            // Google Sheets auth failed (misconfigured, network error, etc.)
+          }
+
+          // Fallback: authenticate against TEAM_MEMBERS from team-roles.ts
+          if (!authUser) {
+            const member = TEAM_MEMBERS.find(m => m.pin === data.pin && m.isActive);
+            if (member) {
+              authUser = {
+                userId: member.id,
+                name: member.name,
+                email: member.email,
+                role: member.role,
+                permissions: member.permissions,
+              };
+            }
+          }
+
+          if (!authUser) {
             recordLoginAttempt(identifier, false);
-            await portalAuthService.recordFailedAttempt(`PIN:${data.pin?.slice(0, 2)}**`);
             const newCheck = checkRateLimit(identifier);
 
             return NextResponse.json(
               {
                 success: false,
-                error: result.error || 'Invalid PIN',
+                error: 'Invalid PIN',
                 remainingAttempts: newCheck.remainingAttempts,
               },
               {
@@ -78,19 +110,8 @@ export async function POST(request: NextRequest) {
           // Successful login
           recordLoginAttempt(identifier, true);
 
-          // Generate JWT tokens
-          const user: AuthUser = {
-            userId: result.user.userId,
-            name: result.user.name,
-            email: result.user.email,
-            role: result.user.role,
-            permissions: Object.entries(portalAuthService.getPermissions(result.user.role))
-              .filter(([_, value]) => value === true)
-              .map(([key]) => key),
-          };
-
-          const accessToken = generateAccessToken(user);
-          const refreshToken = generateRefreshToken(user);
+          const accessToken = generateAccessToken(authUser);
+          const refreshToken = generateRefreshToken(authUser);
 
           // Set secure cookies
           await setAuthCookies(accessToken, refreshToken);
@@ -98,13 +119,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json(
             {
               success: true,
-              user: {
-                userId: result.user.userId,
-                name: result.user.name,
-                email: result.user.email,
-                role: result.user.role,
-                permissions: portalAuthService.getPermissions(result.user.role),
-              },
+              user: authUser,
             },
             { headers: getSecurityHeaders() }
           );

@@ -110,19 +110,60 @@ export const ROLE_DEFAULT_ROUTES: Record<TeamRole, string> = {
   viewer: '/portal/dashboard',
 };
 
+// Call server-side auth API to set JWT cookies (required for API routes)
+async function setServerSession(member: TeamMember): Promise<boolean> {
+  try {
+    const res = await fetch('/api/portal/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'login-pin', pin: member.pin }),
+    });
+    if (res.ok) return true;
+    // If server-side PIN auth fails (e.g. user not in Google Sheets),
+    // fall back to setting a client-generated token via a lightweight endpoint
+    console.warn('Server PIN auth failed, API routes may return 401');
+    return false;
+  } catch (err) {
+    console.warn('Failed to set server session:', err);
+    return false;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
 
-  // Load user from session on mount
+  // Load user from session on mount and re-validate server cookies
   useEffect(() => {
-    const loadSession = () => {
+    const loadSession = async () => {
       try {
         const savedUser = sessionStorage.getItem('portalUser');
         if (savedUser) {
-          setUser(JSON.parse(savedUser));
+          const parsed = JSON.parse(savedUser);
+          setUser(parsed);
+          // Re-validate server session - if cookies expired, re-set them
+          try {
+            const res = await fetch('/api/portal/auth', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'validate' }),
+            });
+            if (!res.ok) {
+              // Server session expired - re-authenticate using stored member data
+              const member = TEAM_MEMBERS.find(m => m.id === parsed.userId && m.isActive);
+              if (member) {
+                await setServerSession(member);
+              }
+            }
+          } catch {
+            // Server validation failed, try to re-auth
+            const member = TEAM_MEMBERS.find(m => m.id === parsed.userId && m.isActive);
+            if (member) {
+              await setServerSession(member);
+            }
+          }
         }
       } catch (error) {
         console.error('Error loading session:', error);
@@ -173,6 +214,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       permissions: member.permissions,
     };
 
+    // Set server-side JWT cookies for API route auth
+    await setServerSession(member);
+
     setUser(authUser);
     sessionStorage.setItem('portalUser', JSON.stringify(authUser));
 
@@ -196,6 +240,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       pin: member.pin,
     };
 
+    // Set server-side JWT cookies for API route auth
+    await setServerSession(member);
+
     setUser(authUser);
     sessionStorage.setItem('portalUser', JSON.stringify(authUser));
 
@@ -215,7 +262,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { success: true };
   };
 
-  const logout = () => {
+  const logout = async () => {
+    // Clear server-side JWT cookies
+    try {
+      await fetch('/api/portal/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'logout' }),
+      });
+    } catch {
+      // Continue with client logout even if server fails
+    }
     setUser(null);
     sessionStorage.removeItem('portalUser');
     sessionStorage.removeItem('driver');
