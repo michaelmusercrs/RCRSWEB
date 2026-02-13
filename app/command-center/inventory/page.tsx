@@ -255,7 +255,7 @@ function InventoryPage() {
         render: (value, row) => (
           <Link
             href={`/command-center/inventory/${row.sku}`}
-            className="font-mono text-sm text-lime-400 hover:underline"
+            className="font-mono text-sm text-[#39FF14] hover:underline"
           >
             {String(value)}
           </Link>
@@ -320,7 +320,7 @@ function InventoryPage() {
                   'text-lg font-bold',
                   isLow && 'text-red-400',
                   isWarning && 'text-yellow-400',
-                  !isLow && !isWarning && 'text-lime-400'
+                  !isLow && !isWarning && 'text-[#39FF14]'
                 )}
               >
                 {qty}
@@ -369,7 +369,7 @@ function InventoryPage() {
         align: 'right',
         width: 'w-24',
         render: (value) => (
-          <span className="text-sm font-medium text-lime-400">
+          <span className="text-sm font-medium text-[#39FF14]">
             {value != null ? `$${Number(value).toFixed(2)}` : '-'}
           </span>
         ),
@@ -431,7 +431,7 @@ function InventoryPage() {
           <PermissionGate permission="inventory.edit">
             <Link
               href="/command-center/inventory/new"
-              className="inline-flex items-center gap-2 rounded-lg bg-lime-500 px-4 py-2.5 font-semibold text-zinc-900 transition-colors hover:bg-lime-400"
+              className="inline-flex items-center gap-2 rounded-lg bg-[#39FF14] px-4 py-2.5 font-semibold text-zinc-900 transition-colors hover:bg-[#39FF14]/90"
             >
               <Plus className="h-5 w-5" />
               Add Item
@@ -501,7 +501,7 @@ function InventoryPage() {
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white focus:border-lime-500 focus:outline-none focus:ring-1 focus:ring-lime-500"
+              className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white focus:border-[#39FF14] focus:outline-none focus:ring-1 focus:ring-[#39FF14]"
             >
               {CATEGORIES.map((cat) => (
                 <option key={cat.value} value={cat.value}>
@@ -532,7 +532,7 @@ function InventoryPage() {
               className={cn(
                 'rounded-md p-2 transition-colors',
                 viewMode === 'grid'
-                  ? 'bg-lime-500/20 text-lime-400'
+                  ? 'bg-[#39FF14]/20 text-[#39FF14]'
                   : 'text-zinc-400 hover:text-white'
               )}
               title="Grid view"
@@ -544,7 +544,7 @@ function InventoryPage() {
               className={cn(
                 'rounded-md p-2 transition-colors',
                 viewMode === 'table'
-                  ? 'bg-lime-500/20 text-lime-400'
+                  ? 'bg-[#39FF14]/20 text-[#39FF14]'
                   : 'text-zinc-400 hover:text-white'
               )}
               title="Table view"
@@ -601,7 +601,7 @@ function InventoryPage() {
                       setCategory('');
                       setShowLowStockOnly(false);
                     }}
-                    className="mt-4 text-sm text-lime-400 hover:underline"
+                    className="mt-4 text-sm text-[#39FF14] hover:underline"
                   >
                     Clear all filters
                   </button>

@@ -324,7 +324,7 @@ export default function InventoryPage() {
     if (item.currentQty <= 0) return { label: 'Out of Stock', color: 'text-red-400 bg-red-500/10 border-red-500/30' };
     if (item.currentQty <= item.minQty) return { label: 'Low Stock', color: 'text-amber-400 bg-amber-500/10 border-amber-500/30' };
     if (item.currentQty >= item.maxQty) return { label: 'Overstocked', color: 'text-blue-400 bg-brand-green/10 border-blue-500/30' };
-    return { label: 'In Stock', color: 'text-lime-400 bg-lime-500/10 border-lime-500/30' };
+    return { label: 'In Stock', color: 'text-[#39FF14] bg-[#39FF14]/10 border-[#39FF14]/30' };
   };
 
   const lowStockCount = items.filter(i => i.currentQty <= i.minQty).length;
@@ -341,7 +341,7 @@ export default function InventoryPage() {
             </Link>
             <div>
               <h1 className="text-xl font-bold text-white flex items-center gap-2">
-                <Package className="w-5 h-5 text-lime-500" />
+                <Package className="w-5 h-5 text-[#39FF14]" />
                 Inventory Management
               </h1>
               <p className="text-sm text-zinc-400">
@@ -362,7 +362,7 @@ export default function InventoryPage() {
             </button>
             <button
               onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-2 px-3 py-2 bg-lime-500 text-black font-semibold rounded-lg hover:bg-lime-400 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 bg-[#39FF14] text-black font-semibold rounded-lg hover:bg-[#39FF14]/90 transition-colors"
             >
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">Add Item</span>
@@ -376,13 +376,13 @@ export default function InventoryPage() {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap gap-4 sm:gap-8">
             <div className="flex items-center gap-2">
-              <Warehouse className="w-4 h-4 text-lime-500" />
+              <Warehouse className="w-4 h-4 text-[#39FF14]" />
               <span className="text-sm text-zinc-400">
                 Total Items: <strong className="text-white">{items.length}</strong>
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-lime-500" />
+              <DollarSign className="w-4 h-4 text-[#39FF14]" />
               <span className="text-sm text-zinc-400">
                 Total Value: <strong className="text-white">{formatCurrency(totalValue)}</strong>
               </span>
@@ -442,7 +442,7 @@ export default function InventoryPage() {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === tab.id
-                  ? 'border-lime-500 text-lime-500'
+                  ? 'border-[#39FF14] text-[#39FF14]'
                   : 'border-transparent text-zinc-400 hover:text-zinc-200'
               }`}
             >
@@ -469,7 +469,7 @@ export default function InventoryPage() {
                 placeholder="Search by name, SKU, supplier..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-lime-500 focus:ring-1 focus:ring-lime-500"
+                className="w-full pl-10 pr-4 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-[#39FF14] focus:ring-1 focus:ring-[#39FF14]"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -477,7 +477,7 @@ export default function InventoryPage() {
               <select
                 value={categoryFilter}
                 onChange={e => setCategoryFilter(e.target.value)}
-                className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-lime-500"
+                className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#39FF14]"
               >
                 {categories.map(cat => (
                   <option key={cat} value={cat}>
@@ -494,14 +494,14 @@ export default function InventoryPage() {
       <div className="px-4 sm:px-6 py-4 max-w-7xl mx-auto">
         {loading ? (
           <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-8 h-8 text-lime-500 animate-spin" />
+            <Loader2 className="w-8 h-8 text-[#39FF14] animate-spin" />
           </div>
         ) : activeTab === 'history' ? (
           /* Transaction History View */
           <div className="space-y-2">
             {loadingHistory ? (
               <div className="flex items-center justify-center py-16">
-                <Loader2 className="w-8 h-8 text-lime-500 animate-spin" />
+                <Loader2 className="w-8 h-8 text-[#39FF14] animate-spin" />
               </div>
             ) : transactions.length === 0 ? (
               <div className="text-center py-16">
@@ -539,7 +539,7 @@ export default function InventoryPage() {
                                 tx.type === 'delivery'
                                   ? 'bg-brand-green/10 text-blue-400 border-blue-500/30'
                                   : tx.type === 'restock'
-                                  ? 'bg-lime-500/10 text-lime-400 border-lime-500/30'
+                                  ? 'bg-[#39FF14]/10 text-[#39FF14] border-[#39FF14]/30'
                                   : tx.type === 'return'
                                   ? 'bg-purple-500/10 text-purple-400 border-purple-500/30'
                                   : 'bg-zinc-700 text-zinc-300 border-zinc-600'
@@ -551,7 +551,7 @@ export default function InventoryPage() {
                           <td className="px-4 py-3 text-right font-mono">
                             <span
                               className={
-                                tx.amount > 0 ? 'text-lime-400' : 'text-red-400'
+                                tx.amount > 0 ? 'text-[#39FF14]' : 'text-red-400'
                               }
                             >
                               {tx.amount > 0 ? '+' : ''}
@@ -568,7 +568,7 @@ export default function InventoryPage() {
                             <span
                               className={`px-2 py-0.5 text-xs rounded ${
                                 tx.status === 'completed'
-                                  ? 'bg-lime-500/10 text-lime-400'
+                                  ? 'bg-[#39FF14]/10 text-[#39FF14]'
                                   : tx.status === 'pending'
                                   ? 'bg-amber-500/10 text-amber-400'
                                   : 'bg-red-500/10 text-red-400'
@@ -626,7 +626,7 @@ export default function InventoryPage() {
                               ? 'bg-red-500'
                               : item.currentQty <= item.minQty * 1.5
                               ? 'bg-amber-500'
-                              : 'bg-lime-500'
+                              : 'bg-[#39FF14]'
                           }`}
                           style={{ width: `${stockPercent}%` }}
                         />
@@ -675,7 +675,7 @@ export default function InventoryPage() {
                           setAdjustQty(0);
                           setAdjustReason('');
                         }}
-                        className="p-2 text-zinc-400 hover:text-lime-400 hover:bg-zinc-800 rounded-lg"
+                        className="p-2 text-zinc-400 hover:text-[#39FF14] hover:bg-zinc-800 rounded-lg"
                         title="Quick Adjust"
                       >
                         <BarChart2 className="w-4 h-4" />
@@ -686,7 +686,7 @@ export default function InventoryPage() {
                           setEditingItem(item);
                           setEditForm(item);
                         }}
-                        className="p-2 text-zinc-400 hover:text-lime-400 hover:bg-zinc-800 rounded-lg"
+                        className="p-2 text-zinc-400 hover:text-[#39FF14] hover:bg-zinc-800 rounded-lg"
                         title="Edit"
                       >
                         <Edit3 className="w-4 h-4" />
@@ -757,7 +757,7 @@ export default function InventoryPage() {
                         <button
                           onClick={() => handleQuickAdjust(item.productId)}
                           disabled={adjustQty === 0}
-                          className="px-4 py-1.5 bg-lime-500 text-black font-semibold rounded hover:bg-lime-400 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                          className="px-4 py-1.5 bg-[#39FF14] text-black font-semibold rounded hover:bg-[#39FF14]/90 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                         >
                           Apply
                         </button>
@@ -775,7 +775,7 @@ export default function InventoryPage() {
                             className={
                               item.currentQty + adjustQty <= item.minQty
                                 ? 'text-amber-400'
-                                : 'text-lime-400'
+                                : 'text-[#39FF14]'
                             }
                           >
                             {item.currentQty + adjustQty} {item.unit}
@@ -789,7 +789,7 @@ export default function InventoryPage() {
                   {isExpanded && (
                     <div className="px-4 sm:px-6 py-4 bg-zinc-800/30 border-t border-zinc-800">
                       <h4 className="text-sm font-semibold text-zinc-300 mb-3 flex items-center gap-2">
-                        <History className="w-4 h-4 text-lime-500" />
+                        <History className="w-4 h-4 text-[#39FF14]" />
                         Transaction History for {item.productName}
                       </h4>
                       {loadingItemHistory ? (
@@ -810,7 +810,7 @@ export default function InventoryPage() {
                             >
                               <div className="flex items-center gap-3">
                                 {tx.amount > 0 ? (
-                                  <TrendingUp className="w-4 h-4 text-lime-400 shrink-0" />
+                                  <TrendingUp className="w-4 h-4 text-[#39FF14] shrink-0" />
                                 ) : (
                                   <TrendingDown className="w-4 h-4 text-red-400 shrink-0" />
                                 )}
@@ -839,7 +839,7 @@ export default function InventoryPage() {
                                 </span>
                                 <span
                                   className={`font-mono font-semibold ${
-                                    tx.amount > 0 ? 'text-lime-400' : 'text-red-400'
+                                    tx.amount > 0 ? 'text-[#39FF14]' : 'text-red-400'
                                   }`}
                                 >
                                   {tx.amount > 0 ? '+' : ''}
@@ -1018,7 +1018,7 @@ export default function InventoryPage() {
               <button
                 onClick={handleSaveEdit}
                 disabled={saving}
-                className="flex items-center gap-2 px-4 py-2 bg-lime-500 text-black font-semibold rounded-lg hover:bg-lime-400 disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 bg-[#39FF14] text-black font-semibold rounded-lg hover:bg-[#39FF14]/90 disabled:opacity-50"
               >
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 Save Changes
@@ -1164,7 +1164,7 @@ export default function InventoryPage() {
               <button
                 onClick={handleAddItem}
                 disabled={saving || !newItem.productName}
-                className="flex items-center gap-2 px-4 py-2 bg-lime-500 text-black font-semibold rounded-lg hover:bg-lime-400 disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 bg-[#39FF14] text-black font-semibold rounded-lg hover:bg-[#39FF14]/90 disabled:opacity-50"
               >
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                 Add Item

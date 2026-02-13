@@ -1,7 +1,99 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
-import { inventoryTransactions, InventoryTransaction } from '@/lib/inventoryTransactions';
+import { inventoryTransactions as staticTransactions, InventoryTransaction } from '@/lib/inventoryTransactions';
 import { inventoryProducts, getProductById } from '@/lib/inventoryData';
+import { GoogleSpreadsheet } from 'google-spreadsheet';
+import { JWT } from 'google-auth-library';
+
+// =============================================================================
+// GOOGLE SHEETS CONFIG
+// =============================================================================
+
+const SHEETS_ID = process.env.DELIVERY_SHEETS_ID || process.env.GOOGLE_SHEETS_ID;
+const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n')?.replace(/\r\n/g, '\n');
+
+const serviceAccountAuth = new JWT({
+  email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+  key: privateKey,
+  scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+});
+
+const SHEET_NAME = 'InventoryLogs';
+
+const isConfigured = !!(SHEETS_ID && process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && privateKey);
+
+// =============================================================================
+// HELPERS
+// =============================================================================
+
+async function getOrCreateSheet(doc: GoogleSpreadsheet) {
+  const headers = [
+    'inventoryId', 'itemId', 'dateTime', 'amount', 'referenceNumber',
+    'price', 'cost', 'status', 'type', 'notes',
+  ];
+  let sheet = doc.sheetsByTitle[SHEET_NAME];
+  if (!sheet) {
+    sheet = await doc.addSheet({ title: SHEET_NAME, headerValues: headers });
+  }
+  return sheet;
+}
+
+async function fetchTransactionsFromSheets(): Promise<InventoryTransaction[] | null> {
+  if (!isConfigured) return null;
+  try {
+    const doc = new GoogleSpreadsheet(SHEETS_ID!, serviceAccountAuth);
+    await doc.loadInfo();
+    const sheet = await getOrCreateSheet(doc);
+    const rows = await sheet.getRows();
+
+    if (rows.length === 0) return null; // Fall back to static data if sheet is empty
+
+    return rows.map(row => ({
+      inventoryId: row.get('inventoryId') || '',
+      itemId: row.get('itemId') || '',
+      dateTime: row.get('dateTime') || '',
+      amount: parseFloat(row.get('amount')) || 0,
+      referenceNumber: row.get('referenceNumber') || '',
+      price: parseFloat(row.get('price')) || 0,
+      cost: parseFloat(row.get('cost')) || 0,
+      status: (row.get('status') || 'completed') as InventoryTransaction['status'],
+      type: (row.get('type') || 'adjustment') as InventoryTransaction['type'],
+      notes: row.get('notes') || undefined,
+    }));
+  } catch (error) {
+    console.error('Failed to fetch transactions from Sheets:', error);
+    return null;
+  }
+}
+
+async function logTransactionToSheets(tx: InventoryTransaction): Promise<boolean> {
+  if (!isConfigured) return false;
+  try {
+    const doc = new GoogleSpreadsheet(SHEETS_ID!, serviceAccountAuth);
+    await doc.loadInfo();
+    const sheet = await getOrCreateSheet(doc);
+    await sheet.addRow({
+      inventoryId: tx.inventoryId,
+      itemId: tx.itemId,
+      dateTime: tx.dateTime,
+      amount: tx.amount.toString(),
+      referenceNumber: tx.referenceNumber,
+      price: tx.price.toString(),
+      cost: tx.cost.toString(),
+      status: tx.status,
+      type: tx.type,
+      notes: tx.notes || '',
+    });
+    return true;
+  } catch (error) {
+    console.error('Failed to log transaction to Sheets:', error);
+    return false;
+  }
+}
+
+// =============================================================================
+// ROUTES
+// =============================================================================
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth();
@@ -17,30 +109,16 @@ export async function GET(request: NextRequest) {
     const from = searchParams.get('from');
     const to = searchParams.get('to');
 
-    let transactions: InventoryTransaction[] = [...inventoryTransactions];
+    // Try Google Sheets first, fall back to static data
+    const sheetsData = await fetchTransactionsFromSheets();
+    let transactions: InventoryTransaction[] = sheetsData || [...staticTransactions];
 
-    // Filter by item
-    if (itemId) {
-      transactions = transactions.filter(t => t.itemId === itemId);
-    }
-
-    // Filter by type
-    if (type) {
-      transactions = transactions.filter(t => t.type === type);
-    }
-
-    // Filter by status
-    if (status) {
-      transactions = transactions.filter(t => t.status === status);
-    }
-
-    // Filter by date range
-    if (from) {
-      transactions = transactions.filter(t => t.dateTime >= from);
-    }
-    if (to) {
-      transactions = transactions.filter(t => t.dateTime <= to);
-    }
+    // Apply filters
+    if (itemId) transactions = transactions.filter(t => t.itemId === itemId);
+    if (type) transactions = transactions.filter(t => t.type === type);
+    if (status) transactions = transactions.filter(t => t.status === status);
+    if (from) transactions = transactions.filter(t => t.dateTime >= from);
+    if (to) transactions = transactions.filter(t => t.dateTime <= to);
 
     // Sort by date descending
     transactions.sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime());
@@ -66,25 +144,18 @@ export async function GET(request: NextRequest) {
     let runningStock: { date: string; quantity: number }[] = [];
     if (itemId) {
       const product = getProductById(itemId);
-      const allItemTransactions = inventoryTransactions
+      const allSrc = sheetsData || staticTransactions;
+      const allItemTransactions = allSrc
         .filter(t => t.itemId === itemId && t.status === 'completed')
         .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime());
 
-      // Calculate running total from the current quantity working backwards
       const currentQty = product?.currentQty || 0;
-      let runningTotal = currentQty;
-
-      // First calculate what the starting quantity was
       const totalChange = allItemTransactions.reduce((sum, t) => sum + t.amount, 0);
       let startingQty = currentQty - totalChange;
 
-      // Build forward from starting
       runningStock = allItemTransactions.map(t => {
         startingQty += t.amount;
-        return {
-          date: t.dateTime,
-          quantity: startingQty,
-        };
+        return { date: t.dateTime, quantity: startingQty };
       });
     }
 
@@ -101,7 +172,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Log a new inventory transaction
+// POST - Log a new inventory transaction (persists to Sheets)
 export async function POST(request: NextRequest) {
   const auth = await requireAuth();
   if (!auth.authenticated) return auth.response;
@@ -135,9 +206,12 @@ export async function POST(request: NextRequest) {
       notes,
     };
 
-    // In production, this would persist to Google Sheets InventoryLogs
-    // For now, add to in-memory array
-    inventoryTransactions.unshift(transaction);
+    // Persist to Google Sheets
+    const persisted = await logTransactionToSheets(transaction);
+    if (!persisted) {
+      // Fallback: add to in-memory array (will be lost on cold start)
+      staticTransactions.unshift(transaction);
+    }
 
     return NextResponse.json({ success: true, transaction });
   } catch (error) {
