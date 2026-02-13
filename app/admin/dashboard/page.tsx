@@ -1,256 +1,242 @@
+/**
+ * Admin Dashboard - System Metrics & Health
+ * Real-time system status and integration health checks
+ */
+
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import Link from 'next/link';
 import {
-  Users,
-  MapPin,
-  MessageSquare,
-  FileText,
-  Settings,
+  Activity,
   CheckCircle,
   AlertCircle,
+  XCircle,
+  RefreshCw,
+  Server,
+  Database,
+  Globe,
+  Clock,
+  Users,
+  FileText,
+  Package,
+  Shield,
   Loader2,
+  ExternalLink,
+  Zap,
 } from 'lucide-react';
-import Link from 'next/link';
-import { testGitHubConnection } from '@/app/admin/dashboard/actions';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-const adminSections = [
-  {
-    title: 'Team Members',
-    description: 'Edit and manage your team profiles',
-    icon: Users,
-    href: '/admin/team',
-    color: 'bg-brand-green/10 text-blue-400',
-  },
-  {
-    title: 'Locations',
-    description: 'Update service area pages and content',
-    icon: MapPin,
-    href: '/admin/locations',
-    color: 'bg-brand-green/10 text-brand-green',
-  },
-  {
-    title: 'Reviews',
-    description: 'Manage customer testimonials',
-    icon: MessageSquare,
-    href: '/admin/reviews',
-    color: 'bg-purple-500/10 text-purple-600',
-  },
-  {
-    title: 'Blog Posts',
-    description: 'Edit and manage blog articles',
-    icon: FileText,
-    href: '/admin/blog',
-    color: 'bg-orange-500/10 text-orange-600',
-  },
-  {
-    title: 'Form Settings',
-    description: 'Configure contact form endpoint',
-    icon: Settings,
-    href: '/admin/forms',
-    color: 'bg-red-500/10 text-red-400',
-  },
-];
+interface HealthCheck {
+  name: string;
+  status: 'healthy' | 'degraded' | 'down' | 'checking';
+  latency?: number;
+  message?: string;
+  lastChecked?: string;
+}
 
 export default function AdminDashboard() {
-  const [gitHubStatus, setGitHubStatus] = useState<{
-    connected: boolean;
-    user?: string;
-    message: string;
-    loading: boolean;
-  }>({ connected: false, message: '', loading: true });
+  const [healthChecks, setHealthChecks] = useState<HealthCheck[]>([
+    { name: 'Google Sheets API', status: 'checking' },
+    { name: 'JobNimbus CRM', status: 'checking' },
+    { name: 'Calendar (TeamUp)', status: 'checking' },
+    { name: 'Vercel Blob Storage', status: 'checking' },
+    { name: 'Admin Auth', status: 'checking' },
+  ]);
+  const [isChecking, setIsChecking] = useState(false);
+  const [lastFullCheck, setLastFullCheck] = useState<string | null>(null);
+  const [envInfo, setEnvInfo] = useState<{ env: string; nodeVersion: string }>({
+    env: process.env.NODE_ENV || 'development',
+    nodeVersion: '',
+  });
 
   useEffect(() => {
-    async function checkConnection() {
-      const result = await testGitHubConnection();
-      setGitHubStatus({
-        connected: result.success,
-        user: result.user,
-        message: result.message,
-        loading: false,
-      });
-    }
-
-    checkConnection();
+    runHealthChecks();
   }, []);
 
+  const checkEndpoint = async (url: string, name: string): Promise<HealthCheck> => {
+    const start = Date.now();
+    try {
+      const res = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(10000) });
+      const latency = Date.now() - start;
+      if (res.ok) {
+        return { name, status: 'healthy', latency, message: `${res.status} OK`, lastChecked: new Date().toISOString() };
+      }
+      return { name, status: 'degraded', latency, message: `HTTP ${res.status}`, lastChecked: new Date().toISOString() };
+    } catch (err: any) {
+      return { name, status: 'down', message: err.message || 'Connection failed', lastChecked: new Date().toISOString() };
+    }
+  };
+
+  const runHealthChecks = async () => {
+    setIsChecking(true);
+    setHealthChecks(prev => prev.map(h => ({ ...h, status: 'checking' as const })));
+
+    const results = await Promise.all([
+      checkEndpoint('/api/portal/inventory', 'Google Sheets API'),
+      checkEndpoint('/api/admin/jobnimbus', 'JobNimbus CRM'),
+      checkEndpoint('/api/calendar/events?startDate=2026-01-01&endDate=2026-01-02', 'Calendar (TeamUp)'),
+      checkEndpoint('/api/admin/settings', 'Vercel Blob Storage'),
+      checkEndpoint('/api/admin/auth', 'Admin Auth'),
+    ]);
+
+    setHealthChecks(results);
+    setLastFullCheck(new Date().toISOString());
+    setIsChecking(false);
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'healthy': return <CheckCircle className="w-5 h-5 text-[#39FF14]" />;
+      case 'degraded': return <AlertCircle className="w-5 h-5 text-amber-400" />;
+      case 'down': return <XCircle className="w-5 h-5 text-red-400" />;
+      default: return <Loader2 className="w-5 h-5 text-neutral-500 animate-spin" />;
+    }
+  };
+
+  const getStatusBg = (status: string) => {
+    switch (status) {
+      case 'healthy': return 'border-[#39FF14]/20 bg-[#39FF14]/5';
+      case 'degraded': return 'border-amber-500/20 bg-amber-500/5';
+      case 'down': return 'border-red-500/20 bg-red-500/5';
+      default: return 'border-gray-700 bg-gray-800/50';
+    }
+  };
+
+  const healthyCount = healthChecks.filter(h => h.status === 'healthy').length;
+  const totalCount = healthChecks.length;
+  const overallStatus = healthyCount === totalCount ? 'All Systems Operational' :
+    healthChecks.some(h => h.status === 'down') ? 'System Issues Detected' : 'Partial Degradation';
+  const overallColor = healthyCount === totalCount ? 'text-[#39FF14]' :
+    healthChecks.some(h => h.status === 'down') ? 'text-red-400' : 'text-amber-400';
+
+  const adminPages = [
+    { name: 'Sales & Commissions', href: '/admin/sales', icon: Zap, desc: 'Real commission data from JN' },
+    { name: 'Inventory', href: '/admin/inventory', icon: Package, desc: 'Stock levels & alerts' },
+    { name: 'Team Management', href: '/admin/team', icon: Users, desc: 'Add/edit team members' },
+    { name: 'Blog Management', href: '/admin/blog', icon: FileText, desc: 'Create & edit posts' },
+    { name: 'System Settings', href: '/admin/system', icon: Shield, desc: 'Feature flags & API keys' },
+    { name: 'Settings', href: '/admin/settings', icon: Globe, desc: 'Site configuration' },
+  ];
+
   return (
-    <div className="container mx-auto px-4 py-12">
-      <section className="text-center mb-8">
-        <h1 className="font-headline text-4xl md:text-5xl font-bold mb-4">
-          Admin Dashboard
-        </h1>
-        <p className="text-lg md:text-xl max-w-3xl mx-auto text-muted-foreground">
-          Manage your website content, team, and settings from here.
-        </p>
-      </section>
-
-      {/* GitHub Connection Status */}
-      <Card className="max-w-2xl mx-auto mb-12">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            {gitHubStatus.loading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : gitHubStatus.connected ? (
-              <CheckCircle className="h-5 w-5 text-brand-blue" />
-            ) : (
-              <AlertCircle className="h-5 w-5 text-red-400" />
-            )}
-            GitHub Connection Status
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {gitHubStatus.loading ? (
-            <p className="text-muted-foreground">Checking connection...</p>
-          ) : gitHubStatus.connected ? (
-            <div className="space-y-3">
-              <p className="text-brand-blue font-semibold">✓ Connected</p>
-              <p className="text-muted-foreground">
-                Logged in as: <span className="font-mono">{gitHubStatus.user}</span>
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Your changes will automatically commit to GitHub and deploy to Vercel.
-              </p>
-            </div>
-          ) : (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>GitHub Not Connected</AlertTitle>
-              <AlertDescription className="mt-2">
-                <p className="mb-3">{gitHubStatus.message}</p>
-                <div className="bg-black/20 p-3 rounded text-sm font-mono mb-3">
-                  Error: {gitHubStatus.message}
-                </div>
-                <p className="mb-3 font-semibold">Setup Instructions:</p>
-                <ol className="list-decimal list-inside space-y-1 text-sm">
-                  <li>
-                    Go to{' '}
-                    <a
-                      href="https://github.com/settings/tokens"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-brand-green hover:underline"
-                    >
-                      GitHub Settings → Personal Access Tokens
-                    </a>
-                  </li>
-                  <li>Create a new token with repo permissions</li>
-                  <li>Copy the token</li>
-                  <li>
-                    Go to Vercel Dashboard → Project Settings → Environment Variables
-                  </li>
-                  <li>
-                    Add a new variable: Name = <code>GITHUB_TOKEN</code>, Value = your token
-                  </li>
-                  <li>Redeploy your Vercel project</li>
-                  <li>Return here and refresh</li>
-                </ol>
-              </AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Admin Sections Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-        {adminSections.map((section) => {
-          const Icon = section.icon;
-          return (
-            <Link key={section.href} href={section.href}>
-              <Card className="h-full hover:border-primary/50 transition-all duration-300 hover:-translate-y-1">
-                <CardHeader>
-                  <div className={`w-fit p-3 rounded-lg mb-4 ${section.color}`}>
-                    <Icon className="h-6 w-6" />
-                  </div>
-                  <CardTitle className="text-xl">{section.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">{section.description}</p>
-                </CardContent>
-              </Card>
-            </Link>
-          );
-        })}
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-white">System Dashboard</h1>
+          <p className="text-neutral-400 mt-2">Monitor integrations and system health</p>
+        </div>
+        <button
+          onClick={runHealthChecks}
+          disabled={isChecking}
+          className="flex items-center gap-2 px-4 py-2 bg-[#39FF14] hover:bg-lime-400 text-black font-medium rounded-lg transition-colors disabled:opacity-50"
+        >
+          <RefreshCw className={`w-4 h-4 ${isChecking ? 'animate-spin' : ''}`} />
+          Run Health Check
+        </button>
       </div>
 
-      {/* Quick Start Guide */}
-      <Card className="max-w-4xl mx-auto">
-        <CardHeader>
-          <CardTitle>Quick Start Guide</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="workflow">Workflow</TabsTrigger>
-              <TabsTrigger value="troubleshooting">Troubleshooting</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="overview" className="space-y-3">
-              <p className="text-muted-foreground">
-                This admin panel lets you edit your website content without touching code.
+      {/* Overall Status Banner */}
+      <div className={`p-6 rounded-xl border ${
+        healthyCount === totalCount ? 'border-[#39FF14]/30 bg-[#39FF14]/5' :
+        healthChecks.some(h => h.status === 'down') ? 'border-red-500/30 bg-red-500/5' :
+        'border-amber-500/30 bg-amber-500/5'
+      }`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Activity className={`w-8 h-8 ${overallColor}`} />
+            <div>
+              <h2 className={`text-xl font-bold ${overallColor}`}>{overallStatus}</h2>
+              <p className="text-neutral-400 text-sm mt-1">
+                {healthyCount}/{totalCount} services operational
+                {lastFullCheck && ` • Last checked ${new Date(lastFullCheck).toLocaleTimeString()}`}
               </p>
-              <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-                <li>
-                  <strong>Team Members:</strong> Add/edit/delete team profiles
-                </li>
-                <li>
-                  <strong>Locations:</strong> Update service area pages
-                </li>
-                <li>
-                  <strong>Reviews:</strong> Manage customer testimonials
-                </li>
-                <li>
-                  <strong>Blog Posts:</strong> Edit blog articles
-                </li>
-                <li>
-                  <strong>Forms:</strong> Configure where form submissions go
-                </li>
-              </ul>
-            </TabsContent>
+            </div>
+          </div>
+        </div>
+      </div>
 
-            <TabsContent value="workflow" className="space-y-3">
-              <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
-                <li>Click a section above (e.g., "Team Members")</li>
-                <li>Make your changes in the edit form</li>
-                <li>Click "Publish to GitHub"</li>
-                <li>Your changes automatically commit and deploy to Vercel</li>
-                <li>Your live site updates within 1-2 minutes</li>
-              </ol>
-            </TabsContent>
-
-            <TabsContent value="troubleshooting" className="space-y-3">
-              <div className="space-y-4">
-                <div>
-                  <p className="font-semibold mb-1">Changes not appearing?</p>
-                  <p className="text-sm text-muted-foreground">
-                    Hard refresh your browser (Ctrl+Shift+R or Cmd+Shift+R). Vercel
-                    deployments take 1-2 minutes.
-                  </p>
+      {/* Health Check Cards */}
+      <div>
+        <h2 className="text-xl font-bold text-white mb-4">Integration Health</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {healthChecks.map((check) => (
+            <div key={check.name} className={`rounded-xl border p-5 ${getStatusBg(check.status)}`}>
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  {getStatusIcon(check.status)}
+                  <div>
+                    <h3 className="font-semibold text-white">{check.name}</h3>
+                    <p className="text-sm text-neutral-400 mt-1">{check.message || 'Checking...'}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-semibold mb-1">Publish button doesn't work?</p>
-                  <p className="text-sm text-muted-foreground">
-                    Check the GitHub connection status above. You need GITHUB_TOKEN set in
-                    Vercel environment variables.
-                  </p>
-                </div>
-                <div>
-                  <p className="font-semibold mb-1">Can't find a field to edit?</p>
-                  <p className="text-sm text-muted-foreground">
-                    Some advanced edits may need direct file editing. Contact your developer
-                    for complex changes.
-                  </p>
-                </div>
+                {check.latency !== undefined && (
+                  <span className={`text-xs font-mono px-2 py-1 rounded ${
+                    check.latency < 500 ? 'bg-[#39FF14]/10 text-[#39FF14]' :
+                    check.latency < 2000 ? 'bg-amber-500/10 text-amber-400' :
+                    'bg-red-500/10 text-red-400'
+                  }`}>
+                    {check.latency}ms
+                  </span>
+                )}
               </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Quick Navigation */}
+      <div>
+        <h2 className="text-xl font-bold text-white mb-4">Admin Sections</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {adminPages.map((page) => {
+            const Icon = page.icon;
+            return (
+              <Link
+                key={page.href}
+                href={page.href}
+                className="bg-gray-900 rounded-xl border border-gray-700/50 p-5 hover:border-[#39FF14]/30 transition-colors group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-gray-800 rounded-lg group-hover:bg-[#39FF14]/10 transition-colors">
+                    <Icon className="w-5 h-5 text-neutral-400 group-hover:text-[#39FF14] transition-colors" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white group-hover:text-[#39FF14] transition-colors">{page.name}</h3>
+                    <p className="text-sm text-neutral-500">{page.desc}</p>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Environment Info */}
+      <div className="bg-gray-900 rounded-xl border border-gray-700/50 p-6">
+        <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <Server className="w-5 h-5 text-neutral-400" />
+          Environment Info
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <div>
+            <p className="text-neutral-500">Environment</p>
+            <p className="font-mono text-white mt-1">{envInfo.env}</p>
+          </div>
+          <div>
+            <p className="text-neutral-500">Framework</p>
+            <p className="font-mono text-white mt-1">Next.js 14</p>
+          </div>
+          <div>
+            <p className="text-neutral-500">Platform</p>
+            <p className="font-mono text-white mt-1">Vercel</p>
+          </div>
+          <div>
+            <p className="text-neutral-500">Database</p>
+            <p className="font-mono text-white mt-1">Google Sheets + Blob</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
