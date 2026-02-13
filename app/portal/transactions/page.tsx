@@ -17,7 +17,8 @@ import {
   DollarSign,
   BarChart3,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  RefreshCw,
 } from 'lucide-react';
 
 interface InventoryTransaction {
@@ -80,7 +81,6 @@ export default function TransactionsPage() {
   const filteredTransactions = useMemo(() => {
     let filtered = [...transactions];
 
-    // Search filter
     if (searchTerm) {
       const lower = searchTerm.toLowerCase();
       filtered = filtered.filter(t =>
@@ -91,12 +91,10 @@ export default function TransactionsPage() {
       );
     }
 
-    // Type filter
     if (typeFilter !== 'all') {
       filtered = filtered.filter(t => t.type === typeFilter);
     }
 
-    // Date filter
     if (dateFilter !== 'all') {
       const now = new Date();
       let startDate: Date;
@@ -144,21 +142,21 @@ export default function TransactionsPage() {
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'delivery':
-        return <Truck className="w-4 h-4 text-blue-500" />;
+        return <Truck className="w-4 h-4 text-blue-400" />;
       case 'restock':
-        return <Package className="w-4 h-4 text-green-500" />;
+        return <Package className="w-4 h-4 text-green-400" />;
       case 'return':
-        return <RotateCcw className="w-4 h-4 text-orange-500" />;
+        return <RotateCcw className="w-4 h-4 text-orange-400" />;
       case 'count':
-        return <ClipboardCheck className="w-4 h-4 text-purple-500" />;
+        return <ClipboardCheck className="w-4 h-4 text-purple-400" />;
       default:
-        return <Package className="w-4 h-4 text-neutral-500" />;
+        return <Package className="w-4 h-4 text-zinc-500" />;
     }
   };
 
   const getTypeBadge = (type: string) => {
     const colors: Record<string, string> = {
-      delivery: 'bg-brand-green/20 text-blue-400',
+      delivery: 'bg-blue-500/20 text-blue-400',
       restock: 'bg-green-500/20 text-green-400',
       return: 'bg-orange-500/20 text-orange-400',
       adjustment: 'bg-yellow-500/20 text-yellow-400',
@@ -166,7 +164,7 @@ export default function TransactionsPage() {
     };
 
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[type] || 'bg-white/10 text-neutral-300'}`}>
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[type] || 'bg-zinc-500/20 text-zinc-400'}`}>
         {type.charAt(0).toUpperCase() + type.slice(1)}
       </span>
     );
@@ -191,265 +189,249 @@ export default function TransactionsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative">
-            <div className="w-16 h-16 rounded-2xl bg-purple-50 border border-purple-200 flex items-center justify-center">
-              <BarChart3 className="text-purple-600" size={32} />
-            </div>
-            <div className="absolute inset-0 rounded-2xl border-2 border-purple-300 animate-ping opacity-50" />
-          </div>
-          <div className="text-center">
-            <h2 className="text-lg font-semibold text-neutral-900">Loading Transactions</h2>
-            <p className="text-sm text-neutral-500 mt-1">Fetching transaction history...</p>
-          </div>
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="w-10 h-10 animate-spin text-[#39FF14] mx-auto mb-4" />
+          <p className="text-zinc-400">Loading transactions...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-zinc-950">
       {/* Header */}
-      <header className="bg-white border-b border-neutral-200 px-6 py-4">
-        <div className="flex items-center justify-between">
+      <header className="bg-zinc-900 border-b border-zinc-800 px-6 py-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/portal/inventory" className="text-neutral-500 hover:text-neutral-700">
+            <Link href="/portal/inventory" className="text-zinc-400 hover:text-white transition-colors">
               <ArrowLeft className="w-5 h-5" />
             </Link>
             <div>
-              <h1 className="text-xl font-semibold text-neutral-900">Transaction History</h1>
-              <p className="text-sm text-neutral-500">View all inventory transactions and activity logs</p>
+              <h1 className="text-xl font-bold text-white">Transaction History</h1>
+              <p className="text-sm text-zinc-400">View all inventory transactions and activity logs</p>
             </div>
           </div>
+          <button
+            onClick={fetchTransactions}
+            className="p-2 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition-colors"
+          >
+            <RefreshCw className="w-5 h-5 text-zinc-400" />
+          </button>
         </div>
       </header>
 
       {/* Stats Cards */}
       {stats && (
-        <div className="px-6 py-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            <div className="bg-neutral-900 rounded-lg border border-neutral-200 p-4">
-              <div className="flex items-center gap-2 text-neutral-500 text-sm mb-1">
-                <BarChart3 className="w-4 h-4" />
-                Total Transactions
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {[
+              { label: 'Total Transactions', value: stats.totalTransactions, color: 'text-white', icon: BarChart3 },
+              { label: 'Deliveries', value: stats.deliveryCount, color: 'text-blue-400', icon: Truck },
+              { label: 'Restocks', value: stats.restockCount, color: 'text-green-400', icon: Package },
+              { label: 'Delivery Value', value: formatCurrency(stats.totalDeliveryValue), color: 'text-[#39FF14]', icon: TrendingUp },
+              { label: 'Restock Cost', value: formatCurrency(stats.totalRestockCost), color: 'text-red-400', icon: TrendingDown },
+              { label: 'Profit Margin', value: formatCurrency(stats.profitMargin), color: stats.profitMargin >= 0 ? 'text-[#39FF14]' : 'text-red-400', icon: DollarSign },
+            ].map((stat) => (
+              <div key={stat.label} className="bg-zinc-900 rounded-xl border border-zinc-800 p-4">
+                <div className="flex items-center gap-2 text-zinc-500 text-sm mb-1">
+                  <stat.icon className="w-4 h-4" />
+                  {stat.label}
+                </div>
+                <div className={`text-2xl font-bold ${stat.color}`}>
+                  {typeof stat.value === 'number' ? stat.value : stat.value}
+                </div>
               </div>
-              <div className="text-2xl font-bold text-neutral-900">{stats.totalTransactions}</div>
-            </div>
-            <div className="bg-neutral-900 rounded-lg border border-neutral-200 p-4">
-              <div className="flex items-center gap-2 text-blue-500 text-sm mb-1">
-                <Truck className="w-4 h-4" />
-                Deliveries
-              </div>
-              <div className="text-2xl font-bold text-neutral-900">{stats.deliveryCount}</div>
-            </div>
-            <div className="bg-neutral-900 rounded-lg border border-neutral-200 p-4">
-              <div className="flex items-center gap-2 text-green-500 text-sm mb-1">
-                <Package className="w-4 h-4" />
-                Restocks
-              </div>
-              <div className="text-2xl font-bold text-neutral-900">{stats.restockCount}</div>
-            </div>
-            <div className="bg-neutral-900 rounded-lg border border-neutral-200 p-4">
-              <div className="flex items-center gap-2 text-neutral-500 text-sm mb-1">
-                <TrendingUp className="w-4 h-4" />
-                Delivery Value
-              </div>
-              <div className="text-2xl font-bold text-green-400">{formatCurrency(stats.totalDeliveryValue)}</div>
-            </div>
-            <div className="bg-neutral-900 rounded-lg border border-neutral-200 p-4">
-              <div className="flex items-center gap-2 text-neutral-500 text-sm mb-1">
-                <TrendingDown className="w-4 h-4" />
-                Restock Cost
-              </div>
-              <div className="text-2xl font-bold text-red-400">{formatCurrency(stats.totalRestockCost)}</div>
-            </div>
-            <div className="bg-neutral-900 rounded-lg border border-neutral-200 p-4">
-              <div className="flex items-center gap-2 text-neutral-500 text-sm mb-1">
-                <DollarSign className="w-4 h-4" />
-                Profit Margin
-              </div>
-              <div className={`text-2xl font-bold ${stats.profitMargin >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {formatCurrency(stats.profitMargin)}
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       )}
 
       {/* Filters */}
-      <div className="px-6 py-4 bg-white border-b border-neutral-200">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex-1 min-w-[200px]">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-400" />
-              <input
-                type="text"
-                placeholder="Search transactions..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              />
+      <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 mb-6">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex-1 min-w-[200px]">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <input
+                  type="text"
+                  placeholder="Search transactions..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-zinc-700 rounded-lg focus:ring-2 focus:ring-[#39FF14]/30 focus:border-[#39FF14]/50 bg-zinc-800 text-white placeholder-zinc-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-zinc-500" />
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="border border-zinc-700 rounded-lg px-3 py-2 bg-zinc-800 text-white focus:ring-2 focus:ring-[#39FF14]/30"
+              >
+                <option value="all">All Types</option>
+                <option value="delivery">Deliveries</option>
+                <option value="restock">Restocks</option>
+                <option value="return">Returns</option>
+                <option value="adjustment">Adjustments</option>
+                <option value="count">Counts</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-zinc-500" />
+              <select
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="border border-zinc-700 rounded-lg px-3 py-2 bg-zinc-800 text-white focus:ring-2 focus:ring-[#39FF14]/30"
+              >
+                <option value="all">All Time</option>
+                <option value="today">Today</option>
+                <option value="week">Last 7 Days</option>
+                <option value="month">Last 30 Days</option>
+                <option value="quarter">Last 90 Days</option>
+              </select>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-neutral-500" />
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="border border-neutral-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            >
-              <option value="all">All Types</option>
-              <option value="delivery">Deliveries</option>
-              <option value="restock">Restocks</option>
-              <option value="return">Returns</option>
-              <option value="adjustment">Adjustments</option>
-              <option value="count">Counts</option>
-            </select>
+          <div className="mt-2 text-sm text-zinc-500">
+            Showing {paginatedTransactions.length} of {filteredTransactions.length} transactions
           </div>
-
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-neutral-500" />
-            <select
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-              className="border border-neutral-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            >
-              <option value="all">All Time</option>
-              <option value="today">Today</option>
-              <option value="week">Last 7 Days</option>
-              <option value="month">Last 30 Days</option>
-              <option value="quarter">Last 90 Days</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="mt-2 text-sm text-neutral-500">
-          Showing {paginatedTransactions.length} of {filteredTransactions.length} transactions
         </div>
       </div>
 
       {/* Transactions Table */}
-      <div className="px-6 py-4">
-        <div className="bg-neutral-900 rounded-lg border border-neutral-200 overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-neutral-50 border-b border-neutral-200">
-              <tr>
-                <th className="text-left px-4 py-3 text-xs font-medium text-neutral-500 uppercase tracking-wider">Date/Time</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-neutral-500 uppercase tracking-wider">Type</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-neutral-500 uppercase tracking-wider">Product</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-neutral-500 uppercase tracking-wider">Reference</th>
-                <th className="text-right px-4 py-3 text-xs font-medium text-neutral-500 uppercase tracking-wider">Qty</th>
-                <th className="text-right px-4 py-3 text-xs font-medium text-neutral-500 uppercase tracking-wider">Value</th>
-                <th className="text-center px-4 py-3 text-xs font-medium text-neutral-500 uppercase tracking-wider">Photo</th>
-                <th className="w-10"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-200">
-              {paginatedTransactions.map((transaction) => (
-                <>
-                  <tr
-                    key={transaction.inventoryId}
-                    className="hover:bg-neutral-50 cursor-pointer"
-                    onClick={() => toggleRow(transaction.inventoryId)}
-                  >
-                    <td className="px-4 py-3 text-sm text-neutral-900">
-                      {formatDate(transaction.dateTime)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        {getTypeIcon(transaction.type)}
-                        {getTypeBadge(transaction.type)}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="text-sm font-medium text-neutral-900">
-                        {transaction.product?.productName || transaction.itemId}
-                      </div>
-                      <div className="text-xs text-neutral-500">{transaction.itemId}</div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-neutral-600">
-                      {transaction.referenceNumber}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <span className={`text-sm font-medium ${transaction.amount > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {transaction.amount > 0 ? '+' : ''}{transaction.amount}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right text-sm text-neutral-900">
-                      {formatCurrency(Math.abs(transaction.amount) * (transaction.type === 'delivery' ? transaction.price : transaction.cost))}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {transaction.deliveryPhoto ? (
-                        <ImageIcon className="w-4 h-4 text-green-500 mx-auto" />
-                      ) : (
-                        <span className="text-neutral-300">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {expandedRows.has(transaction.inventoryId) ? (
-                        <ChevronUp className="w-4 h-4 text-neutral-400" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4 text-neutral-400" />
-                      )}
-                    </td>
-                  </tr>
-                  {expandedRows.has(transaction.inventoryId) && (
-                    <tr className="bg-neutral-50">
-                      <td colSpan={8} className="px-4 py-4">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                          <div>
-                            <span className="text-neutral-500">Transaction ID:</span>
-                            <div className="font-medium">{transaction.inventoryId}</div>
-                          </div>
-                          <div>
-                            <span className="text-neutral-500">Unit Price:</span>
-                            <div className="font-medium">{formatCurrency(transaction.price)}</div>
-                          </div>
-                          <div>
-                            <span className="text-neutral-500">Unit Cost:</span>
-                            <div className="font-medium">{formatCurrency(transaction.cost)}</div>
-                          </div>
-                          <div>
-                            <span className="text-neutral-500">Status:</span>
-                            <div className="font-medium capitalize text-green-400">{transaction.status}</div>
-                          </div>
-                          {transaction.deliveryPhoto && (
-                            <div className="col-span-2 md:col-span-4">
-                              <span className="text-neutral-500">Delivery Photo:</span>
-                              <div className="font-medium text-blue-400">{transaction.deliveryPhoto}</div>
-                            </div>
-                          )}
+      <div className="max-w-7xl mx-auto px-6 pb-6">
+        <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-zinc-800/50 border-b border-zinc-800">
+                <tr>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider">Date/Time</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider">Type</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider">Product</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider">Reference</th>
+                  <th className="text-right px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider">Qty</th>
+                  <th className="text-right px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider">Value</th>
+                  <th className="text-center px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider">Photo</th>
+                  <th className="w-10"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800">
+                {paginatedTransactions.map((transaction) => (
+                  <>
+                    <tr
+                      key={transaction.inventoryId}
+                      className="hover:bg-zinc-800/50 cursor-pointer transition-colors"
+                      onClick={() => toggleRow(transaction.inventoryId)}
+                    >
+                      <td className="px-4 py-3 text-sm text-zinc-300">
+                        {formatDate(transaction.dateTime)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          {getTypeIcon(transaction.type)}
+                          {getTypeBadge(transaction.type)}
                         </div>
                       </td>
+                      <td className="px-4 py-3">
+                        <div className="text-sm font-medium text-white">
+                          {transaction.product?.productName || transaction.itemId}
+                        </div>
+                        <div className="text-xs text-zinc-500">{transaction.itemId}</div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-zinc-400">
+                        {transaction.referenceNumber}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <span className={`text-sm font-medium ${transaction.amount > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          {transaction.amount > 0 ? '+' : ''}{transaction.amount}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right text-sm text-white">
+                        {formatCurrency(Math.abs(transaction.amount) * (transaction.type === 'delivery' ? transaction.price : transaction.cost))}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {transaction.deliveryPhoto ? (
+                          <ImageIcon className="w-4 h-4 text-green-400 mx-auto" />
+                        ) : (
+                          <span className="text-zinc-600">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {expandedRows.has(transaction.inventoryId) ? (
+                          <ChevronUp className="w-4 h-4 text-zinc-500" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4 text-zinc-500" />
+                        )}
+                      </td>
                     </tr>
-                  )}
-                </>
-              ))}
-            </tbody>
-          </table>
+                    {expandedRows.has(transaction.inventoryId) && (
+                      <tr key={`${transaction.inventoryId}-detail`} className="bg-zinc-800/30">
+                        <td colSpan={8} className="px-4 py-4">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                              <span className="text-zinc-500">Transaction ID:</span>
+                              <div className="font-medium text-white">{transaction.inventoryId}</div>
+                            </div>
+                            <div>
+                              <span className="text-zinc-500">Unit Price:</span>
+                              <div className="font-medium text-white">{formatCurrency(transaction.price)}</div>
+                            </div>
+                            <div>
+                              <span className="text-zinc-500">Unit Cost:</span>
+                              <div className="font-medium text-white">{formatCurrency(transaction.cost)}</div>
+                            </div>
+                            <div>
+                              <span className="text-zinc-500">Status:</span>
+                              <div className="font-medium capitalize text-green-400">{transaction.status}</div>
+                            </div>
+                            {transaction.deliveryPhoto && (
+                              <div className="col-span-2 md:col-span-4">
+                                <span className="text-zinc-500">Delivery Photo:</span>
+                                <div className="font-medium text-[#39FF14]">{transaction.deliveryPhoto}</div>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="px-4 py-3 border-t border-neutral-200 flex items-center justify-between">
+            <div className="px-4 py-3 border-t border-zinc-800 flex items-center justify-between">
               <button
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="px-4 py-2 border border-neutral-300 rounded-lg text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 border border-zinc-700 rounded-lg text-sm font-medium text-zinc-300 hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Previous
               </button>
-              <div className="text-sm text-neutral-600">
+              <div className="text-sm text-zinc-500">
                 Page {currentPage} of {totalPages}
               </div>
               <button
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="px-4 py-2 border border-neutral-300 rounded-lg text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 border border-zinc-700 rounded-lg text-sm font-medium text-zinc-300 hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Next
               </button>
+            </div>
+          )}
+
+          {paginatedTransactions.length === 0 && (
+            <div className="p-8 text-center">
+              <BarChart3 className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-white">No transactions found</h3>
+              <p className="text-zinc-500">Try adjusting your filters or search term</p>
             </div>
           )}
         </div>
