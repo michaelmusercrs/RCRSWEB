@@ -388,16 +388,51 @@ class UnifiedDataService {
       m.position.toLowerCase().includes('sales')
     );
 
-    // Calculate mock sales totals based on real team data
-    // In production, this would come from JobNimbus sales data
+    // Get real sales data from commission records (imported via financial service pattern)
+    // Commission data is available in commissions.json - use dynamic import to avoid circular deps
+    let commissionsByRep: Map<string, number> = new Map();
+    try {
+      const commissionsData = (await import('@/data/commissions.json')).default as Array<{ salesRep: string; date: string; amount: number }>;
+      const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      for (const record of commissionsData) {
+        // Parse date (M/D/YY format)
+        const parts = record.date?.split('/');
+        if (!parts || parts.length !== 3) continue;
+        let year = parseInt(parts[2], 10);
+        if (year < 100) year = 2000 + year;
+        const recordDate = new Date(year, parseInt(parts[0], 10) - 1, parseInt(parts[1], 10));
+        if (recordDate >= thisMonthStart) {
+          const rep = record.salesRep.replace(/\s+/g, ' ').trim();
+          commissionsByRep.set(rep, (commissionsByRep.get(rep) || 0) + record.amount);
+        }
+      }
+    } catch {
+      // Commission data unavailable
+    }
+
+    // Match sales team members to their commission data
+    // Commission amounts * 10 = estimated job revenue (commissions are ~10% of job value)
+    const COMMISSION_MULTIPLIER = 10;
     const topPerformers = salesTeam
+      .map((member) => {
+        // Try matching by first name or full name
+        let repCommission = 0;
+        for (const [rep, amount] of commissionsByRep.entries()) {
+          if (rep.includes(member.name.split(' ')[0]) || member.name.includes(rep.split(' ')[0])) {
+            repCommission = amount;
+            break;
+          }
+        }
+        return {
+          name: member.name.split(' ')[0],
+          avatar: member.name.charAt(0),
+          sales: Math.round(repCommission * COMMISSION_MULTIPLIER),
+          rank: 0,
+        };
+      })
+      .sort((a, b) => b.sales - a.sales)
       .slice(0, 3)
-      .map((member, idx) => ({
-        name: member.name.split(' ')[0], // First name only
-        avatar: member.name.charAt(0),
-        sales: Math.floor(45000 - (idx * 7000)), // Placeholder - would come from real sales data
-        rank: idx + 1,
-      }));
+      .map((p, idx) => ({ ...p, rank: idx + 1 }));
 
     // Build recent activity from real data
     const recentOrders = getRecentOrders(5);
@@ -454,13 +489,26 @@ class UnifiedDataService {
 
     return {
       sales: {
-        todayTotal: dashboardStats.estimates.totalValue > 0
-          ? Math.floor(dashboardStats.estimates.totalValue / 30) // Rough daily average
-          : 12450, // Fallback
-        weekTotal: dashboardStats.estimates.totalValue > 0
-          ? Math.floor(dashboardStats.estimates.totalValue / 4)
-          : 87500,
-        monthTotal: dashboardStats.estimates.totalValue || 350000,
+        // Derive sales totals from real commission data (commissions * 10 = estimated revenue)
+        todayTotal: (() => {
+          let todayCommissions = 0;
+          const todayStr = now.toISOString().split('T')[0];
+          try {
+            for (const [, amount] of commissionsByRep.entries()) {
+              // commissionsByRep is already this-month filtered; use as proxy
+              todayCommissions += amount;
+            }
+          } catch { /* no data */ }
+          // If we have monthly commission data, estimate daily as month / days elapsed
+          const dayOfMonth = now.getDate();
+          return dayOfMonth > 0 ? Math.round((todayCommissions * COMMISSION_MULTIPLIER) / dayOfMonth) : 0;
+        })(),
+        weekTotal: (() => {
+          const dayOfMonth = now.getDate();
+          const monthTotal = Array.from(commissionsByRep.values()).reduce((s, v) => s + v, 0) * COMMISSION_MULTIPLIER;
+          return dayOfMonth >= 7 ? Math.round(monthTotal / Math.floor(dayOfMonth / 7)) : Math.round(monthTotal);
+        })(),
+        monthTotal: Math.round(Array.from(commissionsByRep.values()).reduce((s, v) => s + v, 0) * COMMISSION_MULTIPLIER),
         topPerformers,
       },
       activeJobs: dashboardStats.jobs.active,

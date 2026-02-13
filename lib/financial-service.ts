@@ -936,18 +936,18 @@ class FinancialService {
       {
         category: 'Marketing',
         budgeted: 5000,
-        actual: expensesByCategory.get('Marketing') || 3200,
+        actual: expensesByCategory.get('Marketing') || 0, // No fake fallback — 0 if no Sheets data
       },
       {
         category: 'Operations',
         budgeted: 10000,
         actual: expensesByCategory.get('Operations')
-          || Math.round(monthRevenue * OVERHEAD_COST_RATIO),
+          || (monthRevenue > 0 ? Math.round(monthRevenue * OVERHEAD_COST_RATIO) : 0),
       },
       {
         category: 'Equipment',
         budgeted: 8000,
-        actual: expensesByCategory.get('Equipment') || 5500,
+        actual: expensesByCategory.get('Equipment') || 0, // No fake fallback — 0 if no Sheets data
       },
       {
         category: 'Commissions',
