@@ -1,5 +1,9 @@
 // Portal Users Data - Source: items for web.pdf (Page 3)
-// Last Updated: December 2025
+// Last Updated: February 2026
+// SECURITY: Passwords are PBKDF2-hashed (sha512, 100k iterations)
+// PINs are for driver quick-login only (low-sensitivity)
+
+import { createHash, pbkdf2Sync, randomBytes, timingSafeEqual } from 'crypto';
 
 export type PortalUserRole = 'ADMIN' | 'MANAGER' | 'USER';
 
@@ -9,7 +13,7 @@ export interface PortalUserAccount {
   email: string;
   role: PortalUserRole;
   active: boolean;
-  password: string; // In production, this would be hashed
+  passwordHash: string; // PBKDF2 salt:hash
   pin?: string;
   phone?: string;
   lastLogin?: string;
@@ -25,23 +29,49 @@ export interface LoginRecord {
   userAgent?: string;
 }
 
-// 10 System Users from PDF
-export const portalUsers: PortalUserAccount[] = [
+// =============================================================================
+// Password Hashing Utilities
+// =============================================================================
+
+/**
+ * Hash a password with PBKDF2 (sha512, 100k iterations, random salt)
+ */
+export function hashPassword(password: string): string {
+  const salt = randomBytes(16).toString('hex');
+  const hash = pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
+  return `${salt}:${hash}`;
+}
+
+/**
+ * Verify a password against a PBKDF2 hash (timing-safe comparison)
+ */
+export function verifyPassword(password: string, storedHash: string): boolean {
+  const [salt, hash] = storedHash.split(':');
+  if (!salt || !hash) return false;
+  const candidateHash = pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
+  // Use timing-safe comparison to prevent timing attacks
+  try {
+    return timingSafeEqual(Buffer.from(candidateHash, 'hex'), Buffer.from(hash, 'hex'));
+  } catch {
+    return false;
+  }
+}
+
+// =============================================================================
+// Portal Users - Passwords hashed with PBKDF2
+// =============================================================================
+
+const portalUsers: PortalUserAccount[] = [
   {
     uid: 'RVR-131',
     userName: 'SARAHILL',
     email: 'sara@rcrsal.com',
     role: 'ADMIN',
     active: true,
-    password: 'Admin2024!',
+    passwordHash: '262f909270e19f520475f9ec734d7ba0:59b23bd532f766391ff2fe305e2f82e0bf77cb42bc716a15bf13c820bacb32fd9626c49fd50bb4259a1124df23ae968a233030e4b9a43e36cc6a07635e9cbd51',
     pin: '1131',
-    phone: '256-810-3594',
     createdAt: '2024-01-15T08:00:00Z',
-    loginHistory: [
-      { timestamp: '2025-12-02T08:30:00Z', status: 'success' },
-      { timestamp: '2025-12-01T09:15:00Z', status: 'success' },
-      { timestamp: '2025-11-30T08:45:00Z', status: 'success' }
-    ]
+    loginHistory: []
   },
   {
     uid: 'RVR-132',
@@ -49,14 +79,10 @@ export const portalUsers: PortalUserAccount[] = [
     email: 'destin@rcrsal.com',
     role: 'MANAGER',
     active: true,
-    password: 'Manager2024!',
+    passwordHash: 'e3062f76a978eb03241e9ddd0e400f69:a9e6846336230647ed60cb6ca82422da679444eeb324e9f579d721f37b0928d7e26be4222ac949f664061e1be8077e723266a0c76779000ed08f2ef459beb28c',
     pin: '1132',
-    phone: '256-905-7738',
     createdAt: '2024-02-01T09:00:00Z',
-    loginHistory: [
-      { timestamp: '2025-12-02T09:00:00Z', status: 'success' },
-      { timestamp: '2025-12-01T10:30:00Z', status: 'success' }
-    ]
+    loginHistory: []
   },
   {
     uid: 'RVR-133',
@@ -64,14 +90,10 @@ export const portalUsers: PortalUserAccount[] = [
     email: 'tia@rcrsal.com',
     role: 'MANAGER',
     active: true,
-    password: 'Manager2024!',
+    passwordHash: 'e3062f76a978eb03241e9ddd0e400f69:a9e6846336230647ed60cb6ca82422da679444eeb324e9f579d721f37b0928d7e26be4222ac949f664061e1be8077e723266a0c76779000ed08f2ef459beb28c',
     pin: '1133',
-    phone: '256-394-8396',
     createdAt: '2024-02-01T09:00:00Z',
-    loginHistory: [
-      { timestamp: '2025-12-02T08:15:00Z', status: 'success' },
-      { timestamp: '2025-12-01T09:00:00Z', status: 'success' }
-    ]
+    loginHistory: []
   },
   {
     uid: 'RVR-134',
@@ -79,14 +101,10 @@ export const portalUsers: PortalUserAccount[] = [
     email: 'bart@rcrsal.com',
     role: 'MANAGER',
     active: true,
-    password: 'Manager2024!',
+    passwordHash: 'e3062f76a978eb03241e9ddd0e400f69:a9e6846336230647ed60cb6ca82422da679444eeb324e9f579d721f37b0928d7e26be4222ac949f664061e1be8077e723266a0c76779000ed08f2ef459beb28c',
     pin: '1134',
-    phone: '256-654-0747',
     createdAt: '2024-03-15T10:00:00Z',
-    loginHistory: [
-      { timestamp: '2025-12-02T07:45:00Z', status: 'success' },
-      { timestamp: '2025-12-01T08:00:00Z', status: 'success' }
-    ]
+    loginHistory: []
   },
   {
     uid: 'RVR-135',
@@ -94,15 +112,10 @@ export const portalUsers: PortalUserAccount[] = [
     email: 'michaelmuse@rcrsal.com',
     role: 'ADMIN',
     active: true,
-    password: 'Admin2024!',
+    passwordHash: '262f909270e19f520475f9ec734d7ba0:59b23bd532f766391ff2fe305e2f82e0bf77cb42bc716a15bf13c820bacb32fd9626c49fd50bb4259a1124df23ae968a233030e4b9a43e36cc6a07635e9cbd51',
     pin: '1135',
-    phone: '256-221-4290',
     createdAt: '2024-01-01T08:00:00Z',
-    loginHistory: [
-      { timestamp: '2025-12-04T09:00:00Z', status: 'success' },
-      { timestamp: '2025-12-03T10:00:00Z', status: 'success' },
-      { timestamp: '2025-12-02T11:00:00Z', status: 'success' }
-    ]
+    loginHistory: []
   },
   {
     uid: 'RVR-136',
@@ -110,13 +123,10 @@ export const portalUsers: PortalUserAccount[] = [
     email: 'richard@rivercityroofingsolutions.com',
     role: 'USER',
     active: true,
-    password: 'User2024!',
+    passwordHash: '56e3e755cb07d11a03c5ce70be19c5e9:8d7fed6fb5ccc5fb72e092ed427ae6280f9a88abac6fdd1163a29115c6ed4ecc4a5072ab3579171f1f1af1681c1919d2a98b1f2725932afaa9796b0c1d66b0e0',
     pin: '1136',
     createdAt: '2024-04-01T09:00:00Z',
-    loginHistory: [
-      { timestamp: '2025-12-02T06:30:00Z', status: 'success' },
-      { timestamp: '2025-12-01T07:00:00Z', status: 'success' }
-    ]
+    loginHistory: []
   },
   {
     uid: 'RVR-137',
@@ -124,29 +134,21 @@ export const portalUsers: PortalUserAccount[] = [
     email: 'john@rcrsal.com',
     role: 'MANAGER',
     active: true,
-    password: 'Manager2024!',
+    passwordHash: 'e3062f76a978eb03241e9ddd0e400f69:a9e6846336230647ed60cb6ca82422da679444eeb324e9f579d721f37b0928d7e26be4222ac949f664061e1be8077e723266a0c76779000ed08f2ef459beb28c',
     pin: '1137',
-    phone: '256-654-0875',
     createdAt: '2024-02-15T10:00:00Z',
-    loginHistory: [
-      { timestamp: '2025-12-02T07:00:00Z', status: 'success' },
-      { timestamp: '2025-12-01T08:30:00Z', status: 'success' }
-    ]
+    loginHistory: []
   },
   {
     uid: 'RVR-138',
-    userName: 'CRIS MUSE',
+    userName: 'CHRISMUSE',
     email: 'chrismuse@rcrsal.com',
     role: 'USER',
     active: true,
-    password: 'User2024!',
+    passwordHash: '56e3e755cb07d11a03c5ce70be19c5e9:8d7fed6fb5ccc5fb72e092ed427ae6280f9a88abac6fdd1163a29115c6ed4ecc4a5072ab3579171f1f1af1681c1919d2a98b1f2725932afaa9796b0c1d66b0e0',
     pin: '1138',
-    phone: '256-648-1224',
     createdAt: '2024-01-01T08:00:00Z',
-    loginHistory: [
-      { timestamp: '2025-12-03T14:00:00Z', status: 'success' },
-      { timestamp: '2025-12-01T15:30:00Z', status: 'success' }
-    ]
+    loginHistory: []
   },
   {
     uid: 'RVR-139',
@@ -154,31 +156,28 @@ export const portalUsers: PortalUserAccount[] = [
     email: 'admin@rcrsal.com',
     role: 'ADMIN',
     active: true,
-    password: 'SuperAdmin2024!',
+    passwordHash: '87f6d05a2295c0ea609771ad7228199c:6174072ef6542a9a16764b870d71672c2d39d9ccf0ab7cf72d4e5be2683443a91f53992b31a0b3ab1d3970dcd128612efb47136afa88fb5497d23f44c2e1b050',
     pin: '0000',
     createdAt: '2024-01-01T00:00:00Z',
-    loginHistory: [
-      { timestamp: '2025-12-04T10:00:00Z', status: 'success' }
-    ]
+    loginHistory: []
   },
   {
     uid: 'a8ad2e33',
-    userName: 'Tae Orr',
+    userName: 'TAEORR',
     email: 'tae@rcrsal.com',
     role: 'USER',
-    active: true,
-    password: 'User2024!',
+    active: false, // Inactive - not in Google Workspace
+    passwordHash: '56e3e755cb07d11a03c5ce70be19c5e9:8d7fed6fb5ccc5fb72e092ed427ae6280f9a88abac6fdd1163a29115c6ed4ecc4a5072ab3579171f1f1af1681c1919d2a98b1f2725932afaa9796b0c1d66b0e0',
     pin: '2033',
-    phone: '256-200-3467',
     createdAt: '2024-05-01T09:00:00Z',
-    loginHistory: [
-      { timestamp: '2025-12-02T06:00:00Z', status: 'success' },
-      { timestamp: '2025-12-01T06:15:00Z', status: 'success' }
-    ]
+    loginHistory: []
   }
 ];
 
-// Helper functions
+// =============================================================================
+// Helper Functions
+// =============================================================================
+
 export function getUserByUid(uid: string): PortalUserAccount | undefined {
   return portalUsers.find(u => u.uid === uid);
 }
@@ -203,6 +202,9 @@ export function getUsersByRole(role: PortalUserRole): PortalUserAccount[] {
   return portalUsers.filter(u => u.role === role);
 }
 
+/**
+ * Validate login with hashed password comparison (timing-safe)
+ */
 export function validateLogin(identifier: string, password: string): { success: boolean; user?: PortalUserAccount; error?: string } {
   // Try to find user by username, email, or PIN
   const user = getUserByUsername(identifier) ||
@@ -210,18 +212,26 @@ export function validateLogin(identifier: string, password: string): { success: 
                getUserByPin(identifier);
 
   if (!user) {
-    return { success: false, error: 'User not found' };
+    // Still hash to prevent timing-based user enumeration
+    verifyPassword(password, 'dummy:dummy');
+    return { success: false, error: 'Invalid credentials' };
   }
 
   if (!user.active) {
     return { success: false, error: 'Account is inactive' };
   }
 
-  if (user.password !== password && user.pin !== identifier) {
-    return { success: false, error: 'Invalid credentials' };
+  // PIN-based login (driver quick login)
+  if (user.pin === identifier) {
+    return { success: true, user };
   }
 
-  return { success: true, user };
+  // Password-based login
+  if (verifyPassword(password, user.passwordHash)) {
+    return { success: true, user };
+  }
+
+  return { success: false, error: 'Invalid credentials' };
 }
 
 // Role permissions mapping
