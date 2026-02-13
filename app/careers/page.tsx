@@ -315,8 +315,8 @@ const faqData = [
     a: 'Not at all! We provide comprehensive, FREE training that covers everything from roofing fundamentals to proven sales techniques. Many of our top earners started with zero experience.',
   },
   {
-    q: 'How does the compensation work?',
-    a: 'You earn commission on every job you close. There\'s no cap on your earnings — the more you work, the more you make. Our top performers earn over $100K annually.',
+    q: 'How does the compensation and benefits work?',
+    a: 'You earn commission on every job you close with no cap on earnings. Plus we offer health, dental, and vision insurance, 401(k) with company match, and an accident policy that covers your entire household — not just you, your whole family. Our top performers earn over $100K annually.',
   },
   {
     q: 'What about leads? Do I have to find my own customers?',
@@ -336,7 +336,7 @@ const faqData = [
   },
   {
     q: 'What makes RCRS different from other roofing companies hiring reps?',
-    a: 'At most roofing companies, you\'re just an employee. Here, you\'re building YOUR business with our brand, technology, and support behind you. When you grow, you keep what you build.',
+    a: 'Our owners have 25+ years actually roofing — selling, project managing, and running crews. We\'re OC Preferred and IKO Top Tier Craftsman Premier certified. We offer real benefits (health, dental, vision, 401k, family accident coverage). And we\'ve donated over $100K to our local community. This isn\'t a side hustle for us — roofing is all we\'ve ever done.',
   },
 ];
 
@@ -405,7 +405,7 @@ export default function CareersPage() {
             Build Your Own <span className="text-brand-green">Business</span>
           </h1>
           <h2 className="text-2xl md:text-3xl text-white/90 mb-10 max-w-3xl mx-auto leading-relaxed">
-            Take control of your future with unlimited earning potential and the support of River City Roofing Solutions
+            25+ years of real roofing experience. Full benefits. Unlimited earning potential. OC Preferred &amp; IKO Craftsman Premier certified.
           </h2>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <a
@@ -432,10 +432,10 @@ export default function CareersPage() {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {[
+              { value: '25+', label: 'Years in Roofing' },
               { value: '5+', label: 'Cities & Growing' },
-              { value: '100%', label: 'Free Training' },
               { value: '$100K+', label: 'Potential Earnings' },
-              { value: '24/7', label: 'Team Support' },
+              { value: '$100K+', label: 'Donated to Community' },
             ].map((s) => (
               <div key={s.label} className="p-4">
                 <div className="text-4xl font-bold text-brand-green mb-2">{s.value}</div>
@@ -491,10 +491,10 @@ export default function CareersPage() {
                 link: { href: '#testimonials', label: 'Read Testimonials →' },
               },
               {
-                icon: <Trophy size={40} />,
-                title: 'Proven Success Track',
-                text: 'Our owners started exactly where you are now. We have a proven system that works and will help you build your business.',
-                link: { href: '#application', label: 'Start Your Journey →' },
+                icon: <Shield size={40} />,
+                title: 'Full Benefits Package',
+                text: 'Health, dental, and vision insurance. 401(k) with company match. Plus an accident policy covering your entire household — not just you, your whole family.',
+                link: null,
               },
             ].map((b) => (
               <div
@@ -542,8 +542,8 @@ export default function CareersPage() {
                   'Someone else sets your schedule',
                   'You build THEIR business, not yours',
                   'Limited growth — wait for promotions',
-                  'Just another employee number',
-                  'Generic Indeed job listing',
+                  'Owners who pivoted from other industries',
+                  'No real benefits or family protection',
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-3">
                     <span className="text-red-400 mt-1">✕</span>
@@ -567,9 +567,9 @@ export default function CareersPage() {
                   'Uncapped commissions — earn what you deserve',
                   'YOU set your own hours and territory',
                   'Build YOUR business with our brand behind you',
-                  'Unlimited growth — your effort = your results',
-                  'Family-oriented team that has your back',
-                  'Real training, real support, real opportunity',
+                  'Owners with 25+ years actually roofing, selling, and running crews',
+                  'Full benefits: health, dental, vision, 401(k) match, family accident policy',
+                  'OC Preferred & IKO Top Tier Craftsman Premier certified',
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-3">
                     <CheckCircle size={18} className="text-brand-green mt-1 flex-shrink-0" />
@@ -604,7 +604,7 @@ export default function CareersPage() {
               {
                 step: 2,
                 title: 'Complete Our Free Training',
-                text: 'Learn everything you need to know about roofing sales through our comprehensive training program, guided by industry veterans.',
+                text: 'Learn from owners with 25+ years of hands-on roofing experience — selling, project managing, and running crews. Not theory from a textbook.',
               },
               {
                 step: 3,
@@ -748,6 +748,53 @@ export default function CareersPage() {
                 <p className="italic text-gray-700 leading-relaxed">&ldquo;{t.quote}&rdquo;</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Community Involvement */}
+      <section className="py-20 bg-[#1a1a1a] text-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold">
+              Rooted in <span className="text-brand-green">Community</span>
+            </h2>
+            <p className="text-xl mt-6 max-w-3xl mx-auto text-gray-300">
+              We don&apos;t just work here — we live here. RCRS has donated over $100,000 to local organizations because strong communities build strong businesses.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
+            {[
+              'Youth Sports Teams',
+              'Netreapers',
+              'Decatur High School',
+              'Austin High School',
+              'Decatur Heritage',
+              'Local Charities',
+              'Community Events',
+              'And Many More',
+            ].map((org) => (
+              <div key={org} className="bg-gray-800 rounded-lg p-4 text-center border border-gray-700 hover:border-brand-green transition">
+                <p className="font-semibold">{org}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center mt-12">
+            <p className="text-gray-300 text-lg mb-6">Follow us and see what we&apos;re up to</p>
+            <div className="flex justify-center gap-6">
+              {[
+                { label: 'Facebook', href: 'https://facebook.com/rivercityroofingsolutions' },
+                { label: 'YouTube', href: 'https://youtube.com/@rivercityroofingsolutions' },
+                { label: 'Instagram', href: 'https://instagram.com/rivercityroofingsolutions' },
+                { label: 'TikTok', href: 'https://tiktok.com/@rivercityroofingsolutions' },
+              ].map((s) => (
+                <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" className="text-brand-green hover:underline font-semibold">
+                  {s.label}
+                </a>
+              ))}
+            </div>
           </div>
         </div>
       </section>
