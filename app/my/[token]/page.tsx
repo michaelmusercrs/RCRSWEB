@@ -236,7 +236,7 @@ export default function CustomerPortal() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="animate-spin text-green-600 mx-auto mb-4" size={48} />
+          <Loader2 className="animate-spin text-[#0066CC] mx-auto mb-4" size={48} />
           <p className="text-neutral-600">Loading your portal...</p>
         </div>
       </div>
@@ -263,6 +263,15 @@ export default function CustomerPortal() {
   if (!data) return null;
 
   const { customer, salesRep, appointments, documents, messages, jobStatus, weather, hailReports } = data;
+  const settings = (data as any).settings || {};
+  const showWeather = settings.showWeather !== false;
+  const showAppointments = settings.showAppointments !== false;
+  const showDocuments = settings.showDocuments !== false;
+  const showMessages = settings.showMessages !== false;
+  const showHailReports = settings.showHailReports !== false;
+  const showJobProgress = settings.showJobProgress !== false;
+  const allowFileUpload = settings.allowFileUpload || settings.allowFileUploads || false;
+  const allowMessages = settings.allowMessages || settings.allowSendMessages !== false;
   const upcomingAppointments = appointments.filter(a => new Date(a.scheduledDate) >= new Date() && a.status !== 'cancelled');
 
   return (
@@ -272,7 +281,7 @@ export default function CustomerPortal() {
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-[#0066CC] rounded-lg flex items-center justify-center">
                 <Home className="text-white" size={22} />
               </div>
               <div>
@@ -282,7 +291,7 @@ export default function CustomerPortal() {
             </div>
             <Link
               href={`/team/${salesRep.slug}`}
-              className="flex items-center gap-2 text-sm text-green-600 hover:text-green-700"
+              className="flex items-center gap-2 text-sm text-[#0066CC] hover:text-[#005bb5]"
             >
               <span className="hidden sm:inline">View Rep Profile</span>
               <ExternalLink size={16} />
@@ -292,10 +301,10 @@ export default function CustomerPortal() {
       </header>
 
       {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white">
+      <div className="bg-gradient-to-r from-[#0066CC] to-[#0055aa] text-white">
         <div className="max-w-4xl mx-auto px-4 py-8">
           <h2 className="text-2xl font-bold mb-2">Welcome, {customer.customerName.split(' ')[0]}!</h2>
-          <p className="text-green-100 flex items-center gap-2">
+          <p className="text-blue-100 flex items-center gap-2">
             <MapPin size={16} />
             {customer.customerAddress}
           </p>
@@ -308,21 +317,21 @@ export default function CustomerPortal() {
           <div className="bg-white rounded-xl shadow-lg p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                  <Wrench className="text-green-600" size={20} />
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Wrench className="text-[#0066CC]" size={20} />
                 </div>
                 <div>
                   <h3 className="font-semibold text-neutral-800">Project Status</h3>
-                  <p className="text-sm text-green-600">{jobStatus.phase}</p>
+                  <p className="text-sm text-[#0066CC]">{jobStatus.phase}</p>
                 </div>
               </div>
               <div className="text-right">
-                <span className="text-2xl font-bold text-green-600">{jobStatus.progress}%</span>
+                <span className="text-2xl font-bold text-[#0066CC]">{jobStatus.progress}%</span>
               </div>
             </div>
             <div className="w-full bg-neutral-200 rounded-full h-3 mb-3">
               <div
-                className="bg-gradient-to-r from-green-500 to-emerald-500 h-3 rounded-full transition-all duration-500"
+                className="bg-gradient-to-r from-[#0066CC] to-[#0077dd] h-3 rounded-full transition-all duration-500"
                 style={{ width: `${jobStatus.progress}%` }}
               />
             </div>
@@ -348,8 +357,8 @@ export default function CustomerPortal() {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-green-100">
-                  <User className="text-green-600" size={28} />
+                <div className="w-full h-full flex items-center justify-center bg-blue-100">
+                  <User className="text-[#0066CC]" size={28} />
                 </div>
               )}
             </div>
@@ -360,7 +369,7 @@ export default function CustomerPortal() {
                 {salesRep.phone && (
                   <a
                     href={`tel:${salesRep.phone}`}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#0066CC] text-white rounded-lg text-sm font-medium hover:bg-[#005bb5] transition-colors"
                   >
                     <Phone size={16} />
                     Call
@@ -385,18 +394,18 @@ export default function CustomerPortal() {
       <div className="max-w-4xl mx-auto px-4 mt-6">
         <div className="flex gap-2 overflow-x-auto pb-2">
           {[
-            { id: 'overview', label: 'Overview', icon: Home },
-            { id: 'appointments', label: 'Appointments', icon: Calendar, count: upcomingAppointments.length },
-            { id: 'documents', label: 'Documents', icon: FileText, count: documents.length },
-            { id: 'messages', label: 'Messages', icon: MessageSquare, count: messages.length },
-            { id: 'weather', label: 'Weather', icon: Cloud },
-          ].map((tab) => (
+            { id: 'overview', label: 'Overview', icon: Home, visible: true },
+            { id: 'appointments', label: 'Appointments', icon: Calendar, count: upcomingAppointments.length, visible: showAppointments },
+            { id: 'documents', label: 'Documents', icon: FileText, count: documents.length, visible: showDocuments },
+            { id: 'messages', label: 'Messages', icon: MessageSquare, count: messages.length, visible: showMessages },
+            { id: 'weather', label: 'Weather', icon: Cloud, visible: showWeather },
+          ].filter(tab => tab.visible).map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as typeof activeTab)}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                 activeTab === tab.id
-                  ? 'bg-green-600 text-white'
+                  ? 'bg-[#0066CC] text-white'
                   : 'bg-white text-neutral-600 hover:bg-neutral-50'
               }`}
             >
@@ -404,7 +413,7 @@ export default function CustomerPortal() {
               {tab.label}
               {tab.count !== undefined && tab.count > 0 && (
                 <span className={`px-1.5 py-0.5 rounded-full text-xs ${
-                  activeTab === tab.id ? 'bg-white/20' : 'bg-green-100 text-green-600'
+                  activeTab === tab.id ? 'bg-white/20' : 'bg-blue-100 text-[#0066CC]'
                 }`}>
                   {tab.count}
                 </span>
@@ -466,7 +475,7 @@ export default function CustomerPortal() {
                   </div>
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                     upcomingAppointments[0].status === 'confirmed'
-                      ? 'bg-green-100 text-green-700'
+                      ? 'bg-blue-100 text-[#005bb5]'
                       : 'bg-yellow-100 text-yellow-700'
                   }`}>
                     {upcomingAppointments[0].status}
@@ -553,12 +562,12 @@ export default function CustomerPortal() {
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4">
                       <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                        apt.status === 'completed' ? 'bg-green-100' :
+                        apt.status === 'completed' ? 'bg-blue-100' :
                         apt.status === 'cancelled' ? 'bg-red-100' :
                         'bg-blue-100'
                       }`}>
                         {apt.status === 'completed' ? (
-                          <CheckCircle className="text-green-600" size={24} />
+                          <CheckCircle className="text-[#0066CC]" size={24} />
                         ) : apt.status === 'cancelled' ? (
                           <AlertTriangle className="text-red-600" size={24} />
                         ) : (
@@ -582,7 +591,7 @@ export default function CustomerPortal() {
                       </div>
                     </div>
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      apt.status === 'confirmed' ? 'bg-green-100 text-green-700' :
+                      apt.status === 'confirmed' ? 'bg-blue-100 text-[#005bb5]' :
                       apt.status === 'completed' ? 'bg-blue-100 text-blue-700' :
                       apt.status === 'cancelled' ? 'bg-red-100 text-red-700' :
                       'bg-yellow-100 text-yellow-700'
@@ -602,7 +611,7 @@ export default function CustomerPortal() {
             {/* Upload Button */}
             <button
               onClick={() => setShowUploadModal(true)}
-              className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl p-4 font-medium hover:from-green-700 hover:to-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg"
+              className="w-full bg-gradient-to-r from-[#0066CC] to-[#0055aa] text-white rounded-xl p-4 font-medium hover:from-green-700 hover:to-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg"
             >
               <Upload size={20} />
               Upload Photos or Documents
@@ -645,9 +654,9 @@ export default function CustomerPortal() {
         {activeTab === 'messages' && (
           <div className="space-y-6">
             {/* Rep Contact Card */}
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
+            <div className="bg-gradient-to-r from-blue-50 to-sky-50 rounded-xl p-4 border border-blue-100">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center text-white">
+                <div className="w-10 h-10 bg-[#0066CC] rounded-full flex items-center justify-center text-white">
                   {salesRep.photo ? (
                     <Image src={salesRep.photo} alt={salesRep.name} width={40} height={40} className="w-10 h-10 rounded-full object-cover" />
                   ) : (
@@ -675,14 +684,14 @@ export default function CustomerPortal() {
                     key={msg.messageId}
                     className={`rounded-xl p-4 ${
                       msg.direction === 'outbound'
-                        ? 'bg-green-50 border border-green-100 ml-8'
+                        ? 'bg-blue-50 border border-blue-100 ml-8'
                         : 'bg-white shadow-sm mr-8'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         {msg.direction === 'outbound' ? (
-                          <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center">
+                          <div className="w-6 h-6 bg-[#0066CC] rounded-full flex items-center justify-center">
                             <User size={12} className="text-white" />
                           </div>
                         ) : (
@@ -716,7 +725,7 @@ export default function CustomerPortal() {
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder={`Message ${salesRep.name || 'your rep'}...`}
                   rows={2}
-                  className="flex-1 border border-neutral-200 rounded-xl px-4 py-3 text-neutral-800 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                  className="flex-1 border border-neutral-200 rounded-xl px-4 py-3 text-neutral-800 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#0066CC] focus:border-transparent resize-none"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
@@ -727,7 +736,7 @@ export default function CustomerPortal() {
                 <button
                   onClick={sendMessage}
                   disabled={!message.trim() || sending}
-                  className="self-end px-5 py-3 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 disabled:bg-neutral-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                  className="self-end px-5 py-3 bg-[#0066CC] text-white rounded-xl font-medium hover:bg-[#005bb5] disabled:bg-neutral-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
                 >
                   {sending ? (
                     <Loader2 className="animate-spin" size={18} />
@@ -737,7 +746,7 @@ export default function CustomerPortal() {
                 </button>
               </div>
               {messageSent && (
-                <p className="text-sm text-green-600 mt-2 flex items-center gap-2">
+                <p className="text-sm text-[#0066CC] mt-2 flex items-center gap-2">
                   <CheckCircle size={16} />
                   Message sent! {salesRep.name || 'Your rep'} has been notified.
                 </p>
@@ -865,13 +874,13 @@ export default function CustomerPortal() {
         <div className="max-w-4xl mx-auto px-4 py-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-[#0066CC] rounded-lg flex items-center justify-center">
                 <Home className="text-white" size={16} />
               </div>
               <span className="text-sm text-neutral-600">River City Roofing Solutions</span>
             </div>
             <div className="flex items-center gap-4 text-sm text-neutral-500">
-              <a href="tel:+12562748530" className="hover:text-green-600 flex items-center gap-1">
+              <a href="tel:+12562748530" className="hover:text-[#0066CC] flex items-center gap-1">
                 <Phone size={14} />
                 (256) 274-8530
               </a>
@@ -902,8 +911,8 @@ export default function CustomerPortal() {
 
             {uploadSuccess ? (
               <div className="text-center py-8">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle className="text-green-600" size={32} />
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle className="text-[#0066CC]" size={32} />
                 </div>
                 <h4 className="font-semibold text-neutral-800 mb-2">Upload Successful!</h4>
                 <p className="text-neutral-500">Your file has been uploaded and shared with your rep.</p>
@@ -912,7 +921,7 @@ export default function CustomerPortal() {
               <>
                 {/* File Drop Zone */}
                 <label className={`block border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
-                  uploadFile ? 'border-green-400 bg-green-50' : 'border-neutral-300 hover:border-green-400 hover:bg-green-50/50'
+                  uploadFile ? 'border-green-400 bg-blue-50' : 'border-neutral-300 hover:border-green-400 hover:bg-blue-50/50'
                 }`}>
                   <input
                     type="file"
@@ -922,11 +931,11 @@ export default function CustomerPortal() {
                   />
                   {uploadFile ? (
                     <div>
-                      <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                      <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-3">
                         {uploadFile.type.startsWith('image/') ? (
-                          <ImageIcon className="text-green-600" size={24} />
+                          <ImageIcon className="text-[#0066CC]" size={24} />
                         ) : (
-                          <FileText className="text-green-600" size={24} />
+                          <FileText className="text-[#0066CC]" size={24} />
                         )}
                       </div>
                       <p className="font-medium text-neutral-800">{uploadFile.name}</p>
@@ -965,7 +974,7 @@ export default function CustomerPortal() {
                     value={uploadDescription}
                     onChange={(e) => setUploadDescription(e.target.value)}
                     placeholder="e.g., Photo of roof damage, insurance paperwork..."
-                    className="w-full border border-neutral-200 rounded-xl px-4 py-3 text-neutral-800 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full border border-neutral-200 rounded-xl px-4 py-3 text-neutral-800 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#0066CC] focus:border-transparent"
                   />
                 </div>
 
@@ -973,7 +982,7 @@ export default function CustomerPortal() {
                 <button
                   onClick={handleFileUpload}
                   disabled={!uploadFile || uploading}
-                  className="w-full mt-6 bg-green-600 text-white py-3 rounded-xl font-medium hover:bg-green-700 disabled:bg-neutral-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                  className="w-full mt-6 bg-[#0066CC] text-white py-3 rounded-xl font-medium hover:bg-[#005bb5] disabled:bg-neutral-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                 >
                   {uploading ? (
                     <>

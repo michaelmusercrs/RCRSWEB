@@ -340,10 +340,10 @@ function canSendMessages(settings: PortalSettings): boolean {
 
 function SkeletonCard({ lines = 3 }: { lines?: number }) {
   return (
-    <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6 animate-pulse">
-      <div className="h-5 bg-zinc-800 rounded w-1/3 mb-4" />
+    <div className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse">
+      <div className="h-5 bg-gray-100 rounded w-1/3 mb-4" />
       {Array.from({ length: lines }).map((_, i) => (
-        <div key={i} className="h-4 bg-zinc-800 rounded mb-3" style={{ width: `${70 + Math.random() * 30}%` }} />
+        <div key={i} className="h-4 bg-gray-100 rounded mb-3" style={{ width: `${70 + Math.random() * 30}%` }} />
       ))}
     </div>
   );
@@ -353,8 +353,8 @@ function DashboardSkeleton() {
   return (
     <div className="space-y-6">
       <div className="animate-pulse">
-        <div className="h-8 bg-zinc-800 rounded w-48 mb-2" />
-        <div className="h-4 bg-zinc-800 rounded w-64" />
+        <div className="h-8 bg-gray-100 rounded w-48 mb-2" />
+        <div className="h-4 bg-gray-100 rounded w-64" />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <SkeletonCard lines={5} />
@@ -432,20 +432,20 @@ function LoginScreen({
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <header className="bg-zinc-950 border-b border-lime-500/20 py-4">
+      <header className="bg-gray-50 border-b border-[#0066CC]/20 py-4">
         <div className="container mx-auto px-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Building2 className="w-8 h-8 text-lime-500" />
+            <Building2 className="w-8 h-8 text-[#0066CC]" />
             <div>
-              <h1 className="text-xl font-bold text-white">River City Roofing</h1>
-              <p className="text-xs text-neutral-500">Customer Portal</p>
+              <h1 className="text-xl font-bold text-gray-900">River City Roofing</h1>
+              <p className="text-xs text-gray-500">Customer Portal</p>
             </div>
           </div>
           <a
             href="tel:2562748530"
-            className="flex items-center gap-2 text-lime-500 hover:text-white transition-colors"
+            className="flex items-center gap-2 text-[#0066CC] hover:text-gray-900 transition-colors"
           >
             <Phone className="w-4 h-4" />
             <span className="hidden sm:inline">(256) 274-8530</span>
@@ -456,13 +456,13 @@ function LoginScreen({
       {/* Main */}
       <main className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
-          <div className="bg-zinc-900 rounded-2xl border border-lime-500/30 p-8 shadow-2xl shadow-lime-500/5">
+          <div className="bg-white rounded-2xl border border-[#0066CC]/30 p-8 shadow-2xl shadow-lime-500/5">
             <div className="text-center mb-8">
-              <div className="w-16 h-16 bg-lime-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <User className="w-8 h-8 text-lime-500" />
+              <div className="w-16 h-16 bg-[#0066CC]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <User className="w-8 h-8 text-[#0066CC]" />
               </div>
-              <h2 className="text-2xl font-bold text-white">Welcome Back</h2>
-              <p className="text-neutral-500 mt-2">
+              <h2 className="text-2xl font-bold text-gray-900">Welcome Back</h2>
+              <p className="text-gray-500 mt-2">
                 Access your project status, appointments, and more
               </p>
             </div>
@@ -481,8 +481,8 @@ function LoginScreen({
                     onClick={() => setLoginMethod(m.id)}
                     className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
                       loginMethod === m.id
-                        ? 'bg-lime-500 text-black'
-                        : 'bg-zinc-800 text-neutral-500 hover:text-white'
+                        ? 'bg-[#0066CC] text-white'
+                        : 'bg-gray-100 text-gray-500 hover:text-gray-900'
                     }`}
                   >
                     <Icon className="w-4 h-4 inline mr-1" />
@@ -495,7 +495,7 @@ function LoginScreen({
             <form onSubmit={handleLogin} className="space-y-4">
               {loginMethod === 'code' && (
                 <div>
-                  <label className="block text-sm font-medium text-neutral-400 mb-2">
+                  <label className="block text-sm font-medium text-gray-400 mb-2">
                     Access Code
                   </label>
                   <input
@@ -503,17 +503,17 @@ function LoginScreen({
                     value={accessCode}
                     onChange={(e) => setAccessCode(e.target.value)}
                     placeholder="Enter your access code"
-                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-gray-500 focus:border-lime-500 focus:ring-1 focus:ring-lime-500 transition-all tracking-widest text-center font-mono"
+                    className="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:border-[#0066CC] focus:ring-1 focus:ring-[#0066CC] transition-all tracking-widest text-center font-mono"
                     required
                   />
-                  <p className="text-xs text-neutral-500 mt-2">
+                  <p className="text-xs text-gray-500 mt-2">
                     Your access code was provided in your welcome email or text
                   </p>
                 </div>
               )}
               {loginMethod === 'email' && (
                 <div>
-                  <label className="block text-sm font-medium text-neutral-400 mb-2">
+                  <label className="block text-sm font-medium text-gray-400 mb-2">
                     Email Address
                   </label>
                   <input
@@ -521,14 +521,14 @@ function LoginScreen({
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="your@email.com"
-                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-gray-500 focus:border-lime-500 focus:ring-1 focus:ring-lime-500 transition-all"
+                    className="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:border-[#0066CC] focus:ring-1 focus:ring-[#0066CC] transition-all"
                     required
                   />
                 </div>
               )}
               {loginMethod === 'phone' && (
                 <div>
-                  <label className="block text-sm font-medium text-neutral-400 mb-2">
+                  <label className="block text-sm font-medium text-gray-400 mb-2">
                     Phone Number
                   </label>
                   <input
@@ -536,7 +536,7 @@ function LoginScreen({
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="256-555-1234"
-                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-gray-500 focus:border-lime-500 focus:ring-1 focus:ring-lime-500 transition-all"
+                    className="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:border-[#0066CC] focus:ring-1 focus:ring-[#0066CC] transition-all"
                     required
                   />
                 </div>
@@ -552,7 +552,7 @@ function LoginScreen({
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 bg-lime-500 text-black font-bold rounded-lg hover:bg-lime-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-3 bg-[#0066CC] text-white font-bold rounded-lg hover:bg-[#0077dd] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <span className="flex items-center justify-center gap-2">
@@ -565,10 +565,10 @@ function LoginScreen({
               </button>
             </form>
 
-            <div className="mt-6 pt-6 border-t border-zinc-800 text-center">
-              <p className="text-neutral-500 text-sm">
+            <div className="mt-6 pt-6 border-t border-gray-200 text-center">
+              <p className="text-gray-500 text-sm">
                 Need help? Call us at{' '}
-                <a href="tel:2562748530" className="text-lime-500 hover:underline">
+                <a href="tel:2562748530" className="text-[#0066CC] hover:underline">
                   (256) 274-8530
                 </a>
               </p>
@@ -583,16 +583,16 @@ function LoginScreen({
               { label: 'Weather', desc: 'Project weather updates' },
               { label: 'Messages', desc: 'Direct communication' },
             ].map((f) => (
-              <div key={f.label} className="bg-zinc-900/50 rounded-lg p-4 border border-zinc-800">
-                <div className="text-lime-500 font-bold text-lg">{f.label}</div>
-                <p className="text-neutral-500 text-sm">{f.desc}</p>
+              <div key={f.label} className="bg-white/50 rounded-lg p-4 border border-gray-200">
+                <div className="text-[#0066CC] font-bold text-lg">{f.label}</div>
+                <p className="text-gray-500 text-sm">{f.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </main>
 
-      <footer className="bg-zinc-950 border-t border-zinc-800 py-4 text-center text-neutral-500 text-sm">
+      <footer className="bg-gray-50 border-t border-gray-200 py-4 text-center text-gray-500 text-sm">
         <p>River City Roofing Solutions - Hartselle, AL</p>
         <p className="mt-1">Family-Owned Since 2018</p>
       </footer>
@@ -608,15 +608,15 @@ function LoginScreen({
 function JobProgressTimeline({ jobStatus, jobs }: { jobStatus: JobStatus | null; jobs?: PortalData['jobs'] }) {
   if (!jobStatus) {
     return (
-      <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-8 text-center">
-        <Home className="w-12 h-12 text-neutral-400 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-white mb-2">No Active Projects</h3>
-        <p className="text-neutral-500 text-sm mb-4">
+      <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+        <Home className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">No Active Projects</h3>
+        <p className="text-gray-500 text-sm mb-4">
           Ready to start your roofing project? Give us a call!
         </p>
         <a
           href="tel:2562748530"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-lime-500 text-black font-bold rounded-lg hover:bg-lime-400 transition-all"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-[#0066CC] text-white font-bold rounded-lg hover:bg-[#0077dd] transition-all"
         >
           <Phone className="w-5 h-5" />
           Call (256) 274-8530
@@ -632,27 +632,27 @@ function JobProgressTimeline({ jobStatus, jobs }: { jobStatus: JobStatus | null;
   const currentIndex = currentPhaseId ? getPhaseIndex(currentPhaseId) : Math.floor((jobStatus.progress / 100) * (JOB_PHASES.length - 1));
 
   return (
-    <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden">
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       {/* Header */}
-      <div className="p-6 border-b border-zinc-800">
+      <div className="p-6 border-b border-gray-200">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-            <Home className="w-5 h-5 text-lime-500" />
+          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <Home className="w-5 h-5 text-[#0066CC]" />
             Project Progress
           </h3>
-          <span className="text-lime-500 font-bold text-lg">{jobStatus.progress}%</span>
+          <span className="text-[#0066CC] font-bold text-lg">{jobStatus.progress}%</span>
         </div>
         {/* Progress bar */}
-        <div className="h-3 bg-zinc-800 rounded-full overflow-hidden">
+        <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-lime-600 to-lime-400 rounded-full transition-all duration-700 ease-out"
+            className="h-full bg-gradient-to-r from-[#2ee00d] to-[#39FF14] rounded-full transition-all duration-700 ease-out"
             style={{ width: `${jobStatus.progress}%` }}
           />
         </div>
         {jobStatus.estimatedCompletion && (
-          <p className="text-neutral-500 text-sm mt-3 flex items-center gap-2">
+          <p className="text-gray-500 text-sm mt-3 flex items-center gap-2">
             <Clock className="w-4 h-4" />
-            Estimated completion: <span className="text-lime-500 font-medium">{jobStatus.estimatedCompletion}</span>
+            Estimated completion: <span className="text-[#0066CC] font-medium">{jobStatus.estimatedCompletion}</span>
           </p>
         )}
       </div>
@@ -661,7 +661,7 @@ function JobProgressTimeline({ jobStatus, jobs }: { jobStatus: JobStatus | null;
       <div className="p-6">
         <div className="relative">
           {/* Vertical line */}
-          <div className="absolute left-[15px] top-2 bottom-2 w-0.5 bg-zinc-700" />
+          <div className="absolute left-[15px] top-2 bottom-2 w-0.5 bg-gray-200" />
           <div className="space-y-1">
             {JOB_PHASES.map((phase, index) => {
               const isComplete = index < currentIndex;
@@ -674,16 +674,16 @@ function JobProgressTimeline({ jobStatus, jobs }: { jobStatus: JobStatus | null;
                   <div
                     className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
                       isComplete
-                        ? 'bg-lime-500'
+                        ? 'bg-[#0066CC]'
                         : isCurrent
-                        ? 'bg-zinc-900 ring-2 ring-lime-500 ring-offset-2 ring-offset-zinc-900'
-                        : 'bg-zinc-700'
+                        ? 'bg-white ring-2 ring-[#0066CC] ring-offset-2 ring-offset-zinc-900'
+                        : 'bg-gray-200'
                     }`}
                   >
                     {isComplete ? (
                       <CheckCircle2 className="w-4 h-4 text-black" />
                     ) : isCurrent ? (
-                      <div className="w-2.5 h-2.5 bg-lime-500 rounded-full animate-pulse" />
+                      <div className="w-2.5 h-2.5 bg-[#0066CC] rounded-full animate-pulse" />
                     ) : (
                       <div className="w-2 h-2 bg-zinc-500 rounded-full" />
                     )}
@@ -692,17 +692,17 @@ function JobProgressTimeline({ jobStatus, jobs }: { jobStatus: JobStatus | null;
                   {/* Label */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className={`text-sm font-medium ${isComplete || isCurrent ? 'text-white' : 'text-neutral-500'}`}>
+                      <span className={`text-sm font-medium ${isComplete || isCurrent ? 'text-gray-900' : 'text-gray-500'}`}>
                         {phase.label}
                       </span>
                       {isCurrent && (
-                        <span className="px-2 py-0.5 bg-lime-500/15 text-lime-500 text-xs font-medium rounded-full">
+                        <span className="px-2 py-0.5 bg-[#0066CC]/15 text-[#0066CC] text-xs font-medium rounded-full">
                           Current Stage
                         </span>
                       )}
                     </div>
                     {isCurrent && (
-                      <p className="text-neutral-500 text-xs mt-1">{phase.description}</p>
+                      <p className="text-gray-500 text-xs mt-1">{phase.description}</p>
                     )}
                   </div>
                 </div>
@@ -715,9 +715,9 @@ function JobProgressTimeline({ jobStatus, jobs }: { jobStatus: JobStatus | null;
       {/* Next milestone */}
       {jobStatus.nextMilestone && jobStatus.progress < 100 && (
         <div className="px-6 pb-6">
-          <div className="bg-lime-500/10 border border-lime-500/20 rounded-lg p-4">
-            <p className="text-sm text-neutral-500">
-              <span className="text-lime-500 font-medium">Next up:</span> {jobStatus.nextMilestone}
+          <div className="bg-[#0066CC]/10 border border-[#0066CC]/20 rounded-lg p-4">
+            <p className="text-sm text-gray-500">
+              <span className="text-[#0066CC] font-medium">Next up:</span> {jobStatus.nextMilestone}
             </p>
           </div>
         </div>
@@ -746,15 +746,15 @@ function AppointmentsWidget({
 
   if (appointments.length === 0) {
     return (
-      <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-8 text-center">
-        <Calendar className="w-12 h-12 text-neutral-400 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-white mb-2">No Appointments Scheduled</h3>
-        <p className="text-neutral-500 text-sm mb-4">
+      <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+        <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">No Appointments Scheduled</h3>
+        <p className="text-gray-500 text-sm mb-4">
           We will reach out soon to schedule your first appointment.
         </p>
         <a
           href="tel:2562748530"
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-lime-500 text-black font-bold rounded-lg hover:bg-lime-400 transition-all text-sm"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0066CC] text-white font-bold rounded-lg hover:bg-[#0077dd] transition-all text-sm"
         >
           <Phone className="w-4 h-4" />
           Call to Schedule
@@ -764,19 +764,19 @@ function AppointmentsWidget({
   }
 
   return (
-    <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden">
-      <div className="p-5 border-b border-zinc-800 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-          <Calendar className="w-5 h-5 text-lime-500" />
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="p-5 border-b border-gray-200 flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+          <Calendar className="w-5 h-5 text-[#0066CC]" />
           Appointments
         </h3>
-        <span className="text-sm text-neutral-500">{upcoming.length} upcoming</span>
+        <span className="text-sm text-gray-500">{upcoming.length} upcoming</span>
       </div>
 
       {/* Upcoming */}
-      <div className="divide-y divide-zinc-800">
+      <div className="divide-y divide-gray-200">
         {upcoming.length === 0 && (
-          <div className="p-5 text-center text-neutral-500 text-sm">
+          <div className="p-5 text-center text-gray-500 text-sm">
             No upcoming appointments. Contact us to schedule.
           </div>
         )}
@@ -793,16 +793,16 @@ function AppointmentsWidget({
           return (
             <div key={apt.appointmentId} className="p-5">
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-lime-500/15 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Calendar className="w-6 h-6 text-lime-500" />
+                <div className="w-12 h-12 bg-[#0066CC]/15 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Calendar className="w-6 h-6 text-[#0066CC]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-white">{apt.title}</h4>
-                  <p className="text-neutral-500 text-sm mt-0.5">
+                  <h4 className="font-semibold text-gray-900">{apt.title}</h4>
+                  <p className="text-gray-500 text-sm mt-0.5">
                     {apt.scheduledDate} at {apt.scheduledTime}
                   </p>
                   {apt.assignedTo && (
-                    <p className="text-neutral-500 text-xs mt-1">
+                    <p className="text-gray-500 text-xs mt-1">
                       With {apt.assignedTo}
                     </p>
                   )}
@@ -811,14 +811,14 @@ function AppointmentsWidget({
                       href={calUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-xs text-lime-500 font-medium transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs text-[#0066CC] font-medium transition-colors"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
                       Add to Google Calendar
                     </a>
                     <a
                       href="tel:2562748530"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-xs text-neutral-400 transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs text-gray-400 transition-colors"
                     >
                       <Phone className="w-3.5 h-3.5" />
                       Reschedule
@@ -831,7 +831,7 @@ function AppointmentsWidget({
                       ? 'bg-green-500/15 text-green-400'
                       : apt.status === 'rescheduled'
                       ? 'bg-orange-500/15 text-orange-400'
-                      : 'bg-lime-500/15 text-lime-500'
+                      : 'bg-[#0066CC]/15 text-[#0066CC]'
                   }`}
                 >
                   {apt.status.charAt(0).toUpperCase() + apt.status.slice(1)}
@@ -844,22 +844,22 @@ function AppointmentsWidget({
 
       {/* Past appointments */}
       {past.length > 0 && (
-        <div className="border-t border-zinc-800">
+        <div className="border-t border-gray-200">
           <button
             onClick={() => setShowPast(!showPast)}
-            className="w-full p-4 flex items-center justify-between text-sm text-neutral-500 hover:text-white transition-colors"
+            className="w-full p-4 flex items-center justify-between text-sm text-gray-500 hover:text-gray-900 transition-colors"
           >
             <span>Past appointments ({past.length})</span>
             {showPast ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
           {showPast && (
-            <div className="divide-y divide-zinc-800 border-t border-zinc-800">
+            <div className="divide-y divide-gray-200 border-t border-gray-200">
               {past.map((apt) => (
                 <div key={apt.appointmentId} className="p-4 flex items-center gap-3 opacity-60">
                   <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-medium">{apt.title}</p>
-                    <p className="text-neutral-500 text-xs">{apt.scheduledDate}</p>
+                    <p className="text-gray-900 text-sm font-medium">{apt.title}</p>
+                    <p className="text-gray-500 text-xs">{apt.scheduledDate}</p>
                   </div>
                   <span className="text-xs text-green-400 bg-green-500/10 px-2 py-0.5 rounded">Completed</span>
                 </div>
@@ -904,7 +904,7 @@ function DocumentsSection({
     permit: { icon: FileText, color: 'text-cyan-400' },
     inspection_report: { icon: FileText, color: 'text-teal-400' },
     photo: { icon: Camera, color: 'text-pink-400' },
-    other: { icon: FileText, color: 'text-neutral-500' },
+    other: { icon: FileText, color: 'text-gray-500' },
   };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -944,10 +944,10 @@ function DocumentsSection({
 
   if (documents.length === 0 && !allowUpload) {
     return (
-      <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-8 text-center">
-        <FileText className="w-12 h-12 text-neutral-400 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-white mb-2">No Documents Yet</h3>
-        <p className="text-neutral-500 text-sm">
+      <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+        <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">No Documents Yet</h3>
+        <p className="text-gray-500 text-sm">
           Documents will appear here when your project team shares them with you.
         </p>
       </div>
@@ -956,32 +956,32 @@ function DocumentsSection({
 
   return (
     <div className="space-y-4">
-      <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden">
-        <div className="p-5 border-b border-zinc-800 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-            <FileText className="w-5 h-5 text-lime-500" />
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="p-5 border-b border-gray-200 flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <FileText className="w-5 h-5 text-[#0066CC]" />
             Documents
           </h3>
-          <span className="text-sm text-neutral-500">{documents.length} file{documents.length !== 1 ? 's' : ''}</span>
+          <span className="text-sm text-gray-500">{documents.length} file{documents.length !== 1 ? 's' : ''}</span>
         </div>
 
         {documents.length === 0 ? (
-          <div className="p-6 text-center text-neutral-500 text-sm">
+          <div className="p-6 text-center text-gray-500 text-sm">
             No documents shared yet. Check back soon!
           </div>
         ) : (
-          <div className="divide-y divide-zinc-800">
+          <div className="divide-y divide-gray-200">
             {documents.map((doc) => {
               const config = docTypeIcon[doc.type] || docTypeIcon.other;
               const Icon = config.icon;
               return (
-                <div key={doc.documentId} className="p-4 flex items-center gap-4 hover:bg-zinc-800/50 transition-colors">
-                  <div className="w-10 h-10 bg-zinc-800 rounded-lg flex items-center justify-center flex-shrink-0">
+                <div key={doc.documentId} className="p-4 flex items-center gap-4 hover:bg-gray-100/50 transition-colors">
+                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
                     <Icon className={`w-5 h-5 ${config.color}`} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-medium truncate">{doc.title}</p>
-                    <div className="flex items-center gap-2 text-xs text-neutral-500 mt-0.5">
+                    <p className="text-gray-900 text-sm font-medium truncate">{doc.title}</p>
+                    <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
                       <span className="capitalize">{doc.type.replace('_', ' ')}</span>
                       {doc.fileSize ? (
                         <>
@@ -1000,7 +1000,7 @@ function DocumentsSection({
                           href={doc.fileUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
+                          className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                           title="View"
                           onClick={() => {
                             fetch('/api/customer/portal-log', {
@@ -1017,12 +1017,12 @@ function DocumentsSection({
                             }).catch(() => {});
                           }}
                         >
-                          <Eye className="w-4 h-4 text-neutral-400" />
+                          <Eye className="w-4 h-4 text-gray-400" />
                         </a>
                         <a
                           href={doc.fileUrl}
                           download
-                          className="p-2 bg-lime-500/15 hover:bg-lime-500/25 rounded-lg transition-colors"
+                          className="p-2 bg-[#0066CC]/15 hover:bg-[#0066CC]/25 rounded-lg transition-colors"
                           title="Download"
                           onClick={() => {
                             fetch('/api/customer/portal-log', {
@@ -1039,7 +1039,7 @@ function DocumentsSection({
                             }).catch(() => {});
                           }}
                         >
-                          <Download className="w-4 h-4 text-lime-500" />
+                          <Download className="w-4 h-4 text-[#0066CC]" />
                         </a>
                       </>
                     )}
@@ -1053,17 +1053,17 @@ function DocumentsSection({
 
       {/* Upload section */}
       {allowUpload && (
-        <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6">
-          <h4 className="text-white font-medium mb-3 flex items-center gap-2">
-            <Upload className="w-4 h-4 text-lime-500" />
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <h4 className="text-gray-900 font-medium mb-3 flex items-center gap-2">
+            <Upload className="w-4 h-4 text-[#0066CC]" />
             Upload Files
           </h4>
-          <div className="border-2 border-dashed border-zinc-700 hover:border-lime-500/40 rounded-xl p-6 text-center transition-colors">
-            <Upload className="w-8 h-8 text-neutral-500 mx-auto mb-2" />
-            <p className="text-neutral-500 text-sm mb-3">
+          <div className="border-2 border-dashed border-gray-300 hover:border-[#0066CC]/40 rounded-xl p-6 text-center transition-colors">
+            <Upload className="w-8 h-8 text-gray-500 mx-auto mb-2" />
+            <p className="text-gray-500 text-sm mb-3">
               Share photos, insurance docs, or other project files
             </p>
-            <label className="inline-flex items-center gap-2 px-5 py-2.5 bg-lime-500 text-black font-bold rounded-lg hover:bg-lime-400 transition-all cursor-pointer text-sm">
+            <label className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0066CC] text-white font-bold rounded-lg hover:bg-[#0077dd] transition-all cursor-pointer text-sm">
               <Upload className="w-4 h-4" />
               {uploading ? 'Uploading...' : 'Choose Files'}
               <input
@@ -1076,7 +1076,7 @@ function DocumentsSection({
                 onChange={handleUpload}
               />
             </label>
-            <p className="text-neutral-400 text-xs mt-2">JPG, PNG, PDF, DOC - Max 10MB</p>
+            <p className="text-gray-400 text-xs mt-2">JPG, PNG, PDF, DOC - Max 10MB</p>
           </div>
           {uploadSuccess && (
             <div className="mt-3 p-3 bg-green-500/15 border border-green-500/30 rounded-lg text-green-400 text-sm flex items-center gap-2">
@@ -1170,10 +1170,10 @@ function MessagesSection({
   };
 
   return (
-    <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden flex flex-col" style={{ maxHeight: '600px' }}>
-      <div className="p-5 border-b border-zinc-800">
-        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-          <MessageSquare className="w-5 h-5 text-lime-500" />
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col" style={{ maxHeight: '600px' }}>
+      <div className="p-5 border-b border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+          <MessageSquare className="w-5 h-5 text-[#0066CC]" />
           Messages
         </h3>
       </div>
@@ -1182,9 +1182,9 @@ function MessagesSection({
       <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ minHeight: '200px', maxHeight: '400px' }}>
         {localMessages.length === 0 ? (
           <div className="text-center py-12">
-            <MessageSquare className="w-10 h-10 text-neutral-400 mx-auto mb-3" />
-            <p className="text-neutral-500 text-sm">No messages yet</p>
-            {allowSend && <p className="text-neutral-500 text-xs mt-1">Send a message below to get started</p>}
+            <MessageSquare className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+            <p className="text-gray-500 text-sm">No messages yet</p>
+            {allowSend && <p className="text-gray-500 text-xs mt-1">Send a message below to get started</p>}
           </div>
         ) : (
           localMessages.map((msg) => {
@@ -1197,12 +1197,12 @@ function MessagesSection({
                 <div
                   className={`max-w-[80%] rounded-2xl px-4 py-3 ${
                     isOutbound
-                      ? 'bg-zinc-800 text-white rounded-bl-sm'
-                      : 'bg-lime-500 text-black rounded-br-sm'
+                      ? 'bg-gray-100 text-gray-900 rounded-bl-sm'
+                      : 'bg-[#0066CC] text-white rounded-br-sm'
                   }`}
                 >
                   <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                  <div className={`flex items-center gap-2 mt-1 ${isOutbound ? 'text-neutral-500' : 'text-black/50'}`}>
+                  <div className={`flex items-center gap-2 mt-1 ${isOutbound ? 'text-gray-500' : 'text-black/50'}`}>
                     <p className="text-xs">
                       {new Date(msg.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
@@ -1218,7 +1218,7 @@ function MessagesSection({
 
       {/* Send form */}
       {allowSend ? (
-        <div className="p-4 border-t border-zinc-800 bg-zinc-950">
+        <div className="p-4 border-t border-gray-200 bg-gray-50">
           <div className="flex gap-3">
             <input
               type="text"
@@ -1226,26 +1226,26 @@ function MessagesSection({
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
               placeholder="Type your message..."
-              className="flex-1 px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-gray-500 focus:border-lime-500 focus:ring-1 focus:ring-lime-500 transition-all text-sm"
+              className="flex-1 px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:border-[#0066CC] focus:ring-1 focus:ring-[#0066CC] transition-all text-sm"
             />
             <button
               onClick={handleSend}
               disabled={!newMessage.trim() || sending}
-              className="px-4 py-3 bg-lime-500 text-black rounded-lg hover:bg-lime-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-3 bg-[#0066CC] text-white rounded-lg hover:bg-[#0077dd] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Send className="w-5 h-5" />
             </button>
           </div>
-          <p className="text-xs text-neutral-500 mt-2">
+          <p className="text-xs text-gray-500 mt-2">
             For urgent matters, call{' '}
-            <a href="tel:2562748530" className="text-lime-500">(256) 274-8530</a>
+            <a href="tel:2562748530" className="text-[#0066CC]">(256) 274-8530</a>
           </p>
         </div>
       ) : (
-        <div className="p-4 border-t border-zinc-800 bg-zinc-950 text-center">
-          <p className="text-neutral-500 text-sm">
+        <div className="p-4 border-t border-gray-200 bg-gray-50 text-center">
+          <p className="text-gray-500 text-sm">
             Contact us at{' '}
-            <a href="tel:2562748530" className="text-lime-500">(256) 274-8530</a>{' '}
+            <a href="tel:2562748530" className="text-[#0066CC]">(256) 274-8530</a>{' '}
             to send a message.
           </p>
         </div>
@@ -1258,10 +1258,10 @@ function MessagesSection({
 function WeatherWidget({ forecasts, location }: { forecasts: WeatherForecast[]; location: string }) {
   if (!forecasts || forecasts.length === 0) {
     return (
-      <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-8 text-center">
-        <Cloud className="w-12 h-12 text-neutral-400 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-white mb-2">Weather Unavailable</h3>
-        <p className="text-neutral-500 text-sm">We could not load weather data at this time.</p>
+      <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+        <Cloud className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Weather Unavailable</h3>
+        <p className="text-gray-500 text-sm">We could not load weather data at this time.</p>
       </div>
     );
   }
@@ -1270,30 +1270,30 @@ function WeatherWidget({ forecasts, location }: { forecasts: WeatherForecast[]; 
   const Icon = getWeatherIcon(today?.icon || 'cloud');
 
   return (
-    <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden">
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       {/* Current */}
-      <div className="p-6 bg-gradient-to-br from-lime-500/10 to-transparent">
+      <div className="p-6 bg-gradient-to-br from-[#0066CC]/10 to-transparent">
         <div className="flex items-center justify-between mb-1">
-          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-            <Sun className="w-5 h-5 text-lime-500" />
+          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <Sun className="w-5 h-5 text-[#0066CC]" />
             Weather
           </h3>
-          <span className="text-neutral-500 text-sm">{location}</span>
+          <span className="text-gray-500 text-sm">{location}</span>
         </div>
         <div className="flex items-center gap-5 mt-4">
-          <div className="w-16 h-16 bg-lime-500/15 rounded-2xl flex items-center justify-center">
-            <Icon className="w-8 h-8 text-lime-500" />
+          <div className="w-16 h-16 bg-[#0066CC]/15 rounded-2xl flex items-center justify-center">
+            <Icon className="w-8 h-8 text-[#0066CC]" />
           </div>
           <div>
-            <p className="text-4xl font-bold text-white">{today.high}°F</p>
-            <p className="text-neutral-500 text-sm">{today.condition}</p>
+            <p className="text-4xl font-bold text-gray-900">{today.high}°F</p>
+            <p className="text-gray-500 text-sm">{today.condition}</p>
           </div>
           <div className="ml-auto text-right space-y-1">
-            <div className="flex items-center gap-1.5 text-neutral-500 text-sm justify-end">
+            <div className="flex items-center gap-1.5 text-gray-500 text-sm justify-end">
               <Wind className="w-3.5 h-3.5" />
               {today.windSpeed} mph
             </div>
-            <div className="flex items-center gap-1.5 text-neutral-500 text-sm justify-end">
+            <div className="flex items-center gap-1.5 text-gray-500 text-sm justify-end">
               <Droplets className="w-3.5 h-3.5" />
               {today.precipChance}% rain
             </div>
@@ -1302,20 +1302,20 @@ function WeatherWidget({ forecasts, location }: { forecasts: WeatherForecast[]; 
       </div>
 
       {/* 5-day forecast */}
-      <div className="p-4 border-t border-zinc-800">
-        <p className="text-xs text-neutral-500 uppercase tracking-wider mb-3 font-medium">5-Day Forecast</p>
-        <div className="space-y-0 divide-y divide-zinc-800/50">
+      <div className="p-4 border-t border-gray-200">
+        <p className="text-xs text-gray-500 uppercase tracking-wider mb-3 font-medium">5-Day Forecast</p>
+        <div className="space-y-0 divide-y divide-gray-200/50">
           {forecasts.slice(0, 5).map((day, i) => {
             const DayIcon = getWeatherIcon(day.icon || 'cloud');
             return (
               <div key={i} className="flex items-center gap-3 py-2.5">
-                <span className="w-20 text-sm text-neutral-500 truncate">{day.dayOfWeek}</span>
-                <DayIcon className="w-5 h-5 text-neutral-500 flex-shrink-0" />
-                <span className="flex-1 text-sm text-neutral-500 truncate">{day.condition}</span>
+                <span className="w-20 text-sm text-gray-500 truncate">{day.dayOfWeek}</span>
+                <DayIcon className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                <span className="flex-1 text-sm text-gray-500 truncate">{day.condition}</span>
                 {day.precipChance > 0 && (
                   <span className="text-xs text-blue-400">{day.precipChance}%</span>
                 )}
-                <span className="text-sm text-white font-medium w-20 text-right">
+                <span className="text-sm text-gray-900 font-medium w-20 text-right">
                   {day.high}° / {day.low}°
                 </span>
               </div>
@@ -1326,9 +1326,9 @@ function WeatherWidget({ forecasts, location }: { forecasts: WeatherForecast[]; 
 
       {/* Note */}
       <div className="px-4 pb-4">
-        <div className="bg-zinc-800/50 rounded-lg p-3 flex items-start gap-2">
-          <Info className="w-4 h-4 text-lime-500 flex-shrink-0 mt-0.5" />
-          <p className="text-neutral-500 text-xs">
+        <div className="bg-gray-100/50 rounded-lg p-3 flex items-start gap-2">
+          <Info className="w-4 h-4 text-[#0066CC] flex-shrink-0 mt-0.5" />
+          <p className="text-gray-500 text-xs">
             Weather may affect your project schedule. We monitor conditions closely and will notify you of any changes.
           </p>
         </div>
@@ -1341,15 +1341,15 @@ function WeatherWidget({ forecasts, location }: { forecasts: WeatherForecast[]; 
 function HailReportWidget({ reports, customerAddress }: { reports: HailReport[]; customerAddress: string }) {
   if (!reports || reports.length === 0) {
     return (
-      <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6">
-        <h3 className="text-lg font-semibold text-white flex items-center gap-2 mb-3">
-          <AlertTriangle className="w-5 h-5 text-lime-500" />
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-3">
+          <AlertTriangle className="w-5 h-5 text-[#0066CC]" />
           Hail Reports
         </h3>
         <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4 text-center">
           <CheckCircle2 className="w-8 h-8 text-green-400 mx-auto mb-2" />
           <p className="text-green-400 font-medium">No Recent Hail Activity</p>
-          <p className="text-neutral-500 text-sm mt-1">No hail has been reported near your area in the past 30 days.</p>
+          <p className="text-gray-500 text-sm mt-1">No hail has been reported near your area in the past 30 days.</p>
         </div>
       </div>
     );
@@ -1362,14 +1362,14 @@ function HailReportWidget({ reports, customerAddress }: { reports: HailReport[];
   };
 
   return (
-    <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden">
-      <div className="p-5 border-b border-zinc-800">
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="p-5 border-b border-gray-200">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-orange-400" />
             Hail Reports
           </h3>
-          <span className="text-sm text-neutral-500">{reports.length} reports nearby</span>
+          <span className="text-sm text-gray-500">{reports.length} reports nearby</span>
         </div>
         {/* Severity summary */}
         <div className="flex gap-3 mt-3">
@@ -1391,7 +1391,7 @@ function HailReportWidget({ reports, customerAddress }: { reports: HailReport[];
         </div>
       </div>
 
-      <div className="divide-y divide-zinc-800 max-h-64 overflow-y-auto">
+      <div className="divide-y divide-gray-200 max-h-64 overflow-y-auto">
         {reports.slice(0, 5).map((report, i) => {
           const colors = getSeverityColor(report.severity);
           return (
@@ -1400,12 +1400,12 @@ function HailReportWidget({ reports, customerAddress }: { reports: HailReport[];
                 <Cloud className={`w-5 h-5 ${colors.text}`} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-white text-sm font-medium">{report.location}</p>
-                <p className="text-neutral-500 text-xs">{new Date(report.date).toLocaleDateString()}</p>
+                <p className="text-gray-900 text-sm font-medium">{report.location}</p>
+                <p className="text-gray-500 text-xs">{new Date(report.date).toLocaleDateString()}</p>
               </div>
               <div className="text-right flex-shrink-0">
-                <p className="text-lime-500 font-bold text-sm">{report.hailSize}</p>
-                <p className="text-neutral-500 text-xs">{report.distance} mi away</p>
+                <p className="text-[#0066CC] font-bold text-sm">{report.hailSize}</p>
+                <p className="text-gray-500 text-xs">{report.distance} mi away</p>
               </div>
             </div>
           );
@@ -1413,15 +1413,15 @@ function HailReportWidget({ reports, customerAddress }: { reports: HailReport[];
       </div>
 
       {/* CTA */}
-      <div className="p-4 border-t border-zinc-800 bg-brand-green/5">
+      <div className="p-4 border-t border-gray-200 bg-[#39FF14]/5">
         <div className="flex items-center gap-4">
           <div className="flex-1">
-            <p className="text-white text-sm font-medium">Worried about hail damage?</p>
-            <p className="text-neutral-500 text-xs mt-0.5">Hail damage is often invisible from the ground.</p>
+            <p className="text-gray-900 text-sm font-medium">Worried about hail damage?</p>
+            <p className="text-gray-500 text-xs mt-0.5">Hail damage is often invisible from the ground.</p>
           </div>
           <a
             href="tel:2562748530"
-            className="px-4 py-2 bg-lime-500 text-black text-sm font-bold rounded-lg hover:bg-lime-400 transition-all whitespace-nowrap"
+            className="px-4 py-2 bg-[#0066CC] text-white text-sm font-bold rounded-lg hover:bg-[#0077dd] transition-all whitespace-nowrap"
           >
             Free Inspection
           </a>
@@ -1447,11 +1447,11 @@ function StormReportWidget({ reports }: { reports: StormReportData[] }) {
   const colors = riskColors[report.riskLevel] || riskColors.Low;
 
   return (
-    <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden">
-      <div className="p-5 border-b border-zinc-800">
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="p-5 border-b border-gray-200">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-            <CloudLightning className="w-5 h-5 text-lime-500" />
+          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <CloudLightning className="w-5 h-5 text-[#0066CC]" />
             Storm Damage Report
           </h3>
           <span className={`px-3 py-1 rounded-full text-xs font-bold ${colors.bg} ${colors.text} ${colors.border} border`}>
@@ -1461,12 +1461,12 @@ function StormReportWidget({ reports }: { reports: StormReportData[] }) {
       </div>
 
       {/* Risk Score */}
-      <div className="p-5 border-b border-zinc-800">
+      <div className="p-5 border-b border-gray-200">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-neutral-500 text-sm">Risk Score</span>
+          <span className="text-gray-500 text-sm">Risk Score</span>
           <span className={`text-2xl font-bold ${colors.text}`}>{report.riskScore}/100</span>
         </div>
-        <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
           <div
             className={`h-full rounded-full transition-all ${
               report.riskLevel === 'Severe' ? 'bg-red-500' :
@@ -1479,49 +1479,49 @@ function StormReportWidget({ reports }: { reports: StormReportData[] }) {
       </div>
 
       {/* Key stats */}
-      <div className="grid grid-cols-3 divide-x divide-zinc-800 border-b border-zinc-800">
+      <div className="grid grid-cols-3 divide-x divide-gray-200 border-b border-gray-200">
         <div className="p-3 text-center">
-          <p className="text-lg font-bold text-white">{report.totalHailReports}</p>
-          <p className="text-neutral-500 text-xs">Hail Reports</p>
+          <p className="text-lg font-bold text-gray-900">{report.totalHailReports}</p>
+          <p className="text-gray-500 text-xs">Hail Reports</p>
         </div>
         <div className="p-3 text-center">
-          <p className="text-lg font-bold text-white">
+          <p className="text-lg font-bold text-gray-900">
             {report.closestHailMiles !== null ? `${report.closestHailMiles.toFixed(1)}mi` : 'N/A'}
           </p>
-          <p className="text-neutral-500 text-xs">Closest</p>
+          <p className="text-gray-500 text-xs">Closest</p>
         </div>
         <div className="p-3 text-center">
-          <p className="text-lg font-bold text-white">{report.largestHailSize || 'N/A'}</p>
-          <p className="text-neutral-500 text-xs">Largest</p>
+          <p className="text-lg font-bold text-gray-900">{report.largestHailSize || 'N/A'}</p>
+          <p className="text-gray-500 text-xs">Largest</p>
         </div>
       </div>
 
       {/* Risk Factors */}
-      <div className="p-5 border-b border-zinc-800">
-        <p className="text-xs text-neutral-500 uppercase tracking-wider mb-3 font-medium">Risk Factors</p>
+      <div className="p-5 border-b border-gray-200">
+        <p className="text-xs text-gray-500 uppercase tracking-wider mb-3 font-medium">Risk Factors</p>
         <div className="space-y-2">
           {report.riskFactors.slice(0, 4).map((factor, i) => (
             <div key={i} className="flex items-start gap-2">
               <AlertTriangle className="w-3.5 h-3.5 text-orange-400 mt-0.5 flex-shrink-0" />
-              <p className="text-neutral-500 text-xs">{factor}</p>
+              <p className="text-gray-500 text-xs">{factor}</p>
             </div>
           ))}
         </div>
       </div>
 
       {/* Recommendation */}
-      <div className="p-5 border-b border-zinc-800">
-        <div className="bg-zinc-800/50 rounded-lg p-3 flex items-start gap-2">
-          <Info className="w-4 h-4 text-lime-500 flex-shrink-0 mt-0.5" />
-          <p className="text-neutral-500 text-xs leading-relaxed">{report.recommendation}</p>
+      <div className="p-5 border-b border-gray-200">
+        <div className="bg-gray-100/50 rounded-lg p-3 flex items-start gap-2">
+          <Info className="w-4 h-4 text-[#0066CC] flex-shrink-0 mt-0.5" />
+          <p className="text-gray-500 text-xs leading-relaxed">{report.recommendation}</p>
         </div>
       </div>
 
       {/* CTA */}
-      <div className="p-4 bg-lime-500/5">
+      <div className="p-4 bg-[#0066CC]/5">
         <a
           href="tel:2562748530"
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-lime-500 text-black font-bold rounded-lg hover:bg-lime-400 transition-all text-sm"
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#0066CC] text-white font-bold rounded-lg hover:bg-[#0077dd] transition-all text-sm"
         >
           <Phone className="w-4 h-4" />
           Schedule Free Inspection
@@ -1536,10 +1536,10 @@ function DeliveryTracker({ deliveries }: { deliveries: DeliveryInfo[] }) {
   if (!deliveries || deliveries.length === 0) return null;
 
   return (
-    <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden">
-      <div className="p-5 border-b border-zinc-800">
-        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-          <Truck className="w-5 h-5 text-lime-500" />
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="p-5 border-b border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+          <Truck className="w-5 h-5 text-[#0066CC]" />
           Material Deliveries
         </h3>
       </div>
@@ -1548,16 +1548,16 @@ function DeliveryTracker({ deliveries }: { deliveries: DeliveryInfo[] }) {
         const currentStageIndex = DELIVERY_STAGES.findIndex((s) => s.id === delivery.status);
 
         return (
-          <div key={delivery.id} className="p-5 border-b border-zinc-800 last:border-b-0">
+          <div key={delivery.id} className="p-5 border-b border-gray-200 last:border-b-0">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <p className="text-white font-medium">{delivery.materials}</p>
-                <p className="text-neutral-500 text-sm">{delivery.scheduledDate}</p>
+                <p className="text-gray-900 font-medium">{delivery.materials}</p>
+                <p className="text-gray-500 text-sm">{delivery.scheduledDate}</p>
               </div>
               {delivery.driverName && (
                 <div className="text-right">
-                  <p className="text-neutral-500 text-xs">Driver</p>
-                  <p className="text-white text-sm">{delivery.driverName}</p>
+                  <p className="text-gray-500 text-xs">Driver</p>
+                  <p className="text-gray-900 text-sm">{delivery.driverName}</p>
                 </div>
               )}
             </div>
@@ -1572,15 +1572,15 @@ function DeliveryTracker({ deliveries }: { deliveries: DeliveryInfo[] }) {
                     <div
                       className={`h-2 rounded-full transition-all ${
                         isComplete
-                          ? 'bg-lime-500'
+                          ? 'bg-[#0066CC]'
                           : isCurrent
-                          ? 'bg-lime-500/60 animate-pulse'
-                          : 'bg-zinc-700'
+                          ? 'bg-[#0066CC]/60 animate-pulse'
+                          : 'bg-gray-200'
                       }`}
                     />
                     <p
                       className={`text-xs mt-1 text-center ${
-                        isComplete || isCurrent ? 'text-lime-500' : 'text-neutral-400'
+                        isComplete || isCurrent ? 'text-[#0066CC]' : 'text-gray-400'
                       }`}
                     >
                       {stage.label}
@@ -1591,10 +1591,10 @@ function DeliveryTracker({ deliveries }: { deliveries: DeliveryInfo[] }) {
             </div>
 
             {delivery.estimatedArrival && delivery.status !== 'delivered' && (
-              <div className="bg-lime-500/10 border border-lime-500/20 rounded-lg p-3 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-lime-500" />
-                <p className="text-sm text-neutral-400">
-                  Estimated arrival: <span className="text-lime-500 font-medium">{delivery.estimatedArrival}</span>
+              <div className="bg-[#0066CC]/10 border border-[#0066CC]/20 rounded-lg p-3 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-[#0066CC]" />
+                <p className="text-sm text-gray-400">
+                  Estimated arrival: <span className="text-[#0066CC] font-medium">{delivery.estimatedArrival}</span>
                 </p>
               </div>
             )}
@@ -1605,7 +1605,7 @@ function DeliveryTracker({ deliveries }: { deliveries: DeliveryInfo[] }) {
                   href={delivery.proofPhotoUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-3 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm text-neutral-400 transition-colors"
+                  className="inline-flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-400 transition-colors"
                 >
                   <Camera className="w-4 h-4" />
                   View Delivery Photo
@@ -1622,30 +1622,30 @@ function DeliveryTracker({ deliveries }: { deliveries: DeliveryInfo[] }) {
 // --- Sales Rep Card ---
 function SalesRepCard({ rep }: { rep: SalesRep }) {
   return (
-    <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-5">
-      <h3 className="text-sm font-medium text-neutral-500 mb-4">Your Roofing Specialist</h3>
+    <div className="bg-white rounded-xl border border-gray-200 p-5">
+      <h3 className="text-sm font-medium text-gray-500 mb-4">Your Roofing Specialist</h3>
       <div className="flex items-center gap-4">
         {rep.photo ? (
           <img
             src={rep.photo}
             alt={rep.name}
-            className="w-14 h-14 rounded-full object-cover border-2 border-lime-500"
+            className="w-14 h-14 rounded-full object-cover border-2 border-[#0066CC]"
           />
         ) : (
-          <div className="w-14 h-14 rounded-full bg-lime-500/20 flex items-center justify-center border-2 border-lime-500">
-            <User className="w-7 h-7 text-lime-500" />
+          <div className="w-14 h-14 rounded-full bg-[#0066CC]/20 flex items-center justify-center border-2 border-[#0066CC]">
+            <User className="w-7 h-7 text-[#0066CC]" />
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <p className="text-white font-semibold">{rep.name}</p>
-          <p className="text-lime-500 text-sm">{rep.position}</p>
+          <p className="text-gray-900 font-semibold">{rep.name}</p>
+          <p className="text-[#0066CC] text-sm">{rep.position}</p>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-2 mt-4">
         {rep.phone && (
           <a
             href={`tel:${rep.phone}`}
-            className="flex items-center justify-center gap-2 px-3 py-2.5 bg-lime-500 text-black font-semibold rounded-lg hover:bg-lime-400 transition-all text-sm"
+            className="flex items-center justify-center gap-2 px-3 py-2.5 bg-[#0066CC] text-white font-semibold rounded-lg hover:bg-[#0077dd] transition-all text-sm"
           >
             <Phone className="w-4 h-4" />
             Call
@@ -1654,7 +1654,7 @@ function SalesRepCard({ rep }: { rep: SalesRep }) {
         {rep.email && (
           <a
             href={`mailto:${rep.email}`}
-            className="flex items-center justify-center gap-2 px-3 py-2.5 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700 transition-all text-sm"
+            className="flex items-center justify-center gap-2 px-3 py-2.5 bg-gray-100 text-gray-900 rounded-lg hover:bg-gray-200 transition-all text-sm"
           >
             <Mail className="w-4 h-4" />
             Email
@@ -1706,29 +1706,29 @@ function CustomerDashboard({
   const firstName = customer.customerName?.split(' ')[0] || 'there';
 
   return (
-    <div className="min-h-screen bg-zinc-950">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-zinc-900 border-b border-lime-500/20 sticky top-0 z-50">
+      <header className="bg-white border-b border-[#0066CC]/20 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Building2 className="w-7 h-7 text-lime-500" />
+              <Building2 className="w-7 h-7 text-[#0066CC]" />
               <div>
-                <h1 className="text-lg font-bold text-white leading-tight">River City Roofing</h1>
-                <p className="text-xs text-neutral-500">Customer Portal</p>
+                <h1 className="text-lg font-bold text-gray-900 leading-tight">River City Roofing</h1>
+                <p className="text-xs text-gray-500">Customer Portal</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <a
                 href="tel:2562748530"
-                className="hidden sm:flex items-center gap-2 text-lime-500 hover:text-white transition-colors text-sm"
+                className="hidden sm:flex items-center gap-2 text-[#0066CC] hover:text-gray-900 transition-colors text-sm"
               >
                 <Phone className="w-4 h-4" />
                 (256) 274-8530
               </a>
               <button
                 onClick={onLogout}
-                className="flex items-center gap-2 px-3 py-2 bg-zinc-800 rounded-lg text-neutral-500 hover:text-white transition-colors text-sm"
+                className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg text-gray-500 hover:text-gray-900 transition-colors text-sm"
               >
                 <LogOut className="w-4 h-4" />
                 <span className="hidden sm:inline">Log Out</span>
@@ -1739,10 +1739,10 @@ function CustomerDashboard({
       </header>
 
       {/* Welcome banner */}
-      <div className="bg-gradient-to-r from-lime-500/10 via-lime-500/5 to-transparent border-b border-zinc-800">
+      <div className="bg-gradient-to-r from-[#0066CC]/10 via-lime-500/5 to-transparent border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 py-6">
-          <h2 className="text-2xl font-bold text-white">Welcome back, {firstName}!</h2>
-          <p className="text-neutral-500 mt-1 flex items-center gap-2">
+          <h2 className="text-2xl font-bold text-gray-900">Welcome back, {firstName}!</h2>
+          <p className="text-gray-500 mt-1 flex items-center gap-2">
             <MapPin className="w-4 h-4" />
             {customer.customerAddress || 'Hartselle, AL'}
           </p>
@@ -1826,36 +1826,36 @@ function CustomerDashboard({
             )}
 
             {/* Quick actions */}
-            <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-5">
-              <h3 className="text-sm font-medium text-neutral-500 mb-4">Quick Actions</h3>
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <h3 className="text-sm font-medium text-gray-500 mb-4">Quick Actions</h3>
               <div className="space-y-2">
                 <a
                   href="tel:2562748530"
-                  className="flex items-center gap-3 p-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
+                  className="flex items-center gap-3 p-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                 >
-                  <Phone className="w-5 h-5 text-lime-500" />
-                  <span className="text-white text-sm">Call Office</span>
-                  <ChevronRight className="w-4 h-4 text-neutral-500 ml-auto" />
+                  <Phone className="w-5 h-5 text-[#0066CC]" />
+                  <span className="text-gray-900 text-sm">Call Office</span>
+                  <ChevronRight className="w-4 h-4 text-gray-500 ml-auto" />
                 </a>
                 {salesRep.phone && (
                   <a
                     href={`tel:${salesRep.phone}`}
-                    className="flex items-center gap-3 p-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
+                    className="flex items-center gap-3 p-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                   >
-                    <User className="w-5 h-5 text-lime-500" />
-                    <span className="text-white text-sm">Call {salesRep.name.split(' ')[0]}</span>
-                    <ChevronRight className="w-4 h-4 text-neutral-500 ml-auto" />
+                    <User className="w-5 h-5 text-[#0066CC]" />
+                    <span className="text-gray-900 text-sm">Call {salesRep.name.split(' ')[0]}</span>
+                    <ChevronRight className="w-4 h-4 text-gray-500 ml-auto" />
                   </a>
                 )}
                 <a
                   href={`/team/${salesRep.slug}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-3 p-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
+                  className="flex items-center gap-3 p-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                 >
-                  <ExternalLink className="w-5 h-5 text-lime-500" />
-                  <span className="text-white text-sm">View Rep Profile</span>
-                  <ChevronRight className="w-4 h-4 text-neutral-500 ml-auto" />
+                  <ExternalLink className="w-5 h-5 text-[#0066CC]" />
+                  <span className="text-gray-900 text-sm">View Rep Profile</span>
+                  <ChevronRight className="w-4 h-4 text-gray-500 ml-auto" />
                 </a>
               </div>
             </div>
@@ -1864,7 +1864,7 @@ function CustomerDashboard({
       </main>
 
       {/* Footer */}
-      <footer className="bg-zinc-950 border-t border-zinc-800 py-6 text-center text-neutral-500 text-sm mt-8">
+      <footer className="bg-gray-50 border-t border-gray-200 py-6 text-center text-gray-500 text-sm mt-8">
         <p>River City Roofing Solutions - Hartselle, AL</p>
         <p className="mt-1">Family-Owned Since 2018 | (256) 274-8530</p>
       </footer>
@@ -2013,13 +2013,13 @@ export default function CustomerPortalPage() {
   // Loading state
   if (state === 'loading') {
     return (
-      <div className="min-h-screen bg-zinc-950">
-        <header className="bg-zinc-900 border-b border-lime-500/20 py-4">
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white border-b border-[#0066CC]/20 py-4">
           <div className="max-w-7xl mx-auto px-4 flex items-center gap-3">
-            <Building2 className="w-7 h-7 text-lime-500" />
+            <Building2 className="w-7 h-7 text-[#0066CC]" />
             <div>
-              <h1 className="text-lg font-bold text-white">River City Roofing</h1>
-              <p className="text-xs text-neutral-500">Customer Portal</p>
+              <h1 className="text-lg font-bold text-gray-900">River City Roofing</h1>
+              <p className="text-xs text-gray-500">Customer Portal</p>
             </div>
           </div>
         </header>
