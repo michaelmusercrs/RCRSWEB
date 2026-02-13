@@ -131,6 +131,11 @@ export default function Footer() {
                   BNI Partners
                 </Link>
               </li>
+              <li>
+                <Link href="/careers" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
+                  Join Our Team
+                </Link>
+              </li>
             </ul>
           </div>
         </div>
