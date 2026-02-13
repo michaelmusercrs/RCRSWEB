@@ -1,5 +1,18 @@
 // Reports Service for River City Roofing Portal
-// Provides comprehensive reporting with filtering, date ranges, and export options
+// Provides comprehensive reporting powered by REAL data from Google Sheets,
+// delivery workflow, and financial services.
+//
+// Data sources:
+// - Delivery tickets (Google Sheets via delivery-workflow-service)
+// - Invoices (Google Sheets via delivery-workflow-service)
+// - Inventory (Google Sheets via google-sheets-service)
+// - Team members (Google Sheets via google-sheets-service)
+// - Commissions (Google Sheets via google-sheets-service)
+// - Financial data (financial-service: commissions.json + invoice-service)
+
+import { deliveryWorkflowService } from './delivery-workflow-service';
+import { googleSheetsService } from './google-sheets-service';
+import { financialService } from './financial-service';
 
 export interface ReportFilter {
   dateFrom?: string;
@@ -18,6 +31,7 @@ export interface ReportFilter {
 }
 
 export interface DeliveryReport {
+  dataSource: 'sheets' | 'none';
   totalDeliveries: number;
   completedDeliveries: number;
   pendingDeliveries: number;
@@ -42,6 +56,7 @@ export interface DeliveryReport {
 }
 
 export interface BillingReport {
+  dataSource: 'sheets' | 'financial-service' | 'none';
   totalInvoiced: number;
   totalPaid: number;
   totalPending: number;
@@ -68,6 +83,7 @@ export interface BillingReport {
 }
 
 export interface InventoryReport {
+  dataSource: 'sheets' | 'none';
   totalProducts: number;
   totalValue: number;
   lowStockCount: number;
@@ -97,6 +113,7 @@ export interface InventoryReport {
 }
 
 export interface TeamPerformanceReport {
+  dataSource: 'sheets' | 'none';
   totalTeamMembers: number;
   activeMembers: number;
   byRole: Record<string, number>;
@@ -120,6 +137,7 @@ export interface TeamPerformanceReport {
 }
 
 export interface MaterialJobFlowReport {
+  dataSource: 'sheets' | 'none';
   stages: Array<{
     stage: string;
     avgTimeInStage: number; // minutes
@@ -140,180 +158,647 @@ export interface MaterialJobFlowReport {
   }>;
 }
 
+// Status stages in workflow order for timing calculations
+const WORKFLOW_STAGES = [
+  'created', 'assigned', 'materials_pulled', 'load_verified',
+  'en_route', 'arrived', 'delivered', 'proof_captured', 'qc_photos', 'completed',
+] as const;
+
+const STAGE_LABELS: Record<string, string> = {
+  created: 'Order Created',
+  assigned: 'Driver Assigned',
+  materials_pulled: 'Materials Pulled',
+  load_verified: 'Load Verified',
+  en_route: 'En Route',
+  arrived: 'Arrived',
+  delivered: 'Delivered',
+  proof_captured: 'Proof Captured',
+  qc_photos: 'QC Photos',
+  completed: 'Completed',
+};
+
 class ReportsService {
-  // Generate Delivery Report
+  // =========================================================================
+  // Delivery Report — from delivery-workflow-service (Google Sheets)
+  // =========================================================================
   async generateDeliveryReport(filter: ReportFilter): Promise<DeliveryReport> {
-    // In production, this would query the database
-    // For now, return mock data structure
+    try {
+      const allTickets = await deliveryWorkflowService.getTickets();
 
-    return {
-      totalDeliveries: 156,
-      completedDeliveries: 142,
-      pendingDeliveries: 12,
-      cancelledDeliveries: 2,
-      averageDeliveryTime: 45,
-      totalMaterialValue: 287450.00,
-      byDriver: [
-        {
-          driverId: 'rick',
-          driverName: 'Rick',
-          deliveryCount: 82,
-          completedCount: 78,
-          averageTime: 42,
-          totalValue: 156000,
-        },
-        {
-          driverId: 'tae',
-          driverName: 'Tae',
-          deliveryCount: 74,
-          completedCount: 64,
-          averageTime: 48,
-          totalValue: 131450,
-        },
-      ],
-      byDay: this.generateLast30Days(),
-      byStatus: {
-        'created': 3,
-        'assigned': 2,
-        'materials_pulled': 4,
-        'load_verified': 2,
-        'en_route': 1,
-        'completed': 142,
-        'cancelled': 2,
-      },
-    };
+      if (allTickets.length === 0) {
+        return this.emptyDeliveryReport();
+      }
+
+      // Apply filters
+      let tickets = allTickets;
+
+      if (filter.dateFrom) {
+        tickets = tickets.filter(t => t.createdAt >= filter.dateFrom!);
+      }
+      if (filter.dateTo) {
+        tickets = tickets.filter(t => t.createdAt <= filter.dateTo!);
+      }
+      if (filter.ticketType && filter.ticketType !== 'all') {
+        tickets = tickets.filter(t => t.ticketType === filter.ticketType);
+      }
+      if (filter.driverId) {
+        tickets = tickets.filter(t => t.assignedDriver === filter.driverId);
+      }
+      if (filter.projectManagerId) {
+        tickets = tickets.filter(t => t.projectManager === filter.projectManagerId);
+      }
+      if (filter.status) {
+        const statuses = Array.isArray(filter.status) ? filter.status : [filter.status];
+        tickets = tickets.filter(t => statuses.includes(t.status));
+      }
+
+      const completed = tickets.filter(t => t.status === 'completed');
+      const pending = tickets.filter(t =>
+        !['completed', 'cancelled'].includes(t.status)
+      );
+      const cancelled = tickets.filter(t => t.status === 'cancelled');
+
+      // Calculate average delivery time from completed tickets with timestamps
+      let totalDeliveryMinutes = 0;
+      let timedDeliveries = 0;
+      for (const t of completed) {
+        if (t.createdAt && t.completedAt) {
+          const diff = new Date(t.completedAt).getTime() - new Date(t.createdAt).getTime();
+          if (diff > 0) {
+            totalDeliveryMinutes += diff / 60000;
+            timedDeliveries++;
+          }
+        }
+      }
+
+      // Group by driver
+      const driverMap = new Map<string, {
+        driverId: string; driverName: string;
+        deliveryCount: number; completedCount: number;
+        totalMinutes: number; timedCount: number; totalValue: number;
+      }>();
+
+      for (const t of tickets) {
+        const dId = t.assignedDriver || 'unassigned';
+        const dName = t.assignedDriverName || 'Unassigned';
+        if (!driverMap.has(dId)) {
+          driverMap.set(dId, {
+            driverId: dId, driverName: dName,
+            deliveryCount: 0, completedCount: 0,
+            totalMinutes: 0, timedCount: 0, totalValue: 0,
+          });
+        }
+        const d = driverMap.get(dId)!;
+        d.deliveryCount++;
+        d.totalValue += t.totalMaterialCost || 0;
+        if (t.status === 'completed') {
+          d.completedCount++;
+          if (t.createdAt && t.completedAt) {
+            const diff = new Date(t.completedAt).getTime() - new Date(t.createdAt).getTime();
+            if (diff > 0) {
+              d.totalMinutes += diff / 60000;
+              d.timedCount++;
+            }
+          }
+        }
+      }
+
+      // Group by day
+      const dayMap = new Map<string, { count: number; completed: number; value: number }>();
+      for (const t of tickets) {
+        const day = (t.createdAt || '').slice(0, 10);
+        if (!day) continue;
+        if (!dayMap.has(day)) dayMap.set(day, { count: 0, completed: 0, value: 0 });
+        const d = dayMap.get(day)!;
+        d.count++;
+        if (t.status === 'completed') d.completed++;
+        d.value += t.totalMaterialCost || 0;
+      }
+
+      // Group by status
+      const byStatus: Record<string, number> = {};
+      for (const t of tickets) {
+        byStatus[t.status] = (byStatus[t.status] || 0) + 1;
+      }
+
+      return {
+        dataSource: 'sheets',
+        totalDeliveries: tickets.length,
+        completedDeliveries: completed.length,
+        pendingDeliveries: pending.length,
+        cancelledDeliveries: cancelled.length,
+        averageDeliveryTime: timedDeliveries > 0
+          ? Math.round(totalDeliveryMinutes / timedDeliveries)
+          : 0,
+        totalMaterialValue: Math.round(
+          tickets.reduce((sum, t) => sum + (t.totalMaterialCost || 0), 0) * 100
+        ) / 100,
+        byDriver: Array.from(driverMap.values()).map(d => ({
+          driverId: d.driverId,
+          driverName: d.driverName,
+          deliveryCount: d.deliveryCount,
+          completedCount: d.completedCount,
+          averageTime: d.timedCount > 0 ? Math.round(d.totalMinutes / d.timedCount) : 0,
+          totalValue: Math.round(d.totalValue * 100) / 100,
+        })),
+        byDay: Array.from(dayMap.entries())
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([date, data]) => ({
+            date,
+            count: data.count,
+            completed: data.completed,
+            value: Math.round(data.value * 100) / 100,
+          })),
+        byStatus,
+      };
+    } catch (error) {
+      console.error('[ReportsService] Error generating delivery report:', error);
+      return this.emptyDeliveryReport();
+    }
   }
 
-  // Generate Billing Report
+  // =========================================================================
+  // Billing Report — from delivery-workflow invoices + financial-service
+  // =========================================================================
   async generateBillingReport(filter: ReportFilter): Promise<BillingReport> {
-    return {
-      totalInvoiced: 425680.00,
-      totalPaid: 389450.00,
-      totalPending: 28730.00,
-      totalOverdue: 7500.00,
-      invoiceCount: 156,
-      paidCount: 142,
-      pendingCount: 12,
-      overdueCount: 2,
-      averageInvoiceAmount: 2729.74,
-      averageDaysToPayment: 14,
-      byMonth: this.generateLast6Months(),
-      byCustomer: [],
-    };
+    try {
+      // Try delivery workflow invoices first (Google Sheets)
+      const invoices = await deliveryWorkflowService.getInvoices();
+
+      if (invoices.length === 0) {
+        // Fall back to financial service summary if no invoices in sheets
+        return this.billingFromFinancialService(filter);
+      }
+
+      let filtered = invoices;
+      if (filter.dateFrom) {
+        filtered = filtered.filter(i => i.createdAt >= filter.dateFrom!);
+      }
+      if (filter.dateTo) {
+        filtered = filtered.filter(i => i.createdAt <= filter.dateTo!);
+      }
+      if (filter.status) {
+        const statuses = Array.isArray(filter.status) ? filter.status : [filter.status];
+        filtered = filtered.filter(i => statuses.includes(i.status));
+      }
+      if (filter.minAmount !== undefined) {
+        filtered = filtered.filter(i => i.total >= filter.minAmount!);
+      }
+      if (filter.maxAmount !== undefined) {
+        filtered = filtered.filter(i => i.total <= filter.maxAmount!);
+      }
+
+      const now = new Date();
+      const paid = filtered.filter(i => i.status === 'paid');
+      const pending = filtered.filter(i => i.status === 'pending' || i.status === 'sent');
+      const overdue = filtered.filter(i => {
+        if (i.status === 'paid' || i.status === 'cancelled') return false;
+        return i.dueDate && new Date(i.dueDate) < now && i.total > 0;
+      });
+
+      const totalInvoiced = filtered.reduce((s, i) => s + i.total, 0);
+      const totalPaid = paid.reduce((s, i) => s + i.total, 0);
+      const totalPending = pending.reduce((s, i) => s + i.total, 0);
+      const totalOverdue = overdue.reduce((s, i) => s + i.total, 0);
+
+      // Average days to payment for paid invoices
+      let totalDays = 0;
+      let countedPaid = 0;
+      for (const inv of paid) {
+        if (inv.paidAt && inv.createdAt) {
+          const days = (new Date(inv.paidAt).getTime() - new Date(inv.createdAt).getTime()) / 86400000;
+          if (days >= 0) {
+            totalDays += days;
+            countedPaid++;
+          }
+        }
+      }
+
+      // Group by month
+      const monthMap = new Map<string, { invoiced: number; paid: number; pending: number }>();
+      for (const inv of filtered) {
+        const d = new Date(inv.createdAt);
+        const key = `${d.toLocaleString('en-US', { month: 'short' })} ${d.getFullYear()}`;
+        if (!monthMap.has(key)) monthMap.set(key, { invoiced: 0, paid: 0, pending: 0 });
+        const m = monthMap.get(key)!;
+        m.invoiced += inv.total;
+        if (inv.status === 'paid') m.paid += inv.total;
+        if (inv.status === 'pending' || inv.status === 'sent') m.pending += inv.total;
+      }
+
+      // Group by customer
+      const custMap = new Map<string, { name: string; invoiced: number; paid: number; count: number }>();
+      for (const inv of filtered) {
+        const cId = inv.customerName || 'Unknown';
+        if (!custMap.has(cId)) custMap.set(cId, { name: cId, invoiced: 0, paid: 0, count: 0 });
+        const c = custMap.get(cId)!;
+        c.invoiced += inv.total;
+        if (inv.status === 'paid') c.paid += inv.total;
+        c.count++;
+      }
+
+      return {
+        dataSource: 'sheets',
+        totalInvoiced: Math.round(totalInvoiced * 100) / 100,
+        totalPaid: Math.round(totalPaid * 100) / 100,
+        totalPending: Math.round(totalPending * 100) / 100,
+        totalOverdue: Math.round(totalOverdue * 100) / 100,
+        invoiceCount: filtered.length,
+        paidCount: paid.length,
+        pendingCount: pending.length,
+        overdueCount: overdue.length,
+        averageInvoiceAmount: filtered.length > 0
+          ? Math.round((totalInvoiced / filtered.length) * 100) / 100
+          : 0,
+        averageDaysToPayment: countedPaid > 0 ? Math.round(totalDays / countedPaid) : 0,
+        byMonth: Array.from(monthMap.entries()).map(([month, data]) => ({
+          month,
+          invoiced: Math.round(data.invoiced * 100) / 100,
+          paid: Math.round(data.paid * 100) / 100,
+          pending: Math.round(data.pending * 100) / 100,
+        })),
+        byCustomer: Array.from(custMap.entries()).map(([id, data]) => ({
+          customerId: id,
+          customerName: data.name,
+          totalInvoiced: Math.round(data.invoiced * 100) / 100,
+          totalPaid: Math.round(data.paid * 100) / 100,
+          invoiceCount: data.count,
+        })),
+      };
+    } catch (error) {
+      console.error('[ReportsService] Error generating billing report:', error);
+      return this.emptyBillingReport();
+    }
   }
 
-  // Generate Inventory Report
+  // =========================================================================
+  // Inventory Report — from google-sheets-service Inventory sheet
+  // =========================================================================
   async generateInventoryReport(filter: ReportFilter): Promise<InventoryReport> {
-    return {
-      totalProducts: 124,
-      totalValue: 89450.00,
-      lowStockCount: 8,
-      outOfStockCount: 2,
-      restocksPending: 5,
-      turnoverRate: 4.2,
-      byCategory: [
-        { category: 'Shingles', productCount: 24, totalQty: 850, totalValue: 42500, lowStockCount: 2 },
-        { category: 'Underlayment', productCount: 12, totalQty: 320, totalValue: 12800, lowStockCount: 1 },
-        { category: 'Flashing', productCount: 18, totalQty: 450, totalValue: 9000, lowStockCount: 0 },
-        { category: 'Fasteners', productCount: 28, totalQty: 2400, totalValue: 4800, lowStockCount: 3 },
-        { category: 'Ventilation', productCount: 16, totalQty: 180, totalValue: 8100, lowStockCount: 1 },
-        { category: 'Gutters', productCount: 14, totalQty: 280, totalValue: 8400, lowStockCount: 1 },
-        { category: 'Accessories', productCount: 12, totalQty: 560, totalValue: 3850, lowStockCount: 0 },
-      ],
-      topMoving: [
-        { productId: 'OC-DURATION-30', productName: 'OC Duration 30yr Shingles', usedQty: 245, timesOrdered: 68, revenue: 24500 },
-        { productId: 'FELT-30', productName: '30lb Felt Paper', usedQty: 180, timesOrdered: 54, revenue: 5400 },
-        { productId: 'ICE-WATER', productName: 'Ice & Water Shield', usedQty: 156, timesOrdered: 48, revenue: 6240 },
-      ],
-      slowMoving: [
-        { productId: 'CEDAR-SHAKE', productName: 'Cedar Shake Shingles', currentQty: 45, daysInStock: 90 },
-        { productId: 'COPPER-FLASH', productName: 'Copper Flashing', currentQty: 28, daysInStock: 75 },
-      ],
-    };
+    try {
+      const items = await googleSheetsService.getInventory();
+
+      if (items.length === 0) {
+        return this.emptyInventoryReport();
+      }
+
+      const lowStock = items.filter(i => i.quantity > 0 && i.quantity <= i.minStock);
+      const outOfStock = items.filter(i => i.quantity === 0);
+
+      // Group by category
+      const catMap = new Map<string, {
+        productCount: number; totalQty: number; totalValue: number; lowStockCount: number;
+      }>();
+      for (const item of items) {
+        const cat = item.category || 'Uncategorized';
+        if (!catMap.has(cat)) catMap.set(cat, { productCount: 0, totalQty: 0, totalValue: 0, lowStockCount: 0 });
+        const c = catMap.get(cat)!;
+        c.productCount++;
+        c.totalQty += item.quantity;
+        c.totalValue += item.price * item.quantity;
+        if (item.quantity > 0 && item.quantity <= item.minStock) c.lowStockCount++;
+      }
+
+      const totalValue = items.reduce((s, i) => s + (i.price * i.quantity), 0);
+
+      // We don't have real usage/movement data — return empty for topMoving/slowMoving
+      return {
+        dataSource: 'sheets',
+        totalProducts: items.length,
+        totalValue: Math.round(totalValue * 100) / 100,
+        lowStockCount: lowStock.length,
+        outOfStockCount: outOfStock.length,
+        restocksPending: 0, // No restock tracking data available
+        turnoverRate: 0, // No usage history to calculate turnover
+        byCategory: Array.from(catMap.entries()).map(([category, data]) => ({
+          category,
+          productCount: data.productCount,
+          totalQty: data.totalQty,
+          totalValue: Math.round(data.totalValue * 100) / 100,
+          lowStockCount: data.lowStockCount,
+        })),
+        topMoving: [], // No usage tracking data — not faking it
+        slowMoving: [], // No usage tracking data — not faking it
+      };
+    } catch (error) {
+      console.error('[ReportsService] Error generating inventory report:', error);
+      return this.emptyInventoryReport();
+    }
   }
 
-  // Generate Team Performance Report
+  // =========================================================================
+  // Team Performance Report — team from Sheets + delivery ticket data
+  // =========================================================================
   async generateTeamPerformanceReport(filter: ReportFilter): Promise<TeamPerformanceReport> {
-    return {
-      totalTeamMembers: 9,
-      activeMembers: 9,
-      byRole: {
-        'owner': 1,
-        'admin': 1,
-        'office': 2,
-        'project_manager': 2,
-        'driver': 2,
-        'viewer': 1,
-      },
-      drivers: [
-        {
-          id: 'rick',
-          name: 'Rick',
-          totalDeliveries: 82,
-          completedOnTime: 78,
-          averageRating: 4.8,
-          totalMaterialValue: 156000,
-          avgDeliveryTime: 42,
-        },
-        {
-          id: 'tae',
-          name: 'Tae',
-          totalDeliveries: 74,
-          completedOnTime: 68,
-          averageRating: 4.6,
-          totalMaterialValue: 131450,
-          avgDeliveryTime: 48,
-        },
-      ],
-      projectManagers: [
-        {
-          id: 'john',
-          name: 'John',
-          totalOrders: 85,
-          totalValue: 168500,
-          avgOrderSize: 1982.35,
-          completionRate: 94.1,
-        },
-        {
-          id: 'bart',
-          name: 'Bart',
-          totalOrders: 71,
-          totalValue: 118950,
-          avgOrderSize: 1675.35,
-          completionRate: 92.3,
-        },
-      ],
-    };
+    try {
+      const [teamMembers, tickets] = await Promise.all([
+        googleSheetsService.getTeamMembers(),
+        deliveryWorkflowService.getTickets(),
+      ]);
+
+      if (teamMembers.length === 0 && tickets.length === 0) {
+        return this.emptyTeamPerformanceReport();
+      }
+
+      // Filter tickets by date if provided
+      let filteredTickets = tickets;
+      if (filter.dateFrom) filteredTickets = filteredTickets.filter(t => t.createdAt >= filter.dateFrom!);
+      if (filter.dateTo) filteredTickets = filteredTickets.filter(t => t.createdAt <= filter.dateTo!);
+
+      // Count by role from team members
+      const byRole: Record<string, number> = {};
+      for (const m of teamMembers) {
+        const role = (m.category || m.position || 'unknown').toLowerCase();
+        byRole[role] = (byRole[role] || 0) + 1;
+      }
+
+      // Driver stats from actual tickets
+      const driverStats = new Map<string, {
+        id: string; name: string;
+        totalDeliveries: number; completedOnTime: number;
+        totalValue: number; totalMinutes: number; timedCount: number;
+      }>();
+
+      for (const t of filteredTickets) {
+        if (!t.assignedDriver) continue;
+        const dId = t.assignedDriver;
+        if (!driverStats.has(dId)) {
+          driverStats.set(dId, {
+            id: dId,
+            name: t.assignedDriverName || dId,
+            totalDeliveries: 0, completedOnTime: 0,
+            totalValue: 0, totalMinutes: 0, timedCount: 0,
+          });
+        }
+        const d = driverStats.get(dId)!;
+        d.totalDeliveries++;
+        d.totalValue += t.totalMaterialCost || 0;
+
+        if (t.status === 'completed') {
+          // Consider "on time" if completed within requested date
+          if (t.completedAt && t.requestedDate) {
+            const completedDate = t.completedAt.slice(0, 10);
+            if (completedDate <= t.requestedDate) {
+              d.completedOnTime++;
+            }
+          } else {
+            d.completedOnTime++; // No date data = assume on time
+          }
+
+          if (t.createdAt && t.completedAt) {
+            const diff = new Date(t.completedAt).getTime() - new Date(t.createdAt).getTime();
+            if (diff > 0) {
+              d.totalMinutes += diff / 60000;
+              d.timedCount++;
+            }
+          }
+        }
+      }
+
+      // PM stats from tickets
+      const pmStats = new Map<string, {
+        id: string; name: string;
+        totalOrders: number; totalValue: number; completedCount: number;
+      }>();
+
+      for (const t of filteredTickets) {
+        if (!t.projectManager) continue;
+        const pmId = t.projectManager;
+        if (!pmStats.has(pmId)) {
+          pmStats.set(pmId, {
+            id: pmId,
+            name: t.projectManager,
+            totalOrders: 0, totalValue: 0, completedCount: 0,
+          });
+        }
+        const p = pmStats.get(pmId)!;
+        p.totalOrders++;
+        p.totalValue += t.chargeAmount || 0;
+        if (t.status === 'completed') p.completedCount++;
+      }
+
+      return {
+        dataSource: teamMembers.length > 0 || tickets.length > 0 ? 'sheets' : 'none',
+        totalTeamMembers: teamMembers.length,
+        activeMembers: teamMembers.length, // All fetched members are active
+        byRole,
+        drivers: Array.from(driverStats.values()).map(d => ({
+          id: d.id,
+          name: d.name,
+          totalDeliveries: d.totalDeliveries,
+          completedOnTime: d.completedOnTime,
+          averageRating: 0, // No rating system data available
+          totalMaterialValue: Math.round(d.totalValue * 100) / 100,
+          avgDeliveryTime: d.timedCount > 0 ? Math.round(d.totalMinutes / d.timedCount) : 0,
+        })),
+        projectManagers: Array.from(pmStats.values()).map(p => ({
+          id: p.id,
+          name: p.name,
+          totalOrders: p.totalOrders,
+          totalValue: Math.round(p.totalValue * 100) / 100,
+          avgOrderSize: p.totalOrders > 0 ? Math.round((p.totalValue / p.totalOrders) * 100) / 100 : 0,
+          completionRate: p.totalOrders > 0
+            ? Math.round((p.completedCount / p.totalOrders) * 10000) / 100
+            : 0,
+        })),
+      };
+    } catch (error) {
+      console.error('[ReportsService] Error generating team performance report:', error);
+      return this.emptyTeamPerformanceReport();
+    }
   }
 
-  // Generate Material Job Flow Report
+  // =========================================================================
+  // Job Flow Report — real workflow stages from delivery tickets
+  // =========================================================================
   async generateJobFlowReport(filter: ReportFilter): Promise<MaterialJobFlowReport> {
-    return {
-      stages: [
-        { stage: 'Order Created', avgTimeInStage: 5, ticketsInStage: 3, bottleneck: false },
-        { stage: 'Driver Assigned', avgTimeInStage: 15, ticketsInStage: 2, bottleneck: false },
-        { stage: 'Materials Pulled', avgTimeInStage: 45, ticketsInStage: 4, bottleneck: true },
-        { stage: 'Load Verified', avgTimeInStage: 10, ticketsInStage: 2, bottleneck: false },
-        { stage: 'En Route', avgTimeInStage: 35, ticketsInStage: 1, bottleneck: false },
-        { stage: 'Delivered', avgTimeInStage: 20, ticketsInStage: 0, bottleneck: false },
-        { stage: 'Proof Captured', avgTimeInStage: 5, ticketsInStage: 0, bottleneck: false },
-        { stage: 'Billed', avgTimeInStage: 480, ticketsInStage: 8, bottleneck: true },
-      ],
-      averageTotalTime: 615,
-      byTicketType: {
-        'delivery': { count: 142, avgTime: 580, completionRate: 95.4 },
-        'pickup': { count: 28, avgTime: 320, completionRate: 89.3 },
-        'return': { count: 14, avgTime: 240, completionRate: 100 },
-      },
-      alerts: [
-        { type: 'stuck', ticketId: 'TKT-2024-0156', message: 'Ticket stuck in materials_pulled for 2+ hours', severity: 'high' },
-        { type: 'delay', ticketId: 'TKT-2024-0148', message: 'Billing pending for 3+ days', severity: 'medium' },
-        { type: 'overdue', ticketId: 'TKT-2024-0142', message: 'Invoice overdue by 7 days', severity: 'high' },
-      ],
-    };
+    try {
+      const allTickets = await deliveryWorkflowService.getTickets();
+
+      if (allTickets.length === 0) {
+        return this.emptyJobFlowReport();
+      }
+
+      let tickets = allTickets;
+      if (filter.dateFrom) tickets = tickets.filter(t => t.createdAt >= filter.dateFrom!);
+      if (filter.dateTo) tickets = tickets.filter(t => t.createdAt <= filter.dateTo!);
+      if (filter.ticketType && filter.ticketType !== 'all') {
+        tickets = tickets.filter(t => t.ticketType === filter.ticketType);
+      }
+
+      // Count tickets currently in each stage
+      const stageCountMap: Record<string, number> = {};
+      for (const t of tickets) {
+        if (t.status !== 'completed' && t.status !== 'cancelled') {
+          stageCountMap[t.status] = (stageCountMap[t.status] || 0) + 1;
+        }
+      }
+
+      // Calculate average time in each stage from completed tickets
+      // We use the workflow timestamp fields on the ticket
+      const timestampFields: Record<string, string> = {
+        created: 'createdAt',
+        assigned: 'assignedAt',
+        materials_pulled: 'materialsPulledAt',
+        load_verified: 'loadVerifiedAt',
+        en_route: 'departedAt',
+        arrived: 'arrivedAt',
+        delivered: 'deliveredAt',
+        proof_captured: 'proofCapturedAt',
+        qc_photos: 'qcPhotosAt',
+        completed: 'completedAt',
+      };
+
+      const stageTimesMinutes: Record<string, number[]> = {};
+      for (const stage of WORKFLOW_STAGES) {
+        stageTimesMinutes[stage] = [];
+      }
+
+      for (const t of tickets.filter(tk => tk.status === 'completed')) {
+        for (let i = 0; i < WORKFLOW_STAGES.length - 1; i++) {
+          const curStage = WORKFLOW_STAGES[i];
+          const nextStage = WORKFLOW_STAGES[i + 1];
+          const curField = timestampFields[curStage];
+          const nextField = timestampFields[nextStage];
+          const curTime = (t as any)[curField];
+          const nextTime = (t as any)[nextField];
+
+          if (curTime && nextTime) {
+            const diff = (new Date(nextTime).getTime() - new Date(curTime).getTime()) / 60000;
+            if (diff >= 0) {
+              stageTimesMinutes[curStage].push(diff);
+            }
+          }
+        }
+      }
+
+      // Build stages array
+      const stages = WORKFLOW_STAGES.filter(s => s !== 'completed').map(stage => {
+        const times = stageTimesMinutes[stage];
+        const avgTime = times.length > 0
+          ? Math.round(times.reduce((a, b) => a + b, 0) / times.length)
+          : 0;
+        return {
+          stage: STAGE_LABELS[stage] || stage,
+          avgTimeInStage: avgTime,
+          ticketsInStage: stageCountMap[stage] || 0,
+          bottleneck: false, // Will mark below
+        };
+      });
+
+      // Mark bottlenecks: stages with above-average time AND tickets waiting
+      if (stages.length > 0) {
+        const avgOfAvgs = stages.reduce((s, st) => s + st.avgTimeInStage, 0) / stages.length;
+        for (const stage of stages) {
+          stage.bottleneck = stage.avgTimeInStage > avgOfAvgs * 1.5 && stage.ticketsInStage > 0;
+        }
+      }
+
+      // Total average time
+      const completedTickets = tickets.filter(t => t.status === 'completed' && t.createdAt && t.completedAt);
+      let averageTotalTime = 0;
+      if (completedTickets.length > 0) {
+        const totalMins = completedTickets.reduce((s, t) => {
+          return s + (new Date(t.completedAt!).getTime() - new Date(t.createdAt).getTime()) / 60000;
+        }, 0);
+        averageTotalTime = Math.round(totalMins / completedTickets.length);
+      }
+
+      // By ticket type
+      const byTicketType: Record<string, { count: number; avgTime: number; completionRate: number }> = {};
+      const typeGroups = new Map<string, typeof tickets>();
+      for (const t of tickets) {
+        const type = t.ticketType || 'delivery';
+        if (!typeGroups.has(type)) typeGroups.set(type, []);
+        typeGroups.get(type)!.push(t);
+      }
+      for (const [type, group] of typeGroups) {
+        const comp = group.filter(t => t.status === 'completed');
+        let avgTime = 0;
+        if (comp.length > 0) {
+          const totalM = comp.reduce((s, t) => {
+            if (t.createdAt && t.completedAt) {
+              return s + (new Date(t.completedAt).getTime() - new Date(t.createdAt).getTime()) / 60000;
+            }
+            return s;
+          }, 0);
+          avgTime = Math.round(totalM / comp.length);
+        }
+        byTicketType[type] = {
+          count: group.length,
+          avgTime,
+          completionRate: group.length > 0
+            ? Math.round((comp.length / group.length) * 1000) / 10
+            : 0,
+        };
+      }
+
+      // Real alerts: tickets stuck in a stage too long
+      const alerts: MaterialJobFlowReport['alerts'] = [];
+      const now = new Date();
+      const TWO_HOURS = 2 * 60 * 60 * 1000;
+      const THREE_DAYS = 3 * 24 * 60 * 60 * 1000;
+
+      for (const t of tickets) {
+        if (t.status === 'completed' || t.status === 'cancelled') continue;
+
+        // Get the timestamp of the current status
+        const currentTimestamp = (t as any)[timestampFields[t.status]] || t.createdAt;
+        if (!currentTimestamp) continue;
+        const elapsed = now.getTime() - new Date(currentTimestamp).getTime();
+
+        if (elapsed > THREE_DAYS) {
+          alerts.push({
+            type: 'stuck',
+            ticketId: t.ticketId,
+            message: `Ticket stuck in ${STAGE_LABELS[t.status] || t.status} for ${Math.round(elapsed / 86400000)}+ days`,
+            severity: 'high',
+          });
+        } else if (elapsed > TWO_HOURS && ['materials_pulled', 'en_route'].includes(t.status)) {
+          alerts.push({
+            type: 'delay',
+            ticketId: t.ticketId,
+            message: `Ticket in ${STAGE_LABELS[t.status] || t.status} for ${Math.round(elapsed / 3600000)}+ hours`,
+            severity: 'medium',
+          });
+        }
+      }
+
+      // Check for overdue invoices via delivery workflow
+      try {
+        const invoices = await deliveryWorkflowService.getInvoices();
+        for (const inv of invoices) {
+          if (inv.status !== 'paid' && inv.status !== 'cancelled' && inv.dueDate) {
+            const dueDate = new Date(inv.dueDate);
+            if (dueDate < now) {
+              const daysOverdue = Math.round((now.getTime() - dueDate.getTime()) / 86400000);
+              alerts.push({
+                type: 'overdue',
+                ticketId: inv.ticketId || inv.invoiceId,
+                message: `Invoice ${inv.invoiceId} overdue by ${daysOverdue} days`,
+                severity: daysOverdue > 30 ? 'high' : 'medium',
+              });
+            }
+          }
+        }
+      } catch { /* invoices optional */ }
+
+      return {
+        dataSource: 'sheets',
+        stages,
+        averageTotalTime,
+        byTicketType,
+        alerts,
+      };
+    } catch (error) {
+      console.error('[ReportsService] Error generating job flow report:', error);
+      return this.emptyJobFlowReport();
+    }
   }
 
-  // Export report to CSV
+  // =========================================================================
+  // CSV Export (unchanged — works on any data)
+  // =========================================================================
   exportToCSV(data: any[], filename: string): string {
     if (!data || data.length === 0) return '';
 
@@ -323,7 +808,6 @@ class ReportsService {
       ...data.map(row =>
         headers.map(header => {
           const value = row[header];
-          // Escape commas and quotes
           if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
             return `"${value.replace(/"/g, '""')}"`;
           }
@@ -335,40 +819,9 @@ class ReportsService {
     return csvRows.join('\n');
   }
 
-  // Helper: Generate last 30 days data
-  private generateLast30Days(): Array<{ date: string; count: number; completed: number; value: number }> {
-    const days = [];
-    for (let i = 29; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      days.push({
-        date: date.toISOString().slice(0, 10),
-        count: Math.floor(Math.random() * 8) + 3,
-        completed: Math.floor(Math.random() * 7) + 2,
-        value: Math.floor(Math.random() * 15000) + 5000,
-      });
-    }
-    return days;
-  }
-
-  // Helper: Generate last 6 months data
-  private generateLast6Months(): Array<{ month: string; invoiced: number; paid: number; pending: number }> {
-    const months = [];
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    for (let i = 5; i >= 0; i--) {
-      const date = new Date();
-      date.setMonth(date.getMonth() - i);
-      months.push({
-        month: `${monthNames[date.getMonth()]} ${date.getFullYear()}`,
-        invoiced: Math.floor(Math.random() * 50000) + 30000,
-        paid: Math.floor(Math.random() * 45000) + 25000,
-        pending: Math.floor(Math.random() * 10000) + 2000,
-      });
-    }
-    return months;
-  }
-
-  // Filter builder for UI
+  // =========================================================================
+  // Filter builder for UI (unchanged)
+  // =========================================================================
   getAvailableFilters(reportType: string): Array<{
     field: string;
     label: string;
@@ -417,8 +870,6 @@ class ReportsService {
             type: 'select' as const,
             options: [
               { value: '', label: 'All Drivers' },
-              { value: 'rick', label: 'Rick' },
-              { value: 'tae', label: 'Tae' },
             ],
           },
           {
@@ -427,8 +878,6 @@ class ReportsService {
             type: 'select' as const,
             options: [
               { value: '', label: 'All PMs' },
-              { value: 'john', label: 'John' },
-              { value: 'bart', label: 'Bart' },
             ],
           },
         ];
@@ -527,6 +976,85 @@ class ReportsService {
       default:
         return commonFilters;
     }
+  }
+
+  // =========================================================================
+  // Fallback: billing from financial-service (commissions.json + invoices)
+  // =========================================================================
+  private async billingFromFinancialService(filter: ReportFilter): Promise<BillingReport> {
+    try {
+      const summary = await financialService.getFinancialSummary();
+      const revenueByPeriod = await financialService.getRevenueByPeriod('month', 6);
+
+      return {
+        dataSource: 'financial-service',
+        totalInvoiced: summary.revenueYTD,
+        totalPaid: summary.revenueYTD - summary.accountsReceivable,
+        totalPending: summary.accountsReceivable - summary.overdueAmount,
+        totalOverdue: summary.overdueAmount,
+        invoiceCount: summary.outstandingInvoices + summary.overdueInvoices,
+        paidCount: 0, // Can't determine exact count from summary
+        pendingCount: summary.outstandingInvoices,
+        overdueCount: summary.overdueInvoices,
+        averageInvoiceAmount: 0,
+        averageDaysToPayment: 0,
+        byMonth: revenueByPeriod.map(p => ({
+          month: p.periodLabel,
+          invoiced: p.revenue,
+          paid: p.revenue - (p.revenue * 0.1), // rough estimate
+          pending: p.revenue * 0.1,
+        })),
+        byCustomer: [], // No per-customer breakdown available from commissions
+      };
+    } catch {
+      return this.emptyBillingReport();
+    }
+  }
+
+  // =========================================================================
+  // Empty report factories — explicit "no data" states
+  // =========================================================================
+  private emptyDeliveryReport(): DeliveryReport {
+    return {
+      dataSource: 'none',
+      totalDeliveries: 0, completedDeliveries: 0, pendingDeliveries: 0,
+      cancelledDeliveries: 0, averageDeliveryTime: 0, totalMaterialValue: 0,
+      byDriver: [], byDay: [], byStatus: {},
+    };
+  }
+
+  private emptyBillingReport(): BillingReport {
+    return {
+      dataSource: 'none',
+      totalInvoiced: 0, totalPaid: 0, totalPending: 0, totalOverdue: 0,
+      invoiceCount: 0, paidCount: 0, pendingCount: 0, overdueCount: 0,
+      averageInvoiceAmount: 0, averageDaysToPayment: 0,
+      byMonth: [], byCustomer: [],
+    };
+  }
+
+  private emptyInventoryReport(): InventoryReport {
+    return {
+      dataSource: 'none',
+      totalProducts: 0, totalValue: 0, lowStockCount: 0,
+      outOfStockCount: 0, restocksPending: 0, turnoverRate: 0,
+      byCategory: [], topMoving: [], slowMoving: [],
+    };
+  }
+
+  private emptyTeamPerformanceReport(): TeamPerformanceReport {
+    return {
+      dataSource: 'none',
+      totalTeamMembers: 0, activeMembers: 0, byRole: {},
+      drivers: [], projectManagers: [],
+    };
+  }
+
+  private emptyJobFlowReport(): MaterialJobFlowReport {
+    return {
+      dataSource: 'none',
+      stages: [], averageTotalTime: 0, byTicketType: {}, alerts: [],
+    };
   }
 }
 
