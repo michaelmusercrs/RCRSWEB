@@ -128,14 +128,14 @@ interface FullCustomerData {
 // =============================================================================
 
 const jobStatusColors: Record<string, string> = {
-  Lead: 'bg-brand-green/20 text-blue-400 ring-blue-500/30',
-  New: 'bg-brand-green/20 text-blue-400 ring-blue-500/30',
+  Lead: 'bg-blue-500/20 text-blue-400 ring-blue-500/30',
+  New: 'bg-blue-500/20 text-blue-400 ring-blue-500/30',
   Contacted: 'bg-purple-500/20 text-purple-400 ring-purple-500/30',
   'Appointment Set': 'bg-cyan-500/20 text-cyan-400 ring-cyan-500/30',
   Inspected: 'bg-orange-500/20 text-orange-400 ring-orange-500/30',
   'Estimate Sent': 'bg-yellow-500/20 text-yellow-400 ring-yellow-500/30',
   'Contract Signed': 'bg-green-500/20 text-green-400 ring-green-500/30',
-  'Material Ordered': 'bg-brand-green/20 text-indigo-400 ring-indigo-500/30',
+  'Material Ordered': 'bg-indigo-500/20 text-indigo-400 ring-indigo-500/30',
   'Work In Progress': 'bg-amber-500/20 text-amber-400 ring-amber-500/30',
   Complete: 'bg-emerald-500/20 text-emerald-400 ring-emerald-500/30',
   Completed: 'bg-emerald-500/20 text-emerald-400 ring-emerald-500/30',
@@ -1040,7 +1040,7 @@ export default function CustomerDetailPage() {
                     href={`/check-my-address`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-brand-green/20 hover:bg-brand-green/30 rounded-lg text-sm text-blue-400 font-medium transition-colors"
+                    className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 rounded-lg text-sm text-blue-400 font-medium transition-colors"
                   >
                     <ExternalLink size={14} />
                     Open Check My Address
@@ -1126,7 +1126,7 @@ export default function CustomerDetailPage() {
                     };
                     const getStyle = (): string => {
                       if (val === null) return 'bg-neutral-700 text-neutral-300 border-neutral-600';
-                      if (val === true) return 'bg-brand-green/20 text-blue-400 border-blue-500/40';
+                      if (val === true) return 'bg-[#39FF14]/20 text-[#39FF14] border-[#39FF14]/40';
                       return 'bg-red-500/20 text-red-400 border-red-500/40';
                     };
 

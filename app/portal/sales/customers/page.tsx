@@ -41,14 +41,14 @@ interface JNContact {
 // =============================================================================
 
 const statusColors: Record<string, string> = {
-  Lead: 'bg-brand-green/20 text-blue-400 ring-blue-500/30',
-  New: 'bg-brand-green/20 text-blue-400 ring-blue-500/30',
+  Lead: 'bg-blue-500/20 text-blue-400 ring-blue-500/30',
+  New: 'bg-blue-500/20 text-blue-400 ring-blue-500/30',
   Contacted: 'bg-purple-500/20 text-purple-400 ring-purple-500/30',
   'Appointment Set': 'bg-cyan-500/20 text-cyan-400 ring-cyan-500/30',
   Inspected: 'bg-orange-500/20 text-orange-400 ring-orange-500/30',
   'Estimate Sent': 'bg-yellow-500/20 text-yellow-400 ring-yellow-500/30',
   'Contract Signed': 'bg-green-500/20 text-green-400 ring-green-500/30',
-  'Material Ordered': 'bg-brand-green/20 text-indigo-400 ring-indigo-500/30',
+  'Material Ordered': 'bg-indigo-500/20 text-indigo-400 ring-indigo-500/30',
   'Work In Progress': 'bg-amber-500/20 text-amber-400 ring-amber-500/30',
   Complete: 'bg-emerald-500/20 text-emerald-400 ring-emerald-500/30',
   Completed: 'bg-emerald-500/20 text-emerald-400 ring-emerald-500/30',

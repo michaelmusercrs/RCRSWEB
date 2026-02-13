@@ -60,7 +60,7 @@ const initialLeads: Lead[] = [];
 // =============================================================================
 
 const statusConfig = {
-  new: { label: 'New', color: 'bg-brand-green/20 text-blue-400 ring-blue-500/30', order: 1 },
+  new: { label: 'New', color: 'bg-blue-500/20 text-blue-400 ring-blue-500/30', order: 1 },
   contacted: { label: 'Contacted', color: 'bg-purple-500/20 text-purple-400 ring-purple-500/30', order: 2 },
   scheduled: { label: 'Scheduled', color: 'bg-cyan-500/20 text-cyan-400 ring-cyan-500/30', order: 3 },
   inspected: { label: 'Inspected', color: 'bg-orange-500/20 text-orange-400 ring-orange-500/30', order: 4 },
@@ -71,7 +71,7 @@ const statusConfig = {
 
 const priorityConfig = {
   low: { label: 'Low', color: 'text-neutral-400', bgColor: 'bg-neutral-500/20', order: 4 },
-  medium: { label: 'Medium', color: 'text-blue-400', bgColor: 'bg-brand-green/20', order: 3 },
+  medium: { label: 'Medium', color: 'text-blue-400', bgColor: 'bg-blue-500/20', order: 3 },
   high: { label: 'High', color: 'text-orange-400', bgColor: 'bg-orange-500/20', order: 2 },
   urgent: { label: 'Urgent', color: 'text-red-400', bgColor: 'bg-red-500/20', order: 1 },
 };
@@ -650,15 +650,15 @@ export default function LeadsPage() {
 
                       {/* Mark Contacted banner for new leads */}
                       {lead.status === 'new' && (
-                        <div className="mb-3 p-2.5 bg-brand-green/10 border border-blue-500/20 rounded-xl flex items-center justify-between">
+                        <div className="mb-3 p-2.5 bg-[#39FF14]/10 border border-[#39FF14]/20 rounded-xl flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <Bell size={14} className="text-blue-400" />
-                            <span className="text-xs text-blue-400 font-medium">New lead - respond quickly!</span>
+                            <Bell size={14} className="text-[#39FF14]" />
+                            <span className="text-xs text-[#39FF14] font-medium">New lead - respond quickly!</span>
                           </div>
                           <button
                             onClick={() => handleMarkContacted(lead)}
                             disabled={contactingLeadId === lead.id}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-green/20 hover:bg-brand-green/30 text-blue-400 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#39FF14]/20 hover:bg-[#39FF14]/30 text-[#39FF14] rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
                           >
                             {contactingLeadId === lead.id ? (
                               <Loader2 size={12} className="animate-spin" />

@@ -102,7 +102,7 @@ const defaultStats: SalesStats = {
 // =============================================================================
 
 const statusConfig = {
-  new: { label: 'New', color: 'bg-brand-green/20 text-blue-400 ring-blue-500/30' },
+  new: { label: 'New', color: 'bg-blue-500/20 text-blue-400 ring-blue-500/30' },
   contacted: { label: 'Contacted', color: 'bg-purple-500/20 text-purple-400 ring-purple-500/30' },
   scheduled: { label: 'Scheduled', color: 'bg-cyan-500/20 text-cyan-400 ring-cyan-500/30' },
   inspected: { label: 'Inspected', color: 'bg-orange-500/20 text-orange-400 ring-orange-500/30' },
@@ -300,7 +300,7 @@ export default function SalesPortal() {
       id: 'schedule',
       label: 'Schedule',
       icon: Calendar,
-      color: 'bg-brand-green/20 text-blue-400 hover:bg-brand-green/30',
+      color: 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30',
       action: () => router.push('/portal/sales/leads?action=schedule'),
     },
     {
@@ -335,7 +335,7 @@ export default function SalesPortal() {
 
   // Activity icon mapping
   const activityIcons: Record<string, { icon: LucideIcon; color: string }> = {
-    lead_assigned: { icon: Users, color: 'text-blue-400 bg-brand-green/20' },
+    lead_assigned: { icon: Users, color: 'text-blue-400 bg-blue-500/20' },
     quote_sent: { icon: FileText, color: 'text-purple-400 bg-purple-500/20' },
     job_closed: { icon: CheckCircle, color: 'text-green-400 bg-green-500/20' },
     commission_paid: { icon: DollarSign, color: 'text-yellow-400 bg-yellow-500/20' },
@@ -812,7 +812,7 @@ export default function SalesPortal() {
               </div>
             </Link>
             <Link
-              href="/portal/sales/performance"
+              href="/portal/sales/settings"
               className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 hover:bg-white/[0.04] transition-colors group"
             >
               <div className="flex items-center gap-3">
@@ -820,8 +820,8 @@ export default function SalesPortal() {
                   <DollarSign size={20} className="text-yellow-400" />
                 </div>
                 <div>
-                  <h4 className="font-medium text-white group-hover:text-brand-green transition-colors">Commissions</h4>
-                  <p className="text-xs text-neutral-500">Earned & Pending</p>
+                  <h4 className="font-medium text-white group-hover:text-brand-green transition-colors">Settings</h4>
+                  <p className="text-xs text-neutral-500">Lead Preferences</p>
                 </div>
               </div>
             </Link>
