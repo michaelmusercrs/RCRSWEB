@@ -1,3 +1,7 @@
+// ⚠️ PLACEHOLDER DATA — This file contains mock/demo data and is not used in production.
+// It is kept temporarily to avoid breaking any residual imports. Safe to remove once all
+// references are cleaned up.
+
 /**
  * RCRS Command Center - Marketing Hub Data
  *
