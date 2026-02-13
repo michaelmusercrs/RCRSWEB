@@ -9,7 +9,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { googleSheetsService, CustomerPortalLogRecord } from '@/lib/google-sheets-service';
-import { requireAdmin } from '@/lib/auth-service';
+import { requireAdmin, validateSession } from '@/lib/auth-service';
+import { leadPortalService } from '@/lib/lead-portal-service';
 
 /**
  * Extract client IP from request headers.
@@ -39,7 +40,39 @@ export async function POST(request: NextRequest) {
       jobId,
       action,
       details,
+      portalToken,
     } = body;
+
+    // SECURITY: Require authentication to prevent fake log injection.
+    // Accept either a valid JWT session OR a valid customer portal token.
+    const session = await validateSession();
+    let authenticated = session.valid;
+    let resolvedCustomerId = customerId;
+
+    if (!authenticated && portalToken) {
+      // Validate the portal token and ensure it maps to the claimed customerId
+      const lead = await leadPortalService.getLeadByToken(portalToken);
+      if (lead) {
+        authenticated = true;
+        // SECURITY: Override customerId with the one from the token to prevent spoofing
+        resolvedCustomerId = lead.customerId;
+      }
+    }
+
+    if (!authenticated) {
+      return NextResponse.json(
+        { success: false, error: 'Authentication required. Provide a valid session or portalToken.' },
+        { status: 401 }
+      );
+    }
+
+    // SECURITY: If authenticated via JWT session as a customer, enforce own-data access
+    if (session.valid && session.user?.role === 'customer' && customerId && session.user.userId !== customerId) {
+      return NextResponse.json(
+        { success: false, error: 'Access denied: cannot log actions for another customer' },
+        { status: 403 }
+      );
+    }
 
     // Validate required fields
     if (!action) {
@@ -79,7 +112,7 @@ export async function POST(request: NextRequest) {
     const detailsObj = typeof details === 'string'
       ? (() => { try { return JSON.parse(details); } catch { return { raw: details }; } })()
       : details || {};
-    if (customerId) detailsObj.customerId = customerId;
+    if (resolvedCustomerId) detailsObj.customerId = resolvedCustomerId;
 
     const logRecord: CustomerPortalLogRecord = {
       logId: `PLOG-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -96,23 +129,23 @@ export async function POST(request: NextRequest) {
     const success = await googleSheetsService.addPortalLog(logRecord);
 
     // If this is a portal_opened action, also increment visit count in CustomerPortalData
-    if (action === 'portal_opened' && customerId) {
+    if (action === 'portal_opened' && resolvedCustomerId) {
       // Fire-and-forget: increment visit counter
-      googleSheetsService.incrementPortalVisit(customerId).catch(err => {
+      googleSheetsService.incrementPortalVisit(resolvedCustomerId).catch(err => {
         console.error('Failed to increment portal visit:', err);
       });
     }
 
     // If this is a message_sent action, increment message count
-    if (action === 'message_sent' && customerId) {
-      googleSheetsService.incrementPortalStat(customerId, 'messagesSent').catch(err => {
+    if (action === 'message_sent' && resolvedCustomerId) {
+      googleSheetsService.incrementPortalStat(resolvedCustomerId, 'messagesSent').catch(err => {
         console.error('Failed to increment messagesSent:', err);
       });
     }
 
     // If this is a document_viewed or document_downloaded, increment docs viewed
-    if ((action === 'document_viewed' || action === 'document_downloaded') && customerId) {
-      googleSheetsService.incrementPortalStat(customerId, 'documentsViewed').catch(err => {
+    if ((action === 'document_viewed' || action === 'document_downloaded') && resolvedCustomerId) {
+      googleSheetsService.incrementPortalStat(resolvedCustomerId, 'documentsViewed').catch(err => {
         console.error('Failed to increment documentsViewed:', err);
       });
     }
