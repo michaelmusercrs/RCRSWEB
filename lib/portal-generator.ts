@@ -203,11 +203,7 @@ class PortalGenerator {
       const portalUrl = this.getPortalUrl(accessToken);
       const qrCodeUrl = this.getQrCodeUrl(accessToken);
 
-        customerId,
-        salesRep: salesRep.name,
-        assignmentReason,
-        portalUrl,
-      });
+    // logging removed
 
       return {
         success: true,

@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 
 // POST - Upload delivery photo for a pipeline stage
 export async function POST(req: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const formData = await req.formData();
     const photo = formData.get('photo') as File | null;

@@ -891,8 +891,7 @@ class NotificationService {
       result.channelResults.in_app.skipped = true;
     }
 
-      `email=${result.channelResults.email.sent}, sms=${result.channelResults.sms.sent}, ` +
-      `groupme=${result.channelResults.groupme.sent}, in_app=${result.channelResults.in_app.sent}`);
+    // logging removed
 
     return result;
   }

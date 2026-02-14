@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 
 export const maxDuration = 900; // 15 minutes max
 export const dynamic = 'force-dynamic';
@@ -884,6 +885,9 @@ function buildResponse(
 // ── GET Handler ────────────────────────────────────────────────────────────
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   const address = request.nextUrl.searchParams.get('address');
   if (!address) return NextResponse.json({ error: 'address parameter required' }, { status: 400 });
   if (!GOOGLE_KEY) return NextResponse.json({ error: 'Google Maps API key not configured' }, { status: 500 });
@@ -899,6 +903,9 @@ export async function GET(request: NextRequest) {
 // ── POST Handler ───────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   if (!GOOGLE_KEY) return NextResponse.json({ error: 'Google Maps API key not configured' }, { status: 500 });
 
   try {
