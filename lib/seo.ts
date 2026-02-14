@@ -287,6 +287,28 @@ export function generateLocalBusinessSchema() {
       bestRating: '5',
       worstRating: '1',
     },
+    hasCredential: [
+      {
+        '@type': 'EducationalOccupationalCredential',
+        credentialCategory: 'Professional Certification',
+        name: 'IKO Certified Contractor',
+        recognizedBy: {
+          '@type': 'Organization',
+          name: 'IKO Industries',
+        },
+      },
+    ],
+    knowsAbout: [
+      'Roof Replacement',
+      'Roof Repair',
+      'Storm Damage Restoration',
+      'Hail Damage Repair',
+      'Insurance Claims Assistance',
+      'Commercial Roofing',
+      'Gutter Installation',
+      'Attic Ventilation',
+      'Emergency Roofing',
+    ],
     hasOfferCatalog: {
       '@type': 'OfferCatalog',
       name: 'Roofing Services',
@@ -423,6 +445,9 @@ export function generateServiceSchema(params: {
       { '@type': 'City', name: 'Athens', containedInPlace: { '@type': 'State', name: 'Alabama' } },
       { '@type': 'City', name: 'Hartselle', containedInPlace: { '@type': 'State', name: 'Alabama' } },
       { '@type': 'City', name: 'Cullman', containedInPlace: { '@type': 'State', name: 'Alabama' } },
+      { '@type': 'City', name: 'Moulton', containedInPlace: { '@type': 'State', name: 'Alabama' } },
+      { '@type': 'City', name: 'Florence', containedInPlace: { '@type': 'State', name: 'Alabama' } },
+      { '@type': 'City', name: 'Owens Cross Roads', containedInPlace: { '@type': 'State', name: 'Alabama' } },
     ],
     serviceType: params.name,
     url: params.url,
