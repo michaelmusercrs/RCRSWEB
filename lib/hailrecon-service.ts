@@ -132,7 +132,6 @@ class HailReconService {
     radiusMiles: number = 15
   ): Promise<HailReconPropertyReport | null> {
     if (!this.isConfigured()) {
-      console.log('HailRecon: Not configured, skipping');
       return null;
     }
 
@@ -203,11 +202,9 @@ class HailReconService {
         }
       } catch (error) {
         // Continue to next endpoint
-        console.log(`HailRecon: Endpoint ${endpoint.url} failed:`, error instanceof Error ? error.message : 'unknown');
       }
     }
 
-    console.log('HailRecon: All endpoints failed, returning null');
     return null;
   }
 

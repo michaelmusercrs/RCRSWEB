@@ -169,7 +169,6 @@ class JNResponseMiner {
     const errors: string[] = [];
 
     // Step 1: Fetch all jobs
-    console.log('[ResponseMiner] Fetching all jobs from JN...');
     const allJobs: Array<{ jnid: string; sales_rep_name?: string; created_at?: number }> = [];
     let offset = 0;
     const pageSize = 100;
@@ -193,7 +192,6 @@ class JNResponseMiner {
       }
     }
 
-    console.log(`[ResponseMiner] Fetched ${allJobs.length} jobs across ${pageCount} pages`);
 
     // Step 2-5: For each job, fetch notes and analyze
     // Collect per-rep response times
@@ -205,7 +203,6 @@ class JNResponseMiner {
     for (let i = 0; i < allJobs.length; i++) {
       const job = allJobs[i];
       if (i > 0 && i % 50 === 0) {
-        console.log(`[ResponseMiner] Processing job ${i}/${allJobs.length}...`);
       }
 
       try {
@@ -304,13 +301,11 @@ class JNResponseMiner {
     // Step 7: Store in Google Sheets
     try {
       await this.storeResults(repStats);
-      console.log(`[ResponseMiner] Stored ${repStats.length} rep stats in JN_Response_Times sheet`);
     } catch (err) {
       errors.push(`Failed to store results: ${err instanceof Error ? err.message : String(err)}`);
     }
 
     const durationMs = Date.now() - startTime;
-    console.log(`[ResponseMiner] Complete in ${(durationMs / 1000).toFixed(1)}s. ${repStats.length} reps, ${totalWithRepResponse} data points.`);
 
     return {
       repStats,

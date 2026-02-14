@@ -402,7 +402,6 @@ class CMSSheetsService {
     // Check if already has data
     const rows = await sheet.getRows();
     if (rows.length > 0) {
-      console.log('Blog posts sheet already has data');
       return;
     }
 
@@ -424,7 +423,6 @@ class CMSSheetsService {
       });
     }
 
-    console.log(`Imported ${blogPosts.length} blog posts to sheet`);
   }
 
   async setupImagesSheet(): Promise<void> {
@@ -435,7 +433,6 @@ class CMSSheetsService {
     // Check if already has data
     const rows = await sheet.getRows();
     if (rows.length > 0) {
-      console.log('Images sheet already has data');
       return;
     }
 
@@ -462,7 +459,6 @@ class CMSSheetsService {
       });
     }
 
-    console.log('Imported default images to sheet');
   }
 
   // ============================================

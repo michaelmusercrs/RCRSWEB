@@ -165,7 +165,6 @@ export default function RootLayout({
 
                 navigator.serviceWorker.register('/sw.js', { scope: '/' })
                   .then(function(registration) {
-                    console.log('[PWA] Service Worker registered with scope:', registration.scope);
 
                     // Check for updates periodically (every 60 minutes)
                     setInterval(function() {
@@ -173,7 +172,7 @@ export default function RootLayout({
                     }, 60 * 60 * 1000);
                   })
                   .catch(function(error) {
-                    console.log('[PWA] Service Worker registration failed:', error);
+                    console.error('[PWA] Service Worker registration failed:', error);
                   });
               });
             }

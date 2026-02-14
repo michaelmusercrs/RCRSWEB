@@ -89,10 +89,8 @@ export async function runGeocodeSync(): Promise<SyncProgress> {
 
   try {
     // ─── 1. Get existing geocoded contacts to skip already-done ones ─────
-    console.log('[GeocodeSync] Loading existing geocoded contacts...');
     const existingGeocoded = await googleSheetsService.getGeocodedContacts();
     const existingJnids = new Set(existingGeocoded.map(c => c.jnid));
-    console.log(`[GeocodeSync] ${existingJnids.size} already geocoded`);
 
     // ─── 2. Collect contacts from all sources ────────────────────────────
     interface ContactToGeocode {
@@ -110,7 +108,6 @@ export async function runGeocodeSync(): Promise<SyncProgress> {
 
     // ─── 2a. Fetch from JobNimbus ────────────────────────────────────────
     if (isJobNimbusConfigured()) {
-      console.log('[GeocodeSync] Fetching contacts from JobNimbus...');
       try {
         const jnContacts = await jobNimbusService.syncContacts();
         for (const c of jnContacts) {
@@ -138,16 +135,13 @@ export async function runGeocodeSync(): Promise<SyncProgress> {
             updatedAt: c.updated_at ? new Date(c.updated_at * 1000).toISOString() : '',
           });
         }
-        console.log(`[GeocodeSync] ${allContacts.length} JN contacts need geocoding`);
       } catch (err) {
         console.warn('[GeocodeSync] JobNimbus fetch failed:', err);
       }
     } else {
-      console.log('[GeocodeSync] JobNimbus not configured, skipping');
     }
 
     // ─── 2b. Fetch from Google Sheets Customers ──────────────────────────
-    console.log('[GeocodeSync] Fetching customers from Google Sheets...');
     try {
       const customers = await googleSheetsService.getCustomers();
       let sheetsAdded = 0;
@@ -171,7 +165,6 @@ export async function runGeocodeSync(): Promise<SyncProgress> {
         });
         sheetsAdded++;
       }
-      console.log(`[GeocodeSync] ${sheetsAdded} Sheets customers need geocoding`);
     } catch (err) {
       console.warn('[GeocodeSync] Google Sheets customer fetch failed:', err);
     }
@@ -180,13 +173,11 @@ export async function runGeocodeSync(): Promise<SyncProgress> {
     currentSync.skipped = existingJnids.size;
 
     if (allContacts.length === 0) {
-      console.log('[GeocodeSync] All contacts already geocoded');
       currentSync.status = 'complete';
       currentSync.completedAt = new Date().toISOString();
       return currentSync;
     }
 
-    console.log(`[GeocodeSync] Geocoding ${allContacts.length} contacts via Nominatim (1/sec)...`);
     currentSync.status = 'geocoding';
 
     // ─── 3. Geocode sequentially (1 per second, Nominatim requirement) ───
@@ -227,13 +218,11 @@ export async function runGeocodeSync(): Promise<SyncProgress> {
 
       // Log progress every 10 contacts
       if ((i + 1) % 10 === 0 || i + 1 === allContacts.length) {
-        console.log(`[GeocodeSync] Progress: ${i + 1}/${allContacts.length} (${currentSync.geocoded} success, ${currentSync.errors} failed)`);
       }
     }
 
     // ─── 4. Save to Google Sheets ────────────────────────────────────────
     currentSync.status = 'saving';
-    console.log(`[GeocodeSync] Saving ${geocodedRecords.length} geocoded contacts to Sheets...`);
 
     if (geocodedRecords.length > 0) {
       const saveResult = await googleSheetsService.addGeocodedContactsBatch(geocodedRecords);
@@ -244,7 +233,6 @@ export async function runGeocodeSync(): Promise<SyncProgress> {
     currentSync.status = 'complete';
     currentSync.completedAt = new Date().toISOString();
 
-    console.log(`[GeocodeSync] Complete: ${currentSync.saved} saved, ${currentSync.errors} errors, ${currentSync.skipped} skipped (already geocoded)`);
 
     return currentSync;
   } catch (error) {
@@ -294,7 +282,6 @@ export async function geocodeAndSaveContact(params: {
 
     const saved = await googleSheetsService.addGeocodedContact(record);
     if (saved) {
-      console.log(`[GeocodeSync] Geocoded and saved: "${params.name}" at ${result.lat},${result.lng}`);
       return record;
     }
 

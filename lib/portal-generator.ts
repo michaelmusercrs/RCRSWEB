@@ -203,7 +203,6 @@ class PortalGenerator {
       const portalUrl = this.getPortalUrl(accessToken);
       const qrCodeUrl = this.getQrCodeUrl(accessToken);
 
-      console.log(`Generated portal for ${lead.name}:`, {
         customerId,
         salesRep: salesRep.name,
         assignmentReason,

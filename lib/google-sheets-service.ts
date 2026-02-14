@@ -334,7 +334,6 @@ class GoogleSheetsService {
       this.doc = new GoogleSpreadsheet(SHEETS_ID!, serviceAccountAuth);
       await this.doc.loadInfo();
       this.initialized = true;
-      console.log(`Connected to Google Sheet: ${this.doc.title}`);
       return true;
     } catch (error) {
       console.error('Failed to initialize Google Sheets:', error);
@@ -353,7 +352,6 @@ class GoogleSheetsService {
     let sheet = this.doc.sheetsByTitle[name];
     if (!sheet) {
       sheet = await this.doc.addSheet({ title: name, headerValues: headers, gridProperties: { columnCount: Math.max(headers.length + 5, 26) } });
-      console.log(`Created new sheet: ${name}`);
     } else {
       // Ensure headers exist - fix for sheets created without headers
       try {

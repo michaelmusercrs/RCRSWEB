@@ -1567,7 +1567,7 @@ function generateReport() {
   const authBlocked = results.filter(r => r.httpStatus === 401);
   if (authBlocked.length > 0) {
     console.log(`\n  \x1b[33m⚠ ${authBlocked.length} tests returned 401 (Auth Required)\x1b[0m`);
-    console.log('  \x1b[33m  Set AUTH_BYPASS_MODE=true in .env.local for full testing\x1b[0m');
+    console.log('  \x1b[33m  Authenticate before running tests for full coverage\x1b[0m');
   }
 
   console.log('\n\x1b[1m═══════════════════════════════════════════════\x1b[0m\n');

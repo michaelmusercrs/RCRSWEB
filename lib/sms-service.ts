@@ -167,7 +167,6 @@ class SMSService {
       }
 
       const result = await response.json().catch(() => ({}));
-      console.log(`[SMS Gateway] Sent to ${to} via phone gateway`);
       return { success: true };
     } catch (error) {
       console.error('Phone Gateway SMS failed:', error);
@@ -234,7 +233,6 @@ class SMSService {
         return { success: false, error: `HTTP ${response.status}` };
       }
 
-      console.log(`[SMS Email Gateway] Sent to ${phone10} via ${gateway.name} (${smsEmailAddress})`);
       return { success: true };
     } catch (error) {
       console.error('Email-to-SMS gateway failed:', error);
@@ -286,7 +284,6 @@ class SMSService {
       const result = await response.json();
 
       if (result.status === 'success') {
-        console.log(`[VoIP.ms] Sent to ${to} via VoIP.ms (DID: ${did})`);
         return { success: true };
       } else {
         console.error('VoIP.ms SMS failed:', result);

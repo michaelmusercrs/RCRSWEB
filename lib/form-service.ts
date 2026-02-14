@@ -179,7 +179,6 @@ class FormService {
     const endpoint = process.env.NEXT_PUBLIC_GOOGLE_SCRIPT_ENDPOINT;
 
     if (!endpoint) {
-      console.log('No email endpoint configured, skipping email notification');
       return;
     }
 

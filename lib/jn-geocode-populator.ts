@@ -48,7 +48,6 @@ class JNGeocodePopulator {
     const errors: string[] = [];
 
     // Step 1: Fetch all contacts from JN
-    console.log('[GeoPopulator] Fetching contacts from JobNimbus...');
     const allContacts: Array<{
       jnid: string;
       name: string;
@@ -88,7 +87,6 @@ class JNGeocodePopulator {
       }
     }
 
-    console.log(`[GeoPopulator] Fetched ${allContacts.length} contacts from JN`);
 
     // Step 2: Filter contacts that have addresses
     const withAddress = allContacts.filter(c => c.address && c.address.length > 10);
@@ -102,7 +100,6 @@ class JNGeocodePopulator {
     const needsGeocoding = withAddress.filter(c => !existingJnids.has(c.jnid));
     const alreadyGeocoded = withAddress.length - needsGeocoding.length;
 
-    console.log(`[GeoPopulator] ${alreadyGeocoded} already geocoded, ${needsGeocoding.length} need geocoding`);
 
     if (needsGeocoding.length === 0) {
       return {
@@ -122,12 +119,10 @@ class JNGeocodePopulator {
       address: c.address,
     }));
 
-    console.log(`[GeoPopulator] Batch geocoding ${addressBatch.length} addresses via Nominatim (1/sec)...`);
     const geocodeResults = await batchGeocodeWithNominatim(
       addressBatch,
       (completed, total) => {
         if (completed % 10 === 0 || completed === total) {
-          console.log(`[GeoPopulator] Geocoded ${completed}/${total}`);
         }
       }
     );
@@ -164,7 +159,6 @@ class JNGeocodePopulator {
 
     // Write in batches to avoid overwhelming the Sheets API
     if (newRecords.length > 0) {
-      console.log(`[GeoPopulator] Writing ${newRecords.length} new geocoded records to sheet...`);
       const batchResult = await googleSheetsService.addGeocodedContactsBatch(newRecords);
       if (batchResult.errors > 0) {
         errors.push(`${batchResult.errors} records failed to write to sheet`);
@@ -172,7 +166,6 @@ class JNGeocodePopulator {
     }
 
     const durationMs = Date.now() - startTime;
-    console.log(`[GeoPopulator] Complete in ${(durationMs / 1000).toFixed(1)}s. ${newRecords.length} new, ${failed} failed geocoding.`);
 
     return {
       totalContacts: allContacts.length,

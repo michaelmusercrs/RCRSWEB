@@ -501,7 +501,6 @@ export async function POST(request: NextRequest) {
         leadId: lead.leadId,
         customerId: lead.customerId,
       }).then(report => {
-        console.log(`[Lead ${lead.leadId}] Auto roof report generated: ${report.reportId} (${report.totalRoofAreaSqFt} sqft, ${report.overallConfidence} confidence)`);
       }).catch(err => {
         console.warn(`[Lead ${lead.leadId}] Auto roof report failed:`, err);
       });

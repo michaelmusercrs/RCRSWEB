@@ -69,7 +69,6 @@ class LeadResponseTimerService {
       missedReason: '',
     });
 
-    console.log(`[ResponseTimer] Started timer for lead ${leadId} -> rep ${repSlug}`);
     return timer;
   }
 
@@ -101,7 +100,6 @@ class LeadResponseTimerService {
     // Remove from active timers
     this.activeTimers.delete(leadId);
 
-    console.log(`[ResponseTimer] Contact made for lead ${leadId} in ${timer.responseMinutes} minutes`);
     return { success: true, responseMinutes: timer.responseMinutes };
   }
 
@@ -173,7 +171,6 @@ class LeadResponseTimerService {
       await this.startTimer(leadId, newRepSlug, timer.customerName);
     }
 
-    console.log(`[ResponseTimer] Lead ${leadId} reassigned from ${timer?.repSlug} to ${newRepSlug}: ${reason}`);
   }
 
   // Get all active timers

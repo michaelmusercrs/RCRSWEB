@@ -287,7 +287,6 @@ class LeadPipelineOrchestrator {
 
         if (result.success && result.jnid) {
           jnContactId = result.jnid;
-          console.log(`[Lead ${params.leadId}] JN contact ${result.action}: ${result.jnid}`);
 
           // Also create a JN job if requested
           if (params.createJNJob && jnContactId) {
@@ -302,7 +301,6 @@ class LeadPipelineOrchestrator {
                 zip: params.customerZip,
               });
               if (jobResult.success) {
-                console.log(`[Lead ${params.leadId}] JN job created: ${jobResult.jnid}`);
               }
             } catch (err) {
               errors.push(`JN job creation failed: ${err instanceof Error ? err.message : String(err)}`);

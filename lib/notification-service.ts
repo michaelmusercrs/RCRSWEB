@@ -891,7 +891,6 @@ class NotificationService {
       result.channelResults.in_app.skipped = true;
     }
 
-    console.log(`[NotificationService] Sent '${trigger}' notification to ${name || repSlug || recipientCustomerId}: ` +
       `email=${result.channelResults.email.sent}, sms=${result.channelResults.sms.sent}, ` +
       `groupme=${result.channelResults.groupme.sent}, in_app=${result.channelResults.in_app.sent}`);
 

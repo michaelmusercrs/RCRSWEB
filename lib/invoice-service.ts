@@ -332,7 +332,6 @@ class InvoiceService {
           headerValues: INVOICE_HEADERS,
           gridProperties: { columnCount: Math.max(INVOICE_HEADERS.length + 5, 35) },
         });
-        console.log(`[InvoiceService] Created new sheet: ${INVOICE_SHEET_NAME}`);
       } else {
         try {
           await sheet.loadHeaderRow();

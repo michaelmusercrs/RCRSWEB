@@ -315,8 +315,6 @@ export const profileApprovalService = {
 
     // TODO: Send actual email notification
     // For now, log to console
-    console.log(`[Profile Notification] ${notification.type}: ${notification.message}`);
-    console.log(`  Recipient: ${notification.recipientName} <${notification.recipientEmail}>`);
 
     return notification;
   },

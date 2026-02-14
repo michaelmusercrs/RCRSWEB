@@ -463,7 +463,6 @@ export class WarehouseIoTService {
       return;
     }
 
-    console.log(`[WarehouseIoT] Delivery ${ticketId} status changed to: ${newStatus}`);
 
     try {
       switch (newStatus) {
@@ -511,7 +510,6 @@ export class WarehouseIoTService {
           break;
 
         default:
-          console.log(`[WarehouseIoT] No IoT action defined for status: ${newStatus}`);
       }
     } catch (error) {
       console.error(`[WarehouseIoT] Error handling status change for ${ticketId}:`, error);

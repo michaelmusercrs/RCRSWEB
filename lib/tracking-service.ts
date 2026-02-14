@@ -111,7 +111,6 @@ class TrackingService {
 
     // Check for Do Not Track
     if (this.isDoNotTrackEnabled()) {
-      console.log('Do Not Track enabled - tracking disabled');
       return;
     }
 
