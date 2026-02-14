@@ -5,45 +5,50 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
-import { promises as fs } from 'fs';
-import path from 'path';
 import { ProfileReview } from '@/lib/profile-types';
 
-// Path to store reviews data
-const DATA_FILE = path.join(process.cwd(), 'data', 'profile-reviews.json');
+const BLOB_KEY = 'data/profile-reviews.json';
+const LOCAL_PATH = 'data/profile-reviews.json';
 
 // Generate unique ID
 function generateId(): string {
   return `rev_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 }
 
-/**
- * Ensure data file exists
- */
-async function ensureDataFile(): Promise<ProfileReview[]> {
-  const dataDir = path.join(process.cwd(), 'data');
-
+async function readReviews(): Promise<ProfileReview[]> {
   try {
-    await fs.access(dataDir);
-  } catch {
-    await fs.mkdir(dataDir, { recursive: true });
-  }
-
+    const { list } = await import('@vercel/blob');
+    const blobs = await list({ prefix: BLOB_KEY });
+    if (blobs.blobs.length > 0) {
+      const res = await fetch(blobs.blobs[0].url, { cache: 'no-store' });
+      if (res.ok) return await res.json();
+    }
+  } catch (e) { /* blob not available */ }
   try {
-    const data = await fs.readFile(DATA_FILE, 'utf-8');
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), LOCAL_PATH);
+    const data = fs.readFileSync(filePath, 'utf-8');
     return JSON.parse(data);
   } catch {
-    // Initialize with empty array
-    await fs.writeFile(DATA_FILE, JSON.stringify([], null, 2));
     return [];
   }
 }
 
-/**
- * Save reviews to file
- */
 async function saveReviews(reviews: ProfileReview[]): Promise<void> {
-  await fs.writeFile(DATA_FILE, JSON.stringify(reviews, null, 2));
+  try {
+    const { put } = await import('@vercel/blob');
+    await put(BLOB_KEY, JSON.stringify(reviews, null, 2), {
+      access: 'public', contentType: 'application/json', addRandomSuffix: false,
+    });
+  } catch (e) {
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), LOCAL_PATH);
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(filePath, JSON.stringify(reviews, null, 2));
+  }
 }
 
 /**
@@ -60,7 +65,7 @@ export async function GET(req: NextRequest) {
     const pending = searchParams.get('pending') === 'true';
     const visible = searchParams.get('visible'); // 'true', 'false', or null for all
 
-    let reviews = await ensureDataFile();
+    let reviews = await readReviews();
 
     // Filter by rep slug
     if (repSlug) {
@@ -128,7 +133,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const reviews = await ensureDataFile();
+    const reviews = await readReviews();
 
     const newReview: ProfileReview = {
       id: generateId(),
@@ -185,7 +190,7 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const reviews = await ensureDataFile();
+    const reviews = await readReviews();
     const reviewIndex = reviews.findIndex((r) => r.id === id);
 
     if (reviewIndex === -1) {
@@ -248,7 +253,7 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    let reviews = await ensureDataFile();
+    let reviews = await readReviews();
     const reviewIndex = reviews.findIndex((r) => r.id === id);
 
     if (reviewIndex === -1) {

@@ -21,14 +21,17 @@ const GOOGLE_ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID || '';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = generateMetadata({
-  title: 'Professional Roofing Services in North Alabama',
-  description: 'Licensed and insured roofing contractor serving Decatur, Huntsville, Madison, and all of North Alabama. Expert roof replacement, repair, and storm damage services.',
+  title: 'Roofing Contractor Decatur, Huntsville & North Alabama',
+  description: '#1 rated roofing company in North Alabama. Free roof inspections, storm damage repair & insurance claims. Serving Decatur, Huntsville, Madison, Athens & more. Call (256) 274-8530.',
   keywords: [
-    'Alabama roofing company',
-    'licensed roofer',
-    'insured contractor',
-    'free inspection',
-    'roof warranty',
+    'roofing contractor Decatur AL',
+    'Huntsville roofer',
+    'Madison AL roofing',
+    'North Alabama roofing company',
+    'roof replacement near me',
+    'storm damage roof repair',
+    'free roof inspection',
+    'hail damage roofer',
   ],
   path: '/',
 });
@@ -137,6 +140,9 @@ export default function RootLayout({
             <main>{children}</main>
             <Footer />
             <FloatingContactButton />
+            {/* Honeypot links — invisible to humans, irresistible to bots */}
+            <a href="/api/honeypot" style={{position:'absolute',left:'-9999px',opacity:0,height:0,width:0,overflow:'hidden'}} tabIndex={-1} aria-hidden="true">Special Roofing Deals</a>
+            <a href="/api/honeypot?src=admin" style={{position:'absolute',left:'-9999px',opacity:0,height:0,width:0,overflow:'hidden'}} tabIndex={-1} aria-hidden="true">Admin Panel</a>
           </TrackingProvider>
         </Suspense>
 

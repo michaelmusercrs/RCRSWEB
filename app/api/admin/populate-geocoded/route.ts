@@ -41,7 +41,6 @@ export async function POST(request: NextRequest) {
 
     // Still running
     resultPromise.then(r => {
-      console.log(`[PopulateGeocoded] Background complete: ${r.newlyGeocoded} new, ${r.failed} failed`);
     }).catch(err => {
       console.error('[PopulateGeocoded] Background failed:', err);
     });

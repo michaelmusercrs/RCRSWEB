@@ -814,7 +814,7 @@ export default function OnboardingPage() {
     setCompleted(newCompleted);
     saveCompletedSections(newCompleted);
 
-    // Persist to server
+    // Persist to server with quiz answers for server-side validation
     try {
       const { userId, userName } = getUserIdentity();
       await fetch('/api/portal/training', {
@@ -827,6 +827,7 @@ export default function OnboardingPage() {
           moduleName: onboardingSections.find(s => s.id === sectionId)?.title || sectionId,
           score: '100',
           passed: true,
+          answers: quizAnswers, // Server validates these for onboard_ modules
           completedAt: new Date().toISOString(),
         }),
       });
@@ -859,7 +860,7 @@ export default function OnboardingPage() {
     const sectionIndex = onboardingSections.findIndex(s => s.id === activeSection.id);
     const nextSection = onboardingSections[sectionIndex + 1];
     const quizScore = quizSubmitted ? getQuizScore(activeSection) : null;
-    const quizPassed = quizScore !== null && quizScore.pct >= 60;
+    const quizPassed = quizScore !== null && quizScore.pct >= 80;
     const canMarkComplete = isCompleted || quizPassed;
 
     return (
@@ -1011,7 +1012,7 @@ export default function OnboardingPage() {
                 <div className="rounded-xl border border-white/10 bg-white/[0.02] p-6">
                   <h2 className="text-xl font-bold text-white mb-1">{activeSection.title} Quiz</h2>
                   <p className="text-sm text-neutral-400">
-                    Answer all {activeSection.quiz.length} questions. You need 60% to pass and unlock completion.
+                    Answer all {activeSection.quiz.length} questions. You need 80% to pass and unlock completion.
                   </p>
                 </div>
 
@@ -1024,7 +1025,7 @@ export default function OnboardingPage() {
                         {quizPassed ? 'Passed!' : 'Not quite.'} {quizScore.correct}/{quizScore.total} correct ({quizScore.pct}%)
                       </p>
                       <p className="text-xs text-neutral-400 mt-0.5">
-                        {quizPassed ? 'You can now mark this section as complete.' : 'You need 60% to pass. Review the content and try again.'}
+                        {quizPassed ? 'You can now mark this section as complete.' : 'You need 80% to pass. Review the content and try again.'}
                       </p>
                     </div>
                     {!quizPassed && (
@@ -1299,7 +1300,7 @@ export default function OnboardingPage() {
                 <p className="text-sm font-medium text-white">Tips</p>
                 <ul className="text-xs text-neutral-400 mt-1 space-y-1">
                   <li>- You can complete sections in any order.</li>
-                  <li>- Each section has a short quiz (60% to pass) before you can mark it complete.</li>
+                  <li>- Each section has a short quiz (80% to pass) before you can mark it complete.</li>
                   <li>- Use the &quot;Try It&quot; links to jump directly to the platform features being discussed.</li>
                   <li>- Your progress is saved automatically.</li>
                   <li>- Complete all 8 sections for full platform onboarding.</li>
@@ -1312,3 +1313,4 @@ export default function OnboardingPage() {
     </div>
   );
 }
+

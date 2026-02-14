@@ -164,11 +164,6 @@ export async function POST(request: NextRequest) {
           }
         } else {
           // Log email content for development
-          console.log('Email notification (endpoint not configured):', {
-            to: emailRecipient,
-            subject: emailSubject,
-            template,
-          });
 
           result.email = { sent: false, error: 'Email endpoint not configured (development mode)' };
         }
@@ -231,10 +226,6 @@ export async function POST(request: NextRequest) {
           }
         } else {
           // Log SMS content for development
-          console.log('SMS notification (endpoint not configured):', {
-            to: formattedPhone,
-            message: smsContent,
-          });
 
           result.sms = { sent: false, error: 'SMS endpoint not configured (development mode)' };
         }

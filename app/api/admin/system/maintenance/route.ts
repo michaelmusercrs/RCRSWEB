@@ -12,11 +12,45 @@ import {
   createAuditLogEntry,
 } from '@/lib/feature-flags';
 import { requireAdmin } from '@/lib/auth-service';
-import fs from 'fs';
-import path from 'path';
 
-// Path to system config file
-const CONFIG_PATH = path.join(process.cwd(), 'data', 'system-config.json');
+const BLOB_KEY = 'data/system-config.json';
+const LOCAL_PATH = 'data/system-config.json';
+
+async function readConfig(): Promise<Record<string, any>> {
+  try {
+    const { list } = await import('@vercel/blob');
+    const blobs = await list({ prefix: BLOB_KEY });
+    if (blobs.blobs.length > 0) {
+      const res = await fetch(blobs.blobs[0].url, { cache: 'no-store' });
+      if (res.ok) return await res.json();
+    }
+  } catch (e) { /* blob not available */ }
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), LOCAL_PATH);
+    const data = fs.readFileSync(filePath, 'utf-8');
+    return JSON.parse(data);
+  } catch {
+    return {};
+  }
+}
+
+async function writeConfig(config: Record<string, any>): Promise<void> {
+  try {
+    const { put } = await import('@vercel/blob');
+    await put(BLOB_KEY, JSON.stringify(config, null, 2), {
+      access: 'public', contentType: 'application/json', addRandomSuffix: false,
+    });
+  } catch (e) {
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), LOCAL_PATH);
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(filePath, JSON.stringify(config, null, 2));
+  }
+}
 
 interface MaintenanceConfig {
   enabled: boolean;
@@ -27,10 +61,9 @@ interface MaintenanceConfig {
 }
 
 // Read maintenance config
-function readMaintenanceConfig(): MaintenanceConfig {
+async function readMaintenanceConfig(): Promise<MaintenanceConfig> {
   try {
-    const configData = fs.readFileSync(CONFIG_PATH, 'utf-8');
-    const config = JSON.parse(configData);
+    const config = await readConfig();
     return {
       enabled: config.maintenanceMode || false,
       message: config.maintenanceMessage || 'System under maintenance',
@@ -46,20 +79,14 @@ function readMaintenanceConfig(): MaintenanceConfig {
 }
 
 // Save maintenance config
-function saveMaintenanceConfig(maintenance: MaintenanceConfig): void {
-  try {
-    const configData = fs.readFileSync(CONFIG_PATH, 'utf-8');
-    const config = JSON.parse(configData);
-    config.maintenanceMode = maintenance.enabled;
-    config.maintenanceMessage = maintenance.message;
-    config.maintenanceEndTime = maintenance.endTime;
-    config.allowedIPs = maintenance.allowedIPs;
-    config.lastUpdated = new Date().toISOString();
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
-  } catch (error) {
-    console.error('Error saving maintenance config:', error);
-    throw new Error('Failed to save maintenance configuration');
-  }
+async function saveMaintenanceConfig(maintenance: MaintenanceConfig): Promise<void> {
+  const config = await readConfig();
+  config.maintenanceMode = maintenance.enabled;
+  config.maintenanceMessage = maintenance.message;
+  config.maintenanceEndTime = maintenance.endTime;
+  config.allowedIPs = maintenance.allowedIPs;
+  config.lastUpdated = new Date().toISOString();
+  await writeConfig(config);
 }
 
 // GET handler - Check maintenance status
@@ -68,7 +95,7 @@ export async function GET(request: NextRequest) {
   if (!auth.authenticated) return auth.response;
 
   try {
-    const maintenance = readMaintenanceConfig();
+    const maintenance = await readMaintenanceConfig();
     const clientIP = request.headers.get('x-forwarded-for') || 'unknown';
     const bypassToken = request.headers.get('x-maintenance-bypass');
 
@@ -130,7 +157,7 @@ export async function POST(request: NextRequest) {
       }, { status: 403 });
     }
 
-    const currentConfig = readMaintenanceConfig();
+    const currentConfig = await readMaintenanceConfig();
 
     // Update configuration
     const newConfig: MaintenanceConfig = {
@@ -140,7 +167,7 @@ export async function POST(request: NextRequest) {
       allowedIPs: allowedIPs ?? currentConfig.allowedIPs,
     };
 
-    saveMaintenanceConfig(newConfig);
+    await saveMaintenanceConfig(newConfig);
 
     // Create audit log entry
     const auditEntry = createAuditLogEntry(

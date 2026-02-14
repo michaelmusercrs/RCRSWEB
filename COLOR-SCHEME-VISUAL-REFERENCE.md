@@ -188,7 +188,7 @@ text-gray-600 text-lg font-body
 
 LEVEL 4 - SECONDARY/META
 Lighter Grey, Small, Body Font
-"2024 • 5-Star Reviews"
+"2024 • ★★★★★ Reviews"
 text-gray-500 text-sm font-body
 ```
 

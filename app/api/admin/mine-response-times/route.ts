@@ -41,7 +41,6 @@ export async function POST(request: NextRequest) {
 
     // Still running — let it continue in the background
     resultPromise.then(r => {
-      console.log(`[MineResponseTimes] Background mining complete: ${r.repStats.length} reps, ${r.totalWithRepResponse} data points`);
     }).catch(err => {
       console.error('[MineResponseTimes] Background mining failed:', err);
     });

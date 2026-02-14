@@ -12,48 +12,71 @@ import {
   type AuditLogEntry,
 } from '@/lib/feature-flags';
 import { requireAdmin } from '@/lib/auth-service';
-import fs from 'fs';
-import path from 'path';
 
-// Path to audit log file
-const AUDIT_LOG_PATH = path.join(process.cwd(), 'data', 'audit-log.json');
+const BLOB_KEY = 'data/audit-log.json';
+const LOCAL_PATH = 'data/audit-log.json';
 
-// Read audit log from file
-function readAuditLog(): AuditLogEntry[] {
+async function readBlobData(key: string): Promise<any | null> {
   try {
-    if (!fs.existsSync(AUDIT_LOG_PATH)) {
-      return [];
+    const { list } = await import('@vercel/blob');
+    const blobs = await list({ prefix: key });
+    if (blobs.blobs.length > 0) {
+      const res = await fetch(blobs.blobs[0].url, { cache: 'no-store' });
+      if (res.ok) return await res.json();
     }
-    const logData = fs.readFileSync(AUDIT_LOG_PATH, 'utf-8');
+  } catch (e) { /* blob not available */ }
+  return null;
+}
+
+async function writeBlobData(key: string, data: any): Promise<boolean> {
+  try {
+    const { put } = await import('@vercel/blob');
+    await put(key, JSON.stringify(data, null, 2), {
+      access: 'public', contentType: 'application/json', addRandomSuffix: false,
+    });
+    return true;
+  } catch (e) { return false; }
+}
+
+// Read audit log
+async function readAuditLog(): Promise<AuditLogEntry[]> {
+  // Try blob first
+  const blobData = await readBlobData(BLOB_KEY);
+  if (blobData) return blobData;
+  // Fallback to local file
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), LOCAL_PATH);
+    if (!fs.existsSync(filePath)) return [];
+    const logData = fs.readFileSync(filePath, 'utf-8');
     return JSON.parse(logData);
   } catch {
     return [];
   }
 }
 
-// Write audit log to file
-function writeAuditLog(entries: AuditLogEntry[]): void {
-  try {
-    // Ensure data directory exists
-    const dataDir = path.dirname(AUDIT_LOG_PATH);
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
-    }
-    fs.writeFileSync(AUDIT_LOG_PATH, JSON.stringify(entries, null, 2));
-  } catch (error) {
-    console.error('Error writing audit log:', error);
-    throw new Error('Failed to save audit log');
+// Write audit log
+async function writeAuditLog(entries: AuditLogEntry[]): Promise<void> {
+  const wrote = await writeBlobData(BLOB_KEY, entries);
+  if (!wrote) {
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), LOCAL_PATH);
+    const dataDir = path.dirname(filePath);
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+    fs.writeFileSync(filePath, JSON.stringify(entries, null, 2));
   }
 }
 
 // Append to audit log
-function appendAuditLog(entry: AuditLogEntry): void {
-  const entries = readAuditLog();
+async function appendAuditLog(entry: AuditLogEntry): Promise<void> {
+  const entries = await readAuditLog();
   entries.push(entry);
 
   // Keep only last 1000 entries to prevent file from growing too large
   const trimmedEntries = entries.slice(-1000);
-  writeAuditLog(trimmedEntries);
+  await writeAuditLog(trimmedEntries);
 }
 
 // GET handler - Retrieve audit log
@@ -71,7 +94,7 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
-    let entries = readAuditLog();
+    let entries = await readAuditLog();
 
     // Apply filters
     if (action) {
@@ -162,7 +185,7 @@ export async function POST(request: NextRequest) {
       ipAddress
     );
 
-    appendAuditLog(entry);
+    await appendAuditLog(entry);
 
     return NextResponse.json({
       success: true,
@@ -205,7 +228,7 @@ export async function DELETE(request: NextRequest) {
     );
 
     // Reset log with just the clear entry
-    writeAuditLog([clearEntry]);
+    await writeAuditLog([clearEntry]);
 
     return NextResponse.json({
       success: true,

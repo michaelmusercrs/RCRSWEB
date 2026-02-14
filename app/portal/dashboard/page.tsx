@@ -15,6 +15,7 @@ import {
 import { useAuth } from '@/lib/auth-context';
 import { TeamRole } from '@/lib/team-roles';
 import WeeklyNumbersWidget from '@/components/portal/WeeklyNumbersWidget';
+import MondayAnnouncementWidget from '@/components/portal/MondayAnnouncementWidget';
 
 interface RecentActivity {
   action: string;
@@ -349,6 +350,15 @@ export default function Dashboard() {
                 <div className="text-sm text-neutral-400">{stat.label}</div>
               </div>
             ))}
+          </div>
+
+          {/* Monday Announcement Widget - Show for all portal users */}
+          <div className="mb-8">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <Megaphone size={18} className="text-amber-400 flex-shrink-0" />
+              Monday Meeting
+            </h3>
+            <MondayAnnouncementWidget />
           </div>
 
           {/* Weekly Numbers Widget - Show for sales reps and managers */}

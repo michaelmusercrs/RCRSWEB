@@ -23,6 +23,7 @@ import { teamMembers } from '@/lib/teamData';
 import { ProfileImage, IMAGE_TYPE_LABELS } from '@/lib/profile-types';
 
 type ImageType = ProfileImage['type'];
+type UploadType = Exclude<ImageType, 'video'>; // Videos auto-detected
 
 export default function MyProfileImagesPage() {
   const router = useRouter();
@@ -30,12 +31,13 @@ export default function MyProfileImagesPage() {
   const [images, setImages] = useState<ProfileImage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadType, setUploadType] = useState<ImageType>('profile');
+  const [uploadType, setUploadType] = useState<UploadType>('profile');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [repSlug, setRepSlug] = useState<string | null>(null);
   const [currentProfileImage, setCurrentProfileImage] = useState<string | null>(null);
   const [currentTruckImage, setCurrentTruckImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -79,9 +81,14 @@ export default function MyProfileImagesPage() {
     loadData();
   }, [user]);
 
-  const handleFileSelect = (type: ImageType) => {
-    setUploadType(type);
-    fileInputRef.current?.click();
+  const handleFileSelect = (type: UploadType | 'video') => {
+    if (type === 'video') {
+      setUploadType('profile'); // placeholder, actual type auto-detected server-side
+      videoInputRef.current?.click();
+    } else {
+      setUploadType(type);
+      fileInputRef.current?.click();
+    }
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -89,15 +96,20 @@ export default function MyProfileImagesPage() {
     if (!file || !repSlug) return;
 
     // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      setMessage({ type: 'error', text: 'Invalid file type. Please upload JPEG, PNG, or WebP.' });
+    const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/quicktime'];
+    const allAllowed = [...allowedImageTypes, ...allowedVideoTypes];
+    const isVideo = allowedVideoTypes.includes(file.type);
+
+    if (!allAllowed.includes(file.type)) {
+      setMessage({ type: 'error', text: 'Invalid file type. Allowed: JPEG, PNG, WebP, MP4, WebM, MOV.' });
       return;
     }
 
-    // Validate file size (10MB max)
-    if (file.size > 10 * 1024 * 1024) {
-      setMessage({ type: 'error', text: 'File too large. Maximum size is 10MB.' });
+    // Validate file size (10MB images, 50MB videos)
+    const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setMessage({ type: 'error', text: `File too large. Maximum: ${isVideo ? '50MB' : '10MB'}.` });
       return;
     }
 
@@ -108,7 +120,7 @@ export default function MyProfileImagesPage() {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('repSlug', repSlug);
-      formData.append('type', uploadType);
+      formData.append('type', isVideo ? 'video' : uploadType);
       formData.append('uploadedBy', user?.name || 'unknown');
 
       const response = await fetch('/api/profile/images', {
@@ -129,9 +141,8 @@ export default function MyProfileImagesPage() {
       setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Upload failed' });
     } finally {
       setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (videoInputRef.current) videoInputRef.current.value = '';
     }
   };
 
@@ -201,12 +212,19 @@ export default function MyProfileImagesPage() {
         />
       </div>
 
-      {/* Hidden file input */}
+      {/* Hidden file inputs */}
       <input
         type="file"
         ref={fileInputRef}
         onChange={handleFileChange}
         accept="image/jpeg,image/jpg,image/png,image/webp"
+        className="hidden"
+      />
+      <input
+        type="file"
+        ref={videoInputRef}
+        onChange={handleFileChange}
+        accept="video/mp4,video/webm,video/quicktime"
         className="hidden"
       />
 
@@ -499,6 +517,51 @@ export default function MyProfileImagesPage() {
           </div>
         </div>
 
+        {/* Video Section */}
+        <div className="mt-8 p-6 bg-white/[0.02] border border-white/5 rounded-2xl">
+          <div className="flex items-center gap-3 mb-4">
+            <Upload size={20} className="text-red-400" />
+            <h2 className="text-lg font-semibold text-white">Videos</h2>
+          </div>
+
+          <p className="text-neutral-400 text-sm mb-6">
+            Upload job videos, testimonials, or walkthroughs (MP4, WebM, MOV — max 50MB).
+          </p>
+
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            {getImagesByType('video' as ImageType).map(vid => (
+              <div key={vid.id} className="relative group aspect-video">
+                <div className="absolute inset-0 rounded-lg overflow-hidden bg-neutral-800">
+                  <video src={vid.url} className="w-full h-full object-cover" preload="metadata" />
+                </div>
+                {!vid.approved && (
+                  <div className="absolute top-1 left-1">
+                    <Clock size={12} className="text-yellow-500" />
+                  </div>
+                )}
+                <button
+                  onClick={() => handleDeleteImage(vid)}
+                  className="absolute top-1 right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Trash2 size={10} className="text-white" />
+                </button>
+              </div>
+            ))}
+
+            <button
+              onClick={() => handleFileSelect('video')}
+              disabled={isUploading}
+              className="aspect-video rounded-lg border-2 border-dashed border-white/10 hover:border-white/30 flex items-center justify-center transition-colors"
+            >
+              {isUploading ? (
+                <Loader2 size={20} className="text-neutral-500 animate-spin" />
+              ) : (
+                <Plus size={20} className="text-neutral-500" />
+              )}
+            </button>
+          </div>
+        </div>
+
         {/* Info Note */}
         <div className="mt-8 p-4 bg-brand-green/10 border border-blue-500/20 rounded-xl">
           <div className="flex items-start gap-3">
@@ -506,10 +569,10 @@ export default function MyProfileImagesPage() {
             <div>
               <h3 className="font-medium text-blue-300">Image Guidelines</h3>
               <ul className="text-sm text-blue-200/70 mt-2 space-y-1">
-                <li>- Supported formats: JPEG, PNG, WebP</li>
-                <li>- Maximum file size: 10MB</li>
+                <li>- Image formats: JPEG, PNG, WebP (max 10MB)</li>
+                <li>- Video formats: MP4, WebM, MOV (max 50MB)</li>
                 <li>- Profile photos: Square images work best (e.g., 400x400)</li>
-                <li>- All uploaded images require admin approval before going live</li>
+                <li>- All uploads require admin approval before going live</li>
               </ul>
             </div>
           </div>

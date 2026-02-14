@@ -4,6 +4,7 @@
 // Notifies assigned rep via River bot DM
 
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/rate-limit';
 import { requireAuth } from '@/lib/auth-service';
 import { portalGenerator, LeadData } from '@/lib/portal-generator';
 import { leadPortalService } from '@/lib/lead-portal-service';
@@ -22,6 +23,7 @@ import { stormReportService } from '@/lib/storm-report-service';
 import { notificationService } from '@/lib/notification-service';
 import { jnSyncEngine } from '@/lib/jn-sync-engine';
 import { isJobNimbusConfigured } from '@/lib/jobnimbus-service';
+import { roofReportService } from '@/lib/roof-report-service';
 
 interface NewLeadRequest {
   // Required fields
@@ -63,6 +65,23 @@ function sanitizeInput(str: string | undefined): string {
 }
 
 export async function POST(request: NextRequest) {
+  // Rate limit: 5 requests per minute per IP
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+             request.headers.get('x-real-ip') || 'unknown';
+  const rl = rateLimit(`leads:new:${ip}`, 5, 60_000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { success: false, error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
+          'X-RateLimit-Remaining': '0',
+        },
+      }
+    );
+  }
+
   try {
     let body: NewLeadRequest;
     try {
@@ -186,11 +205,9 @@ export async function POST(request: NextRequest) {
         referralRepSlug: body.preferredRepSlug,
       }).then(result => {
         if (result.enrichment.stormReport) {
-          console.log(`[NewLead] Pipeline storm risk for ${body.address}: ${result.enrichment.stormReport.riskLevel} (${result.enrichment.stormReport.riskScore}/100)`);
           // Store pipeline enrichment data for later reference
           pipelineEnrichment = result.enrichment;
         }
-        console.log(`[NewLead] Pipeline enrichment complete in ${result.durationMs}ms`);
       }).catch(err => {
         console.warn('[NewLead] Pipeline enrichment failed:', err);
       });
@@ -230,7 +247,6 @@ export async function POST(request: NextRequest) {
 
       // If we found a match in JobNimbus but not in our Sheets, warn but allow creation
       if (duplicateCheck.jnMatch) {
-        console.log(`[NewLead] Existing JN contact found for ${body.name}: ${duplicateCheck.jnMatch.displayName} (${duplicateCheck.jnMatch.jnid}). Proceeding with lead creation.`);
         // Set JN contact ID so the portal links to existing JN record
         if (!body.jobnimbusContactId) {
           body.jobnimbusContactId = duplicateCheck.jnMatch.jnid;
@@ -296,7 +312,6 @@ export async function POST(request: NextRequest) {
         status: 'new',
       }).then(result => {
         if (result) {
-          console.log(`[NewLead] Geocoded and saved to sheet: ${body.name} at ${result.lat},${result.lng}`);
         }
       }).catch(err => {
         console.warn(`[NewLead] Geocode save failed for ${body.name}:`, err);
@@ -325,7 +340,6 @@ export async function POST(request: NextRequest) {
         status: 'Lead',
       }).then(async (result) => {
         if (result.success && result.jnid) {
-          console.log(`[Lead ${lead.leadId}] JN contact ${result.action}: ${result.jnid}`);
           // Update the lead record with the JN contact ID
           try {
             await leadPortalService.updateLeadJNContactId(lead.leadId, result.jnid);
@@ -349,13 +363,10 @@ export async function POST(request: NextRequest) {
       portalResult.portalAccess,
       portalResult.salesRep!
     );
-
-    console.log(`New lead created: ${lead.leadId} for ${body.name}`);
-
     // ── AUTO-SEND NOTIFICATIONS (non-blocking) ──────────────────────────
     // All notification sends are fire-and-forget to not slow the API response
 
-    const notificationPromises: Promise<void>[] = [];
+    const notificationPromises: Promise<any>[] = [];
 
     // 1. Send portal link EMAIL to customer
     if (body.sendNotifications !== false && salesRep) {
@@ -369,8 +380,7 @@ export async function POST(request: NextRequest) {
           repPhone: salesRep.phone,
           stormReportIncluded: body.sourceDetails?.includes('Storm Report'),
         }).then(r => {
-          if (r.success) console.log(`[Lead ${lead.leadId}] Portal link email sent to ${body.email}`);
-          else console.warn(`[Lead ${lead.leadId}] Email failed: ${r.error}`);
+          if (!r.success) console.warn(`[Lead ${lead.leadId}] Email failed: ${r.error}`);
         })
       );
     }
@@ -384,8 +394,7 @@ export async function POST(request: NextRequest) {
           portalResult.portalUrl!,
           salesRep.name
         ).then(r => {
-          if (r.success) console.log(`[Lead ${lead.leadId}] Portal link SMS sent to ${body.phone}`);
-          else console.warn(`[Lead ${lead.leadId}] SMS failed: ${r.error}`);
+          if (!r.success) console.warn(`[Lead ${lead.leadId}] SMS failed: ${r.error}`);
         })
       );
     }
@@ -402,8 +411,6 @@ export async function POST(request: NextRequest) {
           assignedRepEmail: salesRep.email,
           riskScore: undefined,
           portalUrl: portalResult.portalUrl,
-        }).then(() => {
-          console.log(`[Lead ${lead.leadId}] River bot notified team + DM to ${salesRep.name}`);
         }).catch(err => {
           console.warn(`[Lead ${lead.leadId}] River bot notification failed:`, err);
         })
@@ -422,9 +429,7 @@ export async function POST(request: NextRequest) {
           leadAddress: body.address,
           source: body.source,
           portalUrl: portalResult.portalUrl,
-        }).then(r => {
-          if (r.success) console.log(`[Lead ${lead.leadId}] Assignment email sent to ${salesRep.name}`);
-        })
+        }).then(() => {})
       );
     }
 
@@ -444,7 +449,6 @@ export async function POST(request: NextRequest) {
           const sentChannels = Object.entries(result.channelResults)
             .filter(([, r]) => r.sent)
             .map(([ch]) => ch);
-          console.log(`[Lead ${lead.leadId}] Notification service sent via: ${sentChannels.join(', ') || 'none'}`);
         }).catch(err => {
           console.warn(`[Lead ${lead.leadId}] Notification service failed:`, err);
         })
@@ -482,9 +486,24 @@ export async function POST(request: NextRequest) {
         leadId: lead.leadId,
         customerId: lead.customerId,
       }).then(report => {
-        console.log(`[Lead ${lead.leadId}] Storm report auto-generated: ${report.reportId} - Risk: ${report.riskLevel} (${report.riskScore}/100), ${report.totalHailReports} hail events`);
       }).catch(err => {
         console.warn(`[Lead ${lead.leadId}] Auto storm report failed:`, err);
+      });
+    }
+
+    // ── AUTO-GENERATE ROOF REPORT (fire-and-forget) ──────────────────────
+    // Automatically run AI roof measurement for the lead address.
+    // This is a heavy operation (satellite imagery + AI analysis) so it
+    // runs fully in the background without blocking.
+    if (body.address && body.address !== 'Not provided') {
+      roofReportService.generateReport({
+        address: body.address,
+        leadId: lead.leadId,
+        customerId: lead.customerId,
+      }).then(report => {
+        console.log(`[Lead ${lead.leadId}] Auto roof report generated: ${report.reportId} (${report.totalRoofAreaSqFt} sqft, ${report.overallConfidence} confidence)`);
+      }).catch(err => {
+        console.warn(`[Lead ${lead.leadId}] Auto roof report failed:`, err);
       });
     }
 
@@ -515,6 +534,15 @@ export async function POST(request: NextRequest) {
             ? 'Storm report is being generated automatically. Fetch via /api/leads/[leadId]/storm-report'
             : 'Missing city or zip - storm report skipped',
           fetchUrl: `/api/leads/${lead.leadId}/storm-report`,
+        },
+
+        // Roof report info (will be generated async, fetch via /api/leads/[id]/roof-report)
+        roofReport: {
+          status: body.address && body.address !== 'Not provided' ? 'generating' : 'skipped',
+          message: body.address && body.address !== 'Not provided'
+            ? 'Roof measurement report is being generated automatically. Fetch via /api/leads/[leadId]/roof-report'
+            : 'No address provided - roof report skipped',
+          fetchUrl: `/api/leads/${lead.leadId}/roof-report`,
         },
 
         // Assigned sales rep

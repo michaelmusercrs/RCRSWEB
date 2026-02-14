@@ -447,21 +447,6 @@ export function getClientIP(request: Request): string {
 export async function requireAuth(): Promise<
   { authenticated: true; user: AuthUser } | { authenticated: false; response: Response }
 > {
-  // Auth bypass for pre-launch testing only
-  // IMPORTANT: Set AUTH_BYPASS_MODE=false or remove it before going live
-  if (process.env.AUTH_BYPASS_MODE === 'true' && process.env.NODE_ENV !== 'production') {
-    return {
-      authenticated: true,
-      user: {
-        userId: 'bypass',
-        name: 'Bypass User',
-        email: 'admin@rcrsal.com',
-        role: 'admin',
-        permissions: ['*'],
-      },
-    };
-  }
-
   const session = await validateSession();
   if (!session.valid || !session.user) {
     const { NextResponse } = await import('next/server');

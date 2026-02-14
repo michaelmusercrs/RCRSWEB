@@ -13,6 +13,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth-service';
 import commissionsData from '@/data/commissions.json';
 
 // ============================================================================
@@ -535,6 +536,9 @@ function buildRepDetail(
 // ============================================================================
 
 export async function GET(request: NextRequest): Promise<NextResponse<SalesApiResponse | ErrorResponse>> {
+  const auth = await requireAdmin();
+  if (!auth.authenticated) return auth.response as NextResponse<ErrorResponse>;
+
   const timestamp = new Date().toISOString();
 
   try {

@@ -22,7 +22,11 @@ import {
   BarChart2,
   Info,
   Play,
+  Camera,
+  Calendar,
+  Bell,
 } from 'lucide-react';
+import { isFridayReminderDue, getNextFriday } from '@/lib/delivery-pipeline';
 
 // ============================================
 // TYPES
@@ -342,6 +346,42 @@ export default function ReconciliationPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
+        {/* Friday Inventory Count Reminder */}
+        {isFridayReminderDue() && (
+          <div className="bg-amber-500/10 border-2 border-amber-500/30 rounded-xl p-4 mb-6 animate-pulse">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-amber-500/20 rounded-full flex items-center justify-center">
+                  <Bell className="w-5 h-5 text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="text-amber-400 font-bold text-sm">📋 Weekly Inventory Count Due Today</h3>
+                  <p className="text-amber-400/70 text-xs mt-0.5">
+                    Friday physical count with photo verification required. Count all materials and upload photos.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button className="flex items-center gap-2 px-4 py-2 bg-amber-500/20 text-amber-400 rounded-lg hover:bg-amber-500/30 text-sm font-bold border border-amber-500/30 transition-colors">
+                  <Camera className="w-4 h-4" />
+                  Start Count + Photos
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!isFridayReminderDue() && (
+          <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-3 mb-6 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-zinc-500 text-xs">
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Next inventory count: <span className="text-zinc-400 font-medium">
+                {getNextFriday().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+              </span> (weekly Friday count with photo verification)</span>
+            </div>
+          </div>
+        )}
+
         {/* Error */}
         {error && (
           <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg mb-6 flex items-center gap-2">

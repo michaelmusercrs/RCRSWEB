@@ -26,7 +26,8 @@ export const USER_ROLES = {
 
 export type UserRole = keyof typeof USER_ROLES;
 
-// Training modules per role
+// Training modules per role (admin-training track only — these are tracked in the gamified Academy)
+// Sales & onboarding tracks are tracked separately via their own pages/APIs
 export const ROLE_TRAINING_MODULES: Record<UserRole, string[]> = {
   admin: ['portal-overview', 'admin-blog', 'admin-team', 'admin-images', 'inventory', 'manager', 'driver'],
   manager: ['portal-overview', 'inventory', 'manager', 'driver'],

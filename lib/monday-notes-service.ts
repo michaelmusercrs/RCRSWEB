@@ -42,6 +42,9 @@ export interface TimingInfo {
   notes?: string;              // Additional timing context
 }
 
+export type AnnouncementType = 'early' | 'late';
+export type DisplayDuration = '1-week' | '2-weeks' | '3-weeks' | '4-weeks' | 'monthly' | 'one-time';
+
 export interface MondayNote {
   id: string;
   meetingDate: string;         // ISO date of the Monday meeting this is for
@@ -65,6 +68,12 @@ export interface MondayNote {
     value: string | number;
     change?: 'up' | 'down' | 'neutral';
   }[];
+
+  // Announcement settings (for meeting presentation)
+  announcementType?: AnnouncementType;  // early = before numbers, late = after numbers
+  displayDuration?: DisplayDuration;     // how long to show in meetings
+  displayStartDate?: string;             // ISO date when this announcement starts showing
+  displayEndDate?: string;               // ISO date when this announcement stops (auto-calculated)
 
   // Slide generation
   includeInSlide: boolean;     // Whether to include in auto-generated slide
@@ -470,6 +479,67 @@ export function getSubmissionStatus(notes: MondayNote[]): {
 // =============================================================================
 // Storage Keys (for localStorage/API)
 // =============================================================================
+
+/**
+ * Calculate display end date based on duration
+ */
+export function calculateDisplayEndDate(startDate: string, duration: DisplayDuration): string | null {
+  if (duration === 'one-time') return startDate;
+  if (duration === 'monthly') return null; // recurring, no end
+
+  const weeksMap: Record<string, number> = {
+    '1-week': 1,
+    '2-weeks': 2,
+    '3-weeks': 3,
+    '4-weeks': 4,
+  };
+
+  const weeks = weeksMap[duration];
+  if (!weeks) return null;
+
+  const start = new Date(startDate);
+  start.setDate(start.getDate() + weeks * 7);
+  return start.toISOString().split('T')[0];
+}
+
+/**
+ * Check if an announcement is active for a given meeting date
+ */
+export function isAnnouncementActive(note: MondayNote, meetingDate: string): boolean {
+  if (!note.announcementType) return false;
+  if (note.status === 'draft') return false;
+
+  const meeting = new Date(meetingDate);
+
+  // One-time: only show for the original meeting date
+  if (note.displayDuration === 'one-time') {
+    return note.meetingDate === meetingDate;
+  }
+
+  // Monthly: always active
+  if (note.displayDuration === 'monthly') {
+    const start = new Date(note.displayStartDate || note.meetingDate);
+    return meeting >= start;
+  }
+
+  // Duration-based: check date range
+  const start = new Date(note.displayStartDate || note.meetingDate);
+  const end = note.displayEndDate ? new Date(note.displayEndDate) : null;
+
+  if (meeting < start) return false;
+  if (end && meeting > end) return false;
+
+  return true;
+}
+
+export const DISPLAY_DURATION_LABELS: Record<DisplayDuration, string> = {
+  'one-time': 'This meeting only',
+  '1-week': 'Run for 1 week',
+  '2-weeks': 'Run for 2 weeks',
+  '3-weeks': 'Run for 3 weeks',
+  '4-weeks': 'Run for 4 weeks',
+  'monthly': 'Every meeting (recurring)',
+};
 
 export const STORAGE_KEYS = {
   MONDAY_NOTES: 'rcrs_monday_notes',

@@ -248,11 +248,9 @@ class JsonInventoryService {
         return this.data;
       }
     } catch (error) {
-      console.log('JSON file not found or invalid, using inventoryData.ts as source');
     }
 
     // Fallback to inventoryProducts from inventoryData.ts
-    console.log('Loading inventory from inventoryData.ts (11 items)');
     this.data = {
       items: this.getDefaultInventoryItems(),
       logs: []

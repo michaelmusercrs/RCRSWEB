@@ -70,9 +70,6 @@ export async function PUT(request: NextRequest) {
       warningMinutes: updatedConfig.responseTimers.warningMinutes,
       reassignMinutes: updatedConfig.responseTimers.reassignMinutes,
     });
-
-    console.log(`[Leads Config API] Config saved by ${body.updatedBy}. Timer synced.`);
-
     return NextResponse.json({
       success: true,
       data: updatedConfig,

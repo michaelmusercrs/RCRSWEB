@@ -298,6 +298,38 @@ class GroupMeService {
     return this.apiGet<GroupMeGroup>(`/groups/${groupId}`);
   }
 
+  async createGroup(
+    name: string,
+    options?: { description?: string; image_url?: string; share?: boolean; members?: Array<{ user_id: string; nickname: string }> }
+  ): Promise<{ success: boolean; data?: GroupMeGroup; error?: string }> {
+    const body: Record<string, unknown> = { name };
+    if (options?.description) body.description = options.description;
+    if (options?.image_url) body.image_url = options.image_url;
+    if (options?.share !== undefined) body.share = options.share;
+
+    const result = await this.apiPost<GroupMeGroup>('/groups', body);
+
+    // Add members after creation if specified
+    if (result.success && result.data && options?.members?.length) {
+      const groupId = result.data.group_id || result.data.id;
+      await this.addMembersToGroup(groupId, options.members);
+    }
+
+    return result;
+  }
+
+  async addMembersToGroup(
+    groupId: string,
+    members: Array<{ user_id: string; nickname: string }>
+  ): Promise<{ success: boolean; error?: string }> {
+    return this.apiPost(`/groups/${groupId}/members/add`, {
+      members: members.map(m => ({
+        user_id: m.user_id,
+        nickname: m.nickname,
+      })),
+    });
+  }
+
   async getGroupMessages(
     groupId: string,
     options?: { before_id?: string; after_id?: string; since_id?: string; limit?: number }

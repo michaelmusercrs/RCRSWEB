@@ -80,7 +80,7 @@ const salesModules: SalesModule[] = [
     description: 'RCRS history, mission, values, service areas, and team structure.',
     icon: Building2,
     estimatedMinutes: 15,
-    passingScore: 70,
+    passingScore: 80,
     sections: [
       {
         heading: 'About River City Roofing Solutions',
@@ -196,7 +196,7 @@ const salesModules: SalesModule[] = [
     description: 'Shingle types, brands, underlayment, flashing, ventilation, and metal roofing.',
     icon: Package,
     estimatedMinutes: 25,
-    passingScore: 70,
+    passingScore: 80,
     sections: [
       {
         heading: 'Shingle Types',
@@ -404,7 +404,7 @@ const salesModules: SalesModule[] = [
     description: 'How storm damage claims work, documentation, adjusters, supplements, and timelines.',
     icon: FileText,
     estimatedMinutes: 20,
-    passingScore: 70,
+    passingScore: 80,
     sections: [
       {
         heading: 'How Storm Damage Claims Work',
@@ -605,7 +605,7 @@ const salesModules: SalesModule[] = [
     description: 'Lead response, contact scripts, inspections, estimates, objection handling, and closing.',
     icon: Handshake,
     estimatedMinutes: 30,
-    passingScore: 70,
+    passingScore: 80,
     sections: [
       {
         heading: 'Speed to Lead',
@@ -902,7 +902,7 @@ const salesModules: SalesModule[] = [
     description: 'Creating contacts, job workflow, notes, photos, and task scheduling in JobNimbus.',
     icon: Monitor,
     estimatedMinutes: 15,
-    passingScore: 70,
+    passingScore: 80,
     sections: [
       {
         heading: 'What is JobNimbus?',
@@ -1055,7 +1055,7 @@ const salesModules: SalesModule[] = [
     description: 'Roof measurement basics, tools, creating estimates, and material/labor calculations.',
     icon: Ruler,
     estimatedMinutes: 20,
-    passingScore: 70,
+    passingScore: 80,
     sections: [
       {
         heading: 'Roof Measurement Basics',
@@ -1223,7 +1223,7 @@ const salesModules: SalesModule[] = [
     description: 'Professional standards, templates, expectations, complaints, and review requests.',
     icon: MessageSquare,
     estimatedMinutes: 15,
-    passingScore: 70,
+    passingScore: 80,
     sections: [
       {
         heading: 'Professional Communication Standards',
@@ -2129,7 +2129,7 @@ export default function SalesTrainingPage() {
                 <p className="text-sm font-medium text-white">Important Notes</p>
                 <ul className="text-xs text-neutral-400 mt-1 space-y-1">
                   <li>- Modules must be completed in order. Each module unlocks after passing the previous quiz.</li>
-                  <li>- You need 70% or higher to pass each quiz.</li>
+                  <li>- You need 80% or higher to pass each quiz.</li>
                   <li>- You can retake quizzes as many times as needed.</li>
                   <li>- Your progress is saved automatically.</li>
                   <li>- Complete all 7 modules to earn your Sales Training Certificate.</li>
@@ -2142,3 +2142,4 @@ export default function SalesTrainingPage() {
     </div>
   );
 }
+

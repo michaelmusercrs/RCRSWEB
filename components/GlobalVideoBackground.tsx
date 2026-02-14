@@ -19,8 +19,14 @@ export default function GlobalVideoBackground({
   const videoRef = useRef<HTMLVideoElement>(null);
   const pathname = usePathname();
 
-  // Check connection speed on mount
+  // Check connection speed and screen size on mount
   useEffect(() => {
+    // Skip video on mobile devices (< 768px) to save bandwidth
+    if (window.innerWidth < 768) {
+      setUseVideo(false);
+      return;
+    }
+
     const connection = (navigator as any).connection ||
                        (navigator as any).mozConnection ||
                        (navigator as any).webkitConnection;
@@ -88,6 +94,7 @@ export default function GlobalVideoBackground({
           autoPlay
           muted
           playsInline
+          poster="/uploads/hero-video-poster.jpg"
           onLoadedData={handleVideoLoaded}
           onEnded={handleVideoEnded}
           onError={handleVideoError}

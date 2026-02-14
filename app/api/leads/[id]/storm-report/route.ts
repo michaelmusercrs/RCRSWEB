@@ -183,7 +183,6 @@ export async function POST(
       leadId,
     });
 
-    console.log(`[Lead ${leadId}] Manual storm report generated: ${report.reportId} - Risk: ${report.riskLevel} (${report.riskScore}/100)`);
 
     return NextResponse.json({
       success: true,

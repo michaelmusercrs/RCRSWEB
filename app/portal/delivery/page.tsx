@@ -23,6 +23,7 @@ import {
   Check,
   Camera,
   FileSignature,
+  RotateCcw,
   User,
   Plus,
   UserPlus
@@ -366,6 +367,10 @@ export default function DeliveryManagementPage() {
           <span className="text-zinc-700">|</span>
           <Link href="/portal/inventory" className="flex items-center gap-1 text-zinc-500 hover:text-brand-green transition-colors text-xs">
             <Package className="w-3.5 h-3.5" /> Inventory
+          </Link>
+          <span className="text-zinc-700">|</span>
+          <Link href="/portal/delivery/returns" className="flex items-center gap-1 text-zinc-500 hover:text-brand-green transition-colors text-xs">
+            <RotateCcw className="w-3.5 h-3.5" /> Returns
           </Link>
         </div>
       </div>

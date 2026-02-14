@@ -26,6 +26,8 @@ export default function robots(): MetadataRoute.Robots {
           '/private/',
           '/*.json$',
           '/*/upload',
+          '/secret-deals/',      // honeypot — bad bots see this as a target
+          '/internal-pricing/',  // honeypot
         ],
       },
       // Google crawler - primary search engine

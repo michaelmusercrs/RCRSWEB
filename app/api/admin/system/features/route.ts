@@ -15,35 +15,58 @@ import {
   type FeatureFlag,
 } from '@/lib/feature-flags';
 import { requireAdmin } from '@/lib/auth-service';
-import fs from 'fs';
-import path from 'path';
 
-// Path to system config file
-const CONFIG_PATH = path.join(process.cwd(), 'data', 'system-config.json');
+const BLOB_KEY = 'data/system-config.json';
+const LOCAL_PATH = 'data/system-config.json';
 
-// Read features from config
-function readFeatures(): Record<string, FeatureFlag> {
+async function readConfig(): Promise<Record<string, any>> {
   try {
-    const configData = fs.readFileSync(CONFIG_PATH, 'utf-8');
-    const config = JSON.parse(configData);
-    return config.features || {};
+    const { list } = await import('@vercel/blob');
+    const blobs = await list({ prefix: BLOB_KEY });
+    if (blobs.blobs.length > 0) {
+      const res = await fetch(blobs.blobs[0].url, { cache: 'no-store' });
+      if (res.ok) return await res.json();
+    }
+  } catch (e) { /* blob not available */ }
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), LOCAL_PATH);
+    const data = fs.readFileSync(filePath, 'utf-8');
+    return JSON.parse(data);
   } catch {
     return {};
   }
 }
 
-// Save features to config
-function saveFeatures(features: Record<string, FeatureFlag>): void {
+async function writeConfig(config: Record<string, any>): Promise<void> {
   try {
-    const configData = fs.readFileSync(CONFIG_PATH, 'utf-8');
-    const config = JSON.parse(configData);
-    config.features = features;
-    config.lastUpdated = new Date().toISOString();
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
-  } catch (error) {
-    console.error('Error saving features:', error);
-    throw new Error('Failed to save feature configuration');
+    const { put } = await import('@vercel/blob');
+    await put(BLOB_KEY, JSON.stringify(config, null, 2), {
+      access: 'public', contentType: 'application/json', addRandomSuffix: false,
+    });
+  } catch (e) {
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), LOCAL_PATH);
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(filePath, JSON.stringify(config, null, 2));
   }
+}
+
+// Read features from config
+async function readFeatures(): Promise<Record<string, FeatureFlag>> {
+  const config = await readConfig();
+  return config.features || {};
+}
+
+// Save features to config
+async function saveFeatures(features: Record<string, FeatureFlag>): Promise<void> {
+  const config = await readConfig();
+  config.features = features;
+  config.lastUpdated = new Date().toISOString();
+  await writeConfig(config);
 }
 
 // GET handler - Retrieve all features
@@ -57,7 +80,7 @@ export async function GET(request: NextRequest) {
     const enabledOnly = searchParams.get('enabledOnly') === 'true';
 
     let features = getAllFeatures();
-    const configFeatures = readFeatures();
+    const configFeatures = await readFeatures();
 
     // Merge with config overrides
     features = features.map(feature => ({
@@ -115,7 +138,7 @@ export async function POST(request: NextRequest) {
     const { action, featureId, updates, userId = 'unknown', userEmail, approvalToken } = body;
 
     const environment = getEnvironment();
-    const features = readFeatures();
+    const features = await readFeatures();
 
     // Check if feature exists
     if (!features[featureId]) {
@@ -183,7 +206,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Save changes
-    saveFeatures(features);
+    await saveFeatures(features);
 
     return NextResponse.json({
       success: true,

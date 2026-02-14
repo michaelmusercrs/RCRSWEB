@@ -50,6 +50,7 @@ import { useAuth } from '@/lib/auth-context';
 import { StatCard } from '@/components/command-center/StatCard';
 import { RoleBadge } from '@/components/command-center/RoleBadge';
 import { ResponseTimeDashboard } from '@/components/command-center/ResponseTimeDashboard';
+import { SalesCompetitionCard } from '@/components/command-center/SalesCompetition';
 import { cn } from '@/lib/utils';
 
 // ============================================================================
@@ -809,6 +810,17 @@ export default function CommandCenterDashboard() {
           </div>
         )}
       </div>
+
+      {/* Sales Competition */}
+      {salesLeaderboard.length > 0 && (
+        <SalesCompetitionCard
+          reps={salesLeaderboard.map(rep => ({
+            name: rep.name,
+            periodTotal: rep.totalCommissions,
+            monthlyTotal: rep.totalCommissions,
+          }))}
+        />
+      )}
 
       {/* Lead Response Time Card */}
       {isAdmin && <ResponseTimeDashboard variant="compact" />}

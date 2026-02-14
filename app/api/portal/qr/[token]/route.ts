@@ -114,7 +114,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // (We do this on QR generation as it indicates intent to share)
     if (lead) {
       // Don't record view here - only when portal is actually accessed
-      console.log(`QR code generated for lead: ${lead.leadId}`);
     }
 
     // Convert Buffer to Uint8Array for NextResponse compatibility

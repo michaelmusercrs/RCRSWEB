@@ -16,6 +16,7 @@ import {
   isGoogleSheetsConfigured,
   CustomerRecord,
 } from '@/lib/google-sheets-service';
+import { cache, CACHE_TTL } from '@/lib/cache';
 
 interface CustomersResponse {
   success: boolean;
@@ -68,10 +69,13 @@ export async function GET(request: NextRequest): Promise<NextResponse<CustomersR
     const salesRep = searchParams.get('salesRep') || undefined;
     const search = searchParams.get('search') || undefined;
 
-    const customers = await googleSheetsService.getCustomers({
-      salesRep,
-      search,
-    });
+    const cacheKey = `sheets:customers:${salesRep || 'all'}:${search || ''}`;
+    const cached = cache.get<CustomerRecord[]>(cacheKey);
+    const customers = cached ?? await (async () => {
+      const data = await googleSheetsService.getCustomers({ salesRep, search });
+      cache.set(cacheKey, data, CACHE_TTL.MEDIUM);
+      return data;
+    })();
 
     // Calculate summary
     const totalRevenue = customers.reduce((sum, c) => sum + c.totalSpent, 0);
@@ -173,6 +177,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Customers
     };
 
     const success = await googleSheetsService.updateCustomer(customer);
+    cache.invalidatePattern('^sheets:customers:');
 
     if (!success) {
       return NextResponse.json(
@@ -236,6 +241,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse<Custome
     }
 
     const success = await googleSheetsService.deleteCustomer(body.customerId);
+    cache.invalidatePattern('^sheets:customers:');
 
     if (!success) {
       return NextResponse.json(

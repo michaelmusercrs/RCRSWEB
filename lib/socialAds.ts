@@ -127,9 +127,9 @@ Join hundreds of satisfied Hartselle homeowners who chose the local family team.
 Schedule your free inspection: 256-274-8530`,
     callToAction: "Hear From Your Neighbors - Watch Now",
     ctaButton: "Watch More",
-    hashtags: ["#CustomerReviews", "#Testimonials", "#HartselleTrusted", "#5StarRoofing", "#RealResults", "#RiverCityRoofing"],
+    hashtags: ["#CustomerReviews", "#Testimonials", "#HartselleTrusted", "#TopRatedRoofing", "#RealResults", "#RiverCityRoofing"],
     targetAudience: "Homeowners researching roofing companies, particularly those who value reviews and social proof",
-    suggestedImage: "Video thumbnail showing happy homeowner in front of new roof, with 5-star rating graphic and lime green play button"
+    suggestedImage: "Video thumbnail showing happy homeowner in front of new roof, with ★★★★★ rating graphic and lime green play button"
   }
 ];
 

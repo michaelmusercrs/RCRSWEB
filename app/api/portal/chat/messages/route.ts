@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { groupMeService } from '@/lib/groupme-service';
+import { isQuietHours, QUIET_HOURS_ERROR } from '@/lib/chat-quiet-hours';
 
 // GET - Fetch messages from a group
 export async function GET(request: NextRequest) {
@@ -75,6 +76,11 @@ export async function POST(request: NextRequest) {
         { error: 'groupId and text are required' },
         { status: 400 }
       );
+    }
+
+    // HARD RULE: No messages between 8 PM and 7 AM CST
+    if (isQuietHours()) {
+      return NextResponse.json(QUIET_HOURS_ERROR, { status: 403 });
     }
 
     if (text.length > 1000) {

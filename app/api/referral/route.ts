@@ -30,8 +30,6 @@ export async function POST(request: Request) {
     }
 
     // Log the referral
-    console.log(`New referral from: ${referrerName} -> ${referralName}`);
-
     // Get Google Apps Script endpoint from environment variables
     const googleScriptEndpoint = process.env.NEXT_PUBLIC_GOOGLE_SCRIPT_ENDPOINT;
 
@@ -39,18 +37,6 @@ export async function POST(request: Request) {
       console.error('NEXT_PUBLIC_GOOGLE_SCRIPT_ENDPOINT not configured');
 
       // Log locally for development
-      console.log('Referral submission (no endpoint configured):', {
-        referrerName,
-        referrerPhone,
-        referrerEmail,
-        referralName,
-        referralPhone,
-        referralEmail,
-        referralAddress,
-        salesRep,
-        notes,
-        timestamp: new Date().toISOString(),
-      });
 
       return apiError(
         'Referral processing is temporarily unavailable. Please call us at (256) 274-8530.',

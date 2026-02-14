@@ -316,7 +316,7 @@ const faqData = [
   },
   {
     q: 'How does the compensation and benefits work?',
-    a: 'You earn commission on every job you close with no cap on earnings. Plus we offer health, dental, and vision insurance, 401(k) with company match, and an accident policy that covers your entire household — not just you, your whole family. Our top performers earn over $100K annually.',
+    a: 'You earn commission on every job you close with no cap on earnings. We offer health, dental, vision, and household accident insurance, plus a Roth IRA with free company match. Top performers also earn through our bi-annual bonus program, vacation trips, and monthly gas cards. Some restrictions may apply. Our top performers earn well over $100K annually.',
   },
   {
     q: 'What about leads? Do I have to find my own customers?',
@@ -336,7 +336,7 @@ const faqData = [
   },
   {
     q: 'What makes RCRS different from other roofing companies hiring reps?',
-    a: 'Our owners have 25+ years actually roofing — selling, project managing, and running crews. We\'re OC Preferred and IKO Top Tier Craftsman Premier certified. We offer real benefits (health, dental, vision, 401k, family accident coverage). And we\'ve donated over $100K to our local community. This isn\'t a side hustle for us — roofing is all we\'ve ever done.',
+    a: 'Our owners have 25+ years actually roofing — selling, project managing, and running crews. We\'re OC Preferred and IKO Top Tier Craftsman Premier certified. We offer real benefits: health, dental, vision, and household accident insurance, Roth IRA with free match, bi-annual bonuses, vacation trips, and monthly gas cards. And we\'ve donated over $100K to our local community. This isn\'t a side hustle for us — roofing is all we\'ve ever done.',
   },
 ];
 
@@ -493,7 +493,7 @@ export default function CareersPage() {
               {
                 icon: <Shield size={40} />,
                 title: 'Full Benefits Package',
-                text: 'Health, dental, and vision insurance. 401(k) with company match. Plus an accident policy covering your entire household — not just you, your whole family.',
+                text: 'Health, dental, and vision insurance. Roth IRA with company match. Household accident insurance covering your entire family. Plus bi-annual bonus programs, vacation trips, and monthly gas cards for top performers.*',
                 link: null,
               },
             ].map((b) => (
@@ -514,6 +514,41 @@ export default function CareersPage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Benefits Breakdown */}
+      <section className="py-20 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold">
+              Real <span className="text-brand-green">Benefits</span>, Real Security
+            </h2>
+            <p className="text-xl mt-6 max-w-3xl mx-auto text-gray-600">
+              We invest in our people — not just with commissions, but with a comprehensive benefits package that protects you and your family.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {[
+              { title: 'Health Insurance', desc: 'Comprehensive medical coverage to keep you and your family healthy.' },
+              { title: 'Dental Insurance', desc: 'Full dental coverage for preventive care, procedures, and more.' },
+              { title: 'Vision Insurance', desc: 'Eye exams, glasses, and contacts covered.' },
+              { title: 'Household Accident Insurance', desc: 'Accident coverage for your entire household — not just you, your whole family is protected.' },
+              { title: 'Roth IRA Match', desc: 'Free company match on your Roth IRA contributions. Invest in your future at no extra cost to you.' },
+              { title: 'Sales Competitions & Bonuses', desc: 'Bi-annual bonus program, vacation trips for top performers, and monthly gas cards to fuel your hustle.' },
+            ].map((b) => (
+              <div key={b.title} className="bg-white rounded-lg p-6 shadow-md border border-gray-100">
+                <CheckCircle size={24} className="text-brand-green mb-3" />
+                <h3 className="text-lg font-bold mb-2">{b.title}</h3>
+                <p className="text-gray-600 text-sm">{b.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-center mt-8 text-gray-400 text-sm italic">
+            *Some restrictions may apply. Benefits details provided during the onboarding process.
+          </p>
         </div>
       </section>
 
@@ -568,7 +603,7 @@ export default function CareersPage() {
                   'YOU set your own hours and territory',
                   'Build YOUR business with our brand behind you',
                   'Owners with 25+ years actually roofing, selling, and running crews',
-                  'Full benefits: health, dental, vision, 401(k) match, family accident policy',
+                  'Full benefits: health, dental, vision, Roth IRA match, household accident insurance',
                   'OC Preferred & IKO Top Tier Craftsman Premier certified',
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-3">

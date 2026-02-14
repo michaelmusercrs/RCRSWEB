@@ -1,22 +1,36 @@
 import Link from 'next/link';
 import { getActiveServiceAreas, getExpansionServiceAreas } from '@/lib/servicesData';
-import { MapPin, Clock, Phone, CheckCircle2, Calendar, User, TrendingUp } from 'lucide-react';
-import { generateMetadata as genMeta } from '@/lib/seo';
+import { MapPin, Clock, Phone, CheckCircle2, Calendar, TrendingUp } from 'lucide-react';
+import { generateMetadata as genMeta, generateBreadcrumbSchema, generateCollectionPageSchema } from '@/lib/seo';
+import StructuredData from '@/components/StructuredData';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = genMeta({
-  title: 'Service Areas - North Alabama Roofing Coverage',
-  description: 'Expert roofing services in Decatur, Huntsville, Madison, Athens & all of North Alabama. Expanding to Birmingham and Nashville. Free inspections available.',
+  title: 'Roofing Service Areas - Decatur, Huntsville, Madison & North Alabama',
+  description: 'Professional roofing in Decatur, Huntsville, Madison, Athens, Hartselle, Cullman & all of North Alabama. Free roof inspections, storm damage repair & insurance claims. Same-day service available.',
   path: '/service-areas',
-  keywords: ['service areas', 'North Alabama roofing', 'Decatur AL', 'Huntsville AL', 'Madison AL'],
+  keywords: ['North Alabama roofing service areas', 'Decatur AL roofer', 'Huntsville AL roofing', 'Madison AL roof repair', 'Athens AL roofing', 'Hartselle roofer', 'Cullman roofing'],
 });
 
 export default function ServiceAreasPage() {
   const activeAreas = getActiveServiceAreas();
   const expansionAreas = getExpansionServiceAreas();
 
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: 'Service Areas', url: '/service-areas' },
+  ]);
+
+  const collectionSchema = generateCollectionPageSchema({
+    name: 'Roofing Service Areas in North Alabama',
+    description: 'Expert roofing services in Decatur, Huntsville, Madison, Athens & all of North Alabama.',
+    url: '/service-areas',
+    numberOfItems: activeAreas.length + expansionAreas.length,
+  });
+
   return (
     <div className="min-h-screen">
+      <StructuredData data={[collectionSchema, breadcrumbSchema]} />
       {/* Hero Section */}
       <section className="relative w-full min-h-[40vh] flex items-center justify-center overflow-hidden">
         <div className="relative z-20 container mx-auto px-4 text-center text-white">
@@ -58,18 +72,15 @@ export default function ServiceAreasPage() {
                       <h3 className="text-2xl font-bold text-brand-black mb-1">
                         {area.name}
                       </h3>
+                      {area.tagline && (
+                        <p className="text-sm text-gray-500 italic mb-1">{area.tagline}</p>
+                      )}
                       <p className="text-brand-green font-semibold">{area.state}</p>
                     </div>
                     <div className="w-12 h-12 bg-brand-green/10 rounded-full flex items-center justify-center">
                       <MapPin className="text-brand-green" size={24} />
                     </div>
                   </div>
-
-                  {area.population && (
-                    <p className="text-sm text-gray-500 mb-4">
-                      Population: {area.population}
-                    </p>
-                  )}
 
                   {/* Quick Info */}
                   <div className="space-y-3 mb-6">
@@ -131,7 +142,7 @@ export default function ServiceAreasPage() {
                 COMING SOON
               </div>
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-                Expansion Markets
+                Expansion Areas
               </h2>
               <p className="text-xl text-gray-300 max-w-3xl mx-auto">
                 Growing to serve more communities with the same quality and care
@@ -150,6 +161,9 @@ export default function ServiceAreasPage() {
                       <h3 className="text-3xl font-bold text-brand-black mb-1">
                         {area.name}
                       </h3>
+                      {area.tagline && (
+                        <p className="text-sm text-gray-500 italic mb-1">{area.tagline}</p>
+                      )}
                       <p className="text-brand-blue font-semibold">{area.state}</p>
                     </div>
                     <div className="w-14 h-14 bg-brand-blue/10 rounded-full flex items-center justify-center">
@@ -157,30 +171,15 @@ export default function ServiceAreasPage() {
                     </div>
                   </div>
 
-                  {area.population && (
-                    <p className="text-sm text-gray-500 mb-4">
-                      Population: {area.population}
-                    </p>
-                  )}
-
                   {/* Launch Info */}
                   <div className="bg-brand-blue/5 border border-brand-blue/20 rounded-xl p-4 mb-6">
-                    <div className="flex items-center gap-3 mb-2">
+                    <div className="flex items-center gap-3">
                       <Calendar className="text-brand-blue" size={20} />
                       <div>
                         <p className="text-xs text-gray-500 font-medium">Launch Date</p>
                         <p className="text-lg font-bold text-brand-blue">{area.launchDate}</p>
                       </div>
                     </div>
-                    {area.regionalPartner && (
-                      <div className="flex items-center gap-3 mt-3">
-                        <User className="text-brand-blue" size={20} />
-                        <div>
-                          <p className="text-xs text-gray-500 font-medium">Regional Partner</p>
-                          <p className="text-sm font-bold text-brand-black">{area.regionalPartner}</p>
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   {/* Quick Info */}
@@ -205,7 +204,7 @@ export default function ServiceAreasPage() {
                   {/* Expansion Timeline */}
                   {area.expansionTimeline && area.expansionTimeline.length > 0 && (
                     <div className="pt-4 border-t border-gray-200 mb-6">
-                      <p className="text-sm text-gray-500 font-medium mb-3">Expansion Timeline</p>
+                      <p className="text-sm text-gray-500 font-medium mb-3">What to Expect</p>
                       <ul className="space-y-2">
                         {area.expansionTimeline.map((step, idx) => (
                           <li key={idx} className="text-sm text-gray-600 flex items-start gap-2">
@@ -220,7 +219,7 @@ export default function ServiceAreasPage() {
                   {/* Key Details */}
                   {area.keyDetails && area.keyDetails.length > 0 && (
                     <div className="pt-4 border-t border-gray-200">
-                      <p className="text-sm text-gray-500 font-medium mb-2">Market Opportunities</p>
+                      <p className="text-sm text-gray-500 font-medium mb-2">What We&apos;ll Bring</p>
                       <ul className="space-y-1">
                         {area.keyDetails.map((detail, idx) => (
                           <li key={idx} className="text-sm text-gray-600 flex items-start gap-2">
@@ -247,7 +246,7 @@ export default function ServiceAreasPage() {
                 Service Standards Across All Areas
               </h2>
               <p className="text-xl text-gray-300">
-                Consistent quality and reliability, no matter where you're located
+                Consistent quality and reliability, no matter where you&apos;re located
               </p>
             </div>
 

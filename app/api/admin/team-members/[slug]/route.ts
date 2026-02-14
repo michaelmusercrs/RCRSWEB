@@ -4,19 +4,29 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
-import path from 'path';
 import { TeamMember } from '@/lib/teamData';
 import { requireAdmin } from '@/lib/auth-service';
 
-const DATA_FILE = path.join(process.cwd(), 'data', 'team-members.json');
+const BLOB_KEY = 'data/team-members.json';
+const LOCAL_PATH = 'data/team-members.json';
 
 /**
- * Read team members from JSON file
+ * Read team members - tries Vercel Blob first, then local file
  */
 async function readTeamMembers(): Promise<TeamMember[]> {
   try {
-    const data = await fs.readFile(DATA_FILE, 'utf-8');
+    const { list } = await import('@vercel/blob');
+    const blobs = await list({ prefix: BLOB_KEY });
+    if (blobs.blobs.length > 0) {
+      const res = await fetch(blobs.blobs[0].url, { cache: 'no-store' });
+      if (res.ok) return await res.json();
+    }
+  } catch (e) { /* blob not available */ }
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), LOCAL_PATH);
+    const data = fs.readFileSync(filePath, 'utf-8');
     return JSON.parse(data);
   } catch {
     return [];
@@ -24,10 +34,22 @@ async function readTeamMembers(): Promise<TeamMember[]> {
 }
 
 /**
- * Write team members to JSON file
+ * Write team members - tries Vercel Blob first, then local file
  */
 async function writeTeamMembers(members: TeamMember[]): Promise<void> {
-  await fs.writeFile(DATA_FILE, JSON.stringify(members, null, 2));
+  try {
+    const { put } = await import('@vercel/blob');
+    await put(BLOB_KEY, JSON.stringify(members, null, 2), {
+      access: 'public', contentType: 'application/json', addRandomSuffix: false,
+    });
+  } catch (e) {
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), LOCAL_PATH);
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(filePath, JSON.stringify(members, null, 2));
+  }
 }
 
 /**

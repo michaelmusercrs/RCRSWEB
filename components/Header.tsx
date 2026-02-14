@@ -10,10 +10,11 @@ import { Button } from '@/components/ui/button';
 
 const navigation = [
   { name: 'Services', href: '/services' },
+  { name: 'Roof Visualizer', href: '/roof-visualizer' },
   { name: 'Service Areas', href: '/service-areas' },
   { name: 'Storm Check', href: '/check-my-address' },
-  { name: 'Team', href: '/about#team' },
   { name: 'Blog', href: '/blog' },
+  { name: 'Community', href: '/community' },
   { name: 'About', href: '/about' },
   { name: 'Contact', href: '/contact' },
 ];

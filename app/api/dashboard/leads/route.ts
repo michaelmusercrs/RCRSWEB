@@ -13,47 +13,58 @@ import {
   getUrgentActions,
   type Lead,
 } from '@/lib/dashboard-metrics';
-import fs from 'fs/promises';
-import path from 'path';
 
-const DATA_FILE = path.join(process.cwd(), 'data', 'leads.json');
+const BLOB_KEY = 'data/leads.json';
+const LOCAL_PATH = 'data/leads.json';
 
-/**
- * Ensure data directory and file exist
- */
-async function ensureDataFile() {
-  const dataDir = path.join(process.cwd(), 'data');
-
+async function readData(key: string, localPath: string, defaultValue: any = []): Promise<any> {
   try {
-    await fs.access(dataDir);
+    const { list } = await import('@vercel/blob');
+    const blobs = await list({ prefix: key });
+    if (blobs.blobs.length > 0) {
+      const res = await fetch(blobs.blobs[0].url, { cache: 'no-store' });
+      if (res.ok) return await res.json();
+    }
+  } catch (e) { /* blob not available */ }
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), localPath);
+    const data = fs.readFileSync(filePath, 'utf-8');
+    return JSON.parse(data);
   } catch {
-    await fs.mkdir(dataDir, { recursive: true });
+    return defaultValue;
   }
+}
 
+async function writeData(key: string, localPath: string, data: any): Promise<void> {
   try {
-    await fs.access(DATA_FILE);
-  } catch {
-    // Create empty leads file - leads will be added via contact form submissions
-    const emptyLeads: Lead[] = [];
-    await fs.writeFile(DATA_FILE, JSON.stringify(emptyLeads, null, 2));
+    const { put } = await import('@vercel/blob');
+    await put(key, JSON.stringify(data, null, 2), {
+      access: 'public', contentType: 'application/json', addRandomSuffix: false,
+    });
+  } catch (e) {
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), localPath);
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
   }
 }
 
 /**
- * Read leads from JSON file
+ * Read leads
  */
 async function readLeads(): Promise<Lead[]> {
-  await ensureDataFile();
-  const data = await fs.readFile(DATA_FILE, 'utf-8');
-  return JSON.parse(data);
+  return await readData(BLOB_KEY, LOCAL_PATH, []);
 }
 
 /**
- * Write leads to JSON file
+ * Write leads
  */
 async function writeLeads(leads: Lead[]): Promise<void> {
-  await ensureDataFile();
-  await fs.writeFile(DATA_FILE, JSON.stringify(leads, null, 2));
+  await writeData(BLOB_KEY, LOCAL_PATH, leads);
 }
 
 /**

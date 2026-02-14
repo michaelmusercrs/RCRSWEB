@@ -73,9 +73,6 @@ export async function POST(request: NextRequest) {
 
     // Process the webhook
     const callRecord = await callsService.processWebhook(payload);
-
-    console.log(`[Calls Webhook] Processed ${payload.event} for call ${callRecord.callId}`);
-
     return NextResponse.json({
       success: true,
       event: payload.event,

@@ -22,6 +22,7 @@ export interface ServiceArea {
   name: string;
   status: 'Active' | 'Expansion';
   state: string;
+  tagline?: string;
   population?: string;
   coverage: string;
   services: string;
@@ -368,6 +369,7 @@ export const serviceAreas: ServiceArea[] = [
     altText: 'Tennessee River bridge in Decatur Alabama - roofing services area',
     description: 'Our headquarters in Decatur provides same-day service and emergency response for residential and commercial roofing throughout Morgan County.',
     name: 'Decatur',
+    tagline: 'Home of the Tennessee River Bridge',
     status: 'Active',
     state: 'AL',
     coverage: 'City and surrounding areas',
@@ -375,9 +377,9 @@ export const serviceAreas: ServiceArea[] = [
     responseTime: 'Same-day available',
     keyDetails: [
       'Headquarters location: 3325 Central Pkwy SW, Decatur, AL 35603',
-      'Full service center',
-      'Parts and materials in stock',
-      'Emergency response team based here'
+      'Full service center with parts and materials in stock',
+      'Emergency response team based here',
+      'Free inspections — no obligation'
     ]
   },
   {
@@ -388,17 +390,17 @@ export const serviceAreas: ServiceArea[] = [
     altText: 'US Space and Rocket Center in Huntsville Alabama - roofing services area',
     description: 'Serving the Rocket City with expert roofing solutions for homes and businesses. Fast response times and metal roofing specialists.',
     name: 'Huntsville',
+    tagline: 'The Rocket City',
     status: 'Active',
     state: 'AL',
-    population: '~215,000',
     coverage: 'City and Madison County area',
     services: 'All residential and commercial',
     responseTime: 'Same day - 2 days',
     keyDetails: [
-      'High demand market',
-      'Metal roofing popular',
-      'Storm damage common',
-      'Professional community'
+      'Metal roofing specialists for Huntsville homes',
+      'Frequent storm and hail damage area',
+      'IKO certified contractor',
+      'Full insurance claim assistance'
     ]
   },
   {
@@ -407,19 +409,19 @@ export const serviceAreas: ServiceArea[] = [
     mapQuery: 'Madison,+AL',
     image: '/uploads/area-madison.jpg',
     altText: 'Suburban neighborhood in Madison Alabama - roofing services area',
-    description: 'Madison growing community deserves quality roofing. We specialize in LeafX gutter guards and residential roof replacement.',
+    description: 'Madison is one of North Alabama\'s fastest-growing cities, and we\'re proud to serve its homeowners with quality roofing. We specialize in LeafX gutter guards and residential roof replacement.',
     name: 'Madison',
+    tagline: "North Alabama's Fastest Growing City",
     status: 'Active',
     state: 'AL',
-    population: '~42,000',
     coverage: 'City and surrounding suburbs',
     services: 'All residential services',
     responseTime: 'Same day - 2 days',
     keyDetails: [
-      'Growing suburban market',
-      'LeafX gutter guards popular',
-      'Family-oriented community',
-      'Mature trees (gutter guards effective)'
+      'LeafX gutter guards popular for mature tree coverage',
+      'New construction and existing home roofing',
+      'Free inspections for Madison homeowners',
+      'Tornado alley — storm damage expertise'
     ]
   },
   {
@@ -430,16 +432,17 @@ export const serviceAreas: ServiceArea[] = [
     altText: 'Limestone County Courthouse in Athens Alabama - roofing services area',
     description: 'Serving Athens and Limestone County with comprehensive roofing services. From college housing to historic homes.',
     name: 'Athens',
+    tagline: 'Heart of Limestone County',
     status: 'Active',
     state: 'AL',
-    population: '~24,000',
     coverage: 'City of Athens area',
     services: 'All residential and commercial',
     responseTime: 'Same day - 2 days',
     keyDetails: [
-      'College town',
-      'Diverse housing stock',
-      'Growing market'
+      'Diverse housing stock — historic homes to new builds',
+      'Limestone County storm and hail damage repairs',
+      'Free roof inspections available',
+      'Insurance claim assistance for storm damage'
     ]
   },
   {
@@ -448,18 +451,103 @@ export const serviceAreas: ServiceArea[] = [
     mapQuery: 'Owens+Crossroads,+AL',
     image: '/uploads/area-owens-crossroads.jpg',
     altText: 'Mountain overlook near Hampton Cove and Owens Cross Roads Alabama - roofing services area',
-    description: 'Quality roofing services for the Owens Crossroads community. Personalized attention and strong local relationships.',
+    description: 'Expert roofing services for Owens Crossroads and the Hampton Cove area. Mountain and foothill homes require specialized storm protection.',
     name: 'Owens Crossroads',
+    tagline: 'Gateway to Hampton Cove',
     status: 'Active',
     state: 'AL',
     coverage: 'Community and surrounding areas',
     services: 'Residential and some commercial',
     responseTime: 'Same day - 2 days',
     keyDetails: [
-      'Smaller community',
-      'Picturesque area',
-      'Residential focus',
-      'Strong relationships'
+      'Adjacent to Hampton Cove — serving mountain and foothill homes',
+      'High wind and storm exposure on elevated terrain',
+      'Free inspections for Owens Crossroads homeowners',
+      'IKO impact-resistant shingles recommended for the area'
+    ]
+  },
+  {
+    id: 9,
+    slug: 'hartselle-al',
+    mapQuery: 'Hartselle,+AL',
+    image: '/uploads/area-north-alabama.jpg',
+    altText: 'Hartselle Alabama small town charm - roofing services area',
+    description: 'Trusted roofing services in Hartselle, AL. Residential roof replacement, storm damage repair, and free inspections for Morgan County homeowners.',
+    name: 'Hartselle',
+    tagline: 'The City of Southern Hospitality',
+    status: 'Active',
+    state: 'AL',
+    coverage: 'Hartselle and surrounding Morgan County',
+    services: 'All residential and commercial',
+    responseTime: 'Same-day available',
+    keyDetails: [
+      'Close proximity to our Decatur headquarters',
+      'Spring storm and hail damage common',
+      'Free inspections — same-day available',
+      'Insurance claim support for Morgan County homeowners'
+    ]
+  },
+  {
+    id: 10,
+    slug: 'cullman-al',
+    mapQuery: 'Cullman,+AL',
+    image: '/uploads/area-north-alabama.jpg',
+    altText: 'Cullman Alabama roofing services area',
+    description: 'Professional roofing contractor serving Cullman, AL. Expert roof replacement, repair, and storm damage restoration for Cullman County homes and businesses.',
+    name: 'Cullman',
+    tagline: 'Heart of Cullman County',
+    status: 'Active',
+    state: 'AL',
+    coverage: 'Cullman and Cullman County',
+    services: 'All residential and commercial',
+    responseTime: 'Same day - 2 days',
+    keyDetails: [
+      'Tornado alley — storm damage expertise',
+      'Residential and commercial coverage',
+      'Insurance claim assistance available',
+      'Free roof inspections for Cullman County'
+    ]
+  },
+  {
+    id: 11,
+    slug: 'moulton-al',
+    mapQuery: 'Moulton,+AL',
+    image: '/uploads/area-north-alabama.jpg',
+    altText: 'Moulton Alabama Lawrence County roofing services',
+    description: 'Reliable roofing services for Moulton and Lawrence County, AL. Free roof inspections, storm damage repair, and quality roof replacement.',
+    name: 'Moulton',
+    tagline: "Lawrence County's County Seat",
+    status: 'Active',
+    state: 'AL',
+    coverage: 'Moulton and Lawrence County',
+    services: 'All residential services',
+    responseTime: 'Next day - 2 days',
+    keyDetails: [
+      'Full Lawrence County coverage',
+      'Storm season preparedness and emergency tarping',
+      'Free inspections for Lawrence County homeowners',
+      'Personalized service for rural and residential properties'
+    ]
+  },
+  {
+    id: 12,
+    slug: 'florence-al',
+    mapQuery: 'Florence,+AL',
+    image: '/uploads/area-north-alabama.jpg',
+    altText: 'Florence Alabama Shoals area roofing services',
+    description: 'Expert roofing services in Florence and the Shoals area. Roof replacement, repair, and storm damage restoration for Lauderdale County.',
+    name: 'Florence',
+    tagline: 'The Renaissance City of the Shoals',
+    status: 'Active',
+    state: 'AL',
+    coverage: 'Florence, Muscle Shoals, Sheffield, Tuscumbia',
+    services: 'All residential and commercial',
+    responseTime: 'Next day - 3 days',
+    keyDetails: [
+      'Shoals area coverage — Florence, Muscle Shoals, Sheffield, Tuscumbia',
+      'Historic homes and modern builds',
+      'Full insurance claim support',
+      'Free inspections across the Quad Cities'
     ]
   },
   {
@@ -470,16 +558,17 @@ export const serviceAreas: ServiceArea[] = [
     altText: 'Scenic rolling hills and countryside in North Alabama - roofing services area',
     description: 'Proudly serving all of North Alabama with storm damage expertise and insurance claim support.',
     name: 'General North Alabama Territory',
+    tagline: 'Covering All of North Alabama',
     status: 'Active',
     state: 'AL',
     coverage: 'Northern Alabama communities',
     services: 'Selective based on location',
     responseTime: 'Next day - 3 days',
     keyDetails: [
-      'Storm-prone region',
-      'Hail damage common',
-      'Insurance claim expertise valued',
-      'Seasonal storm season critical'
+      'Storm-prone region — tornado alley location',
+      'Hail damage common in spring and summer',
+      'Insurance claim expertise for North AL homeowners',
+      'Free inspections available territory-wide'
     ]
   },
   {
@@ -488,28 +577,24 @@ export const serviceAreas: ServiceArea[] = [
     mapQuery: 'Birmingham,+AL',
     image: '/uploads/area-birmingham.jpg',
     altText: 'Birmingham Alabama city skyline - roofing services expansion area',
-    description: 'Coming soon to Birmingham! Expanding our quality roofing services to Alabamas largest metro area.',
+    description: 'Coming soon to Birmingham! Expanding our quality roofing services to Alabama\'s largest metro area.',
     name: 'Birmingham',
+    tagline: "Alabama's Largest City",
     status: 'Expansion',
     state: 'AL',
-    population: '~200,000+',
     coverage: 'Birmingham metro area',
     services: 'All residential and commercial (planned)',
-    launchDate: 'Q4 2025',
-    regionalPartner: 'Hunter',
+    launchDate: 'Coming 2026',
     expansionTimeline: [
-      'Q3 2025: Market analysis and relationship building',
-      'Q4 2025: Official launch with local team',
-      'Regional office establishment',
-      'Local crew hiring',
-      'Supply chain setup',
-      'Marketing campaign'
+      'Local team and office setup in progress',
+      'Full residential and commercial services at launch',
+      'Same quality and warranties as our North Alabama operations'
     ],
     keyDetails: [
-      'Major metro area',
-      'Significant market potential',
-      'Commercial building demand',
-      'Storm damage expertise needed'
+      'Storm and hail damage expertise coming to Birmingham',
+      'Full insurance claim assistance',
+      'IKO certified contractor',
+      'Free inspections at launch'
     ]
   },
   {
@@ -520,26 +605,22 @@ export const serviceAreas: ServiceArea[] = [
     altText: 'Nashville Tennessee skyline - roofing services expansion area',
     description: 'Future expansion to Music City. Commercial and residential roofing services coming 2026.',
     name: 'Nashville',
+    tagline: 'Music City',
     status: 'Expansion',
     state: 'TN',
-    population: '~600,000+',
     coverage: 'Nashville metro area',
     services: 'All residential and commercial (planned)',
-    launchDate: '2026',
-    regionalPartner: 'Aaron',
+    launchDate: 'Coming 2026',
     expansionTimeline: [
-      'Q1 2025: Market research and analysis',
-      'Q2-Q3 2025: Relationship building and networking (Aaron\'s BNI connections)',
-      'Q4 2025: Pre-launch preparation',
-      'Q1-Q2 2026: Official launch',
-      'Local team and operations setup'
+      'Market preparation underway',
+      'Full residential and commercial services planned',
+      'Same quality and warranties as our Alabama operations'
     ],
     keyDetails: [
-      'Largest metro expansion',
-      'Music City market growth',
-      'Commercial building demand',
-      'Regional hub potential',
-      'Growth market potential'
+      'Severe storm and hail damage common in Middle Tennessee',
+      'Full insurance claim assistance',
+      'Residential and commercial roofing services',
+      'Free inspections at launch'
     ]
   }
 ];

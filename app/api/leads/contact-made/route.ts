@@ -56,7 +56,6 @@ export async function POST(request: NextRequest) {
         repName
       ).then(syncResult => {
         if (syncResult.success) {
-          console.log(`[Lead ${leadId}] JN contact status updated to Contacted`);
         } else {
           console.warn(`[Lead ${leadId}] JN status sync failed: ${syncResult.message}`);
         }

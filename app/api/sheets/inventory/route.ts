@@ -16,6 +16,7 @@ import {
   isGoogleSheetsConfigured,
   InventoryItem,
 } from '@/lib/google-sheets-service';
+import { cache, CACHE_TTL } from '@/lib/cache';
 
 interface InventoryResponse {
   success: boolean;
@@ -60,11 +61,13 @@ export async function GET(request: NextRequest): Promise<NextResponse<InventoryR
     const lowStock = searchParams.get('lowStock') === 'true';
     const search = searchParams.get('search') || undefined;
 
-    const items = await googleSheetsService.getInventory({
-      category,
-      lowStock,
-      search,
-    });
+    const cacheKey = `sheets:inventory:${category || 'all'}:${lowStock}:${search || ''}`;
+    const cached = cache.get<InventoryItem[]>(cacheKey);
+    const items = cached ?? await (async () => {
+      const data = await googleSheetsService.getInventory({ category, lowStock, search });
+      cache.set(cacheKey, data, CACHE_TTL.MEDIUM);
+      return data;
+    })();
 
     // Calculate summary
     const categories = [...new Set(items.map(i => i.category))];
@@ -147,6 +150,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Inventory
     };
 
     const success = await googleSheetsService.updateInventoryItem(item);
+    cache.invalidatePattern('^sheets:inventory:');
 
     if (!success) {
       return NextResponse.json(
@@ -210,6 +214,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse<Invento
     }
 
     const success = await googleSheetsService.deleteInventoryItem(body.sku);
+    cache.invalidatePattern('^sheets:inventory:');
 
     if (!success) {
       return NextResponse.json(

@@ -61,9 +61,6 @@ export async function POST(request: NextRequest) {
       access: 'public',
       addRandomSuffix: false,
     });
-
-    console.log(`Customer upload: ${customerId} - ${file.name} -> ${blob.url}`);
-
     return NextResponse.json({
       success: true,
       data: {

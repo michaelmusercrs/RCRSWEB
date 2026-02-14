@@ -77,7 +77,6 @@ export async function POST(request: NextRequest) {
             notifyTeam: true,
           }),
         });
-        console.log(`Contact form → lead created for ${name} (${email})`);
       } catch (leadErr) {
         // Non-blocking: form submission succeeded even if lead creation fails
         console.warn('Contact form lead creation failed:', leadErr);

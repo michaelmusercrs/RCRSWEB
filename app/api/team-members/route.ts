@@ -1,18 +1,16 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-service';
 import { googleSheetsService } from '@/lib/google-sheets-service';
-
-const CACHE_DURATION = 30 * 1000; // 30 seconds - good for testing
-let cache: { data: any; timestamp: number; } | null = null;
+import { cache, CACHE_TTL } from '@/lib/cache';
 
 export async function GET() {
   try {
-    if (cache && Date.now() - cache.timestamp < CACHE_DURATION) {
-      return NextResponse.json(cache.data);
-    }
+    const cacheKey = 'sheets:team-members';
+    const cached = cache.get<any>(cacheKey);
+    if (cached) return NextResponse.json(cached);
 
     const teamMembers = await googleSheetsService.getTeamMembers();
-    cache = { data: teamMembers, timestamp: Date.now() };
+    cache.set(cacheKey, teamMembers, CACHE_TTL.MEDIUM);
     return NextResponse.json(teamMembers);
   } catch (error) {
     console.error('Error fetching team members:', error);
@@ -27,7 +25,7 @@ export async function POST(request: Request) {
   try {
     const teamMember = await request.json();
     await googleSheetsService.updateTeamMember(teamMember);
-    cache = null;
+    cache.invalidate('sheets:team-members');
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error updating team member:', error);

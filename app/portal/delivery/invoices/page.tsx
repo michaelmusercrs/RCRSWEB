@@ -91,6 +91,29 @@ const TYPE_CONFIG: Record<InvoiceType, { label: string; color: string }> = {
   credit: { label: 'Credit', color: 'text-red-400' },
 };
 
+// ============ BILLING VISIBILITY RULES ============
+// JobNimbus invoice: FINAL PRICE ONLY (customer-facing)
+// Internal inventory invoice: purchase price + final price (admin & office only)
+type ViewerRole = 'driver' | 'warehouse' | 'office' | 'admin' | 'billing';
+
+function canViewPurchasePrice(role: ViewerRole): boolean {
+  return ['admin', 'office', 'billing'].includes(role);
+}
+
+function canViewMargin(role: ViewerRole): boolean {
+  return ['admin', 'office'].includes(role);
+}
+
+// For JobNimbus sync: strip purchase prices, show final only
+function getJobNimbusLineItems(items: LineItem[]): Pick<LineItem, 'description' | 'quantity' | 'unit' | 'total'>[] {
+  return items.map(item => ({
+    description: item.description,
+    quantity: item.quantity,
+    unit: item.unit,
+    total: item.total, // Final price only
+  }));
+}
+
 const TERMS_OPTIONS = ['Net 15', 'Net 30', 'Net 45', 'Net 60', 'Due on Completion', 'Due on Approval', 'Immediate'];
 const CATEGORY_OPTIONS: { value: LineItemCategory; label: string }[] = [
   { value: 'materials', label: 'Materials' }, { value: 'labor', label: 'Labor' },

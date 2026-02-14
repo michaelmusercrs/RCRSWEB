@@ -180,6 +180,258 @@ const jnStatusToPortalKey: Record<string, string> = {
 // Customer Detail Page
 // =============================================================================
 
+// =============================================================================
+// Roof Report Tab Component
+// =============================================================================
+
+function RoofReportTab({ contactAddress, contactJnid }: { contactAddress: string; contactJnid: string }) {
+  const [roofReport, setRoofReport] = useState<any>(null);
+  const [isLoadingRoof, setIsLoadingRoof] = useState(false);
+  const [roofError, setRoofError] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [shareUrl, setShareUrl] = useState('');
+  const [isPublic, setIsPublic] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const fetchRoofReport = async () => {
+    setIsLoadingRoof(true);
+    setRoofError('');
+    try {
+      // Try fetching by lead ID first (contactJnid may be a lead or JN contact ID)
+      const res = await fetch(`/api/leads/${contactJnid}/roof-report`);
+      const data = await res.json();
+      if (data.success && data.data?.latest) {
+        setRoofReport(data.data.latest);
+        setIsPublic(data.data.latest.isPublic || false);
+        setShareUrl(data.data.latest.shareUrl || '');
+      }
+    } catch (err) {
+      // No report found — that's ok
+    } finally {
+      setIsLoadingRoof(false);
+    }
+  };
+
+  useEffect(() => { fetchRoofReport(); }, [contactJnid]);
+
+  const generateReport = async () => {
+    setIsGenerating(true);
+    setRoofError('');
+    try {
+      const res = await fetch(`/api/leads/${contactJnid}/roof-report`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: contactAddress }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setRoofReport(data.data);
+        setShareUrl(data.data.shareUrl || '');
+      } else {
+        setRoofError(data.error || 'Failed to generate report');
+      }
+    } catch (err) {
+      setRoofError('Failed to generate roof report');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const toggleShare = async () => {
+    if (!roofReport?.reportId) return;
+    try {
+      const res = await fetch(`/api/leads/${contactJnid}/roof-report`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reportId: roofReport.reportId, isPublic: !isPublic }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setIsPublic(data.data.isPublic);
+        setShareUrl(data.data.shareUrl || '');
+      }
+    } catch {}
+  };
+
+  const copyShareUrl = () => {
+    if (shareUrl) {
+      navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  if (isLoadingRoof) {
+    return (
+      <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-8 text-center">
+        <Loader2 className="w-8 h-8 text-brand-green animate-spin mx-auto mb-2" />
+        <p className="text-neutral-400 text-sm">Loading roof report...</p>
+      </div>
+    );
+  }
+
+  if (!roofReport) {
+    return (
+      <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-8 text-center">
+        <Building className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
+        <h3 className="text-white font-medium mb-2">No Roof Report Yet</h3>
+        <p className="text-neutral-400 text-sm mb-4">
+          Generate an AI-powered roof measurement report for this property.
+        </p>
+        {roofError && (
+          <div className="mb-4 px-3 py-2 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-xs flex items-center gap-2 justify-center">
+            <AlertCircle size={14} />
+            {roofError}
+          </div>
+        )}
+        <button
+          onClick={generateReport}
+          disabled={isGenerating}
+          className="px-6 py-3 bg-brand-green hover:bg-brand-green/90 disabled:bg-neutral-700 text-black font-medium rounded-xl transition-colors flex items-center gap-2 mx-auto"
+        >
+          {isGenerating ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Generating Report (1-2 min)...
+            </>
+          ) : (
+            <>
+              <ClipboardList size={16} />
+              Generate Roof Report
+            </>
+          )}
+        </button>
+      </div>
+    );
+  }
+
+  const confColor = (c: string) =>
+    c === 'HIGH' ? 'text-green-400' : c === 'MEDIUM' ? 'text-blue-400' : 'text-amber-400';
+  const confBg = (c: string) =>
+    c === 'HIGH' ? 'bg-green-500/20 text-green-400' : c === 'MEDIUM' ? 'bg-blue-500/20 text-blue-400' : 'bg-amber-500/20 text-amber-400';
+
+  return (
+    <div className="space-y-4">
+      {/* Report Header */}
+      <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-white font-medium flex items-center gap-2">
+              <Building size={16} className="text-brand-green" />
+              Roof Measurement Report
+            </h3>
+            <p className="text-neutral-400 text-xs mt-1">
+              Generated {new Date(roofReport.generatedAt).toLocaleDateString()} · ID: {roofReport.reportId}
+            </p>
+          </div>
+          <span className={`px-2 py-1 rounded text-xs font-medium ${confBg(roofReport.overallConfidence)}`}>
+            {roofReport.overallConfidence}
+          </span>
+        </div>
+      </div>
+
+      {/* Key Metrics */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 text-center">
+          <div className="text-xl font-bold text-white">{(roofReport.totalRoofAreaSqFt || 0).toLocaleString()}</div>
+          <div className="text-xs text-neutral-500">Total Area (sq ft)</div>
+        </div>
+        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 text-center">
+          <div className="text-xl font-bold text-white">{roofReport.roofSquares || ((roofReport.totalRoofAreaSqFt || 0) / 100).toFixed(1)}</div>
+          <div className="text-xs text-neutral-500">Roof Squares</div>
+        </div>
+        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 text-center">
+          <div className="text-xl font-bold text-white">{roofReport.primaryPitch || 'N/A'}</div>
+          <div className="text-xs text-neutral-500">Primary Pitch</div>
+        </div>
+        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 text-center">
+          <div className="text-xl font-bold text-white capitalize">{roofReport.roofStyle || 'N/A'}</div>
+          <div className="text-xs text-neutral-500">Roof Style</div>
+        </div>
+      </div>
+
+      {/* Linear Measurements */}
+      <div className="bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-white/5">
+          <h4 className="text-sm font-medium text-white flex items-center gap-2">
+            <BarChart3 size={14} className="text-brand-green" /> Linear Measurements
+          </h4>
+        </div>
+        <div className="divide-y divide-white/5">
+          {[
+            { label: 'Ridges', ft: roofReport.totalRidgeFt },
+            { label: 'Rakes', ft: roofReport.totalRakeFt },
+            { label: 'Valleys', ft: roofReport.totalValleyFt },
+            { label: 'Eaves', ft: roofReport.totalEaveFt },
+            { label: 'Hips', ft: roofReport.totalHipFt },
+            { label: 'Perimeter', ft: roofReport.perimeterFt },
+          ].map(m => (
+            <div key={m.label} className="flex items-center justify-between px-4 py-2.5">
+              <span className="text-sm text-neutral-300">{m.label}</span>
+              <span className="text-sm font-mono text-white">{(m.ft || 0).toFixed(1)} ft</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Satellite Image */}
+      {roofReport.satelliteImageUrl && (
+        <div className="bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden">
+          <img src={roofReport.satelliteImageUrl} alt="Satellite view" className="w-full max-h-60 object-cover" />
+        </div>
+      )}
+
+      {/* Share Controls */}
+      <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4">
+        <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
+          <ExternalLink size={14} className="text-brand-green" />
+          Share with Homeowner
+        </h4>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={toggleShare}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              isPublic
+                ? 'bg-brand-green/20 text-brand-green border border-brand-green/30'
+                : 'bg-white/5 text-neutral-400 border border-white/10 hover:bg-white/10'
+            }`}
+          >
+            {isPublic ? '✓ Link Active' : 'Enable Share Link'}
+          </button>
+          {isPublic && shareUrl && (
+            <div className="flex-1 flex items-center gap-2">
+              <input
+                type="text"
+                value={shareUrl}
+                readOnly
+                className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-xs"
+              />
+              <button
+                onClick={copyShareUrl}
+                className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-xs transition-colors"
+              >
+                {copied ? <CheckCircle size={14} /> : <Copy size={14} />}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Re-generate */}
+      <div className="flex justify-end">
+        <button
+          onClick={generateReport}
+          disabled={isGenerating}
+          className="px-4 py-2 bg-white/5 hover:bg-white/10 text-neutral-400 text-sm rounded-lg transition-colors flex items-center gap-2"
+        >
+          {isGenerating ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+          Re-generate Report
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function CustomerDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -189,7 +441,7 @@ export default function CustomerDetailPage() {
   const [data, setData] = useState<FullCustomerData | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'jobs' | 'activity' | 'estimates' | 'documents' | 'invoices' | 'storm_hail' | 'portal_settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'jobs' | 'activity' | 'estimates' | 'documents' | 'invoices' | 'storm_hail' | 'roof_report' | 'portal_settings'>('overview');
   const [customerSettings, setCustomerSettings] = useState<Record<string, boolean | null>>({});
   const [savingCustomerSettings, setSavingCustomerSettings] = useState(false);
   const [settingsSaveMsg, setSettingsSaveMsg] = useState('');
@@ -559,11 +811,11 @@ export default function CustomerDetailPage() {
         <main className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
           {/* Tab Navigation */}
           <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 mb-4 overflow-x-auto">
-            {(['overview', 'jobs', 'activity', 'estimates', 'documents', 'invoices', 'storm_hail', 'portal_settings'] as const).map((tab) => {
+            {(['overview', 'jobs', 'activity', 'estimates', 'documents', 'invoices', 'storm_hail', 'roof_report', 'portal_settings'] as const).map((tab) => {
               const tabLabels: Record<string, string> = {
                 overview: 'Overview', jobs: 'Jobs', activity: 'Activity',
                 estimates: 'Estimates', documents: 'Documents', invoices: 'Invoices',
-                storm_hail: 'Storm/Hail', portal_settings: 'Settings',
+                storm_hail: 'Storm/Hail', roof_report: 'Roof Report', portal_settings: 'Settings',
               };
               return (
                 <button
@@ -1076,6 +1328,11 @@ export default function CustomerDetailPage() {
                 />
               </div>
             </div>
+          )}
+
+          {/* ==================== ROOF REPORT TAB ==================== */}
+          {activeTab === 'roof_report' && (
+            <RoofReportTab contactAddress={`${data.contact.address}, ${data.contact.city}, ${data.contact.state} ${data.contact.zip}`} contactJnid={contactJnid} />
           )}
 
           {/* ==================== PORTAL SETTINGS TAB ==================== */}

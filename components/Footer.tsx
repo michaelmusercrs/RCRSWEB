@@ -97,46 +97,67 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Legal Links */}
+          {/* Service Areas */}
           <div>
-            <h3 className="text-lg font-semibold text-white mb-4">Information</h3>
+            <h3 className="text-lg font-semibold text-white mb-4">Service Areas</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/about" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
-                  About Us
+                <Link href="/service-areas/decatur-al" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
+                  Roofing in Decatur, AL
                 </Link>
               </li>
               <li>
-                <Link href="/about#team" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
-                  Our Team
+                <Link href="/service-areas/huntsville-al" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
+                  Roofing in Huntsville, AL
                 </Link>
               </li>
               <li>
-                <Link href="/blog" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
-                  Blog
+                <Link href="/service-areas/madison-al" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
+                  Roofing in Madison, AL
+                </Link>
+              </li>
+              <li>
+                <Link href="/service-areas/athens-al" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
+                  Roofing in Athens, AL
+                </Link>
+              </li>
+              <li>
+                <Link href="/service-areas/hartselle-al" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
+                  Roofing in Hartselle, AL
+                </Link>
+              </li>
+              <li>
+                <Link href="/service-areas/cullman-al" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
+                  Roofing in Cullman, AL
                 </Link>
               </li>
               <li>
                 <Link href="/service-areas" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
-                  Service Areas
-                </Link>
-              </li>
-              <li>
-                <Link href="/referral-rewards" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
-                  Referral Rewards
-                </Link>
-              </li>
-              <li>
-                <Link href="/bni" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
-                  BNI Partners
-                </Link>
-              </li>
-              <li>
-                <Link href="/careers" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
-                  Join Our Team
+                  All Service Areas →
                 </Link>
               </li>
             </ul>
+          </div>
+        </div>
+
+        {/* Additional Links Row */}
+        <div className="mt-8 pt-8 border-t border-white/10">
+          <div className="flex flex-wrap justify-center gap-4 text-sm">
+            <Link href="/about" className="text-gray-400 hover:text-brand-green transition-colors">About Us</Link>
+            <span className="text-gray-700">•</span>
+            <Link href="/team" className="text-gray-400 hover:text-brand-green transition-colors">Our Team</Link>
+            <span className="text-gray-700">•</span>
+            <Link href="/blog" className="text-gray-400 hover:text-brand-green transition-colors">Blog</Link>
+            <span className="text-gray-700">•</span>
+            <Link href="/community" className="text-gray-400 hover:text-brand-green transition-colors">Community</Link>
+            <span className="text-gray-700">•</span>
+            <Link href="/referral-rewards" className="text-gray-400 hover:text-brand-green transition-colors">Raise the Roof for Schools</Link>
+            <span className="text-gray-700">•</span>
+            <Link href="/bni" className="text-gray-400 hover:text-brand-green transition-colors">BNI Partners</Link>
+            <span className="text-gray-700">•</span>
+            <Link href="/careers" className="text-gray-400 hover:text-brand-green transition-colors">Careers</Link>
+            <span className="text-gray-700">•</span>
+            <Link href="/check-my-address" className="text-gray-400 hover:text-brand-green transition-colors">Storm Check</Link>
           </div>
         </div>
       </div>
@@ -161,6 +182,16 @@ export default function Footer() {
                 SMS Terms
               </Link>
             </div>
+          </div>
+          {/* Agency Credit */}
+          <div className="mt-4 pt-4 border-t border-white/5 text-center">
+            <p className="text-gray-600 text-xs tracking-wide">
+              Engineered with precision by{' '}
+              <span className="text-gray-500 font-medium hover:text-brand-green transition-colors cursor-default">
+                RoofPro Digital
+              </span>
+              {' '}— Where roofing meets innovation.
+            </p>
           </div>
         </div>
       </div>

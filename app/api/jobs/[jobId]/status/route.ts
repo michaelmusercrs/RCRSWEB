@@ -94,7 +94,6 @@ export async function PUT(
     if (isJobNimbusConfigured()) {
       jnSyncPromise = jobSyncService.syncToJobNimbus(jobId).then(syncResult => {
         if (syncResult.success) {
-          console.log(`[Job ${jobId}] Status ${oldStatus} -> ${body.status} synced to JN`);
         } else {
           console.warn(`[Job ${jobId}] JN status sync failed: ${syncResult.message}`);
         }

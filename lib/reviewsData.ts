@@ -8,7 +8,7 @@ export interface Review {
   source?: string;
 }
 
-// General 5-star reviews (for team members without specific reviews)
+// General top-rated reviews (for team members without specific reviews)
 export const generalReviews: Review[] = [
   {
     id: 'gen-1',

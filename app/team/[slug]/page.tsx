@@ -3,13 +3,19 @@ import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Mail, Phone, Award, CheckCircle2, ArrowLeft, Users, Facebook, Instagram, Twitter, Linkedin, Star, Truck } from 'lucide-react';
+import { Mail, Phone, Award, CheckCircle2, ArrowLeft, Users, Facebook, Instagram, Twitter, Linkedin, Star, Truck, Play } from 'lucide-react';
 import { getTeamMember, getAllTeamSlugs } from '@/lib/teamData';
+import { getTeamMemberWithOverrides } from '@/lib/profile-overrides';
 import ContactForm from '@/components/ContactForm';
 import { getReviewsForMember } from '@/lib/reviewsData';
+import { getApprovedPortalReviews } from '@/lib/portal-reviews';
+import { getApprovedImages } from '@/lib/portal-images';
 import StructuredData from '@/components/StructuredData';
 import { siteConfig, generatePersonSchema, generateBreadcrumbSchema } from '@/lib/seo';
 import type { Metadata } from 'next';
+
+// Revalidate every 60 seconds so approved changes show up quickly
+export const revalidate = 60;
 
 export async function generateStaticParams() {
   const slugs = getAllTeamSlugs();
@@ -19,8 +25,9 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const member = getTeamMember(params.slug);
-  if (!member) return { title: 'Team Member Not Found' };
+  const baseMember = getTeamMember(params.slug);
+  if (!baseMember) return { title: 'Team Member Not Found' };
+  const member = await getTeamMemberWithOverrides(baseMember);
 
   const path = `/team/${params.slug}`;
   const url = `${siteConfig.url}${path}`;
@@ -30,7 +37,6 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   return {
     title,
     description: description.length > 155 ? description.substring(0, 155) + '...' : description,
-    // Use path - Next.js combines with metadataBase for full canonical URL
     alternates: {
       canonical: path,
     },
@@ -44,22 +50,40 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   };
 }
 
-export default function TeamMemberPage({ params }: { params: { slug: string } }) {
-  const member = getTeamMember(params.slug);
+export default async function TeamMemberPage({ params }: { params: { slug: string } }) {
+  const baseMember = getTeamMember(params.slug);
 
-  if (!member) {
+  if (!baseMember) {
     notFound();
   }
 
-  // Get reviews for this team member (3 reviews, uses general reviews as fallback)
-  const memberReviews = getReviewsForMember(params.slug, 3);
+  // Apply approved profile overrides
+  const member = await getTeamMemberWithOverrides(baseMember);
+
+  // Get reviews: portal reviews first, then static fallback
+  const portalReviews = await getApprovedPortalReviews(params.slug);
+  const staticReviews = getReviewsForMember(params.slug, 3);
+  // Use portal reviews if any exist and are visible, otherwise fall back to static
+  const memberReviews = portalReviews.length > 0 ? portalReviews.slice(0, 6) : staticReviews;
+
+  // Get approved images from portal
+  const approvedImages = await getApprovedImages(params.slug);
+  const jobBeforeImages = approvedImages.filter(img => img.type === 'job-before');
+  const jobAfterImages = approvedImages.filter(img => img.type === 'job-after');
+  const videoImages = approvedImages.filter(img => img.type === 'video');
+
+  // Use approved portal profile/truck images if available
+  const profileImageFromPortal = approvedImages.find(img => img.type === 'profile');
+  const truckImageFromPortal = approvedImages.find(img => img.type === 'truck');
+  const effectiveProfileImage = profileImageFromPortal?.url || member.profileImage;
+  const effectiveTruckImage = truckImageFromPortal?.url || member.truckImage;
 
   // Generate structured data for team member
   const personSchema = generatePersonSchema({
     name: member.name,
     jobTitle: member.position,
     description: member.bio,
-    image: member.profileImage,
+    image: effectiveProfileImage,
     email: member.email,
     telephone: member.phone,
     url: `${siteConfig.url}/team/${params.slug}`,
@@ -100,9 +124,9 @@ export default function TeamMemberPage({ params }: { params: { slug: string } })
                 <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-8 rounded-lg sticky top-24">
                   {/* Profile Image */}
                   <div className="w-48 h-48 bg-gray-300 rounded-full mx-auto mb-6 flex items-center justify-center overflow-hidden relative">
-                    {member.profileImage ? (
+                    {effectiveProfileImage ? (
                       <Image
-                        src={member.profileImage}
+                        src={effectiveProfileImage}
                         alt={member.name}
                         fill
                         className="object-cover"
@@ -291,7 +315,7 @@ export default function TeamMemberPage({ params }: { params: { slug: string } })
                 )}
 
                 {/* Truck Image - Shows what vehicle to expect */}
-                {member.truckImage && (
+                {effectiveTruckImage && (
                   <div className="mb-12">
                     <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
                       <Truck className="text-blue-400" size={24} />
@@ -302,11 +326,76 @@ export default function TeamMemberPage({ params }: { params: { slug: string } })
                     </p>
                     <div className="relative aspect-video max-w-xl rounded-xl overflow-hidden border border-white/10">
                       <Image
-                        src={member.truckImage}
+                        src={effectiveTruckImage}
                         alt={`${member.name}'s work truck`}
                         fill
                         className="object-cover"
                       />
+                    </div>
+                  </div>
+                )}
+
+                {/* Job Photos Gallery */}
+                {(jobBeforeImages.length > 0 || jobAfterImages.length > 0) && (
+                  <div className="mb-12">
+                    <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+                      <CheckCircle2 className="text-brand-green" size={24} />
+                      Our Work
+                    </h3>
+
+                    {jobBeforeImages.length > 0 && jobAfterImages.length > 0 ? (
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <div>
+                          <h4 className="text-lg font-semibold text-white mb-3">Before</h4>
+                          <div className="grid grid-cols-2 gap-2">
+                            {jobBeforeImages.map(img => (
+                              <div key={img.id} className="relative aspect-square rounded-lg overflow-hidden border border-white/10">
+                                <Image src={img.url} alt="Before" fill className="object-cover" />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-semibold text-white mb-3">After</h4>
+                          <div className="grid grid-cols-2 gap-2">
+                            {jobAfterImages.map(img => (
+                              <div key={img.id} className="relative aspect-square rounded-lg overflow-hidden border border-white/10">
+                                <Image src={img.url} alt="After" fill className="object-cover" />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-3">
+                        {[...jobBeforeImages, ...jobAfterImages].map(img => (
+                          <div key={img.id} className="relative aspect-square rounded-lg overflow-hidden border border-white/10">
+                            <Image src={img.url} alt="Job photo" fill className="object-cover" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Video Gallery */}
+                {videoImages.length > 0 && (
+                  <div className="mb-12">
+                    <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+                      <Play className="text-red-400" size={24} />
+                      Videos
+                    </h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {videoImages.map(vid => (
+                        <div key={vid.id} className="rounded-xl overflow-hidden border border-white/10">
+                          <video
+                            src={vid.url}
+                            controls
+                            className="w-full aspect-video"
+                            preload="metadata"
+                          />
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -317,47 +406,51 @@ export default function TeamMemberPage({ params }: { params: { slug: string } })
       </section>
 
       {/* Customer Reviews Section */}
-      <section className="py-12 md:py-16 bg-black/70 backdrop-blur-sm">
-        <div className="container mx-auto px-4">
-          <div className="max-w-5xl mx-auto">
-            <div className="text-center mb-8">
-              <div className="inline-flex items-center gap-2 bg-brand-green/20 border border-brand-green/30 px-4 py-2 rounded-full mb-4">
-                <Star className="text-brand-green" size={18} />
-                <span className="text-white font-medium">Customer Reviews</span>
+      {memberReviews.length > 0 && (
+        <section className="py-12 md:py-16 bg-black/70 backdrop-blur-sm">
+          <div className="container mx-auto px-4">
+            <div className="max-w-5xl mx-auto">
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center gap-2 bg-brand-green/20 border border-brand-green/30 px-4 py-2 rounded-full mb-4">
+                  <Star className="text-brand-green" size={18} />
+                  <span className="text-white font-medium">Customer Reviews</span>
+                </div>
+                <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                  What Customers Say
+                </h2>
               </div>
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                What Customers Say
-              </h2>
-            </div>
 
-            <div className="grid md:grid-cols-3 gap-6">
-              {memberReviews.map((review) => (
-                <Card key={review.id} className="border-neutral-800 bg-black/50">
-                  <CardContent className="p-6">
-                    <div className="flex mb-4">
-                      {[...Array(review.rating)].map((_, i) => (
-                        <span key={i} className="text-brand-green text-lg">★</span>
-                      ))}
-                    </div>
-                    <p className="text-gray-300 italic leading-relaxed mb-4 text-sm line-clamp-4">
-                      "{review.text}"
-                    </p>
-                    <div className="border-t border-neutral-700 pt-4">
-                      <p className="font-bold text-brand-green text-sm">{review.name}</p>
-                      {review.salesRep && (
-                        <p className="text-gray-500 text-xs">Worked with {review.salesRep}</p>
-                      )}
-                      {review.source && (
-                        <p className="text-gray-600 text-xs mt-1">via {review.source}</p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+              <div className="grid md:grid-cols-3 gap-6">
+                {memberReviews.slice(0, 6).map((review, idx) => (
+                  <Card key={'id' in review ? review.id : idx} className="border-neutral-800 bg-black/50">
+                    <CardContent className="p-6">
+                      <div className="flex mb-4">
+                        {[...Array(review.rating)].map((_, i) => (
+                          <span key={i} className="text-brand-green text-lg">★</span>
+                        ))}
+                      </div>
+                      <p className="text-gray-300 italic leading-relaxed mb-4 text-sm line-clamp-4">
+                        &quot;{review.text}&quot;
+                      </p>
+                      <div className="border-t border-neutral-700 pt-4">
+                        <p className="font-bold text-brand-green text-sm">
+                          {'customerName' in review ? review.customerName : review.name}
+                        </p>
+                        {'salesRep' in review && review.salesRep && (
+                          <p className="text-gray-500 text-xs">Worked with {review.salesRep}</p>
+                        )}
+                        {'source' in review && review.source && (
+                          <p className="text-gray-600 text-xs mt-1">via {review.source}</p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Contact Form Section */}
       <section className="py-12 md:py-16 bg-black/80 backdrop-blur-sm">

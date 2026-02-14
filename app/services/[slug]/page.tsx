@@ -5,7 +5,7 @@ import { getService, getAllServiceSlugs, services } from '@/lib/servicesData';
 import { Home, Wrench, Building2, CloudRain, Flame, Shield, Search, AlertTriangle, Droplet, Wind, Paintbrush, ArrowRight, CheckCircle2, Phone, ArrowLeft } from 'lucide-react';
 import type { Metadata } from 'next';
 import StructuredData from '@/components/StructuredData';
-import { siteConfig, generateServiceSchema, generateBreadcrumbSchema } from '@/lib/seo';
+import { siteConfig, generateServiceSchema, generateBreadcrumbSchema, generateFAQSchema } from '@/lib/seo';
 
 const iconMap: { [key: string]: any } = { Home, Wrench, Building2, CloudRain, Flame, Shield, Search, AlertTriangle, Droplet, Wind, Paintbrush };
 
@@ -64,10 +64,36 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
     { name: service.title, url: `/services/${slug}` },
   ]);
 
+  // Generate service-specific FAQs
+  const serviceFAQs = [
+    {
+      question: `How much does ${service.title.toLowerCase()} cost in North Alabama?`,
+      answer: service.costRange
+        ? `${service.title} in North Alabama typically costs ${service.costRange}. The exact cost depends on your roof size, materials chosen, and project complexity. We provide free detailed quotes with no obligation.`
+        : `The cost of ${service.title.toLowerCase()} varies based on your specific situation. Contact us for a free inspection and detailed quote with no obligation.`,
+    },
+    {
+      question: `Do you offer free estimates for ${service.title.toLowerCase()}?`,
+      answer: `Yes! River City Roofing Solutions provides completely free, no-obligation estimates for ${service.title.toLowerCase()} in Decatur, Huntsville, Madison, Athens, and all of North Alabama. Call (256) 274-8530 to schedule yours.`,
+    },
+    {
+      question: `How long does ${service.title.toLowerCase()} take?`,
+      answer: service.timeline
+        ? `${service.title} typically takes ${service.timeline}. We work efficiently to minimize disruption while ensuring top-quality workmanship on every project.`
+        : `The timeline for ${service.title.toLowerCase()} depends on the scope of work. Contact us for a detailed project timeline during your free inspection.`,
+    },
+    {
+      question: `What areas do you serve for ${service.title.toLowerCase()}?`,
+      answer: `We provide ${service.title.toLowerCase()} throughout North Alabama including Decatur, Huntsville, Madison, Athens, Hartselle, Cullman, Florence, Moulton, and surrounding communities. Contact us to confirm service in your area.`,
+    },
+  ];
+
+  const faqSchema = generateFAQSchema(serviceFAQs);
+
   return (
     <div className="min-h-screen">
-      {/* Service and Breadcrumb Schema */}
-      <StructuredData data={[serviceSchema, breadcrumbSchema]} />
+      {/* Service, Breadcrumb, and FAQ Schema */}
+      <StructuredData data={[serviceSchema, breadcrumbSchema, faqSchema]} />
       <section className="relative min-h-[60vh] flex items-center">
         {service.image && (
           <div className="absolute inset-0 z-0">
@@ -140,6 +166,67 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
                   </ul>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-12 md:py-16 bg-black/70 backdrop-blur-sm">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-8 text-center">
+              Frequently Asked Questions About {service.title}
+            </h2>
+            <div className="space-y-4">
+              {serviceFAQs.map((faq, idx) => (
+                <details key={idx} className="bg-white/5 border border-white/10 rounded-xl p-6 group hover:border-brand-green/50 transition-colors">
+                  <summary className="font-bold text-white cursor-pointer list-none flex justify-between items-center">
+                    {faq.question}
+                    <CheckCircle2 className="h-5 w-5 text-brand-green flex-shrink-0 ml-4" />
+                  </summary>
+                  <p className="text-gray-300 mt-4 leading-relaxed">
+                    {faq.answer}
+                  </p>
+                </details>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Internal Links */}
+      <section className="py-12 md:py-16 bg-black/80 backdrop-blur-sm border-t border-white/10">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-2xl font-bold text-white mb-6 text-center">
+              Related Services & Service Areas
+            </h2>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-lg font-semibold text-brand-green mb-3">More Services</h3>
+                <ul className="space-y-2">
+                  {services.filter(s => s.slug !== slug).slice(0, 5).map(s => (
+                    <li key={s.slug}><Link href={`/services/${s.slug}`} className="text-gray-300 hover:text-brand-green transition-colors">{s.title}</Link></li>
+                  ))}
+                  <li><Link href="/services" className="text-brand-green font-semibold hover:text-lime-400 transition-colors">View All Services →</Link></li>
+                </ul>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-brand-green mb-3">We Serve These Areas</h3>
+                <ul className="space-y-2">
+                  <li><Link href="/service-areas/decatur-al" className="text-gray-300 hover:text-brand-green transition-colors">{service.title} in Decatur, AL</Link></li>
+                  <li><Link href="/service-areas/huntsville-al" className="text-gray-300 hover:text-brand-green transition-colors">{service.title} in Huntsville, AL</Link></li>
+                  <li><Link href="/service-areas/madison-al" className="text-gray-300 hover:text-brand-green transition-colors">{service.title} in Madison, AL</Link></li>
+                  <li><Link href="/service-areas/athens-al" className="text-gray-300 hover:text-brand-green transition-colors">{service.title} in Athens, AL</Link></li>
+                  <li><Link href="/service-areas" className="text-brand-green font-semibold hover:text-lime-400 transition-colors">View All Areas →</Link></li>
+                </ul>
+              </div>
+            </div>
+            <div className="mt-6 text-center">
+              <p className="text-gray-400 text-sm">
+                Read our <Link href="/blog" className="text-brand-green hover:text-lime-400">roofing blog</Link> for expert tips, or <Link href="/check-my-address" className="text-brand-green hover:text-lime-400">check your address</Link> for recent storm activity.
+              </p>
             </div>
           </div>
         </div>

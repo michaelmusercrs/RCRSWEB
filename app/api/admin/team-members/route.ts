@@ -4,49 +4,53 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
-import path from 'path';
 import { teamMembers, TeamMember } from '@/lib/teamData';
 import { requireAdmin } from '@/lib/auth-service';
 
-// Path to store team data (JSON file for now)
-const DATA_FILE = path.join(process.cwd(), 'data', 'team-members.json');
+const BLOB_KEY = 'data/team-members.json';
+const LOCAL_PATH = 'data/team-members.json';
 
 /**
- * Ensure data directory exists and initialize if needed
- */
-async function ensureDataFile() {
-  const dataDir = path.join(process.cwd(), 'data');
-
-  try {
-    await fs.access(dataDir);
-  } catch {
-    await fs.mkdir(dataDir, { recursive: true });
-  }
-
-  try {
-    await fs.access(DATA_FILE);
-  } catch {
-    // Initialize with existing team data from teamData.ts
-    await fs.writeFile(DATA_FILE, JSON.stringify(teamMembers, null, 2));
-  }
-}
-
-/**
- * Read team members from JSON file
+ * Read team members - tries Vercel Blob first, then local file
  */
 async function readTeamMembers(): Promise<TeamMember[]> {
-  await ensureDataFile();
-  const data = await fs.readFile(DATA_FILE, 'utf-8');
-  return JSON.parse(data);
+  try {
+    const { list } = await import('@vercel/blob');
+    const blobs = await list({ prefix: BLOB_KEY });
+    if (blobs.blobs.length > 0) {
+      const res = await fetch(blobs.blobs[0].url, { cache: 'no-store' });
+      if (res.ok) return await res.json();
+    }
+  } catch (e) { /* blob not available */ }
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), LOCAL_PATH);
+    const data = fs.readFileSync(filePath, 'utf-8');
+    return JSON.parse(data);
+  } catch {
+    // Return in-memory default data
+    return [...teamMembers];
+  }
 }
 
 /**
- * Write team members to JSON file
+ * Write team members - tries Vercel Blob first, then local file
  */
 async function writeTeamMembers(members: TeamMember[]): Promise<void> {
-  await ensureDataFile();
-  await fs.writeFile(DATA_FILE, JSON.stringify(members, null, 2));
+  try {
+    const { put } = await import('@vercel/blob');
+    await put(BLOB_KEY, JSON.stringify(members, null, 2), {
+      access: 'public', contentType: 'application/json', addRandomSuffix: false,
+    });
+  } catch (e) {
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), LOCAL_PATH);
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(filePath, JSON.stringify(members, null, 2));
+  }
 }
 
 /**
@@ -179,7 +183,7 @@ export async function POST(req: NextRequest) {
     // Add to members array
     members.push(newMember);
 
-    // Save to file
+    // Save
     await writeTeamMembers(members);
 
     return NextResponse.json({

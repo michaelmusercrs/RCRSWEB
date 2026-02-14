@@ -1,8 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-service';
 import { profileApprovalService } from '@/lib/profile-approval-service';
-import { promises as fs } from 'fs';
-import path from 'path';
+
+const BLOB_KEY = 'data/profile-overrides.json';
+const LOCAL_PATH = 'data/profile-overrides.json';
+
+async function readOverrides(): Promise<Record<string, Record<string, unknown>>> {
+  try {
+    const { list } = await import('@vercel/blob');
+    const blobs = await list({ prefix: BLOB_KEY });
+    if (blobs.blobs.length > 0) {
+      const res = await fetch(blobs.blobs[0].url, { cache: 'no-store' });
+      if (res.ok) return await res.json();
+    }
+  } catch (e) { /* blob not available */ }
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), LOCAL_PATH);
+    const data = fs.readFileSync(filePath, 'utf-8');
+    return JSON.parse(data);
+  } catch {
+    return {};
+  }
+}
+
+async function writeOverrides(overrides: Record<string, Record<string, unknown>>): Promise<void> {
+  try {
+    const { put } = await import('@vercel/blob');
+    await put(BLOB_KEY, JSON.stringify(overrides, null, 2), {
+      access: 'public', contentType: 'application/json', addRandomSuffix: false,
+    });
+  } catch (e) {
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), LOCAL_PATH);
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(filePath, JSON.stringify(overrides, null, 2));
+  }
+}
 
 // POST /api/profile/approve
 // Approve a pending profile edit request (admin only)
@@ -42,13 +79,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Apply the changes to the live data
-    // This updates the teamData.ts file with the approved changes
     const applyResult = await applyProfileChanges(edit.userSlug, edit.changes as Record<string, unknown>);
 
     if (!applyResult.success) {
-      // Rollback the approval status if applying changes failed
       console.error('Failed to apply profile changes:', applyResult.error);
-      // Note: In a production system, you'd want proper transaction handling here
     }
 
     return NextResponse.json({
@@ -66,34 +100,10 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Helper function to apply approved changes to teamData.ts
-// In a production system, this would update a database
+// Helper function to apply approved changes to profile overrides
 async function applyProfileChanges(userSlug: string, changes: Record<string, unknown>): Promise<{ success: boolean; error?: string }> {
   try {
-    // Read the current teamData.ts file
-    const teamDataPath = path.join(process.cwd(), 'lib', 'teamData.ts');
-    let content = await fs.readFile(teamDataPath, 'utf-8');
-
-    // Find the team member object by slug
-    const memberRegex = new RegExp(
-      `(\\{[^}]*slug:\\s*['"]${userSlug}['"][^}]*\\})`,
-      'gs'
-    );
-
-    // This is a simplified approach - in production, use a proper AST parser
-    // or store team data in a database/JSON file for easier updates
-
-    // For now, we'll store approved changes in a separate "live overrides" file
-    // that gets merged with teamData at runtime
-    const overridesPath = path.join(process.cwd(), 'data', 'profile-overrides.json');
-
-    let overrides: Record<string, Record<string, unknown>> = {};
-    try {
-      const existingOverrides = await fs.readFile(overridesPath, 'utf-8');
-      overrides = JSON.parse(existingOverrides);
-    } catch {
-      // File doesn't exist yet
-    }
+    let overrides = await readOverrides();
 
     // Apply the changes as overrides
     overrides[userSlug] = {
@@ -102,8 +112,7 @@ async function applyProfileChanges(userSlug: string, changes: Record<string, unk
       _lastUpdated: new Date().toISOString(),
     };
 
-    // Write the overrides file
-    await fs.writeFile(overridesPath, JSON.stringify(overrides, null, 2));
+    await writeOverrides(overrides);
 
     return { success: true };
   } catch (error) {

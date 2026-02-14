@@ -39,12 +39,30 @@ import {
   X,
   Star,
   Zap,
+  Megaphone,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  SalesCompetitionPresentation,
+  getCurrentPeriod,
+} from '@/components/command-center/SalesCompetition';
 
 // =============================================================================
 // Types
 // =============================================================================
+
+interface WeeklyNumbersRecord {
+  week: string;
+  repName: string;
+  doorsKnocked: number;
+  appointmentsSet: number;
+  inspectionsCompleted: number;
+  estimatesGiven: number;
+  contractsSigned: number;
+  revenueClosed: number;
+  leadsGenerated: number;
+  followUpsMade: number;
+}
 
 interface RepStats {
   rank: number;
@@ -121,7 +139,36 @@ interface MeetingStats {
   }>;
 }
 
-type ViewMode = 'leaderboard' | 'stats' | 'podium' | 'goals' | 'milestones';
+interface AnnouncementItem {
+  id: string;
+  title: string;
+  content: string;
+  userName: string;
+  category: string;
+  highlights?: string[];
+  displayDuration?: string;
+}
+
+interface AnnouncementsData {
+  early: AnnouncementItem[];
+  late: AnnouncementItem[];
+}
+
+interface WeeklyNumbersRep {
+  repName: string;
+  repEmail: string;
+  week: string;
+  doorsKnocked: number;
+  appointmentsSet: number;
+  inspectionsCompleted: number;
+  estimatesGiven: number;
+  contractsSigned: number;
+  revenueClosed: number;
+  leadsGenerated: number;
+  followUpsMade: number;
+}
+
+type ViewMode = 'leaderboard' | 'stats' | 'podium' | 'goals' | 'milestones' | 'early-announcements' | 'late-announcements' | 'weekly-numbers' | 'competition';
 
 // =============================================================================
 // Utility Functions
@@ -439,6 +486,166 @@ function MilestonesDisplay({ stats }: { stats: MeetingStats | null }) {
 }
 
 // =============================================================================
+// Announcements Display Component
+// =============================================================================
+
+function AnnouncementsDisplay({ announcements, type }: { announcements: AnnouncementItem[]; type: 'early' | 'late' }) {
+  const isEarly = type === 'early';
+
+  if (announcements.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <Megaphone className="h-24 w-24 text-neutral-400 mx-auto mb-4" />
+          <p className="text-2xl text-neutral-500">No {isEarly ? 'early' : 'late'} announcements</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8 p-8">
+      <h2 className="text-4xl font-bold text-center text-white flex items-center justify-center gap-4">
+        <Megaphone className={cn('h-10 w-10', isEarly ? 'text-amber-400' : 'text-purple-400')} />
+        {isEarly ? 'Announcements' : 'Additional Announcements'}
+      </h2>
+      <div className="grid gap-6 max-w-4xl mx-auto">
+        {announcements.map((item, index) => (
+          <div
+            key={item.id}
+            className="bg-zinc-800/80 rounded-2xl p-8 border border-zinc-700 animate-slideUp"
+            style={{ animationDelay: `${index * 0.12}s` }}
+          >
+            <div className="flex items-start gap-6">
+              <div className={cn(
+                'p-4 rounded-xl flex-shrink-0',
+                isEarly ? 'bg-amber-500/20' : 'bg-purple-500/20'
+              )}>
+                <Megaphone className={cn('h-8 w-8', isEarly ? 'text-amber-400' : 'text-purple-400')} />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-2xl font-bold text-white mb-2">{item.title}</h3>
+                <p className="text-lg text-neutral-400 mb-3">{item.content}</p>
+                {item.highlights && item.highlights.length > 0 && (
+                  <ul className="space-y-2 mb-3">
+                    {item.highlights.map((h, i) => (
+                      <li key={i} className="flex items-start gap-2 text-lime-400">
+                        <Star className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                        <span className="text-lg">{h}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="flex items-center gap-4 text-neutral-500">
+                  <span className="text-base">— {item.userName}</span>
+                  {item.displayDuration && item.displayDuration !== 'one-time' && (
+                    <span className="px-3 py-1 rounded-full bg-zinc-700 text-xs text-neutral-400">
+                      {item.displayDuration}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// Weekly Numbers Display Component
+// =============================================================================
+
+function WeeklyNumbersDisplay({ numbers }: { numbers: WeeklyNumbersRep[] }) {
+  if (numbers.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <Users className="h-24 w-24 text-neutral-400 mx-auto mb-4" />
+          <p className="text-2xl text-neutral-500">No weekly numbers submitted yet</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Sort by revenue closed descending
+  const sorted = [...numbers].sort((a, b) => b.revenueClosed - a.revenueClosed);
+
+  return (
+    <div className="space-y-6 p-8">
+      <h2 className="text-4xl font-bold text-center text-white flex items-center justify-center gap-4">
+        <TrendingUp className="h-10 w-10 text-lime-400" />
+        Weekly Sales Numbers
+      </h2>
+      <div className="bg-zinc-800/80 rounded-2xl border border-zinc-700 overflow-hidden">
+        <table className="w-full">
+          <thead className="bg-zinc-900/50">
+            <tr>
+              <th className="px-6 py-4 text-left text-lg font-semibold text-neutral-500">Rep</th>
+              <th className="px-4 py-4 text-center text-sm font-semibold text-neutral-500">Doors</th>
+              <th className="px-4 py-4 text-center text-sm font-semibold text-neutral-500">Appts</th>
+              <th className="px-4 py-4 text-center text-sm font-semibold text-neutral-500">Inspections</th>
+              <th className="px-4 py-4 text-center text-sm font-semibold text-neutral-500">Contracts</th>
+              <th className="px-6 py-4 text-right text-lg font-semibold text-neutral-500">Revenue</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((rep, index) => (
+              <tr
+                key={rep.repEmail}
+                className="border-t border-zinc-700/50 animate-slideUp"
+                style={{ animationDelay: `${index * 0.06}s` }}
+              >
+                <td className="px-6 py-4">
+                  <span className="text-xl font-semibold text-white">{rep.repName}</span>
+                </td>
+                <td className="px-4 py-4 text-center text-xl text-neutral-400">{rep.doorsKnocked}</td>
+                <td className="px-4 py-4 text-center text-xl text-neutral-400">{rep.appointmentsSet}</td>
+                <td className="px-4 py-4 text-center text-xl text-neutral-400">{rep.inspectionsCompleted}</td>
+                <td className="px-4 py-4 text-center">
+                  <span className={cn(
+                    'text-xl font-bold',
+                    rep.contractsSigned > 0 ? 'text-lime-400' : 'text-neutral-500'
+                  )}>
+                    {rep.contractsSigned}
+                  </span>
+                </td>
+                <td className="px-6 py-4 text-right">
+                  <span className="text-2xl font-bold text-lime-400">
+                    {rep.revenueClosed > 0 ? formatCurrency(rep.revenueClosed) : '$0'}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot className="bg-zinc-900/50 border-t border-zinc-700">
+            <tr>
+              <td className="px-6 py-4 text-lg font-bold text-white">Team Total</td>
+              <td className="px-4 py-4 text-center text-lg font-bold text-white">
+                {sorted.reduce((s, r) => s + r.doorsKnocked, 0)}
+              </td>
+              <td className="px-4 py-4 text-center text-lg font-bold text-white">
+                {sorted.reduce((s, r) => s + r.appointmentsSet, 0)}
+              </td>
+              <td className="px-4 py-4 text-center text-lg font-bold text-white">
+                {sorted.reduce((s, r) => s + r.inspectionsCompleted, 0)}
+              </td>
+              <td className="px-4 py-4 text-center text-lg font-bold text-lime-400">
+                {sorted.reduce((s, r) => s + r.contractsSigned, 0)}
+              </td>
+              <td className="px-6 py-4 text-right text-2xl font-bold text-lime-400">
+                {formatCurrency(sorted.reduce((s, r) => s + r.revenueClosed, 0))}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
 // Leaderboard Table Component
 // =============================================================================
 
@@ -565,6 +772,8 @@ export default function MeetingPresentationPage() {
   const router = useRouter();
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardData | null>(null);
   const [statsData, setStatsData] = useState<MeetingStats | null>(null);
+  const [announcementsData, setAnnouncementsData] = useState<AnnouncementsData | null>(null);
+  const [weeklyNumbers, setWeeklyNumbers] = useState<WeeklyNumbersRep[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -577,14 +786,16 @@ export default function MeetingPresentationPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const autoRotateRef = useRef<NodeJS.Timeout | null>(null);
 
-  const views: ViewMode[] = ['podium', 'leaderboard', 'stats', 'goals', 'milestones'];
+  const views: ViewMode[] = ['early-announcements', 'podium', 'leaderboard', 'competition', 'weekly-numbers', 'stats', 'goals', 'milestones', 'late-announcements'];
 
   // Fetch data
   const fetchData = useCallback(async () => {
     try {
-      const [leaderboardRes, statsRes] = await Promise.all([
+      const [leaderboardRes, statsRes, announcementsRes, weeklyRes] = await Promise.all([
         fetch('/api/command-center/meetings/leaderboard?animate=true'),
         fetch(`/api/command-center/meetings/stats?period=${period}`),
+        fetch('/api/portal/monday-notes/announcements').catch(() => null),
+        fetch('/api/portal/weekly-numbers?allReps=true').catch(() => null),
       ]);
 
       if (!leaderboardRes.ok || !statsRes.ok) {
@@ -608,6 +819,22 @@ export default function MeetingPresentationPage() {
 
       if (statsJson.success) {
         setStatsData(statsJson.data);
+      }
+
+      // Fetch announcements
+      if (announcementsRes?.ok) {
+        const announcementsJson = await announcementsRes.json();
+        if (announcementsJson.success) {
+          setAnnouncementsData(announcementsJson.announcements);
+        }
+      }
+
+      // Fetch weekly numbers
+      if (weeklyRes?.ok) {
+        const weeklyJson = await weeklyRes.json();
+        if (weeklyJson.success) {
+          setWeeklyNumbers(weeklyJson.records || []);
+        }
       }
 
       setError(null);
@@ -699,16 +926,40 @@ export default function MeetingPresentationPage() {
     }
 
     switch (viewMode) {
+      case 'early-announcements':
+        return <AnnouncementsDisplay announcements={announcementsData?.early || []} type="early" />;
       case 'podium':
         return leaderboardData && <PodiumDisplay leaderboard={leaderboardData.leaderboard} />;
       case 'leaderboard':
         return leaderboardData && <LeaderboardTable leaderboard={leaderboardData.leaderboard} period={period} />;
+      case 'competition':
+        return leaderboardData ? (
+          <SalesCompetitionPresentation
+            reps={leaderboardData.leaderboard.map(rep => {
+              const competitionPeriod = getCurrentPeriod();
+              // Use YTD for H1, or compute H2 from ytd minus H1
+              // For simplicity, use the period-appropriate commissions
+              const periodTotal = competitionPeriod.half === 1
+                ? rep.ytdCommissions
+                : rep.totalCommissions - (rep.ytdCommissions - rep.monthlyCommissions); // approximate H2
+              return {
+                name: rep.name,
+                periodTotal: competitionPeriod.half === 1 ? rep.ytdCommissions : rep.monthlyCommissions * 6, // best approx
+                monthlyTotal: rep.monthlyCommissions,
+              };
+            })}
+          />
+        ) : null;
+      case 'weekly-numbers':
+        return <WeeklyNumbersDisplay numbers={weeklyNumbers} />;
       case 'stats':
         return <StatsDisplay stats={statsData} leaderboard={leaderboardData} />;
       case 'goals':
         return <GoalsDisplay stats={statsData} />;
       case 'milestones':
         return <MilestonesDisplay stats={statsData} />;
+      case 'late-announcements':
+        return <AnnouncementsDisplay announcements={announcementsData?.late || []} type="late" />;
       default:
         return null;
     }
@@ -791,19 +1042,32 @@ export default function MeetingPresentationPage() {
           >
             <ChevronLeft className="h-6 w-6" />
           </button>
-          <div className="flex gap-2">
-            {views.map((v) => (
-              <button
-                key={v}
-                onClick={() => setViewMode(v)}
-                className={cn(
-                  'px-4 py-2 text-sm font-medium rounded-lg transition capitalize',
-                  viewMode === v ? 'bg-lime-500 text-black' : 'bg-zinc-800 text-neutral-500 hover:text-white'
-                )}
-              >
-                {v}
-              </button>
-            ))}
+          <div className="flex gap-2 flex-wrap justify-center">
+            {views.map((v) => {
+              const viewLabels: Record<ViewMode, string> = {
+                'early-announcements': '📢 Announcements',
+                'podium': '🏆 Podium',
+                'leaderboard': '📊 Leaderboard',
+                'competition': '🏅 Competition',
+                'weekly-numbers': '📈 Weekly Numbers',
+                'stats': '💰 Stats',
+                'goals': '🎯 Goals',
+                'milestones': '⚡ Milestones',
+                'late-announcements': '📣 Late Announcements',
+              };
+              return (
+                <button
+                  key={v}
+                  onClick={() => setViewMode(v)}
+                  className={cn(
+                    'px-4 py-2 text-sm font-medium rounded-lg transition',
+                    viewMode === v ? 'bg-lime-500 text-black' : 'bg-zinc-800 text-neutral-500 hover:text-white'
+                  )}
+                >
+                  {viewLabels[v]}
+                </button>
+              );
+            })}
           </div>
           <button
             onClick={goToNextView}

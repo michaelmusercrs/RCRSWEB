@@ -43,6 +43,7 @@ import AddressAutocomplete, { AddressResult } from '@/components/AddressAutocomp
 // ---- Types ----
 
 type ReturnType = 'return' | 'pickup';
+type ReturnDestination = 'internal' | 'distributor';
 type ReturnReason = 'unused_materials' | 'wrong_order' | 'damaged' | 'customer_request' | 'job_complete';
 type ReturnStatus = 'pending' | 'scheduled' | 'picked_up' | 'inspected' | 'restocked' | 'completed';
 type Priority = 'low' | 'normal' | 'high' | 'urgent';
@@ -70,6 +71,12 @@ interface ReturnTicket {
   state: string;
   zip: string;
   returnType: ReturnType;
+  returnDestination: ReturnDestination;
+  distributorName?: string;
+  distributorLocation?: string;
+  creditMemoNumber?: string;
+  creditMemoAmount?: number;
+  routeAssistanceNeeded?: boolean;
   reason: ReturnReason;
   status: ReturnStatus;
   priority: Priority;
@@ -87,6 +94,15 @@ interface ReturnTicket {
     truckLoaded: boolean;
   };
 }
+
+// Distributors for return-to-distributor flow
+const DISTRIBUTORS = [
+  { name: 'Advance Build Products', locations: ['Huntsville, AL', 'Decatur, AL'] },
+  { name: 'Beacon', locations: ['Huntsville, AL', 'Decatur, AL', 'Birmingham, AL'] },
+  { name: 'Gold Eagle', locations: ['Huntsville, AL', 'Decatur, AL'] },
+  { name: "Lowe's", locations: ['Huntsville, AL', 'Madison, AL', 'Decatur, AL'] },
+  { name: 'Home Depot', locations: ['Huntsville, AL', 'Madison, AL', 'Decatur, AL'] },
+];
 
 // ---- Reason labels ----
 
@@ -138,6 +154,8 @@ const MOCK_TICKETS: ReturnTicket[] = [
     state: 'AL',
     zip: '35801',
     returnType: 'pickup',
+    returnDestination: 'internal',
+    creditMemoNumber: 'CM-2026-001',
     reason: 'unused_materials',
     status: 'pending',
     priority: 'normal',
@@ -159,6 +177,10 @@ const MOCK_TICKETS: ReturnTicket[] = [
     state: 'AL',
     zip: '35816',
     returnType: 'return',
+    returnDestination: 'distributor',
+    distributorName: 'Beacon',
+    distributorLocation: 'Huntsville, AL',
+    routeAssistanceNeeded: true,
     reason: 'wrong_order',
     status: 'scheduled',
     priority: 'high',
@@ -181,6 +203,7 @@ const MOCK_TICKETS: ReturnTicket[] = [
     state: 'AL',
     zip: '35758',
     returnType: 'pickup',
+    returnDestination: 'internal',
     reason: 'job_complete',
     status: 'picked_up',
     priority: 'low',
@@ -204,6 +227,10 @@ const MOCK_TICKETS: ReturnTicket[] = [
     state: 'AL',
     zip: '35801',
     returnType: 'return',
+    returnDestination: 'distributor',
+    distributorName: 'Advance Build Products',
+    distributorLocation: 'Huntsville, AL',
+    routeAssistanceNeeded: true,
     reason: 'damaged',
     status: 'inspected',
     priority: 'urgent',
@@ -227,6 +254,9 @@ const MOCK_TICKETS: ReturnTicket[] = [
     state: 'AL',
     zip: '35810',
     returnType: 'pickup',
+    returnDestination: 'internal',
+    creditMemoNumber: 'CM-2026-005',
+    creditMemoAmount: 395.00,
     reason: 'customer_request',
     status: 'completed',
     priority: 'normal',
@@ -314,6 +344,9 @@ export default function ReturnPickupPage() {
   const [formState, setFormState] = useState('AL');
   const [formZip, setFormZip] = useState('');
   const [formType, setFormType] = useState<ReturnType>('return');
+  const [formDestination, setFormDestination] = useState<ReturnDestination>('internal');
+  const [formDistributor, setFormDistributor] = useState('');
+  const [formDistributorLocation, setFormDistributorLocation] = useState('');
   const [formReason, setFormReason] = useState<ReturnReason>('unused_materials');
   const [formPriority, setFormPriority] = useState<Priority>('normal');
   const [formInstructions, setFormInstructions] = useState('');
@@ -434,6 +467,11 @@ export default function ReturnPickupPage() {
       state: formState.trim(),
       zip: formZip.trim(),
       returnType: formType,
+      returnDestination: formDestination,
+      distributorName: formDestination === 'distributor' ? formDistributor : undefined,
+      distributorLocation: formDestination === 'distributor' ? formDistributorLocation : undefined,
+      routeAssistanceNeeded: formDestination === 'distributor',
+      creditMemoNumber: formDestination === 'internal' ? `CM-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 900) + 100)}` : undefined,
       reason: formReason,
       status: 'pending',
       priority: formPriority,
@@ -462,6 +500,9 @@ export default function ReturnPickupPage() {
     setFormState('AL');
     setFormZip('');
     setFormType('return');
+    setFormDestination('internal');
+    setFormDistributor('');
+    setFormDistributorLocation('');
     setFormReason('unused_materials');
     setFormPriority('normal');
     setFormInstructions('');
@@ -640,6 +681,16 @@ export default function ReturnPickupPage() {
                         {ticket.returnType === 'return' ? <RotateCcw className="w-3 h-3 mr-1" /> : <Truck className="w-3 h-3 mr-1" />}
                         {ticket.returnType === 'return' ? 'Return' : 'Pickup'}
                       </span>
+                      {ticket.returnDestination === 'distributor' && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                          → {ticket.distributorName}
+                        </span>
+                      )}
+                      {ticket.returnDestination === 'internal' && ticket.creditMemoNumber && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                          {ticket.creditMemoNumber}
+                        </span>
+                      )}
                     </div>
                     <h3 className="text-white font-medium mt-1">{ticket.customerName}</h3>
                     <div className="flex items-center gap-1 text-sm text-neutral-500 mt-0.5">
@@ -803,6 +854,85 @@ export default function ReturnPickupPage() {
                 ))}
               </select>
             </div>
+          </div>
+
+          {/* Return Destination */}
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm text-neutral-500 mb-2">Return Destination</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setFormDestination('internal')}
+                  className={`p-4 rounded-lg border text-left transition-colors ${
+                    formDestination === 'internal'
+                      ? 'bg-[#39FF14]/10 border-[#39FF14]/30 text-[#39FF14]'
+                      : 'bg-gray-900 border-gray-700 text-neutral-500 hover:border-gray-600'
+                  }`}
+                >
+                  <RotateCcw className="w-5 h-5 mb-2" />
+                  <div className="font-medium text-sm">Return to Us</div>
+                  <div className="text-xs opacity-70 mt-1">Retired material → Credit Memo</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormDestination('distributor')}
+                  className={`p-4 rounded-lg border text-left transition-colors ${
+                    formDestination === 'distributor'
+                      ? 'bg-blue-500/10 border-blue-500/30 text-blue-400'
+                      : 'bg-gray-900 border-gray-700 text-neutral-500 hover:border-gray-600'
+                  }`}
+                >
+                  <Truck className="w-5 h-5 mb-2" />
+                  <div className="font-medium text-sm">Return to Distributor</div>
+                  <div className="text-xs opacity-70 mt-1">Route assistance needed</div>
+                </button>
+              </div>
+            </div>
+
+            {formDestination === 'distributor' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-500/5 border border-blue-500/20 rounded-lg">
+                <div>
+                  <label className="block text-sm text-blue-400 mb-1">Distributor</label>
+                  <select
+                    value={formDistributor}
+                    onChange={e => {
+                      setFormDistributor(e.target.value);
+                      setFormDistributorLocation('');
+                    }}
+                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  >
+                    <option value="">Select distributor...</option>
+                    {DISTRIBUTORS.map(d => (
+                      <option key={d.name} value={d.name}>{d.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm text-blue-400 mb-1">Location</label>
+                  <select
+                    value={formDistributorLocation}
+                    onChange={e => setFormDistributorLocation(e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                    disabled={!formDistributor}
+                  >
+                    <option value="">Select location...</option>
+                    {DISTRIBUTORS.find(d => d.name === formDistributor)?.locations.map(loc => (
+                      <option key={loc} value={loc}>{loc}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {formDestination === 'internal' && (
+              <div className="p-3 bg-[#39FF14]/5 border border-[#39FF14]/20 rounded-lg">
+                <div className="flex items-center gap-2 text-[#39FF14] text-sm">
+                  <FileText className="w-4 h-4" />
+                  <span className="font-medium">A credit memo will be generated automatically upon completion</span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Items */}

@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth-service';
 
 const HA_BASE_URL = process.env.HA_BASE_URL || 'http://192.168.86.102:8123';
 const HA_TOKEN = process.env.HA_ACCESS_TOKEN || process.env.HA_TOKEN || '';
@@ -47,6 +48,9 @@ async function getState(entityId: string): Promise<Record<string, unknown> | nul
 }
 
 export async function GET() {
+  const auth = await requireAdmin();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const configured = !!HA_TOKEN;
 
@@ -105,6 +109,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAdmin();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const body = await request.json();
     const { action } = body;

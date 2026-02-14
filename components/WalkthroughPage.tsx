@@ -42,14 +42,31 @@ export default function WalkthroughPage({ data }: WalkthroughPageProps) {
     const arr = Array.from(newCompleted);
     localStorage.setItem(storageKey, JSON.stringify(arr));
 
-    // Sync each completed section to server
+    // Sync each newly completed section to server
+    const getUserId = () => {
+      try {
+        const raw = localStorage.getItem('rcrs-user-settings');
+        if (raw) {
+          const s = JSON.parse(raw);
+          return { userId: s.email || s.userId || 'anonymous', userName: s.displayName || s.name || 'Team Member' };
+        }
+      } catch { /* ignore */ }
+      return { userId: 'anonymous', userName: 'Team Member' };
+    };
+    const { userId, userName } = getUserId();
+
     arr.forEach((sectionId) => {
       fetch('/api/portal/training', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          userId,
+          userName,
           moduleId: `wt_${data.slug}_${sectionId}`,
-          completed: true,
+          moduleName: `Walkthrough: ${data.name} - ${sectionId}`,
+          score: '100',
+          passed: true,
+          completedAt: new Date().toISOString(),
         }),
       }).catch(() => {});
     });

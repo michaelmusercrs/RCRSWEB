@@ -16,34 +16,64 @@ import {
   type AuditLogEntry,
 } from '@/lib/feature-flags';
 import { requireAdmin } from '@/lib/auth-service';
-import fs from 'fs';
-import path from 'path';
 
 // In-memory audit log (in production, use a database)
 const auditLog: AuditLogEntry[] = [];
 
-// Path to system config file
-const CONFIG_PATH = path.join(process.cwd(), 'data', 'system-config.json');
+const BLOB_KEY = 'data/system-config.json';
+const LOCAL_PATH = 'data/system-config.json';
 
-// Read system config from file
-function readSystemConfig(): SystemConfig {
+async function readConfig(): Promise<Record<string, any>> {
   try {
-    const configData = fs.readFileSync(CONFIG_PATH, 'utf-8');
-    return JSON.parse(configData);
+    const { list } = await import('@vercel/blob');
+    const blobs = await list({ prefix: BLOB_KEY });
+    if (blobs.blobs.length > 0) {
+      const res = await fetch(blobs.blobs[0].url, { cache: 'no-store' });
+      if (res.ok) return await res.json();
+    }
+  } catch (e) { /* blob not available */ }
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), LOCAL_PATH);
+    const data = fs.readFileSync(filePath, 'utf-8');
+    return JSON.parse(data);
+  } catch {
+    return {};
+  }
+}
+
+async function writeConfig(config: Record<string, any>): Promise<void> {
+  try {
+    const { put } = await import('@vercel/blob');
+    await put(BLOB_KEY, JSON.stringify(config, null, 2), {
+      access: 'public', contentType: 'application/json', addRandomSuffix: false,
+    });
+  } catch (e) {
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), LOCAL_PATH);
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(filePath, JSON.stringify(config, null, 2));
+  }
+}
+
+// Read system config
+async function readSystemConfig(): Promise<SystemConfig> {
+  try {
+    const config = await readConfig();
+    if (config && Object.keys(config).length > 0) return config as SystemConfig;
+    return getDefaultConfig();
   } catch (error) {
     console.error('Error reading system config:', error);
     return getDefaultConfig();
   }
 }
 
-// Write system config to file
-function writeSystemConfig(config: SystemConfig): void {
-  try {
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
-  } catch (error) {
-    console.error('Error writing system config:', error);
-    throw new Error('Failed to save system configuration');
-  }
+// Write system config
+async function writeSystemConfig(config: SystemConfig): Promise<void> {
+  await writeConfig(config);
 }
 
 // Get default configuration
@@ -66,7 +96,7 @@ export async function GET() {
   if (!auth.authenticated) return auth.response;
 
   try {
-    const config = readSystemConfig();
+    const config = await readSystemConfig();
     const status = getSystemStatus();
     const features = getAllFeatures();
 
@@ -111,7 +141,7 @@ export async function POST(request: NextRequest) {
     const { action, payload, userId = 'unknown', userEmail } = body;
 
     // Get current config
-    const config = readSystemConfig();
+    const config = await readSystemConfig();
 
     // Create audit log entry
     const logEntry = createAuditLogEntry(
@@ -185,7 +215,7 @@ export async function POST(request: NextRequest) {
     config.lastUpdatedBy = userId;
 
     // Save config
-    writeSystemConfig(config);
+    await writeSystemConfig(config);
 
     // Add to audit log
     if (config.auditLogEnabled) {

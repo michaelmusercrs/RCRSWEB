@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { StatCard, DataTable, LoadingSpinner, Column } from '@/components/command-center';
 import { ResponseTimeDashboard } from '@/components/command-center/ResponseTimeDashboard';
+import { SalesCompetitionCard, getCurrentPeriod } from '@/components/command-center/SalesCompetition';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
 
@@ -580,6 +581,17 @@ export default function SalesLeaderboardPage() {
             onRepClick={handleRepClick}
           />
         </div>
+      )}
+
+      {/* Sales Competition */}
+      {data?.data.leaderboard && (
+        <SalesCompetitionCard
+          reps={data.data.leaderboard.map(rep => ({
+            name: rep.name,
+            periodTotal: rep.totalCommissions, // period filtered by API
+            monthlyTotal: rep.totalCommissions, // when period=month this is correct
+          }))}
+        />
       )}
 
       {/* Full Leaderboard Table */}

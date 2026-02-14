@@ -282,7 +282,7 @@ const CONVERSATION_TOPICS = [
   // Company news style
   'Reminder: River City Roofing Solutions is the trusted choice for North Alabama homeowners. Every delivery you make represents our commitment to quality.',
   'Our team covers the greater Huntsville area including Madison, Decatur, Athens, and all of Madison County. You are making a difference for local families.',
-  'Customer tip: A friendly greeting and a quick explanation of where you are placing materials goes a long way. Our 5-star reviews often mention how professional our delivery team is.',
+  'Customer tip: A friendly greeting and a quick explanation of where you are placing materials goes a long way. Our top-rated reviews often mention how professional our delivery team is.',
   // Motivational
   'Every delivery is a chance to make a great impression. You are the face of River City Roofing on the job site.',
   'Great work today. Remember, safety first, quality second, speed third. In that order.',

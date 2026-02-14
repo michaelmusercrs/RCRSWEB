@@ -7,9 +7,10 @@ import Image from 'next/image';
 import {
   MessageSquare, Send, Users, ArrowLeft, Loader2, RefreshCw,
   Hash, ChevronDown, User,
-  MessageCircle, Search, X, Circle
+  MessageCircle, Search, X, Circle, Plus, Clock, Moon
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import { TEAM_MEMBERS, ROLE_DISPLAY_NAMES } from '@/lib/team-roles';
 
 interface ChatMessage {
   id: string;
@@ -135,6 +136,17 @@ export default function ChatPage() {
   // Unread state
   const [unreadState, setUnreadState] = useState<UnreadState>({});
 
+  // Quiet hours state
+  const [isQuietHours, setIsQuietHours] = useState(false);
+  const [quietHoursResumesAt, setQuietHoursResumesAt] = useState('');
+
+  // Create group state
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupDesc, setNewGroupDesc] = useState('');
+  const [selectedNewGroupMembers, setSelectedNewGroupMembers] = useState<string[]>([]);
+  const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+
   // Active tab for mobile
   const [activeTab, setActiveTab] = useState<'groups' | 'dms'>('groups');
 
@@ -153,6 +165,27 @@ export default function ChatPage() {
       router.push('/portal');
     }
   }, [user, isLoading, router]);
+
+  // Check quiet hours on mount and every minute
+  useEffect(() => {
+    const checkQuietHours = async () => {
+      try {
+        const res = await fetch('/api/portal/chat/quiet-hours');
+        const data = await res.json();
+        setIsQuietHours(data.isQuiet);
+        setQuietHoursResumesAt(data.resumesAt || '');
+      } catch {
+        // Fallback: check client-side
+        const now = new Date();
+        const cst = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+        const hour = cst.getHours();
+        setIsQuietHours(hour >= 20 || hour < 7);
+      }
+    };
+    checkQuietHours();
+    const interval = setInterval(checkQuietHours, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Load groups on mount
   useEffect(() => {
@@ -440,6 +473,13 @@ export default function ChatPage() {
         }),
       });
       const data = await res.json();
+      if (data.code === 'QUIET_HOURS') {
+        setIsQuietHours(true);
+        setError(data.error);
+        setMessageInput(text);
+        setIsSending(false);
+        return;
+      }
       if (data.success && data.message) {
         // Optimistically add the sent message
         setMessages(prev => [...prev, {
@@ -553,6 +593,13 @@ export default function ChatPage() {
         body: JSON.stringify({ userId: selectedDmUser.userId, text }),
       });
       const data = await res.json();
+      if (data.code === 'QUIET_HOURS') {
+        setIsQuietHours(true);
+        setError(data.error);
+        setMessageInput(text);
+        setIsSending(false);
+        return;
+      }
       if (data.success && data.message) {
         setDmMessages(prev => [...prev, {
           id: data.message.id,
@@ -650,6 +697,56 @@ export default function ChatPage() {
     }
   };
 
+  const activeTeamMembers = TEAM_MEMBERS.filter(m => m.isActive);
+
+  const createNewGroup = async () => {
+    if (!newGroupName.trim() || isCreatingGroup) return;
+    setIsCreatingGroup(true);
+    try {
+      // Map selected member IDs to GroupMe member info from the current members list
+      const groupMembers = selectedNewGroupMembers
+        .map(id => {
+          const member = members.find(m => m.userId === id);
+          return member ? { user_id: member.userId, nickname: member.nickname } : null;
+        })
+        .filter((m): m is { user_id: string; nickname: string } => m !== null);
+
+      const res = await fetch('/api/portal/chat/groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newGroupName.trim(),
+          description: newGroupDesc.trim() || undefined,
+          members: groupMembers.length > 0 ? groupMembers : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setShowCreateGroup(false);
+        setNewGroupName('');
+        setNewGroupDesc('');
+        setSelectedNewGroupMembers([]);
+        await loadGroups();
+        if (data.group?.id) {
+          selectGroup(data.group.id);
+        }
+      } else {
+        setError(data.error || 'Failed to create group');
+      }
+    } catch (err) {
+      console.error('Create group error:', err);
+      setError('Failed to create group');
+    } finally {
+      setIsCreatingGroup(false);
+    }
+  };
+
+  const toggleNewGroupMember = (userId: string) => {
+    setSelectedNewGroupMembers(prev =>
+      prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
@@ -742,6 +839,13 @@ export default function ChatPage() {
                     </button>
                   );
                 })}
+                <button
+                  onClick={() => setShowCreateGroup(true)}
+                  className="w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 text-zinc-500 hover:bg-zinc-800 hover:text-lime-400 transition-colors"
+                >
+                  <Plus className="w-4 h-4 shrink-0" />
+                  <span>New Group</span>
+                </button>
               </div>
             )}
           </div>
@@ -808,6 +912,20 @@ export default function ChatPage() {
 
         {/* Main Chat Area */}
         <main className="flex-1 flex flex-col overflow-hidden">
+          {/* Quiet Hours Banner */}
+          {isQuietHours && (
+            <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 px-4 py-3 text-sm flex items-center gap-2">
+              <Moon className="w-4 h-4 shrink-0" />
+              <div>
+                <span className="font-medium">Quiet Hours Active</span>
+                <span className="text-amber-500/80 ml-1">
+                  — Messages cannot be sent between 8 PM and 7 AM CST.
+                  {quietHoursResumesAt && ` Messaging resumes ${quietHoursResumesAt}.`}
+                </span>
+              </div>
+            </div>
+          )}
+
           {error && (
             <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-2 text-sm">
               {error}
@@ -1041,18 +1159,27 @@ export default function ChatPage() {
                 </div>
                 <button
                   onClick={dmView ? sendDm : sendMessage}
-                  disabled={!messageInput.trim() || isSending}
+                  disabled={!messageInput.trim() || isSending || isQuietHours}
                   className="p-2.5 rounded-lg bg-lime-500 hover:bg-lime-400 text-black disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
+                  title={isQuietHours ? 'Messaging disabled during quiet hours (8 PM – 7 AM CST)' : 'Send message'}
                 >
                   {isSending ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : isQuietHours ? (
+                    <Moon className="w-4 h-4" />
                   ) : (
                     <Send className="w-4 h-4" />
                   )}
                 </button>
               </div>
               <p className="text-xs text-zinc-600 mt-1">
-                Press Enter to send, Shift+Enter for new line
+                {isQuietHours ? (
+                  <span className="text-amber-500/70 flex items-center gap-1">
+                    <Clock className="w-3 h-3" /> Quiet hours — messaging resumes at 7 AM CST
+                  </span>
+                ) : (
+                  'Press Enter to send, Shift+Enter for new line'
+                )}
               </p>
             </div>
           )}
@@ -1098,6 +1225,104 @@ export default function ChatPage() {
           </aside>
         )}
       </div>
+
+      {/* Create Group Modal */}
+      {showCreateGroup && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setShowCreateGroup(false)}>
+          <div className="bg-zinc-900 border border-zinc-700 rounded-xl w-full max-w-md max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
+              <h2 className="text-lg font-semibold text-white">New Group Chat</h2>
+              <button onClick={() => setShowCreateGroup(false)} className="text-zinc-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4 overflow-y-auto flex-1">
+              <div>
+                <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Group Name</label>
+                <input
+                  type="text"
+                  value={newGroupName}
+                  onChange={e => setNewGroupName(e.target.value)}
+                  placeholder="e.g., North AL Crew, Project Team"
+                  className="w-full mt-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-lime-500"
+                  maxLength={100}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Description (optional)</label>
+                <input
+                  type="text"
+                  value={newGroupDesc}
+                  onChange={e => setNewGroupDesc(e.target.value)}
+                  placeholder="What's this group for?"
+                  className="w-full mt-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-lime-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-2 block">
+                  Add Members ({selectedNewGroupMembers.length} selected)
+                </label>
+                <div className="space-y-1 max-h-48 overflow-y-auto">
+                  {members
+                    .filter(m => m.userId !== currentUserId)
+                    .map(member => {
+                      const teamMember = activeTeamMembers.find(t =>
+                        t.name.toLowerCase() === member.nickname.toLowerCase() ||
+                        member.nickname.toLowerCase().includes(t.slug)
+                      );
+                      return (
+                        <button
+                          key={member.userId}
+                          onClick={() => toggleNewGroupMember(member.userId)}
+                          className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors ${
+                            selectedNewGroupMembers.includes(member.userId)
+                              ? 'bg-lime-500/10 text-lime-400 ring-1 ring-lime-500/30'
+                              : 'text-zinc-300 hover:bg-zinc-800'
+                          }`}
+                        >
+                          {member.imageUrl ? (
+                            <img src={member.imageUrl} alt="" className="w-6 h-6 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-6 h-6 rounded-full bg-zinc-700 flex items-center justify-center text-[10px] font-bold">
+                              {getInitials(member.nickname)}
+                            </div>
+                          )}
+                          <span className="flex-1">{member.nickname}</span>
+                          {teamMember && (
+                            <span className="text-[10px] text-zinc-500">{ROLE_DISPLAY_NAMES[teamMember.role]}</span>
+                          )}
+                          {selectedNewGroupMembers.includes(member.userId) && (
+                            <span className="text-lime-400 text-xs">✓</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                </div>
+              </div>
+            </div>
+
+            <div className="px-4 py-3 border-t border-zinc-800 flex gap-2 justify-end">
+              <button
+                onClick={() => setShowCreateGroup(false)}
+                className="px-4 py-2 text-sm text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={createNewGroup}
+                disabled={!newGroupName.trim() || isCreatingGroup}
+                className="px-4 py-2 text-sm bg-lime-500 hover:bg-lime-400 text-black font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              >
+                {isCreatingGroup ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                Create Group
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Mobile bottom nav for groups/DMs */}
       <div className="md:hidden border-t border-zinc-800 bg-zinc-900 px-2 py-2">

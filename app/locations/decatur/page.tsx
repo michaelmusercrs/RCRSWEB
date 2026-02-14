@@ -85,7 +85,7 @@ export default function DecaturPage() {
     "aggregateRating": {
       "@type": "AggregateRating",
       "ratingValue": "5",
-      "reviewCount": "200"
+      "reviewCount": "47"
     }
   };
 

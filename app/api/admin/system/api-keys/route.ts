@@ -14,18 +14,53 @@ import {
   type ApiKeyConfig,
 } from '@/lib/feature-flags';
 import { requireAdmin } from '@/lib/auth-service';
-import fs from 'fs';
-import path from 'path';
 import crypto from 'crypto';
 
-// Path to system config file
-const CONFIG_PATH = path.join(process.cwd(), 'data', 'system-config.json');
+const BLOB_KEY = 'data/system-config.json';
+const LOCAL_PATH = 'data/system-config.json';
+
+async function readConfig(): Promise<Record<string, any>> {
+  try {
+    const { list } = await import('@vercel/blob');
+    const blobs = await list({ prefix: BLOB_KEY });
+    if (blobs.blobs.length > 0) {
+      const res = await fetch(blobs.blobs[0].url, { cache: 'no-store' });
+      if (res.ok) return await res.json();
+    }
+  } catch (e) {
+    // Blob not available
+  }
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), LOCAL_PATH);
+    const data = fs.readFileSync(filePath, 'utf-8');
+    return JSON.parse(data);
+  } catch {
+    return {};
+  }
+}
+
+async function writeConfig(config: Record<string, any>): Promise<void> {
+  try {
+    const { put } = await import('@vercel/blob');
+    await put(BLOB_KEY, JSON.stringify(config, null, 2), {
+      access: 'public', contentType: 'application/json', addRandomSuffix: false,
+    });
+  } catch (e) {
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), LOCAL_PATH);
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(filePath, JSON.stringify(config, null, 2));
+  }
+}
 
 // Read API keys from config
-function readApiKeys(): ApiKeyConfig[] {
+async function readApiKeys(): Promise<ApiKeyConfig[]> {
   try {
-    const configData = fs.readFileSync(CONFIG_PATH, 'utf-8');
-    const config = JSON.parse(configData);
+    const config = await readConfig();
     return config.apiKeys || [];
   } catch {
     return [];
@@ -33,13 +68,12 @@ function readApiKeys(): ApiKeyConfig[] {
 }
 
 // Save API keys to config
-function saveApiKeys(apiKeys: ApiKeyConfig[]): void {
+async function saveApiKeys(apiKeys: ApiKeyConfig[]): Promise<void> {
   try {
-    const configData = fs.readFileSync(CONFIG_PATH, 'utf-8');
-    const config = JSON.parse(configData);
+    const config = await readConfig();
     config.apiKeys = apiKeys;
     config.lastUpdated = new Date().toISOString();
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
+    await writeConfig(config);
   } catch (error) {
     console.error('Error saving API keys:', error);
     throw new Error('Failed to save API keys');
@@ -58,7 +92,7 @@ export async function GET() {
   if (!auth.authenticated) return auth.response;
 
   try {
-    const apiKeys = readApiKeys();
+    const apiKeys = await readApiKeys();
 
     // Mask sensitive data
     const maskedKeys = apiKeys.map(key => ({
@@ -156,9 +190,9 @@ export async function POST(request: NextRequest) {
     };
 
     // Save to config
-    const apiKeys = readApiKeys();
+    const apiKeys = await readApiKeys();
     apiKeys.push(apiKeyConfig);
-    saveApiKeys(apiKeys);
+    await saveApiKeys(apiKeys);
 
     // Create audit log entry
     const auditEntry = createAuditLogEntry(
@@ -219,7 +253,7 @@ export async function DELETE(request: NextRequest) {
     const body = await request.json().catch(() => ({}));
     const { userId = 'unknown', userEmail } = body;
 
-    const apiKeys = readApiKeys();
+    const apiKeys = await readApiKeys();
     const keyIndex = apiKeys.findIndex(k => k.id === keyId);
 
     if (keyIndex === -1) {
@@ -231,7 +265,7 @@ export async function DELETE(request: NextRequest) {
 
     // Mark as revoked instead of deleting
     apiKeys[keyIndex].isActive = false;
-    saveApiKeys(apiKeys);
+    await saveApiKeys(apiKeys);
 
     // Create audit log entry
     const auditEntry = createAuditLogEntry(

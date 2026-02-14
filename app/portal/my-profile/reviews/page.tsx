@@ -22,6 +22,7 @@ import {
 import { useAuth } from '@/lib/auth-context';
 import { teamMembers } from '@/lib/teamData';
 import { ProfileReview, REVIEW_SOURCES } from '@/lib/profile-types';
+import { generalReviews, reviewsByRep, Review } from '@/lib/reviewsData';
 
 export default function MyProfileReviewsPage() {
   const router = useRouter();
@@ -33,6 +34,47 @@ export default function MyProfileReviewsPage() {
   const [repSlug, setRepSlug] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingReview, setEditingReview] = useState<ProfileReview | null>(null);
+  const [showCompanyReviews, setShowCompanyReviews] = useState(false);
+
+  // Get available company reviews (general + own static reviews not already imported)
+  const availableCompanyReviews: Review[] = [
+    ...(repSlug ? (reviewsByRep[repSlug] || []) : []),
+    ...generalReviews,
+  ];
+
+  const handleImportCompanyReview = async (review: Review) => {
+    if (!repSlug) return;
+    setIsSaving(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch('/api/profile/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          repSlug,
+          customerName: review.name,
+          rating: review.rating,
+          text: review.text,
+          source: (review.source?.toLowerCase() || 'google') as ProfileReview['source'],
+          date: review.date,
+          createdBy: user?.name || 'imported',
+        }),
+      });
+
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setReviews(prev => [data.review, ...prev]);
+        setMessage({ type: 'success', text: `Imported "${review.name}" review. Pending admin approval.` });
+      } else {
+        throw new Error(data.error || 'Failed to import review');
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Failed to import review' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // New review form state
   const [newReview, setNewReview] = useState({
@@ -274,14 +316,71 @@ export default function MyProfileReviewsPage() {
               Add reviews you've received and choose which to display on your profile
             </p>
           </div>
-          <button
-            onClick={() => setShowAddForm(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-brand-green hover:bg-green-400 text-black font-medium rounded-xl transition-colors"
-          >
-            <Plus size={16} />
-            Add Review
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowCompanyReviews(!showCompanyReviews)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-medium rounded-xl transition-colors"
+            >
+              <Star size={16} />
+              Import Review
+            </button>
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-brand-green hover:bg-green-400 text-black font-medium rounded-xl transition-colors"
+            >
+              <Plus size={16} />
+              Add Review
+            </button>
+          </div>
         </div>
+
+        {/* Company Reviews Picker */}
+        {showCompanyReviews && (
+          <div className="mb-8 p-6 bg-white/[0.02] border border-white/5 rounded-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white">Import from Company Reviews</h2>
+              <button onClick={() => setShowCompanyReviews(false)} className="text-neutral-400 hover:text-white">
+                <X size={20} />
+              </button>
+            </div>
+            <p className="text-sm text-neutral-400 mb-4">
+              Select reviews to display on your profile. These include your personal reviews and general company reviews.
+            </p>
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {availableCompanyReviews.map(review => {
+                const alreadyImported = reviews.some(r => r.customerName === review.name && r.text === review.text);
+                return (
+                  <div key={review.id} className={`p-4 rounded-xl border ${alreadyImported ? 'border-green-500/30 bg-green-500/5' : 'border-white/5 bg-white/[0.02]'}`}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium text-white text-sm">{review.name}</span>
+                          <div className="flex">{[...Array(review.rating)].map((_, i) => <Star key={i} size={12} className="text-yellow-400 fill-yellow-400" />)}</div>
+                          {review.salesRep && <span className="text-xs text-neutral-500">• {review.salesRep}</span>}
+                        </div>
+                        <p className="text-sm text-neutral-300 line-clamp-2">&quot;{review.text}&quot;</p>
+                      </div>
+                      <button
+                        onClick={() => !alreadyImported && handleImportCompanyReview(review)}
+                        disabled={alreadyImported || isSaving}
+                        className={`ml-3 flex-shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                          alreadyImported
+                            ? 'bg-green-500/20 text-green-400 cursor-default'
+                            : 'bg-brand-green hover:bg-green-400 text-black disabled:opacity-50'
+                        }`}
+                      >
+                        {alreadyImported ? 'Added' : 'Import'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+              {availableCompanyReviews.length === 0 && (
+                <p className="text-neutral-500 text-sm text-center py-4">No company reviews available to import.</p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-8">

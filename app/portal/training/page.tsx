@@ -76,17 +76,17 @@ const trainingPaths = [
     audience: 'All Team Members',
   },
   {
-    title: 'RoofStack Academy',
-    subtitle: 'Gamified Team Training',
+    title: 'Role-Based Modules',
+    subtitle: 'Training by Position',
     description:
-      'The gamified RoofStack training platform with points, badges, leaderboards, and streaks. Role-based training modules for every position in the company.',
-    href: '/portal/admin/training',
+      'Structured training modules organized by role: Sales Rep (10), Admin (11), Driver (8), Owner/Manager (8), Customer-Facing (5), and Production Crew (3). Each module includes lessons, quizzes, and flashcards.',
+    href: '/portal/training/modules',
     icon: Trophy,
     color: 'from-amber-500/20 to-orange-500/20',
     borderColor: 'border-amber-500/30',
     iconColor: 'text-amber-400',
-    modules: 7,
-    estimatedTime: '3-5 hours',
+    modules: 45,
+    estimatedTime: '20+ hours',
     audience: 'All Roles',
   },
   {

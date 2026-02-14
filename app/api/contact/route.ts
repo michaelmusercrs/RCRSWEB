@@ -47,8 +47,6 @@ export async function POST(request: Request) {
     });
 
     // Log lead score for analytics
-    console.log(`New lead: ${name} - Score: ${leadScore}/100`);
-
     // Get Google Apps Script endpoint from environment variables
     const googleScriptEndpoint = process.env.NEXT_PUBLIC_GOOGLE_SCRIPT_ENDPOINT;
 
@@ -56,15 +54,6 @@ export async function POST(request: Request) {
       console.error('NEXT_PUBLIC_GOOGLE_SCRIPT_ENDPOINT not configured');
 
       // Log locally for development
-      console.log('Contact form submission (no endpoint configured):', {
-        name,
-        email,
-        phone,
-        subject,
-        message,
-        preferredInspector,
-        timestamp: new Date().toISOString(),
-      });
 
       // Still send GroupMe notification even in dev mode
       try {
@@ -153,8 +142,6 @@ export async function POST(request: Request) {
               portalUrl: portalResult.portalUrl,
               salesRepName: portalResult.salesRep?.name,
             };
-
-            console.log(`Portal auto-generated for ${name}: ${portalResult.portalUrl}`);
           }
         }
       } catch (portalError) {

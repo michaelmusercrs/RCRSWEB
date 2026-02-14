@@ -13,6 +13,9 @@ import {
   getNextMondayDate,
   validateNote,
   areSubmissionsOpen,
+  calculateDisplayEndDate,
+  AnnouncementType,
+  DisplayDuration,
 } from '@/lib/monday-notes-service';
 
 // In-memory storage for demo (would be database in production)
@@ -90,6 +93,8 @@ export async function POST(request: NextRequest) {
       metrics,
       includeInSlide,
       status,
+      announcementType,
+      displayDuration,
     } = body;
 
     // Validate required fields
@@ -119,6 +124,9 @@ export async function POST(request: NextRequest) {
 
     if (existingIndex >= 0) {
       // Update existing note
+      const updDisplayStart = meetingDate;
+      const updDisplayEnd = displayDuration ? calculateDisplayEndDate(updDisplayStart, displayDuration as DisplayDuration) : undefined;
+
       mondayNotes[existingIndex] = {
         ...mondayNotes[existingIndex],
         category: category || mondayNotes[existingIndex].category,
@@ -128,6 +136,10 @@ export async function POST(request: NextRequest) {
         attachments: attachments || mondayNotes[existingIndex].attachments,
         timing,
         metrics: metrics || [],
+        announcementType: announcementType as AnnouncementType | undefined ?? mondayNotes[existingIndex].announcementType,
+        displayDuration: displayDuration as DisplayDuration | undefined ?? mondayNotes[existingIndex].displayDuration,
+        displayStartDate: announcementType ? updDisplayStart : mondayNotes[existingIndex].displayStartDate,
+        displayEndDate: updDisplayEnd || mondayNotes[existingIndex].displayEndDate,
         includeInSlide: includeInSlide !== undefined ? includeInSlide : true,
         status: status || 'draft',
         updatedAt: now,
@@ -140,6 +152,9 @@ export async function POST(request: NextRequest) {
       });
     } else {
       // Create new note
+      const displayStart = meetingDate;
+      const displayEnd = displayDuration ? calculateDisplayEndDate(displayStart, displayDuration as DisplayDuration) : undefined;
+
       const newNote: MondayNote = {
         id: generateNoteId(),
         meetingDate,
@@ -153,6 +168,10 @@ export async function POST(request: NextRequest) {
         attachments: attachments || [],
         timing,
         metrics: metrics || [],
+        announcementType: announcementType as AnnouncementType | undefined,
+        displayDuration: displayDuration as DisplayDuration | undefined,
+        displayStartDate: announcementType ? displayStart : undefined,
+        displayEndDate: displayEnd || undefined,
         includeInSlide: includeInSlide !== undefined ? includeInSlide : true,
         status: status || 'draft',
         createdAt: now,

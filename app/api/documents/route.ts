@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
-import { promises as fs } from 'fs';
-import path from 'path';
 import {
   Document,
   DocumentFilters,
@@ -11,25 +9,35 @@ import {
 } from '@/types/documents';
 import { apiError, getErrorMessage } from '@/lib/api-response';
 
-const DATA_FILE = path.join(process.cwd(), 'data', 'documents.json');
+const BLOB_KEY = 'data/documents.json';
+const LOCAL_PATH = 'data/documents.json';
 
 // Helper to read documents data
-// Returns empty collections only when the data file genuinely does not exist yet.
-// Parse errors and other I/O failures are thrown so callers can surface them.
 async function readDocumentsData(): Promise<{
   documents: Document[];
   documentTypes: unknown[];
   sharingLog: SharingLogEntry[];
 }> {
+  // Try blob first
   try {
-    const data = await fs.readFile(DATA_FILE, 'utf-8');
+    const { list } = await import('@vercel/blob');
+    const blobs = await list({ prefix: BLOB_KEY });
+    if (blobs.blobs.length > 0) {
+      const res = await fetch(blobs.blobs[0].url, { cache: 'no-store' });
+      if (res.ok) return await res.json();
+    }
+  } catch (e) { /* blob not available */ }
+  // Fallback to local file
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), LOCAL_PATH);
+    const data = fs.readFileSync(filePath, 'utf-8');
     return JSON.parse(data);
   } catch (err: any) {
-    // File not found is expected on first run -- return empty data
     if (err?.code === 'ENOENT') {
       return { documents: [], documentTypes: [], sharingLog: [] };
     }
-    // Any other error (permission denied, corrupt JSON) should propagate
     throw err;
   }
 }
@@ -40,7 +48,19 @@ async function writeDocumentsData(data: {
   documentTypes: unknown[];
   sharingLog: SharingLogEntry[];
 }): Promise<void> {
-  await fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2));
+  try {
+    const { put } = await import('@vercel/blob');
+    await put(BLOB_KEY, JSON.stringify(data, null, 2), {
+      access: 'public', contentType: 'application/json', addRandomSuffix: false,
+    });
+  } catch (e) {
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), LOCAL_PATH);
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+  }
 }
 
 // GET - Fetch documents with optional filtering
@@ -93,7 +113,6 @@ export async function GET(request: NextRequest) {
       }
 
       case 'customer-documents': {
-        // Get documents shared with a specific customer
         const customerId = searchParams.get('customerId');
         if (!customerId) {
           return NextResponse.json({ error: 'Customer ID required' }, { status: 400 });
@@ -118,7 +137,6 @@ export async function GET(request: NextRequest) {
       }
 
       case 'available-to-share': {
-        // Get documents approved by admin but not yet shared
         const jobId = searchParams.get('jobId');
         const repId = searchParams.get('repId');
 
@@ -130,16 +148,13 @@ export async function GET(request: NextRequest) {
       }
 
       case 'pending-approval': {
-        // Get documents pending admin approval
         const docs = data.documents.filter(d => !d.adminApproved);
         return NextResponse.json({ success: true, documents: docs });
       }
 
       default: {
-        // Default: list with filters
         let documents = data.documents;
 
-        // Apply filters
         const filters: DocumentFilters = {
           jobId: searchParams.get('jobId') || undefined,
           customerId: searchParams.get('customerId') || undefined,
@@ -166,7 +181,6 @@ export async function GET(request: NextRequest) {
         if (filters.dateFrom) documents = documents.filter(d => new Date(d.uploadedAt) >= new Date(filters.dateFrom!));
         if (filters.dateTo) documents = documents.filter(d => new Date(d.uploadedAt) <= new Date(filters.dateTo!));
 
-        // Sort by upload date (newest first)
         documents.sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
 
         return NextResponse.json({
@@ -195,7 +209,6 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case 'create': {
-        // Create new document entry
         const newDoc: Document = {
           id: `doc-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
           jobId: payload.jobId,
@@ -223,7 +236,6 @@ export async function POST(request: NextRequest) {
           metadata: payload.metadata || {}
         };
 
-        // If this is the first image for the job, make it the profile image
         if (newDoc.type === 'job_image') {
           const existingJobImages = data.documents.filter(
             d => d.jobId === newDoc.jobId && d.type === 'job_image'
@@ -235,7 +247,6 @@ export async function POST(request: NextRequest) {
 
         data.documents.push(newDoc);
 
-        // Add to sharing log
         data.sharingLog.push({
           id: `log-${Date.now()}`,
           documentId: newDoc.id,
@@ -252,7 +263,6 @@ export async function POST(request: NextRequest) {
       }
 
       case 'approve': {
-        // Admin approves document for sharing
         const docIndex = data.documents.findIndex(d => d.id === payload.documentId);
         if (docIndex === -1) {
           return NextResponse.json({ error: 'Document not found' }, { status: 404 });
@@ -278,7 +288,6 @@ export async function POST(request: NextRequest) {
       }
 
       case 'revoke-approval': {
-        // Admin revokes sharing approval
         const docIndex = data.documents.findIndex(d => d.id === payload.documentId);
         if (docIndex === -1) {
           return NextResponse.json({ error: 'Document not found' }, { status: 404 });
@@ -305,7 +314,6 @@ export async function POST(request: NextRequest) {
       }
 
       case 'share': {
-        // Rep shares document with customer
         const docIndex = data.documents.findIndex(d => d.id === payload.documentId);
         if (docIndex === -1) {
           return NextResponse.json({ error: 'Document not found' }, { status: 404 });
@@ -338,7 +346,6 @@ export async function POST(request: NextRequest) {
       }
 
       case 'unshare': {
-        // Remove sharing from customer
         const docIndex = data.documents.findIndex(d => d.id === payload.documentId);
         if (docIndex === -1) {
           return NextResponse.json({ error: 'Document not found' }, { status: 404 });
@@ -364,20 +371,17 @@ export async function POST(request: NextRequest) {
       }
 
       case 'set-profile-image': {
-        // Set document as job profile image
         const docIndex = data.documents.findIndex(d => d.id === payload.documentId);
         if (docIndex === -1) {
           return NextResponse.json({ error: 'Document not found' }, { status: 404 });
         }
 
-        // Remove profile image status from other images in the same job
         data.documents.forEach((doc, idx) => {
           if (doc.jobId === data.documents[docIndex].jobId && doc.type === 'job_image') {
             data.documents[idx].isProfileImage = false;
           }
         });
 
-        // Set this one as profile image
         data.documents[docIndex].isProfileImage = true;
 
         await writeDocumentsData(data);
@@ -385,7 +389,6 @@ export async function POST(request: NextRequest) {
       }
 
       case 'update-notes': {
-        // Update rep notes on a document
         const docIndex = data.documents.findIndex(d => d.id === payload.documentId);
         if (docIndex === -1) {
           return NextResponse.json({ error: 'Document not found' }, { status: 404 });
@@ -398,7 +401,6 @@ export async function POST(request: NextRequest) {
       }
 
       case 'bulk-approve': {
-        // Bulk approve multiple documents
         const { documentIds, approvedBy, notes } = payload;
         let processed = 0;
         const errors: string[] = [];
@@ -438,7 +440,6 @@ export async function POST(request: NextRequest) {
       }
 
       case 'bulk-share': {
-        // Bulk share multiple documents
         const { documentIds, sharedBy, repNotes } = payload;
         let processed = 0;
         const errors: string[] = [];
@@ -484,7 +485,6 @@ export async function POST(request: NextRequest) {
       }
 
       case 'log-download': {
-        // Log when a document is downloaded
         data.sharingLog.push({
           id: `log-${Date.now()}`,
           documentId: payload.documentId,
@@ -533,7 +533,6 @@ export async function DELETE(request: NextRequest) {
     const deletedDoc = data.documents[docIndex];
     data.documents.splice(docIndex, 1);
 
-    // Log deletion
     data.sharingLog.push({
       id: `log-${Date.now()}`,
       documentId: documentId,

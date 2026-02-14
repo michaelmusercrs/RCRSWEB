@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth-service';
 import { inventoryReconciliationService } from '@/lib/inventory-reconciliation-service';
 
 /**
@@ -13,6 +14,9 @@ import { inventoryReconciliationService } from '@/lib/inventory-reconciliation-s
  *   - stored: if "true", return the last stored reconciliation from Google Sheets
  */
 export async function GET(request: NextRequest) {
+  const auth = await requireAdmin();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const { searchParams } = new URL(request.url);
     const jobId = searchParams.get('jobId');
@@ -69,6 +73,9 @@ export async function GET(request: NextRequest) {
  *   - syncToSheets: boolean, default true - whether to write results to Google Sheets
  */
 export async function POST(request: NextRequest) {
+  const auth = await requireAdmin();
+  if (!auth.authenticated) return auth.response;
+
   try {
     let body: { jobId?: string; syncToSheets?: boolean } = {};
     try {

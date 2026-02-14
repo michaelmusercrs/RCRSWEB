@@ -128,7 +128,6 @@ export async function POST(request: NextRequest) {
     if (shouldSync) {
       try {
         jnSync = await jobSyncService.syncToJobNimbus(jobId);
-        console.log(`[Job ${jobId}] Synced to JN: ${jnSync.message}`);
       } catch (err) {
         console.warn(`[Job ${jobId}] JN sync failed:`, err);
         jnSync = {

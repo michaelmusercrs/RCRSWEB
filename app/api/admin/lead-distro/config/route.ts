@@ -71,9 +71,6 @@ export async function PUT(request: NextRequest) {
       warningMinutes: savedConfig.responseTimers.warningMinutes,
       reassignMinutes: savedConfig.responseTimers.reassignMinutes,
     });
-
-    console.log(`[LeadDistro] Config updated by ${updatedBy || 'admin'}. Timer config synced: reminder=${savedConfig.responseTimers.reminderMinutes}m, warning=${savedConfig.responseTimers.warningMinutes}m, reassign=${savedConfig.responseTimers.reassignMinutes}m`);
-
     return NextResponse.json({ success: true, config: savedConfig });
   } catch (error) {
     return NextResponse.json(

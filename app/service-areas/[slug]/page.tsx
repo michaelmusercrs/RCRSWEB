@@ -3,7 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { getServiceArea, getAllServiceAreaSlugs, getPrimaryServices } from '@/lib/servicesData';
 import { MapPin, Clock, CheckCircle2, Phone, ArrowRight, ArrowLeft, Home, Wrench, Building2, CloudRain, Flame, Shield, Search, AlertTriangle } from 'lucide-react';
-import { generateBreadcrumbSchema, siteConfig } from '@/lib/seo';
+import { generateBreadcrumbSchema, generateFAQSchema, siteConfig } from '@/lib/seo';
 import StructuredData from '@/components/StructuredData';
 import type { Metadata } from 'next';
 
@@ -54,6 +54,10 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ sl
     'madison-al': { lat: 34.6993, lng: -86.7483 },
     'athens-al': { lat: 34.8029, lng: -86.9717 },
     'owens-crossroads-al': { lat: 34.5887, lng: -86.4558 },
+    'hartselle-al': { lat: 34.4437, lng: -86.9353 },
+    'cullman-al': { lat: 34.1748, lng: -86.8436 },
+    'moulton-al': { lat: 34.4812, lng: -87.2953 },
+    'florence-al': { lat: 34.7998, lng: -87.6772 },
     'north-alabama': { lat: 34.6059, lng: -86.9833 },
     'birmingham-al': { lat: 33.5207, lng: -86.8025 },
     'nashville-tn': { lat: 36.1627, lng: -86.7816 },
@@ -102,8 +106,10 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ sl
     ],
     "aggregateRating": {
       "@type": "AggregateRating",
-      "ratingValue": "5",
-      "reviewCount": "200",
+      "ratingValue": "5.0",
+      "reviewCount": "47",
+      "bestRating": "5",
+      "worstRating": "1",
     },
   };
 
@@ -113,9 +119,35 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ sl
     { name: area.name, url: `/service-areas/${slug}` },
   ]);
 
+  // Dynamic FAQs based on area
+  const areaFAQs = [
+    {
+      question: `Do you offer free roof inspections in ${area.name}?`,
+      answer: `Yes! River City Roofing Solutions provides completely free, no-obligation roof inspections for homeowners in ${area.name}, ${area.state}. Our certified inspectors will assess your roof's condition, document any issues with photos, and provide honest recommendations.`,
+    },
+    {
+      question: `How quickly can you respond to storm damage in ${area.name}?`,
+      answer: `Our response time for ${area.name} is typically ${area.responseTime || 'same day to 2 business days'}. For emergency storm damage, we offer 24/7 service with same-day tarping available to prevent further damage to your home.`,
+    },
+    {
+      question: `What roofing services do you provide in ${area.name}, ${area.state}?`,
+      answer: `We provide ${area.services} in ${area.name}. This includes roof replacement, roof repair, storm and hail damage restoration, chimney services, LeafX gutter protection, attic ventilation, and free roof inspections. We also handle insurance claims from start to finish.`,
+    },
+    {
+      question: `How much does a new roof cost in ${area.name}?`,
+      answer: `Roof replacement costs in ${area.name} typically range from $5,000 to $25,000+ depending on roof size, materials chosen, and complexity. We offer free detailed quotes so you know exactly what to expect. Many customers qualify for insurance coverage for storm damage.`,
+    },
+    {
+      question: `Do you help with insurance claims in ${area.name}?`,
+      answer: `Absolutely! We have extensive experience working with insurance companies on storm and hail damage claims in ${area.name} and throughout ${area.state}. We handle all documentation, photos, and communication with your insurance adjuster to maximize your claim.`,
+    },
+  ];
+
+  const faqSchema = generateFAQSchema(areaFAQs);
+
   return (
     <div className="min-h-screen">
-      <StructuredData data={[localBusinessSchema, breadcrumbSchema]} />
+      <StructuredData data={[localBusinessSchema, breadcrumbSchema, faqSchema]} />
       <section className="relative min-h-[60vh] flex items-center">
         {area.image && (
           <div className="absolute inset-0 z-0">
@@ -154,12 +186,6 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ sl
             <div>
               <h2 className="text-3xl font-bold text-white mb-8">Area Details</h2>
               <div className="space-y-4">
-                {area.population && (
-                  <div className="flex items-start gap-3">
-                    <CheckCircle2 className="text-brand-green flex-shrink-0 mt-1" size={20} />
-                    <span className="text-gray-300">Population: {area.population}</span>
-                  </div>
-                )}
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="text-brand-green flex-shrink-0 mt-1" size={20} />
                   <span className="text-gray-300">Coverage: {area.coverage}</span>
@@ -226,6 +252,70 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ sl
                 Open in Google Maps
                 <ArrowRight size={16} />
               </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-12 md:py-16 bg-black/80 backdrop-blur-sm">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-8 text-center">
+              Frequently Asked Questions About Roofing in {area.name}
+            </h2>
+            <div className="space-y-4">
+              {areaFAQs.map((faq, idx) => (
+                <details key={idx} className="bg-white/5 border border-white/10 rounded-xl p-6 group hover:border-brand-green/50 transition-colors">
+                  <summary className="font-bold text-white cursor-pointer list-none flex justify-between items-center">
+                    {faq.question}
+                    <CheckCircle2 className="h-5 w-5 text-brand-green flex-shrink-0 ml-4" />
+                  </summary>
+                  <p className="text-gray-300 mt-4 leading-relaxed">
+                    {faq.answer}
+                  </p>
+                </details>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Internal Links Section */}
+      <section className="py-12 md:py-16 bg-black/70 backdrop-blur-sm border-t border-white/10">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-2xl font-bold text-white mb-6 text-center">
+              Explore Our Roofing Services & Other Areas
+            </h2>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-lg font-semibold text-brand-green mb-3">Our Services</h3>
+                <ul className="space-y-2">
+                  <li><Link href="/services/residential-roof-replacement" className="text-gray-300 hover:text-brand-green transition-colors">Residential Roof Replacement</Link></li>
+                  <li><Link href="/services/residential-roof-repair" className="text-gray-300 hover:text-brand-green transition-colors">Roof Repair Services</Link></li>
+                  <li><Link href="/services/storm-hail-damage-repair" className="text-gray-300 hover:text-brand-green transition-colors">Storm & Hail Damage Repair</Link></li>
+                  <li><Link href="/services/leafx-gutter-protection" className="text-gray-300 hover:text-brand-green transition-colors">LeafX® Gutter Protection</Link></li>
+                  <li><Link href="/services" className="text-brand-green font-semibold hover:text-lime-400 transition-colors">View All Services →</Link></li>
+                </ul>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-brand-green mb-3">Other Service Areas</h3>
+                <ul className="space-y-2">
+                  {['decatur-al', 'huntsville-al', 'madison-al', 'athens-al', 'hartselle-al', 'cullman-al'].filter(s => s !== slug).slice(0, 5).map(areaSlug => {
+                    const areaName = areaSlug.replace('-al', '').replace('-tn', '').replace(/(^\w)/g, m => m.toUpperCase());
+                    return (
+                      <li key={areaSlug}><Link href={`/service-areas/${areaSlug}`} className="text-gray-300 hover:text-brand-green transition-colors">Roofing in {areaName}, AL</Link></li>
+                    );
+                  })}
+                  <li><Link href="/service-areas" className="text-brand-green font-semibold hover:text-lime-400 transition-colors">View All Areas →</Link></li>
+                </ul>
+              </div>
+            </div>
+            <div className="mt-6 text-center">
+              <p className="text-gray-400 text-sm">
+                Read our <Link href="/blog" className="text-brand-green hover:text-lime-400">roofing blog</Link> for expert tips, or <Link href="/check-my-address" className="text-brand-green hover:text-lime-400">check your address</Link> for recent storm activity.
+              </p>
             </div>
           </div>
         </div>

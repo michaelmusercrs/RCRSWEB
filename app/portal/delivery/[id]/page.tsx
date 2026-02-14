@@ -6,9 +6,11 @@ import {
   ArrowLeft, Truck, MapPin, Phone, Clock, CheckCircle2, Camera, Package,
   Navigation, Loader2, RefreshCw, User, AlertCircle, Play, Flag,
   ClipboardCheck, ImagePlus, ChevronRight, X,
-  Upload, CheckSquare, Square, MessageSquare, Route
+  Upload, CheckSquare, Square, MessageSquare, Route, MapPinned
 } from 'lucide-react';
 import NavigateButton from '@/components/delivery/NavigateButton';
+import DeliveryPipeline from '@/components/delivery/DeliveryPipeline';
+import { DeliveryStage, getStageConfig, getNextStage, getStageIndex, PIPELINE_STAGES } from '@/lib/delivery-pipeline';
 
 interface MaterialItem {
   productId: string;
@@ -22,6 +24,7 @@ interface DeliveryTicket {
   ticketId: string;
   ticketType: string;
   status: string;
+  pipelineStage: DeliveryStage;
   jobName: string;
   jobAddress: string;
   city: string;
@@ -38,13 +41,12 @@ interface DeliveryTicket {
   scheduledTime?: string;
   specialInstructions?: string;
   photoCount: number;
-  loadVerifiedAt?: string;
-  loadVerifiedBy?: string;
-  departedAt?: string;
-  arrivedAt?: string;
-  deliveredAt?: string;
-  completedAt?: string;
+  stageTimestamps: Partial<Record<DeliveryStage, string>>;
+  stagePhotos: Partial<Record<DeliveryStage, number>>;
+  gpsLocations: Partial<Record<DeliveryStage, string>>;
   deliveryNotes?: string;
+  assignedDriver?: string;
+  assignedVehicle?: string;
 }
 
 interface ChecklistItem {
@@ -65,30 +67,25 @@ interface Driver {
   phone: string;
 }
 
-const statusConfig: Record<string, { label: string; color: string; next?: string }> = {
-  created: { label: 'Created', color: 'bg-white/50', next: 'assigned' },
-  assigned: { label: 'Assigned', color: 'bg-cyan-500', next: 'materials_pulled' },
-  materials_pulled: { label: 'Materials Pulled', color: 'bg-yellow-500', next: 'load_verified' },
-  load_verified: { label: 'Load Verified', color: 'bg-brand-green', next: 'en_route' },
-  en_route: { label: 'En Route', color: 'bg-purple-500', next: 'arrived' },
-  arrived: { label: 'Arrived', color: 'bg-orange-500', next: 'delivered' },
-  delivered: { label: 'Delivered', color: 'bg-teal-500', next: 'proof_captured' },
-  picked_up: { label: 'Picked Up', color: 'bg-teal-500', next: 'proof_captured' },
-  proof_captured: { label: 'Proof Captured', color: 'bg-brand-green', next: 'qc_photos' },
-  qc_photos: { label: 'QC Photos', color: 'bg-pink-500', next: 'completed' },
-  completed: { label: 'Completed', color: 'bg-green-500' },
-  cancelled: { label: 'Cancelled', color: 'bg-red-500' },
-};
-
-const workflowSteps = [
-  { status: 'load_verified', label: 'Verify Load', icon: ClipboardCheck, action: 'verify-load' },
-  { status: 'en_route', label: 'Start Delivery', icon: Truck, action: 'start-delivery' },
-  { status: 'arrived', label: 'Mark Arrived', icon: MapPin, action: 'mark-arrived' },
-  { status: 'delivered', label: 'Complete Delivery', icon: Package, action: 'complete-delivery' },
-  { status: 'proof_captured', label: 'Take Photos', icon: Camera, action: 'capture-proof' },
-  { status: 'qc_photos', label: 'QC Photos', icon: Camera, action: 'upload-qc' },
-  { status: 'completed', label: 'Complete', icon: CheckCircle2, action: 'complete-ticket' },
-];
+// Map old statuses to pipeline stages for backward compat
+function mapStatusToStage(status: string, pipelineStage?: DeliveryStage): DeliveryStage {
+  if (pipelineStage) return pipelineStage;
+  const mapping: Record<string, DeliveryStage> = {
+    created: 'ORDER_CREATED',
+    assigned: 'DRIVER_ASSIGNED',
+    materials_pulled: 'MATERIALS_PULLED',
+    load_verified: 'LOAD_VERIFIED',
+    en_route: 'EN_ROUTE',
+    arrived: 'ARRIVED_AT_SITE',
+    delivered: 'DELIVERY_CONFIRMED',
+    picked_up: 'DELIVERY_CONFIRMED',
+    proof_captured: 'QC_PHOTOS',
+    qc_photos: 'QC_PHOTOS',
+    completed: 'JOB_CLOSED',
+    cancelled: 'ORDER_CREATED',
+  };
+  return mapping[status] || 'ORDER_CREATED';
+}
 
 export default function DeliveryDetailPage() {
   const router = useRouter();
@@ -102,6 +99,7 @@ export default function DeliveryDetailPage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [view, setView] = useState<'detail' | 'checklist' | 'photos' | 'notes'>('detail');
   const [deliveryNotes, setDeliveryNotes] = useState('');
+  const [photoUploading, setPhotoUploading] = useState(false);
 
   useEffect(() => {
     const storedDriver = sessionStorage.getItem('driver');
@@ -123,6 +121,13 @@ export default function DeliveryDetailPage() {
 
       if (ticketRes.ok) {
         const ticketData = await ticketRes.json();
+        // Ensure pipeline stage exists
+        if (!ticketData.pipelineStage) {
+          ticketData.pipelineStage = mapStatusToStage(ticketData.status);
+        }
+        if (!ticketData.stageTimestamps) ticketData.stageTimestamps = {};
+        if (!ticketData.stagePhotos) ticketData.stagePhotos = {};
+        if (!ticketData.gpsLocations) ticketData.gpsLocations = {};
         setTicket(ticketData);
         setDeliveryNotes(ticketData.deliveryNotes || '');
       }
@@ -138,41 +143,44 @@ export default function DeliveryDetailPage() {
     }
   }, [ticketId]);
 
-  const handleWorkflowAction = async (action: string) => {
+  const captureGPS = async (): Promise<string | null> => {
+    if (!navigator.geolocation) return null;
+    try {
+      const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 8000, enableHighAccuracy: true });
+      });
+      return `${pos.coords.latitude},${pos.coords.longitude}`;
+    } catch {
+      return null;
+    }
+  };
+
+  const handleAdvanceStage = async (nextStage: DeliveryStage) => {
     if (!ticket || !driver) return;
     setIsUpdating(true);
 
     try {
-      let body: Record<string, unknown> = {
-        action,
+      const stageConfig = getStageConfig(nextStage);
+      const body: Record<string, unknown> = {
+        action: 'advance-pipeline',
         ticketId: ticket.ticketId,
+        nextStage,
+        driverName: driver.name,
       };
 
-      // Add action-specific data
-      if (action === 'verify-load') {
-        body.verifiedBy = driver.name;
-        if (navigator.geolocation) {
-          try {
-            const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-              navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
-            });
-            body.gpsLocation = `${pos.coords.latitude},${pos.coords.longitude}`;
-          } catch {}
-        }
+      // Capture GPS if required
+      if (stageConfig.requiresGPS) {
+        const gps = await captureGPS();
+        if (gps) body.gpsLocation = gps;
       }
 
-      if (action === 'mark-arrived') {
-        if (navigator.geolocation) {
-          try {
-            const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-              navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
-            });
-            body.gpsLocation = `${pos.coords.latitude},${pos.coords.longitude}`;
-          } catch {}
-        }
+      // Photo check - stage requires photo but none uploaded yet
+      if (stageConfig.requiresPhoto && !(ticket.stagePhotos[ticket.pipelineStage] ?? 0)) {
+        // Allow advance but flag it
+        body.photoMissing = true;
       }
 
-      if (action === 'complete-delivery') {
+      if (deliveryNotes.trim()) {
         body.notes = deliveryNotes;
       }
 
@@ -185,33 +193,71 @@ export default function DeliveryDetailPage() {
       const result = await response.json();
 
       if (result.success && result.ticket) {
+        if (!result.ticket.pipelineStage) {
+          result.ticket.pipelineStage = nextStage;
+        }
+        if (!result.ticket.stageTimestamps) result.ticket.stageTimestamps = {};
+        if (!result.ticket.stagePhotos) result.ticket.stagePhotos = {};
+        if (!result.ticket.gpsLocations) result.ticket.gpsLocations = {};
         setTicket(result.ticket);
         setDeliveryNotes('');
 
-        if (action === 'complete-ticket') {
+        if (nextStage === 'JOB_CLOSED') {
           router.push('/portal/delivery');
         }
       }
     } catch (error) {
-      console.error('Error updating ticket:', error);
+      console.error('Error advancing pipeline:', error);
     } finally {
       setIsUpdating(false);
     }
   };
 
-  const getCurrentStepIndex = (status: string): number => {
-    const stepStatuses = workflowSteps.map(s => s.status);
-    if (status === 'materials_pulled') return 0;
-    const idx = stepStatuses.indexOf(status);
-    return idx >= 0 ? idx : -1;
-  };
+  const handlePhotoUpload = async () => {
+    if (!ticket) return;
+    setPhotoUploading(true);
+    // Simulate photo upload - in production this would use camera API
+    try {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.capture = 'environment';
+      input.onchange = async (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (!file) { setPhotoUploading(false); return; }
 
-  const getNextAction = (status: string): typeof workflowSteps[0] | null => {
-    const currentIdx = getCurrentStepIndex(status);
-    if (currentIdx < 0) return null;
-    if (status === 'materials_pulled') return workflowSteps[0];
-    if (currentIdx < workflowSteps.length - 1) return workflowSteps[currentIdx + 1];
-    return null;
+        const formData = new FormData();
+        formData.append('photo', file);
+        formData.append('ticketId', ticket.ticketId);
+        formData.append('stage', ticket.pipelineStage);
+
+        try {
+          const gps = await captureGPS();
+          if (gps) formData.append('gpsLocation', gps);
+
+          const res = await fetch('/api/portal/delivery/photos', {
+            method: 'POST',
+            body: formData,
+          });
+          if (res.ok) {
+            // Update local photo count
+            setTicket(prev => {
+              if (!prev) return prev;
+              const newPhotos = { ...prev.stagePhotos };
+              newPhotos[prev.pipelineStage] = (newPhotos[prev.pipelineStage] ?? 0) + 1;
+              return { ...prev, stagePhotos: newPhotos, photoCount: prev.photoCount + 1 };
+            });
+          }
+        } catch {
+          console.error('Photo upload failed');
+        } finally {
+          setPhotoUploading(false);
+        }
+      };
+      input.click();
+    } catch {
+      setPhotoUploading(false);
+    }
   };
 
   if (!driver || isLoading) {
@@ -228,10 +274,7 @@ export default function DeliveryDetailPage() {
         <div className="text-center">
           <AlertCircle className="mx-auto text-red-500" size={48} />
           <p className="text-white mt-4">Delivery not found</p>
-          <button
-            onClick={() => router.push('/portal/delivery')}
-            className="mt-4 px-4 py-2 bg-brand-green text-black rounded-lg"
-          >
+          <button onClick={() => router.push('/portal/delivery')} className="mt-4 px-4 py-2 bg-brand-green text-black rounded-lg">
             Back to Deliveries
           </button>
         </div>
@@ -239,30 +282,24 @@ export default function DeliveryDetailPage() {
     );
   }
 
-  const config = statusConfig[ticket.status] || { label: ticket.status, color: 'bg-white/50' };
-  const nextAction = getNextAction(ticket.status);
+  const currentStage = ticket.pipelineStage;
+  const stageConfig = getStageConfig(currentStage);
+  const nextStage = getNextStage(currentStage);
 
   // Notes View
   if (view === 'notes') {
     return (
       <div className="min-h-screen bg-neutral-900">
         <div className="bg-neutral-800 border-b border-neutral-700 p-4">
-          <button
-            onClick={() => setView('detail')}
-            className="flex items-center gap-2 text-neutral-400 hover:text-white"
-          >
-            <ArrowLeft size={20} />
-            Back to Delivery
+          <button onClick={() => setView('detail')} className="flex items-center gap-2 text-neutral-400 hover:text-white">
+            <ArrowLeft size={20} /> Back to Delivery
           </button>
         </div>
-
         <div className="p-4 space-y-6">
           <div className="text-center">
             <MessageSquare className="mx-auto text-brand-green mb-4" size={48} />
             <h2 className="text-xl font-bold text-white">Delivery Notes</h2>
-            <p className="text-neutral-400 mt-2">Add any notes about this delivery</p>
           </div>
-
           <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-4">
             <textarea
               value={deliveryNotes}
@@ -272,17 +309,11 @@ export default function DeliveryDetailPage() {
               className="w-full bg-neutral-700 border border-neutral-600 rounded-lg px-4 py-3 text-white resize-none"
             />
           </div>
-
           <button
-            onClick={() => {
-              handleWorkflowAction('complete-delivery');
-              setView('detail');
-            }}
-            disabled={isUpdating}
-            className="w-full bg-brand-green hover:bg-lime-400 disabled:bg-neutral-700 text-black font-bold py-4 rounded-xl flex items-center justify-center gap-2"
+            onClick={() => setView('detail')}
+            className="w-full bg-brand-green hover:bg-lime-400 text-black font-bold py-4 rounded-xl flex items-center justify-center gap-2"
           >
-            {isUpdating ? <Loader2 className="animate-spin" size={20} /> : <CheckCircle2 size={20} />}
-            Save Notes
+            <CheckCircle2 size={20} /> Save Notes
           </button>
         </div>
       </div>
@@ -294,16 +325,11 @@ export default function DeliveryDetailPage() {
     return (
       <div className="min-h-screen bg-neutral-900">
         <div className="bg-neutral-800 border-b border-neutral-700 p-4">
-          <button
-            onClick={() => setView('detail')}
-            className="flex items-center gap-2 text-neutral-400 hover:text-white"
-          >
-            <ArrowLeft size={20} />
-            Back to Delivery
+          <button onClick={() => setView('detail')} className="flex items-center gap-2 text-neutral-400 hover:text-white">
+            <ArrowLeft size={20} /> Back to Delivery
           </button>
           <h1 className="text-lg font-bold text-white mt-3">Delivery Checklist</h1>
         </div>
-
         <div className="p-4 space-y-2">
           {checklist.map(item => (
             <div
@@ -318,21 +344,16 @@ export default function DeliveryDetailPage() {
                 <Square className="text-neutral-500 flex-shrink-0 mt-0.5" size={20} />
               )}
               <div className="flex-1">
-                <p className={`font-medium ${item.completedAt ? 'text-green-400' : 'text-white'}`}>
-                  {item.description}
-                </p>
+                <p className={`font-medium ${item.completedAt ? 'text-green-400' : 'text-white'}`}>{item.description}</p>
                 {item.completedAt && (
                   <p className="text-neutral-500 text-xs mt-1">
                     Completed {new Date(item.completedAt).toLocaleString()} by {item.completedBy}
                   </p>
                 )}
-                {item.required && !item.completedAt && (
-                  <span className="text-red-400 text-xs">Required</span>
-                )}
+                {item.required && !item.completedAt && <span className="text-red-400 text-xs">Required</span>}
               </div>
             </div>
           ))}
-
           {checklist.length === 0 && (
             <div className="text-center py-12">
               <ClipboardCheck className="mx-auto text-neutral-600" size={48} />
@@ -346,54 +367,85 @@ export default function DeliveryDetailPage() {
 
   // Main Detail View
   return (
-    <div className="min-h-screen bg-neutral-900 pb-24">
+    <div className="min-h-screen bg-neutral-900 pb-28">
       {/* Header */}
       <div className="bg-neutral-800 border-b border-neutral-700 p-4 sticky top-0 z-10">
-        <button
-          onClick={() => router.push('/portal/delivery')}
-          className="flex items-center gap-2 text-neutral-400 hover:text-white mb-3"
-        >
-          <ArrowLeft size={20} />
-          Back to Deliveries
+        <button onClick={() => router.push('/portal/delivery')} className="flex items-center gap-2 text-neutral-400 hover:text-white mb-3">
+          <ArrowLeft size={20} /> Back to Deliveries
         </button>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-lg font-bold text-white">{ticket.jobName}</h1>
             <p className="text-sm text-neutral-400">{ticket.ticketId}</p>
           </div>
-          <span className={`px-3 py-1 rounded-full text-sm font-medium text-white ${config.color}`}>
-            {config.label}
+          <span className={`px-3 py-1 rounded-full text-sm font-bold ${stageConfig.bgColor} ${stageConfig.color} border ${stageConfig.borderColor}`}>
+            {stageConfig.shortLabel}
           </span>
         </div>
       </div>
 
-      {/* Progress Steps */}
-      <div className="bg-neutral-800 border-b border-neutral-700 p-4 overflow-x-auto">
-        <div className="flex gap-2 min-w-max">
-          {workflowSteps.map((step, idx) => {
-            const currentIdx = getCurrentStepIndex(ticket.status);
-            const isCompleted = ticket.status === 'materials_pulled' ? idx < 0 : idx <= currentIdx;
-            const isCurrent = ticket.status === step.status ||
-              (ticket.status === 'materials_pulled' && idx === 0);
-
-            return (
-              <div
-                key={step.status}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
-                  isCompleted ? 'bg-green-500/20 text-green-400' :
-                  isCurrent ? 'bg-brand-green/20 text-brand-green' :
-                  'bg-neutral-700 text-neutral-500'
-                }`}
-              >
-                <step.icon size={16} />
-                <span className="text-xs font-medium whitespace-nowrap">{step.label}</span>
-              </div>
-            );
-          })}
-        </div>
+      {/* 18-Stage Pipeline Tracker */}
+      <div className="bg-neutral-800/50 border-b border-neutral-700 p-4">
+        <DeliveryPipeline
+          currentStage={currentStage}
+          onAdvance={handleAdvanceStage}
+          compact={true}
+          timestamps={ticket.stageTimestamps}
+          photos={ticket.stagePhotos}
+        />
       </div>
 
       <div className="p-4 space-y-4">
+        {/* Photo Requirements Banner */}
+        {stageConfig.requiresPhoto && (
+          <div className={`rounded-xl border-2 p-4 ${
+            (ticket.stagePhotos[currentStage] ?? 0) > 0
+              ? 'bg-green-500/10 border-green-500/30'
+              : 'bg-amber-500/10 border-amber-500/30 animate-pulse'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Camera size={24} className={
+                  (ticket.stagePhotos[currentStage] ?? 0) > 0 ? 'text-green-400' : 'text-amber-400'
+                } />
+                <div>
+                  <p className={`font-bold text-sm ${
+                    (ticket.stagePhotos[currentStage] ?? 0) > 0 ? 'text-green-400' : 'text-amber-400'
+                  }`}>
+                    {(ticket.stagePhotos[currentStage] ?? 0) > 0
+                      ? `${ticket.stagePhotos[currentStage]} photo(s) uploaded`
+                      : 'Photo required for this step'}
+                  </p>
+                  <p className="text-xs text-neutral-500">{stageConfig.description}</p>
+                </div>
+              </div>
+              <button
+                onClick={handlePhotoUpload}
+                disabled={photoUploading}
+                className="px-4 py-2 bg-brand-green text-black rounded-lg font-bold text-sm hover:brightness-90 disabled:opacity-50 flex items-center gap-2"
+              >
+                {photoUploading ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
+                {photoUploading ? 'Uploading...' : 'Take Photo'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* GPS Banner */}
+        {stageConfig.requiresGPS && (
+          <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-3 flex items-center gap-3">
+            <MapPinned size={20} className="text-blue-400" />
+            <div>
+              <p className="text-blue-400 text-sm font-medium">GPS will be captured automatically</p>
+              {ticket.gpsLocations[currentStage] && (
+                <p className="text-xs text-blue-400/60">
+                  Last: {ticket.gpsLocations[currentStage]}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-3">
           <NavigateButton
@@ -408,8 +460,7 @@ export default function DeliveryDetailPage() {
             href={`tel:${ticket.customerPhone}`}
             className="bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2"
           >
-            <Phone size={20} />
-            Call Customer
+            <Phone size={20} /> Call Customer
           </a>
         </div>
 
@@ -421,18 +472,9 @@ export default function DeliveryDetailPage() {
               <User size={18} className="text-neutral-500" />
               {ticket.customerName}
             </div>
-            <a
-              href={`tel:${ticket.customerPhone}`}
-              className="flex items-center gap-3 text-brand-green"
-            >
-              <Phone size={18} />
-              {ticket.customerPhone}
+            <a href={`tel:${ticket.customerPhone}`} className="flex items-center gap-3 text-brand-green">
+              <Phone size={18} /> {ticket.customerPhone}
             </a>
-            {ticket.customerEmail && (
-              <div className="flex items-center gap-3 text-neutral-400 text-sm">
-                {ticket.customerEmail}
-              </div>
-            )}
           </div>
         </div>
 
@@ -443,9 +485,7 @@ export default function DeliveryDetailPage() {
             <MapPin size={18} className="text-neutral-500 mt-0.5" />
             <div>
               <p className="text-neutral-300">{ticket.jobAddress}</p>
-              <p className="text-neutral-400 text-sm">
-                {ticket.city}, {ticket.state} {ticket.zip}
-              </p>
+              <p className="text-neutral-400 text-sm">{ticket.city}, {ticket.state} {ticket.zip}</p>
             </div>
           </div>
         </div>
@@ -460,9 +500,7 @@ export default function DeliveryDetailPage() {
                   <p className="text-white text-sm">{item.productName}</p>
                   {item.sku && <p className="text-neutral-500 text-xs">{item.sku}</p>}
                 </div>
-                <div className="text-right">
-                  <p className="text-white font-medium">{item.quantity} {item.unit}</p>
-                </div>
+                <p className="text-white font-medium">{item.quantity} {item.unit}</p>
               </div>
             ))}
             {(!ticket.materials || ticket.materials.length === 0) && (
@@ -477,61 +515,27 @@ export default function DeliveryDetailPage() {
           )}
         </div>
 
-        {/* Timeline */}
+        {/* Full Pipeline Detail View */}
         <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-4">
-          <h3 className="font-semibold text-white mb-3">Timeline</h3>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-neutral-400">Scheduled</span>
-              <span className="text-white">{ticket.scheduledTime || ticket.scheduledDate || 'TBD'}</span>
-            </div>
-            {ticket.loadVerifiedAt && (
-              <div className="flex justify-between">
-                <span className="text-neutral-400">Load Verified</span>
-                <span className="text-white">{new Date(ticket.loadVerifiedAt).toLocaleTimeString()}</span>
-              </div>
-            )}
-            {ticket.departedAt && (
-              <div className="flex justify-between">
-                <span className="text-neutral-400">Departed</span>
-                <span className="text-white">{new Date(ticket.departedAt).toLocaleTimeString()}</span>
-              </div>
-            )}
-            {ticket.arrivedAt && (
-              <div className="flex justify-between">
-                <span className="text-neutral-400">Arrived</span>
-                <span className="text-white">{new Date(ticket.arrivedAt).toLocaleTimeString()}</span>
-              </div>
-            )}
-            {ticket.deliveredAt && (
-              <div className="flex justify-between">
-                <span className="text-neutral-400">Delivered</span>
-                <span className="text-white">{new Date(ticket.deliveredAt).toLocaleTimeString()}</span>
-              </div>
-            )}
-            {ticket.completedAt && (
-              <div className="flex justify-between">
-                <span className="text-neutral-400">Completed</span>
-                <span className="text-white">{new Date(ticket.completedAt).toLocaleTimeString()}</span>
-              </div>
-            )}
-          </div>
+          <h3 className="font-semibold text-white mb-3">Delivery Pipeline</h3>
+          <DeliveryPipeline
+            currentStage={currentStage}
+            onAdvance={handleAdvanceStage}
+            compact={false}
+            showDetails={true}
+            timestamps={ticket.stageTimestamps}
+            photos={ticket.stagePhotos}
+          />
         </div>
 
         {/* Action Buttons */}
         <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={() => setView('checklist')}
-            className="bg-neutral-800 border border-neutral-700 rounded-xl p-4 text-center hover:bg-neutral-700"
-          >
+          <button onClick={() => setView('checklist')} className="bg-neutral-800 border border-neutral-700 rounded-xl p-4 text-center hover:bg-neutral-700">
             <ClipboardCheck className="mx-auto text-blue-400 mb-2" size={24} />
             <span className="text-white text-sm">Checklist</span>
             <span className="text-neutral-500 text-xs block">{checklist.filter(c => c.completedAt).length}/{checklist.length} done</span>
           </button>
-          <button
-            onClick={() => setView('notes')}
-            className="bg-neutral-800 border border-neutral-700 rounded-xl p-4 text-center hover:bg-neutral-700"
-          >
+          <button onClick={() => setView('notes')} className="bg-neutral-800 border border-neutral-700 rounded-xl p-4 text-center hover:bg-neutral-700">
             <MessageSquare className="mx-auto text-purple-400 mb-2" size={24} />
             <span className="text-white text-sm">Notes</span>
             <span className="text-neutral-500 text-xs block">{ticket.deliveryNotes ? 'Has notes' : 'Add notes'}</span>
@@ -539,17 +543,12 @@ export default function DeliveryDetailPage() {
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <button
-            className="bg-neutral-800 border border-neutral-700 rounded-xl p-4 text-center hover:bg-neutral-700"
-          >
+          <button onClick={handlePhotoUpload} disabled={photoUploading} className="bg-neutral-800 border border-neutral-700 rounded-xl p-4 text-center hover:bg-neutral-700">
             <Camera className="mx-auto text-brand-green mb-2" size={24} />
             <span className="text-white text-sm">Take Photo</span>
             <span className="text-neutral-500 text-xs block">{ticket.photoCount} uploaded</span>
           </button>
-          <button
-            onClick={() => router.push('/portal/delivery/route')}
-            className="bg-neutral-800 border border-neutral-700 rounded-xl p-4 text-center hover:bg-neutral-700"
-          >
+          <button onClick={() => router.push('/portal/delivery/route')} className="bg-neutral-800 border border-neutral-700 rounded-xl p-4 text-center hover:bg-neutral-700">
             <Route className="mx-auto text-orange-400 mb-2" size={24} />
             <span className="text-white text-sm">View Route</span>
             <span className="text-neutral-500 text-xs block">Plan deliveries</span>
@@ -558,13 +557,13 @@ export default function DeliveryDetailPage() {
       </div>
 
       {/* Fixed Bottom Action */}
-      {nextAction && (
+      {nextStage && (
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-neutral-900 border-t border-neutral-700 safe-area-pb">
           <button
-            onClick={() => handleWorkflowAction(nextAction.action)}
+            onClick={() => handleAdvanceStage(nextStage)}
             disabled={isUpdating}
             className={`w-full font-bold py-4 rounded-xl flex items-center justify-center gap-2 ${
-              nextAction.status === 'completed'
+              nextStage === 'JOB_CLOSED'
                 ? 'bg-green-600 hover:bg-green-500 text-white'
                 : 'bg-brand-green hover:bg-lime-400 text-black'
             } disabled:bg-neutral-700 disabled:text-neutral-500`}
@@ -572,9 +571,12 @@ export default function DeliveryDetailPage() {
             {isUpdating ? (
               <Loader2 className="animate-spin" size={20} />
             ) : (
-              <nextAction.icon size={20} />
+              <ChevronRight size={20} />
             )}
-            {nextAction.label}
+            {getStageConfig(nextStage).actionLabel}
+            {getStageConfig(currentStage).requiresPhoto && !(ticket.stagePhotos[currentStage] ?? 0) && (
+              <span className="text-xs opacity-70 ml-2">(photo recommended)</span>
+            )}
           </button>
         </div>
       )}

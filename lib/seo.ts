@@ -253,11 +253,26 @@ export function generateLocalBusinessSchema() {
         '@id': 'https://en.wikipedia.org/wiki/Cullman,_Alabama',
       },
       {
+        '@type': 'City',
+        name: 'Hartselle',
+        '@id': 'https://en.wikipedia.org/wiki/Hartselle,_Alabama',
+      },
+      {
+        '@type': 'City',
+        name: 'Florence',
+        '@id': 'https://en.wikipedia.org/wiki/Florence,_Alabama',
+      },
+      {
+        '@type': 'City',
+        name: 'Moulton',
+        '@id': 'https://en.wikipedia.org/wiki/Moulton,_Alabama',
+      },
+      {
         '@type': 'State',
         name: 'Alabama',
       },
     ],
-    priceRange: '$$$',
+    priceRange: '$$',
     currenciesAccepted: 'USD',
     paymentAccepted: 'Cash, Credit Card, Check, Financing',
     openingHours: 'Mo-Fr 08:00-17:00',
@@ -384,11 +399,31 @@ export function generateServiceSchema(params: {
     '@type': 'Service',
     name: params.name,
     description: params.description,
-    provider: generateOrganizationSchema(),
-    areaServed: {
-      '@type': 'State',
-      name: 'Alabama',
+    provider: {
+      '@type': 'RoofingContractor',
+      name: siteConfig.name,
+      '@id': `${siteConfig.url}#organization`,
+      telephone: siteConfig.phone,
+      address: {
+        '@type': 'PostalAddress',
+        ...siteConfig.address,
+      },
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: '5.0',
+        reviewCount: '47',
+        bestRating: '5',
+        worstRating: '1',
+      },
     },
+    areaServed: [
+      { '@type': 'City', name: 'Decatur', containedInPlace: { '@type': 'State', name: 'Alabama' } },
+      { '@type': 'City', name: 'Huntsville', containedInPlace: { '@type': 'State', name: 'Alabama' } },
+      { '@type': 'City', name: 'Madison', containedInPlace: { '@type': 'State', name: 'Alabama' } },
+      { '@type': 'City', name: 'Athens', containedInPlace: { '@type': 'State', name: 'Alabama' } },
+      { '@type': 'City', name: 'Hartselle', containedInPlace: { '@type': 'State', name: 'Alabama' } },
+      { '@type': 'City', name: 'Cullman', containedInPlace: { '@type': 'State', name: 'Alabama' } },
+    ],
     serviceType: params.name,
     url: params.url,
     ...(params.image && {
@@ -452,14 +487,6 @@ export function generateWebSiteSchema() {
     description: siteConfig.description,
     publisher: {
       '@id': `${siteConfig.url}/#organization`,
-    },
-    potentialAction: {
-      '@type': 'SearchAction',
-      target: {
-        '@type': 'EntryPoint',
-        urlTemplate: `${siteConfig.url}/search?q={search_term_string}`,
-      },
-      'query-input': 'required name=search_term_string',
     },
   };
 }

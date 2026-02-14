@@ -83,7 +83,6 @@ export async function POST(request: NextRequest) {
         if (isJobNimbusConfigured()) {
           jobSyncService.syncToJobNimbus(jobId).then(syncResult => {
             if (syncResult.success) {
-              console.log(`[Job ${jobId}] Auto-synced to JN: ${syncResult.message}`);
             } else {
               console.warn(`[Job ${jobId}] JN auto-sync failed: ${syncResult.message}`);
             }
@@ -129,7 +128,6 @@ export async function POST(request: NextRequest) {
           if (isJobNimbusConfigured()) {
             jobSyncService.syncToJobNimbus(data.jobId).then(syncResult => {
               if (syncResult.success) {
-                console.log(`[Job ${data.jobId}] Status change synced to JN: ${oldStatus} -> ${data.jobStatus}`);
               } else {
                 console.warn(`[Job ${data.jobId}] JN status sync failed: ${syncResult.message}`);
               }

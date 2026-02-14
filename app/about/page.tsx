@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Mail, Phone, Award, Shield, Users, CheckCircle2, ArrowRight } from 'lucide-react';
 import { teamMembers } from '@/lib/teamData';
 import VideoBackground from '@/components/VideoBackground';
-import { generateMetadata as genMeta } from '@/lib/seo';
+import { generateMetadata as genMeta, generateAboutPageSchema, generateBreadcrumbSchema } from '@/lib/seo';
+import StructuredData from '@/components/StructuredData';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = genMeta({
@@ -15,8 +16,15 @@ export const metadata: Metadata = genMeta({
 });
 
 export default async function AboutPage() {
+  const aboutSchema = generateAboutPageSchema();
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: 'About Us', url: '/about' },
+  ]);
+
   return (
     <div className="min-h-screen">
+      <StructuredData data={[aboutSchema, breadcrumbSchema]} />
       {/* Hero Section */}
       <section className="min-h-[50vh] flex items-center justify-center">
         <div className="container mx-auto px-4 text-center text-white">

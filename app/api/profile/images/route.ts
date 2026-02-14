@@ -1,12 +1,13 @@
 /**
  * Profile Images API Route
- * Handles image uploads for sales rep profiles using Vercel Blob
+ * Handles image/video uploads for sales rep profiles using Vercel Blob
+ * Approval metadata is stored in profile-image-metadata.json
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth-service';
-import { put, del, list } from '@vercel/blob';
+import { requireAuth, requireAdmin } from '@/lib/auth-service';
 import { ProfileImage } from '@/lib/profile-types';
+import { readImageMetadata, saveImageMetadata } from '@/lib/portal-images';
 
 // Generate unique ID
 function generateId(): string {
@@ -24,40 +25,21 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const repSlug = searchParams.get('repSlug');
-    const type = searchParams.get('type') as ProfileImage['type'] | null;
     const pending = searchParams.get('pending') === 'true';
 
-    // List blobs from Vercel Blob storage
-    const { blobs } = await list({
-      prefix: repSlug ? `profiles/${repSlug}/` : 'profiles/',
-    });
+    let images = await readImageMetadata();
 
-    // Filter and map to ProfileImage structure
-    let images: ProfileImage[] = blobs.map((blob) => {
-      // Parse metadata from pathname: profiles/{repSlug}/{type}/{filename}
-      const parts = blob.pathname.split('/');
-      const imgType = (parts[2] || 'profile') as ProfileImage['type'];
-
-      return {
-        id: blob.pathname,
-        type: imgType,
-        url: blob.url,
-        thumbnailUrl: blob.url, // Vercel Blob doesn't auto-generate thumbnails
-        filename: parts[parts.length - 1],
-        uploadedAt: blob.uploadedAt.toISOString(),
-        uploadedBy: '', // Would need to store this separately
-        approved: true, // Default to approved for now
-      };
-    });
-
-    // Filter by type if specified
-    if (type) {
-      images = images.filter((img) => img.type === type);
+    // Filter by rep slug
+    if (repSlug) {
+      images = images.filter(img => {
+        const parts = img.id.split('/');
+        return parts[1] === repSlug;
+      });
     }
 
     // Filter pending only (for admin view)
     if (pending) {
-      images = images.filter((img) => !img.approved);
+      images = images.filter(img => !img.approved);
     }
 
     return NextResponse.json({
@@ -68,11 +50,7 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     console.error('Error listing profile images:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to list images',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      },
+      { success: false, error: 'Failed to list images' },
       { status: 500 }
     );
   }
@@ -80,7 +58,7 @@ export async function GET(req: NextRequest) {
 
 /**
  * POST /api/profile/images
- * Upload a new profile image
+ * Upload a new profile image or video
  */
 export async function POST(req: NextRequest) {
   const auth = await requireAuth();
@@ -94,72 +72,87 @@ export async function POST(req: NextRequest) {
     const uploadedBy = formData.get('uploadedBy') as string || 'unknown';
 
     if (!file) {
-      return NextResponse.json(
-        { success: false, error: 'No file provided' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: 'No file provided' }, { status: 400 });
     }
-
     if (!repSlug) {
+      return NextResponse.json({ success: false, error: 'Rep slug is required' }, { status: 400 });
+    }
+
+    // Validate file type (images + videos)
+    const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/quicktime'];
+    const allAllowed = [...allowedImageTypes, ...allowedVideoTypes];
+
+    if (!allAllowed.includes(file.type)) {
       return NextResponse.json(
-        { success: false, error: 'Rep slug is required' },
+        { success: false, error: 'Invalid file type. Allowed: JPEG, PNG, WebP, MP4, WebM, MOV' },
         { status: 400 }
       );
     }
 
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid file type. Allowed: JPEG, PNG, WebP' },
-        { status: 400 }
-      );
-    }
-
-    // Validate file size (max 10MB)
-    const maxSize = 10 * 1024 * 1024;
+    // Validate file size (10MB for images, 50MB for videos)
+    const isVideo = allowedVideoTypes.includes(file.type);
+    const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
     if (file.size > maxSize) {
       return NextResponse.json(
-        { success: false, error: 'File too large. Maximum size: 10MB' },
+        { success: false, error: `File too large. Maximum: ${isVideo ? '50MB' : '10MB'}` },
         { status: 400 }
       );
     }
 
+    // Auto-set type to 'video' for video files
+    const effectiveType = isVideo ? 'video' as ProfileImage['type'] : imageType;
+
     // Generate filename
-    const ext = file.name.split('.').pop() || 'jpg';
+    const ext = file.name.split('.').pop() || (isVideo ? 'mp4' : 'jpg');
     const filename = `${generateId()}.${ext}`;
-    const pathname = `profiles/${repSlug}/${imageType}/${filename}`;
+    const pathname = `profiles/${repSlug}/${effectiveType}/${filename}`;
 
     // Upload to Vercel Blob
-    const blob = await put(pathname, file, {
-      access: 'public',
-      contentType: file.type,
-    });
+    let blobUrl: string;
+    try {
+      const { put } = await import('@vercel/blob');
+      const blob = await put(pathname, file, {
+        access: 'public',
+        contentType: file.type,
+      });
+      blobUrl = blob.url;
+    } catch {
+      // Fallback: save locally for dev
+      const fs = await import('fs');
+      const path = await import('path');
+      const uploadDir = path.join(process.cwd(), 'public', 'uploads', repSlug, effectiveType);
+      fs.mkdirSync(uploadDir, { recursive: true });
+      const buffer = Buffer.from(await file.arrayBuffer());
+      fs.writeFileSync(path.join(uploadDir, filename), buffer);
+      blobUrl = `/uploads/${repSlug}/${effectiveType}/${filename}`;
+    }
 
     const imageData: ProfileImage = {
       id: pathname,
-      type: imageType,
-      url: blob.url,
-      thumbnailUrl: blob.url,
+      type: effectiveType,
+      url: blobUrl,
+      thumbnailUrl: blobUrl,
       filename,
       uploadedAt: new Date().toISOString(),
       uploadedBy,
-      approved: false, // Require admin approval for new uploads
+      approved: false, // Requires admin approval
     };
+
+    // Save to metadata store
+    const allImages = await readImageMetadata();
+    allImages.push(imageData);
+    await saveImageMetadata(allImages);
 
     return NextResponse.json({
       success: true,
       image: imageData,
-      message: 'Image uploaded successfully. Pending admin approval.',
+      message: `${isVideo ? 'Video' : 'Image'} uploaded successfully. Pending admin approval.`,
     });
   } catch (error) {
     console.error('Error uploading profile image:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to upload image',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      },
+      { success: false, error: 'Failed to upload file' },
       { status: 500 }
     );
   }
@@ -167,10 +160,10 @@ export async function POST(req: NextRequest) {
 
 /**
  * PATCH /api/profile/images
- * Approve or update image metadata
+ * Approve or update image metadata (admin only)
  */
 export async function PATCH(req: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireAdmin();
   if (!auth.authenticated) return auth.response;
 
   try {
@@ -178,30 +171,33 @@ export async function PATCH(req: NextRequest) {
     const { imageId, approved, approvedBy } = body;
 
     if (!imageId) {
-      return NextResponse.json(
-        { success: false, error: 'Image ID is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: 'Image ID is required' }, { status: 400 });
     }
 
-    // For now, we just return success
-    // In a real implementation, you'd update a database record
+    const images = await readImageMetadata();
+    const idx = images.findIndex(img => img.id === imageId);
+
+    if (idx === -1) {
+      return NextResponse.json({ success: false, error: 'Image not found' }, { status: 404 });
+    }
+
+    if (approved !== undefined) {
+      images[idx].approved = approved;
+      images[idx].approvedAt = new Date().toISOString();
+      images[idx].approvedBy = approvedBy || 'Admin';
+    }
+
+    await saveImageMetadata(images);
+
     return NextResponse.json({
       success: true,
       message: approved ? 'Image approved' : 'Image updated',
-      imageId,
-      approved,
-      approvedBy,
-      approvedAt: new Date().toISOString(),
+      image: images[idx],
     });
   } catch (error) {
     console.error('Error updating profile image:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to update image',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      },
+      { success: false, error: 'Failed to update image' },
       { status: 500 }
     );
   }
@@ -220,14 +216,21 @@ export async function DELETE(req: NextRequest) {
     const imageUrl = searchParams.get('url');
 
     if (!imageUrl) {
-      return NextResponse.json(
-        { success: false, error: 'Image URL is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: 'Image URL is required' }, { status: 400 });
     }
 
     // Delete from Vercel Blob
-    await del(imageUrl);
+    try {
+      const { del } = await import('@vercel/blob');
+      await del(imageUrl);
+    } catch {
+      // Local dev - ignore blob errors
+    }
+
+    // Remove from metadata store
+    const images = await readImageMetadata();
+    const filtered = images.filter(img => img.url !== imageUrl);
+    await saveImageMetadata(filtered);
 
     return NextResponse.json({
       success: true,
@@ -236,11 +239,7 @@ export async function DELETE(req: NextRequest) {
   } catch (error) {
     console.error('Error deleting profile image:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to delete image',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      },
+      { success: false, error: 'Failed to delete image' },
       { status: 500 }
     );
   }

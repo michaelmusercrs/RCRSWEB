@@ -2,12 +2,13 @@
  * Training Progress API Route
  *
  * GET  - Get training progress for a user (query: ?userId=xxx)
- * POST - Record training completion
+ * POST - Record training completion (with optional server-side grading for onboarding quizzes)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { googleSheetsService } from '@/lib/google-sheets-service';
+import { gradeOnboardingQuiz, ONBOARDING_QUIZ_ANSWERS } from '@/lib/onboarding-quiz-answers';
 
 /**
  * GET /api/portal/training?userId=xxx
@@ -47,7 +48,11 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/portal/training
  * Records a training module completion.
+ *
  * Body: { userId, userName, moduleId, moduleName, score, passed, completedAt }
+ *
+ * For onboarding modules (moduleId starts with "onboard_"), if `answers` is provided,
+ * the server grades the quiz and ignores client-provided score/passed.
  */
 export async function POST(request: NextRequest) {
   const auth = await requireAuth();
@@ -61,13 +66,29 @@ export async function POST(request: NextRequest) {
     for (const field of required) {
       if (!body[field]) {
         return NextResponse.json(
-          {
-            success: false,
-            error: `Missing required field: ${field}`,
-          },
+          { success: false, error: `Missing required field: ${field}` },
           { status: 400 }
         );
       }
+    }
+
+    let score: number;
+    let passed: boolean;
+
+    // Server-side grading for onboarding quizzes when answers are provided
+    if (
+      body.moduleId.startsWith('onboard_') &&
+      body.answers &&
+      typeof body.answers === 'object' &&
+      ONBOARDING_QUIZ_ANSWERS[body.moduleId]
+    ) {
+      const result = gradeOnboardingQuiz(body.moduleId, body.answers);
+      score = result.score;
+      passed = result.passed;
+    } else {
+      // Trust client-provided score (for non-quiz completions like "mark complete")
+      score = parseInt(String(body.score ?? '100'), 10);
+      passed = body.passed === true || body.passed === 'true';
     }
 
     const record: Record<string, string> = {
@@ -76,8 +97,8 @@ export async function POST(request: NextRequest) {
       userName: body.userName,
       moduleId: body.moduleId,
       moduleName: body.moduleName,
-      score: String(body.score ?? '100'),
-      passed: String(body.passed ?? true),
+      score: String(score),
+      passed: String(passed),
       completedAt: body.completedAt || new Date().toISOString(),
     };
 
@@ -96,7 +117,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       record,
-      message: 'Training completion recorded successfully',
+      score,
+      passed,
+      message: passed
+        ? 'Training completion recorded successfully'
+        : 'Quiz submitted. Review the material and try again.',
     });
   } catch (error) {
     console.error('Error recording training completion:', error);

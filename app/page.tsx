@@ -74,7 +74,7 @@ export default function HomePage() {
             phrases={[
               "Local Professionals",
               "Family Owned",
-              "5-Star Rated",
+              "★★★★★ Rated",
               "Licensed & Insured",
               "Storm Damage Experts"
             ]}

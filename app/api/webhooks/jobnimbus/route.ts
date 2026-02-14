@@ -115,9 +115,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    console.log(`JN Webhook received: ${event}`, { jnid: data?.jnid });
-
     switch (event) {
       case 'contact.created':
       case 'contact.updated': {
@@ -129,7 +126,6 @@ export async function POST(request: NextRequest) {
         if (data?.sales_rep_name) {
           const teamMember = matchRepToTeamMember(data.sales_rep_name);
           if (teamMember) {
-            console.log(`JN contact ${data.jnid} matched to rep: ${teamMember.name} (${teamMember.slug})`);
           } else {
             console.warn(`JN contact ${data.jnid} has unmatched rep: ${data.sales_rep_name}`);
           }
@@ -159,7 +155,6 @@ export async function POST(request: NextRequest) {
             status: data.status || '',
           }).then(result => {
             if (result) {
-              console.log(`Geocoded JN contact ${data.jnid}: ${result.lat}, ${result.lng}`);
             }
           }).catch(err => {
             console.warn(`Failed to geocode JN contact ${data.jnid}:`, err);
@@ -171,13 +166,10 @@ export async function POST(request: NextRequest) {
       case 'job.created':
       case 'job.updated': {
         const portalStatus = data?.status ? JN_TO_PORTAL_STATUS[data.status] || data.status : 'unknown';
-        console.log(`Job ${event}: ${data?.jnid} - JN Status: ${data?.status} -> Portal: ${portalStatus}`);
-
         // Match sales rep
         if (data?.sales_rep_name) {
           const teamMember = matchRepToTeamMember(data.sales_rep_name);
           if (teamMember) {
-            console.log(`JN job ${data.jnid} matched to rep: ${teamMember.name} (${teamMember.slug})`);
           }
         }
         break;
@@ -185,21 +177,17 @@ export async function POST(request: NextRequest) {
 
       case 'estimate.created':
       case 'estimate.updated':
-        console.log(`Estimate ${event}: ${data?.jnid} - Total: $${data?.total || 0}`);
         break;
 
       case 'note.created':
       case 'activity.created':
-        console.log(`Activity ${event}: ${data?.jnid} on contact ${data?.primary?.jnid}`);
         break;
 
       case 'invoice.created':
       case 'invoice.updated':
-        console.log(`Invoice ${event}: ${data?.jnid} - Amount: $${data?.amount || 0}`);
         break;
 
       default:
-        console.log(`Unhandled JN webhook event: ${event}`);
     }
 
     return NextResponse.json({ received: true });
