@@ -13,6 +13,16 @@ const nextConfig = {
         ],
       },
       {
+        // Uploaded files (images, documents)
+        source: '/uploads/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
         // Next.js static chunks and assets
         source: '/_next/static/:path*',
         headers: [
