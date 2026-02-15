@@ -1128,7 +1128,7 @@ export default function ChatPage() {
                       className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-zinc-700 transition-colors text-sm"
                     >
                       {member.imageUrl ? (
-                        <Image src={member.imageUrl} alt="" width={24} height={24} className="w-6 h-6 rounded-full" />
+                        <Image src={member.imageUrl} alt={`${member.nickname} profile`} width={24} height={24} className="w-6 h-6 rounded-full" />
                       ) : (
                         <div className="w-6 h-6 rounded-full bg-zinc-600 flex items-center justify-center text-[10px] font-bold">
                           {getInitials(member.nickname)}
@@ -1284,7 +1284,7 @@ export default function ChatPage() {
                           }`}
                         >
                           {member.imageUrl ? (
-                            <img src={member.imageUrl} alt="" className="w-6 h-6 rounded-full object-cover" />
+                            <Image src={member.imageUrl} alt={`${member.nickname} profile`} width={24} height={24} className="w-6 h-6 rounded-full object-cover" unoptimized />
                           ) : (
                             <div className="w-6 h-6 rounded-full bg-zinc-700 flex items-center justify-center text-[10px] font-bold">
                               {getInitials(member.nickname)}

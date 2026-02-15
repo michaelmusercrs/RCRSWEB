@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Phone, MessageSquare, Calendar, FileText, MapPin, Clock, User,
   Loader2, ArrowLeft, Mail, Home, Send, Camera,
@@ -377,7 +378,7 @@ function RoofReportTab({ contactAddress, contactJnid }: { contactAddress: string
       {/* Satellite Image */}
       {roofReport.satelliteImageUrl && (
         <div className="bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden">
-          <img src={roofReport.satelliteImageUrl} alt="Satellite view" className="w-full max-h-60 object-cover" />
+          <Image src={roofReport.satelliteImageUrl} alt="Satellite view of customer roof" width={800} height={240} className="w-full max-h-60 object-cover" unoptimized />
         </div>
       )}
 

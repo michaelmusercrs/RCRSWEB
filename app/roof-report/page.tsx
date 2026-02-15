@@ -291,7 +291,7 @@ function PhotoUpload({
           {photos.map(photo => (
             <div key={photo.id} className="bg-zinc-800/50 border border-zinc-700 rounded-lg overflow-hidden">
               <div className="relative aspect-[4/3]">
-                <img src={photo.preview} alt={photo.label} className="w-full h-full object-cover" />
+                <Image src={photo.preview} alt={photo.label} fill className="object-cover" unoptimized />
                 <button onClick={(e) => { e.stopPropagation(); onRemove(photo.id); }}
                   className="absolute top-1 right-1 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors">
                   <X className="w-3 h-3" />
@@ -497,7 +497,7 @@ function OnSiteEnhancement({
                   <div key={idx} className="bg-white/[0.03] border border-white/[0.06] rounded-xl overflow-hidden">
                     {photo ? (
                       <div className="relative aspect-[4/3]">
-                        <img src={photo.preview} alt={pos.label} className="w-full h-full object-cover" />
+                        <Image src={photo.preview} alt={pos.label} fill className="object-cover" unoptimized />
                         <button onClick={() => setOnsitePhotos(prev => prev.filter(p => p.id !== photo.id))}
                           className="absolute top-1 right-1 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center hover:bg-red-600">
                           <X className="w-3 h-3" />
@@ -891,7 +891,7 @@ export default function RoofReportPage() {
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 {r.images.satellite && (
                   <div className="relative aspect-square rounded-xl overflow-hidden border border-white/[0.06] md:col-span-1">
-                    <img src={r.images.satellite} alt="Satellite View" className="w-full h-full object-cover" />
+                    <Image src={r.images.satellite} alt="Satellite view of roof" fill className="object-cover" unoptimized />
                     <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-2">
                       <span className="text-xs flex items-center gap-1"><Satellite className="w-3 h-3" /> Satellite</span>
                     </div>
@@ -899,7 +899,7 @@ export default function RoofReportPage() {
                 )}
                 {r.images.streetView.slice(0, 4).map((img, i) => (
                   <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-white/[0.06]">
-                    <img src={img} alt={`Street View ${['N','E','S','W'][i]}`} className="w-full h-full object-cover" />
+                    <Image src={img} alt={`Street view facing ${['North','East','South','West'][i]}`} fill className="object-cover" unoptimized />
                     <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-2">
                       <span className="text-xs flex items-center gap-1"><Eye className="w-3 h-3" /> {['North','East','South','West'][i]}</span>
                     </div>

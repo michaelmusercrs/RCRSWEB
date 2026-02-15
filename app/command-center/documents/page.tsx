@@ -8,6 +8,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import NextImage from 'next/image';
 import {
   FileText,
   Image,
@@ -489,10 +490,13 @@ export default function DocumentManagementPage() {
               <div className="col-span-4">
                 <div className="flex items-start gap-3">
                   {doc.thumbnailUrl ? (
-                    <img
+                    <NextImage
                       src={doc.thumbnailUrl}
-                      alt=""
+                      alt={`${doc.filename} document thumbnail`}
+                      width={48}
+                      height={48}
                       className="w-12 h-12 rounded-lg object-cover"
+                      unoptimized
                     />
                   ) : (
                     <div className={cn("w-12 h-12 rounded-lg flex items-center justify-center", config.bgColor)}>

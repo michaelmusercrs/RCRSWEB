@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import Image from 'next/image';
 import {
   MessageSquare, Send, X, Loader2, Minimize2, Maximize2, ChevronDown,
   Hash, User, Users, MessageCircle, ArrowLeft
@@ -498,7 +499,7 @@ export default function ChatWidget() {
                       className="w-full text-left px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-zinc-800 transition-colors"
                     >
                       {member.imageUrl ? (
-                        <img src={member.imageUrl} alt="" className="w-7 h-7 rounded-full object-cover" />
+                        <Image src={member.imageUrl} alt={`${member.nickname} profile`} width={28} height={28} className="w-7 h-7 rounded-full object-cover" unoptimized />
                       ) : (
                         <div className="w-7 h-7 rounded-full bg-zinc-700 flex items-center justify-center text-[10px] font-bold text-zinc-300">
                           {getInitials(member.nickname)}

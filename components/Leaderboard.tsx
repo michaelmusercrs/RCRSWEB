@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { Trophy, Medal, Award, Flame, TrendingUp, User, Crown } from 'lucide-react';
 import { useTraining, USER_ROLES } from '@/lib/training-context';
 
@@ -86,7 +87,7 @@ export default function Leaderboard({ compact = false, showUserComparison = true
             <div className="text-center flex-1 max-w-32">
               <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-gray-300 to-gray-500 flex items-center justify-center mb-2 ring-4 ring-gray-400/30">
                 {leaderboard[1].avatar ? (
-                  <img src={leaderboard[1].avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                  <Image src={leaderboard[1].avatar} alt={`${leaderboard[1].name} avatar`} width={64} height={64} className="w-full h-full rounded-full object-cover" unoptimized />
                 ) : (
                   <User className="text-gray-700" size={28} />
                 )}
@@ -105,7 +106,7 @@ export default function Leaderboard({ compact = false, showUserComparison = true
               <Crown className="mx-auto text-yellow-400 mb-1" size={24} />
               <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center mb-2 ring-4 ring-yellow-400/50 shadow-lg shadow-yellow-500/25">
                 {leaderboard[0].avatar ? (
-                  <img src={leaderboard[0].avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                  <Image src={leaderboard[0].avatar} alt={`${leaderboard[0].name} avatar`} width={80} height={80} className="w-full h-full rounded-full object-cover" unoptimized />
                 ) : (
                   <User className="text-yellow-900" size={32} />
                 )}
@@ -129,7 +130,7 @@ export default function Leaderboard({ compact = false, showUserComparison = true
             <div className="text-center flex-1 max-w-32">
               <div className="w-14 h-14 mx-auto rounded-full bg-gradient-to-br from-orange-500 to-orange-700 flex items-center justify-center mb-2 ring-4 ring-orange-500/30">
                 {leaderboard[2].avatar ? (
-                  <img src={leaderboard[2].avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                  <Image src={leaderboard[2].avatar} alt={`${leaderboard[2].name} avatar`} width={56} height={56} className="w-full h-full rounded-full object-cover" unoptimized />
                 ) : (
                   <User className="text-orange-200" size={24} />
                 )}
@@ -245,7 +246,7 @@ export default function Leaderboard({ compact = false, showUserComparison = true
               </div>
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-neutral-600 to-neutral-800 flex items-center justify-center overflow-hidden">
                 {entry.avatar ? (
-                  <img src={entry.avatar} alt="" className="w-full h-full object-cover" />
+                  <Image src={entry.avatar} alt={`${entry.name} avatar`} width={40} height={40} className="w-full h-full object-cover" unoptimized />
                 ) : (
                   <User className="text-neutral-400" size={20} />
                 )}

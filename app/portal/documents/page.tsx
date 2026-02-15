@@ -8,6 +8,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import NextImage from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
   FileText,
@@ -719,10 +720,13 @@ export default function RepDocumentsPage() {
                   {/* Document preview/icon */}
                   <div className={cn("h-32 flex items-center justify-center", config.bgColor)}>
                     {doc.thumbnailUrl ? (
-                      <img
+                      <NextImage
                         src={doc.thumbnailUrl}
-                        alt=""
+                        alt={`${doc.originalName} document thumbnail`}
+                        width={400}
+                        height={128}
                         className="w-full h-full object-cover"
+                        unoptimized
                       />
                     ) : (
                       <Icon className={config.color} size={48} />

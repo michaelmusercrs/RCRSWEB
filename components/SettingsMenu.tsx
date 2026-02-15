@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Settings, Sun, Moon, Monitor, User, GraduationCap, Bell,
   ChevronRight, LogOut, Award, Flame, X, Camera, Check
@@ -71,7 +72,7 @@ export default function SettingsMenu() {
               >
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-green to-emerald-600 flex items-center justify-center overflow-hidden">
                   {settings.profileImage ? (
-                    <img src={settings.profileImage} alt="Profile" className="w-full h-full object-cover" />
+                    <Image src={settings.profileImage} alt="User profile photo" width={48} height={48} className="w-full h-full object-cover" unoptimized />
                   ) : (
                     <User className="text-black" size={24} />
                   )}
@@ -252,7 +253,7 @@ export default function SettingsMenu() {
               <div className="flex items-center gap-4">
                 <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-brand-green to-emerald-600 flex items-center justify-center overflow-hidden">
                   {settings.profileImage ? (
-                    <img src={settings.profileImage} alt="Profile" className="w-full h-full object-cover" />
+                    <Image src={settings.profileImage} alt="User profile photo" width={80} height={80} className="w-full h-full object-cover" unoptimized />
                   ) : (
                     <User className="text-black" size={32} />
                   )}
