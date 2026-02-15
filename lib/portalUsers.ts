@@ -157,7 +157,7 @@ const portalUsers: PortalUserAccount[] = [
     role: 'ADMIN',
     active: true,
     passwordHash: '87f6d05a2295c0ea609771ad7228199c:6174072ef6542a9a16764b870d71672c2d39d9ccf0ab7cf72d4e5be2683443a91f53992b31a0b3ab1d3970dcd128612efb47136afa88fb5497d23f44c2e1b050',
-    pin: '0000',
+    pin: undefined, // SECURITY: Admin accounts should not have PIN login
     createdAt: '2024-01-01T00:00:00Z',
     loginHistory: []
   },
@@ -221,8 +221,9 @@ export function validateLogin(identifier: string, password: string): { success: 
     return { success: false, error: 'Account is inactive' };
   }
 
-  // PIN-based login (driver quick login)
-  if (user.pin === identifier) {
+  // PIN-based login (driver quick login) — PIN is the password itself
+  // When identifier matches a PIN, the password param must also match the PIN
+  if (user.pin === identifier && password === identifier) {
     return { success: true, user };
   }
 

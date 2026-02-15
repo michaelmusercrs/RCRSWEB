@@ -49,19 +49,10 @@ export function generateSessionId(): string {
   return `sess_${Date.now()}_${Math.random().toString(36).substr(2, 12)}`;
 }
 
-// Default temporary passwords for team members (should be changed on first login)
-// Email format: firstname@rivercityroofingsolutions.com (except Michael & Chris use firstlast@)
-export const DEFAULT_TEMP_PASSWORDS: Record<string, string> = {
-  'michael': 'Admin2024!',   // michaelmuse@rivercityroofingsolutions.com
-  'sara': 'Admin2024!',       // sara@rivercityroofingsolutions.com
-  'tia': 'Office2024!',       // tia@rivercityroofingsolutions.com
-  'destin': 'Office2024!',    // destin@rivercityroofingsolutions.com
-  'john': 'PM2024John!',      // john@rivercityroofingsolutions.com
-  'bart': 'PM2024Bart!',      // bart@rivercityroofingsolutions.com
-  'rick': '',                 // Uses PIN (rick@rivercityroofingsolutions.com)
-  'tae': '',                  // Uses PIN (tae@rivercityroofingsolutions.com)
-  'chris': 'View2024!',       // chrismuse@rivercityroofingsolutions.com
-};
+// SECURITY: Temporary passwords are generated randomly per-session, never hardcoded.
+// Users must change their password on first login.
+// Previous hardcoded passwords have been removed for security.
+export const DEFAULT_TEMP_PASSWORDS: Record<string, string> = {};
 
 // User credentials store (in production, this would be in a database)
 let userCredentials: Map<string, UserCredentials> = new Map();
@@ -108,8 +99,9 @@ export function authenticateUser(email: string, password: string): LoginResult {
     return { success: false, message: `Account locked. Try again in ${minutesLeft} minutes.` };
   }
 
-  // Check password
-  const isValid = credentials.tempPassword === password || credentials.passwordHash === hashPassword(password);
+  // Check password — verify against hash (timing-safe) or temp password
+  const isValid = (credentials.tempPassword && credentials.tempPassword === password) ||
+                  (credentials.passwordHash ? verifyPasswordHash(password, credentials.passwordHash) : false);
 
   if (!isValid) {
     // Increment login attempts
@@ -183,7 +175,8 @@ export function changePassword(userId: string, currentPassword: string, newPassw
   }
 
   // Verify current password
-  const isValid = credentials.tempPassword === currentPassword || credentials.passwordHash === hashPassword(currentPassword);
+  const isValid = (credentials.tempPassword && credentials.tempPassword === currentPassword) ||
+                  (credentials.passwordHash ? verifyPasswordHash(currentPassword, credentials.passwordHash) : false);
   if (!isValid) {
     return { success: false, message: 'Current password is incorrect' };
   }
@@ -229,15 +222,26 @@ export function resetPassword(userId: string): { success: boolean; tempPassword?
   };
 }
 
-// Simple hash function (in production, use bcrypt or similar)
+// SECURITY: Use PBKDF2 for password hashing (sha512, 100k iterations)
 function hashPassword(password: string): string {
-  let hash = 0;
-  for (let i = 0; i < password.length; i++) {
-    const char = password.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
+  const crypto = require('crypto');
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
+  return `${salt}:${hash}`;
+}
+
+// Verify password against PBKDF2 hash
+function verifyPasswordHash(password: string, storedHash: string): boolean {
+  if (!storedHash.includes(':')) return false;
+  const crypto = require('crypto');
+  const [salt, hash] = storedHash.split(':');
+  if (!salt || !hash) return false;
+  const candidateHash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
+  try {
+    return crypto.timingSafeEqual(Buffer.from(candidateHash, 'hex'), Buffer.from(hash, 'hex'));
+  } catch {
+    return false;
   }
-  return `hash_${Math.abs(hash).toString(36)}`;
 }
 
 // Get all users for admin view
