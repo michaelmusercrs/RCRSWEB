@@ -210,16 +210,20 @@ function calculateMaterials(report: RoofReport) {
 
 function ProgressSteps({ step, hasPhotos }: { step: number; hasPhotos: boolean }) {
   const steps = [
-    { icon: '📡', text: 'Connecting to satellite imagery services...' },
-    { icon: '🛰️', text: 'Pulling high-resolution satellite imagery...' },
-    { icon: '🏠', text: 'Capturing street-level views...' },
+    { icon: '📡', text: 'Hacking into Sputnik... just kidding. Connecting to satellite services...' },
+    { icon: '🛰️', text: 'Borrowing Putin\'s spy satellites for a better view...' },
+    { icon: '🇮🇳', text: 'India\'s got eyes on your roof now too...' },
+    { icon: '🇨🇳', text: 'China\'s lunar rover is zooming in from the dark side of the moon...' },
+    { icon: '📠', text: 'Zimbabwe just sent a telegraph — they see it too...' },
+    { icon: '🏛️', text: 'The Pentagon has classified your roof as "interesting"...' },
+    { icon: '✈️', text: 'Redirecting an F-35 flyover for thermal imaging...' },
     { icon: '🤖', text: 'AI analysis pass 1 — measuring roof geometry...' },
     { icon: '🔍', text: 'AI verification pass — cross-checking measurements...' },
-    { icon: '🦙', text: 'Local AI backup analysis running...' },
+    { icon: '🦙', text: 'Local AI backup — the llama is doing math...' },
     { icon: '📊', text: 'Building consensus from multiple AI models...' },
     ...(hasPhotos ? [
-      { icon: '📸', text: 'Processing on-site photographs...' },
-      { icon: '🔬', text: 'Photo-enhanced AI analysis in progress...' },
+      { icon: '📸', text: 'Processing your on-site photos...' },
+      { icon: '🔬', text: 'Photo-enhanced AI analysis — CSI: Roofing Edition...' },
       { icon: '📐', text: 'Refining measurements with photo data...' },
       { icon: '✅', text: 'Finalizing enhanced report...' },
     ] : []),

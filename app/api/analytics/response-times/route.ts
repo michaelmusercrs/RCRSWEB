@@ -15,8 +15,13 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeResponseTimes, AnalyticsFilters } from '@/lib/lead-response-analysis';
+import { requireAuth } from '@/lib/auth-service';
 
 export async function GET(request: NextRequest) {
+  // SECURITY: Require authentication — internal analytics data
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   const timestamp = new Date().toISOString();
 
   try {

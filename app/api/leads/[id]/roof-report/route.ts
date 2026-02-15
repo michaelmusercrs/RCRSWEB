@@ -9,17 +9,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { roofReportService } from '@/lib/roof-report-service';
 import { leadPortalService } from '@/lib/lead-portal-service';
+import { requireAuth } from '@/lib/auth-service';
 
 export const maxDuration = 900; // roof measurement can take a while
 
 // ---------------------------------------------------------------------------
-// GET - Fetch existing roof reports for this lead
+// GET - Fetch existing roof reports for a specific lead
+// SECURITY: Requires authentication to prevent IDOR on lead data
 // ---------------------------------------------------------------------------
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const { id: leadId } = await params;
     if (!leadId) {
@@ -97,6 +102,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const { id: leadId } = await params;
     if (!leadId) {
@@ -170,6 +178,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const body = await request.json();
     const { reportId, isPublic, sharedBy } = body;

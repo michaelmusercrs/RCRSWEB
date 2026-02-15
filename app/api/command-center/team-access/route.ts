@@ -43,7 +43,8 @@ export async function GET() {
         email: member.email,
         phone: member.phone || '',
         role: member.role,
-        pin: member.pin || '',
+        // NOTE: PINs are authentication secrets — never expose via API
+        hasPin: !!(member.pin),
         isActive: member.isActive,
         defaultAccess,
         overrides: memberOverrides,
@@ -67,7 +68,7 @@ export async function GET() {
       email: member.email,
       phone: member.phone || '',
       role: member.role,
-      pin: member.pin || '',
+      hasPin: !!(member.pin),
       isActive: member.isActive,
       defaultAccess: COMMAND_CENTER_ACCESS[member.role] || [],
       overrides: {},

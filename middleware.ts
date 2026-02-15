@@ -148,9 +148,43 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Rule 2: API routes work on BOTH domains
+  // Rule 2: API routes work on BOTH domains — with CORS enforcement
   if (isApiRoute(pathname)) {
-    return NextResponse.next();
+    const origin = request.headers.get('origin') || '';
+    const response = NextResponse.next();
+
+    // CORS: Only allow known origins in production
+    const allowedOrigins = [
+      'https://www.rivercityroofingsolutions.com',
+      'https://rivercityroofingsolutions.com',
+      'https://rcrsal.com',
+      'https://www.rcrsal.com',
+    ];
+
+    if (allowedOrigins.includes(origin)) {
+      response.headers.set('Access-Control-Allow-Origin', origin);
+      response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      response.headers.set('Access-Control-Max-Age', '86400');
+    }
+
+    // Handle preflight
+    if (request.method === 'OPTIONS') {
+      if (allowedOrigins.includes(origin)) {
+        return new NextResponse(null, {
+          status: 204,
+          headers: {
+            'Access-Control-Allow-Origin': origin,
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+            'Access-Control-Max-Age': '86400',
+          },
+        });
+      }
+      return new NextResponse(null, { status: 403 });
+    }
+
+    return response;
   }
 
   // Rule 4: /my/[token] customer portal works on BOTH domains

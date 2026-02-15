@@ -11,15 +11,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stormReportService, StormReport } from '@/lib/storm-report-service';
 import { leadPortalService } from '@/lib/lead-portal-service';
+import { requireAuth } from '@/lib/auth-service';
 
 // ---------------------------------------------------------------------------
 // GET - Fetch existing storm reports for this lead
+// SECURITY: Requires authentication to prevent IDOR on lead data
 // ---------------------------------------------------------------------------
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const { id: leadId } = await params;
 
@@ -102,6 +107,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const { id: leadId } = await params;
 

@@ -48,7 +48,7 @@ export default function RootLayout({
   const combinedSchemas = [localBusinessSchema, webSiteSchema];
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         {/* Structured Data (JSON-LD) - LocalBusiness and WebSite schemas */}
         <script
@@ -80,7 +80,7 @@ export default function RootLayout({
         <meta name="msapplication-tap-highlight" content="no" />
         <meta name="format-detection" content="telephone=no" />
       </head>
-      <body className={inter.className}>
+      <body className={inter.className} suppressHydrationWarning>
         {/* Google Tag Manager / Analytics with Consent Mode */}
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}

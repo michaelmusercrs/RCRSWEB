@@ -885,9 +885,7 @@ function buildResponse(
 // ── GET Handler ────────────────────────────────────────────────────────────
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
-  if (!auth.authenticated) return auth.response;
-
+  // Public endpoint — no auth required (customer-facing roof measurement tool)
   const address = request.nextUrl.searchParams.get('address');
   if (!address) return NextResponse.json({ error: 'address parameter required' }, { status: 400 });
   if (!GOOGLE_KEY) return NextResponse.json({ error: 'Google Maps API key not configured' }, { status: 500 });
@@ -903,9 +901,7 @@ export async function GET(request: NextRequest) {
 // ── POST Handler ───────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
-  if (!auth.authenticated) return auth.response;
-
+  // Public endpoint — no auth required (customer-facing roof measurement tool)
   if (!GOOGLE_KEY) return NextResponse.json({ error: 'Google Maps API key not configured' }, { status: 500 });
 
   try {

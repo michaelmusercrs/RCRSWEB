@@ -85,7 +85,16 @@ class PortalSharingService {
 
   // Set admin-level global defaults
   setGlobalDefaults(categories: Partial<SharingSettings['categories']>): void {
-    Object.assign(DEFAULT_SHARING, categories);
+    // Only assign known keys to prevent prototype pollution
+    const validKeys: (keyof SharingSettings['categories'])[] = [
+      'estimate', 'checklist', 'invoice', 'photos',
+      'insuranceSummary', 'warranty', 'contract', 'inspection',
+    ];
+    for (const key of validKeys) {
+      if (key in categories) {
+        DEFAULT_SHARING[key] = categories[key]!;
+      }
+    }
   }
 
   // Get global defaults
