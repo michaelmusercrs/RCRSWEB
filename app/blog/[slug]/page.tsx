@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { blogPosts, blogMetadata } from '@/lib/blogData';
+import { blogPosts } from '@/lib/blogData';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Calendar, User, ArrowLeft, ArrowRight } from 'lucide-react';

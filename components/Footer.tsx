@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Phone, Mail, MapPin, Facebook, Instagram, Clock, Shield, CheckCircle, Loader2 } from 'lucide-react';
+import { Phone, Mail, MapPin, Facebook, Instagram, Clock, Shield, CheckCircle } from 'lucide-react';
 
 function FooterEmailCapture() {
   const [email, setEmail] = useState('');

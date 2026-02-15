@@ -7,7 +7,7 @@ import {
   Mail, Edit2, Trash2, CheckCircle2, AlertCircle, Eye, EyeOff,
   RefreshCw, Loader2, User, Copy
 } from 'lucide-react';
-import { TEAM_MEMBERS, type TeamRole, ROLE_DISPLAY_NAMES, ROLE_COLORS } from '@/lib/team-roles';
+import { type TeamRole, ROLE_DISPLAY_NAMES, ROLE_COLORS } from '@/lib/team-roles';
 import {
   getAllUsers, resetPassword, unlockUser, createUser, deactivateUser,
   DEFAULT_TEMP_PASSWORDS, generateTempPassword

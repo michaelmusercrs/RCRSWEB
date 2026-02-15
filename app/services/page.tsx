@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { getPrimaryServices, getAdditionalServices, services } from '@/lib/servicesData';
 import { Home, Wrench, Building2, CloudRain, Flame, Shield, Search, AlertTriangle, Droplet, Wind, Paintbrush, ArrowRight, CheckCircle2 } from 'lucide-react';
-import VideoBackground from '@/components/VideoBackground';
 import StructuredData from '@/components/StructuredData';
 import { generateMetadata as genMeta, generateCollectionPageSchema, generateBreadcrumbSchema } from '@/lib/seo';
 import type { Metadata } from 'next';

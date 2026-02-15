@@ -10,7 +10,7 @@ import {
   getMonthlySummary,
   InventoryTransaction
 } from '@/lib/inventoryTransactions';
-import { inventoryProducts, getProductById } from '@/lib/inventoryData';
+import { getProductById } from '@/lib/inventoryData';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth();

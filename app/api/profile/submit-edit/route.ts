@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { profileApprovalService, ProfileChanges } from '@/lib/profile-approval-service';
-import { teamMembers, getTeamMember } from '@/lib/teamData';
+import { teamMembers } from '@/lib/teamData';
 import { TEAM_MEMBERS } from '@/lib/team-roles';
 
 // POST /api/profile/submit-edit

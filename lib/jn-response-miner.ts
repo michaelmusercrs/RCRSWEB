@@ -5,7 +5,6 @@
 
 import { jobNimbusService, isJobNimbusConfigured } from './jobnimbus-service';
 import { matchRepToTeamMember } from './jn-sync-engine';
-import { TEAM_MEMBERS } from './team-roles';
 import { GoogleSpreadsheet } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
 

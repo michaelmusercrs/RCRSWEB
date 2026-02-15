@@ -2,8 +2,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Phone, MapPin, Clock, Shield, Award, Users, CheckCircle2, ArrowRight, CloudLightning } from 'lucide-react';
-import AnimatedHeroText from '@/components/AnimatedHeroText';
+import { MapPin, Shield, Award, Users, CheckCircle2, ArrowRight, CloudLightning } from 'lucide-react';
+
 import RotatingText from '@/components/RotatingText';
 import StructuredData from '@/components/StructuredData';
 import { generateFAQSchema, generateHomepageStructuredData } from '@/lib/seo';

@@ -16,12 +16,12 @@ import {
   googleSheetsService,
   GeocodedContactRecord,
 } from './google-sheets-service';
-import { stormReportService, StormReport } from './storm-report-service';
-import { leadDistributionService, RepScore } from './lead-distribution-service';
+import { stormReportService } from './storm-report-service';
+import { leadDistributionService } from './lead-distribution-service';
 import { leadResponseTimerService } from './lead-response-timer';
 import { leadPortalService } from './lead-portal-service';
 import { jnSyncEngine } from './jn-sync-engine';
-import { jobNimbusService, isJobNimbusConfigured } from './jobnimbus-service';
+import { isJobNimbusConfigured } from './jobnimbus-service';
 
 // ---------------------------------------------------------------------------
 // Types

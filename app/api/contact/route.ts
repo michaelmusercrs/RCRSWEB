@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { calculateLeadScore, formatLeadForEmail } from '@/lib/lead-tracker';
+import { calculateLeadScore } from '@/lib/lead-tracker';
 import { groupMeService, getGroupMeConfigFromEnv } from '@/lib/groupme-service';
 import { portalGenerator } from '@/lib/portal-generator';
 import { leadPortalService } from '@/lib/lead-portal-service';
-import { apiError, getErrorMessage } from '@/lib/api-response';
+import { apiError } from '@/lib/api-response';
 import { createFormRateLimiter, withRateLimit } from '@/lib/rate-limiter';
 
 const contactRateLimiter = createFormRateLimiter();

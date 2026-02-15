@@ -10,8 +10,8 @@
  * by source, month, and pipeline stage.
  */
 
-import { googleSheetsService, LeadResponseLogRecord } from './google-sheets-service';
-import { jnResponseMiner, RepResponseStats } from './jn-response-miner';
+import { googleSheetsService } from './google-sheets-service';
+import { jnResponseMiner } from './jn-response-miner';
 import { isJobNimbusConfigured } from './jobnimbus-service';
 import { TEAM_MEMBERS } from './team-roles';
 import commissionsData from '@/data/commissions.json';

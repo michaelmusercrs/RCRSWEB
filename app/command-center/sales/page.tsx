@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { StatCard, DataTable, LoadingSpinner, Column } from '@/components/command-center';
 import { ResponseTimeDashboard } from '@/components/command-center/ResponseTimeDashboard';
-import { SalesCompetitionCard, getCurrentPeriod } from '@/components/command-center/SalesCompetition';
+import { SalesCompetitionCard } from '@/components/command-center/SalesCompetition';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
 

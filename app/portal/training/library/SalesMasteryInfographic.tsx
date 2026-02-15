@@ -1,6 +1,6 @@
 'use client';
 
-import { MapPin, TrendingUp, Target, DollarSign, CloudRain, Users, Zap } from 'lucide-react';
+import { MapPin, TrendingUp, Target, DollarSign, CloudRain, Zap } from 'lucide-react';
 
 const regionData = [
   { name: 'Huntsville Metro', homes: 45000, saturation: 18, avgDealSize: 12800 },

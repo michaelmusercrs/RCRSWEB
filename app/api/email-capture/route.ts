@@ -9,7 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { googleSheetsService, isGoogleSheetsConfigured } from '@/lib/google-sheets-service';
+import { isGoogleSheetsConfigured } from '@/lib/google-sheets-service';
 import { rateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {

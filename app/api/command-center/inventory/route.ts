@@ -17,9 +17,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
-import { GoogleSpreadsheet, GoogleSpreadsheetRow } from 'google-spreadsheet';
+import { GoogleSpreadsheet } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
-import { Role, isValidRole, ROLE_HIERARCHY } from '@/types/roles';
+import { Role, isValidRole } from '@/types/roles';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { inventoryProducts, InventoryProduct } from '@/lib/inventoryData';

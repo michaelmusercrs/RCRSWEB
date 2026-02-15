@@ -8,7 +8,6 @@ import { rateLimit } from '@/lib/rate-limit';
 import { requireAuth } from '@/lib/auth-service';
 import { portalGenerator, LeadData } from '@/lib/portal-generator';
 import { leadPortalService } from '@/lib/lead-portal-service';
-import { groupMeService, getGroupMeConfigFromEnv } from '@/lib/groupme-service';
 import { teamMembers } from '@/lib/teamData';
 import { geocodingService, GeocodedContact } from '@/lib/geocoding-service';
 import { geocodeAndSaveContact } from '@/lib/geocode-sync';

@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
+
 import {
   Phone, MessageSquare, Calendar, FileText, MapPin, Clock, User,
   ChevronRight, Loader2, LogOut, Home, Search, Filter, Plus,

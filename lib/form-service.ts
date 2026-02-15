@@ -3,7 +3,6 @@
  * All forms go to Google Sheets + Email notification
  */
 
-import { cmsSheetsService } from './cms-sheets-service';
 
 const COMPANY_EMAIL = 'rivercityroofingsolutions@gmail.com';
 

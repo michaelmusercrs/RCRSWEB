@@ -3,7 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { MapPin, Phone, Clock, CheckCircle2, Award, Shield } from 'lucide-react';
+import { MapPin, Clock, CheckCircle2, Award, Shield } from 'lucide-react';
 import StructuredData from '@/components/StructuredData';
 import { generateMetadata as genMeta, generateFAQSchema, generateBreadcrumbSchema, siteConfig } from '@/lib/seo';
 

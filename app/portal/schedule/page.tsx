@@ -16,7 +16,7 @@ import {
   ExternalLink, X, Phone, Briefcase, Users, Eye,
   Navigation, Route, CheckCircle2, AlertCircle,
 } from 'lucide-react';
-import { TEAM_MEMBERS, getDrivers, getProjectManagers } from '@/lib/team-roles';
+import { TEAM_MEMBERS } from '@/lib/team-roles';
 import CreateAppointmentForm from '@/components/calendar/CreateAppointmentForm';
 
 // Unified calendar event type from /api/calendar/events

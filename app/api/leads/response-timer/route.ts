@@ -10,7 +10,7 @@ import { requireAuth } from '@/lib/auth-service';
 import { leadResponseTimerService } from '@/lib/lead-response-timer';
 import { leadPortalService } from '@/lib/lead-portal-service';
 import { riverBot } from '@/lib/river-bot-service';
-import { TEAM_MEMBERS, getSalesReps } from '@/lib/team-roles';
+import { TEAM_MEMBERS } from '@/lib/team-roles';
 import { leadDistributionService } from '@/lib/lead-distribution-service';
 
 export async function GET(request: NextRequest) {

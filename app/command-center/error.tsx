@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
-import { AlertTriangle, RefreshCw, Home, ArrowLeft, Command } from 'lucide-react';
+import { AlertTriangle, RefreshCw, ArrowLeft, Command } from 'lucide-react';
 
 /**
  * Error boundary for Command Center

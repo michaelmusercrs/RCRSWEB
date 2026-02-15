@@ -3,7 +3,7 @@
 
 import crypto from 'crypto';
 import { teamMembers, TeamMember } from './teamData';
-import { customerPortalService, CustomerPortalAccess } from './customer-portal-service';
+import { CustomerPortalAccess } from './customer-portal-service';
 
 export interface LeadData {
   // Required fields

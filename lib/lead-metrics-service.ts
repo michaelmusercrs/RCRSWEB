@@ -8,7 +8,7 @@ import {
   LeadResponseLogRecord,
   RepAvailabilityRecord,
 } from '@/lib/google-sheets-service';
-import { getSalesReps, TeamMember } from '@/lib/team-roles';
+import { getSalesReps } from '@/lib/team-roles';
 import { leadResponseTimerService, TimerState } from '@/lib/lead-response-timer';
 
 // =============================================================================

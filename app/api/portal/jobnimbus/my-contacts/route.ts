@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { isJobNimbusConfigured } from '@/lib/jobnimbus-service';
-import { jnSyncEngine, matchRepToTeamMember } from '@/lib/jn-sync-engine';
+import { jnSyncEngine } from '@/lib/jn-sync-engine';
 import { TEAM_MEMBERS } from '@/lib/team-roles';
 
 export async function GET(request: NextRequest) {

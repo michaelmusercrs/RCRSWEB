@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 import { Phone, Menu, X, MessageCircle, Send, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Gift, DollarSign, Users, CheckCircle2, ArrowRight, Phone, Mail, Handshake, Building2, Award, Shield } from 'lucide-react';
+import { DollarSign, Users, CheckCircle2, ArrowRight, Phone, Mail, Handshake, Building2, Award, Shield } from 'lucide-react';
 import type { Metadata } from 'next';
 import { generateMetadata as genMeta, siteConfig, getStructuredDataScript } from '@/lib/seo';
 

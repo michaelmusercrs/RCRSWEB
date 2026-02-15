@@ -3,8 +3,7 @@
 
 import { GoogleSpreadsheet } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
-import { InventoryProduct, getProductById } from './inventoryData';
-import { jobNimbusService } from './jobnimbus-service';
+import { getProductById } from './inventoryData';
 
 // ============ TYPE DEFINITIONS ============
 

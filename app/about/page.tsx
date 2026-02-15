@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Mail, Phone, Award, Shield, Users, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Award, Shield, Users, CheckCircle2, ArrowRight } from 'lucide-react';
 import { teamMembers } from '@/lib/teamData';
-import VideoBackground from '@/components/VideoBackground';
+
 import { generateMetadata as genMeta, generateAboutPageSchema, generateBreadcrumbSchema } from '@/lib/seo';
 import StructuredData from '@/components/StructuredData';
 import type { Metadata } from 'next';

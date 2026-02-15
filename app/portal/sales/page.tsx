@@ -13,8 +13,8 @@ import {
   Activity, ArrowUpRight, ArrowDownRight,
   type LucideIcon
 } from 'lucide-react';
-import { useAuth, ROLE_DEFAULT_ROUTES } from '@/lib/auth-context';
-import { TEAM_MEMBERS, TeamRole } from '@/lib/team-roles';
+import { useAuth } from '@/lib/auth-context';
+import { TeamRole } from '@/lib/team-roles';
 import WeeklyNumbersWidget from '@/components/portal/WeeklyNumbersWidget';
 
 // =============================================================================

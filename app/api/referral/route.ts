@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { apiError, getErrorMessage } from '@/lib/api-response';
+import { apiError } from '@/lib/api-response';
 import { createFormRateLimiter, withRateLimit } from '@/lib/rate-limiter';
 
 const formRateLimiter = createFormRateLimiter();

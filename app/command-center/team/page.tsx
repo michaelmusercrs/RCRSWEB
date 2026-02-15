@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { hasPermission } from '@/lib/permissions';
-import { TEAM_MEMBERS, TeamMember, ROLE_DISPLAY_NAMES, ROLE_COLORS, canManageTeam } from '@/lib/team-roles';
+import { TEAM_MEMBERS, TeamMember, ROLE_DISPLAY_NAMES, canManageTeam } from '@/lib/team-roles';
 import { teamMembers as publicTeamData } from '@/lib/teamData';
 import { cn } from '@/lib/utils';
 import { TeamAccessManager } from '@/components/team-access/TeamAccessManager';

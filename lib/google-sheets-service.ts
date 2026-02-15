@@ -12,7 +12,7 @@
  * @version 2.0.0
  */
 
-import { GoogleSpreadsheet, GoogleSpreadsheetRow } from 'google-spreadsheet';
+import { GoogleSpreadsheet } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
 
 // =============================================================================

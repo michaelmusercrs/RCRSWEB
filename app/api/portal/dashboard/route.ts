@@ -1,7 +1,6 @@
-import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { getPortalDashboardStats } from '@/lib/unified-data-service';
-import { apiSuccess, apiError, getErrorMessage } from '@/lib/api-response';
+import { apiSuccess, apiError } from '@/lib/api-response';
 
 export async function GET() {
   const auth = await requireAuth();

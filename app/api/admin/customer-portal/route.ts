@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleSpreadsheet } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
-import { customerPortalService, DEFAULT_PORTAL_SETTINGS, PortalSettings } from '@/lib/customer-portal-service';
-import { jobNimbusService } from '@/lib/jobnimbus-service';
+import { customerPortalService, DEFAULT_PORTAL_SETTINGS } from '@/lib/customer-portal-service';
 import { requireAdmin } from '@/lib/auth-service';
 
 async function getDoc(): Promise<GoogleSpreadsheet> {

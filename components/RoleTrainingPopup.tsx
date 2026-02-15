@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   X, ChevronRight, ChevronLeft, CheckCircle2, BookOpen, Truck, Package,
   FileText, Users, BarChart3, Shield, Target, Phone, ArrowRight, GraduationCap,

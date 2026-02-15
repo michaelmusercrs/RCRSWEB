@@ -2,12 +2,12 @@
 // Syncs inventory data, transactions, tickets, and employees with Google Sheets
 // Last Updated: December 2025
 
-import { GoogleSpreadsheet, GoogleSpreadsheetRow } from 'google-spreadsheet';
+import { GoogleSpreadsheet } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
 import { inventoryProducts, InventoryProduct } from './inventoryData';
 import { inventoryTransactions, InventoryTransaction } from './inventoryTransactions';
 import { TEAM_MEMBERS, TeamMember as TeamRoleMember } from './team-roles';
-import { allTickets, Ticket } from './ticketsData';
+import { allTickets } from './ticketsData';
 
 // Handle private key - works with both escaped \n and actual newlines
 const privateKey = process.env.GOOGLE_PRIVATE_KEY

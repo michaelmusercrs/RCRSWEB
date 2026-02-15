@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { teamMembers } from '@/lib/teamData';
-import { ProfileImage, IMAGE_TYPE_LABELS } from '@/lib/profile-types';
+import { ProfileImage } from '@/lib/profile-types';
 
 type ImageType = ProfileImage['type'];
 type UploadType = Exclude<ImageType, 'video'>; // Videos auto-detected

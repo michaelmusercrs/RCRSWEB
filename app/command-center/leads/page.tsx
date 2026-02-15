@@ -14,7 +14,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
-import { canAdminLeadDistro, canManageLeadDistro, isSalesRole, getSalesReps } from '@/lib/team-roles';
+import { canAdminLeadDistro, getSalesReps } from '@/lib/team-roles';
 import {
   Users, TrendingUp, Clock, Timer, Target, Zap, BarChart3,
   AlertTriangle, RefreshCw, Loader2, Search, Filter, ChevronDown,

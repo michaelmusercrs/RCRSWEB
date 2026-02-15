@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { orderWorkflowService } from '@/lib/order-workflow-service';
-import { materialOrders, MaterialOrderRequest, MaterialOrderItem } from '@/lib/materialOrders';
-import { inventoryProducts, updateProductStock } from '@/lib/inventoryData';
+import { materialOrders } from '@/lib/materialOrders';
+import { updateProductStock } from '@/lib/inventoryData';
 
 // GET - Fetch orders or a single order
 export async function GET(request: NextRequest) {

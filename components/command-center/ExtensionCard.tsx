@@ -11,7 +11,7 @@
  */
 
 import * as React from 'react';
-import { Phone, Voicemail, PhoneForwarded, PhoneOff } from 'lucide-react';
+import { Phone, Voicemail, PhoneOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Extension, ExtensionStatus } from '@/lib/phone-data';
 

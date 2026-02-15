@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { GraduationCap, Heart, Users, CheckCircle2, ArrowRight, Phone, Mail, Star, School, Trophy, DollarSign } from 'lucide-react';
+import { GraduationCap, Heart, CheckCircle2, ArrowRight, Phone, Mail, School, Trophy } from 'lucide-react';
 import type { Metadata } from 'next';
 import { generateMetadata as genMeta, siteConfig, getStructuredDataScript } from '@/lib/seo';
 

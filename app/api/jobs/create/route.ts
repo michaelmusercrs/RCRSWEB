@@ -6,7 +6,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { jobSyncService, type JobRecord } from '@/lib/job-sync-service';
-import { jnSyncEngine } from '@/lib/jn-sync-engine';
 import { isJobNimbusConfigured } from '@/lib/jobnimbus-service';
 import { leadPortalService } from '@/lib/lead-portal-service';
 

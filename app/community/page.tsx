@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Heart, Users, GraduationCap, Trophy, Star, ArrowRight, Phone } from 'lucide-react';
+import { Heart, Users, GraduationCap, Trophy, ArrowRight, Phone } from 'lucide-react';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {

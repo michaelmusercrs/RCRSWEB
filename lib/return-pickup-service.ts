@@ -3,7 +3,7 @@
 // Last Updated: December 2025
 
 import { inventoryProducts, updateProductStock } from './inventoryData';
-import { getUserByUid, getUsersByRole } from './portalUsers';
+import { getUserByUid } from './portalUsers';
 import { voiceService, pushNotificationService } from './voice-notification-service';
 
 export type ReturnPickupType = 'return' | 'pickup' | 'equipment_retrieval';

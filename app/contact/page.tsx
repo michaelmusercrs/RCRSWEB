@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { generateMetadata as genMeta, generateContactPageSchema, generateBreadcrumbSchema, siteConfig } from '@/lib/seo';
+import { generateMetadata as genMeta, generateContactPageSchema, generateBreadcrumbSchema } from '@/lib/seo';
 import StructuredData from '@/components/StructuredData';
 import ContactPageClient from './ContactPageClient';
 

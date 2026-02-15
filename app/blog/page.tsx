@@ -1,10 +1,9 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { blogPosts, blogMetadata } from '@/lib/blogData';
+import { blogPosts } from '@/lib/blogData';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Calendar, User, ArrowRight } from 'lucide-react';
-import VideoBackground from '@/components/VideoBackground';
 import StructuredData from '@/components/StructuredData';
 import { generateMetadata as genMeta, generateCollectionPageSchema, generateBreadcrumbSchema } from '@/lib/seo';
 import type { Metadata } from 'next';

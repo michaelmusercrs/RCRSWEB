@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
-import { portalAuthService, WorkflowStep, WorkflowType } from '@/lib/portal-auth';
+import { portalAuthService, WorkflowType } from '@/lib/portal-auth';
 import { groupMeService, getGroupMeConfigFromEnv } from '@/lib/groupme-service';
 
 export async function GET(request: NextRequest) {

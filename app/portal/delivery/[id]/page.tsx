@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import NavigateButton from '@/components/delivery/NavigateButton';
 import DeliveryPipeline from '@/components/delivery/DeliveryPipeline';
-import { DeliveryStage, getStageConfig, getNextStage, getStageIndex, PIPELINE_STAGES } from '@/lib/delivery-pipeline';
+import { DeliveryStage, getStageConfig, getNextStage } from '@/lib/delivery-pipeline';
 
 interface MaterialItem {
   productId: string;

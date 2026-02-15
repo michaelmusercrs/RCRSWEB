@@ -5,7 +5,7 @@ import {
   X, ChevronRight, ChevronLeft, Sparkles, Bell, CheckCircle2,
   Zap, Wrench, GraduationCap, AlertTriangle, ArrowRight
 } from 'lucide-react';
-import { FeatureUpdate, getUpdatesForRole, getLatestVersion } from '@/lib/featureUpdates';
+import { getUpdatesForRole, getLatestVersion } from '@/lib/featureUpdates';
 import { TeamRole } from '@/lib/team-roles';
 
 interface FeatureUpdatesPopupProps {

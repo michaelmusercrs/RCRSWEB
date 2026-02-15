@@ -1,4 +1,4 @@
-import { GoogleSpreadsheet, GoogleSpreadsheetRow } from 'google-spreadsheet';
+import { GoogleSpreadsheet } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
 
 const SHEETS_ID = process.env.GOOGLE_SHEETS_ID;

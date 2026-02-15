@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
-import { TEAM_MEMBERS, ROLE_DISPLAY_NAMES } from '@/lib/team-roles';
+import { TEAM_MEMBERS } from '@/lib/team-roles';
 
 interface Agent {
   id: string;

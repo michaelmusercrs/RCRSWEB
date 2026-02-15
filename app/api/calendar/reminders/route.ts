@@ -24,7 +24,6 @@ import { teamupService } from '@/lib/teamup-service';
 import { jobNimbusService, isJobNimbusConfigured } from '@/lib/jobnimbus-service';
 import { schedulingService } from '@/lib/scheduling-service';
 import { appointmentService } from '@/lib/appointment-service';
-import { generateGoogleCalendarLinkFromEvent } from '@/lib/google-calendar';
 
 // ---------------------------------------------------------------------------
 // Helper: Gather events from all sources (same logic as /api/calendar/events)

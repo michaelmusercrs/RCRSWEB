@@ -3,7 +3,7 @@
 // - GET: Last sync time, records synced, sync errors
 // - POST: Manual sync trigger
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-service';
 import { isJobNimbusConfigured, jobNimbusService } from '@/lib/jobnimbus-service';
 import { jnSyncEngine } from '@/lib/jn-sync-engine';

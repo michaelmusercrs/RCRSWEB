@@ -1,8 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { jobSyncService } from '@/lib/job-sync-service';
 import { groupMeService, getGroupMeConfigFromEnv } from '@/lib/groupme-service';
-import { jnSyncEngine } from '@/lib/jn-sync-engine';
 import { isJobNimbusConfigured } from '@/lib/jobnimbus-service';
 import { apiSuccess, apiError, getErrorMessage } from '@/lib/api-response';
 

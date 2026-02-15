@@ -4,8 +4,8 @@
 // Allows office staff, managers, and admins to enter new leads
 // Features: Google Maps autocomplete, nearby contact intelligence, smart rep assignment
 
-import { useState, useEffect, useCallback } from 'react';
-import { MapPin, User, Phone, Mail, Home, Search, AlertCircle, CheckCircle, ArrowRight, QrCode, Copy, ExternalLink, Loader2, Link2, UserCheck, CloudLightning, Shield, ShieldAlert, ShieldCheck, RefreshCw } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { MapPin, User, Phone, Mail, Search, AlertCircle, CheckCircle, ArrowRight, Copy, ExternalLink, Loader2, Link2, UserCheck, CloudLightning, Shield, ShieldAlert, ShieldCheck, RefreshCw } from 'lucide-react';
 import AddressAutocomplete, { AddressResult } from '@/components/AddressAutocomplete';
 
 interface NearbyContact {

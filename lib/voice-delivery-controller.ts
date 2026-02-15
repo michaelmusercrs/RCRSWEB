@@ -3,8 +3,7 @@
 // Last Updated: December 2025
 
 import { voiceService, pushNotificationService, gpsTrackingService, driverAssistance } from './voice-notification-service';
-import { tickets, jobTickets, getTicketById, getTicketsByDriver, Ticket } from './ticketsData';
-import { inventoryProducts } from './inventoryData';
+import { tickets, getTicketById, getTicketsByDriver, Ticket } from './ticketsData';
 
 // Voice Command Types
 export type VoiceCommand =

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { ArrowUpDown, ArrowUp, ArrowDown, Pause, Lock } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface RepMetrics {

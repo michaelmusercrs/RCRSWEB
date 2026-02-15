@@ -7,7 +7,7 @@
  * @version 2.0.0
  */
 
-import { PortalRole, PortalNavItem, DashboardWidget, PortalPermission } from '../types/portal-roles';
+import { PortalRole, DashboardWidget, PortalPermission } from '../types/portal-roles';
 
 // =============================================================================
 // DASHBOARD WIDGET DEFINITIONS

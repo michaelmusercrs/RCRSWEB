@@ -3,7 +3,7 @@
 // SECURITY: Passwords are PBKDF2-hashed (sha512, 100k iterations)
 // PINs are for driver quick-login only (low-sensitivity)
 
-import { createHash, pbkdf2Sync, randomBytes, timingSafeEqual } from 'crypto';
+import { pbkdf2Sync, randomBytes, timingSafeEqual } from 'crypto';
 
 export type PortalUserRole = 'ADMIN' | 'MANAGER' | 'USER';
 

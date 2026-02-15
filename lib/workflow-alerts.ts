@@ -1,7 +1,6 @@
 // Workflow Alerts & SLA Monitoring Service
 // Handles bottleneck detection, SLA violations, and proactive notifications
 
-import { JobFlowStage, JOB_FLOW_STAGES, getStageDetails, MaterialOrderWorkflow } from './material-job-flow';
 import { DeliveryTicket, TicketStatus } from './delivery-workflow-service';
 
 export interface SLAAlert {

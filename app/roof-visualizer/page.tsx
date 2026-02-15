@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Paintbrush, ArrowRight, Phone, Eye, Palette, Home, ExternalLink, Shield, Award, CheckCircle2 } from 'lucide-react';
 import StructuredData from '@/components/StructuredData';

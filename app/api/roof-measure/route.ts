@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth-service';
 
 export const maxDuration = 900; // 15 minutes max
 export const dynamic = 'force-dynamic';

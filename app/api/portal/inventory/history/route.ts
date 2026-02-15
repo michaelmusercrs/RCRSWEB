@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { inventoryTransactions as staticTransactions, InventoryTransaction } from '@/lib/inventoryTransactions';
-import { inventoryProducts, getProductById } from '@/lib/inventoryData';
+import { getProductById } from '@/lib/inventoryData';
 import { GoogleSpreadsheet } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
 

@@ -3,7 +3,6 @@
 // Last Updated: December 2025
 
 import { Ticket, tickets, getTicketsByDriver } from './ticketsData';
-import { gpsTrackingService } from './voice-notification-service';
 
 // Huntsville, AL area coordinates (warehouse location)
 const WAREHOUSE_LOCATION = {

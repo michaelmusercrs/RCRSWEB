@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Users, ToggleLeft, ToggleRight, Clock, AlertCircle, ArrowLeft, Loader2, CheckCircle, Shield } from 'lucide-react';
+import { ToggleLeft, ToggleRight, Clock, AlertCircle, ArrowLeft, Loader2, CheckCircle, Shield } from 'lucide-react';
 
 interface RepStatus {
   repSlug: string;

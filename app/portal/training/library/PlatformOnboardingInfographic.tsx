@@ -1,6 +1,6 @@
 'use client';
 
-import { Layout, Database, ArrowRightLeft, Globe, Server, Zap } from 'lucide-react';
+import { Layout, ArrowRightLeft, Globe, Server, Zap } from 'lucide-react';
 
 const portalFeatures = [
   { name: 'Sales Portal', path: '/portal/sales', features: 6, role: 'Sales' },
