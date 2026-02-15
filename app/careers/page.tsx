@@ -401,10 +401,10 @@ export default function CareersPage() {
           }}
         />
         <div className="relative z-10 container mx-auto px-4 text-center py-20">
-          <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
+          <h1 className="text-4xl md:text-7xl font-bold text-white mb-6 leading-tight">
             Build Your Own <span className="text-brand-green">Business</span>
           </h1>
-          <h2 className="text-2xl md:text-3xl text-white/90 mb-10 max-w-3xl mx-auto leading-relaxed">
+          <h2 className="text-xl md:text-3xl text-white/90 mb-10 max-w-3xl mx-auto leading-relaxed">
             25+ years of real roofing experience. Full benefits. Unlimited earning potential. OC Preferred &amp; IKO Craftsman Premier certified.
           </h2>
           <div className="flex flex-col sm:flex-row justify-center gap-4">

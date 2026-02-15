@@ -117,8 +117,8 @@ export default function Footer() {
                 <span>(256) 274-8530</span>
               </a>
               <a href="mailto:rcrs@rivercityroofingsolutions.com" className="flex items-center gap-3 text-gray-400 hover:text-brand-green transition-colors">
-                <Mail size={18} />
-                <span className="text-sm">rcrs@rivercityroofingsolutions.com</span>
+                <Mail size={18} className="flex-shrink-0" />
+                <span className="text-sm break-all">rcrs@rivercityroofingsolutions.com</span>
               </a>
               <div className="flex items-start gap-3 text-gray-400">
                 <MapPin size={18} className="mt-0.5" />

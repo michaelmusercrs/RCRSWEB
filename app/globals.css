@@ -521,13 +521,13 @@ html {
 
 /* Ensure html and body allow scrolling at any zoom level */
 html {
-  overflow-x: auto;
+  overflow-x: hidden;
   min-width: 320px;
 }
 
 body {
   min-width: 320px;
-  overflow-x: auto;
+  overflow-x: hidden;
 }
 
 /* Global container constraints for zoom safety */

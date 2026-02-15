@@ -100,6 +100,7 @@ export default function GlobalVideoBackground({
           onError={handleVideoError}
           className="absolute inset-0 w-full h-full object-cover"
         >
+          <source src="/uploads/hero-video.webm" type="video/webm" />
           <source src={videoSrc} type="video/mp4" />
         </video>
       )}

@@ -999,7 +999,7 @@ During your free consultation, we'd be happy to show you Dynasty shingle samples
     title: "The Unsung Hero of Your Roof: The Chimney Cap",
     date: "April 15, 2025",
     author: "John",
-    image: "/uploads/blog-chimney-caps-and-crowns.png",
+    image: "/uploads/blog-chimney-caps-and-crowns.jpg",
     keywords: ["chimney cap", "chimney repair", "chimney crown", "water damage", "pest prevention"],
     excerpt: "It's a small detail, but a properly installed chimney cap plays a huge role in protecting your home from water damage and pests.",
     content: `When homeowners think about their roof, they usually focus on shingles and gutters. But there's a critical component that often gets overlooked until problems arise: the chimney cap. This unassuming metal cover sitting atop your chimney plays an outsized role in protecting your home from water damage, pests, and fire hazards. Understanding its importance—and knowing when it needs attention—can save you from expensive repairs down the road.
@@ -1213,7 +1213,7 @@ If you're thinking about selling your home in Decatur, Huntsville, Madison, or a
     title: "Summer Roof Care: Protecting Your Home in Alabama's Intense Heat",
     date: "June 3, 2025",
     author: "Chris Muse",
-    image: "/uploads/blog-summer-roof-care.png",
+    image: "/uploads/blog-summer-roof-care.jpg",
     keywords: ["summer roofing", "heat damage", "roof maintenance", "UV protection", "Alabama summer"],
     excerpt: "Alabama summers are brutal on roofs. Learn how to protect your investment from heat damage and keep your home comfortable.",
     content: `Summer in North Alabama means temperatures that regularly exceed 90 degrees, intense UV radiation, sudden afternoon thunderstorms, and the occasional severe weather event. Your roof bears the full force of these conditions. Understanding how summer affects your roof—and what you can do about it—helps protect your home and extend your roof's lifespan.
@@ -1350,7 +1350,7 @@ At River City Roofing Solutions, we help homeowners throughout North Alabama kee
     title: "Why Proper Roof Ventilation Is Critical for Your Home",
     date: "June 10, 2025",
     author: "Chris Muse",
-    image: "/uploads/blog-ventilation.png",
+    image: "/uploads/blog-ventilation.jpg",
     keywords: ["roof ventilation", "attic ventilation", "ridge vent", "soffit vent", "energy efficiency"],
     excerpt: "Poor ventilation can cut your roof's lifespan in half and spike your energy bills. Learn why airflow matters and how to improve it.",
     content: `Your roof does more than keep rain out—it's part of a complex system that regulates your home's temperature and moisture levels. At the heart of that system is ventilation, and when it's not working properly, the consequences can be expensive.
@@ -1415,7 +1415,7 @@ Don't ignore ventilation problems. The damage they cause is slow but relentless,
     title: "Preventing and Removing Algae and Moss from Your Roof",
     date: "June 17, 2025",
     author: "Chris Muse",
-    image: "/uploads/blog-algae-moss.png",
+    image: "/uploads/blog-algae-moss.jpg",
     keywords: ["roof algae", "moss removal", "black streaks", "roof cleaning", "algae resistant shingles"],
     excerpt: "Those black streaks on your roof aren't just ugly—they can shorten your roof's lifespan. Here's how to prevent and treat roof algae.",
     content: `If you've noticed dark streaks or green patches on your roof, you're not alone. Algae and moss are common problems in North Alabama's humid climate. While they won't destroy your roof overnight, left untreated they can accelerate deterioration and hurt your home's curb appeal. Here's what you need to know.
@@ -1492,7 +1492,7 @@ Don't let algae and moss diminish your home's appearance or shorten your roof's 
     title: "Energy-Efficient Roofing: Save Money and Stay Comfortable",
     date: "June 24, 2025",
     author: "Chris Muse",
-    image: "/uploads/blog-energy-efficient.png",
+    image: "/uploads/blog-energy-efficient.jpg",
     keywords: ["energy efficient roof", "cool roof", "reflective shingles", "energy savings", "green roofing"],
     excerpt: "Your roof plays a major role in your home's energy efficiency. Learn how the right roofing choices can lower your utility bills.",
     content: `In Alabama's hot, humid climate, your roof can be either your best friend or your worst enemy when it comes to energy costs. A roof that absorbs and transfers heat into your home forces your AC to work overtime. An energy-efficient roof reflects heat and keeps your home naturally cooler. Here's how to make your roof work for you, not against you.
@@ -1591,7 +1591,7 @@ At River City Roofing Solutions, we can help you evaluate your options and choos
     title: "Why Choosing a Family-Owned Roofing Company Makes All the Difference",
     date: "July 1, 2025",
     author: "Michael Muse",
-    image: "/uploads/blog-family-owned-roofer.png",
+    image: "/uploads/blog-family-owned-roofer.jpg",
     keywords: ["family-owned", "local roofer", "trusted contractor", "community business", "North Alabama roofing"],
     excerpt: "Discover why working with a family-owned roofing company means better service, accountability, and peace of mind for your home.",
     content: `When your roof needs attention—whether it's storm damage, routine maintenance, or a full replacement—you have choices. National franchises, corporate contractors, and local companies all compete for your business. So why should you choose a family-owned roofing company like River City Roofing Solutions? The answer comes down to something money can't buy: genuine care for your home and your community.
@@ -1638,7 +1638,7 @@ We invite you to experience the difference a family-owned roofing company makes.
     title: "How to Choose the Perfect Shingle Color for Your Home",
     date: "July 8, 2025",
     author: "Michael Muse",
-    image: "/uploads/blog-shingle-colors.png",
+    image: "/uploads/blog-shingle-colors.jpg",
     keywords: ["shingle colors", "roof color", "curb appeal", "home exterior", "architectural shingles"],
     excerpt: "Your roof color affects curb appeal, home value, and even energy costs. Here's how to choose the right shade for your home.",
     content: `Choosing a shingle color might seem like a simple decision, but it's one that will affect your home's appearance for decades. The right color enhances curb appeal and complements your home's style; the wrong one can make an otherwise beautiful house look disjointed. Here's how to make a choice you'll love for years to come.
@@ -1705,7 +1705,7 @@ Choosing a roof color doesn't have to be stressful. Take your time, use large sa
     title: "Metal Roofing: Pros, Cons, and Is It Right for Your Alabama Home?",
     date: "July 15, 2025",
     author: "Chris Muse",
-    image: "/uploads/blog-metal-roofing.png",
+    image: "/uploads/blog-metal-roofing.jpg",
     keywords: ["metal roofing", "standing seam", "metal roof cost", "roof longevity", "energy efficient roofing"],
     excerpt: "Metal roofs are gaining popularity in North Alabama. Here's an honest look at whether metal makes sense for your home.",
     content: `Metal roofing has come a long way from the corrugated tin barns of the past. Today's metal roofs are sleek, durable, and available in styles that complement any home. But is metal the right choice for your Alabama home? Let's look at the honest pros and cons.
@@ -1772,7 +1772,7 @@ During your free inspection, we'll discuss your goals, budget, and timeline. If 
     title: "Roofing Materials Compared: Asphalt, Metal, Tile, and More",
     date: "July 22, 2025",
     author: "Chris Muse",
-    image: "/uploads/blog-materials-compared.png",
+    image: "/uploads/blog-materials-compared.jpg",
     keywords: ["roofing materials", "asphalt vs metal", "roof types", "shingle comparison", "roofing options"],
     excerpt: "Confused by all the roofing material options? This comprehensive comparison helps you understand the pros and cons of each.",
     content: `When it's time for a new roof, one of the biggest decisions is material choice. Each roofing material has distinct advantages, disadvantages, and cost implications. This comprehensive comparison helps you understand your options and make an informed choice.
@@ -1887,7 +1887,7 @@ At River City Roofing Solutions, we work with multiple material types and can he
     title: "Skylights: Benefits, Installation, and What to Consider",
     date: "July 29, 2025",
     author: "Michael Muse",
-    image: "/uploads/blog-skylights.png",
+    image: "/uploads/blog-skylights.jpg",
     keywords: ["skylight", "roof window", "natural light", "skylight installation", "Velux skylights"],
     excerpt: "Skylights bring natural light into dark spaces, but they're also potential leak points. Here's what to know before installing.",
     content: `There's something magical about natural light streaming down from above. Skylights can transform dark hallways, windowless bathrooms, and gloomy kitchens into bright, inviting spaces. But they're also one of the most common leak points on any roof. Here's what you need to know before adding skylights to your home.
@@ -1970,7 +1970,7 @@ If you've always dreamed of natural light pouring into your home, skylights can 
     title: "New Construction Roofing: What to Know When Building Your Home",
     date: "August 5, 2025",
     author: "Michael Muse",
-    image: "/uploads/blog-new-construction.png",
+    image: "/uploads/blog-new-construction.jpg",
     keywords: ["new construction", "custom home", "roofing materials", "roof design", "building a home"],
     excerpt: "Building a new home? Learn what goes into a quality new construction roof and how to make smart decisions during the build process.",
     content: `Building a new home in North Alabama is exciting. You get to make decisions about everything from floor plans to finishes. Among those decisions, your roof is one of the most important—it protects everything underneath and significantly affects your home's appearance, energy efficiency, and long-term maintenance costs.
@@ -2145,7 +2145,7 @@ At River City Roofing Solutions, we work with builders throughout North Alabama 
     title: "Understanding Roof Warranties: What's Really Covered?",
     date: "August 12, 2025",
     author: "Michael Muse",
-    image: "/uploads/blog-warranties.png",
+    image: "/uploads/blog-warranties.jpg",
     keywords: ["roof warranty", "manufacturer warranty", "workmanship warranty", "roofing guarantee", "shingle warranty"],
     excerpt: "Roof warranties can be confusing. We break down the different types and what they actually cover so you know what to expect.",
     content: `When you invest in a new roof, you want to know it's protected. That's where warranties come in. But roof warranties can be confusing—there are different types, different coverage periods, and lots of fine print. Let's break down what you need to know so you can make informed decisions and understand exactly what protection you're getting.
@@ -2210,7 +2210,7 @@ If you have questions about roof warranties or want to discuss coverage options 
     title: "Flat Roof Maintenance: Keeping Your Low-Slope Roof in Top Shape",
     date: "August 19, 2025",
     author: "Michael Muse",
-    image: "/uploads/blog-flat-roof.png",
+    image: "/uploads/blog-flat-roof.jpg",
     keywords: ["flat roof", "low slope roof", "roof maintenance", "TPO maintenance", "commercial roof care"],
     excerpt: "Flat and low-slope roofs require different maintenance than pitched roofs. Here's how to keep them performing for decades.",
     content: `Flat and low-slope roofs present unique maintenance challenges compared to traditional pitched roofs. Without steep slopes to shed water quickly, these roofs rely entirely on their membrane systems for waterproofing. Regular maintenance is essential to maximize their lifespan and prevent costly problems.
@@ -2345,7 +2345,7 @@ River City Roofing Solutions offers flat roof maintenance programs for commercia
     title: "Do You Need a Permit for Roof Work? Permits Explained",
     date: "August 26, 2025",
     author: "Chris Muse",
-    image: "/uploads/blog-permits.png",
+    image: "/uploads/blog-permits.jpg",
     keywords: ["roofing permit", "building permit", "roof replacement permit", "code compliance", "permit requirements"],
     excerpt: "Permits can be confusing. Learn when you need one for roof work and why it matters for your home's safety and value.",
     content: `When you're planning a roofing project, permits might not be the first thing on your mind. But understanding permit requirements protects you legally, ensures quality work, and can prevent problems when you sell your home. Here's what homeowners need to know about roofing permits.
@@ -2452,7 +2452,7 @@ At River City Roofing Solutions, we handle all permitting as part of our standar
     title: "Roofing Safety: What Every Homeowner Should Know",
     date: "September 2, 2025",
     author: "Chris Muse",
-    image: "/uploads/blog-roofing-safety.png",
+    image: "/uploads/blog-roofing-safety.jpg",
     keywords: ["roofing safety", "ladder safety", "roof access", "DIY safety", "fall prevention"],
     excerpt: "Before you climb that ladder, understand the serious risks of roof access and when to call professionals instead.",
     content: `Every year, thousands of homeowners are injured—some fatally—in falls from roofs and ladders. As professional roofers, we've seen the consequences of amateur roof access gone wrong. While we understand the desire to inspect your own roof or handle minor issues yourself, we want every homeowner to understand the real risks involved.
@@ -2641,7 +2641,7 @@ Your roof is important. But nothing about your roof is worth a serious injury. W
     title: "What to Expect During Your Roof Replacement: A Complete Timeline",
     date: "September 9, 2025",
     author: "Chris Muse",
-    image: "/uploads/blog-replacement-timeline.png",
+    image: "/uploads/blog-replacement-timeline.jpg",
     keywords: ["roof replacement", "roofing process", "roof installation", "what to expect", "roofing timeline"],
     excerpt: "Never had a roof replaced? Here's exactly what happens from the first call to the final inspection, so you know what to expect.",
     content: `If you've never been through a roof replacement, the process can seem mysterious and maybe a little intimidating. How long does it take? What do you need to do? Will it be disruptive? Let's walk through the entire process from start to finish so you know exactly what to expect.
@@ -2730,7 +2730,7 @@ That's the complete process. Most homeowners are surprised by how smoothly every
     title: "Roofing Terminology: A Complete Glossary for Homeowners",
     date: "September 16, 2025",
     author: "Chris Muse",
-    image: "/uploads/blog-terminology.png",
+    image: "/uploads/blog-terminology.jpg",
     keywords: ["roofing terms", "roof glossary", "roofing definitions", "shingle terminology", "roofing vocabulary"],
     excerpt: "Confused by roofing jargon? This comprehensive glossary explains all the terms you'll encounter when getting a new roof.",
     content: `When you start researching roofing or talking to contractors, you'll quickly encounter terminology that might be unfamiliar. Understanding these terms helps you make informed decisions and communicate effectively with your roofing professional. Here's a comprehensive glossary of common roofing terms.
@@ -2847,7 +2847,7 @@ Knowing these terms will help you understand contractor proposals, ask informed 
     title: "How Long Should Your Roof Last? Factors That Affect Lifespan",
     date: "September 23, 2025",
     author: "Michael Muse",
-    image: "/uploads/blog-lifespan.png",
+    image: "/uploads/blog-lifespan.jpg",
     keywords: ["roof lifespan", "roof longevity", "how long roofs last", "roof durability", "roof life expectancy"],
     excerpt: "A roof is a major investment. Understand what determines how long your roof will last and how to maximize its lifespan.",
     content: `One of the first questions homeowners ask about a new roof is "How long will it last?" The answer depends on many factors—material choice, installation quality, climate, and maintenance all play significant roles. Understanding these factors helps you make better decisions and maximize your roofing investment.
@@ -2988,7 +2988,7 @@ At River City Roofing Solutions, we help homeowners make informed decisions abou
     title: "Common Roofing Myths Debunked: What Alabama Homeowners Need to Know",
     date: "September 30, 2025",
     author: "Chris Muse",
-    image: "/uploads/blog-roofing-myths.png",
+    image: "/uploads/blog-roofing-myths.jpg",
     keywords: ["roofing myths", "roof facts", "homeowner education", "roofing misconceptions", "roof truth"],
     excerpt: "Don't fall for these common roofing myths. We separate fact from fiction to help you make informed decisions about your roof.",
     content: `Over the years, we've heard a lot of roofing myths from homeowners in Decatur, Huntsville, and throughout North Alabama. Some are harmless misunderstandings, but others can lead to poor decisions that cost money or damage homes. Let's set the record straight on some of the most common roofing misconceptions.
@@ -3175,7 +3175,7 @@ Good decisions start with good information—and that's what we're here to provi
     title: "The Complete Guide to Gutter Maintenance and When to Replace",
     date: "October 7, 2025",
     author: "Michael Muse",
-    image: "/uploads/blog-gutters.png",
+    image: "/uploads/blog-gutters.jpg",
     keywords: ["gutter maintenance", "gutter cleaning", "gutter replacement", "downspouts", "water damage"],
     excerpt: "Gutters protect your home's foundation, siding, and landscaping. Learn how to maintain them and recognize when replacement is needed.",
     content: `Gutters are one of those home components that are easy to ignore—until they fail. When gutters aren't working properly, water cascades down your walls, pools around your foundation, and can cause thousands of dollars in damage. A little regular maintenance goes a long way toward preventing these problems.
@@ -3246,7 +3246,7 @@ Need help with your gutters? River City Roofing Solutions offers gutter cleaning
     title: "Roof Flashing: The Unsung Hero of a Leak-Free Roof",
     date: "October 14, 2025",
     author: "Michael Muse",
-    image: "/uploads/blog-flashing.png",
+    image: "/uploads/blog-flashing.jpg",
     keywords: ["roof flashing", "chimney flashing", "step flashing", "valley flashing", "leak prevention"],
     excerpt: "Flashing might be the most important roofing component you've never thought about. Learn why it matters so much.",
     content: `Ask most homeowners what protects their home from water and they'll say "the shingles." They're not wrong—but shingles are only part of the story. At every joint, transition, and penetration, flashing is the critical component that keeps water out. When flashing fails, leaks follow. Here's what every homeowner should know about this unsung hero.
@@ -3351,7 +3351,7 @@ At River City Roofing Solutions, we pay meticulous attention to flashing details
     title: "The Complete DIY Roof Inspection Checklist for Homeowners",
     date: "October 21, 2025",
     author: "Michael Muse",
-    image: "/uploads/blog-inspection-checklist.png",
+    image: "/uploads/blog-inspection-checklist.jpg",
     keywords: ["roof inspection", "DIY inspection", "roof checklist", "home maintenance", "roof condition"],
     excerpt: "You don't need to climb on your roof to assess its condition. Here's how to do a thorough inspection from the ground and attic.",
     content: `Professional roof inspections are important, but you don't need to wait for a contractor to assess your roof's general condition. A simple DIY inspection twice a year—plus after any major storm—can help you catch problems early and know when it's time to call in the pros.
@@ -3432,7 +3432,7 @@ Regular inspections are the key to roof longevity. Catching problems early saves
     title: "How to Choose a Roofing Contractor: What to Look For",
     date: "October 28, 2025",
     author: "Michael Muse",
-    image: "/uploads/blog-choosing-contractor.png",
+    image: "/uploads/blog-choosing-contractor.jpg",
     keywords: ["roofing contractor", "hire roofer", "roofing company", "contractor selection", "roof estimate"],
     excerpt: "Your roof is too important to trust to just anyone. Learn how to evaluate and select a roofing contractor you can rely on.",
     content: `Choosing a roofing contractor is one of the most important decisions you'll make as a homeowner. A quality contractor protects your home and your investment; a poor choice can lead to substandard work, warranty problems, and ongoing headaches. Here's how to find a contractor you can trust.
@@ -3531,7 +3531,7 @@ Choosing a roofing contractor is about more than price—it's about trust, quali
     title: "Owens Corning vs. IKO: Comparing Two Premium Shingle Brands",
     date: "November 4, 2025",
     author: "Michael Muse",
-    image: "/uploads/blog-owens-vs-iko.png",
+    image: "/uploads/blog-owens-vs-iko.jpg",
     keywords: ["Owens Corning", "IKO shingles", "shingle brands", "Duration shingles", "Dynasty shingles"],
     excerpt: "Two of the best shingle manufacturers go head-to-head. Here's how Owens Corning and IKO compare on quality, warranty, and value.",
     content: `When it comes to quality asphalt shingles, Owens Corning and IKO are two of the most respected names in the industry. Both offer excellent products that we're proud to install at River City Roofing Solutions. But how do they compare? Here's an in-depth look at these premium shingle brands.
@@ -3624,7 +3624,7 @@ We're happy to show you samples from both manufacturers and discuss which makes 
     title: "10 Questions You Should Ask Any Roofing Contractor Before Hiring",
     date: "November 11, 2025",
     author: "Chris Muse",
-    image: "/uploads/blog-questions.png",
+    image: "/uploads/blog-questions.jpg",
     keywords: ["roofing questions", "contractor interview", "hire roofer", "roofing checklist", "contractor questions"],
     excerpt: "Don't sign a roofing contract until you've asked these essential questions. Protect yourself with the right information.",
     content: `Before you sign a contract with any roofing contractor, arm yourself with information. The right questions help you separate quality contractors from those who might leave you with problems. Here are 10 essential questions—and what the answers should tell you.
@@ -3731,7 +3731,7 @@ At River City Roofing Solutions, we're happy to answer these questions and any o
     title: "Essential Winter Roof Maintenance Tips for Alabama Homeowners",
     date: "November 18, 2025",
     author: "Chris Muse",
-    image: "/uploads/blog-winter-maintenance.png",
+    image: "/uploads/blog-winter-maintenance.jpg",
     keywords: ["winter roofing", "roof maintenance", "ice dams", "Alabama winter", "roof inspection"],
     excerpt: "While Alabama winters are mild compared to the North, cold snaps and winter storms can still damage your roof. Here's how to prepare.",
     content: `Alabama may not see the harsh winters that plague northern states, but our occasional ice storms, freezing rain, and cold snaps can still wreak havoc on unprepared roofs. Taking a few proactive steps before and during winter can save you from costly emergency repairs and extend the life of your roof.
@@ -3782,7 +3782,7 @@ Preparing your roof for winter isn't complicated, but it does require attention.
     title: "Roofing for Historic Homes: Preserving Character While Ensuring Protection",
     date: "November 25, 2025",
     author: "Michael Muse",
-    image: "/uploads/blog-historic-home.png",
+    image: "/uploads/blog-historic-home.jpg",
     keywords: ["historic homes", "roof restoration", "preservation", "architectural style", "old home roofing"],
     excerpt: "Own a historic home in North Alabama? Learn how to balance preservation with modern roofing needs and materials.",
     content: `North Alabama is home to many historic properties—from antebellum homes in Decatur to early 20th century bungalows throughout the Tennessee Valley. These homes have character and charm that newer construction can't replicate. They also present unique roofing challenges.
@@ -3937,7 +3937,7 @@ At River City Roofing Solutions, we appreciate the unique character of North Ala
     title: "Roof Repair vs. Replacement: Making the Right Decision",
     date: "December 2, 2025",
     author: "Michael Muse",
-    image: "/uploads/blog-repair-vs-replacement.png",
+    image: "/uploads/blog-repair-vs-replacement.jpg",
     keywords: ["roof repair", "roof replacement", "roofing decision", "roof cost", "Alabama roofing"],
     excerpt: "When does a roof need repairs versus full replacement? Learn the factors that determine the best choice for your home and budget.",
     content: `One of the most common questions homeowners ask us is whether they should repair their existing roof or invest in a full replacement. It's an important question—the difference can be thousands of dollars and years of roof life. At River City Roofing Solutions, we believe in honest assessments that serve our customers' long-term interests, not just our bottom line.
@@ -4062,7 +4062,7 @@ The best decision depends on your specific situation. That's why we provide thor
     title: "How to Find and Fix Roof Leaks Before They Cause Major Damage",
     date: "December 9, 2025",
     author: "Michael Muse",
-    image: "/uploads/blog-leak-detection.png",
+    image: "/uploads/blog-leak-detection.jpg",
     keywords: ["roof leak", "water damage", "leak detection", "roof repair", "water stains"],
     excerpt: "A small leak can cause major damage if ignored. Learn how to detect leaks early and what to do when you find one.",
     content: `Water is persistent. Give it the smallest opening, and it will find its way into your home. A roof leak that seems minor today can become a major problem tomorrow—leading to mold, rot, and structural damage that costs thousands to repair. Here's how to catch leaks early and respond effectively.
@@ -4137,7 +4137,7 @@ Don't ignore a leak, hoping it will somehow fix itself. Water damage only gets w
     title: "Roof Valleys Explained: The Critical Intersection Points on Your Roof",
     date: "December 16, 2025",
     author: "Chris Muse",
-    image: "/uploads/blog-roof-valleys.png",
+    image: "/uploads/blog-roof-valleys.jpg",
     keywords: ["roof valley", "valley flashing", "leak prevention", "roof design", "water drainage"],
     excerpt: "Roof valleys are where two roof planes meet—and where many leaks begin. Understand how valleys work and why they matter.",
     content: `If you look at your roof, you'll likely see areas where two roof planes meet in an inside angle. These are roof valleys—the channels that collect water from two roof surfaces and direct it toward the gutters. Valleys are critical to your roof's performance and are one of the most common sources of roof leaks when improperly installed or maintained.
@@ -4274,7 +4274,7 @@ At River City Roofing Solutions, we treat valleys as the critical details they a
     title: "DIY vs. Professional Roofing: What Can You Safely Do Yourself?",
     date: "December 23, 2025",
     author: "Michael Muse",
-    image: "/uploads/blog-diy-vs-professional.png",
+    image: "/uploads/blog-diy-vs-professional.jpg",
     keywords: ["DIY roofing", "professional roofer", "roof repair", "homeowner maintenance", "roofing safety"],
     excerpt: "Some roof tasks are safe for homeowners. Others definitely aren't. Learn where to draw the line to protect yourself and your investment.",
     content: `YouTube makes everything look easy. But roofing involves real risks—to you and to your home. Understanding what you can safely handle versus what requires professional help protects both your safety and your investment.
@@ -4435,7 +4435,7 @@ What we care about is your roof functioning properly and you staying safe. Somet
     title: "Preparing for Roof Replacement: What Homeowners Need to Know",
     date: "December 30, 2025",
     author: "Chris Muse",
-    image: "/uploads/blog-preparing-replacement.png",
+    image: "/uploads/blog-preparing-replacement.jpg",
     keywords: ["roof replacement", "new roof", "roof preparation", "replacement process", "roofing project"],
     excerpt: "Getting a new roof? Here's how to prepare your home and what to expect during the replacement process.",
     content: `A roof replacement is a significant home improvement project. Understanding what to expect and preparing properly makes the process smoother for you and more efficient for your roofing crew. At River City Roofing Solutions, we walk homeowners through this process—here's what you need to know.
@@ -4652,7 +4652,7 @@ A roof replacement is a significant event, but proper preparation makes it manag
     title: "Commercial Roofing Options for North Alabama Businesses",
     date: "January 6, 2026",
     author: "Chris Muse",
-    image: "/uploads/blog-commercial-roofing.png",
+    image: "/uploads/blog-commercial-roofing.jpg",
     keywords: ["commercial roofing", "flat roof", "TPO roofing", "EPDM", "business roof"],
     excerpt: "Commercial roofs have different needs than residential. Here's what business owners need to know about their roofing options.",
     content: `Commercial roofing is a different world from residential. The structures are often larger and flatter, the materials are different, and the stakes are higher—a leaking roof can shut down operations and damage inventory. If you're a North Alabama business owner, here's what you need to know about your roofing options.
@@ -4717,7 +4717,7 @@ Whether you're planning a new commercial building, need to re-roof an existing s
     title: "Commercial vs. Residential Roofing: Key Differences Explained",
     date: "January 13, 2026",
     author: "Michael Muse",
-    image: "/uploads/blog-commercial-vs-residential.png",
+    image: "/uploads/blog-commercial-vs-residential.jpg",
     keywords: ["commercial roofing", "residential roofing", "flat roof", "business roofing", "roof types"],
     excerpt: "Understanding the differences between commercial and residential roofing helps you make informed decisions whether you own a home or business.",
     content: `Whether you own a home, a business, or both in North Alabama, understanding the differences between commercial and residential roofing helps you make informed decisions about maintenance, repairs, and replacement. While the basic principle is the same—keeping weather out—the materials, methods, and considerations differ significantly.
@@ -4850,7 +4850,7 @@ Different roofs require different expertise—make sure your contractor has the 
     title: "A Homeowner's Guide to Roof Insurance Claims",
     date: "January 20, 2026",
     author: "Michael Muse",
-    image: "/uploads/blog-insurance-claims.png",
+    image: "/uploads/blog-insurance-claims.jpg",
     keywords: ["insurance claim", "roof damage claim", "storm damage insurance", "adjuster", "roof coverage"],
     excerpt: "Filing a roof insurance claim can be confusing. Here's a step-by-step guide to navigating the process and getting fair coverage.",
     content: `Discovering your roof has been damaged is stressful enough without the added complexity of navigating an insurance claim. But understanding the process can help you get the coverage you deserve while avoiding common pitfalls. Here's your complete guide to roof insurance claims.
@@ -4979,7 +4979,7 @@ If you've experienced storm damage, River City Roofing Solutions can help. We pr
     title: "Understanding Roof Decking: The Foundation of Your Roofing System",
     date: "January 24, 2026",
     author: "Chris Muse",
-    image: "/uploads/blog-roof-decking.png",
+    image: "/uploads/blog-roof-decking.jpg",
     keywords: ["roof decking", "plywood", "OSB", "roof sheathing", "roof structure"],
     excerpt: "Your roof's decking is invisible but critical. Learn what it does, what problems look like, and when it needs replacement.",
     content: `When you look at your roof, you see shingles. But underneath those shingles is a critical component that determines your roof's structural integrity and longevity: the roof deck (also called sheathing). Understanding your roof deck helps you make informed decisions about roof repairs and replacement.
@@ -5122,7 +5122,7 @@ At River City Roofing Solutions, we never hide deck problems or install over dam
     title: "Impact-Resistant Shingles: Extra Protection for Alabama Storms",
     date: "January 28, 2026",
     author: "Michael Muse",
-    image: "/uploads/blog-impact-resistant.png",
+    image: "/uploads/blog-impact-resistant.jpg",
     keywords: ["impact resistant", "hail damage", "Class 4 shingles", "storm protection", "insurance discount"],
     excerpt: "Considering impact-resistant shingles? Learn how they work, what they cost, and whether they make sense for your North Alabama home.",
     content: `North Alabama sees its share of severe weather—strong thunderstorms, hail, and the occasional tornado. These events can damage roofs, leading to leaks, insurance claims, and premature replacement. Impact-resistant shingles offer enhanced protection against hail and windblown debris, and may even reduce your insurance costs.
@@ -5281,7 +5281,7 @@ At River City Roofing Solutions, we help customers evaluate whether impact-resis
     title: "Alabama Roofing Building Codes: What Changed in 2026",
     date: "January 31, 2026",
     author: "Michael Muse",
-    image: "/uploads/blog-alabama-building-codes-2026.png",
+    image: "/uploads/blog-alabama-building-codes-2026.jpg",
     keywords: ["Alabama building codes", "roofing codes 2026", "roofing regulations Alabama", "building permits roofing", "North Alabama building codes"],
     excerpt: "Alabama building codes affect every roof replacement. Here is what North Alabama homeowners need to know about 2026 roofing requirements.",
     content: `Building codes exist to ensure that construction work, including roofing, meets minimum safety and quality standards. For homeowners in Decatur, Huntsville, Madison, and other North Alabama cities, understanding these codes is important whether you're getting a new roof or repairing an existing one.
@@ -5320,7 +5320,7 @@ Have questions about building codes and your roofing project? Contact River City
     title: "Smart Roof Technology: How Innovation Is Changing Home Protection",
     date: "February 1, 2026",
     author: "Chris Muse",
-    image: "/uploads/blog-smart-roof-technology.png",
+    image: "/uploads/blog-smart-roof-technology.jpg",
     keywords: ["smart roof technology", "roofing innovation", "roof sensors", "cool roof technology", "solar roofing", "modern roofing materials"],
     excerpt: "From leak-detection sensors to solar-integrated shingles, discover how smart roof technology is revolutionizing home protection in 2026.",
     content: `The roofing industry is evolving faster than many homeowners realize. While the fundamental purpose of a roof hasn't changed—protect your home from the elements—the technology and materials available in 2026 are more advanced than ever. Here's a look at the innovations that are changing how we think about roofing.
@@ -5361,7 +5361,7 @@ Interested in modern roofing solutions for your North Alabama home? Call us at (
     title: "Soffits and Fascia: The Often-Overlooked Parts of Your Roof System",
     date: "February 3, 2026",
     author: "Michael Muse",
-    image: "/uploads/blog-soffits-fascia.png",
+    image: "/uploads/blog-soffits-fascia.jpg",
     keywords: ["soffits", "fascia", "roof components", "roof ventilation", "gutter attachment"],
     excerpt: "Soffits and fascia play crucial roles in your roof system but are often overlooked until problems develop. Learn what they do and why they matter.",
     content: `When homeowners think about their roof, they usually think about shingles. But the roof system includes other critical components that don't get as much attention—particularly soffits and fascia. These elements play essential roles in protecting your home and should be included in your roof maintenance and replacement planning.
@@ -5522,7 +5522,7 @@ At River City Roofing Solutions, we evaluate the complete roof system—not just
     title: "Your Spring 2026 Roof Readiness Checklist for North Alabama",
     date: "February 4, 2026",
     author: "Michael Muse",
-    image: "/uploads/blog-spring-2026-checklist.png",
+    image: "/uploads/blog-spring-2026-checklist.jpg",
     keywords: ["spring roof checklist 2026", "roof readiness", "North Alabama spring", "storm preparation", "roof maintenance spring", "pre-storm roof inspection"],
     excerpt: "Spring 2026 will be here soon. Use this comprehensive checklist to make sure your roof is ready for the season ahead.",
     content: `Spring in North Alabama is beautiful—but it's also severe weather season. The time to prepare your roof is now, before the first thunderstorm rolls through the Tennessee Valley. This checklist will help you systematically evaluate your roof's condition and address any vulnerabilities before they become expensive problems.
@@ -5567,7 +5567,7 @@ Ready to get your roof spring-ready? Call River City Roofing Solutions at (256) 
     title: "Wind Damage Assessment: Identifying Storm Damage on Your Roof",
     date: "February 5, 2026",
     author: "Michael Muse",
-    image: "/uploads/blog-wind-damage.png",
+    image: "/uploads/blog-wind-damage.jpg",
     keywords: ["wind damage", "storm damage", "roof assessment", "insurance claim", "tornado damage"],
     excerpt: "After high winds, how do you know if your roof was damaged? Learn what wind damage looks like and what steps to take.",
     content: `North Alabama experiences significant wind events—severe thunderstorms, straight-line winds, and occasional tornadoes. These events can damage roofs in ways that aren't always obvious. Knowing how to assess potential wind damage helps you protect your home and navigate insurance claims effectively.
@@ -5752,7 +5752,7 @@ At River City Roofing Solutions, we provide thorough wind damage assessments for
     title: "Complete Guide to Assessing Hail Damage on Your Roof",
     date: "February 6, 2026",
     author: "Chris Muse",
-    image: "/uploads/blog-hail-damage-assessment.png",
+    image: "/uploads/blog-hail-damage-assessment.jpg",
     keywords: ["hail damage", "roof inspection", "insurance claims", "storm damage", "Alabama hail"],
     excerpt: "Learn how to identify hail damage on your roof and what steps to take after a hailstorm hits North Alabama.",
     content: `Hailstorms are a regular occurrence in North Alabama, particularly during our volatile spring and early summer months. When those ice balls start falling from the sky, your roof takes the brunt of the impact. Understanding how to assess hail damage—and what to do about it—can save you thousands of dollars and protect your home from further damage.
@@ -5863,7 +5863,7 @@ Don't wait until a small leak becomes major water damage. Contact us after the n
     title: "Show Your Home Some Love: A Valentine's Season Roof Care Checklist",
     date: "February 7, 2026",
     author: "Chris Muse",
-    image: "/uploads/blog-valentines-home-care.png",
+    image: "/uploads/blog-valentines-home-care.jpg",
     keywords: ["February roof care", "winter roof maintenance", "home maintenance checklist", "roof care tips", "North Alabama winter roofing"],
     excerpt: "This February, show your home the same love you show your family. Here's a quick checklist to keep your roof in peak condition.",
     content: `February in North Alabama is a month of transitions. We're caught between the cold snaps of winter and the first hints of spring. It's also the perfect time to show your home some love by addressing a few key maintenance items that can prevent costly problems down the road.
@@ -5900,7 +5900,7 @@ Your home is your family's biggest investment. Give it the attention it deserves
     title: "Spring Roof Inspection: What to Check After Winter",
     date: "February 8, 2026",
     author: "Chris Muse",
-    image: "/uploads/blog-spring-inspection.png",
+    image: "/uploads/blog-spring-inspection.jpg",
     keywords: ["spring inspection", "roof check", "seasonal maintenance", "winter damage", "roof care"],
     excerpt: "Spring is the perfect time to assess winter's impact on your roof. Here's a comprehensive guide to your spring inspection.",
     content: `Winter may be milder in Alabama than in northern states, but it still takes a toll on roofs. Cold temperatures, occasional ice, wind, and debris accumulation can all cause problems that need attention before spring storms arrive. A thorough spring inspection helps you catch issues early and prepare your roof for the demanding months ahead.
@@ -6009,7 +6009,7 @@ At River City Roofing Solutions, we offer free spring inspections for homeowners
     title: "Roof Financing Options in 2026: What North Alabama Homeowners Should Know",
     date: "February 9, 2026",
     author: "Michael Muse",
-    image: "/uploads/blog-roof-financing-options-2026.png",
+    image: "/uploads/blog-roof-financing-options-2026.jpg",
     keywords: ["roof financing 2026", "roofing payment plans", "affordable roof replacement", "North Alabama roofing financing", "roof loan options"],
     excerpt: "A new roof is a significant investment. Here are your options for financing a roof replacement in 2026 without breaking the bank.",
     content: `A roof replacement in North Alabama typically costs between $8,000 and $25,000 depending on the size of your home, materials chosen, and the complexity of the job. For most families, that's a significant expense. The good news is that there are more financing options available in 2026 than ever before, making it possible to protect your home without draining your savings.
@@ -6046,7 +6046,7 @@ Contact River City Roofing Solutions at (256) 274-8530 for a free estimate and t
     title: "Emergency Roof Repair: What to Do When Disaster Strikes",
     date: "February 10, 2026",
     author: "Michael Muse",
-    image: "/uploads/blog-emergency-repair.png",
+    image: "/uploads/blog-emergency-repair.jpg",
     keywords: ["emergency repair", "storm damage", "roof leak", "temporary repair", "emergency roofing"],
     excerpt: "When a tree falls on your roof or a storm causes sudden damage, knowing what to do immediately can prevent further damage to your home.",
     content: `Roof emergencies don't wait for convenient timing. Whether it's a tree crashing through your roof during a storm, sudden major leak, or severe wind damage exposing your home to the elements, knowing what to do in those critical first hours can mean the difference between manageable damage and catastrophic loss.
@@ -6231,7 +6231,7 @@ Roof emergencies are stressful, but proper response minimizes damage and gets yo
     title: "2026 Storm Season: Is Your North Alabama Roof Ready?",
     date: "February 11, 2026",
     author: "Chris Muse",
-    image: "/uploads/blog-2026-storm-prep.png",
+    image: "/uploads/blog-2026-storm-prep.jpg",
     keywords: ["storm season 2026", "roof preparation", "North Alabama storms", "hail damage prevention", "severe weather roofing", "Decatur roofing"],
     excerpt: "With the 2026 storm season approaching, now is the time to ensure your roof can withstand whatever North Alabama weather throws at it.",
     content: `As we move into late winter and early spring of 2026, meteorologists are already warning that the Tennessee Valley could see an active severe weather season. For homeowners in Decatur, Huntsville, Madison, and Athens, that means one thing: it's time to make sure your roof is ready.

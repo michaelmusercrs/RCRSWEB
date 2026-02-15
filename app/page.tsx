@@ -186,7 +186,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
             {activeAreas.map((area) => (
               <Link key={area.id} href={`/service-areas/${area.slug}`} className="block">
                 <Card
@@ -281,7 +281,7 @@ export default function HomePage() {
             <div className="inline-block mb-4">
               <span className="text-xs uppercase tracking-widest font-bold text-brand-green">Our Work</span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-black uppercase tracking-wider mb-4">
+            <h2 className="text-3xl md:text-5xl font-black uppercase tracking-wider mb-4">
               Before & After Transformations
             </h2>
             <p className="text-lg text-neutral-300 max-w-2xl mx-auto">
@@ -293,8 +293,8 @@ export default function HomePage() {
             {/* Project 1 */}
             <Card className="border-neutral-800 bg-neutral-950 overflow-hidden">
               <div className="grid grid-cols-2">
-                <div className="relative h-64">
-                  <div className="absolute top-4 left-4 bg-red-600 text-white px-3 py-1 rounded-md font-bold text-sm z-10">
+                <div className="relative h-40 sm:h-64">
+                  <div className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-red-600 text-white px-2 py-0.5 sm:px-3 sm:py-1 rounded-md font-bold text-xs sm:text-sm z-10">
                     BEFORE
                   </div>
                   <Image
@@ -304,8 +304,8 @@ export default function HomePage() {
                     className="object-cover"
                   />
                 </div>
-                <div className="relative h-64">
-                  <div className="absolute top-4 left-4 bg-brand-green text-black px-3 py-1 rounded-md font-bold text-sm z-10">
+                <div className="relative h-40 sm:h-64">
+                  <div className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-brand-green text-black px-2 py-0.5 sm:px-3 sm:py-1 rounded-md font-bold text-xs sm:text-sm z-10">
                     AFTER
                   </div>
                   <Image
@@ -316,8 +316,8 @@ export default function HomePage() {
                   />
                 </div>
               </div>
-              <CardContent className="p-6">
-                <h3 className="text-xl font-black uppercase tracking-wider mb-2">Huntsville Storm Damage Repair</h3>
+              <CardContent className="p-4 sm:p-6">
+                <h3 className="text-lg sm:text-xl font-black uppercase tracking-wider mb-2">Huntsville Storm Damage Repair</h3>
                 <p className="text-neutral-400 text-sm">Complete roof replacement after hail damage. IKO Dynasty shingles with lifetime warranty.</p>
               </CardContent>
             </Card>
@@ -325,8 +325,8 @@ export default function HomePage() {
             {/* Project 2 */}
             <Card className="border-neutral-800 bg-neutral-950 overflow-hidden">
               <div className="grid grid-cols-2">
-                <div className="relative h-64">
-                  <div className="absolute top-4 left-4 bg-red-600 text-white px-3 py-1 rounded-md font-bold text-sm z-10">
+                <div className="relative h-40 sm:h-64">
+                  <div className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-red-600 text-white px-2 py-0.5 sm:px-3 sm:py-1 rounded-md font-bold text-xs sm:text-sm z-10">
                     BEFORE
                   </div>
                   <Image
@@ -336,8 +336,8 @@ export default function HomePage() {
                     className="object-cover"
                   />
                 </div>
-                <div className="relative h-64">
-                  <div className="absolute top-4 left-4 bg-brand-green text-black px-3 py-1 rounded-md font-bold text-sm z-10">
+                <div className="relative h-40 sm:h-64">
+                  <div className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-brand-green text-black px-2 py-0.5 sm:px-3 sm:py-1 rounded-md font-bold text-xs sm:text-sm z-10">
                     AFTER
                   </div>
                   <Image
@@ -348,8 +348,8 @@ export default function HomePage() {
                   />
                 </div>
               </div>
-              <CardContent className="p-6">
-                <h3 className="text-xl font-black uppercase tracking-wider mb-2">Madison Residential Upgrade</h3>
+              <CardContent className="p-4 sm:p-6">
+                <h3 className="text-lg sm:text-xl font-black uppercase tracking-wider mb-2">Madison Residential Upgrade</h3>
                 <p className="text-neutral-400 text-sm">Full tear-off and replacement. Enhanced curb appeal and energy efficiency.</p>
               </CardContent>
             </Card>
@@ -420,7 +420,7 @@ export default function HomePage() {
             <div className="inline-block mb-4">
               <span className="text-xs uppercase tracking-widest font-bold text-brand-green">Why Us</span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-black uppercase tracking-wider mb-4">
+            <h2 className="text-3xl md:text-5xl font-black uppercase tracking-wider mb-4">
               Why Choose River City Roofing?
             </h2>
             <p className="text-xl text-neutral-300 max-w-2xl mx-auto">
