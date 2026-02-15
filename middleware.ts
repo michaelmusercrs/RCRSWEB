@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { validateCsrf } from '@/lib/csrf';
 
 // Environment-based URLs (with fallbacks)
 const PORTAL_URL = process.env.NEXT_PUBLIC_PORTAL_URL || 'https://rcrsal.com';
@@ -148,9 +149,21 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Rule 2: API routes work on BOTH domains — with CORS enforcement
+  // Rule 2: API routes work on BOTH domains — with CORS enforcement + CSRF protection
   if (isApiRoute(pathname)) {
     const origin = request.headers.get('origin') || '';
+
+    // ── CSRF Protection ──────────────────────────────────────────────────────
+    // Block state-changing requests from unknown origins
+    const csrfError = validateCsrf(request.method, pathname, origin || null, hostname);
+    if (csrfError) {
+      console.warn(`[CSRF] Blocked: ${request.method} ${pathname} — ${csrfError}`);
+      return NextResponse.json(
+        { error: 'Forbidden: CSRF validation failed' },
+        { status: 403 }
+      );
+    }
+
     const response = NextResponse.next();
 
     // CORS: Only allow known origins in production
