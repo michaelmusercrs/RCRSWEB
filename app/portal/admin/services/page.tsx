@@ -294,7 +294,7 @@ function ServiceEditor({
                       formData.image === img ? 'border-brand-green' : 'border-white/10 hover:border-brand-green/50'
                     }`}
                   >
-                    <Image src={img} alt="" fill unoptimized={true} className="object-cover" />
+                    <Image src={img} alt="Service image option" fill unoptimized={true} className="object-cover" />
                     {formData.image === img && (
                       <div className="absolute inset-0 bg-brand-green/20 flex items-center justify-center">
                         <Check size={16} className="text-brand-green" />

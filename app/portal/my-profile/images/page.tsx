@@ -326,7 +326,7 @@ export default function MyProfileImagesPage() {
                     {getImagesByType('profile').map(img => (
                       <div key={img.id} className="relative group">
                         <div className="w-16 h-16 rounded-lg overflow-hidden bg-neutral-800">
-                          <Image src={img.url} alt="" fill className="object-cover" />
+                          <Image src={img.url} alt="Profile photo upload" fill className="object-cover" />
                         </div>
                         {!img.approved && (
                           <div className="absolute top-1 left-1">
@@ -403,7 +403,7 @@ export default function MyProfileImagesPage() {
                     {getImagesByType('truck').map(img => (
                       <div key={img.id} className="relative group">
                         <div className="w-20 h-14 rounded-lg overflow-hidden bg-neutral-800">
-                          <Image src={img.url} alt="" fill className="object-cover" />
+                          <Image src={img.url} alt="Truck photo upload" fill className="object-cover" />
                         </div>
                         {!img.approved && (
                           <div className="absolute top-1 left-1">
@@ -445,7 +445,7 @@ export default function MyProfileImagesPage() {
                 {getImagesByType('job-before').map(img => (
                   <div key={img.id} className="relative group aspect-square">
                     <div className="absolute inset-0 rounded-lg overflow-hidden bg-neutral-800">
-                      <Image src={img.url} alt="" fill className="object-cover" />
+                      <Image src={img.url} alt="Before photo of roofing job" fill className="object-cover" />
                     </div>
                     {!img.approved && (
                       <div className="absolute top-1 left-1">
@@ -484,7 +484,7 @@ export default function MyProfileImagesPage() {
                 {getImagesByType('job-after').map(img => (
                   <div key={img.id} className="relative group aspect-square">
                     <div className="absolute inset-0 rounded-lg overflow-hidden bg-neutral-800">
-                      <Image src={img.url} alt="" fill className="object-cover" />
+                      <Image src={img.url} alt="After photo of completed roofing job" fill className="object-cover" />
                     </div>
                     {!img.approved && (
                       <div className="absolute top-1 left-1">

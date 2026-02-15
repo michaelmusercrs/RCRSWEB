@@ -449,7 +449,7 @@ function BlogEditor({
                     }}
                     className="w-12 h-12 rounded-lg overflow-hidden border border-white/10 hover:border-blue-500/50 transition-colors relative"
                   >
-                    <Image src={img} alt="" fill unoptimized={true} className="object-cover" />
+                    <Image src={img} alt="Blog post image option" fill unoptimized={true} className="object-cover" />
                   </button>
                 ))}
               </div>

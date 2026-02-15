@@ -313,7 +313,7 @@ function AreaEditor({
                       formData.image === img ? 'border-orange-500' : 'border-white/10 hover:border-orange-500/50'
                     }`}
                   >
-                    <Image src={img} alt="" fill unoptimized={true} className="object-cover" />
+                    <Image src={img} alt="Service area thumbnail option" fill unoptimized={true} className="object-cover" />
                   </button>
                 ))}
               </div>
