@@ -12,7 +12,7 @@ export const siteConfig = {
   shortName: 'RCRS',
   description: 'Licensed and insured roofing contractor serving Decatur, Huntsville, Madison, and all of North Alabama. Expert roof replacement, repair, and storm damage services.',
   url: 'https://www.rivercityroofingsolutions.com', // Hardcoded to ensure consistent canonical URLs
-  ogImage: '/logo.png',
+  ogImage: '/og-image.png',
   logo: '/logo.png',
   logoSquare: '/logo-square.png',
   phone: '256-274-8530',
