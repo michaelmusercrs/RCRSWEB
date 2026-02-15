@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-service';
 import { cmsSheetsService } from '@/lib/cms-sheets-service';
+import { cache, CACHE_TTL } from '@/lib/cache';
+
+const BLOG_TTL = 30 * 60 * 1000; // 30 minutes
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,14 +11,24 @@ export async function GET(request: NextRequest) {
     const slug = searchParams.get('slug');
 
     if (slug) {
+      const cacheKey = `cms:blog:${slug}`;
+      const cached = cache.get(cacheKey);
+      if (cached) return NextResponse.json(cached);
+
       const post = await cmsSheetsService.getBlogPostBySlug(slug);
       if (!post) {
         return NextResponse.json({ error: 'Post not found' }, { status: 404 });
       }
+      cache.set(cacheKey, post, BLOG_TTL);
       return NextResponse.json(post);
     }
 
+    const cacheKey = 'cms:blog:all';
+    const cached = cache.get(cacheKey);
+    if (cached) return NextResponse.json(cached);
+
     const posts = await cmsSheetsService.getBlogPosts();
+    cache.set(cacheKey, posts, BLOG_TTL);
     return NextResponse.json(posts);
   } catch (error) {
     console.error('Error fetching blog posts:', error);
@@ -50,6 +63,7 @@ export async function POST(request: NextRequest) {
       published: data.published !== false,
     });
 
+    cache.invalidatePattern('^cms:blog:');
     return NextResponse.json(post);
   } catch (error) {
     console.error('Error creating blog post:', error);
@@ -75,6 +89,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Post not found' }, { status: 404 });
     }
 
+    cache.invalidatePattern('^cms:blog:');
     return NextResponse.json(post);
   } catch (error) {
     console.error('Error updating blog post:', error);
@@ -100,6 +115,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Post not found' }, { status: 404 });
     }
 
+    cache.invalidatePattern('^cms:blog:');
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting blog post:', error);

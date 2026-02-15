@@ -51,7 +51,7 @@ export default function HuntsvillePage() {
     "@id": `${siteConfig.url}/locations/huntsville`,
     "url": `${siteConfig.url}/locations/huntsville`,
     "telephone": siteConfig.phoneTel,
-    "priceRange": "$$",
+    "priceRange": "$$$",
     "address": {
       "@type": "PostalAddress",
       "streetAddress": siteConfig.address.streetAddress,

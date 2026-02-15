@@ -10,7 +10,7 @@ export async function GET() {
     if (cached) return NextResponse.json(cached);
 
     const teamMembers = await googleSheetsService.getTeamMembers();
-    cache.set(cacheKey, teamMembers, CACHE_TTL.MEDIUM);
+    cache.set(cacheKey, teamMembers, CACHE_TTL.LONG);
     return NextResponse.json(teamMembers);
   } catch (error) {
     console.error('Error fetching team members:', error);

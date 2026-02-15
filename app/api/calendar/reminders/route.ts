@@ -24,6 +24,7 @@ import { teamupService } from '@/lib/teamup-service';
 import { jobNimbusService, isJobNimbusConfigured } from '@/lib/jobnimbus-service';
 import { schedulingService } from '@/lib/scheduling-service';
 import { appointmentService } from '@/lib/appointment-service';
+import { cache, CACHE_TTL } from '@/lib/cache';
 
 // ---------------------------------------------------------------------------
 // Helper: Gather events from all sources (same logic as /api/calendar/events)
@@ -217,6 +218,10 @@ export async function GET(request: Request) {
     const endDate = searchParams.get('endDate') || tomorrow;
     const limit = parseInt(searchParams.get('limit') || '100');
 
+    const cacheKey = `calendar:reminders:${startDate}:${endDate}:${limit}`;
+    const cached = cache.get(cacheKey);
+    if (cached) return NextResponse.json(cached);
+
     // Gather events
     const events = await gatherCalendarEvents(startDate, endDate);
 
@@ -226,7 +231,7 @@ export async function GET(request: Request) {
     // Get recently sent reminders
     const recent = await calendarReminderService.getRecentReminders(20);
 
-    return NextResponse.json({
+    const response = {
       success: true,
       pending: pending.slice(0, limit),
       recentlySent: recent,
@@ -236,7 +241,9 @@ export async function GET(request: Request) {
         eventsFound: events.length,
         pendingCount: pending.length,
       },
-    });
+    };
+    cache.set(cacheKey, response, CACHE_TTL.MEDIUM);
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Calendar reminders GET error:', error);
     return NextResponse.json(

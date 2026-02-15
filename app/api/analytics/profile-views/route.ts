@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { cmsSheetsService } from '@/lib/cms-sheets-service';
+import { cache, CACHE_TTL } from '@/lib/cache';
 
 /**
  * GET /api/analytics/profile-views
@@ -20,20 +21,20 @@ export async function GET(req: NextRequest) {
     const slug = searchParams.get('slug');
     const all = searchParams.get('all');
 
+    const cacheKey = `analytics:profile-views:${slug || (all === 'true' ? 'all' : 'none')}`;
+    const cached = cache.get(cacheKey);
+    if (cached) return NextResponse.json(cached);
+
     if (all === 'true') {
-      // Return stats for all profiles
       const stats = await cmsSheetsService.getProfileViewStats();
-      return NextResponse.json({
-        success: true,
-        stats,
-      });
+      const response = { success: true, stats };
+      cache.set(cacheKey, response, CACHE_TTL.MEDIUM);
+      return NextResponse.json(response);
     } else if (slug) {
-      // Return stats for specific profile
       const stats = await cmsSheetsService.getProfileViewStats(slug);
-      return NextResponse.json({
-        success: true,
-        stats,
-      });
+      const response = { success: true, stats };
+      cache.set(cacheKey, response, CACHE_TTL.MEDIUM);
+      return NextResponse.json(response);
     } else {
       return NextResponse.json(
         { success: false, error: 'Missing slug or all parameter' },
@@ -71,6 +72,7 @@ export async function POST(req: NextRequest) {
       source,
     });
 
+    cache.invalidatePattern('^analytics:profile-views:');
     return NextResponse.json({
       success: true,
       view,

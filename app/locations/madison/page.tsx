@@ -51,7 +51,7 @@ export default function MadisonPage() {
     "@id": `${siteConfig.url}/locations/madison`,
     "url": `${siteConfig.url}/locations/madison`,
     "telephone": siteConfig.phoneTel,
-    "priceRange": "$$",
+    "priceRange": "$$$",
     "address": {
       "@type": "PostalAddress",
       "streetAddress": siteConfig.address.streetAddress,

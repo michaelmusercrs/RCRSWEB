@@ -17,6 +17,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { googleSheetsService } from '@/lib/google-sheets-service';
 import { requireAdmin } from '@/lib/auth-service';
+import { cache, CACHE_TTL } from '@/lib/cache';
 
 export async function GET(request: NextRequest) {
   // SECURITY: Portal analytics is admin-only. Contains aggregated data across all customers.
@@ -26,6 +27,10 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const period = searchParams.get('period') || 'month'; // 'week' | 'month' | 'all'
+
+    const cacheKey = `customer:portal-analytics:${period}`;
+    const cached = cache.get(cacheKey);
+    if (cached) return NextResponse.json(cached);
 
     // Calculate date boundaries
     const now = new Date();
@@ -178,7 +183,7 @@ export async function GET(request: NextRequest) {
     const totalMessagesAllTime = allPortalData.reduce((sum, r) => sum + r.messagesSent, 0);
     const totalDocsViewedAllTime = allPortalData.reduce((sum, r) => sum + r.documentsViewed, 0);
 
-    return NextResponse.json({
+    const response = {
       success: true,
       period,
       generatedAt: now.toISOString(),
@@ -206,7 +211,9 @@ export async function GET(request: NextRequest) {
       actionBreakdown,
       dailyActivity: dailyActivitySorted,
       recentActivity,
-    });
+    };
+    cache.set(cacheKey, response, CACHE_TTL.MEDIUM);
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Portal analytics error:', error);
     return NextResponse.json(

@@ -16,6 +16,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeResponseTimes, AnalyticsFilters } from '@/lib/lead-response-analysis';
 import { requireAuth } from '@/lib/auth-service';
+import { cache, CACHE_TTL } from '@/lib/cache';
 
 export async function GET(request: NextRequest) {
   // SECURITY: Require authentication — internal analytics data
@@ -43,23 +44,25 @@ export async function GET(request: NextRequest) {
 
     const hasFilters = Object.keys(filters).length > 0;
 
+    const cacheKey = `analytics:response-times:${JSON.stringify(filters)}`;
+    const cached = cache.get<any>(cacheKey);
+    if (cached) return NextResponse.json(cached.body, { status: 200, headers: cached.headers });
+
     const analytics = await analyzeResponseTimes(hasFilters ? filters : undefined);
 
-    return NextResponse.json(
-      {
-        success: true,
-        data: analytics,
-        filters: hasFilters ? filters : null,
-        timestamp,
-      },
-      {
-        status: 200,
-        headers: {
-          'Cache-Control': 'private, max-age=60',
-          'X-Data-Sources': analytics.dataSource,
-        },
-      }
-    );
+    const responseBody = {
+      success: true,
+      data: analytics,
+      filters: hasFilters ? filters : null,
+      timestamp,
+    };
+    const responseHeaders = {
+      'Cache-Control': 'private, max-age=60',
+      'X-Data-Sources': analytics.dataSource,
+    };
+    cache.set(cacheKey, { body: responseBody, headers: responseHeaders }, CACHE_TTL.MEDIUM);
+
+    return NextResponse.json(responseBody, { status: 200, headers: responseHeaders });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[ResponseTimes API Error]', message);

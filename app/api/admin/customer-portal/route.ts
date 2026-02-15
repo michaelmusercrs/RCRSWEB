@@ -3,6 +3,7 @@ import { GoogleSpreadsheet } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
 import { customerPortalService, DEFAULT_PORTAL_SETTINGS } from '@/lib/customer-portal-service';
 import { requireAdmin } from '@/lib/auth-service';
+import { cache, CACHE_TTL } from '@/lib/cache';
 
 async function getDoc(): Promise<GoogleSpreadsheet> {
   const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
@@ -38,6 +39,10 @@ export async function GET(request: NextRequest) {
   if (!auth.authenticated) return auth.response;
 
   try {
+    const cacheKey = 'admin:customer-portals';
+    const cached = cache.get(cacheKey);
+    if (cached) return NextResponse.json(cached);
+
     const doc = await getDoc();
     const accessSheet = doc.sheetsByTitle['Customer_Portal_Access'];
 
@@ -76,7 +81,9 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({ portals });
+    const response = { portals };
+    cache.set(cacheKey, response, CACHE_TTL.MEDIUM);
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Error fetching portals:', error);
     return NextResponse.json({ error: 'Failed to fetch portals' }, { status: 500 });
@@ -176,6 +183,7 @@ export async function POST(request: NextRequest) {
     const smsTemplates = customerPortalService.getSMSTemplates(portalAccess);
     const emailTemplates = customerPortalService.getEmailTemplates(portalAccess);
 
+    cache.invalidate('admin:customer-portals');
     // Return the portal data with templates (actual sending done separately)
     return NextResponse.json({
       success: true,
@@ -253,6 +261,7 @@ export async function PUT(request: NextRequest) {
     }
 
     await row.save();
+    cache.invalidate('admin:customer-portals');
 
     return NextResponse.json({
       success: true,
@@ -300,6 +309,7 @@ export async function DELETE(request: NextRequest) {
     // Deactivate instead of deleting
     row.set('isActive', 'false');
     await row.save();
+    cache.invalidate('admin:customer-portals');
 
     return NextResponse.json({ success: true });
   } catch (error) {

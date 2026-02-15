@@ -23,6 +23,7 @@ import { Role, isValidRole } from '@/types/roles';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { inventoryProducts, InventoryProduct } from '@/lib/inventoryData';
+import { cache, CACHE_TTL } from '@/lib/cache';
 
 // =============================================================================
 // CONFIGURATION
@@ -1135,6 +1136,10 @@ export async function GET(request: NextRequest): Promise<NextResponse<InventoryA
     const lowStock = searchParams.get('lowStock') === 'true';
     const search = searchParams.get('search') || undefined;
 
+    const cacheKey = `cc:inventory:${role}:${category || ''}:${lowStock}:${search || ''}`;
+    const cached = cache.get<InventoryApiResponse>(cacheKey);
+    if (cached) return NextResponse.json(cached);
+
     // Get the appropriate service (Google Sheets or JSON fallback)
     const service = await getInventoryService();
 
@@ -1148,13 +1153,15 @@ export async function GET(request: NextRequest): Promise<NextResponse<InventoryA
     const filteredItems = items.map(item => filterItemForRole(item, role));
     const filteredSummary = filterSummaryForRole(summaryFull, role);
 
-    return NextResponse.json({
+    const response: InventoryApiResponse = {
       success: true,
       data: {
         items: filteredItems,
         summary: filteredSummary,
       },
-    });
+    };
+    cache.set(cacheKey, response, CACHE_TTL.MEDIUM);
+    return NextResponse.json(response);
   } catch (error) {
     console.error('GET /api/command-center/inventory error:', error);
     return NextResponse.json(
@@ -1230,6 +1237,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Inventory
     // Filter response based on role
     const filteredItem = filterItemForRole(item, role);
 
+    cache.invalidatePattern('^cc:inventory:');
     return NextResponse.json({
       success: true,
       data: {
@@ -1357,6 +1365,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse<Inventor
     // Filter response based on role
     const filteredItem = filterItemForRole(item, role);
 
+    cache.invalidatePattern('^cc:inventory:');
     return NextResponse.json({
       success: true,
       data: {
@@ -1427,6 +1436,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse<Invento
     // Delete item
     await service.deleteItem(body.sku, userId, userName);
 
+    cache.invalidatePattern('^cc:inventory:');
     return NextResponse.json({
       success: true,
       message: `Successfully deleted inventory item with SKU: ${body.sku}`,

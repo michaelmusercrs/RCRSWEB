@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-service';
 import { cmsSheetsService } from '@/lib/cms-sheets-service';
+import { cache } from '@/lib/cache';
+
+const CMS_TTL = 30 * 60 * 1000; // 30 minutes
 
 export async function GET(request: NextRequest) {
   const auth = await requireAdmin();
@@ -11,14 +14,24 @@ export async function GET(request: NextRequest) {
     const slug = searchParams.get('slug');
 
     if (slug) {
+      const cacheKey = `cms:team:${slug}`;
+      const cached = cache.get(cacheKey);
+      if (cached) return NextResponse.json(cached);
+
       const member = await cmsSheetsService.getTeamMemberBySlug(slug);
       if (!member) {
         return NextResponse.json({ error: 'Team member not found' }, { status: 404 });
       }
+      cache.set(cacheKey, member, CMS_TTL);
       return NextResponse.json(member);
     }
 
+    const cacheKey = 'cms:team:all';
+    const cached = cache.get(cacheKey);
+    if (cached) return NextResponse.json(cached);
+
     const members = await cmsSheetsService.getTeamMembers();
+    cache.set(cacheKey, members, CMS_TTL);
     return NextResponse.json(members);
   } catch (error) {
     console.error('Error fetching team members:', error);
@@ -64,6 +77,7 @@ export async function POST(request: NextRequest) {
       linkedin: data.linkedin || '',
     });
 
+    cache.invalidatePattern('^cms:team:');
     return NextResponse.json(member);
   } catch (error) {
     console.error('Error creating team member:', error);
@@ -89,6 +103,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Team member not found' }, { status: 404 });
     }
 
+    cache.invalidatePattern('^cms:team:');
     return NextResponse.json(member);
   } catch (error) {
     console.error('Error updating team member:', error);
@@ -114,6 +129,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Team member not found' }, { status: 404 });
     }
 
+    cache.invalidatePattern('^cms:team:');
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting team member:', error);

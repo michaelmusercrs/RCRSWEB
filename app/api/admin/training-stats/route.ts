@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-service';
 import { googleSheetsService } from '@/lib/google-sheets-service';
+import { cache, CACHE_TTL } from '@/lib/cache';
 
 // ============================================================================
 // ALL tracked training modules across every track
@@ -116,6 +117,10 @@ export async function GET(request: NextRequest) {
   if (!auth.authenticated) return auth.response;
 
   try {
+    const cacheKey = 'admin:training-stats';
+    const cached = cache.get(cacheKey);
+    if (cached) return NextResponse.json(cached);
+
     // Get all training progress records (no userId filter = all users)
     const allRecords = await googleSheetsService.getTrainingProgress();
 
@@ -249,7 +254,7 @@ export async function GET(request: NextRequest) {
       ? Math.round(users.reduce((sum, u) => sum + u.completionPercent, 0) / totalUsers)
       : 0;
 
-    return NextResponse.json({
+    const response = {
       success: true,
       stats: {
         totalUsers,
@@ -263,7 +268,9 @@ export async function GET(request: NextRequest) {
       users,
       allModules: ALL_MODULES,
       roleRequirements: ROLE_REQUIRED_MODULES,
-    });
+    };
+    cache.set(cacheKey, response, CACHE_TTL.MEDIUM);
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Error fetching training stats:', error);
     return NextResponse.json(

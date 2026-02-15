@@ -24,6 +24,7 @@ import { schedulingService } from '@/lib/scheduling-service';
 import { appointmentService } from '@/lib/appointment-service';
 import { generateGoogleCalendarLink } from '@/lib/google-calendar';
 import { teamMembers } from '@/lib/teamData';
+import { cache, CACHE_TTL } from '@/lib/cache';
 
 // Look up team member email by name or slug
 function getTeamMemberEmail(nameOrSlug?: string): string | undefined {
@@ -95,6 +96,10 @@ export async function GET(request: Request) {
     const filterAssignedTo = searchParams.get('assignedTo');
     const filterStatus = searchParams.get('status');
     const filterSource = searchParams.get('source');
+
+    const cacheKey = `calendar:events:${startDate}:${endDate}:${filterEventType || ''}:${filterAssignedTo || ''}:${filterStatus || ''}:${filterSource || ''}`;
+    const cached = cache.get(cacheKey);
+    if (cached) return NextResponse.json(cached);
 
     const allEvents: UnifiedCalendarEvent[] = [];
     const errors: string[] = [];
@@ -327,7 +332,7 @@ export async function GET(request: Request) {
       };
     });
 
-    return NextResponse.json({
+    const response = {
       success: true,
       events: filteredEvents,
       meta: {
@@ -342,7 +347,9 @@ export async function GET(request: Request) {
         },
         errors: errors.length > 0 ? errors : undefined,
       },
-    });
+    };
+    cache.set(cacheKey, response, CACHE_TTL.MEDIUM);
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Calendar events API error:', error);
     return NextResponse.json(

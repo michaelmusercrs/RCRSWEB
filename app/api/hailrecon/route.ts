@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hailReconService } from '@/lib/hailrecon-service';
 import { createPublicRateLimiter, withRateLimit } from '@/lib/rate-limiter';
+import { cache } from '@/lib/cache';
+
+const HAILRECON_TTL = 15 * 60 * 1000; // 15 minutes
 
 const publicRateLimiter = createPublicRateLimiter();
 
@@ -28,13 +31,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Check cache first
+    const cacheKey = `hailrecon:${lat.toFixed(4)}:${lon.toFixed(4)}:${radius}`;
+    const cached = cache.get<any>(cacheKey);
+    if (cached) return NextResponse.json(cached);
+
     const data = await hailReconService.getPropertyHailHistory(address, lat, lon, radius);
 
-    return NextResponse.json({
+    const response = {
       success: true,
       configured: true,
       data,
-    });
+    };
+    cache.set(cacheKey, response, HAILRECON_TTL);
+    return NextResponse.json(response);
   } catch (error) {
     console.error('HailRecon API error:', error);
     return NextResponse.json(

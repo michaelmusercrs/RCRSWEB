@@ -40,7 +40,7 @@ export const siteConfig = {
     saturday: 'Sa 09:00-14:00',
     sunday: 'Closed',
   },
-  priceRange: '$$',
+  priceRange: '$$$',
   defaultKeywords: [
     'roofing contractor',
     'North Alabama roofer',
@@ -272,7 +272,7 @@ export function generateLocalBusinessSchema() {
         name: 'Alabama',
       },
     ],
-    priceRange: '$$',
+    priceRange: '$$$',
     currenciesAccepted: 'USD',
     paymentAccepted: 'Cash, Credit Card, Check, Financing',
     openingHours: 'Mo-Fr 08:00-17:00',

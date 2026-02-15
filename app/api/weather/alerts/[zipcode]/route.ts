@@ -25,6 +25,7 @@
 
 import { NextResponse } from 'next/server';
 import { weatherService } from '@/lib/weather-service';
+import { cache, CACHE_TTL } from '@/lib/cache';
 
 export async function GET(
   request: Request,
@@ -51,6 +52,13 @@ export async function GET(
     const includeHailReports = searchParams.get('includeHailReports') === 'true';
     const daysBack = parseInt(searchParams.get('daysBack') || '30', 10);
     const radiusMiles = parseInt(searchParams.get('radiusMiles') || '50', 10);
+
+    // Check cache first (without hail reports - those are cached separately)
+    const cacheKey = `weather:alerts:${cleanZip}:hail=${includeHailReports}:days=${daysBack}:radius=${radiusMiles}`;
+    const cached = cache.get<any>(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached);
+    }
 
     // Fetch weather data to get alerts and storm risk
     const weatherData = await weatherService.getWeatherByZip(cleanZip);
@@ -93,12 +101,14 @@ export async function GET(
       }
     }
 
-    return NextResponse.json({
+    const response = {
       success: true,
       data: responseData,
       zipcode: cleanZip,
       location: weatherData.location,
-    });
+    };
+    cache.set(cacheKey, response, CACHE_TTL.MEDIUM); // 5 minutes
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Weather alerts API error:', error);
     return NextResponse.json(

@@ -11,6 +11,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stormReportService } from '@/lib/storm-report-service';
 import { createFormRateLimiter, withRateLimit } from '@/lib/rate-limiter';
+import { cache } from '@/lib/cache';
+
+const STORM_REPORT_TTL = 15 * 60 * 1000; // 15 minutes
 
 const formRateLimiter = createFormRateLimiter();
 
@@ -101,6 +104,10 @@ export async function GET(request: NextRequest) {
 
     // Fetch by reportId
     if (reportId) {
+      const cacheKey = `storm-report:${reportId}`;
+      const cached = cache.get<any>(cacheKey);
+      if (cached) return NextResponse.json(cached);
+
       const report = await stormReportService.getReportById(reportId);
       if (!report) {
         return NextResponse.json(
@@ -108,7 +115,9 @@ export async function GET(request: NextRequest) {
           { status: 404 }
         );
       }
-      return NextResponse.json({ success: true, data: report });
+      const response = { success: true, data: report };
+      cache.set(cacheKey, response, STORM_REPORT_TTL);
+      return NextResponse.json(response);
     }
 
     // Fetch by leadId

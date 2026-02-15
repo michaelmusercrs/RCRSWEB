@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { priceVerificationService } from '@/lib/price-verification-service';
+import { cache, CACHE_TTL } from '@/lib/cache';
 
 // GET /api/portal/pricing/audit - Get audit summary
 export async function GET(request: NextRequest) {
@@ -16,8 +17,13 @@ export async function GET(request: NextRequest) {
     defaultStart.setMonth(defaultStart.getMonth() - 6);
     const startDate = searchParams.get('startDate') || defaultStart.toISOString().slice(0, 10);
 
+    const cacheKey = `portal:pricing-audit:${startDate}:${endDate}`;
+    const cached = cache.get(cacheKey);
+    if (cached) return NextResponse.json(cached);
+
     const summary = await priceVerificationService.getAuditSummary(startDate, endDate);
 
+    cache.set(cacheKey, summary, CACHE_TTL.MEDIUM);
     return NextResponse.json(summary);
   } catch (error) {
     console.error('Error fetching audit summary:', error);

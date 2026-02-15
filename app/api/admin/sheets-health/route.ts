@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-service';
 import { sheetsHealthService } from '@/lib/sheets-health-service';
+import { cache, CACHE_TTL } from '@/lib/cache';
 
 /**
  * GET /api/admin/sheets-health
@@ -21,7 +22,12 @@ export async function GET() {
   if (!auth.authenticated) return auth.response;
 
   try {
+    const cacheKey = 'admin:sheets-health';
+    const cached = cache.get(cacheKey);
+    if (cached) return NextResponse.json(cached);
+
     const report = await sheetsHealthService.checkHealth();
+    cache.set(cacheKey, report, CACHE_TTL.MEDIUM);
     return NextResponse.json(report);
   } catch (error) {
     console.error('GET /api/admin/sheets-health error:', error);

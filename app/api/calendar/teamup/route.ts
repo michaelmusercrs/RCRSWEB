@@ -34,6 +34,7 @@ import { generateGoogleCalendarLink } from '@/lib/google-calendar';
 import { teamMembers } from '@/lib/teamData';
 import { schedulingService } from '@/lib/scheduling-service';
 import { jobNimbusService, isJobNimbusConfigured } from '@/lib/jobnimbus-service';
+import { cache, CACHE_TTL } from '@/lib/cache';
 
 // Map event types to TeamUp sub-calendar IDs
 function getSubCalendarForEventType(eventType: string): string | undefined {
@@ -77,6 +78,10 @@ export async function GET(request: Request) {
     const endDate = searchParams.get('endDate') ||
       new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const subcalendarId = searchParams.get('subcalendarId');
+
+    const cacheKey = `calendar:teamup:${startDate}:${endDate}:${subcalendarId || ''}`;
+    const cached = cache.get(cacheKey);
+    if (cached) return NextResponse.json(cached);
 
     // Check if TeamUp is configured
     const config = teamupService.checkConfiguration();
@@ -145,7 +150,7 @@ export async function GET(request: Request) {
       };
     });
 
-    return NextResponse.json({
+    const response = {
       success: true,
       configured: true,
       events: transformedEvents,
@@ -155,7 +160,9 @@ export async function GET(request: Request) {
         endDate,
         totalCount: transformedEvents.length,
       },
-    });
+    };
+    cache.set(cacheKey, response, CACHE_TTL.MEDIUM);
+    return NextResponse.json(response);
   } catch (error) {
     console.error('TeamUp calendar API error:', error);
     return NextResponse.json(

@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { googleSheetsService } from '@/lib/google-sheets-service';
 import { getSalesReps, TEAM_MEMBERS } from '@/lib/team-roles';
+import { cache, CACHE_TTL } from '@/lib/cache';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth();
@@ -14,6 +15,10 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const repSlug = searchParams.get('repSlug') || undefined;
+
+    const cacheKey = `portal:rep-availability:${repSlug || 'all'}`;
+    const cached = cache.get(cacheKey);
+    if (cached) return NextResponse.json(cached);
 
     const availability = await googleSheetsService.getRepAvailability(repSlug);
     const salesReps = getSalesReps();
@@ -38,10 +43,14 @@ export async function GET(request: NextRequest) {
 
     if (repSlug) {
       const single = result.find(r => r.repSlug === repSlug);
-      return NextResponse.json({ success: true, data: single || null });
+      const response = { success: true, data: single || null };
+      cache.set(cacheKey, response, CACHE_TTL.MEDIUM);
+      return NextResponse.json(response);
     }
 
-    return NextResponse.json({ success: true, data: result });
+    const response = { success: true, data: result };
+    cache.set(cacheKey, response, CACHE_TTL.MEDIUM);
+    return NextResponse.json(response);
   } catch (error) {
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : 'Internal server error' },
@@ -85,6 +94,7 @@ export async function PUT(request: NextRequest) {
       updatedAt: new Date().toISOString(),
     });
 
+    cache.invalidatePattern('^portal:rep-availability:');
     return NextResponse.json({ success });
   } catch (error) {
     return NextResponse.json(

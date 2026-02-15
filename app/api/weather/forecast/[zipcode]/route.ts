@@ -16,6 +16,7 @@
 
 import { NextResponse } from 'next/server';
 import { weatherService } from '@/lib/weather-service';
+import { cache, CACHE_TTL } from '@/lib/cache';
 
 export async function GET(
   request: Request,
@@ -37,6 +38,13 @@ export async function GET(
       );
     }
 
+    // Check cache first
+    const cacheKey = `weather:forecast:${cleanZip}`;
+    const cached = cache.get<any>(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached);
+    }
+
     // Fetch weather data
     const weatherData = await weatherService.getWeatherByZip(cleanZip);
 
@@ -51,11 +59,13 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({
+    const response = {
       success: true,
       data: weatherData,
       zipcode: cleanZip,
-    });
+    };
+    cache.set(cacheKey, response, CACHE_TTL.MEDIUM); // 5 minutes
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Weather forecast API error:', error);
     return NextResponse.json(

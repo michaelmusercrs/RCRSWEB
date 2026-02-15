@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { googleSheetsService } from '@/lib/google-sheets-service';
 import { gradeOnboardingQuiz, ONBOARDING_QUIZ_ANSWERS } from '@/lib/onboarding-quiz-answers';
+import { cache, CACHE_TTL } from '@/lib/cache';
 
 /**
  * GET /api/portal/training?userId=xxx
@@ -23,15 +24,21 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId') || auth.user.userId;
 
+    const cacheKey = `portal:training:${userId}`;
+    const cached = cache.get(cacheKey);
+    if (cached) return NextResponse.json(cached);
+
     const records = await googleSheetsService.getTrainingProgress(userId);
 
-    return NextResponse.json({
+    const response = {
       success: true,
       userId,
       records,
       completedModules: records.filter(r => r.passed === 'true').map(r => r.moduleId),
       totalCompleted: records.filter(r => r.passed === 'true').length,
-    });
+    };
+    cache.set(cacheKey, response, CACHE_TTL.MEDIUM);
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Error fetching training progress:', error);
     return NextResponse.json(
@@ -114,6 +121,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    cache.invalidatePattern('^portal:training');
+    cache.invalidatePattern('^admin:training');
     return NextResponse.json({
       success: true,
       record,

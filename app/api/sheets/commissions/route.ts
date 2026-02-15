@@ -17,6 +17,7 @@ import {
   CommissionEntry,
   CommissionSummary,
 } from '@/lib/google-sheets-service';
+import { cache, CACHE_TTL } from '@/lib/cache';
 
 interface CommissionsResponse {
   success: boolean;
@@ -62,6 +63,10 @@ export async function GET(request: NextRequest): Promise<NextResponse<Commission
     const endDate = searchParams.get('endDate') || undefined;
     const view = searchParams.get('view') || 'entries';
 
+    const cacheKey = `sheets:commissions:${view}:${salesRep || ''}:${startDate || ''}:${endDate || ''}`;
+    const cached = cache.get<CommissionsResponse>(cacheKey);
+    if (cached) return NextResponse.json(cached);
+
     if (view === 'summaries') {
       // Get summary view (grouped by sales rep)
       const summaries = await googleSheetsService.getCommissionSummaries();
@@ -73,14 +78,16 @@ export async function GET(request: NextRequest): Promise<NextResponse<Commission
 
       const totalEarned = filteredSummaries.reduce((sum, s) => sum + s.totalEarned, 0);
 
-      return NextResponse.json({
+      const response: CommissionsResponse = {
         success: true,
         data: {
           summaries: filteredSummaries,
           totalEarned,
           uniqueReps: filteredSummaries.length,
         },
-      });
+      };
+      cache.set(cacheKey, response, CACHE_TTL.MEDIUM);
+      return NextResponse.json(response);
     }
 
     // Get entries view

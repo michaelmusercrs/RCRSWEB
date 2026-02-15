@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-service';
 import { googleSheetsService } from '@/lib/google-sheets-service';
+import { cache, CACHE_TTL } from '@/lib/cache';
 import {
   TEAM_MEMBERS,
   COMMAND_CENTER_ACCESS,
@@ -14,6 +15,10 @@ export async function GET() {
   if (!auth.authenticated) return auth.response;
 
   try {
+    const cacheKey = 'cc:team-access';
+    const cached = cache.get(cacheKey);
+    if (cached) return NextResponse.json(cached);
+
     const overrides = await googleSheetsService.getTeamAccessOverrides();
 
     const overrideMap = new Map<string, Record<string, boolean>>();
@@ -54,10 +59,9 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json({
-      members,
-      allModules: [...ALL_COMMAND_CENTER_MODULES],
-    });
+    const response = { members, allModules: [...ALL_COMMAND_CENTER_MODULES] };
+    cache.set(cacheKey, response, CACHE_TTL.MEDIUM);
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Error fetching team access:', error);
     // Fallback: return members with just role defaults
@@ -112,6 +116,7 @@ export async function PUT(request: NextRequest) {
     // If overrides is empty or null, delete the override row (reset to defaults)
     if (!overrides || Object.keys(overrides).length === 0) {
       await googleSheetsService.deleteTeamAccessOverride(memberId);
+      cache.invalidate('cc:team-access');
       return NextResponse.json({ success: true, action: 'reset' });
     }
 
@@ -131,6 +136,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    cache.invalidate('cc:team-access');
     return NextResponse.json({ success: true, action: 'saved' });
   } catch (error) {
     console.error('Error saving team access override:', error);

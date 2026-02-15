@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { googleSheetsService } from '@/lib/google-sheets-service';
+import { cache, CACHE_TTL } from '@/lib/cache';
 
 function generateId(): string {
   return `AGT-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`.toUpperCase();
@@ -16,6 +17,10 @@ export async function GET(request: NextRequest) {
     const includeVisits = searchParams.get('includeVisits') === 'true';
     const agentId = searchParams.get('agentId');
 
+    const cacheKey = `cc:agents:${agentId || 'all'}:${includeVisits}`;
+    const cached = cache.get(cacheKey);
+    if (cached) return NextResponse.json(cached);
+
     if (agentId) {
       // Get single agent with visits
       const agents = await googleSheetsService.getAgents();
@@ -24,7 +29,9 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
       }
       const visits = await googleSheetsService.getAgentVisits(agentId);
-      return NextResponse.json({ agent, visits });
+      const response = { agent, visits };
+      cache.set(cacheKey, response, CACHE_TTL.MEDIUM);
+      return NextResponse.json(response);
     }
 
     const agents = await googleSheetsService.getAgents();
@@ -71,12 +78,14 @@ export async function GET(request: NextRequest) {
         visits: agent.visitCount,
       }));
 
-    return NextResponse.json({
+    const response = {
       agents: agentStats,
       leaderboard,
       totalAgents: agents.length,
       activeAgents: agents.filter(a => a.isActive === 'true').length,
-    });
+    };
+    cache.set(cacheKey, response, CACHE_TTL.MEDIUM);
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Error fetching agents:', error);
     return NextResponse.json({ error: 'Failed to fetch agents' }, { status: 500 });
@@ -115,6 +124,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Failed to log visit' }, { status: 500 });
       }
 
+      cache.invalidatePattern('^cc:agents:');
       return NextResponse.json({ success: true, visit });
     }
 
@@ -142,6 +152,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to save agent' }, { status: 500 });
     }
 
+    cache.invalidatePattern('^cc:agents:');
     return NextResponse.json({ success: true, agent });
   } catch (error) {
     console.error('Error creating agent/visit:', error);
@@ -167,6 +178,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to update agent' }, { status: 500 });
     }
 
+    cache.invalidatePattern('^cc:agents:');
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error updating agent:', error);

@@ -12,6 +12,7 @@ import { requireAuth } from '@/lib/auth-service';
 import { googleSheetsService } from '@/lib/google-sheets-service';
 import { TRAINING_MODULES, getModulesForRole } from '@/lib/training-content';
 import type { TrainingModule } from '@/lib/training-content';
+import { cache, CACHE_TTL } from '@/lib/cache';
 
 /**
  * GET /api/portal/training/modules?userId=xxx&role=sales
@@ -30,6 +31,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId') || auth.user.userId;
     const role = searchParams.get('role');
+
+    const cacheKey = `portal:training-modules:${userId}:${role || 'all'}`;
+    const cached = cache.get(cacheKey);
+    if (cached) return NextResponse.json(cached);
 
     // Get modules - optionally filtered by role
     const modules: TrainingModule[] = role
@@ -67,14 +72,16 @@ export async function GET(request: NextRequest) {
     // Build the progress array from the map
     const progress = Object.values(progressMap);
 
-    return NextResponse.json({
+    const response = {
       success: true,
       modules,
       progress,
       userId,
       totalModules: modules.length,
       totalCompleted: progress.filter(p => p.completed).length,
-    });
+    };
+    cache.set(cacheKey, response, CACHE_TTL.MEDIUM);
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Error fetching training modules:', error);
     return NextResponse.json(

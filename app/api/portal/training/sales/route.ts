@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { googleSheetsService } from '@/lib/google-sheets-service';
 import { gradeQuiz, SALES_MODULE_QUESTIONS } from '@/lib/sales-training-answers';
+import { cache, CACHE_TTL } from '@/lib/cache';
 
 /**
  * GET /api/portal/training/sales?userId=xxx
@@ -23,6 +24,10 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId') || auth.user.userId;
+
+    const cacheKey = `portal:training-sales:${userId}`;
+    const cached = cache.get(cacheKey);
+    if (cached) return NextResponse.json(cached);
 
     const allRecords = await googleSheetsService.getTrainingProgress(userId);
 
@@ -48,14 +53,16 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
+    const response = {
       success: true,
       userId,
       records: salesRecords,
       completedModules: [...new Set(completedModules)],
       moduleScores,
       totalCompleted: new Set(completedModules).size,
-    });
+    };
+    cache.set(cacheKey, response, CACHE_TTL.MEDIUM);
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Error fetching sales training progress:', error);
     return NextResponse.json(
@@ -141,6 +148,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    cache.invalidatePattern('^portal:training');
+    cache.invalidatePattern('^admin:training');
     return NextResponse.json({
       success: true,
       record,

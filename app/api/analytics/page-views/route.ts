@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-service';
 import { cmsSheetsService } from '@/lib/cms-sheets-service';
+import { cache, CACHE_TTL } from '@/lib/cache';
 
 /**
  * GET /api/analytics/page-views
@@ -19,12 +20,18 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const path = searchParams.get('path');
 
+    const cacheKey = `analytics:page-views:${path || 'all'}`;
+    const cached = cache.get(cacheKey);
+    if (cached) return NextResponse.json(cached);
+
     const stats = await cmsSheetsService.getPageViewStats(path || undefined);
 
-    return NextResponse.json({
+    const response = {
       success: true,
       stats,
-    });
+    };
+    cache.set(cacheKey, response, CACHE_TTL.MEDIUM);
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Error fetching page views:', error);
     return NextResponse.json(
@@ -55,6 +62,7 @@ export async function POST(req: NextRequest) {
       referrer,
     });
 
+    cache.invalidatePattern('^analytics:page-views:');
     return NextResponse.json({
       success: true,
       view,

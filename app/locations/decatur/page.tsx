@@ -51,7 +51,7 @@ export default function DecaturPage() {
     "@id": `${siteConfig.url}/locations/decatur`,
     "url": `${siteConfig.url}/locations/decatur`,
     "telephone": siteConfig.phoneTel,
-    "priceRange": "$$",
+    "priceRange": "$$$",
     "address": {
       "@type": "PostalAddress",
       "streetAddress": siteConfig.address.streetAddress,
