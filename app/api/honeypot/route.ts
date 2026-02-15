@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/rate-limit';
 
 // Honeypot endpoint — hidden links that only bots/scrapers follow
 // Sends Michael an entertaining email when triggered
@@ -19,6 +20,12 @@ export async function GET(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
              request.headers.get('x-real-ip') || 
              'unknown';
+
+  // Rate limit to prevent abuse (10 requests per minute per IP)
+  const rl = rateLimit(`honeypot:${ip}`, 10, 60_000);
+  if (!rl.allowed) {
+    return new NextResponse('', { status: 429 });
+  }
   const ua = request.headers.get('user-agent') || 'no user-agent';
   const referer = request.headers.get('referer') || 'direct';
   const now = new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' });

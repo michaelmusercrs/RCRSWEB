@@ -89,6 +89,7 @@ export async function POST(request: NextRequest) {
 // ---------------------------------------------------------------------------
 
 export async function GET(request: NextRequest) {
+  return withRateLimit(request, formRateLimiter, async () => {
   try {
     const { searchParams } = new URL(request.url);
 

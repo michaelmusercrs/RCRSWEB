@@ -1,9 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { calculateLeadScore, formatLeadForEmail } from '@/lib/lead-tracker';
 import { groupMeService, getGroupMeConfigFromEnv } from '@/lib/groupme-service';
 import { portalGenerator } from '@/lib/portal-generator';
 import { leadPortalService } from '@/lib/lead-portal-service';
 import { apiError, getErrorMessage } from '@/lib/api-response';
+import { createFormRateLimiter, withRateLimit } from '@/lib/rate-limiter';
+
+const contactRateLimiter = createFormRateLimiter();
 
 /**
  * Contact Form API Route
@@ -19,7 +22,8 @@ import { apiError, getErrorMessage } from '@/lib/api-response';
  *    - Sending notification to company
  * 5. Return success/error to frontend
  */
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  return withRateLimit(request, contactRateLimiter, async () => {
   try {
     const body = await request.json();
     const { name, email, phone, subject, message, preferredInspector, serviceType, serviceArea, city, sourcePage } = body;
@@ -27,6 +31,14 @@ export async function POST(request: Request) {
     // Validate required fields
     if (!name || !email || !subject || !message) {
       return apiError('Missing required fields: name, email, subject, and message are required', 400, 'VALIDATION_ERROR');
+    }
+
+    // SECURITY: Validate input lengths to prevent abuse
+    if (name.length > 200 || email.length > 254 || subject.length > 500 || message.length > 5000) {
+      return apiError('One or more fields exceed maximum length', 400, 'VALIDATION_ERROR');
+    }
+    if (phone && phone.length > 50) {
+      return apiError('Phone number too long', 400, 'VALIDATION_ERROR');
     }
 
     // Validate email format
@@ -193,4 +205,5 @@ export async function POST(request: Request) {
       'CONTACT_FORM_ERROR'
     );
   }
+  }); // end withRateLimit
 }

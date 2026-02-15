@@ -32,5 +32,52 @@ export const metadata: Metadata = {
 };
 
 export default function CareersLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  const jobPostingSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'JobPosting',
+    title: 'Roofing Sales Representative',
+    description:
+      'Build your own roofing business with River City Roofing Solutions. Unlimited earning potential with 1099 independent contractor opportunity. No experience needed — free training provided.',
+    datePosted: '2025-01-01',
+    validThrough: '2026-12-31',
+    employmentType: 'CONTRACTOR',
+    hiringOrganization: {
+      '@type': 'Organization',
+      name: 'River City Roofing Solutions',
+      sameAs: 'https://www.rivercityroofingsolutions.com',
+      logo: 'https://www.rivercityroofingsolutions.com/logo.png',
+    },
+    jobLocation: {
+      '@type': 'Place',
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: 'Decatur',
+        addressRegion: 'AL',
+        postalCode: '35603',
+        addressCountry: 'US',
+      },
+    },
+    baseSalary: {
+      '@type': 'MonetaryAmount',
+      currency: 'USD',
+      value: {
+        '@type': 'QuantitativeValue',
+        minValue: 60000,
+        maxValue: 200000,
+        unitText: 'YEAR',
+      },
+    },
+    jobBenefits: 'Flexible schedule, unlimited earning potential, free training, family-oriented team',
+    qualifications: 'No experience required. Must be motivated and willing to learn.',
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jobPostingSchema) }}
+      />
+      {children}
+    </>
+  );
 }

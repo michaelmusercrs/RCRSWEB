@@ -322,7 +322,13 @@ function BlogEditor({
 
   // Simple markdown to HTML conversion for preview
   const renderMarkdownPreview = (text: string) => {
-    return text
+    // SECURITY: Escape HTML entities first to prevent XSS, then apply markdown formatting
+    const escaped = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+    return escaped
       // Headers
       .replace(/^### (.*$)/gm, '<h3 class="text-lg font-semibold text-white mt-4 mb-2">$1</h3>')
       .replace(/^## (.*$)/gm, '<h2 class="text-xl font-bold text-white mt-6 mb-3">$1</h2>')

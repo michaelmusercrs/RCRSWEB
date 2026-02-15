@@ -67,3 +67,6 @@ export { default as DeliveryWidget } from './DeliveryWidget';
 
 // ResponseTimeDashboard - Lead response time analytics visualization
 export { ResponseTimeDashboard } from './ResponseTimeDashboard';
+
+// SheetsHealthWidget - Google Sheets connection health monitor
+export { SheetsHealthWidget } from './SheetsHealthWidget';

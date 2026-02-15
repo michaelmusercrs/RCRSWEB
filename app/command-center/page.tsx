@@ -51,6 +51,7 @@ import { StatCard } from '@/components/command-center/StatCard';
 import { RoleBadge } from '@/components/command-center/RoleBadge';
 import { ResponseTimeDashboard } from '@/components/command-center/ResponseTimeDashboard';
 import { SalesCompetitionCard } from '@/components/command-center/SalesCompetition';
+import { SheetsHealthWidget } from '@/components/command-center/SheetsHealthWidget';
 import { cn } from '@/lib/utils';
 
 // ============================================================================
@@ -1026,6 +1027,9 @@ export default function CommandCenterDashboard() {
           )}
         </div>
       </div>
+
+      {/* Sheets Health Monitor (Owner) */}
+      {isOwner && <SheetsHealthWidget />}
 
       {/* Quick Links Footer (Owner) */}
       {isOwner && (

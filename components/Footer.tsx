@@ -1,7 +1,78 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
-import { Phone, Mail, MapPin, Facebook, Instagram, Clock } from 'lucide-react';
+import { Phone, Mail, MapPin, Facebook, Instagram, Clock, Shield, CheckCircle, Loader2 } from 'lucide-react';
+
+function FooterEmailCapture() {
+  const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name || !email) return;
+    setSubmitting(true);
+    try {
+      const params = new URLSearchParams(window.location.search);
+      await fetch('/api/email-capture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          email,
+          sourcePage: window.location.pathname,
+          utmSource: params.get('utm_source') || '',
+          utmMedium: params.get('utm_medium') || '',
+          utmCampaign: params.get('utm_campaign') || '',
+        }),
+      });
+      setSubmitted(true);
+    } catch {
+      // Silent fail for footer form
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div className="flex items-center gap-2 text-brand-green">
+        <CheckCircle size={18} />
+        <span className="text-sm">Thanks! We&apos;ll be in touch.</span>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-2">
+      <input
+        type="text"
+        required
+        placeholder="Your Name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:border-brand-green transition"
+      />
+      <input
+        type="email"
+        required
+        placeholder="Email Address"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:border-brand-green transition"
+      />
+      <button
+        type="submit"
+        disabled={submitting}
+        className="w-full py-2 bg-brand-green hover:bg-brand-green/90 text-white font-semibold rounded-lg text-sm transition disabled:opacity-50"
+      >
+        {submitting ? 'Sending...' : 'Get Free Roof Assessment'}
+      </button>
+    </form>
+  );
+}
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -97,46 +168,45 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Service Areas */}
+          {/* Free Assessment CTA */}
           <div>
-            <h3 className="text-lg font-semibold text-white mb-4">Service Areas</h3>
-            <ul className="space-y-2">
-              <li>
-                <Link href="/service-areas/decatur-al" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
-                  Roofing in Decatur, AL
-                </Link>
-              </li>
-              <li>
-                <Link href="/service-areas/huntsville-al" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
-                  Roofing in Huntsville, AL
-                </Link>
-              </li>
-              <li>
-                <Link href="/service-areas/madison-al" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
-                  Roofing in Madison, AL
-                </Link>
-              </li>
-              <li>
-                <Link href="/service-areas/athens-al" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
-                  Roofing in Athens, AL
-                </Link>
-              </li>
-              <li>
-                <Link href="/service-areas/hartselle-al" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
-                  Roofing in Hartselle, AL
-                </Link>
-              </li>
-              <li>
-                <Link href="/service-areas/cullman-al" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
-                  Roofing in Cullman, AL
-                </Link>
-              </li>
-              <li>
-                <Link href="/service-areas" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
-                  All Service Areas →
-                </Link>
-              </li>
-            </ul>
+            <h3 className="text-lg font-semibold text-white mb-4">Free Roof Assessment</h3>
+            <p className="text-gray-400 text-sm mb-3">
+              Storm damage? Let us inspect your roof for free — no obligation.
+            </p>
+            <FooterEmailCapture />
+            <div className="flex items-center gap-1.5 mt-3 text-gray-500 text-xs">
+              <Shield size={12} />
+              <span>No spam. Your info stays private.</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Service Areas Row */}
+        <div className="mt-8 pt-8 border-t border-white/10">
+          <h3 className="text-lg font-semibold text-white mb-4">Service Areas</h3>
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+              <Link href="/service-areas/decatur-al" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
+                Decatur, AL
+              </Link>
+              <Link href="/service-areas/huntsville-al" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
+                Huntsville, AL
+              </Link>
+              <Link href="/service-areas/madison-al" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
+                Madison, AL
+              </Link>
+              <Link href="/service-areas/athens-al" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
+                Athens, AL
+              </Link>
+              <Link href="/service-areas/hartselle-al" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
+                Hartselle, AL
+              </Link>
+              <Link href="/service-areas/cullman-al" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
+                Cullman, AL
+              </Link>
+              <Link href="/service-areas" className="text-gray-400 hover:text-brand-green transition-colors text-sm font-medium">
+                All Service Areas →
+              </Link>
           </div>
         </div>
 

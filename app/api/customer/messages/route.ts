@@ -16,6 +16,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
     }
 
+    // SECURITY: Validate content length
+    if (typeof content !== 'string' || content.length > 5000) {
+      return NextResponse.json(
+        { success: false, error: 'Message content must be a string under 5000 characters' },
+        { status: 400 }
+      );
+    }
+
     // SECURITY: Prevent horizontal privilege escalation.
     // Customers can ONLY send messages for their own account.
     if (auth.user.role === 'customer' && auth.user.userId !== customerId) {
@@ -114,8 +122,10 @@ export async function GET(request: Request) {
 
   try {
     // Fetch notes for this customer that contain portal messages
+    // SECURITY: Sanitize customerId to prevent API query injection
+    const safeCustomerId = customerId.replace(/[^a-zA-Z0-9_-]/g, '');
     const response = await fetch(
-      `${JOBNIMBUS_API_URL}/notes?filter=primary.jnid:"${customerId}"&sort=-created_at&limit=50`,
+      `${JOBNIMBUS_API_URL}/notes?filter=primary.jnid:"${safeCustomerId}"&sort=-created_at&limit=50`,
       {
         headers: {
           'Authorization': `Bearer ${JOBNIMBUS_API_KEY}`,

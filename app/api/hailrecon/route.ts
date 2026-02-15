@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hailReconService } from '@/lib/hailrecon-service';
+import { createPublicRateLimiter, withRateLimit } from '@/lib/rate-limiter';
+
+const publicRateLimiter = createPublicRateLimiter();
 
 // GET - Fetch HailRecon data for a location
 export async function GET(request: NextRequest) {
+  return withRateLimit(request, publicRateLimiter, async () => {
   try {
     const { searchParams } = new URL(request.url);
     const lat = parseFloat(searchParams.get('lat') || '');
@@ -38,4 +42,5 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
+  });
 }

@@ -10,12 +10,18 @@ import FloatingContactButton from '@/components/FloatingContactButton';
 import GlobalVideoBackground from '@/components/GlobalVideoBackground';
 import PromoBanner from '@/components/PromoBanner';
 import CookieConsent from '@/components/CookieConsent';
+import EmailCapturePopup from '@/components/EmailCapturePopup';
 import TrackingProvider from '@/components/TrackingProvider';
 import { generateMetadata, generateLocalBusinessSchema, generateWebSiteSchema, getStructuredDataScript, siteConfig } from '@/lib/seo';
 
 // Tracking IDs from environment variables
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_ID || 'G-Y8PB85BZC5';
+// TODO: Michael — set NEXT_PUBLIC_FB_PIXEL_ID in .env with your Facebook Pixel ID
+// Get it from: Facebook Events Manager → Data Sources → Your Pixel → Settings
 const FB_PIXEL_ID = process.env.NEXT_PUBLIC_FB_PIXEL_ID || '';
+
+// TODO: Michael — set NEXT_PUBLIC_GOOGLE_ADS_ID in .env with your Google Ads Conversion ID
+// Get it from: Google Ads → Tools → Conversions → Tag setup (format: AW-XXXXXXXXX)
 const GOOGLE_ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID || '';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -140,6 +146,7 @@ export default function RootLayout({
             <main>{children}</main>
             <Footer />
             <FloatingContactButton />
+            <EmailCapturePopup />
             {/* Honeypot links — invisible to humans, irresistible to bots */}
             <a href="/api/honeypot" style={{position:'absolute',left:'-9999px',opacity:0,height:0,width:0,overflow:'hidden'}} tabIndex={-1} aria-hidden="true">Special Roofing Deals</a>
             <a href="/api/honeypot?src=admin" style={{position:'absolute',left:'-9999px',opacity:0,height:0,width:0,overflow:'hidden'}} tabIndex={-1} aria-hidden="true">Admin Panel</a>

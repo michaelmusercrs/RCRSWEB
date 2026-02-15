@@ -17,6 +17,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields: photo, ticketId, stage' }, { status: 400 });
     }
 
+    // SECURITY: Validate file type
+    const allowedPhotoTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic'];
+    if (!allowedPhotoTypes.includes(photo.type)) {
+      return NextResponse.json(
+        { error: 'Invalid file type. Allowed: JPEG, PNG, WebP, HEIC' },
+        { status: 400 }
+      );
+    }
+
+    // SECURITY: Validate file size (max 15MB for delivery photos)
+    const maxPhotoSize = 15 * 1024 * 1024;
+    if (photo.size > maxPhotoSize) {
+      return NextResponse.json(
+        { error: 'File too large. Maximum size is 15MB' },
+        { status: 400 }
+      );
+    }
+
+    // SECURITY: Sanitize ticketId and stage to prevent path traversal
+    const safeTicketId = ticketId.replace(/[^a-zA-Z0-9_-]/g, '');
+    const safeStage = stage.replace(/[^a-zA-Z0-9_-]/g, '');
+
     // In production: upload to cloud storage (S3, GCS, etc.)
     // For now, log the upload and return success
     const metadata = {
@@ -33,7 +55,7 @@ export async function POST(req: NextRequest) {
       photo: {
         id: `photo-${Date.now()}`,
         ...metadata,
-        url: `/uploads/delivery/${ticketId}/${stage}/${photo.name}`,
+        url: `/uploads/delivery/${safeTicketId}/${safeStage}/${photo.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`,
       },
     });
   } catch (error) {

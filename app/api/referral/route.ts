@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server';
 import { apiError, getErrorMessage } from '@/lib/api-response';
+import { createFormRateLimiter, withRateLimit } from '@/lib/rate-limiter';
+
+const formRateLimiter = createFormRateLimiter();
 
 /**
  * Referral Form API Route
  * Forwards referral submissions to Google Apps Script for processing
  */
 export async function POST(request: Request) {
+  return withRateLimit(request, formRateLimiter, async () => {
   try {
     const body = await request.json();
     const {
@@ -94,4 +98,5 @@ export async function POST(request: Request) {
       'REFERRAL_FORM_ERROR'
     );
   }
+  });
 }

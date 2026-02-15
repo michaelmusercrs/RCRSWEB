@@ -78,6 +78,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Rep slug is required' }, { status: 400 });
     }
 
+    // SECURITY: Sanitize repSlug to prevent path traversal
+    const safeSlug = repSlug.replace(/[^a-zA-Z0-9_-]/g, '');
+    if (safeSlug !== repSlug || repSlug.includes('..')) {
+      return NextResponse.json({ success: false, error: 'Invalid rep slug' }, { status: 400 });
+    }
+
     // Validate file type (images + videos)
     const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/quicktime'];

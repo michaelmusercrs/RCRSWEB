@@ -202,11 +202,13 @@ export async function GET(request: NextRequest) {
     const jnApiKey = process.env.JOBNIMBUS_API_KEY;
     const jnApiUrl = process.env.JOBNIMBUS_API_URL || 'https://app.jobnimbus.com/api1';
 
-    if (jnApiKey && customerId.length > 10) {
+    // SECURITY: Sanitize customerId to prevent API query injection
+    const safeCustomerId = customerId.replace(/[^a-zA-Z0-9_-]/g, '');
+    if (jnApiKey && safeCustomerId.length > 10) {
       // Looks like a JN ID
       try {
         const jnRes = await fetch(
-          `${jnApiUrl}/notes?filter=primary.jnid:"${customerId}"&sort=-created_at&limit=50`,
+          `${jnApiUrl}/notes?filter=primary.jnid:"${safeCustomerId}"&sort=-created_at&limit=50`,
           {
             headers: {
               'Authorization': `Bearer ${jnApiKey}`,

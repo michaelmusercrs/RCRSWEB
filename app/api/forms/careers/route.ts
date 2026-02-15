@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { formService } from '@/lib/form-service';
 import { groupMeService, getGroupMeConfigFromEnv } from '@/lib/groupme-service';
+import { createFormRateLimiter, withRateLimit } from '@/lib/rate-limiter';
+
+const formRateLimiter = createFormRateLimiter();
 
 export async function POST(request: NextRequest) {
+  return withRateLimit(request, formRateLimiter, async () => {
   try {
     const body = await request.json();
     const { firstName, lastName, email, phone, city, experience, whyJoin } = body;
@@ -70,4 +74,5 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
+  });
 }

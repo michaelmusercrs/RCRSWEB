@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createPublicRateLimiter, withRateLimit } from '@/lib/rate-limiter';
+
+const publicRateLimiter = createPublicRateLimiter();
 
 const MAPS_KEY = process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
 const SOLAR_KEY = process.env.GOOGLE_SOLAR_API_KEY || MAPS_KEY;
@@ -70,6 +73,7 @@ async function getSolarData(lat: number, lng: number) {
 }
 
 export async function GET(req: NextRequest) {
+  return withRateLimit(req, publicRateLimiter, async () => {
   const address = req.nextUrl.searchParams.get('address');
   if (!address) return NextResponse.json({ error: 'Address is required' }, { status: 400 });
 
@@ -165,6 +169,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(result);
   } catch (e: any) {
     console.error('Roof report error:', e);
-    return NextResponse.json({ error: e.message || 'An unexpected error occurred' }, { status: 500 });
+    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
   }
+  });
 }

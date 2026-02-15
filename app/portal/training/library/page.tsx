@@ -167,7 +167,13 @@ function parseStudyGuideSections(text: string): { heading: string; body: string 
 
 /** Renders inline markdown: **bold**, *italic*, `code`, [link](url) */
 function renderInlineMarkdown(text: string): string {
-  return text
+  // SECURITY: Escape HTML entities first to prevent XSS injection
+  const escaped = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+  return escaped
     .replace(/\*\*(.+?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
     .replace(/`(.+?)`/g, '<code class="px-1.5 py-0.5 rounded bg-white/10 text-brand-green text-xs font-mono">$1</code>')
