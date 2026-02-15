@@ -8,6 +8,16 @@ export async function GET(request: NextRequest) {
   const auth = await requireAuth();
   if (!auth.authenticated) return auth.response;
 
+  // Restrict DM access to owner/admin/manager roles — DMs use the company GroupMe
+  // account and expose all conversations from that account's perspective
+  const allowedRoles = ['owner', 'admin', 'manager'];
+  if (!allowedRoles.includes(auth.user.role)) {
+    return NextResponse.json(
+      { error: 'Insufficient permissions to access direct messages' },
+      { status: 403 }
+    );
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
@@ -64,6 +74,15 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const auth = await requireAuth();
   if (!auth.authenticated) return auth.response;
+
+  // Restrict DM sending to owner/admin/manager roles
+  const allowedRoles = ['owner', 'admin', 'manager'];
+  if (!allowedRoles.includes(auth.user.role)) {
+    return NextResponse.json(
+      { error: 'Insufficient permissions to send direct messages' },
+      { status: 403 }
+    );
+  }
 
   try {
     const body = await request.json();
