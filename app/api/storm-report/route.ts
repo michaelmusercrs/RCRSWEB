@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to generate storm report',
+        error: 'Failed to generate storm report',
       },
       { status: 500 }
     );
@@ -161,9 +161,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch storm report',
+        error: 'Failed to fetch storm report',
       },
       { status: 500 }
     );
   }
+  });
 }
