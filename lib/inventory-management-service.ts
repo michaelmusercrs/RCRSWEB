@@ -1188,6 +1188,23 @@ const MOCK_ALERT_RULES: CustomAlertRule[] = [
 ];
 
 // ============================================
+// GOOGLE SHEETS INTEGRATION
+// ============================================
+
+import { GoogleSpreadsheet } from 'google-spreadsheet';
+import { JWT } from 'google-auth-library';
+
+const MGMT_SHEETS_ID = process.env.DELIVERY_SHEETS_ID || process.env.GOOGLE_SHEETS_ID;
+const mgmtPrivateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n')?.replace(/\r\n/g, '\n');
+const mgmtServiceAuth = new JWT({
+  email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+  key: mgmtPrivateKey,
+  scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+});
+
+const MGMT_SHEETS_CONFIGURED = !!(MGMT_SHEETS_ID && process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && mgmtPrivateKey);
+
+// ============================================
 // SERVICE CLASS
 // ============================================
 
@@ -1201,6 +1218,8 @@ class InventoryManagementService {
   private nextCountId: number;
   private nextOrderId: number;
   private nextRuleId: number;
+  private sheetsLoaded: boolean;
+  private sheetsLoadPromise: Promise<void> | null;
 
   constructor() {
     this.inventory = [...MOCK_INVENTORY];
@@ -1212,11 +1231,168 @@ class InventoryManagementService {
     this.nextCountId = 6;
     this.nextOrderId = 13;
     this.nextRuleId = 3;
+    this.sheetsLoaded = false;
+    this.sheetsLoadPromise = null;
+  }
+
+  /**
+   * Load inventory from Google Sheets 'Inventory' tab.
+   * Merges with mock data: Sheets items take priority, mock items fill gaps.
+   */
+  private async loadFromSheets(): Promise<void> {
+    if (this.sheetsLoaded || !MGMT_SHEETS_CONFIGURED) return;
+    if (this.sheetsLoadPromise) return this.sheetsLoadPromise;
+
+    this.sheetsLoadPromise = (async () => {
+      try {
+        const doc = new GoogleSpreadsheet(MGMT_SHEETS_ID!, mgmtServiceAuth);
+        await doc.loadInfo();
+
+        const sheet = doc.sheetsByTitle['Inventory'];
+        if (!sheet) {
+          this.sheetsLoaded = true;
+          return;
+        }
+
+        const rows = await sheet.getRows();
+        if (rows.length === 0) {
+          this.sheetsLoaded = true;
+          return;
+        }
+
+        // Map Sheets rows to InventoryItem format
+        const sheetsItems: InventoryItem[] = rows.map((row, idx) => {
+          const productId = row.get('productId') || `SHEET-${idx}`;
+          const currentQty = parseFloat(row.get('currentQty')) || 0;
+          const unitCost = parseFloat(row.get('unitCost')) || 0;
+          const minQty = parseFloat(row.get('minQty')) || 10;
+          const maxQty = parseFloat(row.get('maxQty')) || 100;
+
+          // Map category string to InventoryCategory enum
+          const rawCat = (row.get('category') || '').toLowerCase();
+          let category: InventoryCategory = 'accessories';
+          if (rawCat.includes('fastener') || rawCat.includes('nail')) category = 'nails_fasteners';
+          else if (rawCat.includes('underlayment')) category = 'underlayment';
+          else if (rawCat.includes('flash')) category = 'flashing';
+          else if (rawCat.includes('gutter')) category = 'gutters';
+          else if (rawCat.includes('sealant')) category = 'sealants';
+          else if (rawCat.includes('lumber') || rawCat.includes('wood')) category = 'lumber';
+          else if (rawCat.includes('vent')) category = 'ventilation';
+          else if (rawCat.includes('shingle')) category = 'shingles';
+          else if (rawCat.includes('safety')) category = 'safety_equipment';
+
+          return {
+            productId,
+            productName: row.get('productName') || 'Unknown',
+            category,
+            sku: row.get('sku') || '',
+            unit: row.get('unit') || 'each',
+            currentQty,
+            minStockLevel: minQty,
+            maxStockLevel: maxQty,
+            reorderQty: Math.max(10, maxQty - currentQty),
+            unitCost,
+            unitPrice: unitCost * 1.5, // Default 50% markup if not stored
+            supplier: row.get('supplier') || '',
+            supplierPartNumber: '',
+            location: row.get('location') || '',
+            weight: 0,
+            lastCountDate: row.get('lastCountDate') || '',
+            lastCountBy: '',
+            lastRestockDate: row.get('lastRestockDate') || '',
+            notes: row.get('notes') || '',
+          };
+        });
+
+        if (sheetsItems.length > 0) {
+          // Merge: use Sheets items as primary, keep mock items that don't overlap
+          const sheetsIds = new Set(sheetsItems.map(i => i.productId));
+          const nonOverlapping = this.inventory.filter(i => !sheetsIds.has(i.productId));
+          this.inventory = [...sheetsItems, ...nonOverlapping];
+          this.nextProductId = Math.max(this.nextProductId, sheetsItems.length + 39);
+        }
+
+        this.sheetsLoaded = true;
+      } catch (error) {
+        console.error('Failed to load inventory from Google Sheets:', error);
+        this.sheetsLoaded = true; // Don't retry on error, use mock data
+      }
+    })();
+
+    return this.sheetsLoadPromise;
+  }
+
+  /**
+   * Persist an inventory item change to Google Sheets.
+   */
+  private async persistToSheets(item: InventoryItem): Promise<void> {
+    if (!MGMT_SHEETS_CONFIGURED) return;
+    try {
+      const doc = new GoogleSpreadsheet(MGMT_SHEETS_ID!, mgmtServiceAuth);
+      await doc.loadInfo();
+
+      let sheet = doc.sheetsByTitle['Inventory'];
+      if (!sheet) {
+        sheet = await doc.addSheet({
+          title: 'Inventory',
+          headerValues: [
+            'productId', 'productName', 'category', 'sku', 'unit', 'currentQty',
+            'minQty', 'maxQty', 'unitCost', 'totalValue', 'location', 'supplier',
+            'lastCountDate', 'lastRestockDate', 'notes'
+          ]
+        });
+      }
+
+      const rows = await sheet.getRows();
+      const existingRow = rows.find(r => r.get('productId') === item.productId);
+
+      if (existingRow) {
+        existingRow.set('productName', item.productName);
+        existingRow.set('category', CATEGORY_LABELS[item.category] || item.category);
+        existingRow.set('sku', item.sku);
+        existingRow.set('unit', item.unit);
+        existingRow.set('currentQty', item.currentQty.toString());
+        existingRow.set('minQty', item.minStockLevel.toString());
+        existingRow.set('maxQty', item.maxStockLevel.toString());
+        existingRow.set('unitCost', item.unitCost.toString());
+        existingRow.set('totalValue', (item.currentQty * item.unitCost).toFixed(2));
+        existingRow.set('location', item.location);
+        existingRow.set('supplier', item.supplier);
+        existingRow.set('lastCountDate', item.lastCountDate);
+        existingRow.set('lastRestockDate', item.lastRestockDate);
+        existingRow.set('notes', item.notes);
+        await existingRow.save();
+      } else {
+        await sheet.addRow({
+          productId: item.productId,
+          productName: item.productName,
+          category: CATEGORY_LABELS[item.category] || item.category,
+          sku: item.sku,
+          unit: item.unit,
+          currentQty: item.currentQty.toString(),
+          minQty: item.minStockLevel.toString(),
+          maxQty: item.maxStockLevel.toString(),
+          unitCost: item.unitCost.toString(),
+          totalValue: (item.currentQty * item.unitCost).toFixed(2),
+          location: item.location,
+          supplier: item.supplier,
+          lastCountDate: item.lastCountDate,
+          lastRestockDate: item.lastRestockDate,
+          notes: item.notes,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to persist inventory item to Sheets:', error);
+    }
   }
 
   // ============================================
   // GENERAL INVENTORY
   // ============================================
+
+  async ensureSheetsLoaded(): Promise<void> {
+    await this.loadFromSheets();
+  }
 
   getInventory(filters?: InventoryFilters): InventoryItem[] {
     let items = [...this.inventory];
@@ -1260,6 +1436,8 @@ class InventoryManagementService {
     const idx = this.inventory.findIndex(i => i.productId === productId);
     if (idx === -1) return null;
     this.inventory[idx] = { ...this.inventory[idx], ...updates, productId };
+    // Persist to Google Sheets in background
+    this.persistToSheets(this.inventory[idx]).catch(() => {});
     return this.inventory[idx];
   }
 
@@ -1267,6 +1445,8 @@ class InventoryManagementService {
     const productId = `INV-${String(this.nextProductId++).padStart(4, '0')}`;
     const newItem: InventoryItem = { productId, ...itemData };
     this.inventory.push(newItem);
+    // Persist to Google Sheets in background
+    this.persistToSheets(newItem).catch(() => {});
     return newItem;
   }
 
@@ -1408,6 +1588,8 @@ class InventoryManagementService {
         item.currentQty = adjustedQty;
         item.lastCountDate = new Date().toISOString().split('T')[0];
         item.lastCountBy = resolvedBy;
+        // Persist to Google Sheets in background
+        this.persistToSheets(item).catch(() => {});
       }
     }
 
@@ -1608,6 +1790,8 @@ class InventoryManagementService {
       if (invItem) {
         invItem.currentQty += received.receivedQty;
         invItem.lastRestockDate = new Date().toISOString().split('T')[0];
+        // Persist to Google Sheets in background
+        this.persistToSheets(invItem).catch(() => {});
       }
     }
 
@@ -1704,6 +1888,8 @@ class InventoryManagementService {
 
     item.unitCost = newCost;
     item.unitPrice = newPrice;
+    // Persist to Google Sheets in background
+    this.persistToSheets(item).catch(() => {});
     return item;
   }
 

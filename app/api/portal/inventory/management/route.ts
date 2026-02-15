@@ -25,6 +25,9 @@ export async function GET(request: NextRequest) {
     const supplier = searchParams.get('supplier') || undefined;
     const view = searchParams.get('view');
 
+    // Ensure Google Sheets data is loaded
+    await inventoryManagementService.ensureSheetsLoaded();
+
     // Special views
     if (view === 'alerts') {
       return NextResponse.json({ alerts: inventoryManagementService.getStockAlerts() });
@@ -128,6 +131,9 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { action } = body;
+
+    // Ensure Google Sheets data is loaded
+    await inventoryManagementService.ensureSheetsLoaded();
 
     switch (action) {
       // --- Count Operations ---

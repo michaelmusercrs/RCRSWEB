@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-service';
 import { inventoryReconciliationService } from '@/lib/inventory-reconciliation-service';
+import { inventoryManagementService } from '@/lib/inventory-management-service';
 
 /**
  * GET /api/portal/inventory/reconciliation
@@ -19,6 +20,9 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
+    // Ensure inventory management service has loaded Sheets data
+    await inventoryManagementService.ensureSheetsLoaded();
+
     const jobId = searchParams.get('jobId');
     const stored = searchParams.get('stored');
 
