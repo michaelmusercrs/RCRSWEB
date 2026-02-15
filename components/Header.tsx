@@ -79,7 +79,7 @@ export default function Header() {
     <>
       {/* Main Header */}
       <header className="bg-black/60 backdrop-blur-sm">
-        <nav className="container mx-auto px-4 py-3">
+        <nav className="container mx-auto px-4 py-3" aria-label="Main navigation">
           <div className="flex items-center justify-between">
             {/* Home Button - Only on non-home pages */}
             {!isHomePage ? (
@@ -192,7 +192,7 @@ export default function Header() {
 
       {/* Contact Form Popup */}
       {contactFormOpen && (
-        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 overflow-y-auto" role="dialog" aria-label="Get a free quote">
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -211,6 +211,7 @@ export default function Header() {
                 <button
                   onClick={() => setContactFormOpen(false)}
                   className="text-white hover:text-brand-green transition-colors"
+                  aria-label="Close quote form"
                 >
                   <X className="w-6 h-6" />
                 </button>

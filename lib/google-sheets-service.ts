@@ -300,6 +300,7 @@ const SHEET_NAMES = {
   REP_WEEKLY_NUMBERS: 'RepWeeklyNumbers',
   CUSTOMER_PORTAL_LOG: 'CustomerPortalLog',
   CUSTOMER_PORTAL_DATA: 'CustomerPortalData',
+  MONDAY_NOTES: 'MondayNotes',
 } as const;
 
 // =============================================================================
@@ -2305,7 +2306,115 @@ class GoogleSheetsService {
       return false;
     }
   }
+
+  // ===========================================================================
+  // MONDAY NOTES
+  // ===========================================================================
+
+  private readonly mondayNotesHeaders = [
+    'id', 'meetingDate', 'userId', 'userName', 'userRole', 'category',
+    'title', 'content', 'highlightsJson', 'attachmentsJson',
+    'timingJson', 'metricsJson', 'announcementType', 'displayDuration',
+    'displayStartDate', 'displayEndDate', 'includeInSlide', 'slideOrder',
+    'status', 'createdAt', 'updatedAt'
+  ];
+
+  async getMondayNotes(options?: {
+    meetingDate?: string;
+    userId?: string;
+    category?: string;
+    status?: string;
+  }): Promise<Record<string, string>[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.MONDAY_NOTES,
+        this.mondayNotesHeaders
+      );
+
+      const rows = await sheet.getRows();
+      let records = rows.map(row => {
+        const record: Record<string, string> = {};
+        for (const h of this.mondayNotesHeaders) {
+          record[h] = row.get(h) || '';
+        }
+        return record;
+      });
+
+      if (options?.meetingDate) {
+        records = records.filter(r => r.meetingDate === options.meetingDate);
+      }
+      if (options?.userId) {
+        records = records.filter(r => r.userId === options.userId);
+      }
+      if (options?.category) {
+        records = records.filter(r => r.category === options.category);
+      }
+      if (options?.status) {
+        records = records.filter(r => r.status === options.status);
+      }
+
+      return records;
+    } catch (error) {
+      console.error('Error fetching monday notes:', error);
+      return [];
+    }
+  }
+
+  async saveMondayNote(note: Record<string, string>): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.MONDAY_NOTES,
+        this.mondayNotesHeaders
+      );
+
+      const rows = await sheet.getRows();
+      const existing = rows.find(r => r.get('id') === note.id);
+
+      if (existing) {
+        for (const key of this.mondayNotesHeaders) {
+          if (note[key] !== undefined) {
+            existing.set(key, note[key]);
+          }
+        }
+        await existing.save();
+      } else {
+        await sheet.addRow(note as unknown as Record<string, string | number | boolean>);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error saving monday note:', error);
+      return false;
+    }
+  }
+
+  async deleteMondayNote(noteId: string): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = this.doc.sheetsByTitle[SHEET_NAMES.MONDAY_NOTES];
+      if (!sheet) return false;
+
+      const rows = await sheet.getRows();
+      const row = rows.find(r => r.get('id') === noteId);
+
+      if (row) {
+        await row.delete();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error deleting monday note:', error);
+      return false;
+    }
+  }
 }
 
-// Export singleton instance
 export const googleSheetsService = new GoogleSheetsService();

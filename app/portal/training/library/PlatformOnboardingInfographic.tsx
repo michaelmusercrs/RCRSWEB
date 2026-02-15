@@ -1,4 +1,4 @@
-'use client';
+// Server Component - no client interactivity needed
 
 import { Layout, ArrowRightLeft, Globe, Server, Zap } from 'lucide-react';
 

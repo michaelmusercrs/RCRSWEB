@@ -1,14 +1,14 @@
-'use client';
-
-import { useParams } from 'next/navigation';
 import { getWalkthroughBySlug } from '@/lib/walkthrough-data';
 import WalkthroughPage from '@/components/WalkthroughPage';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
-export default function WalkthroughSlugPage() {
-  const params = useParams();
-  const slug = typeof params.slug === 'string' ? params.slug : '';
+interface PageProps {
+  params: Promise<{ slug: string }>;
+}
+
+export default async function WalkthroughSlugPage({ params }: PageProps) {
+  const { slug } = await params;
   const data = getWalkthroughBySlug(slug);
 
   if (!data) {

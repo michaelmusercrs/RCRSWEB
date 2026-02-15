@@ -23,21 +23,23 @@ export async function POST(request: NextRequest) {
       marketingSource,
     } = body;
 
-    // Validate required fields
-    if (!name || !email || !subject || !message) {
+    // Validate required fields (email is optional for quick quote forms)
+    if (!name || !subject || !message) {
       return NextResponse.json(
         { success: false, message: 'Please fill in all required fields.' },
         { status: 400 }
       );
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        { success: false, message: 'Please enter a valid email address.' },
-        { status: 400 }
-      );
+    // Validate email format if provided
+    if (email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return NextResponse.json(
+          { success: false, message: 'Please enter a valid email address.' },
+          { status: 400 }
+        );
+      }
     }
 
     // Submit the form to Google Sheets

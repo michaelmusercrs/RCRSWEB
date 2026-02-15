@@ -1,4 +1,4 @@
-'use client';
+// Server Component - no client interactivity needed
 
 import { Phone, Users, MessageSquare, Clock, TrendingUp, Zap } from 'lucide-react';
 

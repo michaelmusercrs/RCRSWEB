@@ -1,4 +1,4 @@
-'use client';
+// Server Component - no client interactivity needed
 
 import { Truck, Package, ClipboardCheck, BarChart3, TrendingUp, Zap } from 'lucide-react';
 

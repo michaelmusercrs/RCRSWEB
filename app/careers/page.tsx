@@ -1,7 +1,3 @@
-'use client';
-
-import { useState, useCallback } from 'react';
-import Link from 'next/link';
 import {
   DollarSign,
   Clock,
@@ -20,374 +16,16 @@ import {
   Coffee,
   Hammer,
   Target,
-  HelpCircle,
   ChevronRight,
   Zap,
   Shield,
   Building2,
 } from 'lucide-react';
+import EarningsCalculator from './EarningsCalculator';
+import FAQSection from './FAQSection';
+import ApplicationForm from './ApplicationForm';
 
-// ─── Earnings Calculator ────────────────────────────────────────────
-function EarningsCalculator() {
-  const [hours, setHours] = useState(40);
-  const [experience, setExperience] = useState('some');
-
-  const rateMap: Record<string, number> = {
-    beginner: 30,
-    some: 45,
-    experienced: 55,
-    roofing: 70,
-  };
-
-  const base = hours * (rateMap[experience] || 45) * 52;
-  const low = Math.round((base * 0.8) / 1000) * 1000;
-  const high = Math.round((base * 1.2) / 1000) * 1000;
-
-  return (
-    <section id="calculator" className="py-20 bg-[#1a1a1a] text-white">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold">
-            Calculate Your <span className="text-brand-green">Potential Income</span>
-          </h2>
-          <p className="text-xl mt-6 max-w-3xl mx-auto text-gray-300">
-            See what&apos;s possible when you&apos;re in control of your own success.
-          </p>
-        </div>
-
-        <div className="max-w-2xl mx-auto bg-gray-900 border-2 border-brand-green rounded-lg p-8">
-          {/* Hours slider */}
-          <div className="mb-10">
-            <label className="block text-2xl font-bold mb-6">
-              How many hours can you work per week?
-            </label>
-            <input
-              type="range"
-              min={10}
-              max={60}
-              value={hours}
-              onChange={(e) => setHours(Number(e.target.value))}
-              className="w-full h-2.5 rounded-full bg-gray-700 appearance-none cursor-pointer accent-brand-green"
-            />
-            <div className="flex justify-between text-sm text-gray-400 mt-2">
-              {[10, 20, 30, 40, 50, 60].map((v) => (
-                <span key={v}>{v} hrs</span>
-              ))}
-            </div>
-            <p className="mt-4 text-center text-xl">
-              You selected: <span className="font-bold text-brand-green">{hours}</span> hours per week
-            </p>
-          </div>
-
-          {/* Experience select */}
-          <div className="mb-10">
-            <label className="block text-2xl font-bold mb-6">
-              What&apos;s your experience level?
-            </label>
-            <select
-              value={experience}
-              onChange={(e) => setExperience(e.target.value)}
-              className="w-full p-4 bg-gray-800 border border-gray-700 rounded text-white"
-            >
-              <option value="beginner">Beginner (No Sales Experience)</option>
-              <option value="some">Some Sales Experience</option>
-              <option value="experienced">Experienced in Sales</option>
-              <option value="roofing">Experienced in Roofing Sales</option>
-            </select>
-          </div>
-
-          {/* Result */}
-          <div className="mb-10">
-            <h3 className="text-2xl font-bold mb-6">Your Estimated Annual Business Revenue</h3>
-            <div className="bg-gray-800 p-8 rounded-lg text-center border-2 border-brand-green">
-              <p className="text-lg mb-2">Based on your selections, you could earn approximately:</p>
-              <p className="text-5xl font-bold my-6 text-brand-green">
-                ${low.toLocaleString()} – ${high.toLocaleString()}
-              </p>
-              <p className="text-sm italic text-gray-400">
-                Individual results vary based on performance, market conditions, and other factors.
-              </p>
-            </div>
-          </div>
-
-          <a
-            href="#application"
-            className="block w-full py-4 text-xl text-center font-semibold bg-brand-green text-white rounded hover:brightness-110 transition"
-          >
-            Apply Now &amp; Start Building Your Business
-          </a>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Application Form ───────────────────────────────────────────────
-function ApplicationForm() {
-  const [form, setForm] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    city: '',
-    experience: '',
-    whyJoin: '',
-    agreed: false,
-  });
-  const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
-  const [errorMsg, setErrorMsg] = useState('');
-
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!form.agreed) return;
-      setStatus('submitting');
-      try {
-        const res = await fetch('/api/forms/careers', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(form),
-        });
-        const data = await res.json();
-        if (data.success) {
-          setStatus('success');
-        } else {
-          setErrorMsg(data.message || 'Something went wrong.');
-          setStatus('error');
-        }
-      } catch {
-        setErrorMsg('Network error. Please call us at (256) 274-8530.');
-        setStatus('error');
-      }
-    },
-    [form],
-  );
-
-  if (status === 'success') {
-    return (
-      <section id="application" className="py-20 bg-gray-50">
-        <div className="container mx-auto px-4 text-center">
-          <CheckCircle className="mx-auto mb-6 text-brand-green" size={72} />
-          <h2 className="text-4xl font-bold mb-6">Application Submitted!</h2>
-          <p className="text-xl mb-10 max-w-3xl mx-auto">
-            Thank you for your interest in building your business with River City Roofing Solutions. Our team will contact you within 24 hours.
-          </p>
-          <Link href="/" className="inline-block bg-brand-green text-white font-semibold px-8 py-4 rounded hover:brightness-110 transition">
-            Return Home
-          </Link>
-        </div>
-      </section>
-    );
-  }
-
-  const set = (key: string, value: string | boolean) =>
-    setForm((prev) => ({ ...prev, [key]: value }));
-
-  return (
-    <section id="application" className="py-20 bg-gray-50">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold">
-            Ready to <span className="text-brand-green">Get Started?</span>
-          </h2>
-          <p className="text-xl mt-6 max-w-3xl mx-auto text-gray-600">
-            Fill out the form below to begin your journey. We&apos;ll contact you within 24 hours.
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-lg">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block font-semibold mb-2">First Name</label>
-              <input
-                required
-                value={form.firstName}
-                onChange={(e) => set('firstName', e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none"
-              />
-            </div>
-            <div>
-              <label className="block font-semibold mb-2">Last Name</label>
-              <input
-                required
-                value={form.lastName}
-                onChange={(e) => set('lastName', e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="mt-4">
-            <label className="block font-semibold mb-2">Email Address</label>
-            <input
-              type="email"
-              required
-              value={form.email}
-              onChange={(e) => set('email', e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none"
-            />
-          </div>
-
-          <div className="mt-4">
-            <label className="block font-semibold mb-2">Phone Number</label>
-            <input
-              type="tel"
-              required
-              value={form.phone}
-              onChange={(e) => set('phone', e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none"
-            />
-          </div>
-
-          <div className="mt-4">
-            <label className="block font-semibold mb-2">City &amp; State</label>
-            <input
-              required
-              value={form.city}
-              onChange={(e) => set('city', e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none"
-            />
-          </div>
-
-          <div className="mt-4">
-            <label className="block font-semibold mb-2">Sales Experience</label>
-            <select
-              required
-              value={form.experience}
-              onChange={(e) => set('experience', e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none"
-            >
-              <option value="">Select your experience level</option>
-              <option value="none">No Sales Experience</option>
-              <option value="some">Some Sales Experience</option>
-              <option value="extensive">Extensive Sales Experience</option>
-              <option value="roofing">Roofing Sales Experience</option>
-            </select>
-          </div>
-
-          <div className="mt-4">
-            <label className="block font-semibold mb-2">
-              Why do you want to join River City Roofing Solutions?
-            </label>
-            <textarea
-              required
-              rows={4}
-              value={form.whyJoin}
-              onChange={(e) => set('whyJoin', e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none"
-            />
-          </div>
-
-          <label className="flex items-start gap-3 mt-6 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={form.agreed}
-              onChange={(e) => set('agreed', e.target.checked)}
-              className="mt-1 accent-brand-green"
-              required
-            />
-            <span className="text-sm text-gray-600">
-              I understand this is an opportunity to build my own business as an independent contractor with River City Roofing Solutions. I am ready to take control of my future and income potential.
-            </span>
-          </label>
-
-          {status === 'error' && (
-            <p className="mt-4 text-red-600 text-sm">{errorMsg}</p>
-          )}
-
-          <button
-            type="submit"
-            disabled={status === 'submitting'}
-            className="mt-6 w-full py-4 text-xl font-semibold bg-brand-green text-white rounded hover:brightness-110 transition disabled:opacity-50"
-          >
-            {status === 'submitting' ? 'Submitting…' : 'Submit Application'}
-          </button>
-        </form>
-      </div>
-    </section>
-  );
-}
-
-// ─── FAQ Accordion ──────────────────────────────────────────────────
-const faqData = [
-  {
-    q: 'Do I need roofing or sales experience?',
-    a: 'Not at all! We provide comprehensive, FREE training that covers everything from roofing fundamentals to proven sales techniques. Many of our top earners started with zero experience.',
-  },
-  {
-    q: 'How does the compensation and benefits work?',
-    a: 'You earn commission on every job you close with no cap on earnings. We offer health, dental, vision, and household accident insurance, plus a Roth IRA with free company match. Top performers also earn through our bi-annual bonus program, vacation trips, and monthly gas cards. Some restrictions may apply. Our top performers earn well over $100K annually.',
-  },
-  {
-    q: 'What about leads? Do I have to find my own customers?',
-    a: 'We help with lead generation through our marketing efforts, storm tracking technology, and referral programs. You\'ll also learn door-to-door and networking techniques to build your own pipeline.',
-  },
-  {
-    q: 'Is this a 1099 or W-2 position?',
-    a: 'This is an independent contractor (1099) opportunity. That means YOU are the boss — you set your hours, choose your territory, and build equity in your own book of business.',
-  },
-  {
-    q: 'What tools or equipment do I need?',
-    a: 'Just a reliable vehicle, a phone, and a good attitude. We provide all the sales materials, training resources, technology platforms, and back-office support.',
-  },
-  {
-    q: 'How soon can I start earning?',
-    a: 'Many new partners close their first deal within the first two weeks of training. Storm season can accelerate this even further.',
-  },
-  {
-    q: 'What makes RCRS different from other roofing companies hiring reps?',
-    a: 'Our owners have 25+ years actually roofing — selling, project managing, and running crews. We\'re OC Preferred and IKO Top Tier Craftsman Premier certified. We offer real benefits: health, dental, vision, and household accident insurance, Roth IRA with free match, bi-annual bonuses, vacation trips, and monthly gas cards. And we\'ve donated over $100K to our local community. This isn\'t a side hustle for us — roofing is all we\'ve ever done.',
-  },
-];
-
-function FAQSection() {
-  const [open, setOpen] = useState<number | null>(null);
-
-  return (
-    <section className="py-20 bg-white">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold">
-            Frequently Asked <span className="text-brand-green">Questions</span>
-          </h2>
-          <p className="text-xl mt-6 max-w-3xl mx-auto text-gray-600">
-            Got questions? We&apos;ve got answers.
-          </p>
-        </div>
-
-        <div className="max-w-3xl mx-auto space-y-4">
-          {faqData.map((item, i) => (
-            <div
-              key={i}
-              className="border border-gray-200 rounded-lg overflow-hidden"
-            >
-              <button
-                onClick={() => setOpen(open === i ? null : i)}
-                className="w-full flex items-center justify-between p-5 text-left font-semibold text-lg hover:bg-gray-50 transition"
-              >
-                <span className="flex items-center gap-3">
-                  <HelpCircle size={20} className="text-brand-green flex-shrink-0" />
-                  {item.q}
-                </span>
-                <ChevronDown
-                  size={20}
-                  className={`text-gray-400 transition-transform ${open === i ? 'rotate-180' : ''}`}
-                />
-              </button>
-              {open === i && (
-                <div className="px-5 pb-5 text-gray-600 leading-relaxed">
-                  {item.a}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Main Page ──────────────────────────────────────────────────────
+// ─── Main Page (Server Component) ──────────────────────────────────
 export default function CareersPage() {
   return (
     <main>
@@ -552,7 +190,7 @@ export default function CareersPage() {
         </div>
       </section>
 
-      {/* Why We're Different — BEATS Yellowhammer */}
+      {/* Why We're Different */}
       <section className="py-20 bg-[#1a1a1a] text-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
@@ -675,7 +313,7 @@ export default function CareersPage() {
         </div>
       </section>
 
-      {/* Day in the Life — Yellowhammer doesn't have this */}
+      {/* Day in the Life */}
       <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
@@ -834,13 +472,13 @@ export default function CareersPage() {
         </div>
       </section>
 
-      {/* Earnings Calculator */}
+      {/* Earnings Calculator (Client Component) */}
       <EarningsCalculator />
 
-      {/* FAQ */}
+      {/* FAQ (Client Component) */}
       <FAQSection />
 
-      {/* Application Form */}
+      {/* Application Form (Client Component) */}
       <ApplicationForm />
 
       {/* Contact Section */}

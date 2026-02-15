@@ -1,23 +1,15 @@
-'use client';
-
-import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { useParams } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import {
   Building2, Ruler, TriangleRight, Satellite, Eye, Wrench,
-  Wind, Flame, CircleDot, Loader2, AlertTriangle, Shield,
+  Wind, Flame, CircleDot, Shield,
   ShieldCheck, ShieldAlert, CloudLightning, Phone, Mail, MapPin,
   CheckCircle2
 } from 'lucide-react';
+import { roofReportService } from '@/lib/roof-report-service';
+import { stormReportService } from '@/lib/storm-report-service';
 
 // ── Types ──────────────────────────────────────────────────────────────────
-
-interface MeasurementGroup {
-  totalFt: number;
-  count: number;
-  details: { lengthFt: number }[];
-  confidence: string;
-}
 
 interface RoofComponents {
   flashing: { type: string; length_ft: number; confidence: string }[];
@@ -26,6 +18,16 @@ interface RoofComponents {
   pipes: { diameter_in: number; count: number; confidence: string }[];
   chimneys: { width_ft: number; length_ft: number; flashing_perimeter_ft: number; confidence: string }[];
   skylights: { width_ft: number; length_ft: number; flashing_perimeter_ft: number; confidence: string }[];
+}
+
+interface StormReportData {
+  riskLevel: string;
+  riskScore: number;
+  totalHailReports: number;
+  closestHailMiles: number | null;
+  largestHailSize: string | null;
+  recommendation: string;
+  riskFactors: string[];
 }
 
 interface ReportData {
@@ -46,24 +48,13 @@ interface ReportData {
   totalHipFt: number;
   perimeterFt: number;
   overallConfidence: string;
-  measurements: any;
+  measurements: Record<string, unknown>;
   components: RoofComponents;
   satelliteImageUrl: string;
-  stormReport?: {
-    riskLevel: string;
-    riskScore: number;
-    totalHailReports: number;
-    closestHailMiles: number | null;
-    largestHailSize: string | null;
-    recommendation: string;
-    riskFactors: string[];
-  };
+  stormReport: StormReportData | null;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-
-const confColor = (c: string) =>
-  c === 'HIGH' ? 'text-green-600' : c === 'MEDIUM' ? 'text-blue-600' : 'text-amber-600';
 
 const confBg = (c: string) =>
   c === 'HIGH' ? 'bg-green-50 border-green-200 text-green-700'
@@ -82,50 +73,77 @@ const riskConfig: Record<string, { color: string; bg: string; icon: typeof Shiel
   Severe: { color: 'text-red-600', bg: 'bg-red-50 border-red-200', icon: ShieldAlert },
 };
 
-// ── Main Component ─────────────────────────────────────────────────────────
+// ── Data fetching ──────────────────────────────────────────────────────────
 
-export default function PublicReportPage() {
-  const { id } = useParams<{ id: string }>();
-  const [report, setReport] = useState<ReportData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+async function getReport(shareToken: string): Promise<ReportData | null> {
+  try {
+    const report = await roofReportService.getReportByShareToken(shareToken);
+    if (!report || !report.isPublic) return null;
 
-  useEffect(() => {
-    if (!id) return;
-    fetch(`/api/report/${id}`)
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) {
-          setReport(data.data);
-        } else {
-          setError(data.error || 'Report not found');
+    let measurements = {};
+    let components = {} as RoofComponents;
+    try { measurements = JSON.parse(report.measurementsJson); } catch {}
+    try { components = JSON.parse(report.componentsJson); } catch {}
+
+    let stormReport: StormReportData | null = null;
+    if (report.leadId) {
+      try {
+        const stormReports = await stormReportService.getReportsByLeadId(report.leadId);
+        if (stormReports.length > 0) {
+          const sr = stormReports[0];
+          stormReport = {
+            riskLevel: sr.riskLevel,
+            riskScore: sr.riskScore,
+            totalHailReports: sr.totalHailReports,
+            closestHailMiles: sr.closestHailMiles,
+            largestHailSize: sr.largestHailSize,
+            recommendation: sr.recommendation,
+            riskFactors: sr.riskFactors,
+          };
         }
-      })
-      .catch(() => setError('Failed to load report'))
-      .finally(() => setLoading(false));
-  }, [id]);
+      } catch {}
+    }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 text-green-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-500">Loading your roof report...</p>
-        </div>
-      </div>
-    );
+    return {
+      reportId: report.reportId,
+      generatedAt: report.generatedAt,
+      address: report.address,
+      lat: report.lat,
+      lng: report.lng,
+      totalRoofAreaSqFt: report.totalRoofAreaSqFt,
+      roofSquares: report.roofSquares,
+      segmentCount: report.segmentCount,
+      primaryPitch: report.primaryPitch,
+      roofStyle: report.roofStyle,
+      totalRidgeFt: report.totalRidgeFt,
+      totalRakeFt: report.totalRakeFt,
+      totalValleyFt: report.totalValleyFt,
+      totalEaveFt: report.totalEaveFt,
+      totalHipFt: report.totalHipFt,
+      perimeterFt: report.perimeterFt,
+      overallConfidence: report.overallConfidence,
+      measurements,
+      components,
+      satelliteImageUrl: report.satelliteImageUrl,
+      stormReport,
+    };
+  } catch {
+    return null;
   }
+}
 
-  if (error || !report) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <AlertTriangle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Report Not Available</h1>
-          <p className="text-gray-500">{error || 'This report link may have expired or been disabled.'}</p>
-        </div>
-      </div>
-    );
+// ── Main Component (Server) ────────────────────────────────────────────────
+
+export default async function PublicReportPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const report = await getReport(id);
+
+  if (!report) {
+    notFound();
   }
 
   const storm = report.stormReport;
@@ -244,74 +262,72 @@ export default function PublicReportPage() {
         </div>
 
         {/* Roof Components */}
-        {report.components && (
-          (() => {
-            const c = report.components;
-            const hasData = (c.chimneys?.length > 0) || (c.skylights?.length > 0) ||
-              (c.vents?.length > 0) || (c.pipes?.length > 0) ||
-              (c.flashing?.length > 0);
-            if (!hasData) return null;
+        {report.components && (() => {
+          const c = report.components;
+          const hasData = (c.chimneys?.length > 0) || (c.skylights?.length > 0) ||
+            (c.vents?.length > 0) || (c.pipes?.length > 0) ||
+            (c.flashing?.length > 0);
+          if (!hasData) return null;
 
-            return (
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100">
-                  <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                    <Wrench className="w-5 h-5 text-green-600" />
-                    Roof Components & Penetrations
-                  </h3>
-                </div>
-                <div className="p-6 space-y-4">
-                  {c.vents?.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-semibold text-gray-600 mb-2 flex items-center gap-2">
-                        <Wind className="w-4 h-4 text-cyan-500" /> Vents
-                      </h4>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {c.vents.map((v, i) => (
-                          <div key={i} className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center">
-                            <div className="text-2xl font-bold text-gray-900">{v.count}</div>
-                            <div className="text-xs text-gray-500">{ventLabel(v.type)}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {c.chimneys?.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-semibold text-gray-600 mb-2 flex items-center gap-2">
-                        <Flame className="w-4 h-4 text-orange-500" /> Chimneys
-                      </h4>
-                      {c.chimneys.map((ch, i) => (
-                        <div key={i} className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-600">
-                          {ch.width_ft}ft × {ch.length_ft}ft · Flashing: {ch.flashing_perimeter_ft}ft
+          return (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100">
+                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <Wrench className="w-5 h-5 text-green-600" />
+                  Roof Components & Penetrations
+                </h3>
+              </div>
+              <div className="p-6 space-y-4">
+                {c.vents?.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-600 mb-2 flex items-center gap-2">
+                      <Wind className="w-4 h-4 text-cyan-500" /> Vents
+                    </h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {c.vents.map((v, i) => (
+                        <div key={i} className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center">
+                          <div className="text-2xl font-bold text-gray-900">{v.count}</div>
+                          <div className="text-xs text-gray-500">{ventLabel(v.type)}</div>
                         </div>
                       ))}
                     </div>
-                  )}
-                  {c.pipes?.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-semibold text-gray-600 mb-2 flex items-center gap-2">
-                        <CircleDot className="w-4 h-4 text-gray-500" /> Pipe Penetrations
-                      </h4>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {c.pipes.map((p, i) => (
-                          <div key={i} className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center">
-                            <div className="text-2xl font-bold text-gray-900">{p.count}</div>
-                            <div className="text-xs text-gray-500">{p.diameter_in}" diameter</div>
-                          </div>
-                        ))}
+                  </div>
+                )}
+                {c.chimneys?.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-600 mb-2 flex items-center gap-2">
+                      <Flame className="w-4 h-4 text-orange-500" /> Chimneys
+                    </h4>
+                    {c.chimneys.map((ch, i) => (
+                      <div key={i} className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-600">
+                        {ch.width_ft}ft × {ch.length_ft}ft · Flashing: {ch.flashing_perimeter_ft}ft
                       </div>
+                    ))}
+                  </div>
+                )}
+                {c.pipes?.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-600 mb-2 flex items-center gap-2">
+                      <CircleDot className="w-4 h-4 text-gray-500" /> Pipe Penetrations
+                    </h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {c.pipes.map((p, i) => (
+                        <div key={i} className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center">
+                          <div className="text-2xl font-bold text-gray-900">{p.count}</div>
+                          <div className="text-xs text-gray-500">{p.diameter_in}&quot; diameter</div>
+                        </div>
+                      ))}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
-            );
-          })()
-        )}
+            </div>
+          );
+        })()}
 
         {/* Storm Report Section */}
-        {storm && (
-          <div className={`rounded-2xl border shadow-sm overflow-hidden ${stormConfig?.bg}`}>
+        {storm && stormConfig && (
+          <div className={`rounded-2xl border shadow-sm overflow-hidden ${stormConfig.bg}`}>
             <div className="px-6 py-4 border-b border-gray-200/50">
               <h3 className="text-lg font-bold flex items-center gap-2 text-gray-900">
                 <CloudLightning className="w-5 h-5 text-yellow-500" />
@@ -320,10 +336,10 @@ export default function PublicReportPage() {
             </div>
             <div className="p-6">
               <div className="flex items-center gap-3 mb-4">
-                <StormIcon className={`w-8 h-8 ${stormConfig?.color}`} />
+                <StormIcon className={`w-8 h-8 ${stormConfig.color}`} />
                 <div>
-                  <span className={`text-xl font-bold ${stormConfig?.color}`}>{storm.riskLevel} Risk</span>
-                  <span className={`ml-2 text-sm font-medium px-2 py-0.5 rounded-full ${stormConfig?.bg} ${stormConfig?.color}`}>
+                  <span className={`text-xl font-bold ${stormConfig.color}`}>{storm.riskLevel} Risk</span>
+                  <span className={`ml-2 text-sm font-medium px-2 py-0.5 rounded-full ${stormConfig.bg} ${stormConfig.color}`}>
                     {storm.riskScore}/100
                   </span>
                 </div>

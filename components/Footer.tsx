@@ -47,16 +47,20 @@ function FooterEmailCapture() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-2">
+      <label htmlFor="footer-name" className="sr-only">Your Name</label>
       <input
         type="text"
+        id="footer-name"
         required
         placeholder="Your Name"
         value={name}
         onChange={(e) => setName(e.target.value)}
         className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:border-brand-green transition"
       />
+      <label htmlFor="footer-email" className="sr-only">Email Address</label>
       <input
         type="email"
+        id="footer-email"
         required
         placeholder="Email Address"
         value={email}
@@ -93,6 +97,7 @@ export default function Footer() {
                 href="https://www.facebook.com/RiverCityRoofingSolutionsLLC"
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label="Follow us on Facebook"
                 className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center hover:bg-brand-green/20 transition-colors"
               >
                 <Facebook size={20} className="text-gray-400 hover:text-brand-green" />
@@ -101,6 +106,7 @@ export default function Footer() {
                 href="https://www.instagram.com/rivercityroofingsolutions/"
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label="Follow us on Instagram"
                 className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center hover:bg-brand-green/20 transition-colors"
               >
                 <Instagram size={20} className="text-gray-400 hover:text-brand-green" />

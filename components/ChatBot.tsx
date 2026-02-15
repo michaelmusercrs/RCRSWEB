@@ -165,6 +165,7 @@ export default function ChatBot() {
                 onClick={resetChat}
                 className="text-gray-400 hover:text-white transition-colors p-1"
                 title="New conversation"
+                aria-label="Start new conversation"
               >
                 <RotateCcw className="w-4 h-4" />
               </button>
@@ -172,6 +173,7 @@ export default function ChatBot() {
                 href="tel:2562748530"
                 className="text-gray-400 hover:text-[#39FF14] transition-colors p-1"
                 title="Call (256) 274-8530"
+                aria-label="Call (256) 274-8530"
               >
                 <Phone className="w-4 h-4" />
               </a>
@@ -228,8 +230,10 @@ export default function ChatBot() {
 
           {/* Input */}
           <div className="px-4 py-3 bg-white border-t border-gray-200 flex gap-2 flex-shrink-0">
+            <label htmlFor="chat-input" className="sr-only">Ask about your roof</label>
             <textarea
               ref={inputRef}
+              id="chat-input"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -241,6 +245,7 @@ export default function ChatBot() {
             <button
               onClick={() => sendMessage(input)}
               disabled={!input.trim() || isLoading}
+              aria-label="Send message"
               className="bg-[#39FF14] text-gray-900 rounded-xl px-3 py-2 hover:bg-[#2ecc0f] disabled:opacity-40 disabled:cursor-not-allowed transition-all flex-shrink-0"
             >
               <Send className="w-4 h-4" />

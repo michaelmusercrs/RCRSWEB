@@ -1,4 +1,4 @@
-'use client';
+// Server Component - no client interactivity needed
 
 import { Server, Shield, Database, Globe, GitBranch, Zap } from 'lucide-react';
 

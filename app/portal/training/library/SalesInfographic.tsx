@@ -1,4 +1,4 @@
-'use client';
+// Server Component - no client interactivity needed
 
 import { TrendingUp, Trophy, Target, BarChart3, Users, Zap } from 'lucide-react';
 

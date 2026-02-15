@@ -19,7 +19,7 @@ import {
   Menu, X, LogOut, Home, ChevronRight, Loader2, Bell,
   Truck, Package, DollarSign, Calendar, BarChart3, Users,
   Settings, Shield, Command, MessageSquare, Edit3, Megaphone,
-  Target, Sliders, Zap, Plus, MapPin, Box, ClipboardList,
+  Target, Zap, Plus, MapPin, Box, ClipboardList,
   Eye, UserCircle, BookOpen, Image as ImageIcon, Phone,
   TrendingUp, CheckCircle, FileText,
   type LucideIcon,
@@ -73,8 +73,7 @@ function getPortalNav(role: TeamRole): PortalNavItem[] {
       children: [
         { id: 'new-lead-wizard', label: 'New Lead Wizard', href: '/portal/office/new-lead', icon: Zap },
         { id: 'new-lead', label: 'Quick Entry', href: '/portal/leads/new', icon: Plus },
-        { id: 'lead-distro', label: 'Distribution', href: '/portal/admin/lead-distro', icon: Target },
-        { id: 'lead-config', label: 'Config', href: '/portal/admin/lead-distribution', icon: Sliders },
+        { id: 'lead-distro', label: 'Lead Distribution', href: '/portal/admin/lead-distro', icon: Target },
       ],
     },
     {

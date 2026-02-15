@@ -85,6 +85,7 @@ export default function GlobalVideoBackground({
     <div
       className="fixed inset-0 w-full h-full overflow-hidden"
       style={{ zIndex: -1 }}
+      aria-hidden="true"
     >
       {/* Video Background */}
       {useVideo && (

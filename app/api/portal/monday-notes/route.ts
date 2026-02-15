@@ -3,10 +3,14 @@
  *
  * GET  - Fetch notes for a meeting date or user
  * POST - Create or update a note
+ * DELETE - Delete a note
+ *
+ * Persisted to Google Sheets (MondayNotes tab)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
+import { googleSheetsService } from '@/lib/google-sheets-service';
 import {
   MondayNote,
   generateNoteId,
@@ -18,11 +22,73 @@ import {
   DisplayDuration,
 } from '@/lib/monday-notes-service';
 
-// In-memory storage for demo (would be database in production)
-let mondayNotes: MondayNote[] = [];
+// ---- helpers to convert between MondayNote and flat sheet row ----
 
-// Helper to load notes from file system in production
-// For now using in-memory storage
+function noteToRow(note: MondayNote): Record<string, string> {
+  return {
+    id: note.id,
+    meetingDate: note.meetingDate,
+    userId: note.userId,
+    userName: note.userName,
+    userRole: note.userRole,
+    category: note.category,
+    title: note.title,
+    content: note.content,
+    highlightsJson: JSON.stringify(note.highlights || []),
+    attachmentsJson: JSON.stringify(note.attachments || []),
+    timingJson: JSON.stringify(note.timing || {}),
+    metricsJson: JSON.stringify(note.metrics || []),
+    announcementType: note.announcementType || '',
+    displayDuration: note.displayDuration || '',
+    displayStartDate: note.displayStartDate || '',
+    displayEndDate: note.displayEndDate || '',
+    includeInSlide: note.includeInSlide ? 'true' : 'false',
+    slideOrder: note.slideOrder?.toString() || '',
+    status: note.status,
+    createdAt: note.createdAt,
+    updatedAt: note.updatedAt,
+  };
+}
+
+function rowToNote(row: Record<string, string>): MondayNote {
+  return {
+    id: row.id,
+    meetingDate: row.meetingDate,
+    userId: row.userId,
+    userName: row.userName,
+    userRole: row.userRole as MondayNote['userRole'],
+    category: (row.category || 'general') as MondayNote['category'],
+    title: row.title || '',
+    content: row.content || '',
+    highlights: safeJsonParse(row.highlightsJson, []),
+    attachments: safeJsonParse(row.attachmentsJson, []),
+    timing: safeJsonParse(row.timingJson, undefined),
+    metrics: safeJsonParse(row.metricsJson, []),
+    announcementType: (row.announcementType || undefined) as AnnouncementType | undefined,
+    displayDuration: (row.displayDuration || undefined) as DisplayDuration | undefined,
+    displayStartDate: row.displayStartDate || undefined,
+    displayEndDate: row.displayEndDate || undefined,
+    includeInSlide: row.includeInSlide !== 'false',
+    slideOrder: row.slideOrder ? parseInt(row.slideOrder) : undefined,
+    status: (row.status || 'draft') as MondayNote['status'],
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
+
+function safeJsonParse<T>(str: string | undefined, fallback: T): T {
+  if (!str) return fallback;
+  try {
+    const parsed = JSON.parse(str);
+    // If fallback is undefined and parsed is an empty object, return undefined
+    if (fallback === undefined && typeof parsed === 'object' && Object.keys(parsed).length === 0) {
+      return fallback;
+    }
+    return parsed;
+  } catch {
+    return fallback;
+  }
+}
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth();
@@ -35,22 +101,17 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category');
     const status = searchParams.get('status');
 
-    let filteredNotes = mondayNotes.filter(n => n.meetingDate === meetingDate);
+    const rows = await googleSheetsService.getMondayNotes({
+      meetingDate,
+      userId: userId || undefined,
+      category: category || undefined,
+      status: status || undefined,
+    });
 
-    if (userId) {
-      filteredNotes = filteredNotes.filter(n => n.userId === userId);
-    }
-
-    if (category) {
-      filteredNotes = filteredNotes.filter(n => n.category === category);
-    }
-
-    if (status) {
-      filteredNotes = filteredNotes.filter(n => n.status === status);
-    }
+    let notes = rows.map(rowToNote);
 
     // Sort by category then by userName
-    filteredNotes.sort((a, b) => {
+    notes.sort((a, b) => {
       if (a.category !== b.category) {
         return a.category.localeCompare(b.category);
       }
@@ -60,8 +121,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       meetingDate,
-      notes: filteredNotes,
-      count: filteredNotes.length,
+      notes,
+      count: notes.length,
       submissionsOpen: areSubmissionsOpen(),
     });
   } catch (error) {
@@ -118,42 +179,51 @@ export async function POST(request: NextRequest) {
     const now = new Date().toISOString();
 
     // Check if updating existing note
-    const existingIndex = id
-      ? mondayNotes.findIndex(n => n.id === id)
-      : mondayNotes.findIndex(n => n.userId === userId && n.meetingDate === meetingDate);
+    const existingRows = await googleSheetsService.getMondayNotes({ meetingDate });
+    const existingNotes = existingRows.map(rowToNote);
 
-    if (existingIndex >= 0) {
+    const existingNote = id
+      ? existingNotes.find(n => n.id === id)
+      : existingNotes.find(n => n.userId === userId && n.meetingDate === meetingDate);
+
+    if (existingNote) {
       // Update existing note
       const updDisplayStart = meetingDate;
-      const updDisplayEnd = displayDuration ? calculateDisplayEndDate(updDisplayStart, displayDuration as DisplayDuration) : undefined;
+      const updDisplayEnd = displayDuration
+        ? calculateDisplayEndDate(updDisplayStart, displayDuration as DisplayDuration)
+        : undefined;
 
-      mondayNotes[existingIndex] = {
-        ...mondayNotes[existingIndex],
-        category: category || mondayNotes[existingIndex].category,
+      const updated: MondayNote = {
+        ...existingNote,
+        category: category || existingNote.category,
         title: title || '',
         content: content || '',
         highlights: highlights || [],
-        attachments: attachments || mondayNotes[existingIndex].attachments,
+        attachments: attachments || existingNote.attachments,
         timing,
         metrics: metrics || [],
-        announcementType: announcementType as AnnouncementType | undefined ?? mondayNotes[existingIndex].announcementType,
-        displayDuration: displayDuration as DisplayDuration | undefined ?? mondayNotes[existingIndex].displayDuration,
-        displayStartDate: announcementType ? updDisplayStart : mondayNotes[existingIndex].displayStartDate,
-        displayEndDate: updDisplayEnd || mondayNotes[existingIndex].displayEndDate,
+        announcementType: (announcementType as AnnouncementType | undefined) ?? existingNote.announcementType,
+        displayDuration: (displayDuration as DisplayDuration | undefined) ?? existingNote.displayDuration,
+        displayStartDate: announcementType ? updDisplayStart : existingNote.displayStartDate,
+        displayEndDate: updDisplayEnd || existingNote.displayEndDate,
         includeInSlide: includeInSlide !== undefined ? includeInSlide : true,
         status: status || 'draft',
         updatedAt: now,
       };
 
+      await googleSheetsService.saveMondayNote(noteToRow(updated));
+
       return NextResponse.json({
         success: true,
-        note: mondayNotes[existingIndex],
+        note: updated,
         message: 'Note updated successfully',
       });
     } else {
       // Create new note
       const displayStart = meetingDate;
-      const displayEnd = displayDuration ? calculateDisplayEndDate(displayStart, displayDuration as DisplayDuration) : undefined;
+      const displayEnd = displayDuration
+        ? calculateDisplayEndDate(displayStart, displayDuration as DisplayDuration)
+        : undefined;
 
       const newNote: MondayNote = {
         id: generateNoteId(),
@@ -178,7 +248,7 @@ export async function POST(request: NextRequest) {
         updatedAt: now,
       };
 
-      mondayNotes.push(newNote);
+      await googleSheetsService.saveMondayNote(noteToRow(newNote));
 
       return NextResponse.json({
         success: true,
@@ -210,16 +280,14 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const noteIndex = mondayNotes.findIndex(n => n.id === noteId);
+    const deleted = await googleSheetsService.deleteMondayNote(noteId);
 
-    if (noteIndex === -1) {
+    if (!deleted) {
       return NextResponse.json(
         { success: false, error: 'Note not found' },
         { status: 404 }
       );
     }
-
-    mondayNotes.splice(noteIndex, 1);
 
     return NextResponse.json({
       success: true,

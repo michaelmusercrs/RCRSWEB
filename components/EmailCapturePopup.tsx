@@ -145,7 +145,7 @@ export default function EmailCapturePopup() {
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn" role="dialog" aria-label="Free roof assessment signup">
       <div className="relative bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl max-w-md w-full p-6 md:p-8">
         {/* Close button */}
         <button
@@ -181,10 +181,12 @@ export default function EmailCapturePopup() {
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-3">
               <div>
+                <label htmlFor="popup-capture-name" className="sr-only">Your Name</label>
                 <div className="relative">
-                  <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                  <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" aria-hidden="true" />
                   <input
                     type="text"
+                    id="popup-capture-name"
                     required
                     placeholder="Your Name *"
                     value={name}
@@ -194,10 +196,12 @@ export default function EmailCapturePopup() {
                 </div>
               </div>
               <div>
+                <label htmlFor="popup-capture-email" className="sr-only">Email Address</label>
                 <div className="relative">
-                  <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                  <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" aria-hidden="true" />
                   <input
                     type="email"
+                    id="popup-capture-email"
                     required
                     placeholder="Email Address *"
                     value={email}
@@ -207,10 +211,12 @@ export default function EmailCapturePopup() {
                 </div>
               </div>
               <div>
+                <label htmlFor="popup-capture-phone" className="sr-only">Phone Number</label>
                 <div className="relative">
-                  <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                  <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" aria-hidden="true" />
                   <input
                     type="tel"
+                    id="popup-capture-phone"
                     placeholder="Phone Number (optional)"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
@@ -219,10 +225,12 @@ export default function EmailCapturePopup() {
                 </div>
               </div>
               <div>
+                <label htmlFor="popup-capture-address" className="sr-only">Address</label>
                 <div className="relative">
-                  <MapPin size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                  <MapPin size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" aria-hidden="true" />
                   <input
                     type="text"
+                    id="popup-capture-address"
                     placeholder="Address (optional)"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}

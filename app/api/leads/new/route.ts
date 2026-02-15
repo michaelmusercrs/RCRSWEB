@@ -4,7 +4,7 @@
 // Notifies assigned rep via River bot DM
 
 import { NextRequest, NextResponse } from 'next/server';
-import { rateLimit } from '@/lib/rate-limit';
+import { createFormRateLimiter, withRateLimit } from '@/lib/rate-limiter';
 import { requireAuth } from '@/lib/auth-service';
 import { portalGenerator, LeadData } from '@/lib/portal-generator';
 import { leadPortalService } from '@/lib/lead-portal-service';
@@ -23,6 +23,8 @@ import { notificationService } from '@/lib/notification-service';
 import { jnSyncEngine } from '@/lib/jn-sync-engine';
 import { isJobNimbusConfigured } from '@/lib/jobnimbus-service';
 import { roofReportService } from '@/lib/roof-report-service';
+
+const formRateLimiter = createFormRateLimiter();
 
 interface NewLeadRequest {
   // Required fields
@@ -64,23 +66,7 @@ function sanitizeInput(str: string | undefined): string {
 }
 
 export async function POST(request: NextRequest) {
-  // Rate limit: 5 requests per minute per IP
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-             request.headers.get('x-real-ip') || 'unknown';
-  const rl = rateLimit(`leads:new:${ip}`, 5, 60_000);
-  if (!rl.allowed) {
-    return NextResponse.json(
-      { success: false, error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
-          'X-RateLimit-Remaining': '0',
-        },
-      }
-    );
-  }
-
+  return withRateLimit(request, formRateLimiter, async () => {
   try {
     let body: NewLeadRequest;
     try {
@@ -587,6 +573,7 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+  });
 }
 
 // GET - Retrieve leads (admin use)

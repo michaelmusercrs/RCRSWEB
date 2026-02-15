@@ -1,4 +1,4 @@
-'use client';
+// Server Component - no client interactivity needed
 
 import { MapPin, TrendingUp, Target, DollarSign, CloudRain, Zap } from 'lucide-react';
 

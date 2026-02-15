@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import {
   Trophy, TrendingUp, DollarSign, Users,
   Award, Flame, Star, Loader2
 } from 'lucide-react';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell
-} from 'recharts';
+
+const CommissionBarChart = dynamic(() => import('./SalesCharts').then(mod => ({ default: mod.CommissionBarChart })), { ssr: false });
+const CommissionPieChart = dynamic(() => import('./SalesCharts').then(mod => ({ default: mod.CommissionPieChart })), { ssr: false });
 
 // Types matching the API response
 interface LeaderboardEntry {
@@ -324,27 +324,7 @@ export default function SalesCommissionsPage() {
           <div className="bg-neutral-900 rounded-xl border border-white/10 p-6">
             <h2 className="text-lg font-bold text-white mb-4">Commissions by Rep</h2>
             <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={ytdData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis
-                    type="number"
-                    tick={{ fontSize: 12 }}
-                    stroke="#6b7280"
-                    tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
-                  />
-                  <YAxis dataKey="name" type="category" tick={{ fontSize: 12 }} stroke="#6b7280" width={70} />
-                  <Tooltip
-                    formatter={(value) => typeof value === 'number' ? formatCurrency(value) : value}
-                    contentStyle={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
-                  />
-                  <Bar dataKey="commissions" name="Total Commissions" fill="#39FF14" radius={[0, 4, 4, 0]}>
-                    {ytdData.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              <CommissionBarChart data={ytdData} />
             </div>
           </div>
 
@@ -353,25 +333,7 @@ export default function SalesCommissionsPage() {
             <div className="bg-neutral-900 rounded-xl border border-white/10 p-6">
               <h2 className="text-lg font-bold text-white mb-4">Commission Share</h2>
               <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={ytdData}
-                      dataKey="commissions"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
-                      labelLine={false}
-                    >
-                      {ytdData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => typeof value === 'number' ? formatCurrency(value) : value} />
-                  </PieChart>
-                </ResponsiveContainer>
+                <CommissionPieChart data={ytdData} />
               </div>
             </div>
 

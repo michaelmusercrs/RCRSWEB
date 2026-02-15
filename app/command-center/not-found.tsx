@@ -1,5 +1,3 @@
-'use client';
-
 import Link from 'next/link';
 import { Search, Command, ArrowLeft, Home, LayoutDashboard } from 'lucide-react';
 
