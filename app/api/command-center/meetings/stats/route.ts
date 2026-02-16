@@ -16,7 +16,6 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth-service';
 import commissionsData from '@/data/commissions.json';
 
 // ============================================================================
@@ -349,9 +348,6 @@ function detectMilestones(
 // ============================================================================
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
-  if (!auth.authenticated) return auth.response;
-
   const timestamp = new Date().toISOString();
 
   try {

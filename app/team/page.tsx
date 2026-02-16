@@ -2,7 +2,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Users, ArrowRight, Mail, Phone } from 'lucide-react';
-import { teamMembers } from '@/lib/teamData';
+import { teamMembers as staticTeamMembers } from '@/lib/teamData';
+import { getAllTeamMembersWithOverrides } from '@/lib/profile-overrides';
 import StructuredData from '@/components/StructuredData';
 import { generateMetadata as genMeta, generateCollectionPageSchema, generateBreadcrumbSchema } from '@/lib/seo';
 import type { Metadata } from 'next';
@@ -14,7 +15,10 @@ export const metadata: Metadata = genMeta({
   keywords: ['roofing team', 'North Alabama roofers', 'professional roofers', 'roofing experts', 'RCRS team'],
 });
 
-export default function TeamPage() {
+export const revalidate = 60;
+
+export default async function TeamPage() {
+  const teamMembers = await getAllTeamMembersWithOverrides(staticTeamMembers);
   const collectionSchema = generateCollectionPageSchema({
     name: 'Our Team - Meet the River City Roofing Professionals',
     description: 'Meet the experienced roofing professionals at River City Roofing Solutions. Our team brings decades of expertise to every roofing project in North Alabama.',

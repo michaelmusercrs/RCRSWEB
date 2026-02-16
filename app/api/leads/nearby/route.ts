@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     const radius = radiusMiles || 2.0;
 
-    // Get all geocoded contacts from sheets
+    // Get all geocoded contacts from sheets (populated from JN geo data)
     const sheetContacts = await googleSheetsService.getGeocodedContacts();
 
     // Convert to GeocodedContact format

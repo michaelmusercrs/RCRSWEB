@@ -1,12 +1,15 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { blogPosts } from '@/lib/blogData';
+import { blogPosts as staticBlogPosts } from '@/lib/blogData';
+import { getAllBlogPosts } from '@/lib/blog-loader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Calendar, User, ArrowRight } from 'lucide-react';
 import StructuredData from '@/components/StructuredData';
 import { generateMetadata as genMeta, generateCollectionPageSchema, generateBreadcrumbSchema } from '@/lib/seo';
 import type { Metadata } from 'next';
+
+export const revalidate = 300; // Revalidate every 5 minutes
 
 export const metadata: Metadata = genMeta({
   title: 'Roofing Blog - Tips, Guides & Expert Advice',
@@ -15,7 +18,9 @@ export const metadata: Metadata = genMeta({
   keywords: ['roofing blog', 'roof maintenance', 'North Alabama roofing', 'roof tips', 'roofing guides'],
 });
 
-export default function BlogPage() {
+export default async function BlogPage() {
+  const blogPosts = await getAllBlogPosts();
+
   const collectionSchema = generateCollectionPageSchema({
     name: 'Roofing Blog - Tips, Guides & Expert Advice',
     description: 'Expert roofing tips and guides for North Alabama homeowners. Learn about roof maintenance, materials, storm prep, and when to replace your roof.',
@@ -98,7 +103,7 @@ export default function BlogPage() {
 
                     {/* Keywords */}
                     <div className="flex flex-wrap gap-2 mb-4">
-                      {post.keywords.slice(0, 3).map((keyword, idx) => (
+                      {(Array.isArray(post.keywords) ? post.keywords : (post.keywords || '').split(',').map((k: string) => k.trim()).filter(Boolean)).slice(0, 3).map((keyword: string, idx: number) => (
                         <span
                           key={idx}
                           className="text-xs px-2 py-1 bg-neutral-800 rounded-md text-neutral-400"

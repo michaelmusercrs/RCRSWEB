@@ -16,7 +16,7 @@ export interface AuthUser {
 interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
-  login: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password?: string) => Promise<{ success: boolean; error?: string; mustChangePassword?: boolean }>;
   loginWithPin: (pin: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   hasPermission: (permission: string) => boolean;
@@ -180,8 +180,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const isPortalRoute = pathname?.startsWith('/portal');
     const isLoginPage = pathname === '/portal' || pathname === '/portal/login';
+    const isOnboardingPage = pathname === '/portal/change-password' || pathname === '/portal/welcome';
 
-    if (isPortalRoute && !isLoginPage && !user) {
+    if (isPortalRoute && !isLoginPage && !isOnboardingPage && !user) {
       router.push('/portal');
     }
   }, [user, isLoading, pathname, router]);
@@ -196,15 +197,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: false, error: 'Email not found. Please contact admin.' };
     }
 
-    // Validate password/PIN - required for all logins
+    // Validate password - required for all logins
     if (!password) {
       return { success: false, error: 'Password is required.' };
     }
 
-    // Validate against member PIN
-    if (!member.pin || password !== member.pin) {
+    // Check localStorage for changed password first, then fall back to hardcoded
+    const storedPassword = typeof window !== 'undefined'
+      ? localStorage.getItem(`portalPassword_${member.id}`)
+      : null;
+    const effectivePassword = storedPassword || member.password;
+
+    if (password !== effectivePassword) {
       return { success: false, error: 'Invalid password. Please try again.' };
     }
+
+    // Check if user must change password
+    const passwordChanged = typeof window !== 'undefined'
+      ? localStorage.getItem(`passwordChanged_${member.id}`) === 'true'
+      : false;
+    const mustChange = member.mustChangePassword && !passwordChanged;
 
     const authUser: AuthUser = {
       userId: member.id,
@@ -220,7 +232,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(authUser);
     sessionStorage.setItem('portalUser', JSON.stringify(authUser));
 
-    return { success: true };
+    return { success: true, mustChangePassword: mustChange };
   };
 
   const loginWithPin = async (pin: string): Promise<{ success: boolean; error?: string }> => {

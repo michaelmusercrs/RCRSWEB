@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { blogPosts } from '@/lib/blogData';
+import { blogPosts as staticBlogPosts } from '@/lib/blogData';
+import { getAllBlogPosts, getBlogPostBySlug } from '@/lib/blog-loader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Calendar, User, ArrowLeft, ArrowRight } from 'lucide-react';
@@ -9,22 +10,24 @@ import StructuredData from '@/components/StructuredData';
 import { siteConfig, generateArticleSchema, generateBreadcrumbSchema } from '@/lib/seo';
 import type { Metadata } from 'next';
 
+export const revalidate = 300; // Revalidate every 5 minutes
+
 interface BlogPostPageProps {
   params: {
     slug: string;
   };
 }
 
-// Generate static params for all blog posts
+// Generate static params for all blog posts (static ones for build, CMS ones via ISR)
 export async function generateStaticParams() {
-  return blogPosts.map((post) => ({
+  return staticBlogPosts.map((post) => ({
     slug: post.slug,
   }));
 }
 
 // Generate metadata for SEO with proper canonical URL
 export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
-  const post = blogPosts.find((p) => p.slug === params.slug);
+  const post = await getBlogPostBySlug(params.slug);
 
   if (!post) {
     return {
@@ -34,12 +37,12 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
 
   const path = `/blog/${params.slug}`;
   const description = post.excerpt.length > 155 ? post.excerpt.substring(0, 155) + '...' : post.excerpt;
+  const keywords = Array.isArray(post.keywords) ? post.keywords : (post.keywords || '').split(',').map((k: string) => k.trim());
 
   return {
     title: `${post.title} | River City Roofing Blog`,
     description,
-    keywords: post.keywords,
-    // Use path - Next.js combines with metadataBase
+    keywords,
     alternates: {
       canonical: path,
     },
@@ -54,18 +57,24 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
   };
 }
 
-export default function BlogPostPage({ params }: BlogPostPageProps) {
-  const post = blogPosts.find((p) => p.slug === params.slug);
+export default async function BlogPostPage({ params }: BlogPostPageProps) {
+  const post = await getBlogPostBySlug(params.slug);
 
   if (!post) {
     notFound();
   }
 
+  const allPosts = await getAllBlogPosts();
+  const postKeywords = Array.isArray(post.keywords) ? post.keywords : (post.keywords || '').split(',').map((k: string) => k.trim());
+
   // Get related posts (same author or similar keywords)
-  const relatedPosts = blogPosts
-    .filter((p) => p.id !== post.id && (
+  const relatedPosts = allPosts
+    .filter((p) => p.slug !== post.slug && (
       p.author === post.author ||
-      p.keywords.some((kw) => post.keywords.includes(kw))
+      (() => {
+        const pKeywords = Array.isArray(p.keywords) ? p.keywords : (p.keywords || '').split(',').map((k: string) => k.trim());
+        return pKeywords.some((kw: string) => postKeywords.includes(kw));
+      })()
     ))
     .slice(0, 3);
 
@@ -133,7 +142,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
 
           {/* Keywords */}
           <div className="flex flex-wrap gap-2">
-            {post.keywords.map((keyword, idx) => (
+            {postKeywords.map((keyword: string, idx: number) => (
               <span
                 key={idx}
                 className="text-xs px-3 py-1 bg-brand-green text-black rounded-md font-bold uppercase tracking-widest"

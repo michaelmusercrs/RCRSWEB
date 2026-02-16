@@ -40,6 +40,14 @@ export default function Header() {
     setFormError('');
     setFormLoading(true);
 
+    // Client-side email validation — prevent 400 errors from partial emails
+    const emailValue = formData.email.trim();
+    if (emailValue && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)) {
+      setFormError('Please enter a valid email address or leave it blank.');
+      setFormLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch('/api/forms/contact', {
         method: 'POST',
@@ -47,7 +55,7 @@ export default function Header() {
         body: JSON.stringify({
           name: formData.name,
           phone: formData.phone,
-          email: formData.email || undefined,
+          email: emailValue || undefined,
           subject: 'Quick Quote Request',
           message: formData.message,
           sourcePage: 'Header Popup',

@@ -129,9 +129,24 @@ export default function PortalLogin() {
     const result = await login(email, password);
 
     if (result.success) {
+      // Check if password change is required
+      if (result.mustChangePassword) {
+        router.push('/portal/change-password');
+        setIsLoading(false);
+        return;
+      }
+
       // Get user role to determine redirect
       const member = TEAM_MEMBERS.find(m => m.email.toLowerCase() === email.toLowerCase());
       if (member) {
+        // Check if onboarding is needed
+        const onboardingComplete = localStorage.getItem(`onboarding_complete_${member.id}`) === 'true';
+        if (!onboardingComplete) {
+          router.push('/portal/welcome');
+          setIsLoading(false);
+          return;
+        }
+
         const redirectUrl = ROLE_DEFAULT_ROUTES[member.role];
         // Check if training needed
         if (!hasCompletedTraining(member.role)) {
@@ -329,7 +344,7 @@ export default function PortalLogin() {
                 </button>
                 <div>
                   <h2 className="text-xl font-semibold text-white">Staff Login</h2>
-                  <p className="text-sm text-neutral-400">Enter your email and PIN</p>
+                  <p className="text-sm text-neutral-400">Enter your email and password</p>
                 </div>
               </div>
 
@@ -348,7 +363,7 @@ export default function PortalLogin() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-neutral-300 mb-2">PIN</label>
+                  <label className="block text-sm font-medium text-neutral-300 mb-2">Password</label>
                   <div className="relative">
                     <Shield className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500" size={18} />
                     <input
@@ -356,8 +371,7 @@ export default function PortalLogin() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleStaffLogin()}
-                      placeholder="Enter your PIN"
-                      maxLength={4}
+                      placeholder="Enter your password"
                       className="w-full bg-neutral-800/50 border border-neutral-700 rounded-xl pl-12 pr-4 py-3 text-white placeholder-neutral-500 focus:outline-none focus:border-brand-green/50 focus:ring-2 focus:ring-brand-green/20"
                     />
                   </div>

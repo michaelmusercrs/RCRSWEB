@@ -7,11 +7,21 @@ export async function GET() {
   try {
     const cacheKey = 'sheets:team-members';
     const cached = cache.get<any>(cacheKey);
-    if (cached) return NextResponse.json(cached);
+    if (cached) {
+      return NextResponse.json(cached, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=7200',
+        },
+      });
+    }
 
     const teamMembers = await googleSheetsService.getTeamMembers();
     cache.set(cacheKey, teamMembers, CACHE_TTL.LONG);
-    return NextResponse.json(teamMembers);
+    return NextResponse.json(teamMembers, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=7200',
+      },
+    });
   } catch (error) {
     console.error('Error fetching team members:', error);
     return NextResponse.json({ error: 'Failed to fetch team members' }, { status: 500 });

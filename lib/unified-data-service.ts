@@ -226,7 +226,7 @@ class UnifiedDataService {
         const jobs = jobsResponse.results || [];
 
         jobs.forEach(job => {
-          const status = (job.status || '').toLowerCase();
+          const status = String(job.status || '').toLowerCase();
           if (['completed', 'closed', 'complete'].includes(status)) {
             jobDetails.completed++;
           } else if (['in progress', 'work in progress', 'scheduled'].includes(status)) {

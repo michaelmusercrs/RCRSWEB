@@ -1,4 +1,4 @@
-// Team Member Roles and Permissions for River City Roofing Portal
+﻿// Team Member Roles and Permissions for River City Roofing Portal
 // Role hierarchy: owner > admin > manager > sales > office > project_manager > driver > viewer
 //
 // ROLE ASSIGNMENTS (Updated 2026-02-10 from Google Workspace):
@@ -22,6 +22,8 @@ export interface TeamMember {
   phone?: string;
   role: TeamRole;
   pin?: string; // 4-digit PIN for driver login
+  password: string; // Password for staff login
+  mustChangePassword: boolean; // Force password change on first login
   isActive: boolean;
   permissions: string[];
   createdAt: string;
@@ -37,7 +39,8 @@ export const TEAM_MEMBERS: TeamMember[] = [
     email: 'michaelmuse@rivercityroofingsolutions.com',
     phone: '256-221-4290',
     role: 'owner',
-    pin: '1135',
+    password: 'ChangeMe123!',
+    mustChangePassword: true,
     isActive: true,
     permissions: ['*'], // All permissions
     createdAt: '2024-01-01'
@@ -49,7 +52,8 @@ export const TEAM_MEMBERS: TeamMember[] = [
     email: 'chrismuse@rivercityroofingsolutions.com',
     phone: '256-648-1224',
     role: 'owner',
-    pin: '1138',
+    password: 'ChangeMe123!',
+    mustChangePassword: true,
     isActive: true,
     permissions: ['*'],
     createdAt: '2024-01-01'
@@ -63,7 +67,8 @@ export const TEAM_MEMBERS: TeamMember[] = [
     email: 'sara@rivercityroofingsolutions.com',
     phone: '256-810-3594',
     role: 'admin',
-    pin: '1131',
+    password: 'ChangeMe123!',
+    mustChangePassword: true,
     isActive: true,
     permissions: ['*'],
     createdAt: '2024-01-15'
@@ -76,7 +81,8 @@ export const TEAM_MEMBERS: TeamMember[] = [
     email: 'destin@rivercityroofingsolutions.com',
     phone: '256-905-7738',
     role: 'manager',
-    pin: '1132',
+    password: 'ChangeMe123!',
+    mustChangePassword: true,
     isActive: true,
     permissions: [
       'view_dashboard',
@@ -109,7 +115,8 @@ export const TEAM_MEMBERS: TeamMember[] = [
     email: 'tia@rivercityroofingsolutions.com',
     phone: '256-394-8396',
     role: 'office',
-    pin: '1133',
+    password: 'ChangeMe123!',
+    mustChangePassword: true,
     isActive: true,
     permissions: [
       'view_dashboard',
@@ -134,7 +141,8 @@ export const TEAM_MEMBERS: TeamMember[] = [
     email: 'bart@rivercityroofingsolutions.com',
     phone: '256-654-0747',
     role: 'project_manager',
-    pin: '1134',
+    password: 'ChangeMe123!',
+    mustChangePassword: true,
     isActive: true,
     permissions: [
       'view_dashboard',
@@ -159,7 +167,8 @@ export const TEAM_MEMBERS: TeamMember[] = [
     email: 'john@rivercityroofingsolutions.com',
     phone: '256-654-0875',
     role: 'project_manager',
-    pin: '1137',
+    password: 'ChangeMe123!',
+    mustChangePassword: true,
     isActive: true,
     permissions: [
       'view_dashboard',
@@ -187,6 +196,8 @@ export const TEAM_MEMBERS: TeamMember[] = [
     phone: '256-701-7376',
     role: 'driver',
     pin: '1136', // Driver login PIN from PDF
+    password: 'ChangeMe123!',
+    mustChangePassword: true,
     isActive: true,
     permissions: [
       'view_assigned_tickets',
@@ -211,6 +222,8 @@ export const TEAM_MEMBERS: TeamMember[] = [
     phone: '256-200-3467',
     role: 'driver',
     pin: '2033', // Driver login PIN from PDF
+    password: 'ChangeMe123!',
+    mustChangePassword: true,
     isActive: false, // Not in Google Workspace - inactive
     permissions: [
       'view_assigned_tickets',
@@ -236,7 +249,8 @@ export const TEAM_MEMBERS: TeamMember[] = [
     email: 'hunter@rivercityroofingsolutions.com',
     phone: '256-221-0548',
     role: 'sales',
-    pin: '2010',
+    password: 'ChangeMe123!',
+    mustChangePassword: true,
     isActive: true,
     permissions: [
       'view_dashboard',
@@ -263,7 +277,8 @@ export const TEAM_MEMBERS: TeamMember[] = [
     email: 'aaron@rivercityroofingsolutions.com',
     phone: '256-656-7856',
     role: 'sales',
-    pin: '2020',
+    password: 'ChangeMe123!',
+    mustChangePassword: true,
     isActive: true,
     permissions: [
       'view_dashboard',
@@ -290,7 +305,8 @@ export const TEAM_MEMBERS: TeamMember[] = [
     email: 'greg@rivercityroofingsolutions.com',
     phone: '256-221-1809',
     role: 'sales',
-    pin: '2030',
+    password: 'ChangeMe123!',
+    mustChangePassword: true,
     isActive: true,
     permissions: [
       'view_dashboard',
@@ -317,7 +333,8 @@ export const TEAM_MEMBERS: TeamMember[] = [
     email: 'brendon@rivercityroofingsolutions.com',
     phone: '256-616-6174',
     role: 'sales',
-    pin: '2040',
+    password: 'ChangeMe123!',
+    mustChangePassword: true,
     isActive: true,
     permissions: [
       'view_dashboard',
@@ -344,7 +361,8 @@ export const TEAM_MEMBERS: TeamMember[] = [
     email: 'rick@rcrsal.com',
     phone: '256-701-7376',
     role: 'sales',
-    pin: '2050',
+    password: 'ChangeMe123!',
+    mustChangePassword: true,
     isActive: true,
     permissions: [
       'view_dashboard',
@@ -371,7 +389,8 @@ export const TEAM_MEMBERS: TeamMember[] = [
     email: 'rudy@rcrsal.com',
     phone: '',
     role: 'sales',
-    pin: '2060',
+    password: 'ChangeMe123!',
+    mustChangePassword: true,
     isActive: false, // Not in Google Workspace - inactive
     permissions: [
       'view_dashboard',
@@ -398,7 +417,8 @@ export const TEAM_MEMBERS: TeamMember[] = [
     email: 'adam@rivercityroofingsolutions.com',
     phone: '256-654-3631',
     role: 'sales',
-    pin: '2070',
+    password: 'ChangeMe123!',
+    mustChangePassword: true,
     isActive: true,
     permissions: [
       'view_dashboard',
@@ -425,7 +445,8 @@ export const TEAM_MEMBERS: TeamMember[] = [
     email: 'boston@rivercityroofingsolutions.com',
     phone: '',
     role: 'sales',
-    pin: '2080',
+    password: 'ChangeMe123!',
+    mustChangePassword: true,
     isActive: true,
     permissions: [
       'view_dashboard',
@@ -452,7 +473,8 @@ export const TEAM_MEMBERS: TeamMember[] = [
     email: 'joseph@rivercityroofingsolutions.com',
     phone: '256-751-7297',
     role: 'sales',
-    pin: '2090',
+    password: 'ChangeMe123!',
+    mustChangePassword: true,
     isActive: true,
     permissions: [
       'view_dashboard',
@@ -481,7 +503,8 @@ export const TEAM_MEMBERS: TeamMember[] = [
     email: 'travis@rivercityroofingsolutions.com',
     phone: '256-466-0956',
     role: 'driver',
-    pin: '1140',
+    password: 'ChangeMe123!',
+    mustChangePassword: true,
     isActive: true,
     permissions: [
       'view_assigned_tickets',

@@ -38,9 +38,17 @@ interface JobNimbusContact {
   sales_rep?: string;
   sales_rep_name?: string;
   status?: string;
+  status_name?: string;
   source?: string;
+  source_name?: string;
+  number?: string;
+  created_by_name?: string;
+  date_created?: number;
   created_at?: number;
   updated_at?: number;
+  is_archived?: boolean;
+  geo?: { lat: number; lng: number };
+  record_type_name?: string;
 }
 
 interface JobNimbusJob {

@@ -107,6 +107,9 @@ export async function runGeocodeSync(): Promise<SyncProgress> {
     const allContacts: ContactToGeocode[] = [];
 
     // ─── 2a. Fetch from JobNimbus ────────────────────────────────────────
+    // Contacts with JN's built-in geo field are saved directly (no Nominatim needed).
+    const directGeoRecords: GeocodedContactRecord[] = [];
+
     if (isJobNimbusConfigured()) {
       try {
         const jnContacts = await jobNimbusService.syncContacts();
@@ -115,8 +118,7 @@ export async function runGeocodeSync(): Promise<SyncProgress> {
           if (address.length <= 5) continue;
           if (existingJnids.has(c.jnid)) continue;
 
-          // Determine type from status
-          const statusLower = (c.status || '').toLowerCase();
+          const statusLower = (c.status || c.status_name || '').toLowerCase();
           let type = 'contact';
           if (statusLower.includes('complete') || statusLower.includes('closed')) {
             type = 'install';
@@ -124,16 +126,40 @@ export async function runGeocodeSync(): Promise<SyncProgress> {
             type = 'lead';
           }
 
-          allContacts.push({
-            id: c.jnid,
-            name: jobNimbusService.getContactName(c),
-            address,
-            salesRep: repNameToSlug(c.sales_rep_name),
-            status: c.status || '',
-            type,
-            source: 'jobnimbus',
-            updatedAt: c.updated_at ? new Date(c.updated_at * 1000).toISOString() : '',
-          });
+          const name = jobNimbusService.getContactName(c);
+          const salesRep = repNameToSlug(c.sales_rep_name);
+          const updatedAt = c.updated_at ? new Date(c.updated_at * 1000).toISOString() : '';
+
+          // If JN already has geo data, save directly without Nominatim
+          if (c.geo?.lat && c.geo?.lng) {
+            directGeoRecords.push({
+              jnid: c.jnid,
+              name,
+              address,
+              lat: String(c.geo.lat),
+              lng: String(c.geo.lng),
+              placeId: '',
+              type,
+              salesRep,
+              jobStatus: c.status || c.status_name || '',
+              lastInteraction: updatedAt,
+              interactionType: type,
+              createdAt: new Date().toISOString(),
+            });
+            currentSync.geocoded++;
+          } else {
+            // No geo from JN — queue for Nominatim geocoding
+            allContacts.push({
+              id: c.jnid,
+              name,
+              address,
+              salesRep,
+              status: c.status || '',
+              type,
+              source: 'jobnimbus',
+              updatedAt,
+            });
+          }
         }
       } catch (err) {
         console.warn('[GeocodeSync] JobNimbus fetch failed:', err);
@@ -169,8 +195,21 @@ export async function runGeocodeSync(): Promise<SyncProgress> {
       console.warn('[GeocodeSync] Google Sheets customer fetch failed:', err);
     }
 
-    currentSync.totalContacts = allContacts.length + existingJnids.size;
+    currentSync.totalContacts = allContacts.length + directGeoRecords.length + existingJnids.size;
     currentSync.skipped = existingJnids.size;
+
+    // ─── 2c. Save contacts that already have geo from JN ─────────────
+    if (directGeoRecords.length > 0) {
+      currentSync.status = 'saving';
+      try {
+        const directSave = await googleSheetsService.addGeocodedContactsBatch(directGeoRecords);
+        currentSync.saved += directSave.added;
+        currentSync.errors += directSave.errors;
+        console.log(`[GeocodeSync] Saved ${directSave.added} contacts with JN geo data directly`);
+      } catch (err) {
+        console.warn('[GeocodeSync] Failed to save direct geo records:', err);
+      }
+    }
 
     if (allContacts.length === 0) {
       currentSync.status = 'complete';
@@ -180,7 +219,7 @@ export async function runGeocodeSync(): Promise<SyncProgress> {
 
     currentSync.status = 'geocoding';
 
-    // ─── 3. Geocode sequentially (1 per second, Nominatim requirement) ───
+    // ─── 3. Geocode remaining contacts via Nominatim (1 per second) ──
     const geocodedRecords: GeocodedContactRecord[] = [];
 
     for (let i = 0; i < allContacts.length; i++) {

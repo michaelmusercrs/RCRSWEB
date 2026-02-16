@@ -83,6 +83,30 @@ export function apiValidationError(fields: Record<string, string>): NextResponse
 }
 
 /**
+ * Return a successful JSON response with HTTP cache headers.
+ * Use for semi-static data (team members, blog posts, service areas, etc.)
+ *
+ * @param data - The payload
+ * @param maxAge - Cache duration in seconds (default 300 = 5 min)
+ * @param staleWhileRevalidate - Stale-while-revalidate window in seconds (default 600 = 10 min)
+ */
+export function apiCachedSuccess<T>(
+  data: T,
+  maxAge = 300,
+  staleWhileRevalidate = 600,
+): NextResponse<ApiSuccessResponse<T>> {
+  const body: ApiSuccessResponse<T> = { success: true, data };
+  const hash = Buffer.from(JSON.stringify(data)).length.toString(36) + '-' + Date.now().toString(36);
+  return NextResponse.json(body, {
+    status: 200,
+    headers: {
+      'Cache-Control': `public, s-maxage=${maxAge}, stale-while-revalidate=${staleWhileRevalidate}`,
+      'ETag': `"${hash}"`,
+    },
+  });
+}
+
+/**
  * Extract a useful error message from an unknown thrown value.
  * Prevents leaking stack traces while still providing context.
  */
