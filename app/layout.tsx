@@ -7,7 +7,8 @@ import './globals.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import FloatingContactButton from '@/components/FloatingContactButton';
-import ChatBot from '@/components/ChatBot';
+// ChatBot disabled — not yet configured (2026-02-17)
+// import ChatBot from '@/components/ChatBot';
 import GlobalVideoBackground from '@/components/GlobalVideoBackground';
 import PromoBanner from '@/components/PromoBanner';
 import CookieConsent from '@/components/CookieConsent';
@@ -150,7 +151,7 @@ export default function RootLayout({
             <main id="main-content">{children}</main>
             <Footer />
             <FloatingContactButton />
-            <ChatBot />
+            {/* <ChatBot /> — disabled until configured */}
             <EmailCapturePopup />
             {/* Honeypot links — invisible to humans, irresistible to bots */}
             <a href="/api/honeypot" style={{position:'absolute',left:'-9999px',opacity:0,height:0,width:0,overflow:'hidden'}} tabIndex={-1} aria-hidden="true">Special Roofing Deals</a>

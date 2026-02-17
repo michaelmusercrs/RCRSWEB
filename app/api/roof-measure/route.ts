@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export const maxDuration = 900; // 15 minutes max
+export const maxDuration = 60; // Vercel Hobby plan limit
 export const dynamic = 'force-dynamic';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -47,6 +47,7 @@ interface AIResult {
 }
 
 const GOOGLE_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+const IS_VERCEL = !!process.env.VERCEL;
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -59,7 +60,17 @@ async function geocode(address: string) {
   if (!data.results?.length) throw new Error('Address not found');
   const loc = data.results[0].geometry.location;
   const formatted = data.results[0].formatted_address as string;
-  return { lat: loc.lat as number, lng: loc.lng as number, formatted };
+  const lat = loc.lat as number;
+  const lng = loc.lng as number;
+
+  // Checkgate: Validate location is in North Alabama service area (roughly)
+  // Expanded bounds: lat 33.5-35.5, lng -88.5 to -85.5
+  if (lat < 33.5 || lat > 35.5 || lng < -88.5 || lng > -85.5) {
+    // Still allow but flag it
+    console.warn(`Geocoded location (${lat}, ${lng}) is outside North Alabama service area`);
+  }
+
+  return { lat, lng, formatted };
 }
 
 async function getSolarData(lat: number, lng: number) {
@@ -363,6 +374,10 @@ ${prompt}`;
 }
 
 async function callOllama(prompt: string, images: string[]): Promise<AIResult> {
+  // Skip Ollama on Vercel — it's a localhost-only service
+  if (IS_VERCEL) {
+    return { status: 'skipped', measurements: null, raw: 'Ollama skipped on Vercel (localhost only)' };
+  }
   try {
     const jsonPrompt = prompt + '\n\nRespond ONLY with valid JSON. No markdown, no explanation, just the JSON object.';
     const res = await fetch('http://localhost:11434/api/generate', {
@@ -724,12 +739,50 @@ async function runSatelliteAnalysis(address: string) {
   if (!solar) qualityNotes.push('Solar API data unavailable - measurements may be less accurate');
 
   if (successfulResults.length === 0) {
-    const details = [
-      `Gemini: ${geminiResult.raw?.slice(0, 150) || geminiResult.status}`,
-      `GeminiVerify: ${geminiVerifyResult.raw?.slice(0, 150) || geminiVerifyResult.status}`,
-      `Ollama: ${ollamaResult.raw?.slice(0, 150) || ollamaResult.status}`,
-    ].join(' | ');
-    throw new Error(`All AI providers failed — ${details}`);
+    // Fallback: estimate measurements from Solar API geometry alone
+    if (solar && totalAreaSqFt > 0) {
+      qualityNotes.push('All AI providers failed — using Solar API geometric estimation fallback');
+      qualityNotes.push(`Gemini: ${geminiResult.raw?.slice(0, 100) || geminiResult.status}`);
+      qualityNotes.push(`Ollama: ${ollamaResult.raw?.slice(0, 100) || ollamaResult.status}`);
+
+      // Estimate measurements from building dimensions and segment data
+      const estPerimeter = 2 * (buildingWidth + buildingLength);
+      const avgPitch = solarSegments.length > 0
+        ? solarSegments.reduce((s: number, seg: { pitchDegrees?: number }) => s + (seg.pitchDegrees || 0), 0) / solarSegments.length
+        : 20;
+      const pitchRatio = Math.round(Math.tan(avgPitch * Math.PI / 180) * 12);
+      const slopeLength = Math.sqrt(1 + (pitchRatio / 12) ** 2);
+
+      const estRidge = buildingLength * 0.9;
+      const estEave = estPerimeter * 0.5;
+      const estRake = slopeLength * buildingWidth * 0.5 * 2 / buildingWidth * buildingLength * 0.02;
+
+      const fallbackMeasurements: AIMeasurements = {
+        ridges: [{ length_ft: Math.round(estRidge), confidence: 'LOW' }],
+        rakes: [{ length_ft: Math.round(buildingWidth * slopeLength * 0.5), confidence: 'LOW' }],
+        valleys: [],
+        eaves: [{ length_ft: Math.round(buildingLength), confidence: 'LOW' }, { length_ft: Math.round(buildingLength), confidence: 'LOW' }],
+        hips: [],
+        pitches: [{ pitch: `${pitchRatio}/12`, confidence: 'LOW' }],
+        total_ridge_ft: Math.round(estRidge),
+        total_rake_ft: Math.round(buildingWidth * slopeLength),
+        total_valley_ft: 0,
+        total_eave_ft: Math.round(buildingLength * 2),
+        total_hip_ft: 0,
+        primary_pitch: `${pitchRatio}/12`,
+        roof_style: 'gable',
+        notes: 'Estimated from Solar API geometry only — AI analysis unavailable',
+      };
+
+      successfulResults.push({ name: 'SolarFallback', m: fallbackMeasurements });
+    } else {
+      const details = [
+        `Gemini: ${geminiResult.raw?.slice(0, 150) || geminiResult.status}`,
+        `GeminiVerify: ${geminiVerifyResult.raw?.slice(0, 150) || geminiVerifyResult.status}`,
+        `Ollama: ${ollamaResult.raw?.slice(0, 150) || ollamaResult.status}`,
+      ].join(' | ');
+      throw new Error(`All AI providers failed — ${details}`);
+    }
   }
 
   // Cross-validate against Solar API geometric data

@@ -332,8 +332,8 @@ function AddressForm({
         )}
       </button>
 
-      <p className="text-center text-xs text-neutral-500">
-        100% free. No obligation. Your information is secure and will not be shared.
+      <p className="text-center text-xs text-neutral-500 leading-relaxed">
+        100% free. No obligation. Your information is used solely by River City Roofing Solutions and will not be shared with third parties.
       </p>
     </form>
   );

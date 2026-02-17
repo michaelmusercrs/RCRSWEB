@@ -394,6 +394,23 @@ export default function PortalLogin() {
                 {isLoading ? 'Signing In...' : 'Continue'}
               </button>
 
+              <div className="text-center mt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!email) {
+                      setError('Enter your email first, then click Forgot Password.');
+                      return;
+                    }
+                    // TODO: Implement forgot password email flow via /api/portal/auth action: 'forgot-password'
+                    setError('Password reset is not yet configured. Please contact your admin.');
+                  }}
+                  className="text-sm text-neutral-400 hover:text-brand-green transition-colors underline underline-offset-4"
+                >
+                  Forgot Password?
+                </button>
+              </div>
+
             </div>
           </div>
         </div>
