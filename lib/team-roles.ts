@@ -880,3 +880,46 @@ export function getOverrideCount(memberId: string): number {
   if (!override) return 0;
   return Object.keys(override.moduleOverrides).length;
 }
+
+// ============================================
+// COMMISSION HELPERS
+// ============================================
+
+// Subcontractors — NOT internal sales reps (they get 1099 subcontractor pay, not commissions)
+const SUBCONTRACTOR_NAMES = [
+  'pablo compuzano', 'pablo compuzano-cruz', 'jesus lara', 'jesus m lara',
+  'martin martinez', 'martin martinez-mendoza', 'patrick manuel',
+  'bcm contracting', 'roof angel', 'rudys roofing',
+];
+
+/** Returns true if the name belongs to an internal sales rep (not a subcontractor) */
+export function isInternalSalesRep(name: string): boolean {
+  if (!name) return false;
+  const lower = name.toLowerCase().trim();
+  return !SUBCONTRACTOR_NAMES.some(sub => lower.includes(sub));
+}
+
+/** Normalize commission name variants to canonical names */
+const NAME_ALIASES: Record<string, string> = {
+  'greg muse': 'Greg Muse',
+  'gregory ray muse': 'Greg Muse',
+  'gregory muse': 'Greg Muse',
+  'adam rudell': 'Adam Rudell',
+  'rudy': 'Adam Rudell',
+  'aaron lussi': 'Aaron Lussi',
+  'michael muse': 'Michael Muse',
+  'chris muse': 'Chris Muse',
+  'sara muse': 'Sara Muse',
+  'brendon russell': 'Brendon Russell',
+  'richard geahr': 'Richard Geahr',
+  'john cordonis': 'John Cordonis',
+  'destin woodall': 'Destin Woodall',
+  'tia woodall': 'Tia Woodall',
+  'hunter muse': 'Hunter Muse',
+};
+
+export function resolveCommissionName(name: string): string {
+  if (!name) return name;
+  const lower = name.toLowerCase().trim();
+  return NAME_ALIASES[lower] || name.trim();
+}

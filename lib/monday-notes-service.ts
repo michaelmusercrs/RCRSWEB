@@ -12,6 +12,25 @@
 import { TeamRole, TEAM_MEMBERS, TeamMember } from './team-roles';
 
 // =============================================================================
+// Schedule Types (used by MondaySubmissionWidget)
+// =============================================================================
+
+export type ScheduleType = 'this-week' | 'next-week' | 'recurring' | 'one-time';
+
+export interface NoteSchedule {
+  type: ScheduleType;
+  date?: string;
+  recurring?: boolean;
+}
+
+export const SCHEDULE_TYPE_LABELS: Record<ScheduleType, string> = {
+  'this-week': 'This Monday',
+  'next-week': 'Next Monday',
+  'recurring': 'Every Week',
+  'one-time': 'One Time',
+};
+
+// =============================================================================
 // Types
 // =============================================================================
 
@@ -74,6 +93,9 @@ export interface MondayNote {
   displayDuration?: DisplayDuration;     // how long to show in meetings
   displayStartDate?: string;             // ISO date when this announcement starts showing
   displayEndDate?: string;               // ISO date when this announcement stops (auto-calculated)
+
+  // Schedule
+  schedule?: NoteSchedule;     // When this note should appear
 
   // Slide generation
   includeInSlide: boolean;     // Whether to include in auto-generated slide
