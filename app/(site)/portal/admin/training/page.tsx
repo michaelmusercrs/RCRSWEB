@@ -1,0 +1,2820 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import {
+  BookOpen, ChevronDown, ChevronRight, CheckCircle2,
+  FileText, Users, Image, Package, Truck, BarChart3,
+  Play, Clock, Target, AlertCircle, HelpCircle, Phone, Mail,
+  Sparkles, GraduationCap, Award, Trophy, Flame, UserCheck, Percent
+} from 'lucide-react';
+import AdminLayout from '@/components/AdminLayout';
+import Leaderboard from '@/components/Leaderboard';
+import { useTraining, POINTS_CONFIG } from '@/lib/training-context';
+
+type Section = {
+  id: string;
+  title: string;
+  icon: React.ElementType;
+  color: string;
+  bgColor: string;
+  lessons: Lesson[];
+};
+
+type Lesson = {
+  id: string;
+  title: string;
+  duration: string;
+  content: string[];
+  tips?: string[];
+};
+
+const trainingSections: Section[] = [
+  {
+    id: 'portal-overview',
+    title: 'Portal Overview',
+    icon: BookOpen,
+    color: 'text-brand-green',
+    bgColor: 'bg-brand-green/20',
+    lessons: [
+      {
+        id: 'getting-started',
+        title: 'Getting Started',
+        duration: '8 min',
+        content: [
+          'The River City Roofing Portal is your central hub for managing all aspects of the business. It connects all departments - from sales and production to warehouse and delivery.',
+          '',
+          '🔗 ACCESS THE PORTAL:',
+          '- URL: www.rivercityroofingsolutions.com/portal',
+          '- Works on desktop, tablet, and mobile devices',
+          '- No app download required - just use your web browser',
+          '',
+          '📱 PORTAL SECTIONS OVERVIEW:',
+          '',
+          '1. MANAGER DASHBOARD (Managers & Office Staff)',
+          '   - Create and track material orders',
+          '   - Assign deliveries to drivers',
+          '   - View real-time delivery status',
+          '   - Monitor inventory levels',
+          '   - Generate reports and analytics',
+          '',
+          '2. INVENTORY COUNT (Warehouse Team)',
+          '   - Perform weekly inventory counts',
+          '   - Submit restock requests',
+          '   - Track material usage trends',
+          '   - Manage product catalog',
+          '',
+          '3. ADMIN PORTAL (Admin & Marketing)',
+          '   - Manage blog posts for SEO',
+          '   - Update team member profiles',
+          '   - Upload project images/gallery',
+          '   - Manage service areas',
+          '   - Update service descriptions',
+          '',
+          '4. DRIVER PORTAL (Drivers Only)',
+          '   - View assigned deliveries',
+          '   - Update delivery status',
+          '   - Navigate to job sites',
+          '   - Take delivery photos',
+          '   - Requires secure PIN login',
+          '',
+          '⚙️ RECOMMENDED SETTINGS:',
+          '- Enable browser notifications for delivery updates',
+          '- Allow location access for navigation features',
+          '- Keep browser updated for best performance',
+          '- Use Chrome or Safari for optimal experience',
+        ],
+        tips: [
+          'Bookmark the portal page for quick daily access',
+          'Add to home screen on mobile for app-like experience',
+          'The portal auto-saves your work - no need to manually save',
+          'Use the search function (if available) to find orders quickly',
+          'Check the portal first thing each morning for overnight updates',
+        ],
+      },
+      {
+        id: 'navigation',
+        title: 'Navigation & Interface',
+        duration: '5 min',
+        content: [
+          'Master the portal interface to work faster and more efficiently.',
+          '',
+          '🧭 NAVIGATION BASICS:',
+          '- Back Arrow (←): Top-left corner returns to previous page',
+          '- Home Icon: Returns to main portal page',
+          '- Tabs: Switch between views within a section',
+          '- Refresh (↻): Reloads data from the database',
+          '',
+          '🖱️ INTERACTION PATTERNS:',
+          '- Cards are clickable - tap to see details or take actions',
+          '- Status badges show current state (colors have meaning)',
+          '- Dropdown menus reveal additional options',
+          '- Toggle switches enable/disable features instantly',
+          '',
+          '🎨 STATUS COLOR GUIDE:',
+          '- 🟢 Green: Active, Complete, Success, Available',
+          '- 🔵 Blue: In Progress, Information, Pending',
+          '- 🟡 Yellow: Warning, Needs Attention, Coming Soon',
+          '- 🔴 Red: Urgent, Error, Low Stock, Overdue',
+          '- ⚪ Gray: Inactive, Disabled, Archived',
+          '',
+          '📋 COMMON ACTIONS:',
+          '- Click "+" or "Add" button to create new items',
+          '- Click pencil icon (✏️) to edit existing items',
+          '- Click trash icon (🗑️) to delete (with confirmation)',
+          '- Click eye icon (👁️) to preview/view details',
+          '- Click download icon (⬇️) to export data',
+          '',
+          '💡 KEYBOARD SHORTCUTS (Desktop):',
+          '- Tab: Move between form fields',
+          '- Enter: Submit forms or confirm actions',
+          '- Escape: Cancel/close dialogs',
+          '- Ctrl+S / Cmd+S: Save (in some sections)',
+        ],
+        tips: [
+          'Use Tab key to quickly move between form fields',
+          'Right-click on cards for quick action menu',
+          'Double-click to quickly open items for editing',
+          'Swipe left/right on mobile to reveal actions',
+          'Pull down to refresh on mobile devices',
+        ],
+      },
+      {
+        id: 'user-roles',
+        title: 'User Roles & Permissions',
+        duration: '6 min',
+        content: [
+          'Understanding roles helps you know what you can access and what others can do.',
+          '',
+          '👤 ROLE HIERARCHY:',
+          '',
+          '1. ADMIN (Full Access)',
+          '   - Access to ALL portal features',
+          '   - Can create/edit/delete any content',
+          '   - Manage user accounts and permissions',
+          '   - View all reports and analytics',
+          '   - Configure system settings',
+          '   USE CASE: Chris, Michael, office managers',
+          '',
+          '2. MANAGER (Operations Access)',
+          '   - Create and manage material orders',
+          '   - Assign deliveries to drivers',
+          '   - View inventory and restock requests',
+          '   - Access reports for their region/team',
+          '   - Cannot modify admin settings',
+          '   USE CASE: Regional partners, PMs, supervisors',
+          '',
+          '3. OFFICE STAFF (Limited Operations)',
+          '   - View orders and delivery status',
+          '   - Create basic orders (may need approval)',
+          '   - Update customer contact info',
+          '   - Generate standard reports',
+          '   USE CASE: Office coordinators, customer service',
+          '',
+          '4. WAREHOUSE (Inventory Focus)',
+          '   - Perform inventory counts',
+          '   - Submit restock requests',
+          '   - View material availability',
+          '   - Update product locations',
+          '   USE CASE: Warehouse staff, inventory managers',
+          '',
+          '5. DRIVER (Delivery Only)',
+          '   - View assigned deliveries',
+          '   - Update delivery status',
+          '   - Take delivery photos',
+          '   - Navigate to job sites',
+          '   - Cannot access admin or inventory',
+          '   USE CASE: Material delivery drivers',
+          '',
+          '🔒 SECURITY BEST PRACTICES:',
+          '- Never share your login PIN or credentials',
+          '- Log out when using shared devices',
+          '- Report suspicious activity immediately',
+          '- Change PIN if you suspect compromise',
+        ],
+        tips: [
+          'Contact admin if you need access to additional features',
+          'Your role determines what menu items you see',
+          'Some actions require manager approval based on your role',
+          'Audit logs track who made what changes',
+        ],
+      },
+      {
+        id: 'mobile-workflow',
+        title: 'Mobile Workflow Best Practices',
+        duration: '5 min',
+        content: [
+          'The portal is fully mobile-responsive. Here is how to use it effectively on your phone.',
+          '',
+          '📱 MOBILE-FIRST FEATURES:',
+          '- Touch-friendly buttons and controls',
+          '- Swipe gestures for quick actions',
+          '- Camera integration for photos',
+          '- GPS for navigation and location tracking',
+          '- Offline mode for basic features (limited)',
+          '',
+          '📸 TAKING PHOTOS (Drivers & Warehouse):',
+          '1. Tap the camera icon when available',
+          '2. Allow camera permission if prompted',
+          '3. Frame the shot clearly (good lighting)',
+          '4. Tap capture, then confirm or retake',
+          '5. Add notes if needed, then upload',
+          '',
+          '🗺️ NAVIGATION INTEGRATION:',
+          '- Tap "Open in Maps" for turn-by-turn directions',
+          '- Works with Google Maps, Apple Maps, Waze',
+          '- Automatic traffic routing',
+          '- ETA updates in real-time',
+          '',
+          '🔋 BATTERY & DATA TIPS:',
+          '- GPS and camera use more battery',
+          '- Download maps offline for rural areas',
+          '- WiFi is faster than cellular for uploads',
+          '- Keep phone charged during shift',
+          '',
+          '📶 CONNECTIVITY ISSUES:',
+          '- Portal queues updates when offline',
+          '- Data syncs when connection returns',
+          '- Critical actions may require connection',
+          '- Look for "Offline" indicator in header',
+        ],
+        tips: [
+          'Add portal to home screen for quick access',
+          'Enable notifications to get delivery alerts',
+          'Use landscape mode for better form entry',
+          'Carry a phone charger or power bank',
+          'Pre-load the portal before entering dead zones',
+        ],
+      },
+    ],
+  },
+  {
+    id: 'admin-blog',
+    title: 'Blog Management',
+    icon: FileText,
+    color: 'text-blue-400',
+    bgColor: 'bg-brand-green/20',
+    lessons: [
+      {
+        id: 'view-posts',
+        title: 'Understanding Blog Posts',
+        duration: '6 min',
+        content: [
+          'Blog posts are critical for SEO and establishing River City Roofing as an authority in the roofing industry.',
+          '',
+          '📍 ACCESS: Admin Portal > Blog Posts',
+          '',
+          '📊 BLOG POST LIST VIEW:',
+          '- Title: The article headline (clickable)',
+          '- Date: Publication date',
+          '- Category: Topic classification',
+          '- Status: Published (live) or Draft (hidden)',
+          '- Thumbnail: Featured image preview',
+          '',
+          '🔍 FILTERING & SEARCHING:',
+          '- Filter by Category dropdown',
+          '- Filter by Status (All, Published, Draft)',
+          '- Search by title or keywords',
+          '- Sort by date (newest/oldest)',
+          '',
+          '📈 WHY BLOG POSTS MATTER:',
+          '- Improve Google search rankings',
+          '- Answer customer questions',
+          '- Showcase expertise and trust',
+          '- Generate organic leads',
+          '- Support social media content',
+          '',
+          '📂 BLOG CATEGORIES:',
+          '- Roof Maintenance: Cleaning, inspections, upkeep tips',
+          '- Storm Damage: Hail, wind, emergency repairs',
+          '- Insurance Claims: Filing tips, documentation help',
+          '- Roofing Materials: Shingles, metal, tiles comparison',
+          '- Commercial Roofing: Business and industrial topics',
+          '- Home Improvement: General home value topics',
+          '- Local News: North Alabama specific content',
+        ],
+        tips: [
+          'Aim for at least 2-4 blog posts per month',
+          'Mix categories to cover different search topics',
+          'Update old posts periodically to keep them fresh',
+          'Check analytics to see which posts perform best',
+        ],
+      },
+      {
+        id: 'create-post',
+        title: 'Creating a New Blog Post',
+        duration: '10 min',
+        content: [
+          'Follow this workflow to create SEO-optimized blog posts that rank well on Google.',
+          '',
+          '📝 STEP-BY-STEP WORKFLOW:',
+          '',
+          '1. CLICK "New Post" button',
+          '',
+          '2. WRITE THE TITLE',
+          '   - Keep it under 60 characters',
+          '   - Include main keyword at the beginning',
+          '   - Make it clear and compelling',
+          '   ✓ Good: "How to Spot Storm Damage on Your Huntsville Roof"',
+          '   ✗ Bad: "Storm Damage Info"',
+          '',
+          '3. SET THE SLUG (URL)',
+          '   - Auto-generated from title',
+          '   - Use lowercase with hyphens',
+          '   - Keep it short but descriptive',
+          '   ✓ Good: "spot-storm-damage-huntsville"',
+          '   ✗ Bad: "how-to-spot-storm-damage-on-your-huntsville-roof-today"',
+          '',
+          '4. SELECT CATEGORY',
+          '   - Choose the most relevant category',
+          '   - Only one category per post',
+          '   - Helps with site organization',
+          '',
+          '5. WRITE THE EXCERPT (Summary)',
+          '   - 120-160 characters ideal',
+          '   - Appears in blog listings and search results',
+          '   - Include main keyword',
+          '   - Make it enticing to click',
+          '',
+          '6. WRITE THE CONTENT',
+          '   - Aim for 800-1500 words minimum',
+          '   - Use headers (H2, H3) to organize',
+          '   - Include local keywords (Huntsville, Madison, etc.)',
+          '   - Add bullet points for readability',
+          '   - Include call-to-action at the end',
+          '',
+          '7. ADD FEATURED IMAGE',
+          '   - Use high-quality, relevant image',
+          '   - Recommended size: 1200x630 pixels',
+          '   - Include alt text for SEO',
+          '',
+          '8. SET KEYWORDS (SEO)',
+          '   - Add 3-5 relevant keywords',
+          '   - Include location keywords',
+          '   - Think: What would customers search?',
+          '',
+          '9. SET STATUS & PUBLISH',
+          '   - Draft: Save without publishing',
+          '   - Published: Goes live immediately',
+          '',
+          '📋 CONTENT WRITING CHECKLIST:',
+          '☐ Title includes main keyword',
+          '☐ Excerpt is compelling and under 160 chars',
+          '☐ Content is at least 800 words',
+          '☐ Includes local area mentions',
+          '☐ Has clear headers and sections',
+          '☐ Ends with call-to-action',
+          '☐ Featured image is uploaded',
+          '☐ All keywords are added',
+        ],
+        tips: [
+          'Write for humans first, then optimize for SEO',
+          'Use questions in headers - matches how people search',
+          'Include "River City Roofing" naturally 2-3 times',
+          'Mention specific cities: Huntsville, Madison, Decatur, etc.',
+          'End every post with a call-to-action (contact us, free quote)',
+          'Save as Draft first, then review before publishing',
+        ],
+      },
+      {
+        id: 'edit-post',
+        title: 'Editing, Updating & Deleting Posts',
+        duration: '5 min',
+        content: [
+          'Keep blog content fresh and accurate to maintain SEO rankings.',
+          '',
+          '✏️ EDITING A POST:',
+          '1. Click on the post title in the list',
+          '2. Make your changes in the editor',
+          '3. Click "Save" or "Update"',
+          '4. Changes go live immediately (if published)',
+          '',
+          '🔄 WHEN TO UPDATE POSTS:',
+          '- Information is outdated (pricing, processes)',
+          '- New developments in the industry',
+          '- SEO improvements needed',
+          '- Adding new images or content',
+          '- Fixing typos or errors',
+          '',
+          '📊 POST PERFORMANCE REVIEW:',
+          '- Check Google Analytics monthly',
+          '- Update high-traffic posts regularly',
+          '- Refresh old posts with new dates (if significantly updated)',
+          '- Add internal links to new related posts',
+          '',
+          '📝 UNPUBLISHING A POST:',
+          '1. Open the post',
+          '2. Change status from "Published" to "Draft"',
+          '3. Save - post is hidden but not deleted',
+          '4. Useful for seasonal content or updates',
+          '',
+          '🗑️ DELETING A POST:',
+          '1. Click the trash icon on the post',
+          '2. Confirm deletion in the popup',
+          '⚠️ WARNING: Deletion is PERMANENT',
+          '⚠️ Consider unpublishing instead of deleting',
+          '',
+          '🔗 HANDLING DELETED POSTS:',
+          '- Deleted posts may cause 404 errors',
+          '- Set up redirect if post had traffic',
+          '- Contact admin for redirect setup',
+          '',
+          '📅 RECOMMENDED UPDATE SCHEDULE:',
+          '- High-traffic posts: Review quarterly',
+          '- Seasonal content: Update before season',
+          '- Evergreen content: Review annually',
+          '- Technical posts: Update when specs change',
+        ],
+        tips: [
+          'Never delete a post that gets regular traffic - update it instead',
+          'Keep an editorial calendar to track update schedules',
+          'When updating, change the date if major changes were made',
+          'Add "Updated: [Date]" note for transparency',
+          'Cross-link to related posts when editing',
+        ],
+      },
+      {
+        id: 'seo-best-practices',
+        title: 'SEO Best Practices',
+        duration: '8 min',
+        content: [
+          'Follow these SEO guidelines to maximize blog post visibility in Google search results.',
+          '',
+          '🎯 KEYWORD STRATEGY:',
+          '',
+          'PRIMARY KEYWORD (1 per post):',
+          '- The main topic you want to rank for',
+          '- Use in title, first paragraph, headers',
+          '- Example: "roof repair Huntsville"',
+          '',
+          'SECONDARY KEYWORDS (2-4 per post):',
+          '- Related terms and variations',
+          '- Use throughout content naturally',
+          '- Example: "roofing contractor", "roof fix", "damaged roof"',
+          '',
+          'LOCAL KEYWORDS (Must include):',
+          '- City names: Huntsville, Madison, Decatur, Athens',
+          '- "North Alabama"',
+          '- County names if relevant',
+          '- Neighborhoods for hyper-local content',
+          '',
+          '📊 RECOMMENDED KEYWORD DENSITY:',
+          '- Primary keyword: 1-2% of content',
+          '- Avoid keyword stuffing (sounds unnatural)',
+          '- Use synonyms and variations',
+          '',
+          '📝 TITLE OPTIMIZATION:',
+          '- Include primary keyword',
+          '- Keep under 60 characters',
+          '- Put keyword near the beginning',
+          '- Make it compelling to click',
+          '',
+          '📄 META DESCRIPTION (Excerpt):',
+          '- 150-160 characters max',
+          '- Include primary keyword',
+          '- Include call-to-action',
+          '- Preview what the article covers',
+          '',
+          '🔗 INTERNAL LINKING:',
+          '- Link to 2-3 related blog posts',
+          '- Link to relevant service pages',
+          '- Use descriptive anchor text',
+          '- ✓ Good: "Learn more about storm damage repair"',
+          '- ✗ Bad: "Click here"',
+          '',
+          '📸 IMAGE SEO:',
+          '- Use descriptive file names',
+          '- ✓ Good: huntsville-roof-storm-damage.jpg',
+          '- ✗ Bad: IMG_12345.jpg',
+          '- Add alt text describing the image',
+          '- Compress images for fast loading',
+          '',
+          '📱 READABILITY:',
+          '- Short paragraphs (2-4 sentences)',
+          '- Use bullet points and lists',
+          '- Include headers every 200-300 words',
+          '- Write at 8th grade reading level',
+          '- Bold important points',
+        ],
+        tips: [
+          'Focus on one main topic per blog post',
+          'Answer questions people actually ask',
+          'Use Google "People Also Ask" for content ideas',
+          'Check competitor blogs to see what topics rank',
+          'Update content quarterly for best results',
+          'Share new posts on social media within 24 hours',
+        ],
+      },
+    ],
+  },
+  {
+    id: 'admin-team',
+    title: 'Team Management',
+    icon: Users,
+    color: 'text-emerald-400',
+    bgColor: 'bg-emerald-500/20',
+    lessons: [
+      {
+        id: 'view-team',
+        title: 'Understanding Team Structure',
+        duration: '6 min',
+        content: [
+          'The team page showcases River City Roofing\'s people and builds trust with customers.',
+          '',
+          '📍 ACCESS: Admin Portal > Team Members',
+          '',
+          '👥 TEAM CATEGORIES:',
+          '',
+          '1. LEADERSHIP',
+          '   - Company owners and executives',
+          '   - Appears first on team page',
+          '   - Chris Muse, Michael Muse',
+          '',
+          '2. REGIONAL PARTNERS',
+          '   - Regional managers/franchisees',
+          '   - Have their own service areas',
+          '   - Get individual profile pages',
+          '   - Can have social media links',
+          '',
+          '3. SALES REPRESENTATIVES',
+          '   - Field sales team members',
+          '   - Customer-facing profiles',
+          '   - Contact info visible to customers',
+          '',
+          '4. PRODUCTION',
+          '   - Project managers and supervisors',
+          '   - Installation crew leads',
+          '   - Quality control staff',
+          '',
+          '5. WAREHOUSE',
+          '   - Material handlers',
+          '   - Drivers and logistics',
+          '   - Inventory management',
+          '',
+          '6. OFFICE STAFF',
+          '   - Customer service',
+          '   - Administrative support',
+          '   - Accounting/billing',
+          '',
+          '📊 TEAM MEMBER CARD INFO:',
+          '- Profile photo (circular)',
+          '- Full name',
+          '- Position/title',
+          '- Category badge',
+          '- Contact info (if public)',
+          '- "View Profile" link',
+          '',
+          '🔍 FILTERING OPTIONS:',
+          '- Filter by category dropdown',
+          '- Search by name',
+          '- Sort by display order or alphabetical',
+        ],
+        tips: [
+          'Keep team profiles up-to-date when roles change',
+          'Profile photos build customer trust',
+          'Regional partners should have complete profiles',
+          'New hires should be added within first week',
+        ],
+      },
+      {
+        id: 'edit-member',
+        title: 'Editing Team Profiles',
+        duration: '8 min',
+        content: [
+          'Keep team profiles accurate and professional at all times.',
+          '',
+          '✏️ EDITING WORKFLOW:',
+          '1. Find the team member in the list',
+          '2. Click their card or "Edit" button',
+          '3. Update the necessary fields',
+          '4. Click "Save Changes"',
+          '',
+          '📋 PROFILE FIELDS EXPLAINED:',
+          '',
+          'BASIC INFO:',
+          '- Name: Full legal name or preferred name',
+          '- Slug: URL-friendly version (auto-generated)',
+          '- Position: Job title (e.g., "Regional Partner")',
+          '- Category: Where they appear (Leadership, Sales, etc.)',
+          '',
+          'CONTACT INFO:',
+          '- Email: Professional email address',
+          '- Phone: Direct line or cell (optional)',
+          '- These appear on their profile page',
+          '',
+          'BIO & DESCRIPTION:',
+          '- Tagline: One-line intro (shown on team page)',
+          '   Example: "Serving Madison County since 2018"',
+          '- Bio: 2-3 paragraph description',
+          '   - Professional background',
+          '   - Areas they serve',
+          '   - Personal touch (family, hobbies)',
+          '',
+          'KEY STRENGTHS (Optional):',
+          '- List 3-5 bullet points',
+          '- Highlight expertise areas',
+          '- Example: "Storm damage expert", "15+ years experience"',
+          '',
+          'RESPONSIBILITIES (Optional):',
+          '- List 3-5 main duties',
+          '- Helps customers understand their role',
+          '',
+          'SOCIAL MEDIA (Regional Partners):',
+          '- Facebook page URL',
+          '- Instagram profile URL',
+          '- TikTok profile URL',
+          '- LinkedIn profile URL',
+          '- X (Twitter) profile URL',
+          '',
+          'REGIONAL INFO (Regional Partners only):',
+          '- Region: Service area name',
+          '- Launch Date: When they started',
+          '',
+          'DISPLAY ORDER:',
+          '- Lower numbers appear first',
+          '- Leadership: 1-10',
+          '- Regional Partners: 11-50',
+          '- Sales: 51-100',
+          '- Others: 100+',
+          '',
+          '📸 PROFILE PHOTO GUIDELINES:',
+          '- Square format (1:1 ratio)',
+          '- Minimum 400x400 pixels',
+          '- Professional headshot preferred',
+          '- Consistent background style',
+          '- Good lighting, clear face',
+          '- Company shirt/polo recommended',
+        ],
+        tips: [
+          'Review profiles quarterly for accuracy',
+          'Use consistent photo styling across team',
+          'Keep bios under 200 words for readability',
+          'Include local references in bios',
+          'Update when someone gets promoted or changes roles',
+        ],
+      },
+      {
+        id: 'add-member',
+        title: 'Adding New Team Members',
+        duration: '6 min',
+        content: [
+          'Follow this checklist when adding new team members to the website.',
+          '',
+          '📝 STEP-BY-STEP WORKFLOW:',
+          '',
+          '1. GATHER INFORMATION',
+          '   ☐ Full name',
+          '   ☐ Job title/position',
+          '   ☐ Professional headshot photo',
+          '   ☐ Email address',
+          '   ☐ Phone number (if public)',
+          '   ☐ Short bio (from HR or employee)',
+          '   ☐ Category assignment',
+          '',
+          '2. CLICK "Add Team Member"',
+          '',
+          '3. FILL IN REQUIRED FIELDS:',
+          '   - Name (required)',
+          '   - Position (required)',
+          '   - Category (required)',
+          '   - Display Order (required)',
+          '',
+          '4. ADD OPTIONAL FIELDS:',
+          '   - Contact info',
+          '   - Bio/tagline',
+          '   - Social media links',
+          '   - Key strengths',
+          '',
+          '5. UPLOAD PROFILE PHOTO',
+          '   - Click "Upload Photo"',
+          '   - Select image file',
+          '   - Confirm upload',
+          '',
+          '6. PREVIEW & SAVE',
+          '   - Review all information',
+          '   - Click "Save"',
+          '   - Check team page to verify',
+          '',
+          '👤 CATEGORY ASSIGNMENT GUIDE:',
+          '- Owners/Executives → Leadership',
+          '- Branch managers → Regional Partner',
+          '- Sales reps → Sales Representatives',
+          '- PMs, crew leads → Production',
+          '- Drivers, material handlers → Warehouse',
+          '- Admin, customer service → Office Staff',
+          '',
+          '🚀 ONBOARDING CHECKLIST:',
+          '☐ Profile added to website',
+          '☐ Email signature created',
+          '☐ Portal access set up',
+          '☐ Business cards ordered',
+          '☐ Added to team communications',
+        ],
+        tips: [
+          'Add new team members within their first week',
+          'Send them their profile link to verify accuracy',
+          'Ensure photo meets quality standards before uploading',
+          'Have them write their own bio for authenticity',
+          'Double-check spelling of names',
+        ],
+      },
+      {
+        id: 'remove-member',
+        title: 'Removing & Archiving Members',
+        duration: '4 min',
+        content: [
+          'Handle departing team members professionally and promptly.',
+          '',
+          '⚠️ WHEN SOMEONE LEAVES:',
+          '',
+          '1. TIMING:',
+          '   - Remove profile on their last day',
+          '   - Or within 24-48 hours of departure',
+          '   - Coordinate with HR/management',
+          '',
+          '2. OPTIONS:',
+          '',
+          'OPTION A - Hide/Archive (Recommended):',
+          '   - Change status to "Inactive"',
+          '   - Profile hidden but not deleted',
+          '   - Can be reactivated if they return',
+          '   - Preserves historical records',
+          '',
+          'OPTION B - Delete:',
+          '   - Permanently removes profile',
+          '   - Cannot be undone',
+          '   - Only use if certain they won\'t return',
+          '',
+          '3. OTHER CLEANUP:',
+          '   - Revoke portal access',
+          '   - Update any linked content',
+          '   - Reassign their customers/projects',
+          '   - Update org charts if applicable',
+          '',
+          '🔒 SECURITY CONSIDERATIONS:',
+          '- Remove portal access immediately',
+          '- Change shared passwords if applicable',
+          '- Update driver PINs',
+          '- Notify relevant team members',
+          '',
+          '📋 DEPARTURE CHECKLIST:',
+          '☐ Profile removed/archived',
+          '☐ Portal access revoked',
+          '☐ Email forwarding set up',
+          '☐ Customer handoff completed',
+          '☐ Team notified of change',
+        ],
+        tips: [
+          'Archive rather than delete when possible',
+          'Have a consistent process for all departures',
+          'Keep records for legal/compliance purposes',
+          'Update quickly to avoid confusion',
+        ],
+      },
+    ],
+  },
+  {
+    id: 'admin-images',
+    title: 'Image Gallery',
+    icon: Image,
+    color: 'text-violet-400',
+    bgColor: 'bg-violet-500/20',
+    lessons: [
+      {
+        id: 'upload-images',
+        title: 'Uploading Images',
+        duration: '8 min',
+        content: [
+          'Images are critical for showcasing work quality and building customer trust.',
+          '',
+          '📍 ACCESS: Admin Portal > Image Gallery',
+          '',
+          '📤 UPLOAD WORKFLOW:',
+          '1. Click "Upload Image" button',
+          '2. Select file from your device',
+          '3. Add a descriptive name',
+          '4. Choose the correct category',
+          '5. Add alt text (for SEO)',
+          '6. Click "Upload"',
+          '',
+          '📂 IMAGE CATEGORIES:',
+          '',
+          'PROJECTS (Before/After):',
+          '- Completed roofing jobs',
+          '- Storm damage examples',
+          '- Before and after comparisons',
+          '- Used in gallery and testimonials',
+          '',
+          'TEAM:',
+          '- Employee headshots',
+          '- Team group photos',
+          '- Company events',
+          '- Use square format (1:1)',
+          '',
+          'SERVICES:',
+          '- Service demonstration images',
+          '- Equipment and materials',
+          '- Process documentation',
+          '- Used on service pages',
+          '',
+          'BLOG:',
+          '- Featured images for articles',
+          '- Infographics and diagrams',
+          '- Stock photos (licensed)',
+          '- Educational content',
+          '',
+          '📐 RECOMMENDED IMAGE SIZES:',
+          '',
+          'Hero/Banner Images:',
+          '- Size: 1920x1080 pixels (16:9)',
+          '- Max file size: 500KB',
+          '- Format: JPG (compressed)',
+          '',
+          'Blog Featured Images:',
+          '- Size: 1200x630 pixels',
+          '- Max file size: 300KB',
+          '- Format: JPG or PNG',
+          '',
+          'Team Headshots:',
+          '- Size: 400x400 pixels (1:1 square)',
+          '- Max file size: 200KB',
+          '- Format: JPG',
+          '',
+          'Project/Gallery Images:',
+          '- Size: 1200x800 pixels',
+          '- Max file size: 400KB',
+          '- Format: JPG',
+          '',
+          '🖼️ FILE NAMING CONVENTIONS:',
+          '✓ Good: huntsville-roof-replacement-after.jpg',
+          '✓ Good: smith-residence-storm-damage.jpg',
+          '✗ Bad: IMG_12345.jpg',
+          '✗ Bad: photo.png',
+          '✗ Bad: final_v2_edited.jpg',
+          '',
+          '📝 ALT TEXT GUIDELINES:',
+          '- Describe what is in the image',
+          '- Include location if relevant',
+          '- Keep under 125 characters',
+          '✓ Good: "New asphalt shingle roof installation in Madison Alabama"',
+          '✗ Bad: "roof" or "image1"',
+        ],
+        tips: [
+          'Compress images before uploading using TinyPNG or similar',
+          'Use JPG for photos, PNG for logos/graphics with transparency',
+          'Take photos during good lighting conditions',
+          'Get customer permission before posting project photos',
+          'Include before AND after shots when possible',
+          'Organize by project or date for easy retrieval',
+        ],
+      },
+      {
+        id: 'manage-images',
+        title: 'Managing & Organizing Images',
+        duration: '5 min',
+        content: [
+          'Keep the image gallery organized for easy access and professional presentation.',
+          '',
+          '🔍 FINDING IMAGES:',
+          '- Filter by category dropdown',
+          '- Search by filename or description',
+          '- Sort by date (newest/oldest)',
+          '- Browse by page/scroll',
+          '',
+          '📋 IMAGE ACTIONS:',
+          '',
+          'VIEW DETAILS:',
+          '- Click image thumbnail',
+          '- See full size preview',
+          '- View metadata (size, date, category)',
+          '',
+          'COPY URL:',
+          '- Click "Copy URL" button',
+          '- Use in blog posts, emails, etc.',
+          '- URL format: /uploads/filename.jpg',
+          '',
+          'DOWNLOAD:',
+          '- Click download icon',
+          '- Saves original file to device',
+          '- Useful for social media, print, etc.',
+          '',
+          'EDIT DETAILS:',
+          '- Change name or category',
+          '- Update alt text',
+          '- Fix mislabeled images',
+          '',
+          'DELETE:',
+          '- Click trash icon',
+          '- Confirm deletion',
+          '⚠️ WARNING: Deletion is permanent',
+          '⚠️ Check if image is used elsewhere first',
+          '',
+          '🗂️ ORGANIZATION BEST PRACTICES:',
+          '- Use consistent naming conventions',
+          '- Tag with customer name or job number',
+          '- Delete duplicates and unused images',
+          '- Archive old project photos quarterly',
+          '',
+          '💾 STORAGE & PERFORMANCE:',
+          '- Images stored on Google Drive',
+          '- Optimized automatically for web',
+          '- CDN delivers fast loading times',
+          '- No storage limits (within reason)',
+        ],
+        tips: [
+          'Regularly clean up unused images to keep gallery organized',
+          'Before deleting, check if image is used in blog posts',
+          'Create a backup of important project photos',
+          'Use consistent naming for related images (project-001-before, project-001-after)',
+          'Review gallery monthly for quality control',
+        ],
+      },
+      {
+        id: 'project-photos',
+        title: 'Project Photography Guide',
+        duration: '7 min',
+        content: [
+          'High-quality project photos drive conversions and build trust.',
+          '',
+          '📸 BEFORE/AFTER PHOTO WORKFLOW:',
+          '',
+          'BEFORE PHOTOS (Take first!):',
+          '1. Photograph the entire roof area',
+          '2. Capture specific damage close-ups',
+          '3. Show context (full house view)',
+          '4. Document any existing issues',
+          '5. Take from same angles as "after" shots',
+          '',
+          'DURING PHOTOS:',
+          '1. Crew working (shows professionalism)',
+          '2. Materials being installed',
+          '3. Safety equipment in use',
+          '4. Progress shots',
+          '',
+          'AFTER PHOTOS:',
+          '1. Same angles as "before" shots',
+          '2. Clean, finished work',
+          '3. Full roof views',
+          '4. Detail shots of craftsmanship',
+          '5. Cleaned up job site',
+          '',
+          '📷 PHOTOGRAPHY TIPS:',
+          '',
+          'LIGHTING:',
+          '- Best time: 10am-2pm (minimal shadows)',
+          '- Avoid harsh midday sun in summer',
+          '- Overcast days = even lighting',
+          '- Golden hour for dramatic shots',
+          '',
+          'ANGLES:',
+          '- Shoot from across the street',
+          '- Get high angles when safe',
+          '- Multiple angles per project',
+          '- Show the full scope of work',
+          '',
+          'COMPOSITION:',
+          '- Keep horizon level',
+          '- Include some sky/surroundings',
+          '- Remove debris from frame',
+          '- Move vehicles/equipment if needed',
+          '',
+          'EQUIPMENT:',
+          '- Smartphone camera is fine',
+          '- Clean the lens first!',
+          '- Use HDR mode for exteriors',
+          '- Steady hands or lean against something',
+          '',
+          '⚖️ LEGAL CONSIDERATIONS:',
+          '- Get customer permission (verbal or written)',
+          '- Some HOAs restrict photography',
+          '- Do not include address numbers/mailboxes',
+          '- Never photograph interior without consent',
+          '- Blur faces of bystanders',
+        ],
+        tips: [
+          'Always take before photos BEFORE any work starts',
+          'Create a photo checklist for crews',
+          'Best projects become featured case studies',
+          'Storm damage photos are valuable for insurance training',
+          'Drone photos are impressive but require FAA compliance',
+        ],
+      },
+    ],
+  },
+  {
+    id: 'inventory',
+    title: 'Inventory Management',
+    icon: Package,
+    color: 'text-orange-400',
+    bgColor: 'bg-orange-500/20',
+    lessons: [
+      {
+        id: 'view-inventory',
+        title: 'Understanding Inventory System',
+        duration: '7 min',
+        content: [
+          'Accurate inventory prevents job delays and ensures materials are always available.',
+          '',
+          '📍 ACCESS: Portal > Inventory Count',
+          '',
+          '📊 INVENTORY DASHBOARD:',
+          '',
+          'MAIN VIEW COLUMNS:',
+          '- Product Name: Material description',
+          '- SKU: Unique product identifier',
+          '- Current Qty: In-stock quantity',
+          '- Min Level: Reorder trigger point',
+          '- Max Level: Target stock level',
+          '- Unit Cost: Price per unit',
+          '- Supplier: Where to order',
+          '- Location: Warehouse bin/area',
+          '',
+          '🚦 STATUS INDICATORS:',
+          '- 🟢 IN STOCK: Qty above minimum',
+          '- 🟡 LOW: Qty at or near minimum',
+          '- 🔴 OUT: Zero quantity',
+          '- 🔵 ON ORDER: Restock pending',
+          '',
+          '📦 PRODUCT CATEGORIES:',
+          '',
+          'SHINGLES:',
+          '- Asphalt 3-tab',
+          '- Architectural',
+          '- Designer/Premium',
+          '- By color and brand',
+          '',
+          'UNDERLAYMENT:',
+          '- Felt (15#, 30#)',
+          '- Synthetic',
+          '- Ice & water shield',
+          '',
+          'METAL & FLASHING:',
+          '- Drip edge',
+          '- Step flashing',
+          '- Valley metal',
+          '- Pipe boots',
+          '',
+          'VENTILATION:',
+          '- Ridge vents',
+          '- Soffit vents',
+          '- Turbines',
+          '- Power vents',
+          '',
+          'FASTENERS & ADHESIVES:',
+          '- Roofing nails',
+          '- Screws',
+          '- Caulk/sealant',
+          '- Roofing cement',
+          '',
+          'GUTTERS & ACCESSORIES:',
+          '- Gutter sections',
+          '- Downspouts',
+          '- Hangers',
+          '- LeafX guards',
+          '',
+          '⚙️ RECOMMENDED SETTINGS:',
+          '- Set min/max based on 2-week usage',
+          '- Update reorder points seasonally',
+          '- Track fast-moving items closely',
+          '- Set alerts for critical materials',
+        ],
+        tips: [
+          'Learn the SKU system for faster lookups',
+          'Bookmark your most-used products',
+          'Check inventory before quoting large jobs',
+          'Report discrepancies immediately',
+          'Know lead times for each supplier',
+        ],
+      },
+      {
+        id: 'weekly-count',
+        title: 'Performing Weekly Inventory Count',
+        duration: '10 min',
+        content: [
+          'Weekly counts maintain accuracy and catch issues early.',
+          '',
+          '📅 RECOMMENDED SCHEDULE:',
+          '- Count every Friday morning',
+          '- Before weekend deliveries',
+          '- Same person for consistency',
+          '- Takes 30-45 minutes typically',
+          '',
+          '📋 COUNT WORKFLOW:',
+          '',
+          '1. PREPARE',
+          '   - Go to "Weekly Count" tab',
+          '   - Click "Start New Count"',
+          '   - Grab clipboard/tablet',
+          '   - Start from one end of warehouse',
+          '',
+          '2. COUNT BY AREA',
+          '   - Work systematically (left to right)',
+          '   - Count each bin/location',
+          '   - Check behind and under items',
+          '   - Note any damaged products',
+          '',
+          '3. ENTER QUANTITIES',
+          '   - Use +/- buttons or type directly',
+          '   - System shows expected vs actual',
+          '   - Variance highlighted if different',
+          '   - Add notes for discrepancies',
+          '',
+          '4. REVIEW & SUBMIT',
+          '   - Review all variances',
+          '   - Verify any large differences',
+          '   - Click "Submit Count"',
+          '   - Count logged with timestamp',
+          '',
+          '📊 VARIANCE HANDLING:',
+          '',
+          'SMALL VARIANCE (±5%):',
+          '- Usually normal usage variations',
+          '- Document and monitor trend',
+          '- Adjust expected if consistent',
+          '',
+          'MEDIUM VARIANCE (5-15%):',
+          '- Recount to verify',
+          '- Check recent usage records',
+          '- Look for mis-shelved items',
+          '- Report to supervisor',
+          '',
+          'LARGE VARIANCE (>15%):',
+          '- Stop and investigate immediately',
+          '- Check for theft, damage, or errors',
+          '- Review delivery/usage logs',
+          '- Report to management',
+          '- Document findings',
+          '',
+          '📝 COUNT TIPS BY PRODUCT TYPE:',
+          '',
+          'SHINGLES:',
+          '- Count bundles, not squares',
+          '- Check all stacks (may be mixed)',
+          '- Note partial bundles separately',
+          '',
+          'ROLLS (Felt, synthetic):',
+          '- Count full rolls only',
+          '- Partial rolls in "misc" category',
+          '',
+          'BOXES (Nails, vents, etc.):',
+          '- Count sealed boxes',
+          '- Estimate open boxes',
+          '',
+          'LOOSE ITEMS:',
+          '- Count by dozen/hundred if many',
+          '- Use weighing for small items',
+        ],
+        tips: [
+          'Count at the same time each week for consistency',
+          'Wear gloves - roofing materials can be messy',
+          'Take photos of any issues found',
+          'Do not count during active loading/unloading',
+          'Ask for help with high or heavy items',
+          'Report broken or damaged materials separately',
+        ],
+      },
+      {
+        id: 'restock',
+        title: 'Restock Requests & Ordering',
+        duration: '8 min',
+        content: [
+          'Keep materials stocked to prevent job delays.',
+          '',
+          '🔔 WHEN TO REQUEST RESTOCK:',
+          '- Item hits minimum quantity',
+          '- Large job coming that will deplete stock',
+          '- Seasonal demand increase expected',
+          '- Supplier notifies of price increase',
+          '- Product being discontinued',
+          '',
+          '📝 CREATING A RESTOCK REQUEST:',
+          '',
+          '1. Click "Request Restock" on item',
+          '2. Enter quantity needed',
+          '3. Select priority level:',
+          '   - Normal: 3-5 day lead time OK',
+          '   - Rush: Need within 24-48 hours',
+          '   - Urgent: Job waiting on materials',
+          '4. Add notes (job #, reason, etc.)',
+          '5. Submit request',
+          '',
+          '📊 REQUEST STATUS WORKFLOW:',
+          '',
+          'PENDING (Yellow):',
+          '- Request submitted',
+          '- Waiting for manager review',
+          '- May be consolidated with other requests',
+          '',
+          'APPROVED (Blue):',
+          '- Manager approved',
+          '- Ready for purchasing',
+          '- PO being prepared',
+          '',
+          'ORDERED (Purple):',
+          '- Purchase order submitted',
+          '- Supplier confirmed',
+          '- Expected delivery date set',
+          '',
+          'SHIPPED (Orange):',
+          '- Supplier has shipped',
+          '- Tracking number available',
+          '- ETA updated',
+          '',
+          'RECEIVED (Green):',
+          '- Materials arrived',
+          '- Inventory updated',
+          '- Request closed',
+          '',
+          '📦 RECEIVING DELIVERIES:',
+          '',
+          '1. Check delivery against PO',
+          '2. Inspect for damage',
+          '3. Count all items',
+          '4. Note any shortages',
+          '5. Click "Receive" in portal',
+          '6. Put items in correct locations',
+          '7. Update any location changes',
+          '',
+          '⚠️ HANDLING ISSUES:',
+          '',
+          'SHORT SHIPMENT:',
+          '- Note shortage when receiving',
+          '- Contact supplier immediately',
+          '- Request credit or replacement',
+          '',
+          'DAMAGED GOODS:',
+          '- Take photos before touching',
+          '- Note damage in system',
+          '- File claim with carrier',
+          '- Request replacement from supplier',
+          '',
+          'WRONG PRODUCT:',
+          '- Do not open/use',
+          '- Contact supplier for RMA',
+          '- Arrange return shipping',
+          '- Request correct product',
+          '',
+          '💰 COST MANAGEMENT:',
+          '- Compare supplier prices quarterly',
+          '- Order in bulk when possible',
+          '- Track price changes over time',
+          '- Report significant increases',
+        ],
+        tips: [
+          'Request restocks before you hit zero',
+          'Know lead times - some items take weeks',
+          'Bundle requests to save on shipping',
+          'Build relationships with suppliers',
+          'Track seasonal patterns for planning',
+          'Keep safety stock of critical items',
+        ],
+      },
+      {
+        id: 'inventory-reports',
+        title: 'Inventory Reports & Analysis',
+        duration: '5 min',
+        content: [
+          'Use reports to optimize inventory levels and reduce costs.',
+          '',
+          '📊 AVAILABLE REPORTS:',
+          '',
+          'CURRENT INVENTORY VALUE:',
+          '- Total $ value of all stock',
+          '- Value by category',
+          '- Value by location',
+          '- Use for insurance/accounting',
+          '',
+          'USAGE HISTORY:',
+          '- Materials used per week/month',
+          '- Trends over time',
+          '- Compare to same period last year',
+          '- Identify seasonal patterns',
+          '',
+          'LOW STOCK REPORT:',
+          '- All items at or below minimum',
+          '- Days until stockout estimate',
+          '- Priority ranking',
+          '- One-click restock request',
+          '',
+          'VARIANCE REPORT:',
+          '- Count vs expected differences',
+          '- Patterns over time',
+          '- Shrinkage tracking',
+          '- Cost impact analysis',
+          '',
+          'SUPPLIER PERFORMANCE:',
+          '- On-time delivery %',
+          '- Order accuracy',
+          '- Pricing history',
+          '- Lead time trends',
+          '',
+          '📈 KEY METRICS TO WATCH:',
+          '',
+          'INVENTORY TURNOVER:',
+          '- How fast stock sells/uses',
+          '- Higher = better efficiency',
+          '- Target: 6-12x per year',
+          '',
+          'STOCKOUT RATE:',
+          '- % of time out of stock',
+          '- Target: Under 5%',
+          '- Track by product and supplier',
+          '',
+          'CARRYING COST:',
+          '- Cost to hold inventory',
+          '- Storage, insurance, shrinkage',
+          '- Balance against stockout risk',
+          '',
+          '📅 RECOMMENDED REVIEW SCHEDULE:',
+          '- Daily: Low stock alerts',
+          '- Weekly: Count variances',
+          '- Monthly: Usage trends',
+          '- Quarterly: Supplier review',
+          '- Annually: Full audit',
+        ],
+        tips: [
+          'Set up automatic low-stock email alerts',
+          'Export reports monthly for records',
+          'Share usage trends with sales team',
+          'Use data to negotiate better prices',
+          'Track waste/damage separately',
+        ],
+      },
+    ],
+  },
+  {
+    id: 'manager',
+    title: 'Manager Dashboard',
+    icon: BarChart3,
+    color: 'text-cyan-400',
+    bgColor: 'bg-cyan-500/20',
+    lessons: [
+      {
+        id: 'dashboard-overview',
+        title: 'Dashboard Overview',
+        duration: '8 min',
+        content: [
+          'The Manager Dashboard is your command center for all material operations.',
+          '',
+          '📍 ACCESS: Portal > Manager Dashboard',
+          '',
+          '📊 DASHBOARD WIDGETS:',
+          '',
+          'TODAY\'S DELIVERIES:',
+          '- Total scheduled for today',
+          '- Completed count',
+          '- In-progress count',
+          '- Click to see full list',
+          '',
+          'PENDING ORDERS:',
+          '- Orders waiting to be scheduled',
+          '- Shows priority level',
+          '- Days waiting indicator',
+          '- Quick-assign option',
+          '',
+          'LOW STOCK ALERTS:',
+          '- Items below minimum',
+          '- Link to restock request',
+          '- Priority ranking',
+          '- Days until stockout',
+          '',
+          'INVENTORY VALUE:',
+          '- Total $ on hand',
+          '- Change from last week',
+          '- Trend indicator',
+          '- Link to full report',
+          '',
+          '📋 ACTIVE DELIVERIES PANEL:',
+          '- Real-time delivery status',
+          '- Driver location (if GPS enabled)',
+          '- ETA to job site',
+          '- One-click call driver',
+          '- Status: Scheduled → Loading → En Route → Arrived → Complete',
+          '',
+          '👤 DRIVER STATUS:',
+          '- Available (green): Ready for assignment',
+          '- On Delivery (blue): Currently delivering',
+          '- Loading (yellow): At warehouse',
+          '- Off Duty (gray): Not working today',
+          '',
+          '📈 QUICK STATS:',
+          '- Deliveries this week',
+          '- On-time delivery rate',
+          '- Average delivery time',
+          '- Jobs waiting on materials',
+          '',
+          '⚙️ RECOMMENDED WORKFLOW:',
+          '1. Check dashboard first thing AM',
+          '2. Review pending orders',
+          '3. Assign drivers based on routes',
+          '4. Monitor active deliveries',
+          '5. Handle any issues immediately',
+          '6. End of day: Review completions',
+        ],
+        tips: [
+          'Refresh dashboard every 15-30 minutes during busy periods',
+          'Set up browser notifications for urgent orders',
+          'Use the dashboard on a large monitor if possible',
+          'Check low stock alerts daily to prevent delays',
+          'Keep phone nearby for driver communications',
+        ],
+      },
+      {
+        id: 'create-order',
+        title: 'Creating Material Orders',
+        duration: '10 min',
+        content: [
+          'Material orders ensure crews have what they need when they need it.',
+          '',
+          '📝 ORDER CREATION WORKFLOW:',
+          '',
+          '1. CLICK "Create Material Order"',
+          '',
+          '2. JOB INFORMATION:',
+          '   - Job Name: "Smith Residence" or job number',
+          '   - Job Address: Full street address',
+          '   - City, State, ZIP: Required for routing',
+          '   - Customer Name: Homeowner or business',
+          '   - Customer Phone: For delivery coordination',
+          '   - Project Manager: Who to contact for issues',
+          '',
+          '3. MATERIALS LIST:',
+          '   - Search by product name or SKU',
+          '   - Select from dropdown',
+          '   - Enter quantity needed',
+          '   - Click "Add Item"',
+          '   - Repeat for all materials',
+          '   - Review total before proceeding',
+          '',
+          '4. SPECIAL INSTRUCTIONS:',
+          '   - Gate codes',
+          '   - Where to place materials',
+          '   - Access restrictions',
+          '   - Customer preferences',
+          '   - Safety notes',
+          '',
+          '5. DELIVERY DETAILS:',
+          '',
+          'DELIVERY DATE:',
+          '   - Select from calendar',
+          '   - Check crew schedule first',
+          '   - Allow lead time for ordering',
+          '',
+          'TIME PREFERENCE:',
+          '   - Morning (7am-12pm)',
+          '   - Afternoon (12pm-5pm)',
+          '   - Specific time (if critical)',
+          '   - Before crew arrives preferred',
+          '',
+          'PRIORITY LEVEL:',
+          '   - Normal: Standard scheduling',
+          '   - Rush: Same day or next day',
+          '   - Urgent: Job stopped waiting',
+          '',
+          '6. REVIEW & SUBMIT',
+          '   - Verify all information',
+          '   - Check material quantities',
+          '   - Confirm delivery date',
+          '   - Click "Create Order"',
+          '',
+          '📋 ORDER STATUS WORKFLOW:',
+          '- DRAFT: Not yet submitted',
+          '- PENDING: Awaiting driver assignment',
+          '- SCHEDULED: Driver assigned, date set',
+          '- LOADING: Being loaded at warehouse',
+          '- EN ROUTE: Driver on the way',
+          '- DELIVERED: Completed successfully',
+          '- CANCELLED: Order cancelled',
+          '',
+          '⚠️ COMMON MISTAKES TO AVOID:',
+          '- Missing or wrong address',
+          '- Incomplete materials list',
+          '- No gate code when needed',
+          '- Wrong delivery date',
+          '- Forgetting special instructions',
+        ],
+        tips: [
+          'Double-check addresses - wrong address = wasted trip',
+          'Include ALL materials - partial deliveries cost time',
+          'Add gate codes in special instructions',
+          'Call customer to confirm delivery time for large jobs',
+          'Create orders day before for morning deliveries',
+          'Check inventory availability before promising dates',
+        ],
+      },
+      {
+        id: 'schedule-delivery',
+        title: 'Scheduling & Assigning Deliveries',
+        duration: '8 min',
+        content: [
+          'Efficient scheduling maximizes driver productivity and customer satisfaction.',
+          '',
+          '📋 SCHEDULING WORKFLOW:',
+          '',
+          '1. GO TO ORDERS TAB',
+          '   - Filter by "Pending" status',
+          '   - Sort by priority then date',
+          '   - Review rush/urgent first',
+          '',
+          '2. ASSESS EACH ORDER:',
+          '   - Delivery location (route planning)',
+          '   - Material size/weight (truck capacity)',
+          '   - Time requirements',
+          '   - Special equipment needed',
+          '',
+          '3. CHECK DRIVER AVAILABILITY:',
+          '   - View driver schedule',
+          '   - Check current assignments',
+          '   - Consider driver location',
+          '   - Account for drive times',
+          '',
+          '4. ASSIGN DRIVER:',
+          '   - Select driver from dropdown',
+          '   - Confirm delivery time',
+          '   - Driver receives notification',
+          '   - Status changes to "Scheduled"',
+          '',
+          '🗺️ ROUTE OPTIMIZATION:',
+          '',
+          'GEOGRAPHY-BASED:',
+          '   - Group deliveries by area',
+          '   - North/South/East/West zones',
+          '   - Minimize backtracking',
+          '   - Consider traffic patterns',
+          '',
+          'TIME-BASED:',
+          '   - Morning deliveries together',
+          '   - Afternoon deliveries together',
+          '   - Allow buffer between stops',
+          '   - Account for loading time',
+          '',
+          'PRIORITY-BASED:',
+          '   - Urgent orders first',
+          '   - Rush orders second',
+          '   - Normal orders fill gaps',
+          '',
+          '📊 CAPACITY PLANNING:',
+          '',
+          'PER DRIVER:',
+          '   - 4-6 deliveries per day typical',
+          '   - Depends on distance/materials',
+          '   - Large jobs may need full day',
+          '   - Account for breaks/lunch',
+          '',
+          'TRUCK CAPACITY:',
+          '   - Know weight/volume limits',
+          '   - Roofing materials are heavy',
+          '   - May need multiple trips',
+          '   - Split large orders if needed',
+          '',
+          '⚠️ RESCHEDULING:',
+          '   - Weather delays',
+          '   - Customer request',
+          '   - Material availability',
+          '   - Update driver immediately',
+          '   - Notify customer of changes',
+          '   - Document reason for change',
+          '',
+          '📱 COMMUNICATION:',
+          '   - Text driver assignment details',
+          '   - Include any special notes',
+          '   - Confirm receipt',
+          '   - Be available for questions',
+        ],
+        tips: [
+          'Check weather forecast before scheduling',
+          'Build relationships with reliable drivers',
+          'Keep some capacity for urgent orders',
+          'Communicate early if delays expected',
+          'Document all changes for accountability',
+          'Review routes weekly for optimization',
+        ],
+      },
+      {
+        id: 'order-management',
+        title: 'Managing & Tracking Orders',
+        duration: '7 min',
+        content: [
+          'Stay on top of all orders from creation to delivery.',
+          '',
+          '📋 ORDER MANAGEMENT TABS:',
+          '',
+          'ALL ORDERS:',
+          '- Complete order history',
+          '- Search by job name, address, customer',
+          '- Filter by status, date, driver',
+          '- Export to spreadsheet',
+          '',
+          'PENDING:',
+          '- Orders needing assignment',
+          '- Sorted by priority/age',
+          '- Quick-assign actions',
+          '',
+          'SCHEDULED:',
+          '- Assigned but not started',
+          '- Today and upcoming',
+          '- Reassign option',
+          '',
+          'IN PROGRESS:',
+          '- Currently being delivered',
+          '- Real-time status updates',
+          '- ETA tracking',
+          '',
+          'COMPLETED:',
+          '- Successfully delivered',
+          '- With delivery confirmation',
+          '- Photos if taken',
+          '',
+          '🔍 ORDER DETAILS VIEW:',
+          '   - Full job information',
+          '   - Materials list with quantities',
+          '   - Special instructions',
+          '   - Status history/timeline',
+          '   - Driver assignment',
+          '   - Delivery confirmation',
+          '   - Photos (if uploaded)',
+          '',
+          '✏️ EDITING ORDERS:',
+          '',
+          'BEFORE ASSIGNMENT:',
+          '   - Can edit all fields',
+          '   - Add/remove materials',
+          '   - Change dates',
+          '   - Update instructions',
+          '',
+          'AFTER ASSIGNMENT:',
+          '   - Limited edits allowed',
+          '   - Must notify driver of changes',
+          '   - Document reason for change',
+          '',
+          'IN PROGRESS:',
+          '   - Cannot edit',
+          '   - Contact driver directly',
+          '   - Create new order if needed',
+          '',
+          '❌ CANCELLING ORDERS:',
+          '   - Reason required',
+          '   - Notify assigned driver',
+          '   - Return materials if loaded',
+          '   - Document for records',
+          '',
+          '📊 ORDER REPORTS:',
+          '   - Daily delivery summary',
+          '   - On-time performance',
+          '   - Driver productivity',
+          '   - Material usage by job',
+          '   - Customer delivery history',
+        ],
+        tips: [
+          'Review completed orders daily for issues',
+          'Keep notes on problematic deliveries',
+          'Use filters to find orders quickly',
+          'Export data monthly for analysis',
+          'Track patterns in cancellations',
+        ],
+      },
+      {
+        id: 'driver-management',
+        title: 'Managing Drivers & Teams',
+        duration: '6 min',
+        content: [
+          'Effective driver management ensures reliable deliveries.',
+          '',
+          '👥 DRIVER ROSTER:',
+          '- Name and contact info',
+          '- Vehicle assigned',
+          '- Schedule/availability',
+          '- Performance metrics',
+          '- PIN for portal access',
+          '',
+          '📅 SCHEDULE MANAGEMENT:',
+          '',
+          'DAILY:',
+          '   - Confirm driver availability',
+          '   - Assign deliveries by 6:30am',
+          '   - Monitor throughout day',
+          '   - Handle reassignments',
+          '',
+          'WEEKLY:',
+          '   - Review upcoming schedule',
+          '   - Plan for known absences',
+          '   - Balance workload',
+          '',
+          '📊 PERFORMANCE TRACKING:',
+          '',
+          'KEY METRICS:',
+          '   - Deliveries completed',
+          '   - On-time rate',
+          '   - Average delivery time',
+          '   - Customer feedback',
+          '   - Issues reported',
+          '',
+          'REVIEW SCHEDULE:',
+          '   - Daily: Check completions',
+          '   - Weekly: Performance summary',
+          '   - Monthly: Full review',
+          '',
+          '📱 COMMUNICATION:',
+          '',
+          'CHANNELS:',
+          '   - Portal notifications',
+          '   - Text messages',
+          '   - Phone calls',
+          '   - Group chat (if used)',
+          '',
+          'BEST PRACTICES:',
+          '   - Respond to questions quickly',
+          '   - Provide clear instructions',
+          '   - Acknowledge good work',
+          '   - Address issues privately',
+          '',
+          '⚠️ HANDLING ISSUES:',
+          '',
+          'LATE DELIVERY:',
+          '   - Get reason',
+          '   - Notify customer',
+          '   - Document',
+          '   - Prevent recurrence',
+          '',
+          'WRONG DELIVERY:',
+          '   - Retrieve materials if possible',
+          '   - Correct immediately',
+          '   - Apologize to customer',
+          '   - Review process',
+          '',
+          'DRIVER NO-SHOW:',
+          '   - Contact immediately',
+          '   - Reassign deliveries',
+          '   - Notify customers',
+          '   - Document absence',
+        ],
+        tips: [
+          'Build trust with consistent communication',
+          'Recognize top performers publicly',
+          'Address issues quickly but fairly',
+          'Provide feedback regularly',
+          'Cross-train drivers for flexibility',
+        ],
+      },
+    ],
+  },
+  {
+    id: 'driver',
+    title: 'Logistics',
+    icon: Truck,
+    color: 'text-sky-400',
+    bgColor: 'bg-sky-500/20',
+    lessons: [
+      {
+        id: 'driver-login',
+        title: 'Driver Login & Security',
+        duration: '5 min',
+        content: [
+          'Secure access to your deliveries with your personal PIN.',
+          '',
+          '🔐 LOGIN PROCESS:',
+          '1. Go to Portal main page',
+          '   - www.rivercityroofingsolutions.com/portal',
+          '2. Select "Logistics"',
+          '3. Enter your 4-digit PIN',
+          '4. Tap "Login"',
+          '5. View your assigned deliveries',
+          '',
+          '🚪 LOGOUT:',
+          '- Tap "Logout" in the header',
+          '- Always logout on shared devices',
+          '- Session expires after 8 hours',
+          '',
+          '🔒 SECURITY RULES:',
+          '- NEVER share your PIN',
+          '- Do not write PIN down',
+          '- Do not save PIN in browser',
+          '- Report if you think PIN is compromised',
+          '- Change PIN if device is lost/stolen',
+          '',
+          '📱 DEVICE SETUP:',
+          '',
+          'RECOMMENDED:',
+          '- Use your personal smartphone',
+          '- Enable location services',
+          '- Allow camera access',
+          '- Allow notifications',
+          '- Keep GPS on during deliveries',
+          '',
+          'BROWSER SETTINGS:',
+          '- Use Chrome or Safari',
+          '- Keep browser updated',
+          '- Clear cache if issues',
+          '- Add to home screen for easy access',
+          '',
+          '⚠️ TROUBLESHOOTING:',
+          '',
+          'WRONG PIN:',
+          '- 3 attempts before lockout',
+          '- Contact manager to unlock',
+          '- Wait 15 minutes then retry',
+          '',
+          'PAGE NOT LOADING:',
+          '- Check internet connection',
+          '- Try refreshing page',
+          '- Clear browser cache',
+          '- Try different browser',
+        ],
+        tips: [
+          'Add the portal to your phone home screen',
+          'Keep your phone charged for deliveries',
+          'Test login before starting your shift',
+          'Report login issues immediately',
+          'Memorize your PIN - do not store it',
+        ],
+      },
+      {
+        id: 'delivery-workflow',
+        title: 'Complete Delivery Workflow',
+        duration: '12 min',
+        content: [
+          'Follow this workflow for every delivery to ensure proper tracking and documentation.',
+          '',
+          '📋 DELIVERY STATUS STAGES:',
+          '',
+          '═══════════════════════════════════════',
+          '1️⃣ SCHEDULED',
+          '═══════════════════════════════════════',
+          'Status: Delivery has been assigned to you',
+          '',
+          'WHAT TO DO:',
+          '- Review the delivery details',
+          '- Check job address and customer name',
+          '- Review materials list carefully',
+          '- Note any special instructions',
+          '- Check gate codes or access info',
+          '- Plan your route',
+          '',
+          'BEFORE LEAVING HOME:',
+          '- Confirm phone is charged (80%+)',
+          '- GPS is working',
+          '- You know warehouse arrival time',
+          '',
+          '═══════════════════════════════════════',
+          '2️⃣ LOADING AT WAREHOUSE',
+          '═══════════════════════════════════════',
+          'Status: You are at warehouse loading materials',
+          '',
+          'LOADING CHECKLIST:',
+          '☐ Locate all materials on list',
+          '☐ Verify quantities match order',
+          '☐ Check material condition',
+          '☐ Note any shortages/issues',
+          '☐ Secure load properly',
+          '☐ Balance weight for safe driving',
+          '',
+          'MATERIAL VERIFICATION:',
+          '- Count bundles/pieces',
+          '- Match SKUs to order',
+          '- Check colors are correct',
+          '- Inspect for damage',
+          '- Photo damaged items BEFORE loading',
+          '',
+          'TAP "CONFIRM LOAD" when:',
+          '- All materials are on truck',
+          '- Load is secured',
+          '- Ready to depart',
+          '',
+          '═══════════════════════════════════════',
+          '3️⃣ EN ROUTE',
+          '═══════════════════════════════════════',
+          'Status: You are driving to the job site',
+          '',
+          'WHAT TO DO:',
+          '- Tap "Start Delivery" when leaving',
+          '- Tap "Open in Maps" for navigation',
+          '- Drive safely - no rushing!',
+          '- Follow traffic laws',
+          '',
+          'NAVIGATION OPTIONS:',
+          '- Google Maps (recommended)',
+          '- Apple Maps',
+          '- Waze',
+          '',
+          'IF RUNNING LATE:',
+          '- Call customer proactively',
+          '- Update ETA in notes',
+          '- Do NOT speed to make up time',
+          '',
+          'IF ROUTE PROBLEM:',
+          '- Road closed? Find alternate',
+          '- Lost? Stop and check map',
+          '- Need help? Call dispatcher',
+          '',
+          '═══════════════════════════════════════',
+          '4️⃣ ARRIVED',
+          '═══════════════════════════════════════',
+          'Status: You have reached the job site',
+          '',
+          'WHAT TO DO:',
+          '- Park safely and legally',
+          '- Tap "Mark Arrived"',
+          '- Customer receives notification',
+          '- Exit vehicle and assess site',
+          '',
+          'SITE ASSESSMENT:',
+          '- Locate delivery spot',
+          '- Check for obstacles',
+          '- Identify safe unloading path',
+          '- Look for hazards',
+          '',
+          'CUSTOMER INTERACTION:',
+          '- Greet professionally',
+          '- Confirm delivery location',
+          '- Ask about placement preferences',
+          '- Note any concerns',
+          '',
+          '═══════════════════════════════════════',
+          '5️⃣ UNLOADING',
+          '═══════════════════════════════════════',
+          'Status: Placing materials at job site',
+          '',
+          'UNLOADING BEST PRACTICES:',
+          '- Place materials where specified',
+          '- Protect from damage',
+          '- Keep driveway accessible',
+          '- Do not block walkways',
+          '- Stack neatly and safely',
+          '',
+          'SAFETY:',
+          '- Lift with legs, not back',
+          '- Use equipment when available',
+          '- Watch for uneven ground',
+          '- Be aware of surroundings',
+          '',
+          '═══════════════════════════════════════',
+          '6️⃣ DELIVERED / COMPLETE',
+          '═══════════════════════════════════════',
+          'Status: Delivery is finished',
+          '',
+          'COMPLETION STEPS:',
+          '1. Verify all materials placed',
+          '2. Take completion photos',
+          '3. Get customer signature (if required)',
+          '4. Tap "Complete Delivery"',
+          '5. Add any notes',
+          '',
+          'PHOTO REQUIREMENTS:',
+          '- Wide shot of all materials',
+          '- Close-up of material placement',
+          '- Any damage or issues',
+          '- Clean job site (no debris)',
+          '',
+          'CUSTOMER SIGNATURE:',
+          '- Have customer sign on screen',
+          '- Note if customer unavailable',
+          '- Leave delivery slip if no signature',
+        ],
+        tips: [
+          'Update status at EACH stage - this is critical for tracking',
+          'Photos protect you and the company from disputes',
+          'Read special instructions BEFORE arriving',
+          'Be courteous - you represent the company',
+          'When in doubt, call the office',
+        ],
+      },
+      {
+        id: 'driver-tips',
+        title: 'Best Practices & Safety',
+        duration: '8 min',
+        content: [
+          'Follow these guidelines to ensure safe, efficient, and professional deliveries.',
+          '',
+          '🚛 VEHICLE SAFETY:',
+          '',
+          'PRE-TRIP INSPECTION:',
+          '☐ Check tire pressure and condition',
+          '☐ Test brakes',
+          '☐ Check mirrors and lights',
+          '☐ Verify load is secured',
+          '☐ Check fuel level',
+          '☐ Ensure emergency equipment present',
+          '',
+          'WHILE DRIVING:',
+          '- Obey all traffic laws',
+          '- No phone use while driving',
+          '- Allow extra stopping distance (heavy load)',
+          '- Take wide turns',
+          '- Use hazards when appropriate',
+          '- Park legally at job sites',
+          '',
+          '💪 LIFTING SAFETY:',
+          '- Bend knees, not back',
+          '- Keep load close to body',
+          '- Get help for heavy items',
+          '- Use lifting equipment when available',
+          '- Do not twist while lifting',
+          '- Take breaks as needed',
+          '',
+          '📸 PHOTO DOCUMENTATION:',
+          '',
+          'ALWAYS PHOTOGRAPH:',
+          '1. Damaged materials BEFORE loading',
+          '2. Loaded truck (shows condition)',
+          '3. Materials at delivery site',
+          '4. Any issues or concerns',
+          '5. Signed delivery confirmation',
+          '',
+          'PHOTO TIPS:',
+          '- Good lighting (no dark/blurry)',
+          '- Include context (house number visible)',
+          '- Capture all materials',
+          '- Date/time stamp is automatic',
+          '',
+          '📞 COMMUNICATION:',
+          '',
+          'CALL THE OFFICE IF:',
+          '- Materials are damaged',
+          '- Address is wrong/inaccessible',
+          '- Customer is not home (if needed)',
+          '- Running significantly late',
+          '- Safety concerns at site',
+          '- Equipment problems',
+          '',
+          'CALL THE CUSTOMER IF:',
+          '- Running more than 15 min late',
+          '- Need gate code/access info',
+          '- Cannot find delivery location',
+          '- Questions about placement',
+          '',
+          '⚠️ PROBLEM HANDLING:',
+          '',
+          'WRONG ADDRESS:',
+          '- Stop and verify',
+          '- Call customer or office',
+          '- Do NOT leave materials at wrong location',
+          '',
+          'CUSTOMER NOT HOME:',
+          '- Check special instructions',
+          '- Call customer',
+          '- Call office for guidance',
+          '- Leave materials only if authorized',
+          '- Take photos of placement',
+          '',
+          'DAMAGED MATERIALS:',
+          '- Do NOT deliver damaged items',
+          '- Photo document damage',
+          '- Call office immediately',
+          '- Return damaged items to warehouse',
+          '',
+          'ACCESS PROBLEMS:',
+          '- Gate code does not work',
+          '- Road is blocked',
+          '- Cannot fit truck',
+          '- Call customer and office',
+          '- Document the issue',
+          '',
+          'WEATHER:',
+          '- Protect materials from rain',
+          '- Use tarps if needed',
+          '- Delay if unsafe conditions',
+          '- Report weather delays immediately',
+        ],
+        tips: [
+          'Your safety comes first - never take risks',
+          'Professionalism builds repeat business',
+          'When in doubt, call before acting',
+          'Document everything with photos',
+          'Keep your phone charged throughout the day',
+          'Report vehicle issues promptly',
+        ],
+      },
+      {
+        id: 'driver-app-features',
+        title: 'Using Portal Features',
+        duration: '6 min',
+        content: [
+          'Master all the features available in Logistics.',
+          '',
+          '📱 MAIN FEATURES:',
+          '',
+          'DELIVERY LIST:',
+          '- Shows all assigned deliveries',
+          '- Sorted by scheduled time',
+          '- Color-coded by priority',
+          '- Tap to see details',
+          '',
+          'DELIVERY DETAILS:',
+          '- Full job information',
+          '- Complete materials list',
+          '- Special instructions',
+          '- Customer contact info',
+          '- Status update buttons',
+          '',
+          'NAVIGATION:',
+          '- "Open in Maps" button',
+          '- Opens preferred map app',
+          '- Auto-fills destination',
+          '- Shows ETA',
+          '',
+          'CAMERA:',
+          '- Take photos directly',
+          '- Stored with delivery',
+          '- Accessible offline',
+          '- Upload when connected',
+          '',
+          'NOTES:',
+          '- Add notes to any delivery',
+          '- Document issues',
+          '- Record customer requests',
+          '- Visible to office staff',
+          '',
+          '📋 STATUS UPDATE BUTTONS:',
+          '',
+          '⬜ LOADING → LOADED:',
+          '- Tap when materials on truck',
+          '- Confirms load complete',
+          '',
+          '🚗 START DELIVERY:',
+          '- Tap when leaving warehouse',
+          '- Starts GPS tracking',
+          '',
+          '📍 MARK ARRIVED:',
+          '- Tap when at job site',
+          '- Notifies customer',
+          '',
+          '✅ COMPLETE DELIVERY:',
+          '- Tap when done',
+          '- Prompts for photos',
+          '- Marks delivery finished',
+          '',
+          '📶 OFFLINE MODE:',
+          '- Basic features work offline',
+          '- Status updates queue',
+          '- Photos save locally',
+          '- Syncs when connected',
+          '- "Offline" indicator shows',
+          '',
+          '🔔 NOTIFICATIONS:',
+          '- New delivery assigned',
+          '- Schedule changes',
+          '- Urgent messages',
+          '- Enable for best experience',
+          '',
+          '⚙️ SETTINGS:',
+          '- Change PIN (with manager)',
+          '- Notification preferences',
+          '- Map app selection',
+          '- Camera settings',
+        ],
+        tips: [
+          'Keep GPS on for accurate tracking',
+          'Use the notes feature to document anything unusual',
+          'Check for new deliveries periodically',
+          'Enable notifications to never miss updates',
+          'Test all features during training',
+        ],
+      },
+      {
+        id: 'driver-scenarios',
+        title: 'Common Scenarios & Solutions',
+        duration: '7 min',
+        content: [
+          'How to handle common situations you may encounter.',
+          '',
+          '🏠 SCENARIO: Customer Not Home',
+          '',
+          'STEPS:',
+          '1. Check special instructions first',
+          '2. Call customer phone number',
+          '3. If no answer, call office',
+          '4. Office will advise:',
+          '   - Leave materials (if safe)',
+          '   - Return to warehouse',
+          '   - Wait (if customer is close)',
+          '5. If leaving: Photo document placement',
+          '6. Complete with note about situation',
+          '',
+          '🚧 SCENARIO: Cannot Access Property',
+          '',
+          'STEPS:',
+          '1. Try gate code from instructions',
+          '2. Call customer for code/access',
+          '3. If no answer, call office',
+          '4. Do NOT trespass or force entry',
+          '5. Document with photos',
+          '6. May need to reschedule',
+          '',
+          '⛈️ SCENARIO: Bad Weather',
+          '',
+          'STEPS:',
+          '1. Check weather radar',
+          '2. If lightning: Wait in truck',
+          '3. Cover materials with tarps',
+          '4. Call office about delays',
+          '5. Safety first - do not rush',
+          '6. Document weather conditions',
+          '',
+          '💔 SCENARIO: Damaged Materials',
+          '',
+          'STEPS:',
+          '1. Do NOT deliver damaged items',
+          '2. Take photos immediately',
+          '3. Call office to report',
+          '4. Return damaged to warehouse',
+          '5. Office will arrange replacement',
+          '6. Continue with undamaged items',
+          '',
+          '❌ SCENARIO: Wrong Materials',
+          '',
+          'STEPS:',
+          '1. Compare order to materials',
+          '2. If discrepancy: Call office',
+          '3. Do NOT leave wrong materials',
+          '4. Return to warehouse',
+          '5. Get correct materials',
+          '6. Communicate delay to customer',
+          '',
+          '📍 SCENARIO: Wrong Address',
+          '',
+          'STEPS:',
+          '1. Stop before unloading',
+          '2. Verify with order details',
+          '3. Call customer to confirm',
+          '4. Call office if customer unavailable',
+          '5. Get correct address',
+          '6. Never leave at unverified address',
+          '',
+          '🚛 SCENARIO: Vehicle Problem',
+          '',
+          'STEPS:',
+          '1. Pull over safely',
+          '2. Assess the issue',
+          '3. Call office immediately',
+          '4. Do not attempt major repairs',
+          '5. Wait for assistance',
+          '6. Document for records',
+          '',
+          '😠 SCENARIO: Difficult Customer',
+          '',
+          'STEPS:',
+          '1. Stay calm and professional',
+          '2. Listen to their concerns',
+          '3. Do not argue or escalate',
+          '4. Call office for support',
+          '5. Document the interaction',
+          '6. Let office handle complaints',
+          '',
+          '⏰ SCENARIO: Running Very Late',
+          '',
+          'STEPS:',
+          '1. Call customer BEFORE they expect you',
+          '2. Give realistic new ETA',
+          '3. Apologize briefly',
+          '4. Call office to update status',
+          '5. Do not speed to catch up',
+          '6. Complete delivery properly',
+        ],
+        tips: [
+          'Stay calm in all situations',
+          'Communication is key - keep everyone informed',
+          'Safety always comes first',
+          'Document everything unusual',
+          'The office is there to help you',
+        ],
+      },
+    ],
+  },
+];
+
+// Types for admin training stats
+interface ModuleStat {
+  moduleId: string;
+  moduleName: string;
+  completedCount: number;
+  totalUsers: number;
+  completionPercent: number;
+}
+
+interface UserTrainingStat {
+  userId: string;
+  userName: string;
+  completedModules: string[];
+  totalCompleted: number;
+  totalModules: number;
+  completionPercent: number;
+}
+
+interface TrainingStats {
+  stats: {
+    totalUsers: number;
+    fullyCompleted: number;
+    avgCompletion: number;
+    totalRecords: number;
+  };
+  moduleStats: ModuleStat[];
+  users: UserTrainingStat[];
+}
+
+export default function AdminTrainingPage() {
+  const [expandedSection, setExpandedSection] = useState<string | null>('portal-overview');
+  const [expandedLesson, setExpandedLesson] = useState<string | null>('getting-started');
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [pointsEarned, setPointsEarned] = useState<number | null>(null);
+  const [showAdminStats, setShowAdminStats] = useState(false);
+  const [adminStats, setAdminStats] = useState<TrainingStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+
+  const { progress, markLessonComplete, markModuleComplete, settings } = useTraining();
+  const completedLessons = progress.completedLessons;
+
+  // Fetch admin training stats when the panel is opened
+  useEffect(() => {
+    if (showAdminStats && !adminStats && !statsLoading) {
+      setStatsLoading(true);
+      fetch('/api/admin/training-stats')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            setAdminStats(data);
+          }
+        })
+        .catch(err => console.error('Failed to fetch training stats:', err))
+        .finally(() => setStatsLoading(false));
+    }
+  }, [showAdminStats, adminStats, statsLoading]);
+
+  const toggleSection = (sectionId: string) => {
+    setExpandedSection(expandedSection === sectionId ? null : sectionId);
+  };
+
+  const toggleLesson = (lessonId: string) => {
+    setExpandedLesson(expandedLesson === lessonId ? null : lessonId);
+  };
+
+  const markComplete = (lessonId: string, sectionId: string) => {
+    if (!completedLessons.includes(lessonId)) {
+      markLessonComplete(lessonId);
+      setPointsEarned(POINTS_CONFIG.lessonComplete);
+      setTimeout(() => setPointsEarned(null), 2000);
+
+      // Check if section is complete
+      const section = trainingSections.find(s => s.id === sectionId);
+      if (section) {
+        const sectionLessons = section.lessons.map(l => l.id);
+        const willBeComplete = sectionLessons.every(l =>
+          l === lessonId || completedLessons.includes(l)
+        );
+        if (willBeComplete) {
+          markModuleComplete(sectionId);
+        }
+      }
+    }
+  };
+
+  const totalLessons = trainingSections.reduce((acc, s) => acc + s.lessons.length, 0);
+  const progressPercent = Math.round((completedLessons.length / totalLessons) * 100);
+
+  return (
+    <AdminLayout
+      title="Training Portal"
+      subtitle="Learn how to use all portal features"
+      actions={
+        <div className="flex items-center gap-4">
+          {/* Points display */}
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
+            <Award className="text-yellow-400" size={16} />
+            <span className="text-sm font-bold text-yellow-400">{progress.points} pts</span>
+            {pointsEarned && (
+              <span className="text-xs text-brand-green animate-bounce">+{pointsEarned}!</span>
+            )}
+          </div>
+          {/* Streak */}
+          {progress.streak > 0 && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500/10 border border-orange-500/20 rounded-xl">
+              <Flame className="text-orange-400" size={16} />
+              <span className="text-sm font-bold text-orange-400">{progress.streak}</span>
+            </div>
+          )}
+          {/* Admin Stats toggle */}
+          <button
+            onClick={() => setShowAdminStats(!showAdminStats)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-medium transition-all ${
+              showAdminStats
+                ? 'bg-brand-green text-black'
+                : 'bg-white/5 hover:bg-white/10 text-neutral-400'
+            }`}
+          >
+            <BarChart3 size={16} />
+            <span className="hidden sm:inline">Team Stats</span>
+          </button>
+          {/* Leaderboard toggle */}
+          <button
+            onClick={() => setShowLeaderboard(!showLeaderboard)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-medium transition-all ${
+              showLeaderboard
+                ? 'bg-brand-green text-black'
+                : 'bg-white/5 hover:bg-white/10 text-neutral-400'
+            }`}
+          >
+            <Trophy size={16} />
+            <span className="hidden sm:inline">Leaderboard</span>
+          </button>
+          {/* Progress */}
+          <div className="text-right">
+            <div className="text-2xl font-bold text-brand-green">{progressPercent}%</div>
+            <div className="text-xs text-neutral-400">{completedLessons.length}/{totalLessons} lessons</div>
+          </div>
+          {progressPercent === 100 && (
+            <div className="w-10 h-10 rounded-xl bg-brand-green/20 flex items-center justify-center">
+              <Award className="text-brand-green" size={20} />
+            </div>
+          )}
+        </div>
+      }
+    >
+      {/* Progress Bar */}
+      <div className="mb-8">
+        <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+          <div
+            className="h-2 bg-gradient-to-r from-brand-green to-emerald-400 transition-all duration-500 rounded-full"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Leaderboard Sidebar */}
+      {showLeaderboard && (
+        <div className="mb-8">
+          <Leaderboard showUserComparison={true} />
+        </div>
+      )}
+
+      {/* Admin Team Training Stats */}
+      {showAdminStats && (
+        <div className="mb-8 space-y-6">
+          {statsLoading ? (
+            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-8 text-center">
+              <div className="animate-spin w-8 h-8 border-2 border-brand-green border-t-transparent rounded-full mx-auto mb-3" />
+              <p className="text-neutral-400 text-sm">Loading team training stats...</p>
+            </div>
+          ) : adminStats ? (
+            <>
+              {/* Summary Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 bg-brand-green/20 rounded-xl flex items-center justify-center">
+                      <Users className="text-blue-400" size={20} />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-white">{adminStats.stats.totalUsers}</p>
+                      <p className="text-xs text-neutral-400">Team Members</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 bg-brand-green/20 rounded-xl flex items-center justify-center">
+                      <UserCheck className="text-brand-green" size={20} />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-white">{adminStats.stats.fullyCompleted}</p>
+                      <p className="text-xs text-neutral-400">Fully Completed</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 bg-yellow-500/20 rounded-xl flex items-center justify-center">
+                      <Percent className="text-yellow-400" size={20} />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-white">{adminStats.stats.avgCompletion}%</p>
+                      <p className="text-xs text-neutral-400">Avg Completion</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 bg-violet-500/20 rounded-xl flex items-center justify-center">
+                      <BookOpen className="text-violet-400" size={20} />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-white">{adminStats.stats.totalRecords}</p>
+                      <p className="text-xs text-neutral-400">Total Completions</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Module Completion Bars */}
+              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
+                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                  <BarChart3 className="text-brand-green" size={20} />
+                  Module Completion Rates
+                </h3>
+                <div className="space-y-4">
+                  {adminStats.moduleStats.map(mod => (
+                    <div key={mod.moduleId}>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-sm text-neutral-300">{mod.moduleName}</span>
+                        <span className="text-sm font-medium text-neutral-400">
+                          {mod.completedCount}/{mod.totalUsers} ({mod.completionPercent}%)
+                        </span>
+                      </div>
+                      <div className="h-2.5 bg-white/5 rounded-full overflow-hidden">
+                        <div
+                          className="h-2.5 bg-gradient-to-r from-brand-green to-emerald-400 rounded-full transition-all duration-500"
+                          style={{ width: `${mod.completionPercent}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Team Member Table */}
+              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
+                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                  <Users className="text-brand-green" size={20} />
+                  Team Member Progress
+                </h3>
+                {adminStats.users.length === 0 ? (
+                  <p className="text-neutral-400 text-sm text-center py-6">
+                    No training data recorded yet. Team members will appear here as they complete modules.
+                  </p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-white/5">
+                          <th className="text-left py-3 px-3 text-neutral-400 font-medium">Team Member</th>
+                          <th className="text-center py-3 px-3 text-neutral-400 font-medium">Completed</th>
+                          <th className="text-center py-3 px-3 text-neutral-400 font-medium">Progress</th>
+                          <th className="text-left py-3 px-3 text-neutral-400 font-medium hidden md:table-cell">Modules</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {adminStats.users.map(user => (
+                          <tr key={user.userId} className="border-b border-white/5 hover:bg-white/[0.02]">
+                            <td className="py-3 px-3">
+                              <span className="font-medium text-white">{user.userName}</span>
+                            </td>
+                            <td className="py-3 px-3 text-center">
+                              <span className="text-neutral-300">{user.totalCompleted}/{user.totalModules}</span>
+                            </td>
+                            <td className="py-3 px-3">
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-2 rounded-full transition-all ${
+                                      user.completionPercent === 100
+                                        ? 'bg-brand-green'
+                                        : user.completionPercent >= 50
+                                          ? 'bg-yellow-400'
+                                          : 'bg-orange-400'
+                                    }`}
+                                    style={{ width: `${user.completionPercent}%` }}
+                                  />
+                                </div>
+                                <span className="text-xs font-medium text-neutral-400 w-10 text-right">
+                                  {user.completionPercent}%
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-3 px-3 hidden md:table-cell">
+                              <div className="flex flex-wrap gap-1.5">
+                                {adminStats.moduleStats.map(mod => {
+                                  const completed = user.completedModules.includes(mod.moduleId);
+                                  return (
+                                    <span
+                                      key={mod.moduleId}
+                                      title={mod.moduleName}
+                                      className={`inline-block w-2.5 h-2.5 rounded-full ${
+                                        completed ? 'bg-brand-green' : 'bg-white/10'
+                                      }`}
+                                    />
+                                  );
+                                })}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-8 text-center">
+              <AlertCircle className="text-neutral-400 mx-auto mb-3" size={32} />
+              <p className="text-neutral-400 text-sm">
+                Unable to load team training stats. Google Sheets may not be configured.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Quick Start Card */}
+      <div className="relative overflow-hidden bg-gradient-to-r from-brand-green/10 via-emerald-500/10 to-cyan-500/10 border border-brand-green/20 rounded-2xl p-6 mb-8">
+        <div className="absolute -top-24 -right-24 w-48 h-48 bg-brand-green rounded-full blur-3xl opacity-10" />
+        <div className="relative flex items-start gap-5">
+          <div className="w-14 h-14 bg-brand-green/20 rounded-2xl flex items-center justify-center flex-shrink-0">
+            <GraduationCap className="text-brand-green" size={28} />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-white mb-2">Welcome to Training!</h2>
+            <p className="text-neutral-300 text-sm mb-4 leading-relaxed">
+              This guide will teach you how to use all features of the River City Roofing portal system.
+              Complete each lesson and mark it done to track your progress. Earn points and compete on the leaderboard!
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <span className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-neutral-300 flex items-center gap-2">
+                <Clock size={14} className="text-neutral-400" /> ~45 min total
+              </span>
+              <span className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-neutral-300 flex items-center gap-2">
+                <BookOpen size={14} className="text-neutral-400" /> {totalLessons} lessons
+              </span>
+              <span className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-neutral-300 flex items-center gap-2">
+                <Target size={14} className="text-neutral-400" /> 7 sections
+              </span>
+              <span className="px-4 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-sm text-yellow-400 flex items-center gap-2">
+                <Award size={14} /> +{POINTS_CONFIG.lessonComplete} pts/lesson
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Training Sections */}
+      <div className="space-y-4">
+        {trainingSections.map((section) => {
+          const Icon = section.icon;
+          const isExpanded = expandedSection === section.id;
+          const sectionComplete = section.lessons.every(l => completedLessons.includes(l.id));
+          const sectionProgress = section.lessons.filter(l => completedLessons.includes(l.id)).length;
+
+          return (
+            <div key={section.id} className="bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden hover:border-white/10 transition-colors">
+              {/* Section Header */}
+              <button
+                onClick={() => toggleSection(section.id)}
+                className="w-full p-5 flex items-center justify-between hover:bg-white/[0.02] transition-colors"
+              >
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 ${section.bgColor} rounded-xl flex items-center justify-center`}>
+                    <Icon className={section.color} size={24} />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="font-semibold text-white text-lg">{section.title}</h3>
+                    <p className="text-sm text-neutral-400 flex items-center gap-2">
+                      {sectionProgress}/{section.lessons.length} lessons
+                      {sectionComplete && <CheckCircle2 className="text-brand-green" size={14} />}
+                    </p>
+                  </div>
+                </div>
+                <div className={`w-8 h-8 rounded-lg ${isExpanded ? 'bg-white/10' : 'bg-white/5'} flex items-center justify-center transition-colors`}>
+                  {isExpanded ? (
+                    <ChevronDown className="text-neutral-400" size={18} />
+                  ) : (
+                    <ChevronRight className="text-neutral-400" size={18} />
+                  )}
+                </div>
+              </button>
+
+              {/* Section Lessons */}
+              {isExpanded && (
+                <div className="border-t border-white/5">
+                  {section.lessons.map((lesson, idx) => {
+                    const isLessonExpanded = expandedLesson === lesson.id;
+                    const isComplete = completedLessons.includes(lesson.id);
+
+                    return (
+                      <div key={lesson.id} className={idx > 0 ? 'border-t border-white/5' : ''}>
+                        {/* Lesson Header */}
+                        <button
+                          onClick={() => toggleLesson(lesson.id)}
+                          className="w-full p-4 pl-8 flex items-center justify-between hover:bg-white/[0.02] transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
+                              isComplete
+                                ? 'bg-brand-green'
+                                : 'bg-white/5 border border-white/10'
+                            }`}>
+                              {isComplete ? (
+                                <CheckCircle2 className="text-black" size={14} />
+                              ) : (
+                                <Play className="text-neutral-400" size={10} />
+                              )}
+                            </div>
+                            <span className={`font-medium ${isComplete ? 'text-brand-green' : 'text-white'}`}>
+                              {lesson.title}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs text-neutral-500 px-2 py-1 bg-white/5 rounded-lg">
+                              {lesson.duration}
+                            </span>
+                            {isLessonExpanded ? (
+                              <ChevronDown className="text-neutral-400" size={16} />
+                            ) : (
+                              <ChevronRight className="text-neutral-400" size={16} />
+                            )}
+                          </div>
+                        </button>
+
+                        {/* Lesson Content */}
+                        {isLessonExpanded && (
+                          <div className="px-8 pb-5 pl-16">
+                            <div className="bg-white/[0.02] border border-white/5 rounded-xl p-5 mb-4">
+                              {lesson.content.map((line, i) => (
+                                <p key={i} className={`text-sm leading-relaxed ${
+                                  line.startsWith('-') || line.startsWith('   -')
+                                    ? 'text-neutral-400 pl-4'
+                                    : line === ''
+                                      ? 'h-3'
+                                      : 'text-neutral-300'
+                                } ${i > 0 ? 'mt-2' : ''}`}>
+                                  {line}
+                                </p>
+                              ))}
+                            </div>
+
+                            {lesson.tips && lesson.tips.length > 0 && (
+                              <div className="bg-brand-green/10 border border-blue-500/20 rounded-xl p-5 mb-4">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <Sparkles className="text-blue-400" size={16} />
+                                  <span className="text-sm font-medium text-blue-400">Pro Tips</span>
+                                </div>
+                                {lesson.tips.map((tip, i) => (
+                                  <p key={i} className="text-sm text-blue-300/80 pl-6 mt-1.5 leading-relaxed">
+                                    - {tip}
+                                  </p>
+                                ))}
+                              </div>
+                            )}
+
+                            <button
+                              onClick={() => markComplete(lesson.id, section.id)}
+                              disabled={isComplete}
+                              className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                                isComplete
+                                  ? 'bg-brand-green/20 text-brand-green cursor-default'
+                                  : 'bg-gradient-to-r from-brand-green to-emerald-500 hover:from-lime-400 hover:to-emerald-400 text-black shadow-lg shadow-brand-green/25'
+                              }`}
+                            >
+                              {isComplete ? 'Completed!' : `Mark as Complete (+${POINTS_CONFIG.lessonComplete} pts)`}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Help Section */}
+      <div className="mt-10 bg-white/[0.02] border border-white/5 rounded-2xl p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-brand-green/20 rounded-xl flex items-center justify-center">
+            <HelpCircle className="text-brand-green" size={20} />
+          </div>
+          <h3 className="text-lg font-bold text-white">Need Help?</h3>
+        </div>
+        <p className="text-neutral-400 text-sm mb-5 leading-relaxed">
+          If you have questions or run into issues, reach out to your manager or the admin team.
+        </p>
+        <div className="flex flex-wrap gap-3">
+          <a
+            href="tel:256-274-8530"
+            className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white text-sm font-medium transition-colors"
+          >
+            <Phone size={16} className="text-neutral-400" />
+            (256) 274-8530
+          </a>
+          <a
+            href="mailto:rcrs@rivercityroofingsolutions.com"
+            className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white text-sm font-medium transition-colors"
+          >
+            <Mail size={16} className="text-neutral-400" />
+            Email Support
+          </a>
+        </div>
+      </div>
+
+      {/* Training Hub Link */}
+      <div className="mt-6 text-center">
+        <Link
+          href="/portal/training"
+          className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-brand-green transition-colors"
+        >
+          <BookOpen size={14} />
+          Open Training Hub
+        </Link>
+      </div>
+    </AdminLayout>
+  );
+}

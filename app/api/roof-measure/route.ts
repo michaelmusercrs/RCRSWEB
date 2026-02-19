@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export const maxDuration = 60; // Vercel Hobby plan limit
+export const maxDuration = 300; // 5 min for local dev; Vercel Hobby caps at 60s automatically
 export const dynamic = 'force-dynamic';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -21,6 +21,15 @@ interface RoofComponents {
   skylights: SkylightItem[];
 }
 
+interface RoofOutlineVertex { id: string; x: number; y: number; label?: string; }
+interface RoofOutlineEdge { from: string; to: string; type: string; length_ft: number; label?: string; }
+interface RoofOutlineSection { vertices: string[]; pitch: string; area_sqft: number; direction: string; label?: string; }
+interface RoofOutline {
+  vertices: RoofOutlineVertex[];
+  edges: RoofOutlineEdge[];
+  sections: RoofOutlineSection[];
+}
+
 interface AIMeasurements {
   ridges: { length_ft: number; confidence: string }[];
   rakes: { length_ft: number; confidence: string }[];
@@ -38,6 +47,7 @@ interface AIMeasurements {
   notes: string;
   refinement_notes?: string;
   components?: RoofComponents;
+  roof_outline?: RoofOutline;
 }
 
 interface AIResult {
@@ -48,6 +58,57 @@ interface AIResult {
 
 const GOOGLE_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
 const IS_VERCEL = !!process.env.VERCEL;
+
+// ── Vertex AI Auth (uses service account — paid, no free-tier quota limits) ──
+
+async function getVertexAccessToken(): Promise<string | null> {
+  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+  const keyRaw = process.env.GOOGLE_PRIVATE_KEY;
+  if (!email || !keyRaw) return null;
+
+  try {
+    const key = keyRaw.replace(/\\n/g, '\n');
+    // Build JWT
+    const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url');
+    const now = Math.floor(Date.now() / 1000);
+    const claim = Buffer.from(JSON.stringify({
+      iss: email,
+      scope: 'https://www.googleapis.com/auth/cloud-platform',
+      aud: 'https://oauth2.googleapis.com/token',
+      iat: now,
+      exp: now + 3600,
+    })).toString('base64url');
+
+    const crypto = require('crypto');
+    const sign = crypto.createSign('RSA-SHA256');
+    sign.update(`${header}.${claim}`);
+    const signature = sign.sign(key, 'base64url');
+
+    const jwt = `${header}.${claim}.${signature}`;
+
+    const res = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.access_token || null;
+  } catch (e) {
+    console.error('Vertex AI auth failed:', e);
+    return null;
+  }
+}
+
+let _vertexToken: string | null = null;
+let _vertexTokenExpiry = 0;
+
+async function getCachedVertexToken(): Promise<string | null> {
+  if (_vertexToken && Date.now() < _vertexTokenExpiry) return _vertexToken;
+  _vertexToken = await getVertexAccessToken();
+  if (_vertexToken) _vertexTokenExpiry = Date.now() + 50 * 60 * 1000; // 50 min
+  return _vertexToken;
+}
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -145,6 +206,8 @@ For each measurement, provide:
 - Your estimate in feet (or X/12 for pitch)
 - Your confidence: HIGH, MEDIUM, or LOW
 
+8. ROOF OUTLINE (OVERHEAD VIEW): Looking straight down at the roof from above, provide the outline as a series of vertices (x,y coordinates in feet, with origin at top-left corner of the building). Include ALL corners, gable peaks, hip points, and where roof planes meet the eaves. Also provide EDGES connecting these vertices, labeling each edge with its type (ridge, rake, valley, eave, hip) and its measured length.
+
 Respond in this exact JSON format:
 {
   "ridges": [{"length_ft": number, "confidence": "HIGH|MEDIUM|LOW"}],
@@ -161,6 +224,11 @@ Respond in this exact JSON format:
   "primary_pitch": "X/12",
   "roof_style": "gable|hip|flat|mansard|gambrel|combination",
   "notes": "string with any observations",
+  "roof_outline": {
+    "vertices": [{"id": "V1", "x": number, "y": number, "label": "string (e.g. NW corner, gable peak, etc.)"}],
+    "edges": [{"from": "V1", "to": "V2", "type": "ridge|rake|valley|eave|hip", "length_ft": number, "label": "string"}],
+    "sections": [{"vertices": ["V1","V2","V3","V4"], "pitch": "X/12", "area_sqft": number, "direction": "N|NE|E|SE|S|SW|W|NW", "label": "string (e.g. Front slope, Garage wing, etc.)"}]
+  },
 ${COMPONENTS_JSON_FORMAT}
 }`;
 }
@@ -302,75 +370,128 @@ function emptyComponents(): RoofComponents {
 
 // ── AI Providers ───────────────────────────────────────────────────────────
 
-async function callGemini(prompt: string, images: string[]): Promise<AIResult> {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) return { status: 'skipped', measurements: null, raw: 'GEMINI_API_KEY not configured' };
+// Models to try in order — different models have separate quotas on the free tier
+const GEMINI_MODELS = [
+  'gemini-2.5-flash-lite', // Separate quota pool
+  'gemini-3-flash-preview',// Separate quota pool
+  'gemini-2.5-flash',      // 10 RPM, 250 RPD free  
+  'gemini-2.0-flash',      // 15 RPM, 1500 RPD free
+];
+
+async function callGeminiWithModel(model: string, key: string, prompt: string, images: string[], extraConfig?: object): Promise<AIResult> {
   try {
     const parts: object[] = [{ text: prompt }];
     for (const img of images) {
       parts.push({ inlineData: { mimeType: 'image/png', data: img } });
     }
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts }],
-          generationConfig: { responseMimeType: 'application/json' },
+          generationConfig: { responseMimeType: 'application/json', ...extraConfig },
         }),
       }
     );
+    if (res.status === 429) {
+      return { status: '429', measurements: null, raw: `${model} rate limited` };
+    }
     if (!res.ok) {
       const errBody = await res.text();
-      return { status: 'error', measurements: null, raw: `Gemini HTTP ${res.status}: ${errBody.slice(0, 500)}` };
+      return { status: 'error', measurements: null, raw: `${model} HTTP ${res.status}: ${errBody.slice(0, 500)}` };
     }
     const data = await res.json();
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
     const measurements = parseAIJson(text);
     return { status: measurements ? 'success' : 'parse_error', measurements, raw: text.slice(0, 2000) };
   } catch (e: unknown) {
-    return { status: 'error', measurements: null, raw: String(e) };
+    return { status: 'error', measurements: null, raw: `${model}: ${String(e)}` };
   }
 }
 
-async function callGeminiVerify(prompt: string, images: string[]): Promise<AIResult> {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) return { status: 'skipped', measurements: null, raw: 'GEMINI_API_KEY not configured' };
+async function callGeminiVertex(model: string, prompt: string, images: string[], extraConfig?: object): Promise<AIResult> {
+  const token = await getCachedVertexToken();
+  if (!token) return { status: 'skipped', measurements: null, raw: 'Vertex AI auth failed' };
+  
+  // Extract project ID from service account email
+  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || '';
+  const projectMatch = email.match(/@(.+)\.iam\.gserviceaccount\.com/);
+  if (!projectMatch) return { status: 'skipped', measurements: null, raw: 'Cannot extract project ID' };
+  const projectId = projectMatch[1];
+
   try {
-    // Use a verification-focused system instruction for the second pass
-    const verifyPrompt = `You are a SECOND INDEPENDENT roof measurement analyst providing a verification pass.
+    const parts: object[] = [{ text: prompt }];
+    for (const img of images) {
+      parts.push({ inlineData: { mimeType: 'image/png', data: img } });
+    }
+    const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${projectId}/locations/us-central1/publishers/google/models/${model}:generateContent`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts }],
+        generationConfig: { responseMimeType: 'application/json', ...extraConfig },
+      }),
+    });
+    if (res.status === 429) return { status: '429', measurements: null, raw: `Vertex ${model} rate limited` };
+    if (!res.ok) {
+      const errBody = await res.text();
+      return { status: 'error', measurements: null, raw: `Vertex ${model} HTTP ${res.status}: ${errBody.slice(0, 500)}` };
+    }
+    const data = await res.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const measurements = parseAIJson(text);
+    return { status: measurements ? 'success' : 'parse_error', measurements, raw: text.slice(0, 2000) };
+  } catch (e: unknown) {
+    return { status: 'error', measurements: null, raw: `Vertex ${model}: ${String(e)}` };
+  }
+}
+
+async function callGemini(prompt: string, images: string[]): Promise<AIResult> {
+  // 1. Try Vertex AI first (paid service account — no free-tier limits)
+  for (const model of ['gemini-2.0-flash', 'gemini-2.5-flash']) {
+    const result = await callGeminiVertex(model, prompt, images);
+    if (result.status === 'success') { console.log(`Vertex AI ${model} succeeded`); return result; }
+    if (result.status !== '429' && result.status !== 'skipped') { console.log(`Vertex AI ${model}: ${result.raw?.slice(0, 100)}`); }
+  }
+  
+  // 2. Fall back to AI Studio API key
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) return { status: 'skipped', measurements: null, raw: 'No Gemini API available' };
+  
+  for (const model of GEMINI_MODELS) {
+    const result = await callGeminiWithModel(model, key, prompt, images);
+    if (result.status === 'success') return result;
+    if (result.status !== '429') return result;
+    console.log(`AI Studio ${model} hit 429, trying next...`);
+  }
+  return { status: 'error', measurements: null, raw: 'All Gemini endpoints rate limited' };
+}
+
+async function callGeminiVerify(prompt: string, images: string[]): Promise<AIResult> {
+  const verifyPrompt = `You are a SECOND INDEPENDENT roof measurement analyst providing a verification pass.
 Be extra conservative and precise. Double-check all estimates against the known reference dimensions.
 If something looks uncertain, round DOWN rather than up. Focus on accuracy over completeness.
 
 ${prompt}`;
 
-    const parts: object[] = [{ text: verifyPrompt }];
-    for (const img of images) {
-      parts.push({ inlineData: { mimeType: 'image/png', data: img } });
-    }
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts }],
-          generationConfig: { responseMimeType: 'application/json', temperature: 0.1 },
-        }),
-      }
-    );
-    if (!res.ok) {
-      const errBody = await res.text();
-      return { status: 'error', measurements: null, raw: `Gemini-Verify HTTP ${res.status}: ${errBody.slice(0, 500)}` };
-    }
-    const data = await res.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    const measurements = parseAIJson(text);
-    return { status: measurements ? 'success' : 'parse_error', measurements, raw: text.slice(0, 2000) };
-  } catch (e: unknown) {
-    return { status: 'error', measurements: null, raw: String(e) };
+  // 1. Vertex AI first
+  for (const model of ['gemini-2.0-flash', 'gemini-2.5-flash']) {
+    const result = await callGeminiVertex(model, verifyPrompt, images, { temperature: 0.1 });
+    if (result.status === 'success') return result;
   }
+  
+  // 2. AI Studio fallback
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) return { status: 'skipped', measurements: null, raw: 'No Gemini API available' };
+  for (const model of GEMINI_MODELS) {
+    const result = await callGeminiWithModel(model, key, verifyPrompt, images, { temperature: 0.1 });
+    if (result.status === 'success') return result;
+    if (result.status !== '429') return result;
+  }
+  return { status: 'error', measurements: null, raw: 'All Gemini endpoints rate limited for verify' };
 }
 
 async function callOllama(prompt: string, images: string[]): Promise<AIResult> {
@@ -509,6 +630,38 @@ async function buildMeasurementConsensus(
   return { totalFt: Math.round(avg * 10) / 10, count: details.length, details, confidence, rerunPerformed };
 }
 
+function buildMeasurementConsensusSimple(
+  mk: { total: MeasKey; detail: ConsensusKey },
+  results: { name: string; m: AIMeasurements }[],
+  notes: string[],
+): PerMeasConsensus {
+  const vals = results.map(r => ({ name: r.name, val: r.m[mk.total] || 0, details: r.m[mk.detail] || [] }));
+  const nonZero = vals.filter(v => v.val > 0);
+
+  if (nonZero.length === 0) {
+    return { totalFt: 0, count: 0, details: [], confidence: 'N/A', rerunPerformed: false };
+  }
+
+  if (nonZero.length === 1) {
+    const details = nonZero[0].details.map((d: { length_ft: number }) => ({ lengthFt: d.length_ft }));
+    return { totalFt: nonZero[0].val, count: details.length, details, confidence: 'LOW', rerunPerformed: false };
+  }
+
+  // Drop outliers and average
+  const { avg, kept } = dropOutliersAndAverage(nonZero, Math.max(0, nonZero.length - 3));
+  const variance = calcVariance(kept.map(v => v.val));
+  const confidence = variance <= 0.10 ? 'HIGH' : variance <= 0.20 ? 'MEDIUM' : 'LOW';
+
+  if (variance > 0.20) {
+    notes.push(`${mk.detail}: ${(variance * 100).toFixed(0)}% variance — manual review recommended`);
+  }
+
+  const closest = nonZero.reduce((best, v) => Math.abs(v.val - avg) < Math.abs(best.val - avg) ? v : best);
+  const details = closest.details.map((d: { length_ft: number }) => ({ lengthFt: d.length_ft }));
+
+  return { totalFt: Math.round(avg * 10) / 10, count: details.length, details, confidence, rerunPerformed: false };
+}
+
 function buildComponentConsensus(results: { name: string; m: AIMeasurements }[]): RoofComponents {
   const allComps = results.map(r => r.m.components || emptyComponents());
 
@@ -616,11 +769,39 @@ async function buildConsensus(
   const consensus: Record<string, PerMeasConsensus> = {};
   let anyRerun = false;
 
-  // Process each measurement type independently
+  // Check if ANY measurement needs a re-run (>10% variance)
+  let needsRerun = false;
   for (const mk of measKeys) {
-    const result = await buildMeasurementConsensus(mk, results, allImages, prompt, notes);
+    const vals = results.map(r => ({ val: r.m[mk.total] || 0 })).filter(v => v.val > 0);
+    if (vals.length >= 2 && calcVariance(vals.map(v => v.val)) > 0.10) {
+      needsRerun = true;
+      break;
+    }
+  }
+
+  // Do ONE shared re-run for ALL measurements (instead of per-measurement)
+  let rerunResults = results;
+  if (needsRerun) {
+    try {
+      const [gemRerun, gvRerun] = await Promise.all([
+        callGemini(prompt, allImages),
+        callGeminiVerify(prompt, allImages),
+      ]);
+      const extra: { name: string; m: AIMeasurements }[] = [];
+      if (gemRerun.measurements) extra.push({ name: 'Gemini-rerun', m: gemRerun.measurements });
+      if (gvRerun.measurements) extra.push({ name: 'GeminiVerify-rerun', m: gvRerun.measurements });
+      if (extra.length > 0) {
+        rerunResults = [...results, ...extra];
+        anyRerun = true;
+        notes.push('Re-run performed for variance reduction');
+      }
+    } catch { /* proceed with original */ }
+  }
+
+  // Now build consensus for each measurement using all available results (no more per-measurement re-runs)
+  for (const mk of measKeys) {
+    const result = await buildMeasurementConsensusSimple(mk, rerunResults, notes);
     consensus[mk.detail] = result;
-    if (result.rerunPerformed) anyRerun = true;
   }
 
   // Build component consensus
@@ -641,6 +822,10 @@ async function buildConsensus(
   const overallConfidence = confs.every(c => c === 'HIGH') ? 'HIGH'
     : confs.some(c => c === 'LOW') ? 'LOW' : 'MEDIUM';
 
+  // Pick the best roof outline (prefer the one with most vertices)
+  const outlines = rerunResults.map(r => r.m.roof_outline).filter((o): o is RoofOutline => !!o && !!o.vertices?.length);
+  const roofOutline = outlines.sort((a, b) => b.vertices.length - a.vertices.length)[0] || null;
+
   return {
     measurements: {
       ridges: consensus.ridges,
@@ -653,9 +838,116 @@ async function buildConsensus(
       perimeterFt: Math.round(perimeterFt * 10) / 10,
     },
     components,
+    roofOutline,
     overallConfidence,
     qualityNotes: notes,
     rerunPerformed: anyRerun,
+  };
+}
+
+// ── Geometric Fallback ─────────────────────────────────────────────────────
+
+function buildGeometricFallback(
+  width: number, length: number, totalAreaSqFt: number,
+  solarSegments: { pitchDegrees?: number; azimuthDegrees?: number; stats?: { areaMeters2?: number } }[]
+): AIMeasurements {
+  // Use actual Solar API segment data if available
+  const avgPitchDeg = solarSegments.length > 0
+    ? solarSegments.reduce((s, seg) => s + (seg.pitchDegrees || 20), 0) / solarSegments.length
+    : 20; // Default 20° ≈ 4.4/12
+  const pitchRatio = Math.max(2, Math.min(16, Math.round(Math.tan(avgPitchDeg * Math.PI / 180) * 12)));
+  const slopeFactor = Math.sqrt(1 + (pitchRatio / 12) ** 2);
+
+  // Determine roof style from segment count & azimuth distribution
+  const segCount = solarSegments.length || 2;
+  const azimuths = solarSegments.map(s => s.azimuthDegrees || 0);
+  const uniqueDirs = new Set(azimuths.map(a => Math.round(a / 90) % 4));
+
+  // Hip roof: 4 directions, Gable: 2 directions
+  const isHip = uniqueDirs.size >= 4 || segCount >= 4;
+  const roofStyle = isHip ? 'hip' : 'gable';
+
+  // Ensure sane dimensions — if Solar API gave us nothing, estimate from area
+  const w = width > 10 ? width : Math.sqrt(totalAreaSqFt > 0 ? totalAreaSqFt / slopeFactor : 1600);
+  const l = length > 10 ? length : w * 1.3; // Typical house is longer than wide
+
+  // Half-width for slope run
+  const halfW = w / 2;
+  const slopeRun = halfW * slopeFactor;
+
+  let ridgeFt: number, rakeFt: number, eaveFt: number, valleyFt: number, hipFt: number;
+  const ridges: { length_ft: number; confidence: string }[] = [];
+  const rakes: { length_ft: number; confidence: string }[] = [];
+  const valleys: { length_ft: number; confidence: string }[] = [];
+  const eaves: { length_ft: number; confidence: string }[] = [];
+  const hips: { length_ft: number; confidence: string }[] = [];
+
+  if (isHip) {
+    // Hip roof geometry
+    ridgeFt = Math.max(0, l - w); // Ridge = building length minus width
+    eaveFt = 2 * (l + w); // Full perimeter
+    hipFt = 4 * Math.sqrt(halfW * halfW + slopeRun * slopeRun) * 0.7; // 4 hip lines
+    rakeFt = 0; // No rakes on a hip roof
+    valleyFt = 0;
+
+    if (ridgeFt > 0) ridges.push({ length_ft: Math.round(ridgeFt), confidence: 'MEDIUM' });
+    eaves.push({ length_ft: Math.round(l), confidence: 'MEDIUM' });
+    eaves.push({ length_ft: Math.round(l), confidence: 'MEDIUM' });
+    eaves.push({ length_ft: Math.round(w), confidence: 'MEDIUM' });
+    eaves.push({ length_ft: Math.round(w), confidence: 'MEDIUM' });
+    for (let i = 0; i < 4; i++) hips.push({ length_ft: Math.round(hipFt / 4), confidence: 'MEDIUM' });
+  } else {
+    // Gable roof geometry
+    ridgeFt = l; // Full length
+    eaveFt = l * 2; // Two eaves (front + back)
+    rakeFt = slopeRun * 2 * 2; // 2 gable ends × 2 rakes each... actually 2 rakes per gable = 4 rakes
+    hipFt = 0;
+    valleyFt = 0;
+
+    ridges.push({ length_ft: Math.round(ridgeFt), confidence: 'MEDIUM' });
+    eaves.push({ length_ft: Math.round(l), confidence: 'MEDIUM' });
+    eaves.push({ length_ft: Math.round(l), confidence: 'MEDIUM' });
+    // 4 rakes (2 per gable end)
+    for (let i = 0; i < 4; i++) rakes.push({ length_ft: Math.round(slopeRun), confidence: 'MEDIUM' });
+  }
+
+  // Detect valleys from complex roof shapes (>4 segments usually means cross-gables)
+  if (segCount > 4) {
+    const crossGables = Math.floor((segCount - 4) / 2);
+    const valleyLen = slopeRun * 1.4; // Valley runs diagonally
+    for (let i = 0; i < crossGables * 2; i++) {
+      valleys.push({ length_ft: Math.round(valleyLen), confidence: 'LOW' });
+    }
+    valleyFt = valleys.reduce((s, v) => s + v.length_ft, 0);
+    // Cross-gables also add ridges
+    for (let i = 0; i < crossGables; i++) {
+      ridges.push({ length_ft: Math.round(w * 0.4), confidence: 'LOW' });
+    }
+    ridgeFt = ridges.reduce((s, r) => s + r.length_ft, 0);
+  }
+
+  // Estimate pipe penetrations from area (roughly 1 per 800 sq ft)
+  const estPipes = Math.max(1, Math.round(totalAreaSqFt / 800));
+
+  return {
+    ridges, rakes, valleys, eaves, hips,
+    pitches: [{ pitch: `${pitchRatio}/12`, confidence: 'MEDIUM' }],
+    total_ridge_ft: Math.round(ridgeFt),
+    total_rake_ft: Math.round(rakeFt),
+    total_valley_ft: Math.round(valleyFt),
+    total_eave_ft: Math.round(eaveFt),
+    total_hip_ft: Math.round(hipFt),
+    primary_pitch: `${pitchRatio}/12`,
+    roof_style: roofStyle,
+    notes: `Geometric estimation from satellite data (${segCount} segments detected). On-site verification recommended.`,
+    components: {
+      flashing: [],
+      transitions: [],
+      vents: [{ type: 'ridge', count: 1, confidence: 'MEDIUM' }],
+      pipes: [{ diameter_in: 3, count: estPipes, confidence: 'LOW' }],
+      chimneys: [],
+      skylights: [],
+    },
   };
 }
 
@@ -669,25 +961,96 @@ async function runSatelliteAnalysis(address: string) {
   const totalAreaSqFt = wholeRoof?.areaMeters2 ? wholeRoof.areaMeters2 * 10.7639 : 0;
   const boundingBox = solar?.solarPotential?.boundingBox || solar?.boundingBox;
 
-  // Satellite: primary overhead + slightly offset for different perspective
+  // ── MULTI-SOURCE SATELLITE IMAGERY ──
+  // Pull from multiple angles, zooms, and offsets for maximum coverage
   const satUrls = [
-    // Direct overhead zoom 20
+    // Primary overhead — high zoom, direct center
     `https://maps.googleapis.com/maps/api/staticmap?center=${geo.lat},${geo.lng}&zoom=20&size=640x640&maptype=satellite&key=${GOOGLE_KEY}`,
-    // Wider context zoom 19 — shows property boundaries, neighbors
+    // Max zoom — closest detail available
+    `https://maps.googleapis.com/maps/api/staticmap?center=${geo.lat},${geo.lng}&zoom=21&size=640x640&maptype=satellite&key=${GOOGLE_KEY}`,
+    // Wider context — property boundaries, neighbors for scale reference
     `https://maps.googleapis.com/maps/api/staticmap?center=${geo.lat},${geo.lng}&zoom=19&size=640x640&maptype=satellite&key=${GOOGLE_KEY}`,
-    // Slight offset north — different capture angle/date potentially
-    `https://maps.googleapis.com/maps/api/staticmap?center=${geo.lat + 0.00015},${geo.lng}&zoom=20&size=640x640&maptype=satellite&key=${GOOGLE_KEY}`,
+    // Offset N — slightly different imagery tile, potentially different capture date
+    `https://maps.googleapis.com/maps/api/staticmap?center=${geo.lat + 0.00020},${geo.lng}&zoom=20&size=640x640&maptype=satellite&key=${GOOGLE_KEY}`,
+    // Offset E
+    `https://maps.googleapis.com/maps/api/staticmap?center=${geo.lat},${geo.lng + 0.00025}&zoom=20&size=640x640&maptype=satellite&key=${GOOGLE_KEY}`,
+    // Offset S
+    `https://maps.googleapis.com/maps/api/staticmap?center=${geo.lat - 0.00020},${geo.lng}&zoom=20&size=640x640&maptype=satellite&key=${GOOGLE_KEY}`,
+    // Offset W
+    `https://maps.googleapis.com/maps/api/staticmap?center=${geo.lat},${geo.lng - 0.00025}&zoom=20&size=640x640&maptype=satellite&key=${GOOGLE_KEY}`,
+    // Hybrid view — satellite + roads/labels for reference
+    `https://maps.googleapis.com/maps/api/staticmap?center=${geo.lat},${geo.lng}&zoom=20&size=640x640&maptype=hybrid&key=${GOOGLE_KEY}`,
   ];
+
+  // Esri/ArcGIS World Imagery — FREE, no API key needed, different satellite source
+  const esriUrls: string[] = [];
+  // Esri uses x/y/z tile scheme. Convert lat/lng to tile coords at various zooms.
+  for (const z of [18, 19, 20]) {
+    const n = Math.pow(2, z);
+    const tileX = Math.floor((geo.lng + 180) / 360 * n);
+    const tileY = Math.floor((1 - Math.log(Math.tan(geo.lat * Math.PI / 180) + 1 / Math.cos(geo.lat * Math.PI / 180)) / Math.PI) / 2 * n);
+    esriUrls.push(`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${tileY}/${tileX}`);
+  }
+  // Esri static export (higher res, centered on property)
+  const esriExtent = 0.001; // ~100m box
+  esriUrls.push(
+    `https://services.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/export?bbox=${geo.lng - esriExtent},${geo.lat - esriExtent},${geo.lng + esriExtent},${geo.lat + esriExtent}&bboxSR=4326&size=640,640&imageSR=4326&format=png&f=image`
+  );
+  // Tighter crop
+  const esriTight = 0.0004;
+  esriUrls.push(
+    `https://services.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/export?bbox=${geo.lng - esriTight},${geo.lat - esriTight},${geo.lng + esriTight},${geo.lat + esriTight}&bboxSR=4326&size=640,640&imageSR=4326&format=png&f=image`
+  );
+
+  const esriImages = await Promise.all(esriUrls.map(url => fetchImageBase64(url)));
+  const validEsriImages = esriImages.filter((img): img is string => img !== null);
+  console.log(`Esri imagery: ${validEsriImages.length}/${esriUrls.length} images retrieved`);
+
+  // Bing Maps aerial (different source, different capture date)
+  const bingKey = process.env.BING_MAPS_KEY || '';
+  const bingUrls: string[] = [];
+  if (bingKey) {
+    bingUrls.push(
+      `https://dev.virtualearth.net/REST/v1/Imagery/Map/Aerial/${geo.lat},${geo.lng}/20?mapSize=640,640&key=${bingKey}`,
+      `https://dev.virtualearth.net/REST/v1/Imagery/Map/AerialWithLabels/${geo.lat},${geo.lng}/20?mapSize=640,640&key=${bingKey}`,
+    );
+  }
+  const bingImages = await Promise.all(bingUrls.map(url => fetchImageBase64(url)));
+  const validBingImages = bingImages.filter((img): img is string => img !== null);
+
+  // Mapbox satellite (different source)
+  const mapboxToken = process.env.MAPBOX_TOKEN || '';
+  const mapboxUrls: string[] = [];
+  if (mapboxToken) {
+    mapboxUrls.push(
+      `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${geo.lng},${geo.lat},19,0/640x640?access_token=${mapboxToken}`,
+      `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${geo.lng},${geo.lat},20,0/640x640?access_token=${mapboxToken}`,
+    );
+  }
+  const mapboxImages = await Promise.all(mapboxUrls.map(url => fetchImageBase64(url)));
+  const validMapboxImages = mapboxImages.filter((img): img is string => img !== null);
+
   const satImages = await Promise.all(satUrls.map(url => fetchImageBase64(url)));
   const validSatImages = satImages.filter((img): img is string => img !== null);
   const satBase64 = validSatImages[0]; // Primary for display
+  console.log(`Satellite imagery: ${validSatImages.length}/${satUrls.length} Google, ${validEsriImages.length} Esri, ${validBingImages.length} Bing, ${validMapboxImages.length} Mapbox`);
 
-  // Street view: 4 cardinal directions + 2 elevated pitches for roof visibility
+  // ── MULTI-ANGLE STREET VIEW ──
+  // 8 compass directions + elevated angles for maximum roof visibility
   const svConfigs = [
-    { heading: 0, pitch: 30, fov: 90 },    // North, looking up at roof
-    { heading: 90, pitch: 30, fov: 90 },   // East
-    { heading: 180, pitch: 30, fov: 90 },  // South
-    { heading: 270, pitch: 30, fov: 90 },  // West
+    // Cardinal directions — standard roof view (30° up)
+    { heading: 0, pitch: 30, fov: 90 },     // North
+    { heading: 90, pitch: 30, fov: 90 },    // East
+    { heading: 180, pitch: 30, fov: 90 },   // South
+    { heading: 270, pitch: 30, fov: 90 },   // West
+    // Diagonal directions — catches corners and complex geometry
+    { heading: 45, pitch: 35, fov: 80 },    // NE
+    { heading: 135, pitch: 35, fov: 80 },   // SE
+    { heading: 225, pitch: 35, fov: 80 },   // SW
+    { heading: 315, pitch: 35, fov: 80 },   // NW
+    // High-angle views — steeper look at the roof surface
+    { heading: 0, pitch: 55, fov: 70 },     // North steep
+    { heading: 180, pitch: 55, fov: 70 },   // South steep
   ];
   const svImages: (string | null)[] = await Promise.all(
     svConfigs.map(({ heading, pitch, fov }) => {
@@ -696,6 +1059,7 @@ async function runSatelliteAnalysis(address: string) {
     })
   );
   const validSvImages = svImages.filter((img): img is string => img !== null);
+  console.log(`Street view: ${validSvImages.length}/${svConfigs.length} images retrieved`);
   let buildingWidth = 40, buildingLength = 40;
   if (boundingBox) {
     const ne = boundingBox.ne || boundingBox.high;
@@ -707,94 +1071,142 @@ async function runSatelliteAnalysis(address: string) {
   }
 
   const prompt = buildPrompt(buildingWidth, buildingLength, totalAreaSqFt, solarSegments.length);
-  const allImages = [...validSatImages, ...validSvImages].filter((img): img is string => img !== null);
 
-  if (allImages.length === 0) {
+  // Core images for each phase
+  const googleSatCore = validSatImages.slice(0, 3); // zoom 20, 21, 19
+  const esriCore = validEsriImages.slice(0, 2);
+  const svCore = validSvImages.slice(0, 4); // N, E, S, W
+
+  if ([...validSatImages, ...validEsriImages].length === 0) {
     throw new Error('Could not retrieve any imagery for this address');
   }
 
-  // Race: proceed as soon as we have at least 1 success, with 60s deadline for stragglers
-  const ollamaImages = validSatImages.slice(0, 2); // Ollama gets 2 satellite zooms
-  const geminiP = callGemini(prompt, allImages).then(r => r);
-  const geminiVerifyP = callGeminiVerify(prompt, allImages).then(r => r);
-  const ollamaP = callOllama(prompt, ollamaImages).then(r => r);
-
-  // Wait for all providers — Ollama can take minutes on CPU, that's fine
-  const settled = await Promise.allSettled([geminiP, geminiVerifyP, ollamaP]);
-  const results = settled.map(s => s.status === 'fulfilled' ? s.value : { status: 'error', measurements: null, raw: 'rejected' } as AIResult);
-  const geminiResult = results[0];
-  const geminiVerifyResult = results[1];
-  const ollamaResult = results[2];
-
-  const successfulResults: { name: string; m: AIMeasurements }[] = [];
-  if (geminiResult.measurements) successfulResults.push({ name: 'Gemini', m: geminiResult.measurements });
-  if (geminiVerifyResult.measurements) successfulResults.push({ name: 'GeminiVerify', m: geminiVerifyResult.measurements });
-  if (ollamaResult.measurements) successfulResults.push({ name: 'Ollama', m: ollamaResult.measurements });
-
   const qualityNotes: string[] = [];
-  if (geminiResult.status !== 'success') qualityNotes.push(`Gemini: ${geminiResult.status}`);
-  if (geminiVerifyResult.status !== 'success') qualityNotes.push(`GeminiVerify: ${geminiVerifyResult.status}`);
-  if (ollamaResult.status !== 'success') qualityNotes.push(`Ollama: ${ollamaResult.status}`);
-  if (validSvImages.length < 3) qualityNotes.push(`Only ${validSvImages.length}/3 street view angles available`);
-  if (!solar) qualityNotes.push('Solar API data unavailable - measurements may be less accurate');
+  const allAiResults: { name: string; m: AIMeasurements }[] = [];
+  let pipelinePhase = 0;
 
-  if (successfulResults.length === 0) {
-    // Fallback: estimate measurements from Solar API geometry alone
-    if (solar && totalAreaSqFt > 0) {
-      qualityNotes.push('All AI providers failed — using Solar API geometric estimation fallback');
-      qualityNotes.push(`Gemini: ${geminiResult.raw?.slice(0, 100) || geminiResult.status}`);
-      qualityNotes.push(`Ollama: ${ollamaResult.raw?.slice(0, 100) || ollamaResult.status}`);
+  // ── PHASE 1: Fast initial — Gemini + GeminiVerify with Google satellite only ──
+  pipelinePhase = 1;
+  console.log('Phase 1: Gemini dual-pass with Google satellite...');
+  const phase1Images = [...googleSatCore];
+  const [gem1, gemV1] = await Promise.allSettled([
+    callGemini(prompt, phase1Images),
+    callGeminiVerify(prompt, phase1Images),
+  ]).then(r => r.map(x => x.status === 'fulfilled' ? x.value : { status: 'error', measurements: null, raw: 'rejected' } as AIResult));
 
-      // Estimate measurements from building dimensions and segment data
-      const estPerimeter = 2 * (buildingWidth + buildingLength);
-      const avgPitch = solarSegments.length > 0
-        ? solarSegments.reduce((s: number, seg: { pitchDegrees?: number }) => s + (seg.pitchDegrees || 0), 0) / solarSegments.length
-        : 20;
-      const pitchRatio = Math.round(Math.tan(avgPitch * Math.PI / 180) * 12);
-      const slopeLength = Math.sqrt(1 + (pitchRatio / 12) ** 2);
+  if (gem1.measurements) allAiResults.push({ name: 'Gemini-P1', m: gem1.measurements });
+  if (gemV1.measurements) allAiResults.push({ name: 'GeminiVerify-P1', m: gemV1.measurements });
+  if (gem1.status !== 'success') qualityNotes.push(`Phase 1 Gemini: ${gem1.status}`);
+  if (gemV1.status !== 'success') qualityNotes.push(`Phase 1 GeminiVerify: ${gemV1.status}`);
 
-      const estRidge = buildingLength * 0.9;
-      const estEave = estPerimeter * 0.5;
-      const estRake = slopeLength * buildingWidth * 0.5 * 2 / buildingWidth * buildingLength * 0.02;
-
-      const fallbackMeasurements: AIMeasurements = {
-        ridges: [{ length_ft: Math.round(estRidge), confidence: 'LOW' }],
-        rakes: [{ length_ft: Math.round(buildingWidth * slopeLength * 0.5), confidence: 'LOW' }],
-        valleys: [],
-        eaves: [{ length_ft: Math.round(buildingLength), confidence: 'LOW' }, { length_ft: Math.round(buildingLength), confidence: 'LOW' }],
-        hips: [],
-        pitches: [{ pitch: `${pitchRatio}/12`, confidence: 'LOW' }],
-        total_ridge_ft: Math.round(estRidge),
-        total_rake_ft: Math.round(buildingWidth * slopeLength),
-        total_valley_ft: 0,
-        total_eave_ft: Math.round(buildingLength * 2),
-        total_hip_ft: 0,
-        primary_pitch: `${pitchRatio}/12`,
-        roof_style: 'gable',
-        notes: 'Estimated from Solar API geometry only — AI analysis unavailable',
-      };
-
-      successfulResults.push({ name: 'SolarFallback', m: fallbackMeasurements });
-    } else {
-      const details = [
-        `Gemini: ${geminiResult.raw?.slice(0, 150) || geminiResult.status}`,
-        `GeminiVerify: ${geminiVerifyResult.raw?.slice(0, 150) || geminiVerifyResult.status}`,
-        `Ollama: ${ollamaResult.raw?.slice(0, 150) || ollamaResult.status}`,
-      ].join(' | ');
-      throw new Error(`All AI providers failed — ${details}`);
+  // Check if Phase 1 results converge within 10%
+  const measKeys: MeasKey[] = ['total_ridge_ft', 'total_rake_ft', 'total_valley_ft', 'total_eave_ft', 'total_hip_ft'];
+  function checkConvergence(results: { name: string; m: AIMeasurements }[], threshold: number): { converged: boolean; worstVariance: number; worstKey: string } {
+    let worstVariance = 0;
+    let worstKey = '';
+    for (const mk of measKeys) {
+      const vals = results.map(r => r.m[mk] || 0).filter(v => v > 0);
+      if (vals.length >= 2) {
+        const v = calcVariance(vals);
+        if (v > worstVariance) { worstVariance = v; worstKey = mk; }
+      }
     }
+    return { converged: worstVariance <= threshold, worstVariance, worstKey };
   }
+
+  let convergence = checkConvergence(allAiResults, 0.10);
+  console.log(`Phase 1 result: ${allAiResults.length} providers, worst variance ${(convergence.worstVariance * 100).toFixed(1)}% (${convergence.worstKey})`);
+
+  // ── PHASE 2: Add Esri imagery if not converged or only 1 result ──
+  if (!convergence.converged || allAiResults.length < 2) {
+    pipelinePhase = 2;
+    qualityNotes.push(`Phase 2 triggered: ${allAiResults.length < 2 ? 'insufficient Phase 1 results' : `${(convergence.worstVariance * 100).toFixed(0)}% variance on ${convergence.worstKey}`}`);
+    console.log('Phase 2: Adding Esri imagery for independent source...');
+    const phase2Images = [...googleSatCore, ...esriCore];
+    const [gem2, gemV2] = await Promise.allSettled([
+      callGemini(prompt, phase2Images),
+      callGeminiVerify(prompt, phase2Images),
+    ]).then(r => r.map(x => x.status === 'fulfilled' ? x.value : { status: 'error', measurements: null, raw: 'rejected' } as AIResult));
+
+    if (gem2.measurements) allAiResults.push({ name: 'Gemini-P2-Esri', m: gem2.measurements });
+    if (gemV2.measurements) allAiResults.push({ name: 'GeminiVerify-P2-Esri', m: gemV2.measurements });
+
+    convergence = checkConvergence(allAiResults, 0.10);
+    console.log(`Phase 2 result: ${allAiResults.length} providers, worst variance ${(convergence.worstVariance * 100).toFixed(1)}%`);
+  }
+
+  // ── PHASE 3: Add Street View angles if still not converged ──
+  if (!convergence.converged || allAiResults.length < 3) {
+    pipelinePhase = 3;
+    qualityNotes.push(`Phase 3 triggered: ${(convergence.worstVariance * 100).toFixed(0)}% variance — adding street view`);
+    console.log('Phase 3: Adding street view for side-angle verification...');
+    const phase3Images = [...googleSatCore, ...esriCore, ...svCore];
+    const [gem3, gemV3] = await Promise.allSettled([
+      callGemini(prompt, phase3Images),
+      callGeminiVerify(prompt, phase3Images),
+    ]).then(r => r.map(x => x.status === 'fulfilled' ? x.value : { status: 'error', measurements: null, raw: 'rejected' } as AIResult));
+
+    if (gem3.measurements) allAiResults.push({ name: 'Gemini-P3-SV', m: gem3.measurements });
+    if (gemV3.measurements) allAiResults.push({ name: 'GeminiVerify-P3-SV', m: gemV3.measurements });
+
+    convergence = checkConvergence(allAiResults, 0.10);
+    console.log(`Phase 3 result: ${allAiResults.length} providers, worst variance ${(convergence.worstVariance * 100).toFixed(1)}%`);
+  }
+
+  // ── PHASE 4: Ollama local model — independent validator ──
+  if (!convergence.converged || allAiResults.length < 4) {
+    pipelinePhase = 4;
+    qualityNotes.push(`Phase 4 triggered: ${(convergence.worstVariance * 100).toFixed(0)}% variance — engaging local AI (Ollama)`);
+    console.log('Phase 4: Ollama local model for independent validation...');
+    // Ollama gets best satellite images (Google + Esri) — fewer images, it's slower
+    const ollamaImages = [...googleSatCore.slice(0, 2), ...esriCore.slice(0, 1)].filter(Boolean);
+    const ollamaResult = await callOllama(prompt, ollamaImages);
+    if (ollamaResult.measurements) {
+      allAiResults.push({ name: 'Ollama-P4', m: ollamaResult.measurements });
+    } else {
+      qualityNotes.push(`Ollama: ${ollamaResult.status} — ${ollamaResult.raw?.slice(0, 80) || 'no output'}`);
+    }
+
+    convergence = checkConvergence(allAiResults, 0.10);
+    console.log(`Phase 4 result: ${allAiResults.length} providers, worst variance ${(convergence.worstVariance * 100).toFixed(1)}%`);
+  }
+
+  // ── PHASE 5: Kitchen sink — ALL imagery, ALL remaining angles ──
+  if (!convergence.converged && convergence.worstVariance > 0.15) {
+    pipelinePhase = 5;
+    qualityNotes.push(`Phase 5 triggered: ${(convergence.worstVariance * 100).toFixed(0)}% variance — using all ${validSatImages.length + validEsriImages.length + validSvImages.length} images`);
+    console.log('Phase 5: All images, final attempt...');
+    const allImages = [...validSatImages, ...validEsriImages, ...validSvImages];
+    const [gem5, gemV5] = await Promise.allSettled([
+      callGemini(prompt, allImages),
+      callGeminiVerify(prompt, allImages),
+    ]).then(r => r.map(x => x.status === 'fulfilled' ? x.value : { status: 'error', measurements: null, raw: 'rejected' } as AIResult));
+
+    if (gem5.measurements) allAiResults.push({ name: 'Gemini-P5-All', m: gem5.measurements });
+    if (gemV5.measurements) allAiResults.push({ name: 'GeminiVerify-P5-All', m: gemV5.measurements });
+
+    convergence = checkConvergence(allAiResults, 0.10);
+    console.log(`Phase 5 result: ${allAiResults.length} providers, worst variance ${(convergence.worstVariance * 100).toFixed(1)}%`);
+  }
+
+  // ── FALLBACK: If zero AI results, use geometric estimation ──
+  if (allAiResults.length === 0) {
+    qualityNotes.push('All AI providers failed — using geometric estimation from satellite data');
+    const fallbackMeasurements = buildGeometricFallback(buildingWidth, buildingLength, totalAreaSqFt, solarSegments);
+    allAiResults.push({ name: 'GeometricFallback', m: fallbackMeasurements });
+  }
+
+  qualityNotes.push(`Pipeline completed: Phase ${pipelinePhase}, ${allAiResults.length} AI passes, final variance ${(convergence.worstVariance * 100).toFixed(1)}%`);
+  if (validSvImages.length < 3) qualityNotes.push(`Only ${validSvImages.length}/10 street view angles available`);
+  if (!solar) qualityNotes.push('Solar API data unavailable - measurements may be less accurate');
 
   // Cross-validate against Solar API geometric data
   if (solar && totalAreaSqFt > 0) {
-    // Solar API gives us area; we can sanity-check perimeter estimates
-    const sqrtArea = Math.sqrt(totalAreaSqFt);
-    // Rough expected perimeter for a rectangular roof
-    const expectedPerimeter = sqrtArea * 4 * 0.9; // rough lower bound
     qualityNotes.push(`Solar cross-validation: roof area ${Math.round(totalAreaSqFt)} sq ft, ${solarSegments.length} segments`);
   }
 
-  const consensusResult = await buildConsensus(successfulResults, allImages, prompt);
+  const allImages = [...validSatImages, ...validEsriImages, ...validSvImages];
+  const consensusResult = await buildConsensus(allAiResults, allImages, prompt);
   qualityNotes.push(...consensusResult.qualityNotes);
 
   const segments = solarSegments.map((seg: { pitchDegrees?: number; azimuthDegrees?: number; stats?: { areaMeters2?: number } }) => ({
@@ -810,6 +1222,9 @@ async function runSatelliteAnalysis(address: string) {
     satBase64,
     validSatImages,
     validSvImages,
+    validEsriImages,
+    validBingImages,
+    validMapboxImages,
     buildingWidth,
     buildingLength,
     totalAreaSqFt,
@@ -817,14 +1232,24 @@ async function runSatelliteAnalysis(address: string) {
     segments,
     measurements: consensusResult.measurements,
     components: consensusResult.components,
+    roofOutline: consensusResult.roofOutline,
     overallConfidence: consensusResult.overallConfidence,
     rerunPerformed: consensusResult.rerunPerformed,
     qualityNotes,
+    pipelinePhase,
+    totalAiPasses: allAiResults.length,
+    finalVariance: convergence.worstVariance,
     aiResults: {
-      gemini: { status: geminiResult.status, measurements: geminiResult.measurements, raw: geminiResult.raw },
-      geminiVerify: { status: geminiVerifyResult.status, measurements: geminiVerifyResult.measurements, raw: geminiVerifyResult.raw },
-      ollama: { status: ollamaResult.status, measurements: ollamaResult.measurements, raw: ollamaResult.raw },
+      gemini: { status: gem1.status, measurements: gem1.measurements, raw: gem1.raw },
+      geminiVerify: { status: gemV1.status, measurements: gemV1.measurements, raw: gemV1.raw },
+      ollama: {
+        status: allAiResults.find(r => r.name.startsWith('Ollama'))
+          ? 'success' : 'skipped',
+        measurements: allAiResults.find(r => r.name.startsWith('Ollama'))?.m || null,
+        raw: allAiResults.find(r => r.name.startsWith('Ollama')) ? 'Used in pipeline' : 'Not needed — converged early',
+      },
     },
+    allProviderResults: allAiResults.map(r => ({ name: r.name, totalRidge: r.m.total_ridge_ft, totalRake: r.m.total_rake_ft, totalEave: r.m.total_eave_ft })),
   };
 }
 
@@ -839,11 +1264,16 @@ async function runPhotoEnhancement(
   const enhancedPrompt = buildEnhancedPrompt(buildingWidth, buildingLength, satelliteMeasurements, photoLabels);
   const allImages = [satBase64, ...photoImages].filter((img): img is string => img !== null);
 
-  const [geminiResult, geminiVerifyResult, ollamaResult] = await Promise.all([
+  // Primary: Gemini only. Ollama fallback if both fail.
+  const [geminiResult, geminiVerifyResult] = await Promise.all([
     callGemini(enhancedPrompt, allImages),
     callGeminiVerify(enhancedPrompt, allImages),
-    callOllama(enhancedPrompt, allImages),
   ]);
+
+  let ollamaResult: AIResult = { status: 'skipped', measurements: null, raw: 'Skipped — Gemini succeeded' };
+  if (!geminiResult.measurements && !geminiVerifyResult.measurements) {
+    ollamaResult = await callOllama(enhancedPrompt, allImages);
+  }
 
   const successfulResults: { name: string; m: AIMeasurements }[] = [];
   if (geminiResult.measurements) successfulResults.push({ name: 'Gemini', m: geminiResult.measurements });
@@ -853,7 +1283,6 @@ async function runPhotoEnhancement(
   const qualityNotes: string[] = [];
   if (geminiResult.status !== 'success') qualityNotes.push(`Photo-Gemini: ${geminiResult.status}`);
   if (geminiVerifyResult.status !== 'success') qualityNotes.push(`Photo-GeminiVerify: ${geminiVerifyResult.status}`);
-  if (ollamaResult.status !== 'success') qualityNotes.push(`Photo-Ollama: ${ollamaResult.status}`);
 
   if (successfulResults.length === 0) {
     return null;
@@ -905,6 +1334,7 @@ function buildResponse(
     satelliteConfidence: sat.overallConfidence,
     satelliteAiResults: sat.aiResults,
     satelliteComponents: sat.components,
+    roofOutline: sat.roofOutline,
     measurements: enhanced ? enhanced.measurements : sat.measurements,
     overallConfidence: enhanced ? enhanced.overallConfidence : sat.overallConfidence,
     aiResults: enhanced ? enhanced.aiResults : sat.aiResults,
@@ -918,9 +1348,18 @@ function buildResponse(
       satellite: sat.satBase64 ? `data:image/png;base64,${sat.satBase64}` : '',
       satelliteZooms: (sat.validSatImages || []).map((img: string) => `data:image/png;base64,${img}`),
       streetView: sat.validSvImages.map((img: string) => `data:image/png;base64,${img}`),
+      esriAerial: (sat.validEsriImages || []).map((img: string) => `data:image/png;base64,${img}`),
+      bingAerial: (sat.validBingImages || []).map((img: string) => `data:image/png;base64,${img}`),
+      mapboxSatellite: (sat.validMapboxImages || []).map((img: string) => `data:image/png;base64,${img}`),
     },
     mode: enhanced ? 'enhanced' : 'satellite',
     photoCount,
+    pipeline: {
+      phase: sat.pipelinePhase || 1,
+      totalAiPasses: sat.totalAiPasses || 0,
+      finalVariance: sat.finalVariance || 0,
+      allProviderResults: sat.allProviderResults || [],
+    },
   };
 
   if (enhanced) {
