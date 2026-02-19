@@ -1117,8 +1117,8 @@ async function runSatelliteAnalysis(address: string) {
   let convergence = checkConvergence(allAiResults, 0.10);
   console.log(`Phase 1 result: ${allAiResults.length} providers, worst variance ${(convergence.worstVariance * 100).toFixed(1)}% (${convergence.worstKey})`);
 
-  // ── PHASE 2: Add Esri imagery if not converged or only 1 result ──
-  if (!convergence.converged || allAiResults.length < 2) {
+  // ── PHASE 2: Add Esri imagery if not converged AND insufficient results ──
+  if (!convergence.converged && allAiResults.length < 2) {
     pipelinePhase = 2;
     qualityNotes.push(`Phase 2 triggered: ${allAiResults.length < 2 ? 'insufficient Phase 1 results' : `${(convergence.worstVariance * 100).toFixed(0)}% variance on ${convergence.worstKey}`}`);
     console.log('Phase 2: Adding Esri imagery for independent source...');
@@ -1136,7 +1136,7 @@ async function runSatelliteAnalysis(address: string) {
   }
 
   // ── PHASE 3: Add Street View angles if still not converged ──
-  if (!convergence.converged || allAiResults.length < 3) {
+  if (!convergence.converged) {
     pipelinePhase = 3;
     qualityNotes.push(`Phase 3 triggered: ${(convergence.worstVariance * 100).toFixed(0)}% variance — adding street view`);
     console.log('Phase 3: Adding street view for side-angle verification...');
@@ -1153,8 +1153,8 @@ async function runSatelliteAnalysis(address: string) {
     console.log(`Phase 3 result: ${allAiResults.length} providers, worst variance ${(convergence.worstVariance * 100).toFixed(1)}%`);
   }
 
-  // ── PHASE 4: Ollama local model — independent validator ──
-  if (!convergence.converged || allAiResults.length < 4) {
+  // ── PHASE 4: Ollama local model — independent validator (only if still >10% variance) ──
+  if (!convergence.converged && convergence.worstVariance > 0.10) {
     pipelinePhase = 4;
     qualityNotes.push(`Phase 4 triggered: ${(convergence.worstVariance * 100).toFixed(0)}% variance — engaging local AI (Ollama)`);
     console.log('Phase 4: Ollama local model for independent validation...');
