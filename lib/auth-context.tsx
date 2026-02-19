@@ -187,7 +187,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, isLoading, pathname, router]);
 
-  const login = async (email: string, password?: string): Promise<{ success: boolean; error?: string }> => {
+  const login = async (email: string, password?: string): Promise<{ success: boolean; error?: string; mustChangePassword?: boolean }> => {
     // Find team member by email
     const member = TEAM_MEMBERS.find(m =>
       m.email.toLowerCase() === email.toLowerCase() && m.isActive
