@@ -12,6 +12,8 @@ import { getApprovedPortalReviews } from '@/lib/portal-reviews';
 import { getApprovedImages } from '@/lib/portal-images';
 import StructuredData from '@/components/StructuredData';
 import { siteConfig, generatePersonSchema, generateBreadcrumbSchema } from '@/lib/seo';
+import { getRepStats } from '@/lib/rep-stats';
+import RepStatsCard from '@/components/RepStatsCard';
 import type { Metadata } from 'next';
 
 // Revalidate every 60 seconds so approved changes show up quickly
@@ -77,6 +79,9 @@ export default async function TeamMemberPage({ params }: { params: { slug: strin
   const truckImageFromPortal = approvedImages.find(img => img.type === 'truck');
   const effectiveProfileImage = profileImageFromPortal?.url || member.profileImage;
   const effectiveTruckImage = truckImageFromPortal?.url || member.truckImage;
+
+  // Get performance stats from commissions data
+  const repStats = getRepStats(params.slug);
 
   // Generate structured data for team member
   const personSchema = generatePersonSchema({
@@ -269,6 +274,13 @@ export default async function TeamMemberPage({ params }: { params: { slug: strin
                     <p>{member.bio}</p>
                   </div>
                 </div>
+
+                {/* Performance Stats - Only show for reps with commission data */}
+                {repStats && repStats.totalJobs >= 10 && (
+                  <div className="mb-12">
+                    <RepStatsCard stats={repStats} firstName={member.name.split(' ')[0]} />
+                  </div>
+                )}
 
                 {/* Category Badge */}
                 <div className="mb-12">
