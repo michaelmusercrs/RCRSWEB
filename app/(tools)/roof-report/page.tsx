@@ -1018,6 +1018,14 @@ export default function RoofReportPage() {
               <p className="text-zinc-500 text-sm mt-2 tracking-wide">
                 RIVER CITY ROOFING SOLUTIONS · AI-POWERED ANALYSIS
               </p>
+              <div className="mt-3 mx-auto max-w-lg">
+                <p className="text-[10px] text-zinc-600 leading-tight border border-zinc-800 rounded-lg px-3 py-2 bg-zinc-900/50">
+                  ⚠️ INTERNAL USE ONLY — This tool is the proprietary property of River City Roofing Solutions.
+                  Access is restricted to authorized employees on approved jobs only.
+                  Unauthorized use, reproduction, or distribution constitutes theft of proprietary business tools and intellectual property
+                  and may result in legal action.
+                </p>
+              </div>
 
               {/* Photo upload toggle */}
               <div className="mt-6 max-w-2xl mx-auto text-left">

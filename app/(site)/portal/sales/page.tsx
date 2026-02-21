@@ -9,7 +9,7 @@ import {
   ChevronRight, Loader2, LogOut, Home, Search, Filter, Plus,
   TrendingUp, DollarSign, Users, Target, Trophy, Flame, Bell,
   CheckCircle, AlertCircle, ArrowRight, Camera, BarChart3,
-  RefreshCw, Send, Star, X, Mail, Building, Briefcase,
+  RefreshCw, Send, Star, X, Mail, Building, Briefcase, Ruler,
   Activity, ArrowUpRight, ArrowDownRight,
   type LucideIcon
 } from 'lucide-react';
@@ -309,6 +309,20 @@ export default function SalesPortal() {
       icon: FileText,
       color: 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30',
       action: () => router.push('/portal/sales/leads?action=quote'),
+    },
+    {
+      id: 'measure',
+      label: 'Roof Measure',
+      icon: Ruler,
+      color: 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30',
+      action: () => router.push('/portal/roof-measure'),
+    },
+    {
+      id: 'newlead',
+      label: 'New Lead',
+      icon: Plus,
+      color: 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30',
+      action: () => router.push('/portal/leads/new'),
     },
     {
       id: 'photo',
