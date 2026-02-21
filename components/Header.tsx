@@ -18,9 +18,7 @@ const navigation: NavItem[] = [
   {
     name: 'Tools',
     children: [
-      { name: 'Roof Visualizer', href: '/roof-visualizer', description: 'See your new roof before you buy' },
-      { name: 'Storm Check', href: '/check-my-address', description: 'Free hail & storm damage report' },
-      { name: 'Free Measurement', href: '/free-roof-measurement', description: 'AI-powered roof measurement' },
+      { name: 'Storm Check', href: '/check-my-address', description: 'Free hail & storm damage report for your address' },
     ],
   },
   { name: 'Service Areas', href: '/service-areas' },
