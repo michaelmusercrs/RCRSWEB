@@ -21,7 +21,7 @@ import {
   Shield,
   Building2,
 } from 'lucide-react';
-import EarningsCalculator from './EarningsCalculator';
+import ReferralCodeGate from './ReferralCodeGate';
 import FAQSection from './FAQSection';
 import ApplicationForm from './ApplicationForm';
 
@@ -47,16 +47,16 @@ export default function CareersPage() {
           </h2>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <a
-              href="#calculator"
+              href="#application"
               className="bg-brand-green text-white font-semibold text-lg px-8 py-4 rounded hover:brightness-110 transition"
             >
-              Calculate Your Potential
+              Join Our Team
             </a>
             <a
-              href="#application"
+              href="#calculator"
               className="border-2 border-brand-green text-brand-green font-semibold text-lg px-8 py-4 rounded hover:bg-brand-green hover:text-white transition"
             >
-              Join Our Team
+              Have a Referral Code?
             </a>
           </div>
         </div>
@@ -102,7 +102,7 @@ export default function CareersPage() {
                 icon: <DollarSign size={40} />,
                 title: 'Be Your Own Boss',
                 text: 'Take control of your income and future. Build your own client base, set your own goals, and enjoy the freedom of running your own business with our support.',
-                link: { href: '#calculator', label: 'Calculate Your Potential →' },
+                link: { href: '#application', label: 'Start Your Journey →' },
               },
               {
                 icon: <Clock size={40} />,
@@ -472,8 +472,19 @@ export default function CareersPage() {
         </div>
       </section>
 
-      {/* Earnings Calculator (Client Component) */}
-      <EarningsCalculator />
+      {/* Referral Code Gate — unlocks earnings calculator & detailed info */}
+      <section id="calculator" className="py-20 bg-gray-50">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-4xl font-bold mb-4">
+            Want to See the <span className="text-brand-green">Numbers?</span>
+          </h2>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">
+            Our current team members can give you a referral code to access detailed earnings information, 
+            commission calculator, and everything you need to make an informed decision.
+          </p>
+          <ReferralCodeGate />
+        </div>
+      </section>
 
       {/* FAQ (Client Component) */}
       <FAQSection />
