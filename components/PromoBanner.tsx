@@ -23,14 +23,13 @@ export default function PromoBanner() {
   if (!isVisible) return null;
 
   return (
-    <div className="bg-gradient-to-r from-yellow-500 via-yellow-400 to-brand-green text-black relative">
+    <div className="bg-gradient-to-r from-brand-green via-emerald-600 to-brand-green text-white relative">
       <div className="container mx-auto px-4 py-2">
-        <Link href="/referral-rewards" className="flex items-center justify-center gap-2 text-sm md:text-base font-bold hover:opacity-80 transition-opacity">
+        <Link href="/contact" className="flex items-center justify-center gap-2 text-sm md:text-base font-bold hover:opacity-90 transition-opacity">
           <Trophy className="w-5 h-5 animate-pulse" />
-          <span className="hidden sm:inline">CUSTOMER REWARDS:</span>
-          <span>Earn up to <span className="text-white bg-black px-2 py-0.5 rounded">$1,000</span> per referral!</span>
-          <Gift className="w-5 h-5" />
-          <span className="underline ml-1">Learn More</span>
+          <span className="hidden sm:inline">FREE ROOF INSPECTIONS</span>
+          <span>Storm damage? We handle your insurance claim <span className="bg-white/20 px-2 py-0.5 rounded">start to finish</span></span>
+          <span className="underline ml-1">Get Started</span>
         </Link>
       </div>
       <button
