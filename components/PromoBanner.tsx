@@ -6,10 +6,8 @@ import { useState, useEffect } from 'react';
 
 export default function PromoBanner() {
   const [isVisible, setIsVisible] = useState(true);
-  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    setIsClient(true);
     // Check if banner was dismissed in this session
     const dismissed = sessionStorage.getItem('promoBannerDismissed');
     if (dismissed) {
@@ -22,7 +20,7 @@ export default function PromoBanner() {
     sessionStorage.setItem('promoBannerDismissed', 'true');
   };
 
-  if (!isClient || !isVisible) return null;
+  if (!isVisible) return null;
 
   return (
     <div className="bg-gradient-to-r from-yellow-500 via-yellow-400 to-brand-green text-black relative">

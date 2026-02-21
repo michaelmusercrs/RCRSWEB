@@ -551,11 +551,14 @@ interface PerMeasConsensus {
   rerunPerformed: boolean;
 }
 
+// ── Michael's Rule: 3 samples, drop the outlier, average the 2 closest ──
+// No re-runs. The 3 passes already used different images & models.
+// Just compare, drop the weird one, average the two that agree.
 async function buildMeasurementConsensus(
   mk: { total: MeasKey; detail: ConsensusKey },
   results: { name: string; m: AIMeasurements }[],
-  allImages: string[],
-  prompt: string,
+  _allImages: string[],
+  _prompt: string,
   notes: string[],
 ): Promise<PerMeasConsensus> {
   const vals = results.map(r => ({ name: r.name, val: r.m[mk.total] || 0, details: r.m[mk.detail] || [] }));
@@ -566,70 +569,56 @@ async function buildMeasurementConsensus(
   }
 
   if (nonZero.length === 1) {
-    notes.push(`${mk.detail}: only ${nonZero[0].name} provided data`);
+    notes.push(`${mk.detail}: only ${nonZero[0].name} provided data — single source, verify on-site`);
     const details = nonZero[0].details.map((d: { length_ft: number }) => ({ lengthFt: d.length_ft }));
     return { totalFt: nonZero[0].val, count: details.length, details, confidence: 'LOW', rerunPerformed: false };
   }
 
-  const variance = calcVariance(nonZero.map(v => v.val));
-
-  // < 10% variance → HIGH, average all
-  if (variance <= 0.10) {
-    const totalFt = nonZero.reduce((s, v) => s + v.val, 0) / nonZero.length;
-    const closest = nonZero.reduce((best, v) => Math.abs(v.val - totalFt) < Math.abs(best.val - totalFt) ? v : best);
+  if (nonZero.length === 2) {
+    // 2 results: average them, confidence based on how close they are
+    const variance = calcVariance(nonZero.map(v => v.val));
+    const avg = (nonZero[0].val + nonZero[1].val) / 2;
+    const confidence = variance <= 0.10 ? 'HIGH' : variance <= 0.20 ? 'MEDIUM' : 'LOW';
+    if (variance > 0.20) notes.push(`${mk.detail}: ${(variance * 100).toFixed(0)}% variance between 2 passes — verify on-site`);
+    const closest = nonZero.reduce((best, v) => Math.abs(v.val - avg) < Math.abs(best.val - avg) ? v : best);
     const details = closest.details.map((d: { length_ft: number }) => ({ lengthFt: d.length_ft }));
-    return { totalFt: Math.round(totalFt * 10) / 10, count: details.length, details, confidence: 'HIGH', rerunPerformed: false };
+    return { totalFt: Math.round(avg * 10) / 10, count: details.length, details, confidence, rerunPerformed: false };
   }
 
-  // Need re-run: 10-20% or >20%
-  const minConfidence = variance > 0.20 ? 'LOW' : 'MEDIUM';
-  let rerunPerformed = false;
-
-  // Re-run through Gemini + GeminiVerify
-  const rerunResults: { name: string; val: number; details: object[] }[] = [...nonZero.map(v => ({ name: v.name, val: v.val, details: v.details }))];
-
-  try {
-    const [gemRerun, gvRerun] = await Promise.all([
-      callGemini(prompt, allImages),
-      callGeminiVerify(prompt, allImages),
-    ]);
-    if (gemRerun.measurements) {
-      rerunResults.push({ name: 'Gemini-rerun', val: gemRerun.measurements[mk.total] || 0, details: gemRerun.measurements[mk.detail] || [] });
+  // 3+ results: DROP THE OUTLIER, average the 2 closest
+  // Find which pair of values is closest to each other
+  let bestPair = [0, 1];
+  let bestDiff = Infinity;
+  for (let i = 0; i < nonZero.length; i++) {
+    for (let j = i + 1; j < nonZero.length; j++) {
+      const diff = Math.abs(nonZero[i].val - nonZero[j].val);
+      if (diff < bestDiff) { bestDiff = diff; bestPair = [i, j]; }
     }
-    if (gvRerun.measurements) {
-      rerunResults.push({ name: 'GeminiVerify-rerun', val: gvRerun.measurements[mk.total] || 0, details: gvRerun.measurements[mk.detail] || [] });
-    }
-    rerunPerformed = true;
-  } catch {
-    // Re-run failed, proceed with original results
   }
 
-  const nonZeroRerun = rerunResults.filter(v => v.val > 0);
-
-  // Drop 2 biggest outliers, average remaining 3
-  const { avg, kept } = dropOutliersAndAverage(nonZeroRerun, 2);
+  const kept = [nonZero[bestPair[0]], nonZero[bestPair[1]]];
+  const dropped = nonZero.filter((_, idx) => !bestPair.includes(idx));
+  const avg = (kept[0].val + kept[1].val) / 2;
   const keptVariance = calcVariance(kept.map(v => v.val));
+  const confidence = keptVariance <= 0.10 ? 'HIGH' : keptVariance <= 0.20 ? 'MEDIUM' : 'LOW';
 
-  let confidence: string;
-  if (minConfidence === 'LOW') {
-    confidence = keptVariance <= 0.10 ? 'LOW' : keptVariance <= 0.20 ? 'LOW' : 'LOW';
-    // >20% first pass always LOW minimum
-  } else {
-    confidence = keptVariance <= 0.10 ? 'HIGH' : keptVariance <= 0.20 ? 'MEDIUM' : 'LOW';
+  if (dropped.length > 0) {
+    const droppedNames = dropped.map(d => `${d.name}(${d.val.toFixed(1)}ft)`).join(', ');
+    notes.push(`${mk.detail}: dropped outlier ${droppedNames}, kept ${kept[0].name}(${kept[0].val.toFixed(1)}ft) + ${kept[1].name}(${kept[1].val.toFixed(1)}ft) = ${avg.toFixed(1)}ft avg`);
   }
 
   if (keptVariance > 0.20) {
-    notes.push(`${mk.detail}: flagged for manual review (${(keptVariance * 100).toFixed(0)}% variance after re-run)`);
-  } else if (rerunPerformed) {
-    notes.push(`${mk.detail}: re-run performed, final variance ${(keptVariance * 100).toFixed(0)}%`);
+    notes.push(`${mk.detail}: even closest pair has ${(keptVariance * 100).toFixed(0)}% variance — verify on-site`);
   }
 
-  const closest = nonZeroRerun.reduce((best, v) => Math.abs(v.val - avg) < Math.abs(best.val - avg) ? v : best);
+  const closest = kept.reduce((best, v) => Math.abs(v.val - avg) < Math.abs(best.val - avg) ? v : best);
   const details = closest.details.map((d: { length_ft?: number }) => ({ lengthFt: d.length_ft || 0 }));
 
-  return { totalFt: Math.round(avg * 10) / 10, count: details.length, details, confidence, rerunPerformed };
+  return { totalFt: Math.round(avg * 10) / 10, count: details.length, details, confidence, rerunPerformed: false };
 }
 
+// Michael's consensus: 3 samples → average all if within 10%.
+// 5 samples → drop 2 outliers, average best 3, check 10% again.
 function buildMeasurementConsensusSimple(
   mk: { total: MeasKey; detail: ConsensusKey },
   results: { name: string; m: AIMeasurements }[],
@@ -647,16 +636,53 @@ function buildMeasurementConsensusSimple(
     return { totalFt: nonZero[0].val, count: details.length, details, confidence: 'LOW', rerunPerformed: false };
   }
 
-  // Drop outliers and average
-  const { avg, kept } = dropOutliersAndAverage(nonZero, Math.max(0, nonZero.length - 3));
-  const variance = calcVariance(kept.map(v => v.val));
-  const confidence = variance <= 0.10 ? 'HIGH' : variance <= 0.20 ? 'MEDIUM' : 'LOW';
-
-  if (variance > 0.20) {
-    notes.push(`${mk.detail}: ${(variance * 100).toFixed(0)}% variance — manual review recommended`);
+  // With 2-3 results: check if they all agree within 10%
+  if (nonZero.length <= 3) {
+    const variance = calcVariance(nonZero.map(v => v.val));
+    if (variance <= 0.10) {
+      // All agree! Average all of them → HIGH confidence
+      const avg = nonZero.reduce((s, v) => s + v.val, 0) / nonZero.length;
+      const closest = nonZero.reduce((best, v) => Math.abs(v.val - avg) < Math.abs(best.val - avg) ? v : best);
+      const details = closest.details.map((d: { length_ft: number }) => ({ lengthFt: d.length_ft }));
+      return { totalFt: Math.round(avg * 10) / 10, count: details.length, details, confidence: 'HIGH', rerunPerformed: false };
+    }
+    // 2-3 results but >10% variance — if only 2, do best we can
+    if (nonZero.length === 2) {
+      const avg = (nonZero[0].val + nonZero[1].val) / 2;
+      notes.push(`${mk.detail}: 2 passes disagree by ${(variance * 100).toFixed(0)}%`);
+      const closest = nonZero.reduce((best, v) => Math.abs(v.val - avg) < Math.abs(best.val - avg) ? v : best);
+      const details = closest.details.map((d: { length_ft: number }) => ({ lengthFt: d.length_ft }));
+      return { totalFt: Math.round(avg * 10) / 10, count: details.length, details, confidence: 'LOW', rerunPerformed: false };
+    }
+    // 3 results, >10% — this gets handled below with 4-5 result logic (Round 2 will add more)
   }
 
-  const closest = nonZero.reduce((best, v) => Math.abs(v.val - avg) < Math.abs(best.val - avg) ? v : best);
+  // With 4-5 results: DROP the 2 biggest outliers, keep best 3, average them
+  // Sort by distance from median to find outliers
+  const sorted = [...nonZero].sort((a, b) => a.val - b.val);
+  const median = sorted[Math.floor(sorted.length / 2)].val;
+  const byDistance = [...nonZero].sort((a, b) => Math.abs(a.val - median) - Math.abs(b.val - median));
+
+  // Keep the 3 closest to median
+  const keepCount = Math.min(3, nonZero.length);
+  const kept = byDistance.slice(0, keepCount);
+  const dropped = byDistance.slice(keepCount);
+
+  const keptVariance = calcVariance(kept.map(v => v.val));
+  const avg = kept.reduce((s, v) => s + v.val, 0) / kept.length;
+  const confidence = keptVariance <= 0.10 ? 'HIGH' : keptVariance <= 0.20 ? 'MEDIUM' : 'LOW';
+
+  if (dropped.length > 0) {
+    const droppedStr = dropped.map(d => `${d.name}(${d.val.toFixed(0)}ft)`).join(', ');
+    const keptStr = kept.map(k => `${k.val.toFixed(0)}ft`).join(', ');
+    notes.push(`${mk.detail}: dropped ${droppedStr}, kept [${keptStr}] → ${avg.toFixed(1)}ft (${(keptVariance * 100).toFixed(0)}% var)`);
+  }
+
+  if (keptVariance > 0.20) {
+    notes.push(`${mk.detail}: ${(keptVariance * 100).toFixed(0)}% variance even after outlier removal — verify on-site`);
+  }
+
+  const closest = kept.reduce((best, v) => Math.abs(v.val - avg) < Math.abs(best.val - avg) ? v : best);
   const details = closest.details.map((d: { length_ft: number }) => ({ lengthFt: d.length_ft }));
 
   return { totalFt: Math.round(avg * 10) / 10, count: details.length, details, confidence, rerunPerformed: false };
@@ -767,40 +793,11 @@ async function buildConsensus(
 
   const notes: string[] = [];
   const consensus: Record<string, PerMeasConsensus> = {};
-  let anyRerun = false;
 
-  // Check if ANY measurement needs a re-run (>10% variance)
-  let needsRerun = false;
+  // No re-runs — the 3 independent passes are our data.
+  // Drop outlier, average the 2 closest. Michael's rule.
   for (const mk of measKeys) {
-    const vals = results.map(r => ({ val: r.m[mk.total] || 0 })).filter(v => v.val > 0);
-    if (vals.length >= 2 && calcVariance(vals.map(v => v.val)) > 0.10) {
-      needsRerun = true;
-      break;
-    }
-  }
-
-  // Do ONE shared re-run for ALL measurements (instead of per-measurement)
-  let rerunResults = results;
-  if (needsRerun) {
-    try {
-      const [gemRerun, gvRerun] = await Promise.all([
-        callGemini(prompt, allImages),
-        callGeminiVerify(prompt, allImages),
-      ]);
-      const extra: { name: string; m: AIMeasurements }[] = [];
-      if (gemRerun.measurements) extra.push({ name: 'Gemini-rerun', m: gemRerun.measurements });
-      if (gvRerun.measurements) extra.push({ name: 'GeminiVerify-rerun', m: gvRerun.measurements });
-      if (extra.length > 0) {
-        rerunResults = [...results, ...extra];
-        anyRerun = true;
-        notes.push('Re-run performed for variance reduction');
-      }
-    } catch { /* proceed with original */ }
-  }
-
-  // Now build consensus for each measurement using all available results (no more per-measurement re-runs)
-  for (const mk of measKeys) {
-    const result = await buildMeasurementConsensusSimple(mk, rerunResults, notes);
+    const result = await buildMeasurementConsensusSimple(mk, results, notes);
     consensus[mk.detail] = result;
   }
 
@@ -823,7 +820,7 @@ async function buildConsensus(
     : confs.some(c => c === 'LOW') ? 'LOW' : 'MEDIUM';
 
   // Pick the best roof outline (prefer the one with most vertices)
-  const outlines = rerunResults.map(r => r.m.roof_outline).filter((o): o is RoofOutline => !!o && !!o.vertices?.length);
+  const outlines = results.map(r => r.m.roof_outline).filter((o): o is RoofOutline => !!o && !!o.vertices?.length);
   const roofOutline = outlines.sort((a, b) => b.vertices.length - a.vertices.length)[0] || null;
 
   return {
@@ -841,7 +838,7 @@ async function buildConsensus(
     roofOutline,
     overallConfidence,
     qualityNotes: notes,
-    rerunPerformed: anyRerun,
+    rerunPerformed: false,
   };
 }
 
@@ -1083,23 +1080,12 @@ async function runSatelliteAnalysis(address: string) {
 
   const qualityNotes: string[] = [];
   const allAiResults: { name: string; m: AIMeasurements }[] = [];
-  let pipelinePhase = 0;
 
-  // ── PHASE 1: Fast initial — Gemini + GeminiVerify with Google satellite only ──
-  pipelinePhase = 1;
-  console.log('Phase 1: Gemini dual-pass with Google satellite...');
-  const phase1Images = [...googleSatCore];
-  const [gem1, gemV1] = await Promise.allSettled([
-    callGemini(prompt, phase1Images),
-    callGeminiVerify(prompt, phase1Images),
-  ]).then(r => r.map(x => x.status === 'fulfilled' ? x.value : { status: 'error', measurements: null, raw: 'rejected' } as AIResult));
+  // ── THREE INDEPENDENT PASSES — accuracy over speed ──
+  // Each pass uses DIFFERENT image sets so they're truly independent.
+  // Then: compare all 3, drop the outlier, average the 2 that agree.
+  // Michael's rule: "3 samples, drop the outlier, keep the two closest."
 
-  if (gem1.measurements) allAiResults.push({ name: 'Gemini-P1', m: gem1.measurements });
-  if (gemV1.measurements) allAiResults.push({ name: 'GeminiVerify-P1', m: gemV1.measurements });
-  if (gem1.status !== 'success') qualityNotes.push(`Phase 1 Gemini: ${gem1.status}`);
-  if (gemV1.status !== 'success') qualityNotes.push(`Phase 1 GeminiVerify: ${gemV1.status}`);
-
-  // Check if Phase 1 results converge within 10%
   const measKeys: MeasKey[] = ['total_ridge_ft', 'total_rake_ft', 'total_valley_ft', 'total_eave_ft', 'total_hip_ft'];
   function checkConvergence(results: { name: string; m: AIMeasurements }[], threshold: number): { converged: boolean; worstVariance: number; worstKey: string } {
     let worstVariance = 0;
@@ -1114,79 +1100,73 @@ async function runSatelliteAnalysis(address: string) {
     return { converged: worstVariance <= threshold, worstVariance, worstKey };
   }
 
+  // ══════════════════════════════════════════════════════════════════════
+  // MICHAEL'S RULE: 3 samples first. If within 10% → average all 3, done.
+  // If NOT within 10% → get 2 MORE (5 total), drop 2 outliers, average best 3.
+  // If those 3 within 10% → good accuracy. If not → report anyway, lower confidence.
+  // ══════════════════════════════════════════════════════════════════════
+
+  // ── ROUND 1: Three independent passes with different images + models ──
+
+  // Pass 1: Gemini with Google satellite only
+  console.log('Pass 1/3: Gemini + Google satellite...');
+  const pass1 = await callGemini(prompt, [...googleSatCore]);
+  if (pass1.measurements) allAiResults.push({ name: 'Pass1-Gemini-GoogleSat', m: pass1.measurements });
+  if (pass1.status !== 'success') qualityNotes.push(`Pass 1: ${pass1.status}`);
+
+  // Pass 2: GeminiVerify (lower temp) with Esri + some Google
+  console.log('Pass 2/3: GeminiVerify + Esri imagery...');
+  const pass2 = await callGeminiVerify(prompt, [...esriCore, ...googleSatCore.slice(0, 2)]);
+  if (pass2.measurements) allAiResults.push({ name: 'Pass2-GeminiVerify-Esri', m: pass2.measurements });
+  if (pass2.status !== 'success') qualityNotes.push(`Pass 2: ${pass2.status}`);
+
+  // Pass 3: Ollama local model (truly independent AI engine)
+  console.log('Pass 3/3: Ollama local model...');
+  const pass3 = await callOllama(prompt, [...googleSatCore.slice(0, 2), ...esriCore.slice(0, 1)].filter(Boolean));
+  if (pass3.measurements) allAiResults.push({ name: 'Pass3-Ollama-Local', m: pass3.measurements });
+  if (pass3.status !== 'success') qualityNotes.push(`Pass 3 Ollama: ${pass3.status}`);
+
+  // If Ollama failed, do a 3rd Gemini pass with street view as fallback
+  if (!pass3.measurements && validSvImages.length > 0) {
+    console.log('Pass 3 fallback: Gemini + Street View...');
+    const pass3b = await callGemini(prompt, [...svCore, ...googleSatCore.slice(0, 1)]);
+    if (pass3b.measurements) allAiResults.push({ name: 'Pass3-Gemini-StreetView', m: pass3b.measurements });
+    if (pass3b.status !== 'success') qualityNotes.push(`Pass 3 fallback: ${pass3b.status}`);
+  }
+
   let convergence = checkConvergence(allAiResults, 0.10);
-  console.log(`Phase 1 result: ${allAiResults.length} providers, worst variance ${(convergence.worstVariance * 100).toFixed(1)}% (${convergence.worstKey})`);
+  console.log(`Round 1: ${allAiResults.length}/3 passes succeeded, worst variance ${(convergence.worstVariance * 100).toFixed(1)}% (${convergence.worstKey})`);
 
-  // ── PHASE 2: Add Esri imagery if not converged AND insufficient results ──
-  if (!convergence.converged && allAiResults.length < 2) {
-    pipelinePhase = 2;
-    qualityNotes.push(`Phase 2 triggered: ${allAiResults.length < 2 ? 'insufficient Phase 1 results' : `${(convergence.worstVariance * 100).toFixed(0)}% variance on ${convergence.worstKey}`}`);
-    console.log('Phase 2: Adding Esri imagery for independent source...');
-    const phase2Images = [...googleSatCore, ...esriCore];
-    const [gem2, gemV2] = await Promise.allSettled([
-      callGemini(prompt, phase2Images),
-      callGeminiVerify(prompt, phase2Images),
-    ]).then(r => r.map(x => x.status === 'fulfilled' ? x.value : { status: 'error', measurements: null, raw: 'rejected' } as AIResult));
+  // ── ROUND 2: If not within 10%, get 2 more passes (5 total) ──
+  if (!convergence.converged && allAiResults.length >= 2) {
+    qualityNotes.push(`Round 1 variance ${(convergence.worstVariance * 100).toFixed(0)}% on ${convergence.worstKey} — getting 2 more passes...`);
+    console.log('Round 2: Adding 2 more passes for 5-sample consensus...');
 
-    if (gem2.measurements) allAiResults.push({ name: 'Gemini-P2-Esri', m: gem2.measurements });
-    if (gemV2.measurements) allAiResults.push({ name: 'GeminiVerify-P2-Esri', m: gemV2.measurements });
+    // Pass 4: Gemini with ALL satellite + Esri (wider image set)
+    const pass4 = await callGemini(prompt, [...validSatImages.slice(0, 4), ...validEsriImages.slice(0, 2)]);
+    if (pass4.measurements) allAiResults.push({ name: 'Pass4-Gemini-AllSat', m: pass4.measurements });
+
+    // Pass 5: GeminiVerify with street view + satellite (different angle perspective)
+    const pass5 = await callGeminiVerify(prompt, [...svCore, ...googleSatCore.slice(0, 2), ...esriCore.slice(0, 1)]);
+    if (pass5.measurements) allAiResults.push({ name: 'Pass5-GeminiVerify-SV', m: pass5.measurements });
 
     convergence = checkConvergence(allAiResults, 0.10);
-    console.log(`Phase 2 result: ${allAiResults.length} providers, worst variance ${(convergence.worstVariance * 100).toFixed(1)}%`);
+    console.log(`Round 2: ${allAiResults.length} total passes, worst variance ${(convergence.worstVariance * 100).toFixed(1)}%`);
+    qualityNotes.push(`Round 2 complete: ${allAiResults.length} passes, ${(convergence.worstVariance * 100).toFixed(1)}% final variance`);
+  } else if (convergence.converged) {
+    qualityNotes.push(`All 3 passes converged within 10% — high confidence`);
   }
 
-  // ── PHASE 3: Add Street View angles if still not converged ──
-  if (!convergence.converged) {
-    pipelinePhase = 3;
-    qualityNotes.push(`Phase 3 triggered: ${(convergence.worstVariance * 100).toFixed(0)}% variance — adding street view`);
-    console.log('Phase 3: Adding street view for side-angle verification...');
-    const phase3Images = [...googleSatCore, ...esriCore, ...svCore];
-    const [gem3, gemV3] = await Promise.allSettled([
-      callGemini(prompt, phase3Images),
-      callGeminiVerify(prompt, phase3Images),
+  // If we still have < 2 results, try harder
+  if (allAiResults.length < 2) {
+    qualityNotes.push(`Only ${allAiResults.length} pass succeeded — running emergency attempts...`);
+    const [emergA, emergB] = await Promise.allSettled([
+      callGemini(prompt, [...validSatImages.slice(0, 4), ...svCore]),
+      callGeminiVerify(prompt, [...validSatImages.slice(0, 4), ...svCore]),
     ]).then(r => r.map(x => x.status === 'fulfilled' ? x.value : { status: 'error', measurements: null, raw: 'rejected' } as AIResult));
-
-    if (gem3.measurements) allAiResults.push({ name: 'Gemini-P3-SV', m: gem3.measurements });
-    if (gemV3.measurements) allAiResults.push({ name: 'GeminiVerify-P3-SV', m: gemV3.measurements });
-
+    if (emergA.measurements) allAiResults.push({ name: 'Emergency-Gemini', m: emergA.measurements });
+    if (emergB.measurements) allAiResults.push({ name: 'Emergency-GeminiVerify', m: emergB.measurements });
     convergence = checkConvergence(allAiResults, 0.10);
-    console.log(`Phase 3 result: ${allAiResults.length} providers, worst variance ${(convergence.worstVariance * 100).toFixed(1)}%`);
-  }
-
-  // ── PHASE 4: Ollama local model — independent validator (only if still >10% variance) ──
-  if (!convergence.converged && convergence.worstVariance > 0.10) {
-    pipelinePhase = 4;
-    qualityNotes.push(`Phase 4 triggered: ${(convergence.worstVariance * 100).toFixed(0)}% variance — engaging local AI (Ollama)`);
-    console.log('Phase 4: Ollama local model for independent validation...');
-    // Ollama gets best satellite images (Google + Esri) — fewer images, it's slower
-    const ollamaImages = [...googleSatCore.slice(0, 2), ...esriCore.slice(0, 1)].filter(Boolean);
-    const ollamaResult = await callOllama(prompt, ollamaImages);
-    if (ollamaResult.measurements) {
-      allAiResults.push({ name: 'Ollama-P4', m: ollamaResult.measurements });
-    } else {
-      qualityNotes.push(`Ollama: ${ollamaResult.status} — ${ollamaResult.raw?.slice(0, 80) || 'no output'}`);
-    }
-
-    convergence = checkConvergence(allAiResults, 0.10);
-    console.log(`Phase 4 result: ${allAiResults.length} providers, worst variance ${(convergence.worstVariance * 100).toFixed(1)}%`);
-  }
-
-  // ── PHASE 5: Kitchen sink — ALL imagery, ALL remaining angles ──
-  if (!convergence.converged && convergence.worstVariance > 0.15) {
-    pipelinePhase = 5;
-    qualityNotes.push(`Phase 5 triggered: ${(convergence.worstVariance * 100).toFixed(0)}% variance — using all ${validSatImages.length + validEsriImages.length + validSvImages.length} images`);
-    console.log('Phase 5: All images, final attempt...');
-    const allImages = [...validSatImages, ...validEsriImages, ...validSvImages];
-    const [gem5, gemV5] = await Promise.allSettled([
-      callGemini(prompt, allImages),
-      callGeminiVerify(prompt, allImages),
-    ]).then(r => r.map(x => x.status === 'fulfilled' ? x.value : { status: 'error', measurements: null, raw: 'rejected' } as AIResult));
-
-    if (gem5.measurements) allAiResults.push({ name: 'Gemini-P5-All', m: gem5.measurements });
-    if (gemV5.measurements) allAiResults.push({ name: 'GeminiVerify-P5-All', m: gemV5.measurements });
-
-    convergence = checkConvergence(allAiResults, 0.10);
-    console.log(`Phase 5 result: ${allAiResults.length} providers, worst variance ${(convergence.worstVariance * 100).toFixed(1)}%`);
   }
 
   // ── FALLBACK: If zero AI results, use geometric estimation ──
@@ -1196,7 +1176,7 @@ async function runSatelliteAnalysis(address: string) {
     allAiResults.push({ name: 'GeometricFallback', m: fallbackMeasurements });
   }
 
-  qualityNotes.push(`Pipeline completed: Phase ${pipelinePhase}, ${allAiResults.length} AI passes, final variance ${(convergence.worstVariance * 100).toFixed(1)}%`);
+  qualityNotes.push(`Pipeline: ${allAiResults.length} passes, final variance ${(convergence.worstVariance * 100).toFixed(1)}%`);
   if (validSvImages.length < 3) qualityNotes.push(`Only ${validSvImages.length}/10 street view angles available`);
   if (!solar) qualityNotes.push('Solar API data unavailable - measurements may be less accurate');
 
@@ -1236,18 +1216,13 @@ async function runSatelliteAnalysis(address: string) {
     overallConfidence: consensusResult.overallConfidence,
     rerunPerformed: consensusResult.rerunPerformed,
     qualityNotes,
-    pipelinePhase,
+    pipelinePhase: allAiResults.length, // now = number of independent passes
     totalAiPasses: allAiResults.length,
     finalVariance: convergence.worstVariance,
     aiResults: {
-      gemini: { status: gem1.status, measurements: gem1.measurements, raw: gem1.raw },
-      geminiVerify: { status: gemV1.status, measurements: gemV1.measurements, raw: gemV1.raw },
-      ollama: {
-        status: allAiResults.find(r => r.name.startsWith('Ollama'))
-          ? 'success' : 'skipped',
-        measurements: allAiResults.find(r => r.name.startsWith('Ollama'))?.m || null,
-        raw: allAiResults.find(r => r.name.startsWith('Ollama')) ? 'Used in pipeline' : 'Not needed — converged early',
-      },
+      pass1: { name: allAiResults[0]?.name || 'none', status: allAiResults[0] ? 'success' : 'failed' },
+      pass2: { name: allAiResults[1]?.name || 'none', status: allAiResults[1] ? 'success' : 'failed' },
+      pass3: { name: allAiResults[2]?.name || 'none', status: allAiResults[2] ? 'success' : 'failed' },
     },
     allProviderResults: allAiResults.map(r => ({ name: r.name, totalRidge: r.m.total_ridge_ft, totalRake: r.m.total_rake_ft, totalEave: r.m.total_eave_ft })),
   };

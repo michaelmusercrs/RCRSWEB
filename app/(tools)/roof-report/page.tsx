@@ -725,6 +725,17 @@ function ShareButton({ report }: { report: RoofReport }) {
 
 // ── Main Component ─────────────────────────────────────────────────────────
 
+// Preview types
+interface PreviewImage { source: string; image: string }
+interface PreviewStreetView { heading: string; image: string }
+interface PreviewData {
+  address: string;
+  lat: number;
+  lng: number;
+  overhead: PreviewImage[];
+  streetView: PreviewStreetView[];
+}
+
 export default function RoofReportPage() {
   const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
@@ -737,6 +748,10 @@ export default function RoofReportPage() {
   const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
   const [manualOverrides, setManualOverrides] = useState<ManualOverrides>({ ridges: '', rakes: '', valleys: '', eaves: '', hips: '' });
   const [manualNotes, setManualNotes] = useState('');
+  // Preview step — show images before measuring
+  const [preview, setPreview] = useState<PreviewData | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewLightbox, setPreviewLightbox] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
@@ -803,6 +818,22 @@ export default function RoofReportPage() {
     setPhotos(prev => prev.map(p => p.id === id ? { ...p, label } : p));
   }, []);
 
+  // Step 1: Preview — fetch imagery, let user confirm it's the right house
+  const fetchPreview = useCallback(async () => {
+    if (!address.trim()) return;
+    setPreviewLoading(true); setError(''); setPreview(null); setReport(null);
+    try {
+      const res = await fetch(`/api/roof-measure/preview?address=${encodeURIComponent(address)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Preview failed');
+      setPreview(data);
+      setAddress(data.address); // use the formatted address
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally { setPreviewLoading(false); }
+  }, [address]);
+
+  // Step 2: Measure — only after user confirms the preview
   const analyze = useCallback(async () => {
     if (!address.trim()) return;
     setLoading(true); setError(''); setReport(null); setStep(0);
@@ -1014,24 +1045,108 @@ export default function RoofReportPage() {
                     <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                     <input
                       ref={inputRef} type="text" value={address}
-                      onChange={e => setAddress(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && analyze()}
+                      onChange={e => { setAddress(e.target.value); setPreview(null); setReport(null); }}
+                      onKeyDown={e => e.key === 'Enter' && fetchPreview()}
                       placeholder="Enter property address..."
                       className="w-full pl-10 pr-4 py-3.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/40 focus:bg-white/[0.06] transition-all"
                     />
                   </div>
-                  <Button onClick={analyze} disabled={loading || !address.trim()}
-                    className="px-6 py-3.5 bg-emerald-500 text-white font-semibold hover:bg-emerald-600 disabled:opacity-40 rounded-xl transition-colors">
-                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Analyze'}
+                  <Button onClick={fetchPreview} disabled={previewLoading || loading || !address.trim()}
+                    className="px-6 py-3.5 bg-white/10 text-white font-semibold hover:bg-white/20 disabled:opacity-40 rounded-xl transition-colors border border-white/10">
+                    {previewLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Eye className="w-4 h-4 mr-2" />Preview</>}
                   </Button>
                 </div>
                 <p className="text-xs text-zinc-600 mt-2 text-center">
-                  Optimized for Decatur, Hartselle & North Alabama service area
+                  Step 1: Preview the property · Step 2: Confirm &amp; measure
                 </p>
               </div>
             </div>
           </div>
         </header>
+
+        {/* ══════════ PREVIEW PANEL — Confirm the right house ══════════ */}
+        {preview && !report && !loading && (
+          <div className="no-print max-w-6xl mx-auto px-4 sm:px-6 pt-6">
+            <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                    <Eye className="w-5 h-5 text-emerald-400" />
+                    Is this the right property?
+                  </h2>
+                  <p className="text-sm text-zinc-400 mt-1">{preview.address}</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={() => { setPreview(null); inputRef.current?.focus(); }}
+                    className="px-4 py-2 bg-white/5 text-zinc-400 hover:text-white border border-white/10 rounded-lg text-sm">
+                    <RotateCcw className="w-4 h-4 mr-1.5" /> Wrong House
+                  </Button>
+                  <Button onClick={analyze} disabled={loading}
+                    className="px-6 py-2.5 bg-emerald-500 text-white font-semibold hover:bg-emerald-600 rounded-lg text-sm">
+                    <Ruler className="w-4 h-4 mr-1.5" /> Measure This Roof
+                  </Button>
+                </div>
+              </div>
+
+              {/* Overhead views */}
+              <div className="mb-4">
+                <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-2">Overhead Views</h3>
+                <div className="grid grid-cols-3 gap-3">
+                  {preview.overhead.map((img, i) => (
+                    <button key={i} onClick={() => setPreviewLightbox(img.image)}
+                      className="relative aspect-square rounded-lg overflow-hidden border border-white/10 hover:border-emerald-500/50 transition-all group cursor-pointer">
+                      <img src={img.image} alt={img.source} className="w-full h-full object-cover" />
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+                        <span className="text-xs text-white font-medium">{img.source}</span>
+                      </div>
+                      <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Street views */}
+              <div>
+                <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-2">Street Views</h3>
+                <div className="grid grid-cols-4 gap-3">
+                  {preview.streetView.map((sv, i) => (
+                    <button key={i} onClick={() => setPreviewLightbox(sv.image)}
+                      className="relative aspect-[4/3] rounded-lg overflow-hidden border border-white/10 hover:border-emerald-500/50 transition-all group cursor-pointer">
+                      <img src={sv.image} alt={sv.heading} className="w-full h-full object-cover" />
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+                        <span className="text-xs text-white font-medium">{sv.heading}</span>
+                      </div>
+                      <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Interactive Street View embed */}
+              <div className="mt-4">
+                <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-2">Interactive Street View — Look Around</h3>
+                <div className="rounded-lg overflow-hidden border border-white/10" style={{ height: '300px' }}>
+                  <iframe
+                    src={`https://www.google.com/maps/embed/v1/streetview?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}&location=${preview.lat},${preview.lng}&heading=0&pitch=15&fov=90`}
+                    width="100%" height="100%" style={{ border: 0 }} allowFullScreen loading="lazy"
+                  />
+                </div>
+                <p className="text-xs text-zinc-600 mt-1.5 text-center">Drag to look around · Click arrows to move down the street</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Lightbox for preview images */}
+        {previewLightbox && (
+          <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 cursor-pointer no-print"
+            onClick={() => setPreviewLightbox(null)}>
+            <button onClick={() => setPreviewLightbox(null)} className="absolute top-4 right-4 text-white/60 hover:text-white">
+              <X className="w-8 h-8" />
+            </button>
+            <img src={previewLightbox} alt="Preview" className="max-w-full max-h-[90vh] rounded-lg" />
+          </div>
+        )}
 
         {/* ══════════ BODY ══════════ */}
         <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
