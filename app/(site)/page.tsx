@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { MapPin, Shield, Award, Users, CheckCircle2, ArrowRight, CloudLightning } from 'lucide-react';
 
 import RotatingText from '@/components/RotatingText';
+import RotatingBanner from '@/components/RotatingBanner';
 import QuickContactForm from '@/components/QuickContactForm';
 import StructuredData from '@/components/StructuredData';
 import { generateFAQSchema, generateHomepageStructuredData } from '@/lib/seo';
@@ -56,22 +57,8 @@ export default function HomePage() {
     <div className="min-h-screen text-white overflow-x-hidden">
       <StructuredData data={[...homepageSchemas, faqSchema]} />
 
-      {/* Announcement Banner */}
-      <div className="bg-brand-green text-black py-2.5 px-4 text-center text-sm font-bold relative z-50">
-        <div className="container mx-auto flex flex-wrap items-center justify-center gap-x-6 gap-y-1">
-          <Link href="/community" className="hover:underline inline-flex items-center gap-1">
-            🏫 Raise the Roof for Schools — $250 donated per roof replacement
-          </Link>
-          <span className="hidden sm:inline text-black/40">|</span>
-          <Link href="/check-my-address" className="hover:underline inline-flex items-center gap-1">
-            ⛈️ Free Storm Report — Check your address now
-          </Link>
-          <span className="hidden sm:inline text-black/40">|</span>
-          <Link href="/services" className="hover:underline inline-flex items-center gap-1">
-            🏠 IKO ROOFViewer — See new shingles on your home
-          </Link>
-        </div>
-      </div>
+      {/* Rotating Announcement Banner */}
+      <RotatingBanner />
 
       {/* Hero Section - Uses global video background */}
       <div className="-mt-20 min-h-screen flex items-center justify-center px-6 pt-20">
