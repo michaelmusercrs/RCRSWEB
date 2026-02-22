@@ -301,6 +301,7 @@ const SHEET_NAMES = {
   CUSTOMER_PORTAL_LOG: 'CustomerPortalLog',
   CUSTOMER_PORTAL_DATA: 'CustomerPortalData',
   MONDAY_NOTES: 'MondayNotes',
+  REVIEWS: 'Reviews',
 } as const;
 
 // =============================================================================
@@ -2412,6 +2413,67 @@ class GoogleSheetsService {
       return false;
     } catch (error) {
       console.error('Error deleting monday note:', error);
+      return false;
+    }
+  }
+  // =========================================================================
+  // REVIEWS
+  // =========================================================================
+
+  private readonly REVIEW_HEADERS = [
+    'id', 'name', 'date', 'rating', 'text', 'salesRep', 'repSlug', 'source',
+    'visible', 'featured', 'approved', 'createdAt',
+  ];
+
+  async getReviews(options?: { repSlug?: string; source?: string; approvedOnly?: boolean }): Promise<Record<string, string>[]> {
+    try {
+      await this.init();
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.REVIEWS, this.REVIEW_HEADERS);
+      const rows = await sheet.getRows();
+
+      let results = rows.map(row => {
+        const record: Record<string, string> = {};
+        this.REVIEW_HEADERS.forEach(h => { record[h] = row.get(h) || ''; });
+        return record;
+      });
+
+      if (options?.repSlug) {
+        results = results.filter(r => r.repSlug === options.repSlug);
+      }
+      if (options?.source) {
+        results = results.filter(r => r.source?.toLowerCase() === options.source!.toLowerCase());
+      }
+      if (options?.approvedOnly) {
+        results = results.filter(r => r.approved === 'true' || r.approved === 'TRUE');
+      }
+
+      return results;
+    } catch (error) {
+      console.error('Error getting reviews:', error);
+      return [];
+    }
+  }
+
+  async addReview(review: Record<string, string>): Promise<boolean> {
+    try {
+      await this.init();
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.REVIEWS, this.REVIEW_HEADERS);
+      await sheet.addRow(review);
+      return true;
+    } catch (error) {
+      console.error('Error adding review:', error);
+      return false;
+    }
+  }
+
+  async addReviews(reviews: Record<string, string>[]): Promise<boolean> {
+    try {
+      await this.init();
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.REVIEWS, this.REVIEW_HEADERS);
+      await sheet.addRows(reviews);
+      return true;
+    } catch (error) {
+      console.error('Error adding reviews:', error);
       return false;
     }
   }

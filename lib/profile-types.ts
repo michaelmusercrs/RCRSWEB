@@ -22,7 +22,7 @@ export interface ProfileReview {
   customerName: string;
   rating: number; // 1-5 stars
   text: string;
-  source: 'google' | 'facebook' | 'yelp' | 'direct' | 'other';
+  source: 'google' | 'facebook' | 'yelp' | 'bbb' | 'direct' | 'other';
   date: string;
   visible: boolean; // Rep can toggle visibility
   featured: boolean; // Show prominently
