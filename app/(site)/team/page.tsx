@@ -142,7 +142,7 @@ export default async function TeamPage() {
               We're always looking for talented, hardworking individuals to join the River City Roofing family.
             </p>
             <Button asChild className="bg-brand-green hover:bg-lime-400 text-black font-bold px-8 py-6 text-lg">
-              <Link href="/contact">Contact Us About Opportunities</Link>
+              <Link href="/careers">View Open Positions</Link>
             </Button>
           </div>
         </div>

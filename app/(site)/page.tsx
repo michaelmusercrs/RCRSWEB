@@ -313,8 +313,8 @@ export default function HomePage() {
                     AFTER
                   </div>
                   <Image
-                    src="/uploads/service-residential.png"
-                    alt="After: New roof installation in Huntsville"
+                    src="/uploads/service-repair.jpg"
+                    alt="After: Completed roof repair in Huntsville"
                     fill
                     className="object-cover"
                   />
@@ -335,7 +335,7 @@ export default function HomePage() {
                   </div>
                   <Image
                     src="/uploads/service-residential.png"
-                    alt="Before: Aging commercial roof in Madison"
+                    alt="Before: Aging residential roof in Madison"
                     fill
                     className="object-cover"
                   />
@@ -346,7 +346,7 @@ export default function HomePage() {
                   </div>
                   <Image
                     src="/uploads/service-commercial.png"
-                    alt="After: Premium commercial roof replacement in Madison"
+                    alt="After: Premium roof installation in Madison"
                     fill
                     className="object-cover"
                   />
@@ -382,16 +382,16 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {featuredReviews.map((review) => (
-              <Card key={review.id} className="border-neutral-800 bg-black">
-                <CardContent className="p-8">
+              <Card key={review.id} className="border-neutral-800 bg-black overflow-hidden">
+                <CardContent className="p-6 sm:p-8">
                   <div className="flex mb-4">
                     {[...Array(review.rating)].map((_, i) => (
                       <span key={i} className="text-brand-green text-xl">★</span>
                     ))}
                   </div>
-                  <p className="text-gray-200 italic leading-relaxed mb-6 line-clamp-5">
+                  <p className="text-gray-200 italic leading-relaxed mb-6 line-clamp-5 text-sm sm:text-base">
                     &ldquo;{review.text}&rdquo;
                   </p>
                   <div className="border-t border-neutral-700 pt-4">
@@ -470,9 +470,10 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Storm Report CTA Banner */}
+      {/* Free Tools Banner */}
       <section className="py-12 md:py-16 px-6 bg-black/85 backdrop-blur-sm border-t border-neutral-800">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto space-y-8">
+          {/* Storm Report */}
           <div className="bg-neutral-950 border-2 border-brand-green/40 rounded-2xl p-8 md:p-12 flex flex-col md:flex-row items-center gap-8">
             <div className="flex-1 text-center md:text-left">
               <div className="inline-flex items-center gap-2 bg-brand-green/15 px-3 py-1 rounded-full mb-4">
@@ -490,6 +491,27 @@ export default function HomePage() {
             <div className="flex-shrink-0">
               <Button asChild size="lg" className="bg-brand-green text-black hover:bg-lime-400 font-bold uppercase tracking-widest px-8 py-7 text-lg shadow-xl whitespace-nowrap">
                 <Link href="/check-my-address">Check My Address</Link>
+              </Button>
+            </div>
+          </div>
+
+          {/* Roof Measurement Tool */}
+          <div className="bg-neutral-950 border-2 border-brand-blue/40 rounded-2xl p-8 md:p-12 flex flex-col md:flex-row items-center gap-8">
+            <div className="flex-1 text-center md:text-left">
+              <div className="inline-flex items-center gap-2 bg-brand-blue/15 px-3 py-1 rounded-full mb-4">
+                <Shield className="w-4 h-4 text-brand-blue" />
+                <span className="text-brand-blue text-xs font-bold uppercase tracking-widest">Free Tool</span>
+              </div>
+              <h2 className="text-3xl md:text-4xl font-black uppercase tracking-wider mb-3">
+                Instant Roof Measurement Report
+              </h2>
+              <p className="text-neutral-300 leading-relaxed">
+                Get AI-powered roof measurements with satellite imagery. See your ridges, rakes, valleys, and more &mdash; with an interactive diagram. Like EagleView, but free.
+              </p>
+            </div>
+            <div className="flex-shrink-0">
+              <Button asChild size="lg" className="bg-brand-blue text-white hover:bg-blue-700 font-bold uppercase tracking-widest px-8 py-7 text-lg shadow-xl whitespace-nowrap">
+                <Link href="/roof-report">Measure My Roof</Link>
               </Button>
             </div>
           </div>
