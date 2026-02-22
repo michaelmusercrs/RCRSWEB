@@ -4,7 +4,7 @@
  */
 
 
-const COMPANY_EMAIL = 'rivercityroofingsolutions@gmail.com';
+const COMPANY_EMAIL = 'rivercityroofing@gmail.com';
 
 export interface ContactFormData {
   name: string;

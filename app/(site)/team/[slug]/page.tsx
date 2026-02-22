@@ -14,6 +14,7 @@ import StructuredData from '@/components/StructuredData';
 import { siteConfig, generatePersonSchema, generateBreadcrumbSchema } from '@/lib/seo';
 import { getRepStats } from '@/lib/rep-stats';
 import RepStatsCard from '@/components/RepStatsCard';
+import ShareQRCode from '@/components/ShareQRCode';
 import type { Metadata } from 'next';
 
 // Revalidate every 60 seconds so approved changes show up quickly
@@ -201,6 +202,11 @@ export default async function TeamMemberPage({ params }: { params: { slug: strin
                       <a href={`mailto:${member.email}`}>Contact {member.name.split(' ')[0]}</a>
                     </Button>
                   )}
+
+                  {/* QR Code Share Button */}
+                  <div className="mt-3 flex justify-center">
+                    <ShareQRCode slug={params.slug} name={member.name} />
+                  </div>
 
                   {/* Social Media Links */}
                   {(member.facebook || member.instagram || member.tiktok || member.x || member.linkedin) && (

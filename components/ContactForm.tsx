@@ -60,6 +60,7 @@ export default function ContactForm({
           message: formData.get('message'),
           smsConsent: formData.get('smsConsent') === 'on',
           preferredInspector: preselectedTeamMember || 'First Available',
+          salesRep: preselectedTeamMember || '',
           sourcePage: sourcePage,
           // Lead source attribution
           leadSource: leadSource,
