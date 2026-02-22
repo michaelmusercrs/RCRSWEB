@@ -5,21 +5,15 @@ import Link from 'next/link';
 import AddressAutocomplete, { AddressResult } from '@/components/AddressAutocomplete';
 import {
   CloudLightning,
-  MapPin,
   Shield,
   Phone,
   CheckCircle2,
   AlertTriangle,
   Clock,
-  ChevronRight,
   Loader2,
-  Cloud,
-  Wind,
   ArrowRight,
   Search,
   Home,
-  Info,
-  Calendar,
   Target,
 } from 'lucide-react';
 
@@ -81,13 +75,56 @@ interface StormReportData {
 
 const US_STATES = [
   { value: 'AL', label: 'Alabama' },
-  { value: 'TN', label: 'Tennessee' },
-  { value: 'GA', label: 'Georgia' },
-  { value: 'MS', label: 'Mississippi' },
+  { value: 'AK', label: 'Alaska' },
+  { value: 'AZ', label: 'Arizona' },
+  { value: 'AR', label: 'Arkansas' },
+  { value: 'CA', label: 'California' },
+  { value: 'CO', label: 'Colorado' },
+  { value: 'CT', label: 'Connecticut' },
+  { value: 'DE', label: 'Delaware' },
   { value: 'FL', label: 'Florida' },
+  { value: 'GA', label: 'Georgia' },
+  { value: 'HI', label: 'Hawaii' },
+  { value: 'ID', label: 'Idaho' },
+  { value: 'IL', label: 'Illinois' },
+  { value: 'IN', label: 'Indiana' },
+  { value: 'IA', label: 'Iowa' },
+  { value: 'KS', label: 'Kansas' },
   { value: 'KY', label: 'Kentucky' },
+  { value: 'LA', label: 'Louisiana' },
+  { value: 'ME', label: 'Maine' },
+  { value: 'MD', label: 'Maryland' },
+  { value: 'MA', label: 'Massachusetts' },
+  { value: 'MI', label: 'Michigan' },
+  { value: 'MN', label: 'Minnesota' },
+  { value: 'MS', label: 'Mississippi' },
+  { value: 'MO', label: 'Missouri' },
+  { value: 'MT', label: 'Montana' },
+  { value: 'NE', label: 'Nebraska' },
+  { value: 'NV', label: 'Nevada' },
+  { value: 'NH', label: 'New Hampshire' },
+  { value: 'NJ', label: 'New Jersey' },
+  { value: 'NM', label: 'New Mexico' },
+  { value: 'NY', label: 'New York' },
   { value: 'NC', label: 'North Carolina' },
+  { value: 'ND', label: 'North Dakota' },
+  { value: 'OH', label: 'Ohio' },
+  { value: 'OK', label: 'Oklahoma' },
+  { value: 'OR', label: 'Oregon' },
+  { value: 'PA', label: 'Pennsylvania' },
+  { value: 'RI', label: 'Rhode Island' },
   { value: 'SC', label: 'South Carolina' },
+  { value: 'SD', label: 'South Dakota' },
+  { value: 'TN', label: 'Tennessee' },
+  { value: 'TX', label: 'Texas' },
+  { value: 'UT', label: 'Utah' },
+  { value: 'VT', label: 'Vermont' },
+  { value: 'VA', label: 'Virginia' },
+  { value: 'WA', label: 'Washington' },
+  { value: 'WV', label: 'West Virginia' },
+  { value: 'WI', label: 'Wisconsin' },
+  { value: 'WY', label: 'Wyoming' },
+  { value: 'DC', label: 'Washington DC' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -217,7 +254,6 @@ function AddressForm({
           <input
             type="text"
             id="city"
-            required
             value={formData.city}
             onChange={(e) => setFormData({ ...formData, city: e.target.value })}
             placeholder="Huntsville"
@@ -230,7 +266,6 @@ function AddressForm({
           </label>
           <select
             id="state"
-            required
             value={formData.state}
             onChange={(e) => setFormData({ ...formData, state: e.target.value })}
             className="w-full px-4 py-3 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:border-brand-green focus:ring-1 focus:ring-brand-green transition-all appearance-none"
@@ -249,9 +284,7 @@ function AddressForm({
           <input
             type="text"
             id="zip"
-            required
             maxLength={5}
-            pattern="[0-9]{5}"
             value={formData.zip}
             onChange={(e) => setFormData({ ...formData, zip: e.target.value.replace(/\D/g, '') })}
             placeholder="35801"
@@ -340,202 +373,51 @@ function AddressForm({
 }
 
 // ---------------------------------------------------------------------------
-// Report Results Component
+// Report Teaser Component (on-screen summary – full report emailed)
 // ---------------------------------------------------------------------------
 
-function ReportResults({
+function ReportTeaser({
   report,
   onReset,
+  emailSent,
 }: {
   report: StormReportData;
   onReset: () => void;
+  emailSent: boolean;
 }) {
   const riskColors = getRiskColors(report.riskLevel);
 
   return (
     <div className="space-y-6">
-      {/* Report Header */}
+      {/* Risk Level Banner */}
       <div className="bg-neutral-950 border border-neutral-800 rounded-2xl overflow-hidden">
-        {/* Risk Level Banner */}
-        <div className={`bg-gradient-to-r ${riskColors.gradient} p-6 sm:p-8`}>
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div>
-              <p className="text-white/80 text-sm font-semibold uppercase tracking-wider mb-1">Storm Damage Risk Level</p>
-              <h2 className="text-4xl sm:text-5xl font-black text-white uppercase tracking-wider">{report.riskLevel}</h2>
-            </div>
-            <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4 text-center min-w-[100px]">
-              <p className="text-white/80 text-xs font-semibold uppercase">Score</p>
-              <p className="text-4xl font-black text-white">{report.riskScore}</p>
-              <p className="text-white/60 text-xs">/100</p>
-            </div>
-          </div>
+        <div className={`bg-gradient-to-r ${riskColors.gradient} p-6 sm:p-8 text-center`}>
+          <p className="text-white/80 text-sm font-semibold uppercase tracking-wider mb-1">Storm Damage Risk Level</p>
+          <h2 className="text-4xl sm:text-5xl font-black text-white uppercase tracking-wider">{report.riskLevel}</h2>
         </div>
 
-        {/* Address & Date */}
-        <div className="p-6 border-b border-neutral-800">
-          <div className="flex items-start gap-3">
-            <MapPin className="w-5 h-5 text-brand-green mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-white font-semibold">{report.fullAddress}</p>
-              <p className="text-neutral-500 text-sm mt-1">
-                Report ID: {report.reportId} | Generated {new Date(report.generatedAt).toLocaleDateString()}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Key Stats */}
-        <div className="grid grid-cols-3 divide-x divide-neutral-800">
-          <div className="p-4 text-center">
-            <p className="text-2xl font-black text-white">{report.totalHailReports}</p>
-            <p className="text-neutral-500 text-xs uppercase tracking-wider mt-1">Hail Reports</p>
-          </div>
-          <div className="p-4 text-center">
-            <p className="text-2xl font-black text-white">
-              {report.closestHailMiles !== null ? `${report.closestHailMiles.toFixed(1)}mi` : 'N/A'}
-            </p>
-            <p className="text-neutral-500 text-xs uppercase tracking-wider mt-1">Closest Hail</p>
-          </div>
-          <div className="p-4 text-center">
-            <p className="text-2xl font-black text-white">
-              {report.largestHailSize || 'N/A'}
-            </p>
-            <p className="text-neutral-500 text-xs uppercase tracking-wider mt-1">Largest Hail</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Risk Factors */}
-      <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-6">
-        <h3 className="text-lg font-black text-white uppercase tracking-wider mb-4 flex items-center gap-2">
-          <AlertTriangle className="w-5 h-5 text-brand-green" />
-          Risk Factors
-        </h3>
-        <div className="space-y-3">
-          {report.riskFactors.map((factor, i) => (
-            <div key={i} className="flex items-start gap-3">
-              <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${riskColors.bg}`} />
-              <p className="text-neutral-300 text-sm">{factor}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Hail Events Timeline */}
-      {report.hailEvents.length > 0 && (
-        <div className="bg-neutral-950 border border-neutral-800 rounded-2xl overflow-hidden">
-          <div className="p-6 border-b border-neutral-800">
-            <h3 className="text-lg font-black text-white uppercase tracking-wider flex items-center gap-2">
-              <Cloud className="w-5 h-5 text-orange-400" />
-              Recent Hail Events Near You
-            </h3>
-            <p className="text-neutral-500 text-sm mt-1">
-              {report.dateRangeStart} to {report.dateRangeEnd} within {report.fullAddress.split(',')[1]?.trim()} area
-            </p>
-          </div>
-          <div className="divide-y divide-neutral-800 max-h-80 overflow-y-auto">
-            {report.hailEvents.slice(0, 10).map((event, i) => {
-              const sevColors = event.severity === 'severe'
-                ? 'bg-red-500/15 text-red-400'
-                : event.severity === 'moderate'
-                ? 'bg-orange-500/15 text-orange-400'
-                : 'bg-yellow-500/15 text-yellow-400';
-
-              return (
-                <div key={i} className="p-4 flex items-center gap-4">
-                  <div className="w-12 h-12 bg-neutral-900 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <CloudLightning className={`w-6 h-6 ${
-                      event.severity === 'severe' ? 'text-red-400' :
-                      event.severity === 'moderate' ? 'text-orange-400' : 'text-yellow-400'
-                    }`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-semibold">{event.location || 'Nearby Area'}</p>
-                    <p className="text-neutral-500 text-xs">
-                      {new Date(event.date).toLocaleDateString()} | {event.distance.toFixed(1)} mi away
-                      {event.county ? ` | ${event.county}` : ''}
-                    </p>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-brand-green font-black text-lg">{event.size}</p>
-                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${sevColors}`}>
-                      {event.severity}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* HailRecon Historical Data */}
-      {report.hailReconEvents && report.hailReconEvents.length > 0 && (
-        <div className="bg-neutral-950 border border-neutral-800 rounded-2xl overflow-hidden">
-          <div className="p-6 border-b border-neutral-800">
-            <h3 className="text-lg font-black text-white uppercase tracking-wider flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-blue-400" />
-              Historical Hail Data (Since 2011)
-            </h3>
-            <p className="text-neutral-500 text-sm mt-1">
-              {report.hailReconTotalStorms || 0} storms on record |
-              Largest: {report.hailReconLargestSizeLabel || 'N/A'}
-            </p>
-            <p className="text-neutral-600 text-xs mt-1">Powered by HailRecon</p>
-          </div>
-          <div className="divide-y divide-neutral-800 max-h-64 overflow-y-auto">
-            {report.hailReconEvents.slice(0, 8).map((event, i) => {
-              const isLarge = event.hailSize >= 1.75;
-              const isMed = event.hailSize >= 1.0;
-              return (
-                <div key={i} className="p-4 flex items-center gap-4">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                    isLarge ? 'bg-red-500/15' : isMed ? 'bg-orange-500/15' : 'bg-blue-500/15'
-                  }`}>
-                    <CloudLightning className={`w-5 h-5 ${
-                      isLarge ? 'text-red-400' : isMed ? 'text-orange-400' : 'text-blue-400'
-                    }`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-semibold">
-                      {event.location || 'Nearby Area'}
-                      {event.county ? `, ${event.county}` : ''}
-                    </p>
-                    <p className="text-neutral-500 text-xs">
-                      {new Date(event.date).toLocaleDateString()} | {event.distance.toFixed(1)} mi away
-                    </p>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-blue-400 font-black text-lg">{event.hailSizeLabel}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* No hail events message */}
-      {report.hailEvents.length === 0 && (
-        <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-6 text-center">
-          <CheckCircle2 className="w-12 h-12 text-green-400 mx-auto mb-3" />
-          <h3 className="text-lg font-black text-white uppercase tracking-wider mb-2">
-            No Recent Hail Reports
-          </h3>
-          <p className="text-neutral-400 text-sm max-w-md mx-auto">
-            No hail has been officially reported within 50 miles of your address in the past 90 days.
-            However, damage from previous storms may still be present on your roof.
+        {/* Hail count stat */}
+        <div className="p-6 text-center border-b border-neutral-800">
+          <p className="text-3xl font-black text-white">{report.totalHailReports}</p>
+          <p className="text-neutral-400 text-sm uppercase tracking-wider mt-1">
+            hail report{report.totalHailReports !== 1 ? 's' : ''} found near your address
           </p>
         </div>
-      )}
 
-      {/* Recommendation */}
-      <div className="bg-neutral-950 border border-brand-green/30 rounded-2xl p-6">
-        <h3 className="text-lg font-black text-white uppercase tracking-wider mb-3 flex items-center gap-2">
-          <Shield className="w-5 h-5 text-brand-green" />
-          Our Recommendation
-        </h3>
-        <p className="text-neutral-300 leading-relaxed">{report.recommendation}</p>
+        {/* Email confirmation */}
+        <div className="p-6 text-center">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <CheckCircle2 className="w-5 h-5 text-brand-green" />
+            <p className="text-brand-green font-semibold">
+              {emailSent
+                ? 'Your full storm report has been sent to your email!'
+                : 'Sending your full storm report to your email…'}
+            </p>
+          </div>
+          <p className="text-neutral-500 text-sm">
+            A River City Roofing Solutions representative will contact you shortly with your complete report.
+          </p>
+        </div>
       </div>
 
       {/* CTA Section */}
@@ -586,6 +468,7 @@ export default function CheckMyAddressPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [report, setReport] = useState<StormReportData | null>(null);
   const [error, setError] = useState('');
+  const [emailSent, setEmailSent] = useState(false);
 
   const handleSubmit = async (data: {
     address: string;
@@ -621,7 +504,38 @@ export default function CheckMyAddressPage() {
 
       setReport(reportResult.data);
 
-      // 2. Create lead in background (fire and forget - don't block report display)
+      // 2. Send emails (customer teaser + sales full report) in background
+      fetch('/api/storm-report/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerName: data.name,
+          customerEmail: data.email,
+          customerPhone: data.phone,
+          reportId: reportResult.data.reportId,
+          address: data.address,
+          fullAddress: reportResult.data.fullAddress,
+          riskLevel: reportResult.data.riskLevel,
+          riskScore: reportResult.data.riskScore,
+          totalHailReports: reportResult.data.totalHailReports,
+          largestHailSize: reportResult.data.largestHailSize,
+          largestHailSizeNum: reportResult.data.largestHailSizeNum,
+          closestHailMiles: reportResult.data.closestHailMiles,
+          riskFactors: reportResult.data.riskFactors,
+          recommendation: reportResult.data.recommendation,
+          hailEvents: reportResult.data.hailEvents,
+          windEvents: reportResult.data.windEvents,
+          hailReconTotalStorms: reportResult.data.hailReconTotalStorms,
+          hailReconLargestSizeLabel: reportResult.data.hailReconLargestSizeLabel,
+          dateRangeStart: reportResult.data.dateRangeStart,
+          dateRangeEnd: reportResult.data.dateRangeEnd,
+        }),
+      }).then(() => setEmailSent(true)).catch(err => {
+        console.error('Email send error:', err);
+        setEmailSent(true); // Still show confirmation to avoid confusion
+      });
+
+      // 3. Create lead in background (fire and forget - don't block report display)
       fetch('/api/leads/new', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -675,6 +589,7 @@ export default function CheckMyAddressPage() {
   const handleReset = () => {
     setReport(null);
     setError('');
+    setEmailSent(false);
   };
 
   return (
@@ -723,11 +638,28 @@ export default function CheckMyAddressPage() {
       <section className="py-12 px-6 bg-black/85 backdrop-blur-sm border-t border-neutral-800">
         <div className="max-w-2xl mx-auto">
           {error && (
-            <div className="mb-6 p-4 bg-red-500/15 border border-red-500/40 rounded-xl text-red-400 text-sm flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="font-semibold">Unable to generate report</p>
-                <p className="mt-1">{error}</p>
+            <div className="mb-6 p-6 bg-neutral-950 border border-brand-green/30 rounded-2xl text-center">
+              <CloudLightning className="w-12 h-12 text-brand-green mx-auto mb-3" />
+              <h3 className="text-lg font-black text-white uppercase tracking-wider mb-2">
+                We&apos;re Having Trouble Loading Your Report
+              </h3>
+              <p className="text-neutral-400 text-sm mb-4">
+                No worries — our team can pull your storm data manually. Give us a call and we&apos;ll have your report ready in minutes.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <a
+                  href="tel:256-274-8530"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-brand-green text-black font-black uppercase tracking-widest rounded-lg hover:bg-lime-400 transition-all"
+                >
+                  <Phone className="w-4 h-4" />
+                  Call (256) 274-8530
+                </a>
+                <button
+                  onClick={() => setError('')}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-neutral-700 text-neutral-300 font-bold uppercase tracking-widest rounded-lg hover:border-brand-green hover:text-brand-green transition-all"
+                >
+                  Try Again
+                </button>
               </div>
             </div>
           )}
@@ -741,7 +673,7 @@ export default function CheckMyAddressPage() {
               <AddressForm onSubmit={handleSubmit} isLoading={isLoading} />
             </div>
           ) : (
-            <ReportResults report={report} onReset={handleReset} />
+            <ReportTeaser report={report} onReset={handleReset} emailSent={emailSent} />
           )}
         </div>
       </section>

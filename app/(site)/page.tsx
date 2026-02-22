@@ -518,7 +518,7 @@ export default function HomePage() {
 
             {/* BBB Badge */}
             <a
-              href="https://www.bbb.org/us/al"
+              href="https://www.bbb.org/us/al/decatur/profile/roofing-contractors/river-city-roofing-solutions-inc-0513-900240387"
               target="_blank"
               rel="noopener noreferrer"
               className="flex flex-col items-center gap-3 p-6 bg-neutral-950 border border-neutral-800 rounded-2xl hover:border-brand-green transition-all group"
@@ -527,8 +527,8 @@ export default function HomePage() {
                 <Award className="w-8 h-8 text-brand-green" />
               </div>
               <div className="text-center">
-                <p className="font-black text-white uppercase tracking-wider text-sm group-hover:text-brand-green transition-colors">BBB</p>
-                <p className="text-neutral-500 text-xs mt-1">Better Business Bureau</p>
+                <p className="font-black text-white uppercase tracking-wider text-sm group-hover:text-brand-green transition-colors">BBB A+ Rated</p>
+                <p className="text-neutral-500 text-xs mt-1">BBB Accredited Business</p>
               </div>
             </a>
 
