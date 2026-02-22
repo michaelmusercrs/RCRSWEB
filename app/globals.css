@@ -490,6 +490,25 @@ html {
     0 4px 8px rgba(0, 0, 0, 0.6);
 }
 
+/* Black outline on white text for visibility on green backgrounds */
+.text-outline-black {
+  text-shadow:
+    -1px -1px 0 rgba(0, 0, 0, 0.6),
+    1px -1px 0 rgba(0, 0, 0, 0.6),
+    -1px 1px 0 rgba(0, 0, 0, 0.6),
+    1px 1px 0 rgba(0, 0, 0, 0.6);
+}
+
+/* Apply to all white text on green button backgrounds */
+.bg-brand-green.text-white,
+.bg-brand-green .text-white {
+  text-shadow:
+    -1px -1px 0 rgba(0, 0, 0, 0.5),
+    1px -1px 0 rgba(0, 0, 0, 0.5),
+    -1px 1px 0 rgba(0, 0, 0, 0.5),
+    1px 1px 0 rgba(0, 0, 0, 0.5);
+}
+
 /* ============================================
    RESPONSIVE & ACCESSIBILITY
    ============================================ */
