@@ -11,7 +11,7 @@ import { roofReportService } from '@/lib/roof-report-service';
 import { leadPortalService } from '@/lib/lead-portal-service';
 import { requireAuth } from '@/lib/auth-service';
 
-export const maxDuration = 900; // roof measurement can take a while
+export const maxDuration = 300; // Vercel Pro max is 800, but 5min is plenty
 
 // ---------------------------------------------------------------------------
 // GET - Fetch existing roof reports for a specific lead
