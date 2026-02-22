@@ -69,8 +69,32 @@ export async function POST(request: NextRequest) {
         await saveToGoogleSheets(captureData);
       } catch (sheetsError) {
         console.error('[Email Capture] Google Sheets save failed:', sheetsError);
-        // Don't fail the request if Sheets fails — log and continue
       }
+    }
+
+    // Also create a lead so it goes through the full pipeline (email + distribution)
+    try {
+      const leadRes = await fetch(new URL('/api/leads/new', request.url).toString(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: captureData.name,
+          email: captureData.email,
+          phone: captureData.phone || undefined,
+          address: captureData.address || undefined,
+          source: 'email_capture',
+          sourceDetails: `Footer/Popup - ${captureData.sourcePage}`,
+          serviceType: 'General Inquiry',
+          message: `Email capture from ${captureData.sourcePage}. UTM: ${captureData.utmSource || 'direct'}/${captureData.utmMedium || 'none'}/${captureData.utmCampaign || 'none'}`,
+          sendNotifications: true,
+          notifyTeam: true,
+        }),
+      });
+      if (!leadRes.ok) {
+        console.error('[Email Capture] Lead creation failed:', leadRes.status);
+      }
+    } catch (leadErr) {
+      console.error('[Email Capture] Lead creation error:', leadErr);
     }
 
     return NextResponse.json({
