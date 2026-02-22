@@ -68,8 +68,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
   const serviceFAQs = [
     {
       question: `How much does ${service.title.toLowerCase()} cost in North Alabama?`,
-      answer: service.costRange
-        ? `${service.title} in North Alabama typically costs ${service.costRange}. The exact cost depends on your roof size, materials chosen, and project complexity. We provide free detailed quotes with no obligation.`
+      answer: `The cost of ${service.title.toLowerCase()} varies based on your specific situation. Contact us for a free inspection and detailed quote with no obligation.`, materials chosen, and project complexity. We provide free detailed quotes with no obligation.`
         : `The cost of ${service.title.toLowerCase()} varies based on your specific situation. Contact us for a free inspection and detailed quote with no obligation.`,
     },
     {
@@ -112,12 +111,6 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
             </div>
             <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 drop-shadow-lg">{service.title}</h1>
             <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-3xl drop-shadow-md">{service.description}</p>
-            {service.costRange && (
-              <div className="inline-block bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-6 py-3">
-                <span className="text-white/70 text-sm">Starting from</span>
-                <p className="text-2xl font-bold text-brand-green">{service.costRange}</p>
-              </div>
-            )}
           </div>
         </div>
       </section>

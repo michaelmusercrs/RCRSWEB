@@ -29,7 +29,7 @@ export default function HomePage() {
   const homepageFAQs = [
     {
       question: 'How much does a new roof cost in North Alabama?',
-      answer: 'A typical residential roof replacement in North Alabama ranges from $5,000 to $25,000+ depending on the size of your roof, materials chosen, and complexity of the job. We offer free inspections and detailed quotes so you know exactly what to expect.',
+      answer: 'The cost of a new roof depends on the size of your roof, materials chosen, and complexity of the job. We offer free inspections and detailed quotes so you know exactly what to expect — no obligation.',
     },
     {
       question: 'Do you offer free roof inspections?',

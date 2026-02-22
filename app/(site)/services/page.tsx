@@ -93,12 +93,6 @@ export default function ServicesPage() {
                       {service.description}
                     </p>
 
-                    {service.costRange && (
-                      <p className="text-sm font-semibold text-brand-green mb-4">
-                        {service.costRange}
-                      </p>
-                    )}
-
                     <div className="flex items-center gap-2 text-brand-blue font-semibold group-hover:gap-3 transition-all">
                       Learn More
                       <ArrowRight size={18} />
@@ -146,12 +140,6 @@ export default function ServicesPage() {
                     <p className="text-gray-600 mb-4">
                       {service.description}
                     </p>
-
-                    {service.costRange && (
-                      <p className="text-sm font-semibold text-brand-green mb-4">
-                        {service.costRange}
-                      </p>
-                    )}
 
                     <div className="flex items-center gap-2 text-brand-blue font-semibold group-hover:gap-3 transition-all">
                       Learn More
