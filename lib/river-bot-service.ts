@@ -203,26 +203,34 @@ export const riverBot = {
     await riverBot.sendPrivateDM(data.assignedRepEmail, repMsg);
   },
 
-  // Missed lead response escalation
+  // Lead response escalation — friendly, encouraging tone with increasing urgency
   async notifyMissedLeadResponse(data: {
     repName: string;
     repEmail: string;
     leadName: string;
     leadId: string;
     minutesElapsed: number;
-    action: 'reminder' | 'warning' | 'reassign';
+    action: 'reminder' | 'warning' | 'urgent_warning' | 'reassign';
   }): Promise<void> {
     const actionMap = {
-      reminder: `Please respond to lead ${data.leadName} - ${data.minutesElapsed} minutes elapsed`,
-      warning: `WARNING: Lead ${data.leadName} has been waiting ${data.minutesElapsed} minutes. Please respond immediately.`,
-      reassign: `Lead ${data.leadName} has been reassigned after ${data.minutesElapsed} minutes without response.`,
+      // 5 min — friendly nudge
+      reminder: `Hey! 👋 You've got a new lead waiting — ${data.leadName}. Give them a quick call or text when you get a sec! (${data.minutesElapsed} min)`,
+      // 20 min — still friendly, slight urgency
+      warning: `Just checking in — ${data.leadName} is still waiting to hear from you (${data.minutesElapsed} min). A quick response goes a long way! 💪`,
+      // 45 min — clear urgency, about to reassign
+      urgent_warning: `⏰ Heads up — ${data.leadName} has been waiting ${data.minutesElapsed} minutes. This lead will be reassigned in about 15 minutes if there's no response. If you're tied up, let us know!`,
+      // 60 min — reassigned
+      reassign: `Lead ${data.leadName} has been reassigned after ${data.minutesElapsed} minutes. No worries — next one's yours! 🤝`,
     };
 
     if (data.action === 'reminder') {
-      // Just DM the rep
+      // Step 1: Just DM the rep — friendly nudge
+      await riverBot.sendPrivateDM(data.repEmail, actionMap[data.action]);
+    } else if (data.action === 'warning') {
+      // Step 2: DM the rep only — still just between us
       await riverBot.sendPrivateDM(data.repEmail, actionMap[data.action]);
     } else {
-      // Escalate to rep + Chris + Michael
+      // Steps 3 & 4: Escalate to rep + Chris + Michael
       await riverBot.sendEscalation(data.repEmail, actionMap[data.action], {
         leadId: data.leadId,
         leadName: data.leadName,

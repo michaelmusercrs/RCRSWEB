@@ -1,17 +1,19 @@
+/**
+ * Unified Inventory API Route
+ * 
+ * Single entry point for all inventory operations.
+ * Uses unified-inventory-service as THE single source of truth.
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
-import { deliveryPortalService } from '@/lib/delivery-portal-service';
-import { GoogleSpreadsheet } from 'google-spreadsheet';
-import { JWT } from 'google-auth-library';
-import { groupMeService, getGroupMeConfigFromEnv } from '@/lib/groupme-service';
-
-// Service account auth for adding items
-const DELIVERY_SHEETS_ID = process.env.DELIVERY_SHEETS_ID || process.env.GOOGLE_SHEETS_ID;
-const serviceAccountAuth = new JWT({
-  email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-  key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-  scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-});
+import {
+  unifiedInventoryService,
+  resolveProductId,
+  CATEGORY_LABELS,
+  type InventoryCategory,
+  type InventoryFilters,
+} from '@/lib/unified-inventory-service';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth();
@@ -19,264 +21,271 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const category = searchParams.get('category') || undefined;
-    const lowStock = searchParams.get('lowStock') === 'true';
-    const search = searchParams.get('search')?.toLowerCase();
-
-    let inventory = lowStock
-      ? await deliveryPortalService.getLowStockItems()
-      : await deliveryPortalService.getInventory(category);
-
-    // Apply search filter if provided
-    if (search && Array.isArray(inventory)) {
-      inventory = inventory.filter(item =>
-        item.productName?.toLowerCase().includes(search) ||
-        item.productId?.toLowerCase().includes(search) ||
-        item.sku?.toLowerCase().includes(search) ||
-        item.supplier?.toLowerCase().includes(search)
-      );
-    }
-
-    return NextResponse.json(inventory);
-  } catch (error) {
-    console.error('Error fetching inventory:', error);
-    return NextResponse.json({ error: 'Failed to fetch inventory' }, { status: 500 });
-  }
-}
-
-// POST - Add new inventory item
-export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
-  if (!auth.authenticated) return auth.response;
-
-  try {
-    const data = await request.json();
-    const {
-      productId,
-      productName,
-      category,
-      sku,
-      unit,
-      currentQty,
-      minQty,
-      maxQty,
-      unitCost,
-      location,
-      supplier,
-      notes,
-    } = data;
-
-    if (!productName) {
-      return NextResponse.json({ error: 'Product name is required' }, { status: 400 });
-    }
-
-    // Validate numeric fields
-    if (unitCost !== undefined && (typeof unitCost !== 'number' || unitCost < 0)) {
-      return NextResponse.json({ error: 'Unit cost must be a non-negative number' }, { status: 400 });
-    }
-    if (currentQty !== undefined && (typeof currentQty !== 'number' || currentQty < 0)) {
-      return NextResponse.json({ error: 'Current quantity must be a non-negative number' }, { status: 400 });
-    }
-    if (minQty !== undefined && (typeof minQty !== 'number' || minQty < 0)) {
-      return NextResponse.json({ error: 'Minimum quantity must be a non-negative number' }, { status: 400 });
-    }
-    if (maxQty !== undefined && (typeof maxQty !== 'number' || maxQty < 0)) {
-      return NextResponse.json({ error: 'Maximum quantity must be a non-negative number' }, { status: 400 });
-    }
-
-    // Connect to Google Sheets
-    const doc = new GoogleSpreadsheet(DELIVERY_SHEETS_ID!, serviceAccountAuth);
-    await doc.loadInfo();
-
-    let sheet = doc.sheetsByTitle['Inventory'];
-    if (!sheet) {
-      // Create the sheet if it doesn't exist
-      sheet = await doc.addSheet({
-        title: 'Inventory',
-        headerValues: [
-          'productId', 'productName', 'category', 'sku', 'unit', 'currentQty',
-          'minQty', 'maxQty', 'unitCost', 'totalValue', 'location', 'supplier',
-          'lastCountDate', 'lastRestockDate', 'notes'
-        ]
-      });
-    }
-
-    // Generate product ID if not provided
-    const newProductId = productId || `item-${Date.now()}`;
-    const totalValue = (currentQty || 0) * (unitCost || 0);
-
-    // Add the new row
-    await sheet.addRow({
-      productId: newProductId,
-      productName,
-      category: category || '',
-      sku: sku || '',
-      unit: unit || 'each',
-      currentQty: currentQty || 0,
-      minQty: minQty || 10,
-      maxQty: maxQty || 100,
-      unitCost: unitCost || 0,
-      totalValue: totalValue.toFixed(2),
-      location: location || '',
-      supplier: supplier || '',
-      lastCountDate: '',
-      lastRestockDate: '',
-      notes: notes || '',
-    });
-
-    return NextResponse.json({
-      success: true,
-      item: {
-        productId: newProductId,
-        productName,
-        category,
-        sku,
-        unit,
-        currentQty,
-        minQty,
-        maxQty,
-        unitCost,
-        totalValue,
-        location,
-        supplier,
-        notes,
-      }
-    });
-  } catch (error) {
-    console.error('Error adding inventory item:', error);
-    return NextResponse.json({ error: 'Failed to add inventory item' }, { status: 500 });
-  }
-}
-
-export async function PATCH(request: NextRequest) {
-  const auth = await requireAuth();
-  if (!auth.authenticated) return auth.response;
-
-  try {
-    const data = await request.json();
-    const { action, productId, ...params } = data;
+    const action = searchParams.get('action') || 'list';
 
     switch (action) {
-      case 'updateQty':
-        await deliveryPortalService.updateInventoryQty(productId, params.qtyChange, params.reason);
+      case 'list': {
+        const filters: InventoryFilters = {};
+        const category = searchParams.get('category');
+        if (category) filters.category = category as InventoryCategory;
+        if (searchParams.get('lowStock') === 'true') filters.lowStock = true;
+        if (searchParams.get('outOfStock') === 'true') filters.outOfStock = true;
+        const search = searchParams.get('search');
+        if (search) filters.search = search;
+        const supplier = searchParams.get('supplier');
+        if (supplier) filters.supplier = supplier;
+        const location = searchParams.get('location');
+        if (location) filters.location = location;
 
-        // Check for low stock after update and send GroupMe notification
-        try {
-          const groupMeConfig = getGroupMeConfigFromEnv();
-          if (groupMeConfig.enabled && groupMeConfig.botId && groupMeConfig.notifyOn.lowInventory) {
-            const lowStockItems = await deliveryPortalService.getLowStockItems();
-            const updatedItem = lowStockItems.find((item: any) => item.productId === productId);
-            if (updatedItem) {
-              const notification = groupMeService.createLowInventoryNotification({
-                productName: updatedItem.productName,
-                currentQty: updatedItem.currentQty,
-                minQty: updatedItem.minQty,
-                location: updatedItem.location,
-              });
-              await groupMeService.sendNotification(groupMeConfig, notification);
-            }
-          }
-        } catch (notifyError) {
-          console.error('Failed to send low inventory notification:', notifyError);
-        }
+        const inventory = await unifiedInventoryService.getInventory(filters);
+        const value = await unifiedInventoryService.getInventoryValue();
+        return NextResponse.json({ items: inventory, ...value });
+      }
 
-        return NextResponse.json({ success: true });
+      case 'item': {
+        const productId = searchParams.get('productId');
+        if (!productId) return NextResponse.json({ error: 'productId required' }, { status: 400 });
+        const item = await unifiedInventoryService.getItemById(productId);
+        if (!item) return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+        return NextResponse.json(item);
+      }
 
-      case 'submitCount':
-        if (params.actualQty === undefined || typeof params.actualQty !== 'number' || params.actualQty < 0) {
-          return NextResponse.json({ error: 'Valid actualQty is required (must be a non-negative number)' }, { status: 400 });
-        }
-        const result = await deliveryPortalService.submitInventoryCount(
-          productId,
-          params.actualQty,
-          params.countedBy,
-          params.notes
-        );
-        return NextResponse.json(result);
+      case 'alerts': {
+        const alerts = await unifiedInventoryService.getStockAlerts();
+        return NextResponse.json(alerts);
+      }
 
-      case 'updateItem':
-        // Full item update - connect directly to sheet
-        const doc = new GoogleSpreadsheet(DELIVERY_SHEETS_ID!, serviceAccountAuth);
-        await doc.loadInfo();
-        const sheet = doc.sheetsByTitle['Inventory'];
+      case 'lowStock': {
+        const items = await unifiedInventoryService.getLowStockItems();
+        return NextResponse.json(items);
+      }
 
-        if (!sheet) {
-          return NextResponse.json({ error: 'Inventory sheet not found' }, { status: 404 });
-        }
+      case 'transactions': {
+        const productId = searchParams.get('productId') || undefined;
+        const limit = parseInt(searchParams.get('limit') || '50');
+        const transactions = await unifiedInventoryService.getTransactions(productId, limit);
+        return NextResponse.json(transactions);
+      }
 
-        const rows = await sheet.getRows();
-        const row = rows.find(r => r.get('productId') === productId);
+      case 'categories': {
+        const breakdown = await unifiedInventoryService.getCategoryBreakdown();
+        return NextResponse.json(breakdown);
+      }
 
-        if (!row) {
-          return NextResponse.json({ error: `Item not found: ${productId}` }, { status: 404 });
-        }
+      case 'suppliers': {
+        const suppliers = await unifiedInventoryService.getSuppliers();
+        return NextResponse.json(suppliers);
+      }
 
-        // Update fields
-        if (params.productName !== undefined) row.set('productName', params.productName);
-        if (params.category !== undefined) row.set('category', params.category);
-        if (params.sku !== undefined) row.set('sku', params.sku);
-        if (params.unit !== undefined) row.set('unit', params.unit);
-        if (params.currentQty !== undefined) {
-          row.set('currentQty', params.currentQty);
-          const unitCost = parseFloat(row.get('unitCost')) || 0;
-          row.set('totalValue', (params.currentQty * unitCost).toFixed(2));
-        }
-        if (params.minQty !== undefined) row.set('minQty', params.minQty);
-        if (params.maxQty !== undefined) row.set('maxQty', params.maxQty);
-        if (params.unitCost !== undefined) {
-          row.set('unitCost', params.unitCost);
-          const currentQty = parseFloat(row.get('currentQty')) || 0;
-          row.set('totalValue', (currentQty * params.unitCost).toFixed(2));
-        }
-        if (params.location !== undefined) row.set('location', params.location);
-        if (params.supplier !== undefined) row.set('supplier', params.supplier);
-        if (params.notes !== undefined) row.set('notes', params.notes);
+      case 'pricing': {
+        const report = await unifiedInventoryService.getPricingReport();
+        return NextResponse.json(report);
+      }
 
-        await row.save();
-        return NextResponse.json({ success: true });
+      case 'pricingHistory': {
+        const productId = searchParams.get('productId');
+        if (!productId) return NextResponse.json({ error: 'productId required' }, { status: 400 });
+        const history = await unifiedInventoryService.getPricingHistory(productId);
+        return NextResponse.json(history);
+      }
+
+      case 'restockSuggestions': {
+        const suggestions = await unifiedInventoryService.getRestockSuggestions();
+        return NextResponse.json(suggestions);
+      }
+
+      case 'restockOrders': {
+        const status = searchParams.get('status') as any;
+        const orders = await unifiedInventoryService.getRestockOrders(status || undefined);
+        return NextResponse.json(orders);
+      }
+
+      case 'countSessions': {
+        const sessions = await unifiedInventoryService.getCountSessions();
+        return NextResponse.json(sessions);
+      }
+
+      case 'countRecords': {
+        const sessionId = searchParams.get('sessionId');
+        if (!sessionId) return NextResponse.json({ error: 'sessionId required' }, { status: 400 });
+        const records = await unifiedInventoryService.getCountRecords(sessionId);
+        return NextResponse.json(records);
+      }
+
+      case 'activeCount': {
+        const session = await unifiedInventoryService.getActiveCountSession();
+        return NextResponse.json(session || null);
+      }
+
+      case 'returnTickets': {
+        const type = searchParams.get('type') as any;
+        const status = searchParams.get('status') as any;
+        const tickets = await unifiedInventoryService.getReturnTickets(type || undefined, status || undefined);
+        return NextResponse.json(tickets);
+      }
+
+      case 'returnTicket': {
+        const ticketId = searchParams.get('ticketId');
+        if (!ticketId) return NextResponse.json({ error: 'ticketId required' }, { status: 400 });
+        const ticket = await unifiedInventoryService.getReturnTicketById(ticketId);
+        if (!ticket) return NextResponse.json({ error: 'Ticket not found' }, { status: 404 });
+        return NextResponse.json(ticket);
+      }
+
+      case 'holds': {
+        const orderId = searchParams.get('orderId') || undefined;
+        const holds = await unifiedInventoryService.getActiveHolds(orderId);
+        return NextResponse.json(holds);
+      }
+
+      case 'activity': {
+        const limit = parseInt(searchParams.get('limit') || '20');
+        const activity = await unifiedInventoryService.getRecentActivity(limit);
+        return NextResponse.json(activity);
+      }
+
+      case 'forRole': {
+        const role = searchParams.get('role') || auth.user.role;
+        const items = await unifiedInventoryService.getInventoryForRole(role);
+        return NextResponse.json(items);
+      }
 
       default:
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
   } catch (error) {
-    console.error('Error updating inventory:', error);
-    return NextResponse.json({ error: 'Failed to update inventory' }, { status: 500 });
+    console.error('Inventory API error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
-// DELETE - Remove inventory item from Google Sheets
-export async function DELETE(request: NextRequest) {
+export async function POST(request: NextRequest) {
   const auth = await requireAuth();
   if (!auth.authenticated) return auth.response;
 
   try {
-    const { searchParams } = new URL(request.url);
-    const productId = searchParams.get('productId');
+    const body = await request.json();
+    const { action } = body;
 
-    if (!productId) {
-      return NextResponse.json({ error: 'productId is required' }, { status: 400 });
+    switch (action) {
+      case 'addItem': {
+        const item = await unifiedInventoryService.addItem(body.item);
+        return NextResponse.json(item, { status: 201 });
+      }
+
+      case 'updateItem': {
+        const item = await unifiedInventoryService.updateItem(body.productId, body.updates);
+        if (!item) return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+        return NextResponse.json(item);
+      }
+
+      case 'deactivateItem': {
+        const success = await unifiedInventoryService.deactivateItem(body.productId);
+        return NextResponse.json({ success });
+      }
+
+      case 'deductStock': {
+        const txn = await unifiedInventoryService.deductStock(
+          body.productId, body.quantity, body.referenceId, body.referenceType,
+          auth.user.userId, auth.user.name, body.notes || ''
+        );
+        if (!txn) return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+        return NextResponse.json(txn);
+      }
+
+      case 'addStock': {
+        const txn = await unifiedInventoryService.addStock(
+          body.productId, body.quantity, body.type || 'adjustment',
+          body.referenceId || 'manual', body.referenceType || 'manual',
+          auth.user.userId, auth.user.name, body.notes || ''
+        );
+        if (!txn) return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+        return NextResponse.json(txn);
+      }
+
+      case 'updatePricing': {
+        const item = await unifiedInventoryService.updatePricing(
+          body.productId, body.newCost, body.newPrice, auth.user.name, body.reason
+        );
+        if (!item) return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+        return NextResponse.json(item);
+      }
+
+      case 'placeHold': {
+        const hold = await unifiedInventoryService.placeHold(
+          body.productId, body.quantity, body.orderId, body.orderType, auth.user.userId
+        );
+        if (!hold) return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+        return NextResponse.json(hold);
+      }
+
+      case 'releaseHold': {
+        const success = await unifiedInventoryService.releaseHold(body.holdId);
+        return NextResponse.json({ success });
+      }
+
+      case 'initiateCount': {
+        const session = await unifiedInventoryService.initiateWeeklyCount(auth.user.userId, auth.user.name);
+        return NextResponse.json(session, { status: 201 });
+      }
+
+      case 'recordCount': {
+        const record = await unifiedInventoryService.recordCount(
+          body.sessionId, body.productId, body.countedQty,
+          auth.user.userId, auth.user.name, body.photoUrl, body.notes
+        );
+        if (!record) return NextResponse.json({ error: 'Invalid session or product' }, { status: 400 });
+        return NextResponse.json(record);
+      }
+
+      case 'resolveDiscrepancy': {
+        const success = await unifiedInventoryService.resolveDiscrepancy(
+          body.recordId, body.resolution, body.adjustedQty, body.reason, auth.user.name
+        );
+        return NextResponse.json({ success });
+      }
+
+      case 'createRestockOrder': {
+        const order = await unifiedInventoryService.createRestockOrder(
+          body.items, auth.user.userId, auth.user.name, body.supplier, body.notes
+        );
+        return NextResponse.json(order, { status: 201 });
+      }
+
+      case 'updateRestockStatus': {
+        const order = await unifiedInventoryService.updateRestockStatus(body.orderId, body.status, auth.user.name);
+        if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+        return NextResponse.json(order);
+      }
+
+      case 'receiveRestock': {
+        const order = await unifiedInventoryService.receiveRestock(
+          body.orderId, body.receivedItems, auth.user.userId, auth.user.name
+        );
+        if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+        return NextResponse.json(order);
+      }
+
+      case 'createReturnTicket': {
+        const ticket = await unifiedInventoryService.createReturnTicket({
+          ...body,
+          createdBy: auth.user.userId,
+          createdByName: auth.user.name,
+        });
+        return NextResponse.json(ticket, { status: 201 });
+      }
+
+      case 'updateReturnStatus': {
+        const ticket = await unifiedInventoryService.updateReturnStatus(body.ticketId, body.status, body.updates);
+        if (!ticket) return NextResponse.json({ error: 'Ticket not found' }, { status: 404 });
+        return NextResponse.json(ticket);
+      }
+
+      default:
+        return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
-
-    const doc = new GoogleSpreadsheet(DELIVERY_SHEETS_ID!, serviceAccountAuth);
-    await doc.loadInfo();
-    const sheet = doc.sheetsByTitle['Inventory'];
-
-    if (!sheet) {
-      return NextResponse.json({ error: 'Inventory sheet not found' }, { status: 404 });
-    }
-
-    const rows = await sheet.getRows();
-    const rowIndex = rows.findIndex(r => r.get('productId') === productId);
-
-    if (rowIndex === -1) {
-      return NextResponse.json({ error: `Item not found: ${productId}` }, { status: 404 });
-    }
-
-    await rows[rowIndex].delete();
-
-    return NextResponse.json({ success: true, message: `Item ${productId} deleted` });
   } catch (error) {
-    console.error('Error deleting inventory item:', error);
-    return NextResponse.json({ error: 'Failed to delete inventory item' }, { status: 500 });
+    console.error('Inventory POST error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -11,19 +11,22 @@ export interface TimerState {
   assignedAt: Date;
   reminderSent: boolean;
   warningSent: boolean;
+  urgentWarningSent: boolean;
   firstContactAt?: Date;
   responseMinutes?: number;
 }
 
 export interface TimerConfig {
-  reminderMinutes: number;
-  warningMinutes: number;
-  reassignMinutes: number;
+  reminderMinutes: number;       // Step 1: Friendly "hey you got a lead" nudge
+  warningMinutes: number;        // Step 2: "Still waiting on you" reminder
+  urgentWarningMinutes: number;  // Step 3: "About to be reassigned" final warning
+  reassignMinutes: number;       // Step 4: Auto-reassign through portal
 }
 
 const DEFAULT_CONFIG: TimerConfig = {
-  reminderMinutes: 10,
-  warningMinutes: 30,
+  reminderMinutes: 5,
+  warningMinutes: 20,
+  urgentWarningMinutes: 45,
   reassignMinutes: 60,
 };
 
@@ -51,6 +54,7 @@ class LeadResponseTimerService {
       assignedAt: now,
       reminderSent: false,
       warningSent: false,
+      urgentWarningSent: false,
     };
 
     this.activeTimers.set(leadId, timer);
@@ -104,14 +108,17 @@ class LeadResponseTimerService {
   }
 
   // Check all active timers and return actions needed
+  // 4-step escalation: reminder (5m) → warning (20m) → urgent warning (45m) → reassign (60m)
   checkTimers(): {
     reminders: TimerState[];
     warnings: TimerState[];
+    urgentWarnings: TimerState[];
     reassignments: TimerState[];
   } {
     const now = new Date();
     const reminders: TimerState[] = [];
     const warnings: TimerState[] = [];
+    const urgentWarnings: TimerState[] = [];
     const reassignments: TimerState[] = [];
 
     for (const [leadId, timer] of this.activeTimers) {
@@ -121,6 +128,8 @@ class LeadResponseTimerService {
 
       if (elapsedMinutes >= this.config.reassignMinutes) {
         reassignments.push(timer);
+      } else if (elapsedMinutes >= this.config.urgentWarningMinutes && !timer.urgentWarningSent) {
+        urgentWarnings.push(timer);
       } else if (elapsedMinutes >= this.config.warningMinutes && !timer.warningSent) {
         warnings.push(timer);
       } else if (elapsedMinutes >= this.config.reminderMinutes && !timer.reminderSent) {
@@ -128,7 +137,7 @@ class LeadResponseTimerService {
       }
     }
 
-    return { reminders, warnings, reassignments };
+    return { reminders, warnings, urgentWarnings, reassignments };
   }
 
   // Mark reminder as sent
@@ -150,6 +159,17 @@ class LeadResponseTimerService {
     }
     await googleSheetsService.updateLeadResponseLog(leadId, {
       warningSentAt: new Date().toISOString(),
+    });
+  }
+
+  // Mark urgent warning as sent (45 min - "about to be reassigned")
+  async markUrgentWarningSent(leadId: string): Promise<void> {
+    const timer = this.activeTimers.get(leadId);
+    if (timer) {
+      timer.urgentWarningSent = true;
+    }
+    await googleSheetsService.updateLeadResponseLog(leadId, {
+      urgentWarningSentAt: new Date().toISOString(),
     });
   }
 

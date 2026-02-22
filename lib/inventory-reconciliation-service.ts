@@ -277,7 +277,7 @@ class InventoryReconciliationService {
     const jobDeliveryInvoices = deliveryInvoices.filter(inv => inv.jobId === jobId);
 
     // 4. Get inventory items
-    const inventory = inventoryManagementService.getInventory();
+    const inventory = await inventoryManagementService.getInventory();
 
     // 5. Reconcile each material in the breakdown
     const materialResults: MaterialReconciliationItem[] = [];

@@ -42,6 +42,7 @@ export interface LeadDistroConfig {
   responseTimers: {
     reminderMinutes: number;
     warningMinutes: number;
+    urgentWarningMinutes: number;
     reassignMinutes: number;
   };
   counties: string[];

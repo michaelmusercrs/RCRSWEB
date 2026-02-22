@@ -1,16 +1,17 @@
+/**
+ * Inventory Management API Route
+ * 
+ * Delegates to unified-inventory-service.
+ * Maintained for backward compatibility with the management page.
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import {
-  inventoryManagementService,
+  unifiedInventoryService,
+  CATEGORY_LABELS,
   type InventoryCategory,
-  type DiscrepancyResolution,
-  type DiscrepancyReason,
-  type RestockOrderStatus,
-} from '@/lib/inventory-management-service';
-
-// ============================================
-// GET - Inventory list with filtering
-// ============================================
+} from '@/lib/unified-inventory-service';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth();
@@ -25,104 +26,66 @@ export async function GET(request: NextRequest) {
     const supplier = searchParams.get('supplier') || undefined;
     const view = searchParams.get('view');
 
-    // Ensure Google Sheets data is loaded
-    await inventoryManagementService.ensureSheetsLoaded();
-
-    // Special views
     if (view === 'alerts') {
-      return NextResponse.json({ alerts: inventoryManagementService.getStockAlerts() });
+      const alerts = await unifiedInventoryService.getStockAlerts();
+      return NextResponse.json({ alerts });
     }
     if (view === 'suggestions') {
-      return NextResponse.json({ suggestions: inventoryManagementService.getRestockSuggestions() });
+      const suggestions = await unifiedInventoryService.getRestockSuggestions();
+      return NextResponse.json({ suggestions });
     }
     if (view === 'pricing-report') {
-      return NextResponse.json({ report: inventoryManagementService.getPricingReport() });
-    }
-    if (view === 'margins') {
-      return NextResponse.json({ margins: inventoryManagementService.calculateMargins() });
-    }
-    if (view === 'pricing-issues') {
-      return NextResponse.json({ issues: inventoryManagementService.flagPricingIssues() });
+      const report = await unifiedInventoryService.getPricingReport();
+      return NextResponse.json({ report });
     }
     if (view === 'count-history') {
-      return NextResponse.json({ sessions: inventoryManagementService.getCountHistory() });
+      const sessions = await unifiedInventoryService.getCountSessions();
+      return NextResponse.json({ sessions });
     }
     if (view === 'restock-orders') {
-      const status = searchParams.get('status') as RestockOrderStatus | null;
-      return NextResponse.json({ orders: inventoryManagementService.getRestockOrders(status ? { status } : undefined) });
+      const status = searchParams.get('status') as any;
+      const orders = await unifiedInventoryService.getRestockOrders(status || undefined);
+      return NextResponse.json({ orders });
     }
     if (view === 'category-breakdown') {
-      return NextResponse.json({ categories: inventoryManagementService.getCategoryBreakdown() });
+      const categories = await unifiedInventoryService.getCategoryBreakdown();
+      return NextResponse.json({ categories });
     }
     if (view === 'inventory-value') {
-      return NextResponse.json(inventoryManagementService.getInventoryValue());
+      const value = await unifiedInventoryService.getInventoryValue();
+      return NextResponse.json(value);
     }
     if (view === 'activity') {
-      return NextResponse.json({ activity: inventoryManagementService.getRecentActivity() });
+      const activity = await unifiedInventoryService.getRecentActivity();
+      return NextResponse.json({ activity });
     }
     if (view === 'suppliers') {
-      return NextResponse.json({ suppliers: inventoryManagementService.getSuppliers() });
-    }
-    if (view === 'stock-trend') {
-      const productId = searchParams.get('productId');
-      const days = parseInt(searchParams.get('days') || '30');
-      if (!productId) {
-        return NextResponse.json({ error: 'productId required' }, { status: 400 });
-      }
-      return NextResponse.json({ trend: inventoryManagementService.getStockTrend(productId, days) });
-    }
-    if (view === 'item') {
-      const productId = searchParams.get('productId');
-      if (!productId) {
-        return NextResponse.json({ error: 'productId required' }, { status: 400 });
-      }
-      const item = inventoryManagementService.getItemById(productId);
-      if (!item) {
-        return NextResponse.json({ error: 'Item not found' }, { status: 404 });
-      }
-      return NextResponse.json({ item });
-    }
-    if (view === 'pricing-history') {
-      const productId = searchParams.get('productId');
-      if (!productId) {
-        return NextResponse.json({ error: 'productId required' }, { status: 400 });
-      }
-      return NextResponse.json({ history: inventoryManagementService.getPricingHistory(productId) });
-    }
-    if (view === 'active-count') {
-      const session = inventoryManagementService.getActiveCountSession();
-      return NextResponse.json({ session: session || null });
-    }
-    if (view === 'count-progress') {
-      const sessionId = searchParams.get('sessionId');
-      if (!sessionId) {
-        return NextResponse.json({ error: 'sessionId required' }, { status: 400 });
-      }
-      return NextResponse.json({ progress: inventoryManagementService.getCountProgress(sessionId) });
-    }
-    if (view === 'alert-rules') {
-      return NextResponse.json({ rules: inventoryManagementService.getAlertRules() });
+      const suppliers = await unifiedInventoryService.getSuppliers();
+      return NextResponse.json({ suppliers });
     }
 
-    // Default: full inventory with filters
-    const inventory = inventoryManagementService.getInventory({
+    // Default: filtered inventory list
+    const items = await unifiedInventoryService.getInventory({
       category: category || undefined,
       search,
-      lowStock,
-      outOfStock,
+      lowStock: lowStock || undefined,
+      outOfStock: outOfStock || undefined,
       supplier,
     });
+    const value = await unifiedInventoryService.getInventoryValue();
+    const alerts = await unifiedInventoryService.getStockAlerts();
 
-    return NextResponse.json({ inventory, total: inventory.length });
+    return NextResponse.json({
+      items,
+      ...value,
+      alertCount: alerts.length,
+      categories: Object.entries(CATEGORY_LABELS).map(([key, label]) => ({ key, label })),
+    });
   } catch (error) {
     console.error('Inventory management GET error:', error);
-    return NextResponse.json({ error: 'Failed to fetch inventory data' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
-
-// ============================================
-// POST - Actions
-// ============================================
 
 export async function POST(request: NextRequest) {
   const auth = await requireAuth();
@@ -132,171 +95,61 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { action } = body;
 
-    // Ensure Google Sheets data is loaded
-    await inventoryManagementService.ensureSheetsLoaded();
-
     switch (action) {
-      // --- Count Operations ---
       case 'start-count': {
-        const { countedBy } = body;
-        if (!countedBy) {
-          return NextResponse.json({ error: 'countedBy is required' }, { status: 400 });
-        }
-        const existing = inventoryManagementService.getActiveCountSession();
-        if (existing) {
-          return NextResponse.json({ error: 'A count session is already in progress', session: existing }, { status: 409 });
-        }
-        const session = inventoryManagementService.initiateWeeklyCount(countedBy);
-        return NextResponse.json({ success: true, session });
+        const session = await unifiedInventoryService.initiateWeeklyCount(auth.user.userId, auth.user.name);
+        return NextResponse.json({ session });
       }
 
       case 'record-count': {
-        const { productId, countedQty, countedBy, notes } = body;
-        if (!productId || countedQty === undefined || !countedBy) {
-          return NextResponse.json({ error: 'productId, countedQty, and countedBy are required' }, { status: 400 });
-        }
-        const record = inventoryManagementService.recordCount(productId, countedQty, countedBy, notes);
-        if (!record) {
-          return NextResponse.json({ error: 'No active count session or item not found' }, { status: 400 });
-        }
-        return NextResponse.json({ success: true, record });
+        const record = await unifiedInventoryService.recordCount(
+          body.sessionId, body.productId, body.countedQty,
+          auth.user.userId, auth.user.name, body.photoUrl, body.notes
+        );
+        return NextResponse.json({ record });
       }
 
       case 'resolve-discrepancy': {
-        const { productId, resolution, adjustedQty, reason, resolvedBy } = body;
-        if (!productId || !resolution || adjustedQty === undefined || !reason) {
-          return NextResponse.json({ error: 'productId, resolution, adjustedQty, and reason are required' }, { status: 400 });
-        }
-        const resolved = inventoryManagementService.resolveDiscrepancy(
-          productId,
-          resolution as DiscrepancyResolution,
-          adjustedQty,
-          reason as DiscrepancyReason,
-          resolvedBy || auth.user.name
+        const success = await unifiedInventoryService.resolveDiscrepancy(
+          body.recordId || body.productId, body.resolution, body.adjustedQty, body.reason, auth.user.name
         );
-        if (!resolved) {
-          return NextResponse.json({ error: 'Could not resolve discrepancy' }, { status: 400 });
-        }
-        return NextResponse.json({ success: true });
+        return NextResponse.json({ success });
       }
 
-      // --- Restock Operations ---
-      case 'create-restock-order': {
-        const { items, supplier, notes: orderNotes } = body;
-        if (!items || !Array.isArray(items) || items.length === 0) {
-          return NextResponse.json({ error: 'items array is required' }, { status: 400 });
-        }
-        const order = inventoryManagementService.createRestockOrder(
-          items,
-          auth.user.name || 'Admin',
-          supplier,
-          orderNotes
+      case 'create-restock': {
+        const order = await unifiedInventoryService.createRestockOrder(
+          body.items, auth.user.userId, auth.user.name, body.supplier, body.notes
         );
-        return NextResponse.json({ success: true, order });
+        return NextResponse.json({ order });
       }
 
       case 'approve-restock': {
-        const { orderId } = body;
-        if (!orderId) {
-          return NextResponse.json({ error: 'orderId is required' }, { status: 400 });
-        }
-        const order = inventoryManagementService.approveRestockOrder(orderId, auth.user.name || 'Admin');
-        if (!order) {
-          return NextResponse.json({ error: 'Order not found or cannot be approved' }, { status: 400 });
-        }
-        return NextResponse.json({ success: true, order });
+        const order = await unifiedInventoryService.updateRestockStatus(body.orderId, 'approved', auth.user.name);
+        return NextResponse.json({ order });
       }
 
       case 'receive-restock': {
-        const { orderId, receivedItems } = body;
-        if (!orderId || !receivedItems || !Array.isArray(receivedItems)) {
-          return NextResponse.json({ error: 'orderId and receivedItems are required' }, { status: 400 });
-        }
-        const order = inventoryManagementService.receiveRestock(orderId, receivedItems);
-        if (!order) {
-          return NextResponse.json({ error: 'Order not found' }, { status: 400 });
-        }
-        return NextResponse.json({ success: true, order });
-      }
-
-      // --- Pricing Operations ---
-      case 'update-pricing': {
-        const { productId, newCost, newPrice, reason: pricingReason } = body;
-        if (!productId || newCost === undefined || newPrice === undefined) {
-          return NextResponse.json({ error: 'productId, newCost, and newPrice are required' }, { status: 400 });
-        }
-        const item = inventoryManagementService.updatePricing(
-          productId,
-          newCost,
-          newPrice,
-          auth.user.name || 'Admin',
-          pricingReason
+        const order = await unifiedInventoryService.receiveRestock(
+          body.orderId, body.receivedItems, auth.user.userId, auth.user.name
         );
-        if (!item) {
-          return NextResponse.json({ error: 'Item not found' }, { status: 404 });
-        }
-        return NextResponse.json({ success: true, item });
+        return NextResponse.json({ order });
       }
 
-      // --- Item CRUD ---
-      case 'add-item': {
-        const { itemData } = body;
-        if (!itemData || !itemData.productName || !itemData.category) {
-          return NextResponse.json({ error: 'itemData with productName and category is required' }, { status: 400 });
-        }
-        const item = inventoryManagementService.addItem(itemData);
-        return NextResponse.json({ success: true, item });
+      case 'update-pricing': {
+        const item = await unifiedInventoryService.updatePricing(
+          body.productId, body.newCost, body.newPrice, auth.user.name, body.reason
+        );
+        return NextResponse.json({ item });
       }
 
       case 'update-item': {
-        const { productId, updates } = body;
-        if (!productId || !updates) {
-          return NextResponse.json({ error: 'productId and updates are required' }, { status: 400 });
-        }
-        const item = inventoryManagementService.updateItem(productId, updates);
-        if (!item) {
-          return NextResponse.json({ error: 'Item not found' }, { status: 404 });
-        }
-        return NextResponse.json({ success: true, item });
+        const item = await unifiedInventoryService.updateItem(body.productId, body.updates);
+        return NextResponse.json({ item });
       }
 
-      // --- Alert Operations ---
-      case 'get-alerts': {
-        const alerts = inventoryManagementService.getStockAlerts();
-        return NextResponse.json({ alerts });
-      }
-
-      case 'get-suggestions': {
-        const suggestions = inventoryManagementService.getRestockSuggestions();
-        return NextResponse.json({ suggestions });
-      }
-
-      case 'pricing-report': {
-        const report = inventoryManagementService.getPricingReport();
-        const margins = inventoryManagementService.calculateMargins();
-        const issues = inventoryManagementService.flagPricingIssues();
-        return NextResponse.json({ report, margins, issues });
-      }
-
-      case 'set-alert-rule': {
-        const { productId, threshold, notifyRoles } = body;
-        if (!productId || threshold === undefined || !notifyRoles) {
-          return NextResponse.json({ error: 'productId, threshold, and notifyRoles are required' }, { status: 400 });
-        }
-        const rule = inventoryManagementService.setStockAlert(productId, threshold, notifyRoles);
-        return NextResponse.json({ success: true, rule });
-      }
-
-      case 'update-order-status': {
-        const { orderId, status } = body;
-        if (!orderId || !status) {
-          return NextResponse.json({ error: 'orderId and status are required' }, { status: 400 });
-        }
-        const order = inventoryManagementService.updateRestockOrderStatus(orderId, status as RestockOrderStatus);
-        if (!order) {
-          return NextResponse.json({ error: 'Order not found' }, { status: 400 });
-        }
-        return NextResponse.json({ success: true, order });
+      case 'add-item': {
+        const item = await unifiedInventoryService.addItem(body.item);
+        return NextResponse.json({ item });
       }
 
       default:

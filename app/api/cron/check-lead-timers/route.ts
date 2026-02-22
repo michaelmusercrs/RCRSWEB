@@ -37,13 +37,14 @@ export async function GET(request: NextRequest) {
     leadResponseTimerService.setConfig({
       reminderMinutes: config.responseTimers.reminderMinutes,
       warningMinutes: config.responseTimers.warningMinutes,
+      urgentWarningMinutes: config.responseTimers.urgentWarningMinutes || 45,
       reassignMinutes: config.responseTimers.reassignMinutes,
     });
 
-    const { reminders, warnings, reassignments } = leadResponseTimerService.checkTimers();
+    const { reminders, warnings, urgentWarnings, reassignments } = leadResponseTimerService.checkTimers();
     const actions: string[] = [];
 
-    // Process reminders
+    // Step 1: Friendly reminder (5 min)
     for (const timer of reminders) {
       const elapsed = Math.round((Date.now() - timer.assignedAt.getTime()) / (1000 * 60));
       await riverBot.notifyMissedLeadResponse({
@@ -58,7 +59,7 @@ export async function GET(request: NextRequest) {
       actions.push(`reminder:${timer.leadId}`);
     }
 
-    // Process warnings
+    // Step 2: Follow-up reminder (20 min)
     for (const timer of warnings) {
       const elapsed = Math.round((Date.now() - timer.assignedAt.getTime()) / (1000 * 60));
       await riverBot.notifyMissedLeadResponse({
@@ -71,6 +72,21 @@ export async function GET(request: NextRequest) {
       });
       await leadResponseTimerService.markWarningSent(timer.leadId);
       actions.push(`warning:${timer.leadId}`);
+    }
+
+    // Step 3: Urgent warning — about to be reassigned (45 min)
+    for (const timer of urgentWarnings) {
+      const elapsed = Math.round((Date.now() - timer.assignedAt.getTime()) / (1000 * 60));
+      await riverBot.notifyMissedLeadResponse({
+        repName: timer.repSlug,
+        repEmail: getRepEmail(timer.repSlug),
+        leadName: timer.customerName,
+        leadId: timer.leadId,
+        minutesElapsed: elapsed,
+        action: 'urgent_warning',
+      });
+      await leadResponseTimerService.markUrgentWarningSent(timer.leadId);
+      actions.push(`urgent_warning:${timer.leadId}`);
     }
 
     // Process reassignments
