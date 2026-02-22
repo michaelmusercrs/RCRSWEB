@@ -22,6 +22,10 @@ const PUBLIC_ROUTES = new Set([
   '/terms',
   '/bni',
   '/contact',
+  '/community',
+  '/careers',
+  '/thank-you',
+  '/offline',
   '/sitemap.xml',
   '/robots.txt',
 ]);
@@ -33,6 +37,7 @@ const PUBLIC_PREFIXES = [
   '/locations/',
   '/service-areas/',
   '/team/',
+  '/p/',          // short links
 ];
 
 // Internal portal prefixes allowed on rcrsal.com
@@ -213,13 +218,19 @@ export function middleware(request: NextRequest) {
       return NextResponse.next();
     }
 
-    // Allow portal routes on the public domain too (rcrsal.com SSL not configured yet)
+    // Block portal/admin/dashboard routes on the public domain — redirect to rcrsal.com
     if (isPortalRoute(pathname)) {
-      return NextResponse.next();
+      const redirectUrl = new URL(pathname + request.nextUrl.search, PORTAL_URL);
+      return NextResponse.redirect(redirectUrl, 308);
     }
 
-    // For any other unrecognized route on the public domain, let Next.js handle it
-    // (it will show 404 if the page doesn't exist)
+    // Block known internal/debug routes
+    const blockedPrefixes = ['/test-debug', '/secret-deals', '/report', '/dashboard', '/admin'];
+    if (blockedPrefixes.some(p => pathname.startsWith(p))) {
+      return NextResponse.rewrite(new URL('/not-found', request.url));
+    }
+
+    // For any other unrecognized route, let Next.js handle it (will 404 naturally)
     return NextResponse.next();
   }
 
