@@ -14,6 +14,7 @@ import PromoBanner from '@/components/PromoBanner';
 import CookieConsent from '@/components/CookieConsent';
 import EmailCapturePopup from '@/components/EmailCapturePopup';
 import TrackingProvider from '@/components/TrackingProvider';
+import AnalyticsTracker from '@/components/AnalyticsTracker';
 import { generateMetadata, generateLocalBusinessSchema, generateWebSiteSchema, getStructuredDataScript, siteConfig } from '@/lib/seo';
 
 // Tracking IDs from environment variables
@@ -140,6 +141,7 @@ export default function RootLayout({
         </a>
         <Suspense fallback={null}>
           <TrackingProvider>
+            <AnalyticsTracker />
             <div className="sticky top-0 z-50">
               <PromoBanner />
               <Header />

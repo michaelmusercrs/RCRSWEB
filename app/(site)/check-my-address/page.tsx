@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import AddressAutocomplete, { AddressResult } from '@/components/AddressAutocomplete';
+import { trackingService, getLeadSourceSummary, getJobNimbusSource } from '@/lib/tracking-service';
 import {
   CloudLightning,
   Shield,
@@ -535,7 +536,15 @@ export default function CheckMyAddressPage() {
         setEmailSent(true); // Still show confirmation to avoid confusion
       });
 
+      // Track storm report form completion
+      trackingService.trackFormComplete('storm_report_form', {
+        form_name: 'storm_report_form',
+        source_page: 'Check My Address',
+      });
+
       // 3. Create lead in background (fire and forget - don't block report display)
+      const leadSource = getLeadSourceSummary();
+      const jobNimbusSource = getJobNimbusSource();
       fetch('/api/leads/new', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -548,7 +557,8 @@ export default function CheckMyAddressPage() {
           state: data.state,
           zip: data.zip,
           source: 'contact_form',
-          sourceDetails: 'Check My Address - Storm Report',
+          sourceDetails: `Check My Address - Storm Report | ${leadSource}`,
+          sourcePage: 'Check My Address',
           serviceType: 'Storm/Hail Inspection',
           message: `Auto-generated from Check My Address. Risk Level: ${reportResult.data.riskLevel} (${reportResult.data.riskScore}/100). Report ID: ${reportResult.data.reportId}.`,
           sendNotifications: true,
