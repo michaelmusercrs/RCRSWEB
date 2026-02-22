@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Heart, Users, GraduationCap, Trophy, ArrowRight, Phone } from 'lucide-react';
+import { Heart, Users, GraduationCap, Trophy, ArrowRight, Phone, Shield, Flame, Baby, Handshake, Church, Medal } from 'lucide-react';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -19,10 +19,10 @@ export const metadata: Metadata = {
 
 const sponsorships = [
   {
-    name: 'River City Netreapers',
+    name: 'River City Net Reapers',
     type: 'Youth Sports',
     description:
-      'Proud sponsor of the River City Netreapers, supporting local youth athletics and helping young athletes pursue their passion.',
+      'Proud long-time supporters of the River City Net Reapers, helping young athletes pursue their passion in local youth athletics.',
     icon: Trophy,
   },
   {
@@ -33,6 +33,13 @@ const sponsorships = [
     icon: GraduationCap,
   },
   {
+    name: 'West Morgan High School',
+    type: 'Youth Sports',
+    description:
+      'Sponsoring volleyball, basketball, and athletic programs at West Morgan High School.',
+    icon: Medal,
+  },
+  {
     name: 'Austin High School',
     type: 'Education',
     description:
@@ -40,10 +47,94 @@ const sponsorships = [
     icon: GraduationCap,
   },
   {
-    name: 'Decatur Heritage Christian Academy',
+    name: 'Decatur Police FOP',
+    type: 'First Responders',
+    description:
+      'Supporting our local Fraternal Order of Police — backing the men and women who protect our community every day.',
+    icon: Shield,
+  },
+  {
+    name: 'Decatur Fire & Rescue',
+    type: 'First Responders',
+    description:
+      'Proud supporters of Decatur Fire & Rescue and the brave firefighters who keep our families safe.',
+    icon: Flame,
+  },
+  {
+    name: 'The Mac Kent Memorial Fund',
+    type: 'Community',
+    description:
+      'Honored to contribute to the Mac Kent Memorial Fund, keeping a legacy alive in our community.',
+    icon: Heart,
+  },
+  {
+    name: 'National Fire Safety Council',
+    type: 'Safety',
+    description:
+      'Supporting fire safety education and awareness programs that protect families nationwide.',
+    icon: Flame,
+  },
+  {
+    name: 'Girl Scout Troop 20517',
+    type: 'Youth',
+    description:
+      'Sponsoring local Girl Scouts and helping young leaders build confidence, skills, and community spirit.',
+    icon: Users,
+  },
+  {
+    name: 'Decatur National Baseball / DYB',
+    type: 'Youth Sports',
+    description:
+      'Supporting Decatur Youth Baseball and the Dixie Youth Baseball program — building character through the game.',
+    icon: Trophy,
+  },
+  {
+    name: 'Alabama United',
+    type: 'Youth Sports',
+    description:
+      'Proud sponsor of Alabama United, investing in competitive youth athletics across the region.',
+    icon: Trophy,
+  },
+  {
+    name: 'One Life Student Ministries',
+    type: 'Community',
+    description:
+      'Supporting One Life Student Ministries and their mission to make a positive impact on young lives.',
+    icon: Church,
+  },
+  {
+    name: 'SD Freeman Memorial',
+    type: 'Community',
+    description:
+      'Contributing to the SD Freeman Memorial and honoring those who have shaped our community.',
+    icon: Heart,
+  },
+  {
+    name: 'GMCBA Charity Tournament',
+    type: 'Community',
+    description:
+      'Participating in and sponsoring the GMCBA Charity Tournament to raise funds for local causes.',
+    icon: Handshake,
+  },
+  {
+    name: 'Calhoun Community College',
     type: 'Education',
     description:
-      'Contributing to Decatur Heritage programs that build character and provide opportunities for students to excel.',
+      'Supporting higher education at Calhoun Community College — investing in workforce development for North Alabama.',
+    icon: GraduationCap,
+  },
+  {
+    name: 'Hurricane Relief Efforts',
+    type: 'Disaster Relief',
+    description:
+      'When storms hit, we show up. RCRS has supported hurricane relief efforts to help affected families rebuild.',
+    icon: Heart,
+  },
+  {
+    name: 'Local School Fundraisers',
+    type: 'Education',
+    description:
+      'Chocolate sales, sports gear, team meals — we support school fundraisers across the Tennessee Valley whenever we can.',
     icon: GraduationCap,
   },
 ];
@@ -80,10 +171,10 @@ export default function CommunityPage() {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center text-white">
             {[
-              { value: '$100K+', label: 'Donated to Community' },
-              { value: '25+', label: 'Years Serving North AL' },
-              { value: '10+', label: 'Organizations Supported' },
-              { value: '1000s', label: 'Students Impacted' },
+              { value: '17+', label: 'Organizations Supported' },
+              { value: 'Youth', label: 'Sports & Schools' },
+              { value: 'First', label: 'Responder Support' },
+              { value: 'Local', label: 'Since Day One' },
             ].map((s) => (
               <div key={s.label}>
                 <div className="text-4xl md:text-5xl font-black mb-2">{s.value}</div>
@@ -111,15 +202,14 @@ export default function CommunityPage() {
                 organizations that make North Alabama such a special place to call home.
               </p>
               <p className="text-xl leading-relaxed">
-                With over <strong className="text-brand-green">$100,000 donated</strong> to local
-                youth sports teams, schools, and community organizations, our commitment goes far
-                beyond the rooftop. Every roof we install is an investment in this community — and
-                we make sure the returns are shared with everyone.
+                From sponsoring local sports teams and schools to supporting first responders
+                and community events, our commitment goes far beyond the rooftop. Every roof 
+                we install is an investment in this community — and we make sure the returns 
+                are shared with everyone.
               </p>
               <p className="text-xl leading-relaxed">
-                Our owners grew up here, raised their families here, and have spent 25+ years
-                building relationships in this community. When you choose RCRS, you&apos;re
-                choosing a company that puts its money where its mouth is.
+                Our owners grew up here and raised their families here. When you choose RCRS, 
+                you&apos;re choosing a company that puts its money where its mouth is.
               </p>
             </div>
           </div>
@@ -181,7 +271,7 @@ export default function CommunityPage() {
         </div>
       </section>
 
-      {/* Photo Gallery Placeholder */}
+      {/* Community Posts from Facebook */}
       <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
@@ -189,33 +279,44 @@ export default function CommunityPage() {
               RCRS in the <span className="text-brand-green">Community</span>
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Snapshots from our sponsorships, events, and community partnerships.
+              See what we&apos;ve been up to around North Alabama.
             </p>
           </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-5xl mx-auto">
-            {[
-              { alt: 'RCRS team at youth sports event', bg: 'from-brand-green/30 to-brand-green/10' },
-              { alt: 'School sponsorship presentation', bg: 'from-blue-500/30 to-blue-500/10' },
-              { alt: 'Community event support', bg: 'from-yellow-500/30 to-yellow-500/10' },
-              { alt: 'Netreapers team sponsorship', bg: 'from-brand-green/30 to-brand-green/10' },
-              { alt: 'Local charity fundraiser', bg: 'from-purple-500/30 to-purple-500/10' },
-              { alt: 'RCRS giving back to schools', bg: 'from-red-500/30 to-red-500/10' },
-            ].map((photo, i) => (
-              <div
-                key={i}
-                className={`aspect-[4/3] bg-gradient-to-br ${photo.bg} rounded-xl flex items-center justify-center border border-gray-200`}
-              >
-                <div className="text-center p-4">
-                  <Heart className="mx-auto mb-2 text-gray-400" size={32} />
-                  <p className="text-sm text-gray-500 font-medium">{photo.alt}</p>
-                </div>
-              </div>
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto justify-items-center">
+            <iframe
+              src="https://www.facebook.com/plugins/post.php?href=https%3A%2F%2Fwww.facebook.com%2FRiverCityRoofingSolutions%2Fposts%2Fpfbid0oiZxYK1DXZKdHChAFrn13jPjperfACnB6YypbcZLZ5qWzxy2fy8wxqno8g1u5EDwl&show_text=true&width=500"
+              width="500"
+              height="718"
+              style={{ border: 'none', overflow: 'hidden' }}
+              scrolling="no"
+              frameBorder="0"
+              allowFullScreen
+              allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+              className="max-w-full"
+            />
+            <iframe
+              src="https://www.facebook.com/plugins/post.php?href=https%3A%2F%2Fwww.facebook.com%2FRiverCityRoofingSolutions%2Fposts%2Fpfbid0euMddd6BpxKnDzUjzvb1rqm7X9VjWLZnu9KURETpKaLQXgAKvqq3bzfYTDJqBzJ9l&show_text=true&width=500"
+              width="500"
+              height="718"
+              style={{ border: 'none', overflow: 'hidden' }}
+              scrolling="no"
+              frameBorder="0"
+              allowFullScreen
+              allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+              className="max-w-full"
+            />
+            <iframe
+              src="https://www.facebook.com/plugins/post.php?href=https%3A%2F%2Fwww.facebook.com%2FRiverCityRoofingSolutions%2Fposts%2Fpfbid02ZAhfaJucRPrJLLNoCJABDcmvCRx2XYoey6rEcXTYwLMAsEVhvVjsViVKdAW83DQEl&show_text=true&width=500"
+              width="500"
+              height="718"
+              style={{ border: 'none', overflow: 'hidden' }}
+              scrolling="no"
+              frameBorder="0"
+              allowFullScreen
+              allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+              className="max-w-full"
+            />
           </div>
-          <p className="text-center text-gray-400 text-sm mt-6 italic">
-            Photos coming soon — follow us on social media to see our latest community involvement!
-          </p>
         </div>
       </section>
 

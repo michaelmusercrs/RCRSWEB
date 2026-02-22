@@ -79,9 +79,9 @@ export default function ContactForm({
           source_page: sourcePage,
         });
 
-        setIsSubmitted(true);
-        form.reset();
-        setFormStarted(false);
+        // Redirect to thank you page with next steps
+        router.push('/thank-you');
+        return;
       } else {
         setError(result.message || 'Something went wrong. Please try again.');
       }
@@ -272,17 +272,17 @@ export default function ContactForm({
               id="subject"
               name="subject"
               required
-              className={`w-full px-4 py-3 rounded-lg border outline-none transition-colors focus:ring-2 ${inputClass} ${darkMode ? 'bg-gray-800' : 'bg-white'}`}
+              className={`w-full px-4 py-3 rounded-lg border outline-none transition-colors focus:ring-2 ${inputClass} ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}
             >
-              <option value="">Select a subject...</option>
-              <option value="Free Roof Inspection">Free Roof Inspection</option>
-              <option value="Roof Replacement Quote">Roof Replacement Quote</option>
-              <option value="Roof Repair">Roof Repair</option>
-              <option value="Storm Damage">Storm Damage</option>
-              <option value="Insurance Claim Help">Insurance Claim Help</option>
-              <option value="Commercial Roofing">Commercial Roofing</option>
-              <option value="Gutter Services">Gutter Services</option>
-              <option value="General Question">General Question</option>
+              <option value="" className="bg-white text-gray-900">Select a subject...</option>
+              <option value="Free Roof Inspection" className="bg-white text-gray-900">Free Roof Inspection</option>
+              <option value="Roof Replacement Quote" className="bg-white text-gray-900">Roof Replacement Quote</option>
+              <option value="Roof Repair" className="bg-white text-gray-900">Roof Repair</option>
+              <option value="Storm Damage" className="bg-white text-gray-900">Storm Damage</option>
+              <option value="Insurance Claim Help" className="bg-white text-gray-900">Insurance Claim Help</option>
+              <option value="Commercial Roofing" className="bg-white text-gray-900">Commercial Roofing</option>
+              <option value="Gutter Services" className="bg-white text-gray-900">Gutter Services</option>
+              <option value="General Question" className="bg-white text-gray-900">General Question</option>
             </select>
           </div>
 

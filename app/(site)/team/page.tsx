@@ -104,7 +104,7 @@ export default async function TeamPage() {
 
                     {/* Contact Info */}
                     <div className="flex flex-wrap gap-3 mb-4">
-                      {member.phone && (
+                      {member.phone && ['Regional Partner', 'Sales Inspector'].includes(member.position) && (
                         <span className="flex items-center gap-1 text-xs text-neutral-400">
                           <Phone size={12} />
                           {member.phone}

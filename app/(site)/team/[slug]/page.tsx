@@ -12,8 +12,7 @@ import { getApprovedPortalReviews } from '@/lib/portal-reviews';
 import { getApprovedImages } from '@/lib/portal-images';
 import StructuredData from '@/components/StructuredData';
 import { siteConfig, generatePersonSchema, generateBreadcrumbSchema } from '@/lib/seo';
-import { getRepStats } from '@/lib/rep-stats';
-import RepStatsCard from '@/components/RepStatsCard';
+// Rep stats removed — only add back with verified data
 import ShareQRCode from '@/components/ShareQRCode';
 import type { Metadata } from 'next';
 
@@ -81,9 +80,6 @@ export default async function TeamMemberPage({ params }: { params: { slug: strin
   const effectiveProfileImage = profileImageFromPortal?.url || member.profileImage;
   const effectiveTruckImage = truckImageFromPortal?.url || member.truckImage;
 
-  // Get performance stats from commissions data
-  const repStats = getRepStats(params.slug);
-
   // Generate structured data for team member
   const personSchema = generatePersonSchema({
     name: member.name,
@@ -91,7 +87,7 @@ export default async function TeamMemberPage({ params }: { params: { slug: strin
     description: member.bio,
     image: effectiveProfileImage,
     email: member.email,
-    telephone: member.phone,
+    telephone: ['Regional Partner', 'Sales Inspector'].includes(member.position) ? member.phone : undefined,
     url: `${siteConfig.url}/team/${params.slug}`,
   });
 
@@ -153,7 +149,7 @@ export default async function TeamMemberPage({ params }: { params: { slug: strin
                   {/* Contact Info - Only show if available */}
                   {(member.phone || member.email) && (
                     <div className="border-t border-white/20 pt-6 space-y-4 mb-6">
-                      {member.phone && (
+                      {member.phone && ['Regional Partner', 'Sales Inspector'].includes(member.position) && (
                         <div className="flex items-start gap-3">
                           <Phone className="text-brand-green mt-1 flex-shrink-0" size={20} />
                           <div>
@@ -281,13 +277,6 @@ export default async function TeamMemberPage({ params }: { params: { slug: strin
                   </div>
                 </div>
 
-                {/* Performance Stats - Only show for reps with commission data */}
-                {repStats && repStats.totalJobs >= 10 && (
-                  <div className="mb-12">
-                    <RepStatsCard stats={repStats} firstName={member.name.split(' ')[0]} />
-                  </div>
-                )}
-
                 {/* Category Badge */}
                 <div className="mb-12">
                   <div className="inline-flex items-center gap-2 bg-brand-green/20 border border-brand-green/30 px-4 py-2 rounded-full">
@@ -296,7 +285,7 @@ export default async function TeamMemberPage({ params }: { params: { slug: strin
                   </div>
                 </div>
 
-                {/* Key Strengths - Only show if available */}
+                {/* Key Strengths */}
                 {member.keyStrengths && member.keyStrengths.length > 0 && (
                   <div className="mb-12">
                     <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
@@ -314,7 +303,7 @@ export default async function TeamMemberPage({ params }: { params: { slug: strin
                   </div>
                 )}
 
-                {/* Responsibilities - Only show if available */}
+                {/* Responsibilities */}
                 {member.responsibilities && member.responsibilities.length > 0 && (
                   <div className="mb-12">
                     <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">

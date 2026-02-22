@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { MapPin, Shield, Award, Users, CheckCircle2, ArrowRight, CloudLightning } from 'lucide-react';
 
 import RotatingText from '@/components/RotatingText';
+import QuickContactForm from '@/components/QuickContactForm';
 import StructuredData from '@/components/StructuredData';
 import { generateFAQSchema, generateHomepageStructuredData } from '@/lib/seo';
 import { blogPosts } from '@/lib/blogData';
@@ -54,6 +55,24 @@ export default function HomePage() {
   return (
     <div className="min-h-screen text-white overflow-x-hidden">
       <StructuredData data={[...homepageSchemas, faqSchema]} />
+
+      {/* Announcement Banner */}
+      <div className="bg-brand-green text-black py-2.5 px-4 text-center text-sm font-bold relative z-50">
+        <div className="container mx-auto flex flex-wrap items-center justify-center gap-x-6 gap-y-1">
+          <Link href="/community" className="hover:underline inline-flex items-center gap-1">
+            🏫 Raise the Roof for Schools — $250 donated per roof replacement
+          </Link>
+          <span className="hidden sm:inline text-black/40">|</span>
+          <Link href="/check-my-address" className="hover:underline inline-flex items-center gap-1">
+            ⛈️ Free Storm Report — Check your address now
+          </Link>
+          <span className="hidden sm:inline text-black/40">|</span>
+          <Link href="/services" className="hover:underline inline-flex items-center gap-1">
+            🏠 IKO ROOFViewer — See new shingles on your home
+          </Link>
+        </div>
+      </div>
+
       {/* Hero Section - Uses global video background */}
       <div className="-mt-20 min-h-screen flex items-center justify-center px-6 pt-20">
         <div className="max-w-5xl mx-auto text-center">
@@ -106,7 +125,7 @@ export default function HomePage() {
             <span className="text-xs uppercase tracking-widest font-bold text-brand-green">About Us</span>
           </div>
           <h2 className="text-4xl md:text-5xl font-black uppercase tracking-wider mb-6">
-            Protecting North Alabama Homes Since 2010
+            Protecting North Alabama Homes
           </h2>
           <p className="text-lg text-neutral-300 leading-relaxed mb-8 max-w-3xl mx-auto">
             River City Roofing Solutions is your local, family-owned roofing company serving communities across North Alabama.
@@ -120,6 +139,21 @@ export default function HomePage() {
               Your neighbors trust us, and you can too.
             </p>
           </div>
+        </div>
+      </section>
+
+      {/* Quick Contact Form - Easy to reach */}
+      <section id="contact" className="py-12 md:py-16 px-6 bg-brand-green/10 backdrop-blur-sm border-t border-brand-green/30">
+        <div className="max-w-2xl mx-auto">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl md:text-4xl font-black uppercase tracking-wider mb-3">
+              Get Your <span className="text-brand-green">Free Inspection</span>
+            </h2>
+            <p className="text-neutral-300">
+              Fill out the form below and we&apos;ll be in touch within 24 hours. Or call us right now.
+            </p>
+          </div>
+          <QuickContactForm />
         </div>
       </section>
 
@@ -443,7 +477,7 @@ export default function HomePage() {
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
               { icon: Shield, title: 'Fully Licensed & Insured', desc: 'Complete coverage for your peace of mind' },
-              { icon: Award, title: '20+ Years in Roofing', desc: 'Decades of hands-on industry expertise' },
+              { icon: Award, title: 'Real Roofers', desc: 'Owners who have done every part of the job themselves' },
               { icon: Users, title: 'Local Family Business', desc: 'Your neighbors, serving the community' },
               { icon: CheckCircle2, title: 'Quality Guaranteed', desc: 'Superior workmanship on every project' },
             ].map((item, idx) => {

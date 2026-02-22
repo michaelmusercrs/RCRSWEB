@@ -31,7 +31,7 @@ const nextConfig = {
           "img-src 'self' data: blob: https: http:",
           "font-src 'self' https://fonts.gstatic.com",
           "connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://maps.googleapis.com https://vitals.vercel-insights.com https://*.vercel-insights.com https://*.vercel-analytics.com https://script.google.com https://*.vercel-storage.com",
-          "frame-src 'self' https://www.google.com https://www.youtube.com",
+          "frame-src 'self' https://www.google.com https://www.youtube.com https://www.facebook.com",
           "object-src 'none'",
           "base-uri 'self'",
           "form-action 'self' https://script.google.com",

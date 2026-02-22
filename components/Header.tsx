@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Phone, Menu, X, MessageCircle, Send, Home, ChevronDown } from 'lucide-react';
+import { Phone, Menu, X, MessageCircle, Send, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 
@@ -14,25 +14,11 @@ interface NavItem {
 }
 
 const navigation: NavItem[] = [
+  { name: 'Storm Check', href: '/check-my-address' },
   { name: 'Services', href: '/services' },
-  {
-    name: 'Tools',
-    children: [
-      { name: 'Storm Check', href: '/check-my-address', description: 'Free hail & storm damage report for your address' },
-    ],
-  },
   { name: 'Service Areas', href: '/service-areas' },
-  {
-    name: 'Company',
-    children: [
-      { name: 'About Us', href: '/about' },
-      { name: 'Our Team', href: '/team' },
-      { name: 'Blog', href: '/blog' },
-      { name: 'Community', href: '/community' },
-      { name: 'Careers', href: '/careers' },
-      { name: 'Referral Rewards', href: '/referral-rewards' },
-    ],
-  },
+  { name: 'About', href: '/about' },
+  { name: 'Community', href: '/community' },
   { name: 'Contact', href: '/contact' },
 ];
 
@@ -44,7 +30,6 @@ const locationPages = [
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [contactFormOpen, setContactFormOpen] = useState(false);
   const [formData, setFormData] = useState({ name: '', phone: '', email: '', message: '' });
   const [formSubmitted, setFormSubmitted] = useState(false);
@@ -118,48 +103,13 @@ export default function Header() {
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center gap-6">
               {navigation.map((item) => (
-                item.children ? (
-                  <div
-                    key={item.name}
-                    className="relative"
-                    onMouseEnter={() => setOpenDropdown(item.name)}
-                    onMouseLeave={() => setOpenDropdown(null)}
-                  >
-                    <button
-                      className="font-semibold transition-colors duration-300 text-lg text-white hover:text-brand-green drop-shadow-lg flex items-center gap-1"
-                      aria-expanded={openDropdown === item.name}
-                      aria-haspopup="true"
-                    >
-                      {item.name}
-                      <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${openDropdown === item.name ? 'rotate-180' : ''}`} />
-                    </button>
-                    {openDropdown === item.name && (
-                      <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                        {item.children.map((child) => (
-                          <Link
-                            key={child.name}
-                            href={child.href}
-                            className="block px-4 py-3 hover:bg-gray-50 transition-colors"
-                            onClick={() => setOpenDropdown(null)}
-                          >
-                            <span className="block text-sm font-semibold text-gray-900">{child.name}</span>
-                            {child.description && (
-                              <span className="block text-xs text-gray-500 mt-0.5">{child.description}</span>
-                            )}
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <Link
-                    key={item.name}
-                    href={item.href!}
-                    className="font-semibold transition-colors duration-300 text-lg text-white hover:text-brand-green drop-shadow-lg"
-                  >
-                    {item.name}
-                  </Link>
-                )
+                <Link
+                  key={item.name}
+                  href={item.href!}
+                  className={`font-semibold transition-colors duration-300 text-lg text-white hover:text-brand-green drop-shadow-lg ${item.name === 'Storm Check' ? 'text-brand-green' : ''}`}
+                >
+                  {item.name}
+                </Link>
               ))}
               <span className="text-gray-500">|</span>
               <a
@@ -194,30 +144,14 @@ export default function Header() {
           <div className="lg:hidden absolute left-0 right-0 top-full bg-white z-[100] overflow-y-auto max-h-[80vh] max-h-[80dvh] shadow-xl overflow-x-hidden">
             <div className="px-4 py-6 space-y-6">
               {navigation.map((item) => (
-                item.children ? (
-                  <div key={item.name}>
-                    <p className="text-lg font-bold text-gray-500 uppercase tracking-wider py-2">{item.name}</p>
-                    {item.children.map((child) => (
-                      <Link
-                        key={child.name}
-                        href={child.href}
-                        className="block text-xl font-semibold text-gray-800 hover:text-brand-green transition-colors duration-300 py-2 pl-4"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        {child.name}
-                      </Link>
-                    ))}
-                  </div>
-                ) : (
-                  <Link
-                    key={item.name}
-                    href={item.href!}
-                    className="block text-2xl font-semibold text-gray-800 hover:text-brand-green transition-colors duration-300 py-3"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {item.name}
-                  </Link>
-                )
+                <Link
+                  key={item.name}
+                  href={item.href!}
+                  className={`block text-2xl font-semibold text-gray-800 hover:text-brand-green transition-colors duration-300 py-3 ${item.name === 'Storm Check' ? 'text-brand-green' : ''}`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {item.name}
+                </Link>
               ))}
 
               {/* Location Pages Submenu */}

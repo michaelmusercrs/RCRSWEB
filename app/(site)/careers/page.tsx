@@ -43,7 +43,7 @@ export default function CareersPage() {
             Build Your Own <span className="text-brand-green">Business</span>
           </h1>
           <h2 className="text-xl md:text-3xl text-white/90 mb-10 max-w-3xl mx-auto leading-relaxed">
-            25+ years of real roofing experience. Full benefits. Unlimited earning potential. OC Preferred &amp; IKO Craftsman Premier certified.
+            Real roofing experience. Full benefits. Unlimited earning potential. OC Preferred &amp; IKO Craftsman Premier certified.
           </h2>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <a
@@ -240,7 +240,7 @@ export default function CareersPage() {
                   'Uncapped commissions — earn what you deserve',
                   'YOU set your own hours and territory',
                   'Build YOUR business with our brand behind you',
-                  'Owners with 25+ years actually roofing, selling, and running crews',
+                  'Owners who have actually roofed, sold, and run crews themselves',
                   'Full benefits: health, dental, vision, Roth IRA match, household accident insurance',
                   'OC Preferred & IKO Top Tier Craftsman Premier certified',
                 ].map((item) => (
@@ -277,7 +277,7 @@ export default function CareersPage() {
               {
                 step: 2,
                 title: 'Complete Our Free Training',
-                text: 'Learn from owners with 25+ years of hands-on roofing experience — selling, project managing, and running crews. Not theory from a textbook.',
+                text: 'Learn from owners with real hands-on roofing experience — selling, project managing, and running crews. Not theory from a textbook.',
               },
               {
                 step: 3,

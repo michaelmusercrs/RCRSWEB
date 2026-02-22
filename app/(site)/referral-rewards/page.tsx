@@ -240,8 +240,8 @@ export default function ReferralRewardsPage() {
               <div className="grid md:grid-cols-2 gap-6">
                 {[
                   {
-                    title: '25+ Years of Experience',
-                    desc: 'Our owners have been roofing for over 25 years — selling, project managing, and running crews.',
+                    title: 'Real Experience',
+                    desc: 'Our owners have actually roofed, sold, project managed, and run crews themselves — not just businesspeople, real roofers.',
                   },
                   {
                     title: 'OC Preferred & IKO Craftsman Premier',

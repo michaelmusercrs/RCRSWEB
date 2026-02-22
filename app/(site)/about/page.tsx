@@ -10,7 +10,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = genMeta({
   title: 'About Us - Meet Our Roofing Team',
-  description: 'Learn about River City Roofing Solutions, a family-owned roofing company serving North Alabama since 2010. Meet our experienced team of roofing professionals.',
+  description: 'Learn about River City Roofing Solutions, a family-owned roofing company serving North Alabama. Meet our experienced team of roofing professionals.',
   path: '/about',
   keywords: ['about us', 'roofing company', 'North Alabama roofers', 'family owned', 'roofing team'],
 });
@@ -46,13 +46,13 @@ export default async function AboutPage() {
             </h2>
             <div className="space-y-6 text-lg text-neutral-300 leading-relaxed">
               <p>
-                River City Roofing Solutions was founded in 2010 with a simple mission: provide North Alabama
+                River City Roofing Solutions was founded with a simple mission: provide North Alabama
                 homeowners with honest, reliable roofing services they can trust. What started as a small,
                 family-owned business has grown into one of the region's most respected roofing companies.
               </p>
               <p>
                 We've built our reputation one roof at a time, always putting quality workmanship and customer
-                satisfaction first. Our team combines decades of experience with the latest industry techniques
+                satisfaction first. Our team combines real-world experience with the latest industry techniques
                 and materials to deliver superior results on every project.
               </p>
               <div className="border-l-4 border-brand-green pl-6 my-8">
