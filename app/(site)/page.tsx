@@ -491,28 +491,10 @@ export default function HomePage() {
               rel="noopener noreferrer"
               className="flex flex-col items-center gap-3 p-6 bg-neutral-950 border border-neutral-800 rounded-2xl hover:border-brand-green transition-all group"
             >
-              <div className="w-16 h-16 bg-brand-green/15 rounded-2xl flex items-center justify-center">
-                <Shield className="w-8 h-8 text-brand-green" />
-              </div>
+              <Image src="/uploads/cert-iko-roofpro.jpg" alt="IKO ROOFPRO Craftsman Premier" width={80} height={80} className="object-contain" />
               <div className="text-center">
                 <p className="font-black text-white uppercase tracking-wider text-sm group-hover:text-brand-green transition-colors">IKO ROOFPRO®</p>
-                <p className="text-neutral-500 text-xs mt-1">Certified Contractor</p>
-              </div>
-            </a>
-
-            {/* Google Reviews Badge */}
-            <a
-              href="https://www.google.com/maps/place/River+City+Roofing+Solutions"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex flex-col items-center gap-3 p-6 bg-neutral-950 border border-neutral-800 rounded-2xl hover:border-brand-green transition-all group"
-            >
-              <div className="w-16 h-16 bg-brand-green/15 rounded-2xl flex items-center justify-center">
-                <span className="text-2xl">⭐</span>
-              </div>
-              <div className="text-center">
-                <p className="font-black text-white uppercase tracking-wider text-sm group-hover:text-brand-green transition-colors">Google Reviews</p>
-                <p className="text-neutral-500 text-xs mt-1">★★★★★ Rated</p>
+                <p className="text-neutral-500 text-xs mt-1">Craftsman Premier</p>
               </div>
             </a>
 
@@ -523,25 +505,40 @@ export default function HomePage() {
               rel="noopener noreferrer"
               className="flex flex-col items-center gap-3 p-6 bg-neutral-950 border border-neutral-800 rounded-2xl hover:border-brand-green transition-all group"
             >
-              <div className="w-16 h-16 bg-brand-green/15 rounded-2xl flex items-center justify-center">
-                <Award className="w-8 h-8 text-brand-green" />
-              </div>
+              <Image src="/uploads/cert-bbb.jpg" alt="BBB A+ Accredited Business" width={80} height={80} className="object-contain" />
               <div className="text-center">
                 <p className="font-black text-white uppercase tracking-wider text-sm group-hover:text-brand-green transition-colors">BBB A+ Rated</p>
-                <p className="text-neutral-500 text-xs mt-1">BBB Accredited Business</p>
+                <p className="text-neutral-500 text-xs mt-1">Accredited Business</p>
               </div>
             </a>
 
-            {/* Licensed & Insured */}
-            <div className="flex flex-col items-center gap-3 p-6 bg-neutral-950 border border-neutral-800 rounded-2xl">
-              <div className="w-16 h-16 bg-brand-green/15 rounded-2xl flex items-center justify-center">
-                <CheckCircle2 className="w-8 h-8 text-brand-green" />
-              </div>
+            {/* Google Reviews Badge */}
+            <a
+              href="https://www.google.com/maps/place/River+City+Roofing+Solutions"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center gap-3 p-6 bg-neutral-950 border border-neutral-800 rounded-2xl hover:border-brand-green transition-all group"
+            >
+              <Image src="/uploads/cert-google.png" alt="Google Reviews" width={80} height={80} className="object-contain" />
               <div className="text-center">
-                <p className="font-black text-white uppercase tracking-wider text-sm">Licensed &amp; Insured</p>
-                <p className="text-neutral-500 text-xs mt-1">Full Coverage</p>
+                <p className="font-black text-white uppercase tracking-wider text-sm group-hover:text-brand-green transition-colors">Google Reviews</p>
+                <p className="text-neutral-500 text-xs mt-1">★★★★★ Rated</p>
               </div>
-            </div>
+            </a>
+
+            {/* BNI Badge */}
+            <a
+              href="https://www.bni.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center gap-3 p-6 bg-neutral-950 border border-neutral-800 rounded-2xl hover:border-brand-green transition-all group"
+            >
+              <Image src="/uploads/cert-bni.png" alt="BNI Member" width={80} height={80} className="object-contain" />
+              <div className="text-center">
+                <p className="font-black text-white uppercase tracking-wider text-sm group-hover:text-brand-green transition-colors">BNI Member</p>
+                <p className="text-neutral-500 text-xs mt-1">Business Network</p>
+              </div>
+            </a>
           </div>
         </div>
       </section>
