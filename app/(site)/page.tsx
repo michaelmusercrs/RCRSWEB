@@ -52,7 +52,7 @@ export default function HomePage() {
   const homepageSchemas = generateHomepageStructuredData();
 
   return (
-    <div className="min-h-screen text-white">
+    <div className="min-h-screen text-white overflow-x-hidden">
       <StructuredData data={[...homepageSchemas, faqSchema]} />
       {/* Hero Section - Uses global video background */}
       <div className="-mt-20 min-h-screen flex items-center justify-center px-6 pt-20">
@@ -391,16 +391,16 @@ export default function HomePage() {
                       <span key={i} className="text-brand-green text-xl">★</span>
                     ))}
                   </div>
-                  <p className="text-neutral-300 italic leading-relaxed mb-6 line-clamp-4">
-                    "{review.text}"
+                  <p className="text-gray-200 italic leading-relaxed mb-6 line-clamp-5">
+                    &ldquo;{review.text}&rdquo;
                   </p>
-                  <div className="border-t border-neutral-800 pt-4">
-                    <p className="font-bold text-brand-green">{review.name}</p>
+                  <div className="border-t border-neutral-700 pt-4">
+                    <p className="font-bold text-white">{review.name}</p>
                     {review.salesRep && (
-                      <p className="text-neutral-500 text-sm">Worked with {review.salesRep}</p>
+                      <p className="text-neutral-300 text-sm">Worked with {review.salesRep}</p>
                     )}
                     {review.source && (
-                      <p className="text-neutral-600 text-xs mt-1">via {review.source}</p>
+                      <p className="text-neutral-400 text-xs mt-1">via {review.source}</p>
                     )}
                   </div>
                 </CardContent>
@@ -409,9 +409,16 @@ export default function HomePage() {
           </div>
 
           <div className="text-center mt-12">
-            <p className="text-neutral-400 text-lg mb-4">Rated 5.0 stars on Google Reviews</p>
-            <Button asChild size="lg" variant="outline" className="border-2 border-brand-green text-brand-green hover:bg-brand-green hover:text-black font-bold uppercase tracking-widest">
-              <Link href="/contact">Leave a Review</Link>
+            <div className="flex items-center justify-center gap-1 mb-2">
+              {[...Array(5)].map((_, i) => (
+                <span key={i} className="text-brand-green text-2xl">★</span>
+              ))}
+            </div>
+            <p className="text-neutral-300 text-lg mb-6">
+              <span className="font-bold text-white">5.0</span> stars from <span className="font-bold text-white">200+</span> Google Reviews
+            </p>
+            <Button asChild size="lg" className="bg-brand-green text-black hover:bg-lime-400 font-bold uppercase tracking-widest">
+              <Link href="/contact">Get Your Free Inspection</Link>
             </Button>
           </div>
         </div>
@@ -449,10 +456,10 @@ export default function HomePage() {
                     <div className="bg-brand-green group-hover:bg-black rounded-2xl p-5 mb-6 shadow-lg inline-flex">
                       <Icon className="text-black group-hover:text-brand-green" size={36} />
                     </div>
-                    <h3 className="text-lg font-black uppercase tracking-wider mb-3 group-hover:text-black">
+                    <h3 className="text-lg font-black uppercase tracking-wider mb-3 text-white group-hover:text-black">
                       {item.title}
                     </h3>
-                    <p className="text-neutral-400 group-hover:text-black/75 leading-relaxed text-sm">
+                    <p className="text-neutral-300 group-hover:text-black/75 leading-relaxed text-sm">
                       {item.desc}
                     </p>
                   </CardContent>
