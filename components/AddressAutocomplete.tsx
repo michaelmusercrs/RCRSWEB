@@ -135,9 +135,8 @@ export default function AddressAutocomplete({
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch suggestions from Nominatim
+  // Fetch suggestions from our API (Google Places → Geocoding → Nominatim fallback chain)
   const fetchSuggestions = useCallback(async (query: string) => {
-    // Abort any in-flight request
     if (abortRef.current) {
       abortRef.current.abort();
     }
@@ -155,33 +154,44 @@ export default function AddressAutocomplete({
     abortRef.current = controller;
 
     try {
-      const encodedQuery = encodeURIComponent(query);
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodedQuery}&countrycodes=us&limit=5&addressdetails=1`;
-
-      const response = await fetch(url, {
+      const response = await fetch(`/api/address-suggest?q=${encodeURIComponent(query)}`, {
         signal: controller.signal,
-        headers: {
-          'User-Agent': 'RiverCityRoofingSolutions/1.0',
-          'Accept': 'application/json',
-        },
       });
 
       if (!response.ok) {
-        throw new Error(`Nominatim API error: ${response.status}`);
+        throw new Error(`API error: ${response.status}`);
       }
 
-      const data: NominatimResult[] = await response.json();
+      const data = await response.json();
+      const results = data.results || [];
 
-      // Filter to results that have reasonable address data
-      const filtered = data.filter(
-        (item) => item.address && (item.address.road || item.address.city || item.address.town)
-      );
+      // Convert API results to NominatimResult-like format for the dropdown
+      const formatted: NominatimResult[] = results.map((r: any) => ({
+        place_id: r.placeId ? parseInt(r.placeId) || Math.random() * 1000000 : Math.random() * 1000000,
+        licence: '',
+        osm_type: '',
+        osm_id: 0,
+        lat: String(r.lat),
+        lon: String(r.lng),
+        display_name: r.formattedAddress,
+        address: {
+          house_number: r.streetNumber,
+          road: r.street,
+          city: r.city,
+          county: r.county ? `${r.county} County` : undefined,
+          state: r.state,
+          postcode: r.zip,
+          country: 'United States',
+          country_code: 'us',
+        },
+        boundingbox: [],
+      }));
 
-      setSuggestions(filtered);
-      setShowDropdown(filtered.length > 0);
+      setSuggestions(formatted);
+      setShowDropdown(formatted.length > 0);
       setHighlightedIndex(-1);
     } catch (err: any) {
-      if (err.name === 'AbortError') return; // Ignore aborted requests
+      if (err.name === 'AbortError') return;
       console.error('Address search error:', err);
       setError('Address lookup temporarily unavailable. You can type the address manually.');
       setSuggestions([]);
