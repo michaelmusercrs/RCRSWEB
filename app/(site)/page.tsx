@@ -74,7 +74,7 @@ export default function HomePage() {
             phrases={[
               "Local Professionals",
               "Family Owned",
-              "★★★★★ Rated",
+              "★★★★★ On Google",
               "Licensed & Insured",
               "Storm Damage Experts"
             ]}
@@ -415,7 +415,8 @@ export default function HomePage() {
               ))}
             </div>
             <p className="text-neutral-300 text-lg mb-6">
-              <span className="font-bold text-white">5.0</span> stars from <span className="font-bold text-white">200+</span> Google Reviews
+              Rated ★★★★★ on{' '}
+              <a href="https://www.google.com/maps/place/River+City+Roofing+Solutions" target="_blank" rel="noopener noreferrer" className="text-brand-green hover:underline font-bold">Google</a>
             </p>
             <Button asChild size="lg" className="bg-brand-green text-black hover:bg-lime-400 font-bold uppercase tracking-widest">
               <Link href="/contact">Get Your Free Inspection</Link>
@@ -470,8 +471,83 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Free Tools Banner */}
+      {/* Trust Badges / Credentials */}
       <section className="py-12 md:py-16 px-6 bg-black/85 backdrop-blur-sm border-t border-neutral-800">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-8">
+            <div className="inline-block mb-4">
+              <span className="text-xs uppercase tracking-widest font-bold text-brand-green">Credentials</span>
+            </div>
+            <h2 className="text-3xl md:text-4xl font-black uppercase tracking-wider mb-4">
+              Trusted &amp; Certified
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {/* IKO ROOFPRO Badge */}
+            <a
+              href="https://www.iko.com/na/roofpro/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center gap-3 p-6 bg-neutral-950 border border-neutral-800 rounded-2xl hover:border-brand-green transition-all group"
+            >
+              <div className="w-16 h-16 bg-brand-green/15 rounded-2xl flex items-center justify-center">
+                <Shield className="w-8 h-8 text-brand-green" />
+              </div>
+              <div className="text-center">
+                <p className="font-black text-white uppercase tracking-wider text-sm group-hover:text-brand-green transition-colors">IKO ROOFPRO®</p>
+                <p className="text-neutral-500 text-xs mt-1">Certified Contractor</p>
+              </div>
+            </a>
+
+            {/* Google Reviews Badge */}
+            <a
+              href="https://www.google.com/maps/place/River+City+Roofing+Solutions"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center gap-3 p-6 bg-neutral-950 border border-neutral-800 rounded-2xl hover:border-brand-green transition-all group"
+            >
+              <div className="w-16 h-16 bg-brand-green/15 rounded-2xl flex items-center justify-center">
+                <span className="text-2xl">⭐</span>
+              </div>
+              <div className="text-center">
+                <p className="font-black text-white uppercase tracking-wider text-sm group-hover:text-brand-green transition-colors">Google Reviews</p>
+                <p className="text-neutral-500 text-xs mt-1">★★★★★ Rated</p>
+              </div>
+            </a>
+
+            {/* BBB Badge */}
+            <a
+              href="https://www.bbb.org/us/al"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center gap-3 p-6 bg-neutral-950 border border-neutral-800 rounded-2xl hover:border-brand-green transition-all group"
+            >
+              <div className="w-16 h-16 bg-brand-green/15 rounded-2xl flex items-center justify-center">
+                <Award className="w-8 h-8 text-brand-green" />
+              </div>
+              <div className="text-center">
+                <p className="font-black text-white uppercase tracking-wider text-sm group-hover:text-brand-green transition-colors">BBB</p>
+                <p className="text-neutral-500 text-xs mt-1">Better Business Bureau</p>
+              </div>
+            </a>
+
+            {/* Licensed & Insured */}
+            <div className="flex flex-col items-center gap-3 p-6 bg-neutral-950 border border-neutral-800 rounded-2xl">
+              <div className="w-16 h-16 bg-brand-green/15 rounded-2xl flex items-center justify-center">
+                <CheckCircle2 className="w-8 h-8 text-brand-green" />
+              </div>
+              <div className="text-center">
+                <p className="font-black text-white uppercase tracking-wider text-sm">Licensed &amp; Insured</p>
+                <p className="text-neutral-500 text-xs mt-1">Full Coverage</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Free Tools Banner */}
+      <section className="py-12 md:py-16 px-6 bg-black/80 backdrop-blur-sm border-t border-neutral-800">
         <div className="max-w-4xl mx-auto space-y-8">
           {/* Storm Report */}
           <div className="bg-neutral-950 border-2 border-brand-green/40 rounded-2xl p-8 md:p-12 flex flex-col md:flex-row items-center gap-8">
@@ -506,7 +582,10 @@ export default function HomePage() {
                 Visualize Your New Roof
               </h2>
               <p className="text-neutral-300 leading-relaxed">
-                Use IKO&apos;s ROOFViewer® to see what different shingle colors and styles look like on your home before you commit. Try Dynasty, Cambridge, Nordic and more.
+                Use <a href="https://www.iko.com/na/roofpro/" target="_blank" rel="noopener noreferrer" className="text-brand-blue hover:underline font-semibold">IKO</a>&apos;s ROOFViewer® to see what different shingle colors and styles look like on your home before you commit. Try{' '}
+                <a href="https://www.iko.com/na/product/dynasty/" target="_blank" rel="noopener noreferrer" className="text-brand-blue hover:underline font-semibold">Dynasty</a>,{' '}
+                <a href="https://www.iko.com/na/product/cambridge/" target="_blank" rel="noopener noreferrer" className="text-brand-blue hover:underline font-semibold">Cambridge</a>,{' '}
+                <a href="https://www.iko.com/na/product/nordic/" target="_blank" rel="noopener noreferrer" className="text-brand-blue hover:underline font-semibold">Nordic</a> and more.
               </p>
             </div>
             <div className="flex-shrink-0">
