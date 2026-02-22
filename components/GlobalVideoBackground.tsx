@@ -106,14 +106,12 @@ export default function GlobalVideoBackground({
         </video>
       )}
 
-      {/* Fallback Image - only shows if video fails to load */}
-      {!videoLoaded && (
-        <div
-          key={`image-${animationKey}`}
-          className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(${fallbackImage})` }}
-        />
-      )}
+      {/* Background Image - always present as base layer, video overlays on top */}
+      <div
+        key={`image-${animationKey}`}
+        className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${fallbackImage})` }}
+      />
 
       {/* Dark Overlay for readability */}
       <div className="absolute inset-0 bg-black/50" />

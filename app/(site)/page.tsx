@@ -148,10 +148,10 @@ export default function HomePage() {
                 >
                   <CardContent className="p-6 lg:p-8">
                     <div className="w-6 h-6 border-2 border-brand-green group-hover:border-black rounded mb-6"></div>
-                    <h3 className="text-lg font-black uppercase tracking-wider mb-3 group-hover:text-black">
+                    <h3 className="text-lg font-black uppercase tracking-wider mb-3 text-white group-hover:text-black">
                       {service.title}
                     </h3>
-                    <p className="text-neutral-400 group-hover:text-black/75 text-sm mb-4 leading-relaxed">
+                    <p className="text-neutral-300 group-hover:text-black/75 text-sm mb-4 leading-relaxed">
                       {service.description}
                     </p>
                     <span className="text-brand-green group-hover:text-black font-bold text-sm uppercase tracking-widest flex items-center gap-2">
@@ -195,17 +195,21 @@ export default function HomePage() {
                   {area.image && (
                     <div className="h-32 relative">
                       <Image src={area.image} alt={`${area.name} ${area.state} roofing`} fill className="object-cover" />
-                      <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all" />
+                      <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-all" />
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
+                        <h3 className="font-black uppercase tracking-wider text-lg text-white drop-shadow-lg">
+                          {area.name}
+                        </h3>
+                      </div>
                     </div>
                   )}
-                  <CardContent className="p-4">
-                    <MapPin className="h-6 w-6 mx-auto mb-2 text-brand-green" />
-                    <h3 className="font-black uppercase tracking-wider text-lg mb-1 group-hover:text-brand-green transition-colors">
-                      {area.name}
-                    </h3>
-                    <p className="text-xs text-neutral-400 uppercase tracking-widest">
-                      {area.state}
-                    </p>
+                  <CardContent className="p-3">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-brand-green flex-shrink-0" />
+                      <p className="text-xs text-neutral-300 uppercase tracking-widest">
+                        {area.state}
+                      </p>
+                    </div>
                   </CardContent>
                 </Card>
               </Link>
@@ -431,7 +435,7 @@ export default function HomePage() {
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
               { icon: Shield, title: 'Fully Licensed & Insured', desc: 'Complete coverage for your peace of mind' },
-              { icon: Award, title: '10+ Years Experience', desc: 'Proven expertise in North Alabama roofing' },
+              { icon: Award, title: '20+ Years in Roofing', desc: 'Decades of hands-on industry expertise' },
               { icon: Users, title: 'Local Family Business', desc: 'Your neighbors, serving the community' },
               { icon: CheckCircle2, title: 'Quality Guaranteed', desc: 'Superior workmanship on every project' },
             ].map((item, idx) => {

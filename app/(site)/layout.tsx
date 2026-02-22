@@ -146,7 +146,7 @@ export default function RootLayout({
             </div>
             <GlobalVideoBackground
               videoSrc="/uploads/hero-video.mp4"
-              fallbackImage="/uploads/hero-background.webp"
+              fallbackImage="/uploads/hero-video-poster.jpg"
             />
             <main id="main-content">{children}</main>
             <Footer />
