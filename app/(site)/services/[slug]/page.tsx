@@ -68,8 +68,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
   const serviceFAQs = [
     {
       question: `How much does ${service.title.toLowerCase()} cost in North Alabama?`,
-      answer: `The cost of ${service.title.toLowerCase()} varies based on your specific situation. Contact us for a free inspection and detailed quote with no obligation.`, materials chosen, and project complexity. We provide free detailed quotes with no obligation.`
-        : `The cost of ${service.title.toLowerCase()} varies based on your specific situation. Contact us for a free inspection and detailed quote with no obligation.`,
+      answer: `The cost of ${service.title.toLowerCase()} varies based on your specific situation. Contact us for a free inspection and detailed quote with no obligation.`,
     },
     {
       question: `Do you offer free estimates for ${service.title.toLowerCase()}?`,
