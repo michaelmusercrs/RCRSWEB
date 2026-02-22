@@ -58,6 +58,7 @@ interface AIResult {
 
 const GOOGLE_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
 const IS_VERCEL = !!process.env.VERCEL;
+const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
 
 // ── Vertex AI Auth (uses service account — paid, no free-tier quota limits) ──
 
@@ -501,7 +502,7 @@ async function callOllama(prompt: string, images: string[]): Promise<AIResult> {
   }
   try {
     const jsonPrompt = prompt + '\n\nRespond ONLY with valid JSON. No markdown, no explanation, just the JSON object.';
-    const res = await fetch('http://localhost:11434/api/generate', {
+    const res = await fetch(`${OLLAMA_URL}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
