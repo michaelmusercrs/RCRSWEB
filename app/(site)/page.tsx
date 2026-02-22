@@ -495,23 +495,23 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Roof Measurement Tool */}
+          {/* IKO ROOFViewer */}
           <div className="bg-neutral-950 border-2 border-brand-blue/40 rounded-2xl p-8 md:p-12 flex flex-col md:flex-row items-center gap-8">
             <div className="flex-1 text-center md:text-left">
               <div className="inline-flex items-center gap-2 bg-brand-blue/15 px-3 py-1 rounded-full mb-4">
                 <Shield className="w-4 h-4 text-brand-blue" />
-                <span className="text-brand-blue text-xs font-bold uppercase tracking-widest">Free Tool</span>
+                <span className="text-brand-blue text-xs font-bold uppercase tracking-widest">Design Tool</span>
               </div>
               <h2 className="text-3xl md:text-4xl font-black uppercase tracking-wider mb-3">
-                Instant Roof Measurement Report
+                Visualize Your New Roof
               </h2>
               <p className="text-neutral-300 leading-relaxed">
-                Get AI-powered roof measurements with satellite imagery. See your ridges, rakes, valleys, and more &mdash; with an interactive diagram. Like EagleView, but free.
+                Use IKO&apos;s ROOFViewer® to see what different shingle colors and styles look like on your home before you commit. Try Dynasty, Cambridge, Nordic and more.
               </p>
             </div>
             <div className="flex-shrink-0">
               <Button asChild size="lg" className="bg-brand-blue text-white hover:bg-blue-700 font-bold uppercase tracking-widest px-8 py-7 text-lg shadow-xl whitespace-nowrap">
-                <Link href="/roof-report">Measure My Roof</Link>
+                <a href="https://www.iko.com/na/roofviewer/" target="_blank" rel="noopener noreferrer">Try ROOFViewer®</a>
               </Button>
             </div>
           </div>
