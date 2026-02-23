@@ -79,7 +79,7 @@ export const teamMembers: TeamMember[] = [
     tiktok: 'https://www.tiktok.com/@river.city.roofin',
     x: 'https://x.com/roofing_river',
     tagline: 'Leads sales and marketing with a focus on empowering the team and ensuring customer satisfaction.',
-    bio: "Michael, much like his brother Chris, brings extensive experience to the roofing industry. He has worked in every aspect of the business, from hands-on installation to developing effective sales and marketing strategies. His preferred shingle is the IKO Nordic in Granite Black, a choice reflecting his appreciation for superior durability and hail resistance. Having assisted thousands of homeowners with roof replacements, Michael derives great satisfaction from seeing the River City team consistently meet and exceed customer expectations. He is passionate about empowering his team to continuously improve and deliver exceptional service. A dedicated family man, Michael has two sons, Michael Jr. and Boston, and two grandchildren, Skis and Wrenly. He enjoyed coaching his sons' football teams when they were younger.",
+    bio: "Co-owner of River City Roofing Solutions. With over 20 years of family roofing experience, Michael brings a unique blend of hands-on construction knowledge and cutting-edge technology to every project. As an above-the-knee amputee, he's passionate about accessibility and building solutions that work for everyone. When he's not on a roof or behind a screen, you'll find him working on custom electronics projects and spending time with family.",
     keyStrengths: [
       'Sales strategy development and execution',
       'Marketing campaign planning and implementation',

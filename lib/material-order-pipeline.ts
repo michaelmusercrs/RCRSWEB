@@ -250,6 +250,16 @@ async function getOrCreateSheet(tabName: string, headerValues: string[]): Promis
     let sheet = doc.sheetsByTitle[tabName];
     if (!sheet) {
       sheet = await doc.addSheet({ title: tabName, headerValues });
+    } else {
+      // Ensure sheet has enough columns for our headers
+      if (sheet.columnCount < headerValues.length) {
+        await sheet.resize({ rowCount: sheet.rowCount, columnCount: headerValues.length });
+      }
+      // Ensure headers are set correctly
+      await sheet.loadHeaderRow().catch(() => {});
+      if (!sheet.headerValues || sheet.headerValues.length === 0) {
+        await sheet.setHeaderRow(headerValues);
+      }
     }
     return { sheet, doc };
   } catch (error) {

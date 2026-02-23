@@ -150,6 +150,34 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(items);
       }
 
+      case 'history': {
+        const productId = searchParams.get('productId') || undefined;
+        const limit = parseInt(searchParams.get('limit') || '100');
+        const transactions = await unifiedInventoryService.getTransactions(productId, limit);
+        return NextResponse.json({ transactions });
+      }
+
+      case 'management': {
+        const [inventory, alerts, lowStock, value, restockSuggestions, restockOrders, categories] = await Promise.all([
+          unifiedInventoryService.getInventory({}),
+          unifiedInventoryService.getStockAlerts(),
+          unifiedInventoryService.getLowStockItems(),
+          unifiedInventoryService.getInventoryValue(),
+          unifiedInventoryService.getRestockSuggestions(),
+          unifiedInventoryService.getRestockOrders(),
+          unifiedInventoryService.getCategoryBreakdown(),
+        ]);
+        return NextResponse.json({
+          items: inventory,
+          alerts,
+          lowStock,
+          ...value,
+          restockSuggestions,
+          restockOrders,
+          categories,
+        });
+      }
+
       default:
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }

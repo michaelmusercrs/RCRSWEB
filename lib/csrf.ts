@@ -17,6 +17,8 @@ const CSRF_EXEMPT_PREFIXES = [
   '/api/calls/webhook',    // Call recording webhook
   '/api/cron/',            // Vercel cron jobs
   '/api/honeypot',         // Honeypot endpoint (receives external hits)
+  '/api/leads/new',        // Public lead submission form (no auth required)
+  '/api/storm-report',     // Public storm report generation
 ];
 
 const ALLOWED_ORIGINS = [
