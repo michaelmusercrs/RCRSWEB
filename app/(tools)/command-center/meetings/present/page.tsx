@@ -168,7 +168,7 @@ interface WeeklyNumbersRep {
   followUpsMade: number;
 }
 
-type ViewMode = 'leaderboard' | 'stats' | 'podium' | 'goals' | 'milestones' | 'early-announcements' | 'late-announcements' | 'weekly-numbers' | 'competition';
+type ViewMode = 'date-header' | 'training' | 'weather' | 'attendance' | 'early-announcements' | 'podium' | 'leaderboard' | 'competition' | 'weekly-numbers' | 'stats' | 'goals' | 'milestones' | 'office-bonus' | 'late-announcements';
 
 // =============================================================================
 // Utility Functions
@@ -777,8 +777,9 @@ export default function MeetingPresentationPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [trainingTopic, setTrainingTopic] = useState<{ title: string; presenter: string; content: string; videoUrl?: string }>({ title: '', presenter: '', content: '' });
   const [period, setPeriod] = useState<'week' | 'month' | 'ytd'>('week');
-  const [viewMode, setViewMode] = useState<ViewMode>('podium');
+  const [viewMode, setViewMode] = useState<ViewMode>('date-header');
   const [isAutoRotating, setIsAutoRotating] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -786,7 +787,7 @@ export default function MeetingPresentationPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const autoRotateRef = useRef<NodeJS.Timeout | null>(null);
 
-  const views: ViewMode[] = ['early-announcements', 'podium', 'leaderboard', 'competition', 'weekly-numbers', 'stats', 'goals', 'milestones', 'late-announcements'];
+  const views: ViewMode[] = ['date-header', 'training', 'weather', 'attendance', 'early-announcements', 'podium', 'leaderboard', 'competition', 'weekly-numbers', 'stats', 'goals', 'milestones', 'office-bonus', 'late-announcements'];
 
   // Fetch data
   const fetchData = useCallback(async () => {
@@ -836,6 +837,21 @@ export default function MeetingPresentationPage() {
           setWeeklyNumbers(weeklyJson.records || []);
         }
       }
+
+      // Fetch meeting prep data for training topic
+      try {
+        const prepRes = await fetch('/api/command-center/meetings/prep');
+        if (prepRes.ok) {
+          const prepJson = await prepRes.json();
+          if (prepJson.data?.trainingTopic) {
+            setTrainingTopic({
+              title: prepJson.data.trainingTopic || '',
+              presenter: prepJson.data.preparedBy || '',
+              content: prepJson.data.specialNotes || '',
+            });
+          }
+        }
+      } catch { /* optional */ }
 
       setError(null);
     } catch (err) {
@@ -925,26 +941,90 @@ export default function MeetingPresentationPage() {
       );
     }
 
+    // HARD RULE: Filter Michael, Chris, Sara from all leaderboard/competition data
+    const NON_SALES = ['michael', 'chris', 'sara', 'michael muse', 'chris muse', 'sara hill'];
+    const filterNonSales = (reps: RepStats[]) => reps.filter(r => !NON_SALES.some(n => r.name.toLowerCase().includes(n)));
+    const filteredLeaderboard = leaderboardData ? { ...leaderboardData, leaderboard: filterNonSales(leaderboardData.leaderboard) } : null;
+
+    const today = new Date();
+    const dateStr = today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
     switch (viewMode) {
+      case 'date-header':
+        return (
+          <div className="flex flex-col items-center justify-center h-[60vh]">
+            <h1 className="text-7xl font-bold text-white mb-4 animate-slideUp">Monday Meeting</h1>
+            <p className="text-4xl text-lime-400 animate-slideUp" style={{ animationDelay: '0.2s' }}>{dateStr}</p>
+            <p className="text-2xl text-neutral-500 mt-4 animate-slideUp" style={{ animationDelay: '0.4s' }}>River City Roofing & Solar</p>
+          </div>
+        );
+      case 'training':
+        return (
+          <div className="flex flex-col items-center justify-center h-[60vh] space-y-8 p-8">
+            <div className="w-20 h-20 bg-blue-500/20 rounded-2xl flex items-center justify-center">
+              <Zap className="h-12 w-12 text-blue-400" />
+            </div>
+            <h2 className="text-5xl font-bold text-white text-center">{trainingTopic.title || 'Training Topic'}</h2>
+            {trainingTopic.presenter && <p className="text-2xl text-neutral-400">Presented by: {trainingTopic.presenter}</p>}
+            {trainingTopic.content && <p className="text-xl text-neutral-500 max-w-3xl text-center">{trainingTopic.content}</p>}
+            {trainingTopic.videoUrl && (
+              <div className="w-full max-w-4xl aspect-video bg-black rounded-2xl overflow-hidden">
+                <iframe src={trainingTopic.videoUrl} className="w-full h-full" allowFullScreen />
+              </div>
+            )}
+            {!trainingTopic.title && (
+              <div className="text-center">
+                <p className="text-xl text-neutral-500">Configure training topic in Meeting Prep</p>
+                <p className="text-sm text-neutral-600 mt-2">Go to /command-center/meetings/prep to set the training topic</p>
+              </div>
+            )}
+          </div>
+        );
+      case 'weather':
+        return (
+          <div className="flex flex-col items-center justify-center h-[60vh] space-y-6">
+            <h2 className="text-5xl font-bold text-white">🌤️ This Week&apos;s Weather</h2>
+            <p className="text-2xl text-neutral-400">Decatur / North Alabama Forecast</p>
+            <div className="bg-zinc-800/80 rounded-2xl p-8 border border-zinc-700 max-w-2xl w-full text-center">
+              <p className="text-lg text-neutral-500">Check weather.gov or your preferred weather source for this week&apos;s forecast before the meeting.</p>
+              <a href="https://forecast.weather.gov/MapClick.php?lat=34.6059&lon=-86.9833" target="_blank" rel="noopener noreferrer" className="inline-block mt-4 px-6 py-3 bg-blue-500/20 text-blue-400 rounded-xl hover:bg-blue-500/30 transition">
+                Open NWS Forecast for Decatur, AL
+              </a>
+            </div>
+          </div>
+        );
+      case 'attendance':
+        return (
+          <div className="flex flex-col items-center justify-center h-[60vh] space-y-8 p-8">
+            <div className="w-24 h-24 bg-red-500/20 rounded-full flex items-center justify-center animate-pulse">
+              <Users className="h-14 w-14 text-red-400" />
+            </div>
+            <h2 className="text-5xl font-bold text-white text-center">Attendance is MANDATORY!</h2>
+            <p className="text-3xl text-neutral-300">Meetings are Mondays at 10:00 AM</p>
+            <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-8 max-w-3xl">
+              <p className="text-2xl text-red-400 text-center font-semibold">
+                If you are late or have an unexcused absence, you will NOT be on lead rotation for that week.
+              </p>
+            </div>
+          </div>
+        );
       case 'early-announcements':
         return <AnnouncementsDisplay announcements={announcementsData?.early || []} type="early" />;
       case 'podium':
-        return leaderboardData && <PodiumDisplay leaderboard={leaderboardData.leaderboard} />;
+        return filteredLeaderboard && <PodiumDisplay leaderboard={filteredLeaderboard.leaderboard} />;
       case 'leaderboard':
-        return leaderboardData && <LeaderboardTable leaderboard={leaderboardData.leaderboard} period={period} />;
+        return filteredLeaderboard && <LeaderboardTable leaderboard={filteredLeaderboard.leaderboard} period={period} />;
       case 'competition':
-        return leaderboardData ? (
+        return filteredLeaderboard ? (
           <SalesCompetitionPresentation
-            reps={leaderboardData.leaderboard.map(rep => {
+            reps={filteredLeaderboard.leaderboard.map(rep => {
               const competitionPeriod = getCurrentPeriod();
-              // Use YTD for H1, or compute H2 from ytd minus H1
-              // For simplicity, use the period-appropriate commissions
               const periodTotal = competitionPeriod.half === 1
                 ? rep.ytdCommissions
-                : rep.totalCommissions - (rep.ytdCommissions - rep.monthlyCommissions); // approximate H2
+                : rep.totalCommissions - (rep.ytdCommissions - rep.monthlyCommissions);
               return {
                 name: rep.name,
-                periodTotal: competitionPeriod.half === 1 ? rep.ytdCommissions : rep.monthlyCommissions * 6, // best approx
+                periodTotal: competitionPeriod.half === 1 ? rep.ytdCommissions : rep.monthlyCommissions * 6,
                 monthlyTotal: rep.monthlyCommissions,
               };
             })}
@@ -953,11 +1033,34 @@ export default function MeetingPresentationPage() {
       case 'weekly-numbers':
         return <WeeklyNumbersDisplay numbers={weeklyNumbers} />;
       case 'stats':
-        return <StatsDisplay stats={statsData} leaderboard={leaderboardData} />;
+        return <StatsDisplay stats={statsData} leaderboard={filteredLeaderboard} />;
       case 'goals':
         return <GoalsDisplay stats={statsData} />;
       case 'milestones':
         return <MilestonesDisplay stats={statsData} />;
+      case 'office-bonus':
+        return (
+          <div className="flex flex-col items-center justify-center h-[60vh] space-y-8 p-8">
+            <div className="w-20 h-20 bg-emerald-500/20 rounded-2xl flex items-center justify-center">
+              <DollarSign className="h-12 w-12 text-emerald-400" />
+            </div>
+            <h2 className="text-4xl font-bold text-white text-center">Office Bonus Structure</h2>
+            <div className="bg-zinc-800/80 rounded-2xl p-8 border border-zinc-700 max-w-3xl">
+              <p className="text-2xl text-lime-400 text-center font-semibold mb-6">
+                IF INSPECTORS SELL OVER $1,000,000 IN A QUARTER:
+              </p>
+              <p className="text-xl text-neutral-300 text-center mb-4">
+                Per every $100,000 over $1,000,000:
+              </p>
+              <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
+                <div className="text-right text-lg text-neutral-400">Sara &amp; Destin:</div>
+                <div className="text-left text-lg text-lime-400 font-bold">$200 bonus each</div>
+                <div className="text-right text-lg text-neutral-400">Tia:</div>
+                <div className="text-left text-lg text-lime-400 font-bold">$100 bonus</div>
+              </div>
+            </div>
+          </div>
+        );
       case 'late-announcements':
         return <AnnouncementsDisplay announcements={announcementsData?.late || []} type="late" />;
       default:
@@ -1045,6 +1148,10 @@ export default function MeetingPresentationPage() {
           <div className="flex gap-2 flex-wrap justify-center">
             {views.map((v) => {
               const viewLabels: Record<ViewMode, string> = {
+                'date-header': '📅 Date',
+                'training': '🎓 Training',
+                'weather': '🌤️ Weather',
+                'attendance': '⚠️ Attendance',
                 'early-announcements': '📢 Announcements',
                 'podium': '🏆 Podium',
                 'leaderboard': '📊 Leaderboard',
@@ -1053,6 +1160,7 @@ export default function MeetingPresentationPage() {
                 'stats': '💰 Stats',
                 'goals': '🎯 Goals',
                 'milestones': '⚡ Milestones',
+                'office-bonus': '💵 Office Bonus',
                 'late-announcements': '📣 Late Announcements',
               };
               return (

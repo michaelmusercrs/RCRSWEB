@@ -90,8 +90,24 @@ export async function GET(req: NextRequest) {
     const bbox = data.solarPotential?.boundingBox;
     const imageryDate = data.imageryDate;
 
-    const totalRoofAreaSqFt = (whole?.areaMeters2 || 0) * SQ_M_TO_SQ_FT;
+    let totalRoofAreaSqFt = (whole?.areaMeters2 || 0) * SQ_M_TO_SQ_FT;
     const groundFootprintSqFt = (whole?.groundAreaMeters2 || 0) * SQ_M_TO_SQ_FT;
+
+    // SANITY CHECK: Cap unrealistic areas. Typical residential = 1500-5000 sqft.
+    // Solar API may include detached structures. If area > 8000, clamp to segment-based estimate.
+    if (totalRoofAreaSqFt > 8000 && roofSegments.length > 0) {
+      const segAreas = roofSegments
+        .map((s: any) => (s.stats?.areaMeters2 || 0) * SQ_M_TO_SQ_FT)
+        .sort((a: number, b: number) => b - a);
+      let adjusted = 0;
+      for (const area of segAreas) {
+        if (adjusted > 0 && adjusted + area > 6000) break;
+        adjusted += area;
+      }
+      if (adjusted < totalRoofAreaSqFt * 0.8) {
+        totalRoofAreaSqFt = adjusted;
+      }
+    }
 
     const segments = roofSegments.map((s: any) => ({
       pitchDegrees: s.pitchDegrees || 0,

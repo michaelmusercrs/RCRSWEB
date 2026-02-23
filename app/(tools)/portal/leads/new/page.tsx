@@ -107,8 +107,11 @@ interface LeadResult {
 const LEAD_SOURCES = [
   { value: 'phone_call', label: 'Phone Call' },
   { value: 'referral', label: 'Referral' },
-  { value: 'walk_in', label: 'Walk-in' },
+  { value: 'walk_in', label: 'Walk-In' },
   { value: 'contact_form', label: 'Website Form' },
+  { value: 'door_knock', label: 'Door Knock' },
+  { value: 'bni', label: 'BNI' },
+  { value: 'insurance_agent', label: 'Insurance Agent' },
   { value: 'other', label: 'Other' },
 ];
 

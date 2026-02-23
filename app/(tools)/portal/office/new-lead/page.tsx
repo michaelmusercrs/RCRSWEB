@@ -69,7 +69,10 @@ const LEAD_SOURCES = [
   { value: 'walk_in', label: 'Walk-In' },
   { value: 'referral', label: 'Referral' },
   { value: 'contact_form', label: 'Website Form' },
-  { value: 'other', label: 'Door Knock / Storm Chaser / Other' },
+  { value: 'door_knock', label: 'Door Knock' },
+  { value: 'bni', label: 'BNI' },
+  { value: 'insurance_agent', label: 'Insurance Agent' },
+  { value: 'other', label: 'Other' },
 ];
 
 // ---------------------------------------------------------------------------

@@ -190,6 +190,24 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {/* Weekly Numbers Widget - Sales/Admin - TOP OF DASHBOARD, CAN'T MISS IT */}
+      {['sales', 'owner', 'admin', 'manager'].includes(user.role) && (
+        <div className="mb-8 -mt-2">
+          <div className="bg-gradient-to-r from-brand-green/10 via-emerald-500/5 to-brand-green/10 border-2 border-brand-green/30 rounded-2xl p-6 shadow-lg shadow-brand-green/5">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-brand-green/20 rounded-xl flex items-center justify-center animate-pulse">
+                <ClipboardList size={24} className="text-brand-green" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-white">📊 Submit Your Weekly Numbers</h3>
+                <p className="text-sm text-brand-green/80">Due before Monday meeting — required for all sales reps</p>
+              </div>
+            </div>
+            <WeeklyNumbersWidget compact={false} />
+          </div>
+        </div>
+      )}
+
       {/* Monday Announcement Widget */}
       <div className="mb-8">
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
@@ -198,17 +216,6 @@ export default function Dashboard() {
         </h3>
         <MondayAnnouncementWidget />
       </div>
-
-      {/* Weekly Numbers Widget - Sales/Admin only */}
-      {['sales', 'owner', 'admin', 'manager'].includes(user.role) && (
-        <div className="mb-8">
-          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <ClipboardList size={18} className="text-brand-green flex-shrink-0" />
-            Weekly Numbers
-          </h3>
-          <WeeklyNumbersWidget compact />
-        </div>
-      )}
 
       {/* Quick Access Grid */}
       <div className="mb-8">

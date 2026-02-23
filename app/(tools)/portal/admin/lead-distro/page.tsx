@@ -75,14 +75,14 @@ interface DistributionLog {
 
 // ── Weight metadata ────────────────────────────────────────────────────────────
 
-const WEIGHT_META: Record<keyof WeightConfig, { label: string; description: string; color: string }> = {
-  installProximity:  { label: 'Install Proximity',    description: 'Distance from rep past installs',    color: 'bg-brand-green' },
-  contactProximity:  { label: 'Contact Proximity',    description: 'Distance from rep contact address',  color: 'bg-cyan-500' },
-  doorKnockRecency:  { label: 'Door Knock Recency',   description: 'How recently rep knocked nearby',    color: 'bg-violet-500' },
-  referralBonus:     { label: 'Referral Bonus',        description: 'Bonus when lead is a referral',      color: 'bg-amber-500' },
-  meetingAttendance: { label: 'Meeting Attendance',    description: 'Monday meeting attendance rate',      color: 'bg-emerald-500' },
-  closeRate:         { label: 'Close Rate',            description: 'Historical close percentage',         color: 'bg-rose-500' },
-  responseTime:      { label: 'Response Time',         description: 'Average lead response speed',         color: 'bg-orange-500' },
+const WEIGHT_META: Record<keyof WeightConfig, { label: string; description: string; color: string; detail?: string }> = {
+  installProximity:  { label: 'Proximity (Nearby Roofs)',    description: 'Completed roofs near the lead address',    color: 'bg-brand-green', detail: 'Scores reps who have done jobs nearby — recency matters (this year > 2yr > 5yr)' },
+  contactProximity:  { label: 'Contact Proximity',    description: 'Rep contacts/customers in area',  color: 'bg-cyan-500', detail: 'Existing customer relationships near the lead' },
+  doorKnockRecency:  { label: 'Door Knocks in Area',   description: 'Recent door knocking activity nearby',    color: 'bg-violet-500', detail: 'Reps who have been actively knocking in the neighborhood' },
+  referralBonus:     { label: 'Lead Type Bonus',        description: 'Office lead vs referral vs door knock',      color: 'bg-amber-500', detail: 'Office leads (created by Sara/Destin) distributed by algorithm. Referrals/self-gen credited to the rep who brought them in.' },
+  meetingAttendance: { label: 'Meeting Attendance',    description: 'Monday meeting attendance — miss = off rotation',      color: 'bg-emerald-500', detail: 'Mandatory Monday 10 AM meetings. Missing = removed from lead rotation that week.' },
+  closeRate:         { label: 'Office Lead Close Rate',            description: 'Closing % on OFFICE LEADS ONLY',         color: 'bg-rose-500', detail: 'Only counts jobs created by office staff (Sara, Destin). Self-gen/referral jobs excluded from this metric.' },
+  responseTime:      { label: 'Response Time',         description: 'Speed of first contact with leads',         color: 'bg-orange-500', detail: 'How quickly the rep makes first human contact (call/text) — not automations' },
 };
 
 const DEFAULT_CONFIG: LeadDistroConfig = {
@@ -581,9 +581,12 @@ export default function LeadDistroAdmin() {
                 return (
                   <div key={key}>
                     <div className="flex items-center justify-between mb-2">
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <span className="text-sm font-medium text-white">{meta.label}</span>
                         <span className="text-xs text-neutral-500 ml-2">{meta.description}</span>
+                        {meta.detail && (
+                          <p className="text-xs text-neutral-600 mt-0.5">{meta.detail}</p>
+                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         <input

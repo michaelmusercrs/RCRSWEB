@@ -23,6 +23,8 @@ interface WeeklyNumbers {
   estimatesGiven: number;
   contractsSigned: number;
   revenueClosed: number;
+  estimatedRevenue: number;
+  realSales: number;
   leadsGenerated: number;
   followUpsMade: number;
   notes: string;
@@ -111,6 +113,7 @@ const metricFields: MetricField[] = [
   { key: 'inspectionsCompleted', label: 'Inspections Completed', icon: Search, type: 'number', color: 'text-cyan-400' },
   { key: 'estimatesGiven', label: 'Estimates Given', icon: FileText, type: 'number', color: 'text-orange-400' },
   { key: 'contractsSigned', label: 'Contracts Signed', icon: FileSignature, type: 'number', color: 'text-green-400' },
+  { key: 'estimatedRevenue', label: 'Estimated $$$ (Signed + Contingencies)', icon: TrendingUp, type: 'currency', color: 'text-amber-400' },
   { key: 'revenueClosed', label: 'Revenue Closed', icon: DollarSign, type: 'currency', color: 'text-emerald-400' },
   { key: 'leadsGenerated', label: 'Leads Generated', icon: Users, type: 'number', color: 'text-yellow-400' },
   { key: 'followUpsMade', label: 'Follow-ups Made', icon: PhoneForwarded, type: 'number', color: 'text-pink-400' },
@@ -142,6 +145,7 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
     inspectionsCompleted: 0,
     estimatesGiven: 0,
     contractsSigned: 0,
+    estimatedRevenue: 0,
     revenueClosed: 0,
     leadsGenerated: 0,
     followUpsMade: 0,
@@ -175,6 +179,7 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
             inspectionsCompleted: thisWeek.inspectionsCompleted,
             estimatesGiven: thisWeek.estimatesGiven,
             contractsSigned: thisWeek.contractsSigned,
+            estimatedRevenue: thisWeek.estimatedRevenue || 0,
             revenueClosed: thisWeek.revenueClosed,
             leadsGenerated: thisWeek.leadsGenerated,
             followUpsMade: thisWeek.followUpsMade,

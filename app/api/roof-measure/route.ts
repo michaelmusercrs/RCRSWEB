@@ -956,8 +956,32 @@ async function runSatelliteAnalysis(address: string) {
   const solar = await getSolarData(geo.lat, geo.lng);
   const solarSegments = solar?.solarPotential?.roofSegmentStats || [];
   const wholeRoof = solar?.solarPotential?.wholeRoofStats;
-  const totalAreaSqFt = wholeRoof?.areaMeters2 ? wholeRoof.areaMeters2 * 10.7639 : 0;
+  let totalAreaSqFt = wholeRoof?.areaMeters2 ? wholeRoof.areaMeters2 * 10.7639 : 0;
   const boundingBox = solar?.solarPotential?.boundingBox || solar?.boundingBox;
+
+  // SANITY CHECK: Google Solar API sometimes includes detached structures (garages, sheds).
+  // A typical residential roof is 1500-5000 sqft. Cap at 8000 sqft for residential.
+  // If Solar API returns >8000, use only the largest connected segments.
+  if (totalAreaSqFt > 8000 && solarSegments.length > 0) {
+    // Sort segments by area descending and take only the main structure
+    const segAreas = solarSegments
+      .map((s: { stats?: { areaMeters2?: number } }) => (s.stats?.areaMeters2 || 0) * 10.7639)
+      .sort((a: number, b: number) => b - a);
+    
+    // Take segments until we reach a reasonable total (cap at 6000 sqft)
+    // or stop when adding next segment would exceed 2x the first segment
+    let adjusted = 0;
+    const mainSegArea = segAreas[0] || 0;
+    for (const area of segAreas) {
+      if (adjusted > 0 && (adjusted + area > 6000 || area < mainSegArea * 0.05)) break;
+      adjusted += area;
+    }
+    
+    if (adjusted < totalAreaSqFt * 0.8) {
+      console.warn(`Solar API area ${Math.round(totalAreaSqFt)} sqft seems high. Adjusted to ${Math.round(adjusted)} sqft (likely includes detached structures)`);
+      totalAreaSqFt = adjusted;
+    }
+  }
 
   // ── MULTI-SOURCE SATELLITE IMAGERY ──
   // Pull from multiple angles, zooms, and offsets for maximum coverage
