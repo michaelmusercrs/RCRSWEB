@@ -98,16 +98,7 @@ export default function PortalLogin() {
       // Find the member by PIN (supports any role with PIN)
       const member = TEAM_MEMBERS.find(m => m.pin === pin);
       if (member) {
-        const redirectUrl = ROLE_DEFAULT_ROUTES[member.role];
-        // Check if training needed
-        if (!hasCompletedTraining(member.role)) {
-          setLoggedInUser({ name: member.name, role: member.role });
-          setPendingRedirect(redirectUrl);
-          setShowTraining(true);
-          setIsLoading(false);
-          return;
-        }
-        router.push(redirectUrl);
+        router.push(ROLE_DEFAULT_ROUTES[member.role]);
       } else {
         router.push('/portal/driver');
       }
@@ -149,14 +140,7 @@ export default function PortalLogin() {
         }
 
         const redirectUrl = ROLE_DEFAULT_ROUTES[member.role];
-        // Check if training needed
-        if (!hasCompletedTraining(member.role)) {
-          setLoggedInUser({ name: member.name, role: member.role });
-          setPendingRedirect(redirectUrl);
-          setShowTraining(true);
-          setIsLoading(false);
-          return;
-        }
+        // Go straight to dashboard — training can happen inside the portal
         router.push(redirectUrl);
       }
     } else {
