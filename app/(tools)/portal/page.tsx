@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
   Truck, Loader2, ChevronRight, Shield, ArrowRight,
-  User, Mail, AlertCircle
+  User, Mail, AlertCircle, Eye, EyeOff
 } from 'lucide-react';
 import { useAuth, ROLE_DEFAULT_ROUTES } from '@/lib/auth-context';
 import { TEAM_MEMBERS, TeamRole } from '@/lib/team-roles';
@@ -23,6 +23,7 @@ export default function PortalLogin() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [showTraining, setShowTraining] = useState(false);
   const [showFeatureUpdates, setShowFeatureUpdates] = useState(false);
   const [pendingRedirect, setPendingRedirect] = useState<string | null>(null);
@@ -367,13 +368,20 @@ export default function PortalLogin() {
                   <div className="relative">
                     <Shield className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500" size={18} />
                     <input
-                      type="password"
+                      type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleStaffLogin()}
                       placeholder="Enter your password"
-                      className="w-full bg-neutral-800/50 border border-neutral-700 rounded-xl pl-12 pr-4 py-3 text-white placeholder-neutral-500 focus:outline-none focus:border-brand-green/50 focus:ring-2 focus:ring-brand-green/20"
+                      className="w-full bg-neutral-800/50 border border-neutral-700 rounded-xl pl-12 pr-12 py-3 text-white placeholder-neutral-500 focus:outline-none focus:border-brand-green/50 focus:ring-2 focus:ring-brand-green/20"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300 transition-colors"
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
                   </div>
                 </div>
               </div>
