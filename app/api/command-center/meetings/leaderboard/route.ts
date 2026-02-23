@@ -317,6 +317,21 @@ export async function GET(request: NextRequest) {
 
       if (!date || !salesRep) continue;
 
+      // HARD RULE: Michael, Chris, and Sara are NOT sales reps.
+      // NEVER put them on commissions, leaderboards, or sales competition.
+      // Subcontractor pay (Diego Garcia, Jesus M Lara, Rogelio Gonzalez-Flores) is NOT commission.
+      const EXCLUDED_FROM_LEADERBOARD = [
+        // Owners/Management - NOT sales reps
+        'michael muse', 'chris muse', 'sara hill',
+        // Project managers - NOT sales reps
+        'john cordonis', 'bart roberts',
+        // Office staff
+        'destin mccary', 'tia muse morris', 'tia muse',
+        // Subcontractors - labor pay, NOT commission
+        'diego garcia', 'jesus m lara', 'jesus lara', 'rogelio gonzalez-flores', 'rogelio gonzalez',
+      ];
+      if (EXCLUDED_FROM_LEADERBOARD.includes(salesRep.toLowerCase())) continue;
+
       if (!repMap.has(salesRep)) {
         repMap.set(salesRep, {
           total: 0,

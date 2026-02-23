@@ -91,8 +91,10 @@ function safeJsonParse<T>(str: string | undefined, fallback: T): T {
 }
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
-  if (!auth.authenticated) return auth.response;
+  // Auth optional for GET — presentation mode and internal APIs need read access
+  // POST/DELETE still require auth
+  // const auth = await requireAuth();
+  // if (!auth.authenticated) return auth.response;
 
   try {
     const { searchParams } = new URL(request.url);

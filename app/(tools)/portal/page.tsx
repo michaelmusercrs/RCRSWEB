@@ -17,7 +17,7 @@ type LoginMode = 'select' | 'driver' | 'staff';
 export default function PortalLogin() {
   const router = useRouter();
   const { user, isLoading: authLoading, login, loginWithPin } = useAuth();
-  const [loginMode, setLoginMode] = useState<LoginMode>('select');
+  const [loginMode, setLoginMode] = useState<LoginMode>('staff');
   const [pin, setPin] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

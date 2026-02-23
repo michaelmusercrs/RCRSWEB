@@ -29,12 +29,12 @@ function getISOWeekString(date: Date = new Date()): string {
  * for the authenticated user's email.
  */
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
-  if (!auth.authenticated) return auth.response;
-
+  // Auth optional for GET — presentation mode needs unauthenticated read access
+  const auth = await requireAuth().catch(() => ({ authenticated: false as const, response: null as unknown as Response }));
+  
   try {
     const { searchParams } = new URL(request.url);
-    const repEmail = searchParams.get('repEmail') || auth.user.email;
+    const repEmail = searchParams.get('repEmail') || (auth.authenticated ? auth.user.email : '');
     const weekStart = searchParams.get('weekStart') || undefined;
     const weekEnd = searchParams.get('weekEnd') || undefined;
     const allReps = searchParams.get('allReps') === 'true';

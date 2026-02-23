@@ -1,14 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  loadCalibrationData,
-  getMethodWeight,
-  getCorrectionFactors,
-  applyCorrectionFactors,
-  trackPhotoCorrection,
-  type CalibrationData,
-  type CalibrationMeasurements,
-  type AICalibrationResult,
-} from '@/lib/roof-calibration';
 
 export const maxDuration = 300; // 5 min for local dev; Vercel Hobby caps at 60s automatically
 export const dynamic = 'force-dynamic';
@@ -64,12 +54,6 @@ interface AIResult {
   status: string;
   measurements: AIMeasurements | null;
   raw?: string;
-  methodTag?: {
-    method: string;      // e.g. "vertex-gemini-2.0-flash"
-    provider: string;    // "vertex" | "ai-studio" | "ollama"
-    model: string;       // e.g. "gemini-2.0-flash"
-    imageSet: string;    // e.g. "google-sat" | "esri" | "street-view"
-  };
 }
 
 const GOOGLE_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
@@ -202,11 +186,17 @@ const COMPONENTS_JSON_FORMAT = `
   }`;
 
 function buildPrompt(width: number, length: number, area: number, segmentCount: number): string {
-  return `You are a professional roof measurement analyst. Analyze these images of a residential building.
+  return `You are a professional roof measurement analyst for a RESIDENTIAL ROOFING company. Analyze these images of a residential building.
+
+CRITICAL: These are RESIDENTIAL homes in North Alabama. They are NOT flat roofs unless the images clearly show a flat/low-slope membrane roof.
+- Most residential roofs are GABLE or HIP style with pitches between 4/12 and 10/12.
+- You are receiving BOTH overhead satellite images AND street-level photos showing the roof from the side.
+- USE THE STREET VIEW IMAGES to determine roof pitch — you can SEE the slope angle from the side.
+- If you see a pitched roof in the street view but only a flat view from satellite, the roof IS PITCHED. Report the pitch you see.
 
 KNOWN REFERENCE DIMENSIONS (from satellite data):
 - Building footprint: approximately ${width.toFixed(1)}ft x ${length.toFixed(1)}ft
-- Total roof area: ${area.toFixed(0)} sq ft (verified by satellite)
+- Total roof area (slope-adjusted): ${area.toFixed(0)} sq ft (verified by satellite — this includes pitch factor)
 - Number of roof segments/facets: ${segmentCount}
 
 Using these known dimensions as your measurement reference scale, estimate the following linear measurements in feet:
@@ -395,7 +385,7 @@ const GEMINI_MODELS = [
   'gemini-2.0-flash',      // 15 RPM, 1500 RPD free
 ];
 
-async function callGeminiWithModel(model: string, key: string, prompt: string, images: string[], extraConfig?: object, imageSet?: string): Promise<AIResult> {
+async function callGeminiWithModel(model: string, key: string, prompt: string, images: string[], extraConfig?: object): Promise<AIResult> {
   try {
     const parts: object[] = [{ text: prompt }];
     for (const img of images) {
@@ -422,14 +412,13 @@ async function callGeminiWithModel(model: string, key: string, prompt: string, i
     const data = await res.json();
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
     const measurements = parseAIJson(text);
-    const tag = { method: `ai-studio-${model}`, provider: 'ai-studio' as const, model, imageSet: imageSet || 'mixed' };
-    return { status: measurements ? 'success' : 'parse_error', measurements, raw: text.slice(0, 2000), methodTag: tag };
+    return { status: measurements ? 'success' : 'parse_error', measurements, raw: text.slice(0, 2000) };
   } catch (e: unknown) {
     return { status: 'error', measurements: null, raw: `${model}: ${String(e)}` };
   }
 }
 
-async function callGeminiVertex(model: string, prompt: string, images: string[], extraConfig?: object, imageSet?: string): Promise<AIResult> {
+async function callGeminiVertex(model: string, prompt: string, images: string[], extraConfig?: object): Promise<AIResult> {
   const token = await getCachedVertexToken();
   if (!token) return { status: 'skipped', measurements: null, raw: 'Vertex AI auth failed' };
   
@@ -461,17 +450,16 @@ async function callGeminiVertex(model: string, prompt: string, images: string[],
     const data = await res.json();
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
     const measurements = parseAIJson(text);
-    const tag = { method: `vertex-${model}`, provider: 'vertex' as const, model, imageSet: imageSet || 'mixed' };
-    return { status: measurements ? 'success' : 'parse_error', measurements, raw: text.slice(0, 2000), methodTag: tag };
+    return { status: measurements ? 'success' : 'parse_error', measurements, raw: text.slice(0, 2000) };
   } catch (e: unknown) {
     return { status: 'error', measurements: null, raw: `Vertex ${model}: ${String(e)}` };
   }
 }
 
-async function callGemini(prompt: string, images: string[], imageSet?: string): Promise<AIResult> {
+async function callGemini(prompt: string, images: string[]): Promise<AIResult> {
   // 1. Try Vertex AI first (paid service account — no free-tier limits)
   for (const model of ['gemini-2.0-flash', 'gemini-2.5-flash']) {
-    const result = await callGeminiVertex(model, prompt, images, undefined, imageSet);
+    const result = await callGeminiVertex(model, prompt, images);
     if (result.status === 'success') { console.log(`Vertex AI ${model} succeeded`); return result; }
     if (result.status !== '429' && result.status !== 'skipped') { console.log(`Vertex AI ${model}: ${result.raw?.slice(0, 100)}`); }
   }
@@ -481,7 +469,7 @@ async function callGemini(prompt: string, images: string[], imageSet?: string): 
   if (!key) return { status: 'skipped', measurements: null, raw: 'No Gemini API available' };
   
   for (const model of GEMINI_MODELS) {
-    const result = await callGeminiWithModel(model, key, prompt, images, undefined, imageSet);
+    const result = await callGeminiWithModel(model, key, prompt, images);
     if (result.status === 'success') return result;
     if (result.status !== '429') return result;
     console.log(`AI Studio ${model} hit 429, trying next...`);
@@ -489,7 +477,7 @@ async function callGemini(prompt: string, images: string[], imageSet?: string): 
   return { status: 'error', measurements: null, raw: 'All Gemini endpoints rate limited' };
 }
 
-async function callGeminiVerify(prompt: string, images: string[], imageSet?: string): Promise<AIResult> {
+async function callGeminiVerify(prompt: string, images: string[]): Promise<AIResult> {
   const verifyPrompt = `You are a SECOND INDEPENDENT roof measurement analyst providing a verification pass.
 Be extra conservative and precise. Double-check all estimates against the known reference dimensions.
 If something looks uncertain, round DOWN rather than up. Focus on accuracy over completeness.
@@ -498,7 +486,7 @@ ${prompt}`;
 
   // 1. Vertex AI first
   for (const model of ['gemini-2.0-flash', 'gemini-2.5-flash']) {
-    const result = await callGeminiVertex(model, verifyPrompt, images, { temperature: 0.1 }, imageSet);
+    const result = await callGeminiVertex(model, verifyPrompt, images, { temperature: 0.1 });
     if (result.status === 'success') return result;
   }
   
@@ -506,14 +494,14 @@ ${prompt}`;
   const key = process.env.GEMINI_API_KEY;
   if (!key) return { status: 'skipped', measurements: null, raw: 'No Gemini API available' };
   for (const model of GEMINI_MODELS) {
-    const result = await callGeminiWithModel(model, key, verifyPrompt, images, { temperature: 0.1 }, imageSet);
+    const result = await callGeminiWithModel(model, key, verifyPrompt, images, { temperature: 0.1 });
     if (result.status === 'success') return result;
     if (result.status !== '429') return result;
   }
   return { status: 'error', measurements: null, raw: 'All Gemini endpoints rate limited for verify' };
 }
 
-async function callOllama(prompt: string, images: string[], imageSet?: string): Promise<AIResult> {
+async function callOllama(prompt: string, images: string[]): Promise<AIResult> {
   // Skip Ollama on Vercel — it's a localhost-only service
   if (IS_VERCEL) {
     return { status: 'skipped', measurements: null, raw: 'Ollama skipped on Vercel (localhost only)' };
@@ -535,8 +523,7 @@ async function callOllama(prompt: string, images: string[], imageSet?: string): 
     const data = await res.json();
     const text = data?.response || '';
     const measurements = parseAIJson(text);
-    const tag = { method: 'ollama-llava-7b', provider: 'ollama' as const, model: 'llava:7b', imageSet: imageSet || 'mixed' };
-    return { status: measurements ? 'success' : 'parse_error', measurements, raw: text.slice(0, 2000), methodTag: tag };
+    return { status: measurements ? 'success' : 'parse_error', measurements, raw: text.slice(0, 2000) };
   } catch (e: unknown) {
     return { status: 'error', measurements: null, raw: String(e) };
   }
@@ -666,7 +653,7 @@ function buildMeasurementConsensusSimple(
       const details = closest.details.map((d: { length_ft: number }) => ({ lengthFt: d.length_ft }));
       return { totalFt: Math.round(avg * 10) / 10, count: details.length, details, confidence: 'HIGH', rerunPerformed: false };
     }
-    // 2 results but >10% variance
+    // 2-3 results but >10% variance — if only 2, do best we can
     if (nonZero.length === 2) {
       const avg = (nonZero[0].val + nonZero[1].val) / 2;
       notes.push(`${mk.detail}: 2 passes disagree by ${(variance * 100).toFixed(0)}%`);
@@ -674,28 +661,26 @@ function buildMeasurementConsensusSimple(
       const details = closest.details.map((d: { length_ft: number }) => ({ lengthFt: d.length_ft }));
       return { totalFt: Math.round(avg * 10) / 10, count: details.length, details, confidence: 'LOW', rerunPerformed: false };
     }
-    // 3 results, >10% — DROP THE OUTLIER, average the 2 closest (Michael's rule)
-    if (nonZero.length === 3) {
-      let bestPair = [0, 1];
-      let bestDiff = Infinity;
-      for (let i = 0; i < 3; i++) {
-        for (let j = i + 1; j < 3; j++) {
-          const diff = Math.abs(nonZero[i].val - nonZero[j].val);
-          if (diff < bestDiff) { bestDiff = diff; bestPair = [i, j]; }
-        }
+    // 3 results, >10% variance — Michael's rule: drop outlier, average 2 closest
+    let bestPair3 = [0, 1];
+    let bestDiff3 = Infinity;
+    for (let i = 0; i < nonZero.length; i++) {
+      for (let j = i + 1; j < nonZero.length; j++) {
+        const diff = Math.abs(nonZero[i].val - nonZero[j].val);
+        if (diff < bestDiff3) { bestDiff3 = diff; bestPair3 = [i, j]; }
       }
-      const kept = [nonZero[bestPair[0]], nonZero[bestPair[1]]];
-      const dropped = nonZero.filter((_, idx) => !bestPair.includes(idx));
-      const avg = (kept[0].val + kept[1].val) / 2;
-      const keptVariance = calcVariance(kept.map(v => v.val));
-      const confidence = keptVariance <= 0.10 ? 'HIGH' : keptVariance <= 0.20 ? 'MEDIUM' : 'LOW';
-      if (dropped.length > 0) {
-        notes.push(`${mk.detail}: dropped outlier ${dropped[0].name}(${dropped[0].val.toFixed(1)}ft), kept ${kept[0].name}(${kept[0].val.toFixed(1)}ft) + ${kept[1].name}(${kept[1].val.toFixed(1)}ft) = ${avg.toFixed(1)}ft`);
-      }
-      const closest = kept.reduce((best, v) => Math.abs(v.val - avg) < Math.abs(best.val - avg) ? v : best);
-      const details = closest.details.map((d: { length_ft: number }) => ({ lengthFt: d.length_ft }));
-      return { totalFt: Math.round(avg * 10) / 10, count: details.length, details, confidence, rerunPerformed: false };
     }
+    const kept3 = [nonZero[bestPair3[0]], nonZero[bestPair3[1]]];
+    const dropped3 = nonZero.filter((_, idx) => !bestPair3.includes(idx));
+    const avg3 = (kept3[0].val + kept3[1].val) / 2;
+    const var3 = calcVariance(kept3.map(v => v.val));
+    const conf3 = var3 <= 0.10 ? 'HIGH' : var3 <= 0.20 ? 'MEDIUM' : 'LOW';
+    if (dropped3.length > 0) {
+      notes.push(`${mk.detail}: dropped outlier ${dropped3[0].name}(${dropped3[0].val.toFixed(0)}ft), kept ${kept3[0].name}(${kept3[0].val.toFixed(0)}ft) + ${kept3[1].name}(${kept3[1].val.toFixed(0)}ft) = ${avg3.toFixed(1)}ft`);
+    }
+    const closest3 = kept3.reduce((best, v) => Math.abs(v.val - avg3) < Math.abs(best.val - avg3) ? v : best);
+    const details3 = closest3.details.map((d: { length_ft: number }) => ({ lengthFt: d.length_ft }));
+    return { totalFt: Math.round(avg3 * 10) / 10, count: details3.length, details: details3, confidence: conf3, rerunPerformed: false };
   }
 
   // With 4-5 results: DROP the 2 biggest outliers, keep best 3, average them
@@ -819,71 +804,10 @@ function pickConsensusConfidence(confidences: string[]): string {
   return 'MEDIUM';
 }
 
-// ── Weighted Consensus (calibration-aware) ─────────────────────────────────
-
-function buildWeightedConsensus(
-  mk: { total: MeasKey; detail: ConsensusKey },
-  results: { name: string; m: AIMeasurements; methodTag?: AIResult['methodTag'] }[],
-  notes: string[],
-  calibData: CalibrationData,
-): PerMeasConsensus {
-  const vals = results.map(r => {
-    const method = r.methodTag?.method || r.name;
-    let val = r.m[mk.total] || 0;
-
-    // Apply correction factors if available
-    const factors = getCorrectionFactors(method, calibData);
-    const factorKey = `${mk.detail.slice(0, -1)}_factor` as keyof typeof factors; // e.g. "ridge_factor"
-    if (factors[factorKey] !== 1 && val > 0) {
-      val = Math.round(val * factors[factorKey] * 10) / 10;
-    }
-
-    const weight = getMethodWeight(method, calibData);
-    return { name: r.name, method, val, weight, details: r.m[mk.detail] || [] };
-  });
-
-  const nonZero = vals.filter(v => v.val > 0);
-
-  if (nonZero.length === 0) {
-    return { totalFt: 0, count: 0, details: [], confidence: 'N/A', rerunPerformed: false };
-  }
-
-  if (nonZero.length === 1) {
-    const conf = nonZero[0].weight >= 1.0 ? 'MEDIUM' : 'LOW';
-    notes.push(`${mk.detail}: only ${nonZero[0].name} (w=${nonZero[0].weight}) — single source`);
-    const details = nonZero[0].details.map((d: { length_ft: number }) => ({ lengthFt: d.length_ft }));
-    return { totalFt: nonZero[0].val, count: details.length, details, confidence: conf, rerunPerformed: false };
-  }
-
-  // Weighted average
-  const totalWeight = nonZero.reduce((s, v) => s + v.weight, 0);
-  const weightedAvg = nonZero.reduce((s, v) => s + v.val * v.weight, 0) / totalWeight;
-  const avg = Math.round(weightedAvg * 10) / 10;
-
-  // Variance for confidence assessment
-  const variance = calcVariance(nonZero.map(v => v.val));
-  const confidence = variance <= 0.10 ? 'HIGH' : variance <= 0.20 ? 'MEDIUM' : 'LOW';
-
-  if (variance > 0.20) {
-    const details = nonZero.map(v => `${v.name}(${v.val}ft,w=${v.weight})`).join(', ');
-    notes.push(`${mk.detail}: high variance ${(variance * 100).toFixed(0)}% — weighted avg ${avg}ft [${details}] — verify on-site`);
-  } else {
-    const weights = nonZero.map(v => `${v.name}(w=${v.weight})`).join(', ');
-    notes.push(`${mk.detail}: weighted consensus ${avg}ft [${weights}]`);
-  }
-
-  // Use details from the highest-weighted result
-  const bestResult = nonZero.reduce((best, v) => v.weight > best.weight ? v : best);
-  const details = bestResult.details.map((d: { length_ft: number }) => ({ lengthFt: d.length_ft }));
-
-  return { totalFt: avg, count: details.length, details, confidence, rerunPerformed: false };
-}
-
 async function buildConsensus(
-  results: { name: string; m: AIMeasurements; methodTag?: AIResult['methodTag'] }[],
+  results: { name: string; m: AIMeasurements }[],
   allImages: string[],
   prompt: string,
-  calibData?: CalibrationData | null,
 ) {
   const measKeys: { total: MeasKey; detail: ConsensusKey }[] = [
     { total: 'total_ridge_ft', detail: 'ridges' },
@@ -896,18 +820,11 @@ async function buildConsensus(
   const notes: string[] = [];
   const consensus: Record<string, PerMeasConsensus> = {};
 
-  // ── WEIGHTED CONSENSUS (calibration-aware) ──
-  // If we have calibration data, use weighted average instead of drop-outlier.
-  // Each method gets a weight based on its historical accuracy.
-  const hasCalibration = calibData && Object.keys(calibData.methodAccuracy).length > 0;
-
+  // No re-runs — the 3 independent passes are our data.
+  // Drop outlier, average the 2 closest. Michael's rule.
   for (const mk of measKeys) {
-    if (hasCalibration && results.some(r => r.methodTag)) {
-      consensus[mk.detail] = buildWeightedConsensus(mk, results, notes, calibData!);
-    } else {
-      // Fallback to original logic when no calibration data exists
-      consensus[mk.detail] = buildMeasurementConsensusSimple(mk, results, notes);
-    }
+    const result = await buildMeasurementConsensusSimple(mk, results, notes);
+    consensus[mk.detail] = result;
   }
 
   // Build component consensus
@@ -1064,32 +981,8 @@ async function runSatelliteAnalysis(address: string) {
   const solar = await getSolarData(geo.lat, geo.lng);
   const solarSegments = solar?.solarPotential?.roofSegmentStats || [];
   const wholeRoof = solar?.solarPotential?.wholeRoofStats;
-  let totalAreaSqFt = wholeRoof?.areaMeters2 ? wholeRoof.areaMeters2 * 10.7639 : 0;
+  const totalAreaSqFt = wholeRoof?.areaMeters2 ? wholeRoof.areaMeters2 * 10.7639 : 0;
   const boundingBox = solar?.solarPotential?.boundingBox || solar?.boundingBox;
-
-  // SANITY CHECK: Google Solar API sometimes includes detached structures (garages, sheds).
-  // A typical residential roof is 1500-5000 sqft. Cap at 8000 sqft for residential.
-  // If Solar API returns >8000, use only the largest connected segments.
-  if (totalAreaSqFt > 8000 && solarSegments.length > 0) {
-    // Sort segments by area descending and take only the main structure
-    const segAreas = solarSegments
-      .map((s: { stats?: { areaMeters2?: number } }) => (s.stats?.areaMeters2 || 0) * 10.7639)
-      .sort((a: number, b: number) => b - a);
-    
-    // Take segments until we reach a reasonable total (cap at 6000 sqft)
-    // or stop when adding next segment would exceed 2x the first segment
-    let adjusted = 0;
-    const mainSegArea = segAreas[0] || 0;
-    for (const area of segAreas) {
-      if (adjusted > 0 && (adjusted + area > 6000 || area < mainSegArea * 0.05)) break;
-      adjusted += area;
-    }
-    
-    if (adjusted < totalAreaSqFt * 0.8) {
-      console.warn(`Solar API area ${Math.round(totalAreaSqFt)} sqft seems high. Adjusted to ${Math.round(adjusted)} sqft (likely includes detached structures)`);
-      totalAreaSqFt = adjusted;
-    }
-  }
 
   // ── MULTI-SOURCE SATELLITE IMAGERY ──
   // Pull from multiple angles, zooms, and offsets for maximum coverage
@@ -1212,11 +1105,7 @@ async function runSatelliteAnalysis(address: string) {
   }
 
   const qualityNotes: string[] = [];
-  const allAiResults: { name: string; m: AIMeasurements; methodTag?: AIResult['methodTag'] }[] = [];
-  
-  // Load calibration data for weighted consensus
-  let calibData: CalibrationData | null = null;
-  try { calibData = loadCalibrationData(); } catch { /* no calibration data yet */ }
+  const allAiResults: { name: string; m: AIMeasurements }[] = [];
 
   // ── THREE INDEPENDENT PASSES — accuracy over speed ──
   // Each pass uses DIFFERENT image sets so they're truly independent.
@@ -1245,29 +1134,33 @@ async function runSatelliteAnalysis(address: string) {
 
   // ── ROUND 1: Three independent passes with different images + models ──
 
-  // Pass 1: Gemini with Google satellite only
-  console.log('Pass 1/3: Gemini + Google satellite...');
-  const pass1 = await callGemini(prompt, [...googleSatCore], 'google-sat');
-  if (pass1.measurements) allAiResults.push({ name: 'Pass1-Gemini-GoogleSat', m: pass1.measurements, methodTag: pass1.methodTag });
+  // EVERY pass gets street view images — the AI MUST see the pitch from the side
+  // Satellite alone = looking straight down = AI thinks flat roof
+  const svForPasses = validSvImages.slice(0, 4); // N, E, S, W street views
+
+  // Pass 1: Gemini with Google satellite + street view
+  console.log('Pass 1/3: Gemini + Google satellite + street view...');
+  const pass1 = await callGemini(prompt, [...googleSatCore, ...svForPasses]);
+  if (pass1.measurements) allAiResults.push({ name: 'Pass1-Gemini-GoogleSat+SV', m: pass1.measurements });
   if (pass1.status !== 'success') qualityNotes.push(`Pass 1: ${pass1.status}`);
 
-  // Pass 2: GeminiVerify (lower temp) with Esri + some Google
-  console.log('Pass 2/3: GeminiVerify + Esri imagery...');
-  const pass2 = await callGeminiVerify(prompt, [...esriCore, ...googleSatCore.slice(0, 2)], 'esri+google');
-  if (pass2.measurements) allAiResults.push({ name: 'Pass2-GeminiVerify-Esri', m: pass2.measurements, methodTag: pass2.methodTag });
+  // Pass 2: GeminiVerify (lower temp) with Esri + Google + street view
+  console.log('Pass 2/3: GeminiVerify + Esri + street view...');
+  const pass2 = await callGeminiVerify(prompt, [...esriCore, ...googleSatCore.slice(0, 2), ...svForPasses]);
+  if (pass2.measurements) allAiResults.push({ name: 'Pass2-GeminiVerify-Esri+SV', m: pass2.measurements });
   if (pass2.status !== 'success') qualityNotes.push(`Pass 2: ${pass2.status}`);
 
-  // Pass 3: Ollama local model (truly independent AI engine)
-  console.log('Pass 3/3: Ollama local model...');
-  const pass3 = await callOllama(prompt, [...googleSatCore.slice(0, 2), ...esriCore.slice(0, 1)].filter(Boolean), 'google-sat+esri');
-  if (pass3.measurements) allAiResults.push({ name: 'Pass3-Ollama-Local', m: pass3.measurements, methodTag: pass3.methodTag });
+  // Pass 3: Ollama local model with satellite + street view
+  console.log('Pass 3/3: Ollama local model + street view...');
+  const pass3 = await callOllama(prompt, [...googleSatCore.slice(0, 2), ...svForPasses.slice(0, 2)].filter(Boolean));
+  if (pass3.measurements) allAiResults.push({ name: 'Pass3-Ollama-Local+SV', m: pass3.measurements });
   if (pass3.status !== 'success') qualityNotes.push(`Pass 3 Ollama: ${pass3.status}`);
 
-  // If Ollama failed, do a 3rd Gemini pass with street view as fallback
+  // If Ollama failed, do a 3rd Gemini pass with different image mix as fallback
   if (!pass3.measurements && validSvImages.length > 0) {
     console.log('Pass 3 fallback: Gemini + Street View...');
-    const pass3b = await callGemini(prompt, [...svCore, ...googleSatCore.slice(0, 1)], 'street-view');
-    if (pass3b.measurements) allAiResults.push({ name: 'Pass3-Gemini-StreetView', m: pass3b.measurements, methodTag: pass3b.methodTag });
+    const pass3b = await callGemini(prompt, [...svCore, ...googleSatCore.slice(0, 1)]);
+    if (pass3b.measurements) allAiResults.push({ name: 'Pass3-Gemini-StreetView', m: pass3b.measurements });
     if (pass3b.status !== 'success') qualityNotes.push(`Pass 3 fallback: ${pass3b.status}`);
   }
 
@@ -1280,12 +1173,12 @@ async function runSatelliteAnalysis(address: string) {
     console.log('Round 2: Adding 2 more passes for 5-sample consensus...');
 
     // Pass 4: Gemini with ALL satellite + Esri (wider image set)
-    const pass4 = await callGemini(prompt, [...validSatImages.slice(0, 4), ...validEsriImages.slice(0, 2)], 'all-satellite');
-    if (pass4.measurements) allAiResults.push({ name: 'Pass4-Gemini-AllSat', m: pass4.measurements, methodTag: pass4.methodTag });
+    const pass4 = await callGemini(prompt, [...validSatImages.slice(0, 4), ...validEsriImages.slice(0, 2)]);
+    if (pass4.measurements) allAiResults.push({ name: 'Pass4-Gemini-AllSat', m: pass4.measurements });
 
     // Pass 5: GeminiVerify with street view + satellite (different angle perspective)
-    const pass5 = await callGeminiVerify(prompt, [...svCore, ...googleSatCore.slice(0, 2), ...esriCore.slice(0, 1)], 'street-view+satellite');
-    if (pass5.measurements) allAiResults.push({ name: 'Pass5-GeminiVerify-SV', m: pass5.measurements, methodTag: pass5.methodTag });
+    const pass5 = await callGeminiVerify(prompt, [...svCore, ...googleSatCore.slice(0, 2), ...esriCore.slice(0, 1)]);
+    if (pass5.measurements) allAiResults.push({ name: 'Pass5-GeminiVerify-SV', m: pass5.measurements });
 
     convergence = checkConvergence(allAiResults, 0.10);
     console.log(`Round 2: ${allAiResults.length} total passes, worst variance ${(convergence.worstVariance * 100).toFixed(1)}%`);
@@ -1298,17 +1191,26 @@ async function runSatelliteAnalysis(address: string) {
   if (allAiResults.length < 2) {
     qualityNotes.push(`Only ${allAiResults.length} pass succeeded — running emergency attempts...`);
     const [emergA, emergB] = await Promise.allSettled([
-      callGemini(prompt, [...validSatImages.slice(0, 4), ...svCore], 'emergency-mixed'),
-      callGeminiVerify(prompt, [...validSatImages.slice(0, 4), ...svCore], 'emergency-mixed'),
+      callGemini(prompt, [...validSatImages.slice(0, 4), ...svCore]),
+      callGeminiVerify(prompt, [...validSatImages.slice(0, 4), ...svCore]),
     ]).then(r => r.map(x => x.status === 'fulfilled' ? x.value : { status: 'error', measurements: null, raw: 'rejected' } as AIResult));
-    if (emergA.measurements) allAiResults.push({ name: 'Emergency-Gemini', m: emergA.measurements, methodTag: emergA.methodTag });
-    if (emergB.measurements) allAiResults.push({ name: 'Emergency-GeminiVerify', m: emergB.measurements, methodTag: emergB.methodTag });
+    if (emergA.measurements) allAiResults.push({ name: 'Emergency-Gemini', m: emergA.measurements });
+    if (emergB.measurements) allAiResults.push({ name: 'Emergency-GeminiVerify', m: emergB.measurements });
     convergence = checkConvergence(allAiResults, 0.10);
   }
 
-  // ── FALLBACK: If zero AI results, use geometric estimation ──
+  // ── GEOMETRIC FALLBACK: Only used when AI results are insufficient ──
+  // Don't mix geometric estimates with AI — they measure differently and create false variance.
+  // Geometric is a safety net, not a voting member.
+  if (allAiResults.length < 2 && solarSegments.length > 0) {
+    console.log('Less than 2 AI results — adding geometric baseline as fallback');
+    const geoMeasurements = buildGeometricFallback(buildingWidth, buildingLength, totalAreaSqFt, solarSegments);
+    allAiResults.push({ name: 'GeometricFallback-Solar', m: geoMeasurements });
+  }
+
+  // If still zero results, use pure geometric estimate
   if (allAiResults.length === 0) {
-    qualityNotes.push('All AI providers failed — using geometric estimation from satellite data');
+    qualityNotes.push('All AI providers failed and no Solar data — using geometric estimation');
     const fallbackMeasurements = buildGeometricFallback(buildingWidth, buildingLength, totalAreaSqFt, solarSegments);
     allAiResults.push({ name: 'GeometricFallback', m: fallbackMeasurements });
   }
@@ -1323,7 +1225,7 @@ async function runSatelliteAnalysis(address: string) {
   }
 
   const allImages = [...validSatImages, ...validEsriImages, ...validSvImages];
-  const consensusResult = await buildConsensus(allAiResults, allImages, prompt, calibData);
+  const consensusResult = await buildConsensus(allAiResults, allImages, prompt);
   qualityNotes.push(...consensusResult.qualityNotes);
 
   const segments = solarSegments.map((seg: { pitchDegrees?: number; azimuthDegrees?: number; stats?: { areaMeters2?: number } }) => ({
@@ -1361,18 +1263,7 @@ async function runSatelliteAnalysis(address: string) {
       pass2: { name: allAiResults[1]?.name || 'none', status: allAiResults[1] ? 'success' : 'failed' },
       pass3: { name: allAiResults[2]?.name || 'none', status: allAiResults[2] ? 'success' : 'failed' },
     },
-    allProviderResults: allAiResults.map(r => ({
-      name: r.name,
-      totalRidge: r.m.total_ridge_ft,
-      totalRake: r.m.total_rake_ft,
-      totalValley: r.m.total_valley_ft,
-      totalEave: r.m.total_eave_ft,
-      totalHip: r.m.total_hip_ft,
-      method: r.methodTag?.method || r.name,
-      provider: r.methodTag?.provider || 'unknown',
-      model: r.methodTag?.model || 'unknown',
-      imageSet: r.methodTag?.imageSet || 'unknown',
-    })),
+    allProviderResults: allAiResults.map(r => ({ name: r.name, totalRidge: r.m.total_ridge_ft, totalRake: r.m.total_rake_ft, totalEave: r.m.total_eave_ft })),
   };
 }
 
@@ -1551,27 +1442,6 @@ export async function POST(request: NextRequest) {
         sat.buildingLength,
         sat.measurements,
       );
-
-      // Track photo-based corrections for future calibration
-      if (enhanced?.measurements) {
-        try {
-          const satM: CalibrationMeasurements = {
-            total_ridge_ft: sat.measurements.ridges?.totalFt || 0,
-            total_rake_ft: sat.measurements.rakes?.totalFt || 0,
-            total_valley_ft: sat.measurements.valleys?.totalFt || 0,
-            total_eave_ft: sat.measurements.eaves?.totalFt || 0,
-            total_hip_ft: sat.measurements.hips?.totalFt || 0,
-          };
-          const enhM: CalibrationMeasurements = {
-            total_ridge_ft: enhanced.measurements.ridges?.totalFt || 0,
-            total_rake_ft: enhanced.measurements.rakes?.totalFt || 0,
-            total_valley_ft: enhanced.measurements.valleys?.totalFt || 0,
-            total_eave_ft: enhanced.measurements.eaves?.totalFt || 0,
-            total_hip_ft: enhanced.measurements.hips?.totalFt || 0,
-          };
-          trackPhotoCorrection(satM, enhM);
-        } catch { /* non-critical */ }
-      }
     }
 
     return NextResponse.json(buildResponse(sat, enhanced, photoImages.length));

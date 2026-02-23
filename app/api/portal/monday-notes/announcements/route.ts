@@ -2,105 +2,94 @@
  * Monday Notes Announcements API
  *
  * GET - Fetch active announcements for a meeting date, grouped by early/late
+ * 
+ * Reads directly from Google Sheets via googleSheetsService.getMondayNotes()
+ * to avoid Next.js dev server deadlock (single-threaded internal fetch).
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth-service';
 import {
   MondayNote,
-  AnnouncementType,
   getNextMondayDate,
   isAnnouncementActive,
 } from '@/lib/monday-notes-service';
+import { googleSheetsService } from '@/lib/google-sheets-service';
+
+function rowToNote(row: Record<string, string>): MondayNote {
+  return {
+    id: row.id || '',
+    meetingDate: row.meetingDate || '',
+    userId: row.userId || '',
+    userName: row.userName || '',
+    userRole: row.userRole || '',
+    category: row.category || 'general',
+    title: row.title || '',
+    content: row.content || '',
+    highlights: row.highlightsJson ? (() => { try { return JSON.parse(row.highlightsJson); } catch { return []; } })() : [],
+    attachments: row.attachmentsJson ? (() => { try { return JSON.parse(row.attachmentsJson); } catch { return []; } })() : [],
+    timing: row.timingJson ? (() => { try { return JSON.parse(row.timingJson); } catch { return {}; } })() : {},
+    metrics: row.metricsJson ? (() => { try { return JSON.parse(row.metricsJson); } catch { return []; } })() : [],
+    announcementType: (row.announcementType || undefined) as MondayNote['announcementType'],
+    displayDuration: (row.displayDuration || undefined) as MondayNote['displayDuration'],
+    displayStartDate: row.displayStartDate || undefined,
+    displayEndDate: row.displayEndDate || undefined,
+    includeInSlide: row.includeInSlide === 'TRUE' || row.includeInSlide === 'true',
+    slideOrder: parseInt(row.slideOrder) || 0,
+    status: (row.status || 'draft') as MondayNote['status'],
+    createdAt: row.createdAt || '',
+    updatedAt: row.updatedAt || '',
+  };
+}
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
-  if (!auth.authenticated) return auth.response;
-
   try {
     const { searchParams } = new URL(request.url);
     const meetingDate = searchParams.get('meetingDate') || getNextMondayDate();
 
-    // Fetch all notes from the main monday-notes endpoint
-    const notesResponse = await fetch(
-      `${request.nextUrl.origin}/api/portal/monday-notes?meetingDate=${meetingDate}`,
-      { cache: 'no-store' }
-    );
+    // Fetch notes for this meeting date directly from Sheets
+    const rows = await googleSheetsService.getMondayNotes({ meetingDate });
+    let allNotes = rows.map(rowToNote);
 
-    let allNotes: MondayNote[] = [];
-    if (notesResponse.ok) {
-      const data = await notesResponse.json();
-      allNotes = data.notes || [];
-    }
-
-    // Also check for recurring/multi-week announcements from previous weeks
-    // Fetch notes from last 4 weeks to catch recurring items
-    const previousWeeks: string[] = [];
+    // Check previous 4 weeks for recurring announcements
     const baseDate = new Date(meetingDate);
     for (let i = 1; i <= 4; i++) {
       const prevDate = new Date(baseDate);
       prevDate.setDate(prevDate.getDate() - i * 7);
-      previousWeeks.push(prevDate.toISOString().split('T')[0]);
+      const prevDateStr = prevDate.toISOString().split('T')[0];
+      const prevRows = await googleSheetsService.getMondayNotes({ meetingDate: prevDateStr });
+      const prevNotes = prevRows.map(rowToNote);
+      const carryover = prevNotes.filter(n => n.announcementType && isAnnouncementActive(n, meetingDate));
+      allNotes.push(...carryover);
     }
 
-    for (const prevDate of previousWeeks) {
-      try {
-        const prevRes = await fetch(
-          `${request.nextUrl.origin}/api/portal/monday-notes?meetingDate=${prevDate}`,
-          { cache: 'no-store' }
-        );
-        if (prevRes.ok) {
-          const prevData = await prevRes.json();
-          const prevNotes = (prevData.notes || []) as MondayNote[];
-          // Only include notes that have announcement settings and are still active
-          const carryoverNotes = prevNotes.filter(
-            (n) => n.announcementType && isAnnouncementActive(n, meetingDate)
-          );
-          allNotes.push(...carryoverNotes);
-        }
-      } catch {
-        // Ignore fetch errors for previous weeks
-      }
-    }
-
-    // Filter to only announcement-typed notes that are active
+    // Active announcements with explicit type
     const activeAnnouncements = allNotes.filter(
-      (n) =>
-        n.announcementType &&
-        n.status !== 'draft' &&
-        isAnnouncementActive(n, meetingDate)
+      n => n.announcementType && n.status !== 'draft' && isAnnouncementActive(n, meetingDate)
     );
 
-    // Also include submitted notes without explicit announcement type as "early" by default
+    // Regular submitted notes with includeInSlide → default to early
     const regularNotes = allNotes.filter(
-      (n) => !n.announcementType && n.status !== 'draft' && n.includeInSlide
+      n => !n.announcementType && n.status !== 'draft' && n.includeInSlide
     );
 
-    // Group by early/late
     const early: MondayNote[] = [
-      ...activeAnnouncements.filter((n) => n.announcementType === 'early'),
-      ...regularNotes, // Regular notes default to early
+      ...activeAnnouncements.filter(n => n.announcementType === 'early'),
+      ...regularNotes,
     ];
-    const late: MondayNote[] = activeAnnouncements.filter(
-      (n) => n.announcementType === 'late'
-    );
+    const late: MondayNote[] = activeAnnouncements.filter(n => n.announcementType === 'late');
 
-    // Deduplicate by note id
+    // Deduplicate
     const dedup = (notes: MondayNote[]) => {
       const seen = new Set<string>();
-      return notes.filter((n) => {
-        if (seen.has(n.id)) return false;
-        seen.add(n.id);
-        return true;
-      });
+      return notes.filter(n => { if (seen.has(n.id)) return false; seen.add(n.id); return true; });
     };
 
     return NextResponse.json({
       success: true,
       meetingDate,
       announcements: {
-        early: dedup(early),
-        late: dedup(late),
+        early: dedup(early).sort((a, b) => (a.slideOrder || 0) - (b.slideOrder || 0)),
+        late: dedup(late).sort((a, b) => (a.slideOrder || 0) - (b.slideOrder || 0)),
       },
       totalEarly: dedup(early).length,
       totalLate: dedup(late).length,
