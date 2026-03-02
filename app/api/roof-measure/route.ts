@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export const maxDuration = 300; // 5 min for local dev; Vercel Hobby caps at 60s automatically
+export const maxDuration = 60; // Vercel Hobby plan max is 60s
 export const dynamic = 'force-dynamic';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -1107,10 +1107,9 @@ async function runSatelliteAnalysis(address: string) {
   const qualityNotes: string[] = [];
   const allAiResults: { name: string; m: AIMeasurements }[] = [];
 
-  // ── THREE INDEPENDENT PASSES — accuracy over speed ──
-  // Each pass uses DIFFERENT image sets so they're truly independent.
-  // Then: compare all 3, drop the outlier, average the 2 that agree.
-  // Michael's rule: "3 samples, drop the outlier, keep the two closest."
+  // ── PARALLEL AI PASSES — must finish within Vercel 60s limit ──
+  // Run 2 Gemini passes in parallel (Ollama skipped on Vercel).
+  // Use geometric fallback as tiebreaker if needed.
 
   const measKeys: MeasKey[] = ['total_ridge_ft', 'total_rake_ft', 'total_valley_ft', 'total_eave_ft', 'total_hip_ft'];
   function checkConvergence(results: { name: string; m: AIMeasurements }[], threshold: number): { converged: boolean; worstVariance: number; worstKey: string } {
@@ -1126,77 +1125,33 @@ async function runSatelliteAnalysis(address: string) {
     return { converged: worstVariance <= threshold, worstVariance, worstKey };
   }
 
-  // ══════════════════════════════════════════════════════════════════════
-  // MICHAEL'S RULE: 3 samples first. If within 10% → average all 3, done.
-  // If NOT within 10% → get 2 MORE (5 total), drop 2 outliers, average best 3.
-  // If those 3 within 10% → good accuracy. If not → report anyway, lower confidence.
-  // ══════════════════════════════════════════════════════════════════════
+  // Street view + satellite combined for each pass
+  const svForPasses = validSvImages.slice(0, 3); // 3 street views max to keep payload small
+  const imagesPass1 = [...svForPasses, ...googleSatCore.slice(0, 2)];
+  const imagesPass2 = [...svForPasses, ...esriCore.slice(0, 1), ...googleSatCore.slice(0, 1)];
 
-  // ── ROUND 1: Three independent passes with different images + models ──
+  // Run both AI passes IN PARALLEL to fit within 60s
+  console.log('Running 2 Gemini passes in parallel...');
+  const [pass1, pass2] = await Promise.all([
+    callGemini(prompt, imagesPass1),
+    callGeminiVerify(prompt, imagesPass2),
+  ]);
 
-  // EVERY pass gets street view images — the AI MUST see the pitch from the side
-  // Satellite alone = looking straight down = AI thinks flat roof
-  const svForPasses = validSvImages.slice(0, 4); // N, E, S, W street views
-
-  // Pass 1: Gemini with Google satellite + street view
-  console.log('Pass 1/3: Gemini + Google satellite + street view...');
-  const pass1 = await callGemini(prompt, [...googleSatCore, ...svForPasses]);
-  if (pass1.measurements) allAiResults.push({ name: 'Pass1-Gemini-GoogleSat+SV', m: pass1.measurements });
+  if (pass1.measurements) allAiResults.push({ name: 'Pass1-Gemini', m: pass1.measurements });
   if (pass1.status !== 'success') qualityNotes.push(`Pass 1: ${pass1.status}`);
-
-  // Pass 2: GeminiVerify (lower temp) with Esri + Google + street view
-  console.log('Pass 2/3: GeminiVerify + Esri + street view...');
-  const pass2 = await callGeminiVerify(prompt, [...esriCore, ...googleSatCore.slice(0, 2), ...svForPasses]);
-  if (pass2.measurements) allAiResults.push({ name: 'Pass2-GeminiVerify-Esri+SV', m: pass2.measurements });
+  if (pass2.measurements) allAiResults.push({ name: 'Pass2-GeminiVerify', m: pass2.measurements });
   if (pass2.status !== 'success') qualityNotes.push(`Pass 2: ${pass2.status}`);
 
-  // Pass 3: Ollama local model with satellite + street view
-  console.log('Pass 3/3: Ollama local model + street view...');
-  const pass3 = await callOllama(prompt, [...googleSatCore.slice(0, 2), ...svForPasses.slice(0, 2)].filter(Boolean));
-  if (pass3.measurements) allAiResults.push({ name: 'Pass3-Ollama-Local+SV', m: pass3.measurements });
-  if (pass3.status !== 'success') qualityNotes.push(`Pass 3 Ollama: ${pass3.status}`);
-
-  // If Ollama failed, do a 3rd Gemini pass with different image mix as fallback
-  if (!pass3.measurements && validSvImages.length > 0) {
-    console.log('Pass 3 fallback: Gemini + Street View...');
-    const pass3b = await callGemini(prompt, [...svCore, ...googleSatCore.slice(0, 1)]);
-    if (pass3b.measurements) allAiResults.push({ name: 'Pass3-Gemini-StreetView', m: pass3b.measurements });
-    if (pass3b.status !== 'success') qualityNotes.push(`Pass 3 fallback: ${pass3b.status}`);
-  }
-
   let convergence = checkConvergence(allAiResults, 0.10);
-  console.log(`Round 1: ${allAiResults.length}/3 passes succeeded, worst variance ${(convergence.worstVariance * 100).toFixed(1)}% (${convergence.worstKey})`);
+  console.log(`Parallel passes: ${allAiResults.length}/2 succeeded, variance ${(convergence.worstVariance * 100).toFixed(1)}%`);
 
-  // ── ROUND 2: If not within 10%, get 2 more passes (5 total) ──
-  if (!convergence.converged && allAiResults.length >= 2) {
-    qualityNotes.push(`Round 1 variance ${(convergence.worstVariance * 100).toFixed(0)}% on ${convergence.worstKey} — getting 2 more passes...`);
-    console.log('Round 2: Adding 2 more passes for 5-sample consensus...');
-
-    // Pass 4: Gemini with ALL satellite + Esri (wider image set)
-    const pass4 = await callGemini(prompt, [...validSatImages.slice(0, 4), ...validEsriImages.slice(0, 2)]);
-    if (pass4.measurements) allAiResults.push({ name: 'Pass4-Gemini-AllSat', m: pass4.measurements });
-
-    // Pass 5: GeminiVerify with street view + satellite (different angle perspective)
-    const pass5 = await callGeminiVerify(prompt, [...svCore, ...googleSatCore.slice(0, 2), ...esriCore.slice(0, 1)]);
-    if (pass5.measurements) allAiResults.push({ name: 'Pass5-GeminiVerify-SV', m: pass5.measurements });
-
-    convergence = checkConvergence(allAiResults, 0.10);
-    console.log(`Round 2: ${allAiResults.length} total passes, worst variance ${(convergence.worstVariance * 100).toFixed(1)}%`);
-    qualityNotes.push(`Round 2 complete: ${allAiResults.length} passes, ${(convergence.worstVariance * 100).toFixed(1)}% final variance`);
-  } else if (convergence.converged) {
-    qualityNotes.push(`All 3 passes converged within 10% — high confidence`);
+  if (convergence.converged && allAiResults.length >= 2) {
+    qualityNotes.push(`Both passes converged within 10% — high confidence`);
   }
 
-  // If we still have < 2 results, try harder
+  // If only 1 or 0 AI results, add geometric as backup (no Round 2 — no time)
   if (allAiResults.length < 2) {
-    qualityNotes.push(`Only ${allAiResults.length} pass succeeded — running emergency attempts...`);
-    const [emergA, emergB] = await Promise.allSettled([
-      callGemini(prompt, [...validSatImages.slice(0, 4), ...svCore]),
-      callGeminiVerify(prompt, [...validSatImages.slice(0, 4), ...svCore]),
-    ]).then(r => r.map(x => x.status === 'fulfilled' ? x.value : { status: 'error', measurements: null, raw: 'rejected' } as AIResult));
-    if (emergA.measurements) allAiResults.push({ name: 'Emergency-Gemini', m: emergA.measurements });
-    if (emergB.measurements) allAiResults.push({ name: 'Emergency-GeminiVerify', m: emergB.measurements });
-    convergence = checkConvergence(allAiResults, 0.10);
+    qualityNotes.push(`Only ${allAiResults.length} AI pass succeeded — adding geometric baseline`);
   }
 
   // ── GEOMETRIC FALLBACK: Only used when AI results are insufficient ──
