@@ -74,6 +74,8 @@ interface SalesSummary {
 
 interface SalesApiResponse {
   success: boolean;
+  dataSource: string;
+  dataSourceLabel: string;
   data: {
     summary: SalesSummary;
     leaderboard: LeaderboardEntry[];
@@ -566,6 +568,8 @@ export async function GET(request: NextRequest): Promise<NextResponse<SalesApiRe
 
     const response: SalesApiResponse = {
       success: true,
+      dataSource: 'actual-commissions',
+      dataSourceLabel: 'Actual Commission Records',
       data: {
         summary,
         leaderboard,

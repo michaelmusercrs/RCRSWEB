@@ -3,7 +3,7 @@
  *
  * GET /api/command-center/competition
  * Returns current competition standings, tier progress, and gas card eligibility.
- * Data source: data/commissions.json filtered by competition-config.json period.
+ * Data source: data/commissions.json (read dynamically) filtered by competition-config.json period.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -48,13 +48,21 @@ export async function GET(request: NextRequest) {
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
 
-  const entries = (commissionsData as CommissionRaw[])
+  const entries = (commissionsData)
     .filter(e => isInternalSalesRep(e.salesRep))
     .map(e => ({
       ...e,
       salesRep: resolveCommissionName(e.salesRep),
       parsedDate: parseDate(e.date),
     }));
+
+  // Debug: count entries
+  const adamEntries = entries.filter(e => e.salesRep === 'Adam Rudell');
+  const adam2026 = adamEntries.filter(e => {
+    const d = e.parsedDate;
+    return d && d.getFullYear() === 2026;
+  });
+  console.log(`[DEBUG] Total entries: ${entries.length}, Adam total: ${adamEntries.length}, Adam 2026: ${adam2026.length}, Adam 2026 sum: ${adam2026.reduce((s, e) => s + e.amount, 0).toFixed(2)}`);
 
   // Filter to current period
   const periodEntries = entries.filter(e => e.parsedDate >= periodStart && e.parsedDate <= periodEnd);
@@ -108,6 +116,8 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     success: true,
+    dataSource: 'actual-commissions',
+    dataSourceLabel: 'Actual Commission Records',
     period: config.currentPeriod,
     tiers: config.bonusTiers,
     gasCard: config.monthlyGasCard,

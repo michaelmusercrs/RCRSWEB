@@ -23,8 +23,6 @@ interface WeeklyNumbers {
   estimatesGiven: number;
   contractsSigned: number;
   revenueClosed: number;
-  estimatedRevenue: number;
-  realSales: number;
   leadsGenerated: number;
   followUpsMade: number;
   notes: string;
@@ -107,13 +105,13 @@ function getNextWeek(weekStr: string): string {
 // Metric definitions
 // =============================================================================
 
+// Matches Monday Meeting sheet columns exactly (same wording, same order)
 const metricFields: MetricField[] = [
   { key: 'doorsKnocked', label: 'Doors Knocked', icon: DoorOpen, type: 'number', color: 'text-blue-400' },
   { key: 'appointmentsSet', label: 'Appointments Set', icon: Calendar, type: 'number', color: 'text-purple-400' },
   { key: 'inspectionsCompleted', label: 'Inspections Completed', icon: Search, type: 'number', color: 'text-cyan-400' },
   { key: 'estimatesGiven', label: 'Estimates Given', icon: FileText, type: 'number', color: 'text-orange-400' },
   { key: 'contractsSigned', label: 'Contracts Signed', icon: FileSignature, type: 'number', color: 'text-green-400' },
-  { key: 'estimatedRevenue', label: 'Estimated $$$ (Signed + Contingencies)', icon: TrendingUp, type: 'currency', color: 'text-amber-400' },
   { key: 'revenueClosed', label: 'Revenue Closed', icon: DollarSign, type: 'currency', color: 'text-emerald-400' },
   { key: 'leadsGenerated', label: 'Leads Generated', icon: Users, type: 'number', color: 'text-yellow-400' },
   { key: 'followUpsMade', label: 'Follow-ups Made', icon: PhoneForwarded, type: 'number', color: 'text-pink-400' },
@@ -145,7 +143,6 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
     inspectionsCompleted: 0,
     estimatesGiven: 0,
     contractsSigned: 0,
-    estimatedRevenue: 0,
     revenueClosed: 0,
     leadsGenerated: 0,
     followUpsMade: 0,
@@ -179,7 +176,6 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
             inspectionsCompleted: thisWeek.inspectionsCompleted,
             estimatesGiven: thisWeek.estimatesGiven,
             contractsSigned: thisWeek.contractsSigned,
-            estimatedRevenue: thisWeek.estimatedRevenue || 0,
             revenueClosed: thisWeek.revenueClosed,
             leadsGenerated: thisWeek.leadsGenerated,
             followUpsMade: thisWeek.followUpsMade,
@@ -312,7 +308,7 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
               <ClipboardList size={16} className="text-brand-green" />
             </div>
             <div>
-              <h4 className="text-sm font-semibold text-white">Weekly Numbers</h4>
+              <h4 className="text-sm font-semibold text-white">Monday Meeting Numbers</h4>
               <p className="text-xs text-neutral-500">{getWeekDateRange(currentWeek)}</p>
             </div>
           </div>
@@ -334,7 +330,7 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
           <div className="grid grid-cols-4 gap-2">
             <div className="text-center">
               <p className="text-lg font-bold text-white">{currentEntry.doorsKnocked}</p>
-              <p className="text-[10px] text-neutral-500">Doors</p>
+              <p className="text-[10px] text-neutral-500">Doors Knocked</p>
             </div>
             <div className="text-center">
               <p className="text-lg font-bold text-white">{currentEntry.inspectionsCompleted}</p>
@@ -342,11 +338,11 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
             </div>
             <div className="text-center">
               <p className="text-lg font-bold text-white">{currentEntry.contractsSigned}</p>
-              <p className="text-[10px] text-neutral-500">Contracts</p>
+              <p className="text-[10px] text-neutral-500">Contracts Signed</p>
             </div>
             <div className="text-center">
               <p className="text-lg font-bold text-emerald-400">${currentEntry.revenueClosed.toLocaleString()}</p>
-              <p className="text-[10px] text-neutral-500">Revenue</p>
+              <p className="text-[10px] text-neutral-500">Revenue Closed</p>
             </div>
           </div>
         ) : (
@@ -361,7 +357,7 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
             <div className="bg-neutral-900 border border-white/10 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between p-4 border-b border-white/5 sticky top-0 bg-neutral-900 z-10">
                 <div>
-                  <h3 className="text-lg font-semibold text-white">Weekly Numbers</h3>
+                  <h3 className="text-lg font-semibold text-white">Monday Meeting Numbers</h3>
                   <p className="text-xs text-neutral-400">{getWeekDateRange(currentWeek)}</p>
                 </div>
                 <button
@@ -445,7 +441,7 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
               <ClipboardList size={20} className="text-brand-green" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-white">My Weekly Numbers</h3>
+              <h3 className="text-sm font-semibold text-white">Monday Meeting Numbers</h3>
               <p className="text-xs text-neutral-400">{getWeekDateRange(selectedWeek || currentWeek)}</p>
             </div>
           </div>
@@ -510,7 +506,7 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
                       setFormData({
                         doorsKnocked: 0, appointmentsSet: 0, inspectionsCompleted: 0,
                         estimatesGiven: 0, contractsSigned: 0, revenueClosed: 0,
-                        leadsGenerated: 0, followUpsMade: 0, notes: '',
+                        leadsGenerated: 0, followUpsMade: 0, notes: ''
                       });
                       setShowForm(true);
                     }}
@@ -578,7 +574,7 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
                         revenueClosed: weekData.revenueClosed,
                         leadsGenerated: weekData.leadsGenerated,
                         followUpsMade: weekData.followUpsMade,
-                        notes: weekData.notes,
+                        notes: weekData.notes
                       });
                       setShowForm(true);
                     }}
@@ -686,14 +682,14 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
                   <thead>
                     <tr className="border-b border-white/5">
                       <th className="text-left py-2 px-3 text-xs text-neutral-500 font-medium">Week</th>
-                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Doors</th>
-                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Appts</th>
-                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Insp</th>
-                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Est</th>
-                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Contracts</th>
-                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Revenue</th>
-                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Leads</th>
-                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Follow-ups</th>
+                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Doors Knocked</th>
+                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Appts Set</th>
+                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Inspections</th>
+                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Estimates Given</th>
+                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Contracts Signed</th>
+                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Revenue Closed</th>
+                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Leads Generated</th>
+                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Follow-ups Made</th>
                     </tr>
                   </thead>
                   <tbody>

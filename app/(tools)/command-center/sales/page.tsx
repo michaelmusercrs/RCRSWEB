@@ -522,9 +522,12 @@ export default function SalesLeaderboardPage() {
           <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-3 flex-wrap">
             <Trophy className="h-7 w-7 sm:h-8 sm:w-8 text-brand-green flex-shrink-0" />
             <span>Sales Leaderboard</span>
+            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 whitespace-nowrap">
+              Actual Commissions
+            </span>
           </h1>
           <p className="text-neutral-500 mt-1 text-sm sm:text-base">
-            Track team performance and commissions
+            Based on actual commission records &mdash; not self-reported
           </p>
         </div>
 
