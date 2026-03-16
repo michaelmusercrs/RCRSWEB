@@ -1,22 +1,283 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
   Truck, Loader2, ChevronRight, Shield, ArrowRight,
-  User, Mail, AlertCircle, Eye, EyeOff
+  User, Mail, AlertCircle, Eye, EyeOff, Phone, Lock
 } from 'lucide-react';
 import { useAuth, ROLE_DEFAULT_ROUTES } from '@/lib/auth-context';
 import { TEAM_MEMBERS, TeamRole } from '@/lib/team-roles';
 import RoleTrainingPopup from '@/components/RoleTrainingPopup';
-import FeatureUpdatesPopup, { useFeatureUpdates } from '@/components/FeatureUpdatesPopup';
+import FeatureUpdatesPopup from '@/components/FeatureUpdatesPopup';
 
 type LoginMode = 'select' | 'driver' | 'staff';
+type ForgotMode = 'none' | 'form' | 'sent';
 
+// ──────────────────────────────────────────────
+// Animated Grid Background
+// ──────────────────────────────────────────────
+function GridBackground() {
+  return (
+    <div className="fixed inset-0 overflow-hidden pointer-events-none">
+      {/* Dot grid */}
+      <div className="absolute inset-0 opacity-20" style={{
+        backgroundImage: `radial-gradient(circle at 1px 1px, rgba(57,255,20,0.15) 1px, transparent 0)`,
+        backgroundSize: '40px 40px'
+      }} />
+      {/* Horizontal scan line */}
+      <div className="absolute inset-0">
+        <div className="absolute w-full h-[1px] animate-scanline" style={{
+          background: 'linear-gradient(90deg, transparent 0%, rgba(57,255,20,0.08) 20%, rgba(57,255,20,0.15) 50%, rgba(57,255,20,0.08) 80%, transparent 100%)',
+        }} />
+      </div>
+      {/* Radial vignette */}
+      <div className="absolute inset-0" style={{
+        background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.8) 100%)'
+      }} />
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────
+// Floating Particles
+// ──────────────────────────────────────────────
+function FloatingParticles() {
+  const particles = useRef(
+    Array.from({ length: 30 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      size: Math.random() * 3 + 1,
+      duration: Math.random() * 20 + 15,
+      delay: Math.random() * -20,
+      opacity: Math.random() * 0.4 + 0.1,
+    }))
+  ).current;
+
+  return (
+    <div className="fixed inset-0 overflow-hidden pointer-events-none">
+      {particles.map(p => (
+        <div
+          key={p.id}
+          className="absolute rounded-full animate-float-particle"
+          style={{
+            left: `${p.x}%`,
+            top: `${p.y}%`,
+            width: `${p.size}px`,
+            height: `${p.size}px`,
+            backgroundColor: `rgba(57, 255, 20, ${p.opacity})`,
+            boxShadow: `0 0 ${p.size * 3}px rgba(57, 255, 20, ${p.opacity * 0.5})`,
+            animationDuration: `${p.duration}s`,
+            animationDelay: `${p.delay}s`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────
+// Architectural Shingle Splash Screen
+// ──────────────────────────────────────────────
+const SHINGLE_COLS = 16;
+const SHINGLE_ROWS = 10;
+
+function SplashScreen({ onComplete }: { onComplete: () => void }) {
+  const [phase, setPhase] = useState(0);
+  // phase 0: black screen
+  // phase 1: shingles ripple in diagonally
+  // phase 2: brand glows through center
+  // phase 3: everything fades out
+
+  useEffect(() => {
+    const timers = [
+      setTimeout(() => setPhase(1), 80),
+      setTimeout(() => setPhase(2), 1350),
+      setTimeout(() => setPhase(3), 2350),
+      setTimeout(() => onComplete(), 2800),
+    ];
+    return () => timers.forEach(clearTimeout);
+  }, [onComplete]);
+
+  // Pre-generate random shade variations for realistic shingle texture
+  const shingleShades = useRef(
+    Array.from({ length: SHINGLE_ROWS * (SHINGLE_COLS + 1) }, () => ({
+      base: Math.floor(Math.random() * 10),
+      tab: Math.floor(Math.random() * 4),
+      grain: Math.random() * 0.02,
+    }))
+  ).current;
+
+  // Build shingle background gradient with architectural tab lines
+  const getShingleStyle = (idx: number, delay: number): React.CSSProperties => {
+    const s = shingleShades[idx];
+    const b = 16 + s.base;
+    return {
+      width: '100%',
+      height: '100%',
+      borderRadius: '1px',
+      animation: phase >= 1
+        ? `shingle-flip-in 0.48s cubic-bezier(0.22, 1, 0.36, 1) ${delay}s both`
+        : 'none',
+      background: `linear-gradient(178deg,
+        rgba(255,255,255,${0.03 + s.grain}) 0%,
+        rgb(${b + 10}, ${b + 10}, ${b + 12}) 2%,
+        rgb(${b + 2}, ${b + 2}, ${b + 4}) 33%,
+        rgb(${b + 5 + s.tab}, ${b + 5 + s.tab}, ${b + 7 + s.tab}) 34%,
+        rgb(${b - 1}, ${b - 1}, ${b + 1}) 62%,
+        rgb(${b + 3 + s.tab}, ${b + 3 + s.tab}, ${b + 5 + s.tab}) 63%,
+        rgb(${b - 3}, ${b - 3}, ${b - 1}) 100%)`,
+      boxShadow: `
+        inset 0 1px 0 rgba(255,255,255,0.03),
+        inset 0 -2px 0 rgba(0,0,0,0.35),
+        0 2px 4px rgba(0,0,0,0.25)`,
+    };
+  };
+
+  return (
+    <div
+      className={`fixed inset-0 z-50 bg-black overflow-hidden transition-opacity duration-400 ${
+        phase >= 3 ? 'opacity-0' : 'opacity-100'
+      }`}
+    >
+      {/* ── Shingle Grid with 3D Perspective ── */}
+      <div
+        className="absolute inset-0"
+        style={{ perspective: '1200px', perspectiveOrigin: '50% 30%' }}
+      >
+        {Array.from({ length: SHINGLE_ROWS }, (_, row) => {
+          const isOffset = row % 2 === 1;
+          return (
+            <div
+              key={row}
+              className="flex"
+              style={{
+                height: `${100 / SHINGLE_ROWS}vh`,
+                marginLeft: isOffset ? `${-50 / SHINGLE_COLS}vw` : '0',
+              }}
+            >
+              {Array.from({ length: SHINGLE_COLS + 1 }, (_, col) => {
+                const idx = row * (SHINGLE_COLS + 1) + col;
+                const effectiveCol = col + (isOffset ? 0.5 : 0);
+                const nx = effectiveCol / SHINGLE_COLS;
+                const ny = row / SHINGLE_ROWS;
+                // Diagonal ripple: flows top-left → bottom-right
+                const delay = (nx * 0.35 + ny * 0.65) * 1.05;
+
+                return (
+                  <div
+                    key={col}
+                    style={{
+                      width: `${100 / SHINGLE_COLS}vw`,
+                      height: '100%',
+                      padding: '0.5px',
+                      transformStyle: 'preserve-3d' as React.CSSProperties['transformStyle'],
+                    }}
+                  >
+                    <div style={getShingleStyle(idx, delay)} />
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Subtle ambient roof light ── */}
+      <div
+        className={`absolute inset-0 pointer-events-none transition-opacity duration-[1200ms] ${
+          phase >= 1 ? 'opacity-100' : 'opacity-0'
+        }`}
+        style={{
+          background: 'radial-gradient(ellipse 80% 50% at 50% 45%, rgba(57,255,20,0.03) 0%, transparent 70%)',
+        }}
+      />
+
+      {/* ── Center Brand Reveal ── */}
+      <div
+        className="absolute inset-0 flex items-center justify-center z-10"
+        style={{
+          opacity: phase >= 2 ? 1 : 0,
+          transform: phase >= 2 ? 'scale(1)' : 'scale(0.8)',
+          transition: 'opacity 0.6s ease-out, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        }}
+      >
+        {/* Pulsing glow backdrop */}
+        <div
+          className="absolute w-[26rem] h-[26rem] sm:w-[32rem] sm:h-[32rem] rounded-full"
+          style={{
+            background: 'radial-gradient(circle, rgba(57,255,20,0.1) 0%, rgba(57,255,20,0.03) 45%, transparent 65%)',
+            filter: 'blur(50px)',
+            animation: phase >= 2 ? 'brand-glow-pulse 2s ease-in-out infinite' : 'none',
+          }}
+        />
+
+        <div className="relative flex flex-col items-center">
+          {/* Logo container */}
+          <div
+            className="w-24 h-24 sm:w-28 sm:h-28 mb-5 rounded-2xl border border-brand-green/25 p-0.5 shadow-2xl shadow-brand-green/20"
+            style={{ background: 'linear-gradient(135deg, rgba(57,255,20,0.15), rgba(16,185,129,0.08))' }}
+          >
+            <div className="w-full h-full rounded-[14px] bg-black/90 backdrop-blur-sm flex items-center justify-center">
+              <Image
+                src="/logo-nobg.png"
+                alt="RCRS"
+                width={72}
+                height={72}
+                className="object-contain drop-shadow-[0_0_20px_rgba(57,255,20,0.4)]"
+                priority
+              />
+            </div>
+          </div>
+
+          {/* RoofStack */}
+          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-2">
+            <span
+              className="text-brand-green"
+              style={{ textShadow: '0 0 30px rgba(57,255,20,0.5), 0 0 60px rgba(57,255,20,0.2)' }}
+            >
+              Roof
+            </span>
+            <span
+              className="text-white"
+              style={{ textShadow: '0 0 20px rgba(255,255,255,0.15)' }}
+            >
+              Stack
+            </span>
+          </h1>
+
+          {/* Tagline */}
+          <p className="text-neutral-500 text-sm sm:text-base tracking-[0.2em] uppercase">
+            Everything Under One Roof
+          </p>
+
+          {/* Loading accent bar */}
+          <div className="mt-8 w-40 h-[2px] bg-neutral-800/50 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all ease-out ${
+                phase >= 2 ? 'w-full duration-[900ms]' : 'w-0 duration-100'
+              }`}
+              style={{
+                background: 'linear-gradient(90deg, #39FF14, #10b981)',
+                boxShadow: '0 0 8px rgba(57,255,20,0.4)',
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────
+// Main Component
+// ──────────────────────────────────────────────
 export default function PortalLogin() {
   const router = useRouter();
   const { user, isLoading: authLoading, login, loginWithPin } = useAuth();
+  const [showSplash, setShowSplash] = useState(true);
   const [loginMode, setLoginMode] = useState<LoginMode>('staff');
   const [pin, setPin] = useState('');
   const [email, setEmail] = useState('');
@@ -24,10 +285,38 @@ export default function PortalLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [forgotMode, setForgotMode] = useState<ForgotMode>('none');
   const [showTraining, setShowTraining] = useState(false);
   const [showFeatureUpdates, setShowFeatureUpdates] = useState(false);
   const [pendingRedirect, setPendingRedirect] = useState<string | null>(null);
   const [loggedInUser, setLoggedInUser] = useState<{ name: string; role: TeamRole } | null>(null);
+  const [contentVisible, setContentVisible] = useState(false);
+
+  const handleSplashComplete = useCallback(() => {
+    setShowSplash(false);
+    // Let the DOM settle, then trigger the login pop-in animation
+    setTimeout(() => setContentVisible(true), 150);
+  }, []);
+
+  // Check if splash has been seen this session
+  useEffect(() => {
+    try {
+      const seen = sessionStorage.getItem('rcrs_splash_seen');
+      if (seen === 'true') {
+        setShowSplash(false);
+        setContentVisible(true);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  // Mark splash as seen
+  useEffect(() => {
+    if (!showSplash) {
+      try {
+        sessionStorage.setItem('rcrs_splash_seen', 'true');
+      } catch { /* ignore */ }
+    }
+  }, [showSplash]);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -50,37 +339,24 @@ export default function PortalLogin() {
   const markTrainingCompleted = (role: TeamRole) => {
     try {
       sessionStorage.setItem(`training_completed_${role}`, 'true');
-    } catch {
-      // Ignore storage errors
-    }
+    } catch { /* ignore */ }
   };
 
-  // Handle training completion
   const handleTrainingComplete = () => {
-    if (loggedInUser) {
-      markTrainingCompleted(loggedInUser.role);
-    }
+    if (loggedInUser) markTrainingCompleted(loggedInUser.role);
     setShowTraining(false);
-    // Show feature updates after training
     setShowFeatureUpdates(true);
   };
 
-  // Handle training skip
   const handleTrainingSkip = () => {
-    if (loggedInUser) {
-      markTrainingCompleted(loggedInUser.role);
-    }
+    if (loggedInUser) markTrainingCompleted(loggedInUser.role);
     setShowTraining(false);
-    // Show feature updates after skipping training
     setShowFeatureUpdates(true);
   };
 
-  // Handle feature updates close
   const handleFeatureUpdatesClose = () => {
     setShowFeatureUpdates(false);
-    if (pendingRedirect) {
-      router.push(pendingRedirect);
-    }
+    if (pendingRedirect) router.push(pendingRedirect);
   };
 
   const handleDriverLogin = async () => {
@@ -95,7 +371,6 @@ export default function PortalLogin() {
     const result = await loginWithPin(pin);
 
     if (result.success) {
-      // Find the member by PIN (supports any role with PIN)
       const member = TEAM_MEMBERS.find(m => m.pin === pin);
       if (member) {
         router.push(ROLE_DEFAULT_ROUTES[member.role]);
@@ -121,27 +396,21 @@ export default function PortalLogin() {
     const result = await login(email, password);
 
     if (result.success) {
-      // Check if password change is required
       if (result.mustChangePassword) {
         router.push('/portal/change-password');
         setIsLoading(false);
         return;
       }
 
-      // Get user role to determine redirect
       const member = TEAM_MEMBERS.find(m => m.email.toLowerCase() === email.toLowerCase());
       if (member) {
-        // Check if onboarding is needed
         const onboardingComplete = localStorage.getItem(`onboarding_complete_${member.id}`) === 'true';
         if (!onboardingComplete) {
           router.push('/portal/welcome');
           setIsLoading(false);
           return;
         }
-
-        const redirectUrl = ROLE_DEFAULT_ROUTES[member.role];
-        // Go straight to dashboard — training can happen inside the portal
-        router.push(redirectUrl);
+        router.push(ROLE_DEFAULT_ROUTES[member.role]);
       }
     } else {
       setError(result.error || 'Login failed');
@@ -151,19 +420,22 @@ export default function PortalLogin() {
   };
 
   const handlePinInput = (digit: string) => {
-    if (pin.length < 4) {
-      setPin(prev => prev + digit);
-    }
+    if (pin.length < 4) setPin(prev => prev + digit);
   };
 
   const handleBackspace = () => {
     setPin(prev => prev.slice(0, -1));
   };
 
-  // Show feature updates popup
+  // ── Splash Screen ────────────────────────────
+  if (showSplash && !authLoading && !user) {
+    return <SplashScreen onComplete={handleSplashComplete} />;
+  }
+
+  // ── Feature Updates Popup ────────────────────
   if (showFeatureUpdates && loggedInUser) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950">
+      <div className="min-h-screen bg-neutral-950">
         <FeatureUpdatesPopup
           role={loggedInUser.role}
           userName={loggedInUser.name}
@@ -177,10 +449,10 @@ export default function PortalLogin() {
     );
   }
 
-  // Show training popup if needed
+  // ── Training Popup ───────────────────────────
   if (showTraining && loggedInUser) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950">
+      <div className="min-h-screen bg-neutral-950">
         <RoleTrainingPopup
           role={loggedInUser.role}
           userName={loggedInUser.name}
@@ -191,20 +463,26 @@ export default function PortalLogin() {
     );
   }
 
-  // Show loading while checking auth
+  // ── Auth Loading ─────────────────────────────
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 flex items-center justify-center">
-        <Loader2 className="animate-spin text-brand-green" size={48} />
+      <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
+        <FloatingParticles />
+        <GridBackground />
+        <div className="relative z-10">
+          <Loader2 className="animate-spin text-brand-green" size={48} />
+        </div>
       </div>
     );
   }
 
-  // Already logged in - will redirect
+  // ── Already Logged In (redirecting) ──────────
   if (user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 flex items-center justify-center">
-        <div className="text-center">
+      <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
+        <FloatingParticles />
+        <GridBackground />
+        <div className="relative z-10 text-center">
           <Loader2 className="animate-spin text-brand-green mx-auto mb-4" size={48} />
           <p className="text-neutral-400">Redirecting to dashboard...</p>
         </div>
@@ -212,87 +490,179 @@ export default function PortalLogin() {
     );
   }
 
-  // Role Selection Screen
-  if (loginMode === 'select') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950">
-        <div className="fixed inset-0 opacity-30">
-          <div className="absolute inset-0" style={{
-            backgroundImage: `radial-gradient(circle at 25px 25px, rgba(255,255,255,0.03) 2px, transparent 0)`,
-            backgroundSize: '50px 50px'
-          }} />
-        </div>
+  // ── Forgot Password Modal Overlay ────────────
+  const ForgotPasswordOverlay = () => {
+    if (forgotMode === 'none') return null;
 
-        <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-6">
-          <div className="w-full max-w-md">
-            {/* Logo */}
-            <div className="text-center mb-8">
-              <div className="relative w-20 h-20 mx-auto rounded-2xl overflow-hidden bg-gradient-to-br from-brand-green to-emerald-600 p-0.5 mb-4">
-                <div className="w-full h-full rounded-[14px] bg-neutral-900 flex items-center justify-center">
-                  <Image
-                    src="/logo-nobg.png"
-                    alt="RCRS"
-                    width={48}
-                    height={48}
-                    className="object-contain"
-                  />
+    return (
+      <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-6 animate-fade-in">
+        <div className="w-full max-w-sm bg-neutral-900 border border-neutral-700/50 rounded-2xl p-8 shadow-2xl animate-scale-in">
+          {forgotMode === 'form' ? (
+            <>
+              <div className="text-center mb-6">
+                <div className="w-14 h-14 bg-brand-green/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Lock className="text-brand-green" size={24} />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-1">Reset Password</h3>
+                <p className="text-sm text-neutral-400">
+                  Contact your administrator to reset your password.
+                </p>
+              </div>
+
+              <div className="bg-neutral-800/50 rounded-xl p-4 mb-6 flex items-center gap-3">
+                <Phone className="text-brand-green flex-shrink-0" size={20} />
+                <div>
+                  <p className="text-xs text-neutral-400">Call or text</p>
+                  <a href="tel:+12562748530" className="text-brand-green font-semibold text-lg hover:underline">
+                    (256) 274-8530
+                  </a>
                 </div>
               </div>
-              <h1 className="text-2xl font-bold text-white tracking-tight">RoofStack</h1>
-              <p className="text-neutral-400">Everything Under One Roof</p>
+
+              <div className="relative flex items-center gap-3 mb-6">
+                <div className="flex-1 h-px bg-neutral-700" />
+                <span className="text-xs text-neutral-500 uppercase tracking-wider">or</span>
+                <div className="flex-1 h-px bg-neutral-700" />
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-neutral-300 mb-2">Email Address</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your.name@rcrsal.com"
+                  className="w-full bg-neutral-800/50 border border-neutral-700 rounded-xl px-4 py-3 text-white placeholder-neutral-500 focus:outline-none focus:border-brand-green/50 focus:ring-2 focus:ring-brand-green/20 text-sm"
+                />
+              </div>
+
+              <button
+                onClick={() => setForgotMode('sent')}
+                disabled={!email}
+                className="w-full bg-gradient-to-r from-brand-green to-emerald-500 hover:from-brand-green/90 hover:to-emerald-500/90 disabled:from-neutral-700 disabled:to-neutral-700 disabled:cursor-not-allowed text-black font-bold py-3 rounded-xl transition-all duration-200 text-sm"
+              >
+                Send Reset Link
+              </button>
+
+              <button
+                onClick={() => setForgotMode('none')}
+                className="w-full mt-3 text-sm text-neutral-400 hover:text-white transition-colors py-2"
+              >
+                Back to Login
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="text-center">
+                <div className="w-14 h-14 bg-brand-green/10 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-bounce-once">
+                  <Mail className="text-brand-green" size={24} />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">Check Your Email</h3>
+                <p className="text-sm text-neutral-400 mb-6">
+                  If an account exists for <span className="text-white">{email}</span>, you will receive a reset link shortly.
+                </p>
+                <button
+                  onClick={() => setForgotMode('none')}
+                  className="w-full bg-neutral-800 hover:bg-neutral-700 text-white font-semibold py-3 rounded-xl transition-colors text-sm"
+                >
+                  Back to Login
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // ── Role Selection Screen ────────────────────
+  if (loginMode === 'select') {
+    return (
+      <div className="min-h-screen bg-neutral-950">
+        <FloatingParticles />
+        <GridBackground />
+        <ForgotPasswordOverlay />
+
+        <div
+          className="relative z-10 min-h-screen flex flex-col items-center justify-center p-6"
+          style={{
+            animation: contentVisible ? 'login-pop-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both' : 'none',
+            opacity: contentVisible ? undefined : 0,
+          }}
+        >
+          <div className="w-full max-w-md">
+            {/* Logo Header */}
+            <div className="text-center mb-10">
+              <div className="relative w-20 h-20 mx-auto mb-5">
+                <div className="absolute inset-0 rounded-2xl bg-brand-green/20 blur-xl animate-glow-pulse" />
+                <div className="relative w-full h-full rounded-2xl bg-gradient-to-br from-brand-green/20 to-emerald-600/10 border border-brand-green/30 p-0.5">
+                  <div className="w-full h-full rounded-[14px] bg-neutral-950/90 flex items-center justify-center">
+                    <Image
+                      src="/logo-nobg.png"
+                      alt="RCRS"
+                      width={48}
+                      height={48}
+                      className="object-contain drop-shadow-[0_0_10px_rgba(57,255,20,0.3)]"
+                    />
+                  </div>
+                </div>
+              </div>
+              <h1 className="text-3xl font-bold tracking-tight mb-1">
+                <span className="text-brand-green" style={{ textShadow: '0 0 20px rgba(57,255,20,0.3)' }}>Roof</span>
+                <span className="text-white">Stack</span>
+              </h1>
+              <p className="text-neutral-500 text-sm tracking-wider uppercase">Everything Under One Roof</p>
             </div>
 
             {/* Login Options */}
             <div className="space-y-4">
               <button
-                onClick={() => setLoginMode('staff')}
-                className="w-full group relative overflow-hidden rounded-2xl border border-brand-green/20 bg-gradient-to-br from-brand-green/5 to-emerald-500/5 p-6 text-left transition-all duration-300 hover:border-brand-green/40 hover:shadow-2xl hover:shadow-brand-green/10"
+                onClick={() => { setLoginMode('staff'); setError(''); }}
+                className="w-full group relative overflow-hidden rounded-2xl border border-brand-green/20 bg-neutral-900/50 backdrop-blur-sm p-6 text-left transition-all duration-300 hover:border-brand-green/40 hover:bg-neutral-900/80 hover:shadow-2xl hover:shadow-brand-green/10"
               >
-                <div className="flex items-center justify-between">
+                <div className="absolute inset-0 bg-gradient-to-r from-brand-green/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="relative flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-brand-green/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <div className="w-14 h-14 bg-brand-green/10 rounded-xl flex items-center justify-center group-hover:scale-110 group-hover:bg-brand-green/20 transition-all duration-300">
                       <User className="text-brand-green" size={28} />
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold text-white group-hover:text-brand-green transition-colors">
                         Staff Login
                       </h3>
-                      <p className="text-sm text-neutral-400">
-                        Admin, Office, or Project Manager
-                      </p>
+                      <p className="text-sm text-neutral-400">Admin, Office, or Project Manager</p>
                     </div>
                   </div>
-                  <ChevronRight className="text-neutral-500 group-hover:text-brand-green group-hover:translate-x-1 transition-all" size={24} />
+                  <ChevronRight className="text-neutral-600 group-hover:text-brand-green group-hover:translate-x-1 transition-all" size={24} />
                 </div>
               </button>
 
               <button
-                onClick={() => setLoginMode('driver')}
-                className="w-full group relative overflow-hidden rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-500/5 to-cyan-500/5 p-6 text-left transition-all duration-300 hover:border-blue-500/40 hover:shadow-2xl hover:shadow-blue-500/10"
+                onClick={() => { setLoginMode('driver'); setError(''); }}
+                className="w-full group relative overflow-hidden rounded-2xl border border-blue-500/20 bg-neutral-900/50 backdrop-blur-sm p-6 text-left transition-all duration-300 hover:border-blue-500/40 hover:bg-neutral-900/80 hover:shadow-2xl hover:shadow-blue-500/10"
               >
-                <div className="flex items-center justify-between">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="relative flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-brand-green/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                      <Truck className="text-blue-500" size={28} />
+                    <div className="w-14 h-14 bg-blue-500/10 rounded-xl flex items-center justify-center group-hover:scale-110 group-hover:bg-blue-500/20 transition-all duration-300">
+                      <Truck className="text-blue-400" size={28} />
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold text-white group-hover:text-blue-400 transition-colors">
                         Logistics
                       </h3>
-                      <p className="text-sm text-neutral-400">
-                        Enter your 4-digit PIN
-                      </p>
+                      <p className="text-sm text-neutral-400">Enter your 4-digit PIN</p>
                     </div>
                   </div>
-                  <ChevronRight className="text-neutral-500 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" size={24} />
+                  <ChevronRight className="text-neutral-600 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" size={24} />
                 </div>
               </button>
             </div>
 
-            <div className="mt-8 text-center">
-              <div className="flex items-center justify-center gap-2 text-xs text-neutral-500">
+            <div className="mt-10 text-center">
+              <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
                 <Shield size={14} />
-                <span>Secure Access - Internal Use Only</span>
+                <span>Secure Access &mdash; Internal Use Only</span>
               </div>
             </div>
           </div>
@@ -301,21 +671,49 @@ export default function PortalLogin() {
     );
   }
 
-  // Staff Login Screen
+  // ── Staff Login Screen ───────────────────────
   if (loginMode === 'staff') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950">
-        <div className="fixed inset-0 opacity-30">
-          <div className="absolute inset-0" style={{
-            backgroundImage: `radial-gradient(circle at 25px 25px, rgba(255,255,255,0.03) 2px, transparent 0)`,
-            backgroundSize: '50px 50px'
-          }} />
-        </div>
+      <div className="min-h-screen bg-neutral-950">
+        <FloatingParticles />
+        <GridBackground />
+        <ForgotPasswordOverlay />
 
-        <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-6">
+        <div
+          className="relative z-10 min-h-screen flex flex-col items-center justify-center p-6"
+          style={{
+            animation: contentVisible ? 'login-pop-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both' : 'none',
+            opacity: contentVisible ? undefined : 0,
+          }}
+        >
           <div className="w-full max-w-md">
-            <div className="rounded-2xl border border-brand-green/20 bg-gradient-to-br from-brand-green/5 to-emerald-500/5 backdrop-blur-sm p-8">
-              <div className="flex items-center gap-3 mb-8">
+            {/* Logo + Brand */}
+            <div className="text-center mb-8">
+              <div className="relative w-16 h-16 mx-auto mb-4">
+                <div className="absolute inset-0 rounded-xl bg-brand-green/20 blur-lg animate-glow-pulse" />
+                <div className="relative w-full h-full rounded-xl bg-gradient-to-br from-brand-green/20 to-emerald-600/10 border border-brand-green/30 p-0.5">
+                  <div className="w-full h-full rounded-[10px] bg-neutral-950/90 flex items-center justify-center">
+                    <Image
+                      src="/logo-nobg.png"
+                      alt="RCRS"
+                      width={40}
+                      height={40}
+                      className="object-contain drop-shadow-[0_0_10px_rgba(57,255,20,0.3)]"
+                    />
+                  </div>
+                </div>
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight mb-0.5">
+                <span className="text-brand-green" style={{ textShadow: '0 0 15px rgba(57,255,20,0.3)' }}>Roof</span>
+                <span className="text-white">Stack</span>
+              </h1>
+              <p className="text-neutral-500 text-xs tracking-wider uppercase">River City Roofing Solutions</p>
+            </div>
+
+            {/* Login Card */}
+            <div className="rounded-2xl border border-neutral-800 bg-neutral-900/60 backdrop-blur-xl p-8 shadow-2xl">
+              {/* Header with back button */}
+              <div className="flex items-center gap-3 mb-7">
                 <button
                   onClick={() => {
                     setLoginMode('select');
@@ -323,46 +721,50 @@ export default function PortalLogin() {
                     setPassword('');
                     setError('');
                   }}
-                  className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
+                  className="w-9 h-9 rounded-lg bg-neutral-800 hover:bg-neutral-700 flex items-center justify-center transition-colors group"
                 >
-                  <ArrowRight className="rotate-180 text-neutral-400" size={18} />
+                  <ArrowRight className="rotate-180 text-neutral-400 group-hover:text-white transition-colors" size={16} />
                 </button>
                 <div>
-                  <h2 className="text-xl font-semibold text-white">Staff Login</h2>
-                  <p className="text-sm text-neutral-400">Enter your email and password</p>
+                  <h2 className="text-lg font-semibold text-white">Sign In</h2>
+                  <p className="text-xs text-neutral-500">Enter your credentials to continue</p>
                 </div>
               </div>
 
-              <div className="space-y-4 mb-6">
+              {/* Form Fields */}
+              <div className="space-y-4 mb-5">
                 <div>
-                  <label className="block text-sm font-medium text-neutral-300 mb-2">Email Address</label>
-                  <div className="relative">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500" size={18} />
+                  <label className="block text-xs font-medium text-neutral-400 mb-1.5 uppercase tracking-wider">Email</label>
+                  <div className="relative group">
+                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-600 group-focus-within:text-brand-green transition-colors" size={18} />
                     <input
                       type="email"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(e) => { setEmail(e.target.value); setError(''); }}
                       placeholder="your.name@rcrsal.com"
-                      className="w-full bg-neutral-800/50 border border-neutral-700 rounded-xl pl-12 pr-4 py-3 text-white placeholder-neutral-500 focus:outline-none focus:border-brand-green/50 focus:ring-2 focus:ring-brand-green/20"
+                      className="w-full bg-neutral-800/50 border border-neutral-700/50 rounded-xl pl-11 pr-4 py-3.5 text-white placeholder-neutral-600 focus:outline-none focus:border-brand-green/50 focus:ring-1 focus:ring-brand-green/20 transition-all text-sm"
+                      autoComplete="email"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-neutral-300 mb-2">Password</label>
-                  <div className="relative">
-                    <Shield className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500" size={18} />
+                  <label className="block text-xs font-medium text-neutral-400 mb-1.5 uppercase tracking-wider">Password</label>
+                  <div className="relative group">
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-600 group-focus-within:text-brand-green transition-colors" size={18} />
                     <input
                       type={showPassword ? 'text' : 'password'}
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={(e) => { setPassword(e.target.value); setError(''); }}
                       onKeyDown={(e) => e.key === 'Enter' && handleStaffLogin()}
                       placeholder="Enter your password"
-                      className="w-full bg-neutral-800/50 border border-neutral-700 rounded-xl pl-12 pr-12 py-3 text-white placeholder-neutral-500 focus:outline-none focus:border-brand-green/50 focus:ring-2 focus:ring-brand-green/20"
+                      className="w-full bg-neutral-800/50 border border-neutral-700/50 rounded-xl pl-11 pr-12 py-3.5 text-white placeholder-neutral-600 focus:outline-none focus:border-brand-green/50 focus:ring-1 focus:ring-brand-green/20 transition-all text-sm"
+                      autoComplete="current-password"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300 transition-colors"
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-600 hover:text-neutral-300 transition-colors"
+                      tabIndex={-1}
                     >
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
@@ -370,39 +772,50 @@ export default function PortalLogin() {
                 </div>
               </div>
 
-              {error && (
-                <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm py-3 px-4 rounded-xl mb-6 flex items-center gap-2">
-                  <AlertCircle size={16} />
-                  {error}
-                </div>
-              )}
-
-              <button
-                onClick={handleStaffLogin}
-                disabled={!email || !password || isLoading}
-                className="w-full bg-gradient-to-r from-brand-green to-emerald-500 hover:from-brand-green/90 hover:to-emerald-500/90 disabled:from-neutral-700 disabled:to-neutral-700 disabled:cursor-not-allowed text-black font-bold py-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-brand-green/25 disabled:shadow-none"
-              >
-                {isLoading && <Loader2 className="animate-spin" size={20} />}
-                {isLoading ? 'Signing In...' : 'Continue'}
-              </button>
-
-              <div className="text-center mt-4">
+              {/* Forgot password link */}
+              <div className="flex justify-end mb-5">
                 <button
                   type="button"
-                  onClick={() => {
-                    if (!email) {
-                      setError('Enter your email first, then click Forgot Password.');
-                      return;
-                    }
-                    // TODO: Implement forgot password email flow via /api/portal/auth action: 'forgot-password'
-                    setError('Password reset is not yet configured. Please contact your admin.');
-                  }}
-                  className="text-sm text-neutral-400 hover:text-brand-green transition-colors underline underline-offset-4"
+                  onClick={() => setForgotMode('form')}
+                  className="text-xs text-neutral-500 hover:text-brand-green transition-colors"
                 >
-                  Forgot Password?
+                  Forgot password?
                 </button>
               </div>
 
+              {/* Error message */}
+              {error && (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm py-3 px-4 rounded-xl mb-5 flex items-center gap-2 animate-shake">
+                  <AlertCircle size={16} className="flex-shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              {/* Sign In button */}
+              <button
+                onClick={handleStaffLogin}
+                disabled={!email || !password || isLoading}
+                className="w-full relative overflow-hidden bg-gradient-to-r from-brand-green to-emerald-500 hover:from-brand-green hover:to-emerald-400 disabled:from-neutral-700 disabled:to-neutral-700 disabled:cursor-not-allowed text-black font-bold py-3.5 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-brand-green/25 disabled:shadow-none group"
+              >
+                {/* Shine effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
+                <span className="relative flex items-center gap-2">
+                  {isLoading && <Loader2 className="animate-spin" size={18} />}
+                  {isLoading ? 'Signing In...' : 'Sign In'}
+                  {!isLoading && <ArrowRight size={18} />}
+                </span>
+              </button>
+            </div>
+
+            {/* Footer */}
+            <div className="mt-8 text-center space-y-2">
+              <p className="text-xs text-neutral-600">
+                River City Roofing Solutions
+              </p>
+              <div className="flex items-center justify-center gap-2 text-xs text-neutral-700">
+                <Shield size={12} />
+                <span>256-bit SSL Encrypted</span>
+              </div>
             </div>
           </div>
         </div>
@@ -410,65 +823,91 @@ export default function PortalLogin() {
     );
   }
 
-  // Driver Login Screen
+  // ── Driver Login Screen ──────────────────────
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950">
-      <div className="fixed inset-0 opacity-30">
-        <div className="absolute inset-0" style={{
-          backgroundImage: `radial-gradient(circle at 25px 25px, rgba(255,255,255,0.03) 2px, transparent 0)`,
-          backgroundSize: '50px 50px'
-        }} />
-      </div>
+    <div className="min-h-screen bg-neutral-950">
+      <FloatingParticles />
+      <GridBackground />
 
-      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-6">
+      <div
+        className="relative z-10 min-h-screen flex flex-col items-center justify-center p-6"
+        style={{
+          animation: contentVisible ? 'login-pop-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both' : 'none',
+          opacity: contentVisible ? undefined : 0,
+        }}
+      >
         <div className="w-full max-w-md">
-          <div className="rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-500/5 to-cyan-500/5 backdrop-blur-sm p-8">
-            <div className="flex items-center gap-3 mb-8">
+          {/* Logo + Brand */}
+          <div className="text-center mb-6">
+            <div className="relative w-14 h-14 mx-auto mb-3">
+              <div className="relative w-full h-full rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/10 border border-blue-500/30 p-0.5">
+                <div className="w-full h-full rounded-[10px] bg-neutral-950/90 flex items-center justify-center">
+                  <Image
+                    src="/logo-nobg.png"
+                    alt="RCRS"
+                    width={36}
+                    height={36}
+                    className="object-contain"
+                  />
+                </div>
+              </div>
+            </div>
+            <h1 className="text-xl font-bold tracking-tight">
+              <span className="text-brand-green">Roof</span>
+              <span className="text-white">Stack</span>
+            </h1>
+          </div>
+
+          {/* PIN Card */}
+          <div className="rounded-2xl border border-neutral-800 bg-neutral-900/60 backdrop-blur-xl p-8 shadow-2xl">
+            <div className="flex items-center gap-3 mb-7">
               <button
                 onClick={() => {
                   setLoginMode('select');
                   setPin('');
                   setError('');
                 }}
-                className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
+                className="w-9 h-9 rounded-lg bg-neutral-800 hover:bg-neutral-700 flex items-center justify-center transition-colors group"
               >
-                <ArrowRight className="rotate-180 text-neutral-400" size={18} />
+                <ArrowRight className="rotate-180 text-neutral-400 group-hover:text-white transition-colors" size={16} />
               </button>
               <div>
-                <h2 className="text-xl font-semibold text-white">Driver Login</h2>
-                <p className="text-sm text-neutral-400">Enter your 4-digit PIN</p>
+                <h2 className="text-lg font-semibold text-white">Driver Login</h2>
+                <p className="text-xs text-neutral-500">Enter your 4-digit PIN</p>
               </div>
             </div>
 
             {/* PIN Display */}
-            <div className="flex justify-center gap-2 sm:gap-4 mb-8">
+            <div className="flex justify-center gap-3 sm:gap-4 mb-7">
               {[0, 1, 2, 3].map(i => (
                 <div
                   key={i}
-                  className={`w-12 h-12 sm:w-16 sm:h-16 rounded-xl border-2 flex items-center justify-center text-2xl font-bold transition-all duration-200 flex-shrink-0 ${
+                  className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl border-2 flex items-center justify-center transition-all duration-200 ${
                     pin.length > i
-                      ? 'bg-gradient-to-br from-blue-500 to-cyan-500 border-transparent text-white shadow-lg shadow-blue-500/25'
-                      : 'bg-neutral-800/50 border-neutral-700 text-neutral-500'
+                      ? 'bg-gradient-to-br from-blue-500 to-cyan-500 border-transparent shadow-lg shadow-blue-500/25 scale-105'
+                      : pin.length === i
+                      ? 'bg-neutral-800/50 border-blue-500/30 animate-pulse'
+                      : 'bg-neutral-800/50 border-neutral-700/50'
                   }`}
                 >
                   {pin.length > i ? (
-                    <div className="w-3 h-3 rounded-full bg-white" />
+                    <div className="w-3 h-3 rounded-full bg-white shadow-lg shadow-white/50" />
                   ) : (
-                    <div className="w-3 h-3 rounded-full bg-neutral-600" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-neutral-700" />
                   )}
                 </div>
               ))}
             </div>
 
             {error && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center py-3 px-4 rounded-xl mb-6 flex items-center justify-center gap-2">
+              <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center py-3 px-4 rounded-xl mb-5 flex items-center justify-center gap-2 animate-shake">
                 <AlertCircle size={16} />
                 {error}
               </div>
             )}
 
             {/* Number Pad */}
-            <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="grid grid-cols-3 gap-2.5 mb-5">
               {['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'back'].map((key, i) => (
                 <button
                   key={i}
@@ -477,15 +916,15 @@ export default function PortalLogin() {
                     else if (key) handlePinInput(key);
                   }}
                   disabled={key === ''}
-                  className={`h-16 rounded-xl font-semibold text-xl transition-all duration-150 ${
+                  className={`h-14 rounded-xl font-semibold text-xl transition-all duration-150 ${
                     key === ''
                       ? 'bg-transparent cursor-default'
                       : key === 'back'
-                      ? 'bg-neutral-800/50 text-neutral-300 hover:bg-neutral-700/50'
-                      : 'bg-neutral-800/80 text-white hover:bg-neutral-700 hover:scale-105 active:scale-95'
+                      ? 'bg-neutral-800/50 text-neutral-400 hover:bg-neutral-700/50 hover:text-white active:scale-95'
+                      : 'bg-neutral-800/80 text-white hover:bg-neutral-700 hover:scale-[1.03] active:scale-95'
                   }`}
                 >
-                  {key === 'back' ? '⌫' : key}
+                  {key === 'back' ? '\u232b' : key}
                 </button>
               ))}
             </div>
@@ -493,11 +932,21 @@ export default function PortalLogin() {
             <button
               onClick={handleDriverLogin}
               disabled={pin.length !== 4 || isLoading}
-              className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 disabled:from-neutral-700 disabled:to-neutral-700 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25 disabled:shadow-none"
+              className="w-full relative overflow-hidden bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-400 hover:to-cyan-400 disabled:from-neutral-700 disabled:to-neutral-700 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25 disabled:shadow-none group"
             >
-              {isLoading && <Loader2 className="animate-spin" size={20} />}
-              {isLoading ? 'Signing In...' : 'Sign In'}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
+              <span className="relative flex items-center gap-2">
+                {isLoading && <Loader2 className="animate-spin" size={18} />}
+                {isLoading ? 'Signing In...' : 'Sign In'}
+              </span>
             </button>
+          </div>
+
+          <div className="mt-8 text-center">
+            <div className="flex items-center justify-center gap-2 text-xs text-neutral-700">
+              <Shield size={12} />
+              <span>Secure Access</span>
+            </div>
           </div>
         </div>
       </div>

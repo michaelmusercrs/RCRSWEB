@@ -200,6 +200,16 @@ html {
   }
 }
 
+/* Ken Burns slow zoom effect for background image */
+@keyframes ken-burns {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.08); }
+}
+
+.animate-ken-burns {
+  animation: ken-burns 20s ease-out forwards;
+}
+
 /* ============================================
    SCROLL REVEAL ANIMATIONS
    ============================================ */
@@ -1047,4 +1057,156 @@ nav {
 
 .status-dot-pending {
   @apply bg-orange-500;
+}
+
+/* ============================================
+   PORTAL SPLASH & LOGIN ANIMATIONS
+   ============================================ */
+
+/* Scanline sweeps top to bottom */
+@keyframes scanline {
+  0% {
+    top: -2%;
+  }
+  100% {
+    top: 102%;
+  }
+}
+
+.animate-scanline {
+  animation: scanline 8s linear infinite;
+}
+
+/* Floating particles drift upward */
+@keyframes float-particle {
+  0%, 100% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-50vh) translateX(20px);
+  }
+  100% {
+    transform: translateY(-100vh) translateX(-10px);
+    opacity: 0;
+  }
+}
+
+.animate-float-particle {
+  animation: float-particle 20s ease-in-out infinite;
+}
+
+/* Glow pulse behind logo */
+@keyframes glow-pulse {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.15);
+  }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+/* Expanding ring from logo */
+@keyframes pulse-ring {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.4;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2);
+    opacity: 0;
+  }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 2s ease-out infinite;
+}
+
+/* Error shake */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+/* Bounce once for confirmation icon */
+@keyframes bounce-once {
+  0% { transform: scale(0.3); opacity: 0; }
+  50% { transform: scale(1.1); opacity: 1; }
+  70% { transform: scale(0.95); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-bounce-once {
+  animation: bounce-once 0.6s ease-out;
+}
+
+/* ── Architectural Shingle Splash ── */
+@keyframes shingle-flip-in {
+  0% {
+    transform: translateY(12px) rotateX(65deg) scale(0.85);
+    opacity: 0;
+  }
+  45% {
+    opacity: 1;
+  }
+  72% {
+    transform: translateY(-2px) rotateX(-3deg) scale(1.01);
+  }
+  100% {
+    transform: translateY(0) rotateX(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes shingle-settle-glow {
+  0%, 100% {
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.03),
+      inset 0 -2px 0 rgba(0,0,0,0.3),
+      0 2px 4px rgba(0,0,0,0.2);
+  }
+  50% {
+    box-shadow:
+      inset 0 1px 0 rgba(57,255,20,0.05),
+      inset 0 -2px 0 rgba(0,0,0,0.3),
+      0 2px 4px rgba(0,0,0,0.2),
+      0 0 8px rgba(57,255,20,0.03);
+  }
+}
+
+@keyframes brand-glow-pulse {
+  0%, 100% { opacity: 0.08; transform: scale(1); }
+  50% { opacity: 0.14; transform: scale(1.05); }
+}
+
+@keyframes login-pop-in {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.92);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
