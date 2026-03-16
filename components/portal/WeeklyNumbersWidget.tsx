@@ -3,10 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   BarChart3, ChevronDown, ChevronUp, ClipboardList,
-  DoorOpen, Calendar, Search, FileText, FileSignature,
-  DollarSign, Users, PhoneForwarded, StickyNote,
+  Search, FileSignature, DollarSign, Users,
   Loader2, CheckCircle, AlertCircle, X, TrendingUp,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, Wrench, Columns3,
+  Target, Briefcase, UserCheck, Home,
 } from 'lucide-react';
 
 // =============================================================================
@@ -14,18 +14,20 @@ import {
 // =============================================================================
 
 interface WeeklyNumbers {
-  week: string;
+  week: string; // meeting date YYYY-MM-DD
   repName: string;
-  repEmail: string;
-  doorsKnocked: number;
-  appointmentsSet: number;
-  inspectionsCompleted: number;
-  estimatesGiven: number;
-  contractsSigned: number;
-  revenueClosed: number;
-  leadsGenerated: number;
-  followUpsMade: number;
-  notes: string;
+  inspected: number;
+  damage: number;
+  signed: number;
+  repair: number;
+  gutter: number;
+  revenue: number; // $$$$$ column - currency
+  approved: number;
+  goal: number;
+  referrals: number;
+  agents: number;
+  present: string; // '1', '0', 'E', 'EX', etc.
+  homeShow: number;
   submittedAt: string;
 }
 
@@ -33,7 +35,7 @@ interface MetricField {
   key: keyof WeeklyNumbers;
   label: string;
   icon: React.ElementType;
-  type: 'number' | 'currency';
+  type: 'number' | 'currency' | 'text';
   color: string;
 }
 
@@ -101,20 +103,39 @@ function getNextWeek(weekStr: string): string {
   return `${year}-W${String(weekNum).padStart(2, '0')}`;
 }
 
+function formatCurrency(value: number): string {
+  return `$${value.toLocaleString()}`;
+}
+
 // =============================================================================
-// Metric definitions
+// Metric definitions - matches Monday Meeting sheet columns exactly
 // =============================================================================
 
-// Matches Monday Meeting sheet columns exactly (same wording, same order)
 const metricFields: MetricField[] = [
-  { key: 'doorsKnocked', label: 'Doors Knocked', icon: DoorOpen, type: 'number', color: 'text-blue-400' },
-  { key: 'appointmentsSet', label: 'Appointments Set', icon: Calendar, type: 'number', color: 'text-purple-400' },
-  { key: 'inspectionsCompleted', label: 'Inspections Completed', icon: Search, type: 'number', color: 'text-cyan-400' },
-  { key: 'estimatesGiven', label: 'Estimates Given', icon: FileText, type: 'number', color: 'text-orange-400' },
-  { key: 'contractsSigned', label: 'Contracts Signed', icon: FileSignature, type: 'number', color: 'text-green-400' },
-  { key: 'revenueClosed', label: 'Revenue Closed', icon: DollarSign, type: 'currency', color: 'text-emerald-400' },
-  { key: 'leadsGenerated', label: 'Leads Generated', icon: Users, type: 'number', color: 'text-yellow-400' },
-  { key: 'followUpsMade', label: 'Follow-ups Made', icon: PhoneForwarded, type: 'number', color: 'text-pink-400' },
+  { key: 'inspected', label: 'Inspected', icon: Search, type: 'number', color: 'text-blue-400' },
+  { key: 'damage', label: 'Damage', icon: AlertCircle, type: 'number', color: 'text-red-400' },
+  { key: 'signed', label: 'Signed', icon: FileSignature, type: 'number', color: 'text-green-400' },
+  { key: 'repair', label: 'Repair', icon: Wrench, type: 'number', color: 'text-orange-400' },
+  { key: 'gutter', label: 'Gutter', icon: Columns3, type: 'number', color: 'text-cyan-400' },
+  { key: 'revenue', label: '$$$$$', icon: DollarSign, type: 'currency', color: 'text-emerald-400' },
+  { key: 'approved', label: 'Approved', icon: CheckCircle, type: 'number', color: 'text-purple-400' },
+  { key: 'goal', label: 'Goal', icon: Target, type: 'number', color: 'text-amber-400' },
+  { key: 'referrals', label: 'Referrals', icon: Users, type: 'number', color: 'text-yellow-400' },
+  { key: 'agents', label: 'Agents', icon: Briefcase, type: 'number', color: 'text-indigo-400' },
+  { key: 'present', label: 'Present', icon: UserCheck, type: 'text', color: 'text-teal-400' },
+  { key: 'homeShow', label: 'Home Show', icon: Home, type: 'number', color: 'text-pink-400' },
+];
+
+// Compact mode shows only the 4 most important metrics
+const compactFields: MetricField[] = metricFields.filter(f =>
+  ['inspected', 'signed', 'revenue', 'present'].includes(f.key)
+);
+
+// Present field dropdown options
+const presentOptions = [
+  { value: '1', label: 'Present' },
+  { value: '0', label: 'Absent' },
+  { value: 'E', label: 'Excused' },
 ];
 
 // =============================================================================
@@ -138,15 +159,18 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
 
   // Form state
   const [formData, setFormData] = useState({
-    doorsKnocked: 0,
-    appointmentsSet: 0,
-    inspectionsCompleted: 0,
-    estimatesGiven: 0,
-    contractsSigned: 0,
-    revenueClosed: 0,
-    leadsGenerated: 0,
-    followUpsMade: 0,
-    notes: '',
+    inspected: 0,
+    damage: 0,
+    signed: 0,
+    repair: 0,
+    gutter: 0,
+    revenue: 0,
+    approved: 0,
+    goal: 0,
+    referrals: 0,
+    agents: 0,
+    present: '1',
+    homeShow: 0,
   });
 
   // Load data
@@ -171,15 +195,18 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
 
         if (thisWeek) {
           setFormData({
-            doorsKnocked: thisWeek.doorsKnocked,
-            appointmentsSet: thisWeek.appointmentsSet,
-            inspectionsCompleted: thisWeek.inspectionsCompleted,
-            estimatesGiven: thisWeek.estimatesGiven,
-            contractsSigned: thisWeek.contractsSigned,
-            revenueClosed: thisWeek.revenueClosed,
-            leadsGenerated: thisWeek.leadsGenerated,
-            followUpsMade: thisWeek.followUpsMade,
-            notes: thisWeek.notes,
+            inspected: thisWeek.inspected,
+            damage: thisWeek.damage,
+            signed: thisWeek.signed,
+            repair: thisWeek.repair,
+            gutter: thisWeek.gutter,
+            revenue: thisWeek.revenue,
+            approved: thisWeek.approved,
+            goal: thisWeek.goal,
+            referrals: thisWeek.referrals,
+            agents: thisWeek.agents,
+            present: thisWeek.present || '1',
+            homeShow: thisWeek.homeShow,
           });
         }
       }
@@ -258,7 +285,9 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
   const handleFieldChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
-      [field]: field === 'notes' ? value : (field === 'revenueClosed' ? parseFloat(value) || 0 : parseInt(value) || 0),
+      [field]: field === 'present'
+        ? value
+        : (field === 'revenue' ? parseFloat(value) || 0 : parseInt(value) || 0),
     }));
   };
 
@@ -269,11 +298,23 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
   const getChangeIndicator = (field: keyof WeeklyNumbers, currentVal: number) => {
     if (!prevWeekData) return null;
     const prevVal = prevWeekData[field] as number;
+    if (typeof prevVal !== 'number' || typeof currentVal !== 'number') return null;
     if (prevVal === 0 && currentVal === 0) return null;
     if (prevVal === 0) return { direction: 'up' as const, pct: 100 };
     const pct = Math.round(((currentVal - prevVal) / prevVal) * 100);
     if (pct === 0) return null;
     return { direction: pct > 0 ? 'up' as const : 'down' as const, pct: Math.abs(pct) };
+  };
+
+  // Format a metric value for display
+  const formatMetricValue = (field: MetricField, value: number | string) => {
+    if (field.type === 'currency') return formatCurrency(value as number);
+    if (field.type === 'text') {
+      // Map present codes to readable labels
+      const option = presentOptions.find(o => o.value === String(value));
+      return option ? option.label : String(value);
+    }
+    return String(value);
   };
 
   // Loading skeleton
@@ -329,20 +370,22 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
         {currentEntry ? (
           <div className="grid grid-cols-4 gap-2">
             <div className="text-center">
-              <p className="text-lg font-bold text-white">{currentEntry.doorsKnocked}</p>
-              <p className="text-[10px] text-neutral-500">Doors Knocked</p>
+              <p className="text-lg font-bold text-white">{currentEntry.inspected}</p>
+              <p className="text-[10px] text-neutral-500">Inspected</p>
             </div>
             <div className="text-center">
-              <p className="text-lg font-bold text-white">{currentEntry.inspectionsCompleted}</p>
-              <p className="text-[10px] text-neutral-500">Inspections</p>
+              <p className="text-lg font-bold text-white">{currentEntry.signed}</p>
+              <p className="text-[10px] text-neutral-500">Signed</p>
             </div>
             <div className="text-center">
-              <p className="text-lg font-bold text-white">{currentEntry.contractsSigned}</p>
-              <p className="text-[10px] text-neutral-500">Contracts Signed</p>
+              <p className="text-lg font-bold text-emerald-400">{formatCurrency(currentEntry.revenue)}</p>
+              <p className="text-[10px] text-neutral-500">$$$$$</p>
             </div>
             <div className="text-center">
-              <p className="text-lg font-bold text-emerald-400">${currentEntry.revenueClosed.toLocaleString()}</p>
-              <p className="text-[10px] text-neutral-500">Revenue Closed</p>
+              <p className="text-lg font-bold text-white">
+                {formatMetricValue(metricFields.find(f => f.key === 'present')!, currentEntry.present)}
+              </p>
+              <p className="text-[10px] text-neutral-500">Present</p>
             </div>
           </div>
         ) : (
@@ -374,29 +417,30 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
                       <field.icon size={16} className={field.color} />
                     </div>
                     <label className="flex-1 text-sm text-neutral-300">{field.label}</label>
-                    <input
-                      type="number"
-                      step={field.type === 'currency' ? '0.01' : '1'}
-                      min="0"
-                      value={formData[field.key as keyof typeof formData]}
-                      onChange={e => handleFieldChange(field.key, e.target.value)}
-                      className="w-24 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm text-right focus:outline-none focus:border-brand-green/50 focus:ring-1 focus:ring-brand-green/20"
-                    />
+                    {field.key === 'present' ? (
+                      <select
+                        value={formData.present}
+                        onChange={e => handleFieldChange('present', e.target.value)}
+                        className="w-28 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm text-right focus:outline-none focus:border-brand-green/50 focus:ring-1 focus:ring-brand-green/20 appearance-none cursor-pointer"
+                      >
+                        {presentOptions.map(opt => (
+                          <option key={opt.value} value={opt.value} className="bg-neutral-900">
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="number"
+                        step={field.type === 'currency' ? '0.01' : '1'}
+                        min="0"
+                        value={formData[field.key as keyof typeof formData]}
+                        onChange={e => handleFieldChange(field.key, e.target.value)}
+                        className="w-24 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm text-right focus:outline-none focus:border-brand-green/50 focus:ring-1 focus:ring-brand-green/20"
+                      />
+                    )}
                   </div>
                 ))}
-                <div>
-                  <label className="flex items-center gap-2 text-sm text-neutral-300 mb-1">
-                    <StickyNote size={16} className="text-neutral-400" />
-                    Notes
-                  </label>
-                  <textarea
-                    value={formData.notes}
-                    onChange={e => handleFieldChange('notes', e.target.value)}
-                    placeholder="Any notes about this week..."
-                    rows={2}
-                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-brand-green/50 focus:ring-1 focus:ring-brand-green/20 placeholder-neutral-600 resize-none"
-                  />
-                </div>
                 <div className="flex gap-3 pt-2">
                   <button
                     type="button"
@@ -504,9 +548,9 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
                   <button
                     onClick={() => {
                       setFormData({
-                        doorsKnocked: 0, appointmentsSet: 0, inspectionsCompleted: 0,
-                        estimatesGiven: 0, contractsSigned: 0, revenueClosed: 0,
-                        leadsGenerated: 0, followUpsMade: 0, notes: ''
+                        inspected: 0, damage: 0, signed: 0, repair: 0,
+                        gutter: 0, revenue: 0, approved: 0, goal: 0,
+                        referrals: 0, agents: 0, present: '1', homeShow: 0,
                       });
                       setShowForm(true);
                     }}
@@ -524,8 +568,8 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
               <>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
                   {metricFields.map(field => {
-                    const value = weekData[field.key] as number;
-                    const change = getChangeIndicator(field.key, value);
+                    const value = weekData[field.key];
+                    const change = field.type !== 'text' ? getChangeIndicator(field.key, value as number) : null;
                     return (
                       <div key={field.key} className="bg-white/[0.02] border border-white/5 rounded-xl p-3">
                         <div className="flex items-center gap-1.5 mb-1">
@@ -534,9 +578,7 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
                         </div>
                         <div className="flex items-end gap-1.5">
                           <span className="text-lg font-bold text-white">
-                            {field.type === 'currency'
-                              ? `$${value.toLocaleString()}`
-                              : value}
+                            {formatMetricValue(field, value as number | string)}
                           </span>
                           {change && (
                             <span className={`text-[10px] font-medium flex items-center gap-0.5 mb-0.5 ${
@@ -551,12 +593,6 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
                     );
                   })}
                 </div>
-                {weekData.notes && (
-                  <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 mb-3">
-                    <p className="text-xs text-neutral-400 mb-1">Notes</p>
-                    <p className="text-sm text-neutral-300">{weekData.notes}</p>
-                  </div>
-                )}
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] text-neutral-600">
                     Submitted {new Date(weekData.submittedAt).toLocaleString('en-US', {
@@ -566,15 +602,18 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
                   <button
                     onClick={() => {
                       setFormData({
-                        doorsKnocked: weekData.doorsKnocked,
-                        appointmentsSet: weekData.appointmentsSet,
-                        inspectionsCompleted: weekData.inspectionsCompleted,
-                        estimatesGiven: weekData.estimatesGiven,
-                        contractsSigned: weekData.contractsSigned,
-                        revenueClosed: weekData.revenueClosed,
-                        leadsGenerated: weekData.leadsGenerated,
-                        followUpsMade: weekData.followUpsMade,
-                        notes: weekData.notes
+                        inspected: weekData.inspected,
+                        damage: weekData.damage,
+                        signed: weekData.signed,
+                        repair: weekData.repair,
+                        gutter: weekData.gutter,
+                        revenue: weekData.revenue,
+                        approved: weekData.approved,
+                        goal: weekData.goal,
+                        referrals: weekData.referrals,
+                        agents: weekData.agents,
+                        present: weekData.present || '1',
+                        homeShow: weekData.homeShow,
                       });
                       setShowForm(true);
                     }}
@@ -601,31 +640,32 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
                   </div>
                   <div className="flex-1 min-w-0">
                     <label className="text-xs text-neutral-400 block truncate">{field.label}</label>
-                    <input
-                      type="number"
-                      step={field.type === 'currency' ? '0.01' : '1'}
-                      min="0"
-                      value={formData[field.key as keyof typeof formData]}
-                      onChange={e => handleFieldChange(field.key, e.target.value)}
-                      className="w-full bg-transparent text-white text-lg font-bold focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      placeholder="0"
-                    />
+                    {field.key === 'present' ? (
+                      <select
+                        value={formData.present}
+                        onChange={e => handleFieldChange('present', e.target.value)}
+                        className="w-full bg-transparent text-white text-lg font-bold focus:outline-none appearance-none cursor-pointer"
+                      >
+                        {presentOptions.map(opt => (
+                          <option key={opt.value} value={opt.value} className="bg-neutral-900">
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="number"
+                        step={field.type === 'currency' ? '0.01' : '1'}
+                        min="0"
+                        value={formData[field.key as keyof typeof formData]}
+                        onChange={e => handleFieldChange(field.key, e.target.value)}
+                        className="w-full bg-transparent text-white text-lg font-bold focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        placeholder="0"
+                      />
+                    )}
                   </div>
                 </div>
               ))}
-            </div>
-            <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3">
-              <label className="flex items-center gap-2 text-xs text-neutral-400 mb-1.5">
-                <StickyNote size={14} />
-                Notes (optional)
-              </label>
-              <textarea
-                value={formData.notes}
-                onChange={e => handleFieldChange('notes', e.target.value)}
-                placeholder="Highlights, challenges, goals for next week..."
-                rows={2}
-                className="w-full bg-transparent text-white text-sm focus:outline-none placeholder-neutral-600 resize-none"
-              />
             </div>
             <div className="flex gap-3">
               <button
@@ -682,14 +722,18 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
                   <thead>
                     <tr className="border-b border-white/5">
                       <th className="text-left py-2 px-3 text-xs text-neutral-500 font-medium">Week</th>
-                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Doors Knocked</th>
-                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Appts Set</th>
-                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Inspections</th>
-                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Estimates Given</th>
-                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Contracts Signed</th>
-                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Revenue Closed</th>
-                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Leads Generated</th>
-                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Follow-ups Made</th>
+                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Inspected</th>
+                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Damage</th>
+                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Signed</th>
+                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Repair</th>
+                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Gutter</th>
+                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">$$$$$</th>
+                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Approved</th>
+                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Goal</th>
+                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Referrals</th>
+                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Agents</th>
+                      <th className="text-center py-2 px-3 text-xs text-neutral-500 font-medium">Present</th>
+                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Home Show</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -707,14 +751,20 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
                             <p className="text-[10px] text-neutral-600">{getWeekDateRange(entry.week)}</p>
                           </div>
                         </td>
-                        <td className="text-right py-2 px-3 text-neutral-300">{entry.doorsKnocked}</td>
-                        <td className="text-right py-2 px-3 text-neutral-300">{entry.appointmentsSet}</td>
-                        <td className="text-right py-2 px-3 text-neutral-300">{entry.inspectionsCompleted}</td>
-                        <td className="text-right py-2 px-3 text-neutral-300">{entry.estimatesGiven}</td>
-                        <td className="text-right py-2 px-3 text-neutral-300">{entry.contractsSigned}</td>
-                        <td className="text-right py-2 px-3 text-emerald-400 font-medium">${entry.revenueClosed.toLocaleString()}</td>
-                        <td className="text-right py-2 px-3 text-neutral-300">{entry.leadsGenerated}</td>
-                        <td className="text-right py-2 px-3 text-neutral-300">{entry.followUpsMade}</td>
+                        <td className="text-right py-2 px-3 text-neutral-300">{entry.inspected}</td>
+                        <td className="text-right py-2 px-3 text-neutral-300">{entry.damage}</td>
+                        <td className="text-right py-2 px-3 text-neutral-300">{entry.signed}</td>
+                        <td className="text-right py-2 px-3 text-neutral-300">{entry.repair}</td>
+                        <td className="text-right py-2 px-3 text-neutral-300">{entry.gutter}</td>
+                        <td className="text-right py-2 px-3 text-emerald-400 font-medium">{formatCurrency(entry.revenue)}</td>
+                        <td className="text-right py-2 px-3 text-neutral-300">{entry.approved}</td>
+                        <td className="text-right py-2 px-3 text-neutral-300">{entry.goal}</td>
+                        <td className="text-right py-2 px-3 text-neutral-300">{entry.referrals}</td>
+                        <td className="text-right py-2 px-3 text-neutral-300">{entry.agents}</td>
+                        <td className="text-center py-2 px-3 text-neutral-300">
+                          {formatMetricValue(metricFields.find(f => f.key === 'present')!, entry.present)}
+                        </td>
+                        <td className="text-right py-2 px-3 text-neutral-300">{entry.homeShow}</td>
                       </tr>
                     ))}
                   </tbody>
