@@ -60,12 +60,19 @@ const SLIDES = [
   },
   {
     label: 'Design Tool',
-    title: ['SEE YOUR NEW ROOF', 'BEFORE WE INSTALL'],
-    subtitle: 'IKO ROOFViewer — Choose Your Perfect Look',
-    body: 'Homeowners upload a photo of their home and try different shingle colors and styles instantly. Dynasty, Cambridge, Nordic and more.',
-    cta: { text: 'OPEN IKO VISUALIZER', href: 'https://www.ikoroofing.com/en-us/roofing-tools/roof-visualizer/', blue: true },
-    type: 'feature' as const,
-    note: 'And here\'s the fun one — homeowners get to choose exactly what their roof looks like before we install it.',
+    title: ['SEE YOUR NEW ROOF', 'BEFORE WE INSTALL IT'],
+    subtitle: 'Our IKO Roof Visualizer lets you upload a photo of your home and try different shingle styles and colors',
+    items: [
+      'Upload your own home photo',
+      'Try IKO Dynasty, Cambridge, and Nordic shingle lines',
+      'See realistic color previews',
+      'Choose your perfect look before committing',
+    ],
+    cta: { text: 'TRY IT NOW', href: 'https://www.rivercityroofingsolutions.com/roof-visualizer', blue: true },
+    ctaNote: 'rivercityroofingsolutions.com/roof-visualizer',
+    badge: 'IKO ROOFPRO Craftsman Premier',
+    type: 'visualizer' as const,
+    note: 'And here\'s the fun one — homeowners get to choose exactly what their roof looks like before we install it. As an IKO ROOFPRO Craftsman Premier contractor, we offer the full range of IKO shingle products.',
   },
   {
     label: 'My Specific Ask',
@@ -205,22 +212,80 @@ export default function BNIPresentationPage() {
             </div>
           )}
 
-          {/* FEATURE SLIDE */}
-          {slide.type === 'feature' && (
+          {/* VISUALIZER SLIDE */}
+          {slide.type === 'visualizer' && (
             <div>
               <p className="text-[10px] uppercase tracking-[0.3em] font-black text-[#39FF14] mb-3">{slide.label}</p>
               <h1 className="text-3xl md:text-5xl font-black uppercase tracking-[0.1em] mb-1">
                 {slide.title[0]} <span className="text-[#0066CC]">{slide.title[1]}</span>
               </h1>
-              <h2 className="text-lg md:text-xl text-neutral-400 uppercase tracking-wider mb-8">{slide.subtitle}</h2>
-              <div className="bg-neutral-950 border-2 border-[#0066CC]/25 rounded-2xl p-8 mb-8 max-w-3xl">
-                <p className="text-neutral-200 text-lg leading-relaxed">{slide.body}</p>
+              <h2 className="text-base md:text-lg text-neutral-400 tracking-wider mb-6 max-w-3xl">{slide.subtitle}</h2>
+
+              <div className="flex flex-col md:flex-row gap-6 mb-6">
+                {/* Visual: House with color swatches */}
+                <div className="flex-shrink-0 w-full md:w-80">
+                  <div className="relative bg-neutral-950 border-2 border-[#0066CC]/25 rounded-2xl p-6 overflow-hidden">
+                    {/* House illustration */}
+                    <div className="flex flex-col items-center">
+                      {/* Roof */}
+                      <div className="relative w-56 h-0 border-l-[112px] border-r-[112px] border-b-[60px] border-l-transparent border-r-transparent border-b-[#0066CC] mb-0">
+                        <div className="absolute top-[20px] left-[-70px] text-[10px] font-black text-white/80 uppercase tracking-wider whitespace-nowrap">Your shingle color here</div>
+                      </div>
+                      {/* House body */}
+                      <div className="w-56 h-28 bg-neutral-700 flex items-center justify-center relative">
+                        <div className="w-10 h-16 bg-neutral-800 border-2 border-neutral-600 absolute bottom-0"></div>
+                        <div className="w-8 h-8 bg-neutral-500/30 border-2 border-neutral-600 absolute left-6 top-4"></div>
+                        <div className="w-8 h-8 bg-neutral-500/30 border-2 border-neutral-600 absolute right-6 top-4"></div>
+                      </div>
+                    </div>
+                    {/* Color swatches */}
+                    <div className="mt-4 flex justify-center gap-2">
+                      {[
+                        { color: '#2d2926', label: 'Charcoal' },
+                        { color: '#5c4033', label: 'Brown' },
+                        { color: '#1a1a2e', label: 'Black' },
+                        { color: '#6b4c3b', label: 'Cedar' },
+                        { color: '#4a5568', label: 'Slate' },
+                      ].map((swatch) => (
+                        <div key={swatch.label} className="flex flex-col items-center gap-1">
+                          <div className="w-8 h-8 rounded-lg border-2 border-white/20 hover:border-[#39FF14] transition-colors cursor-pointer" style={{ backgroundColor: swatch.color }} />
+                          <span className="text-[8px] text-neutral-500 uppercase">{swatch.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-center text-[10px] text-[#0066CC] font-black uppercase tracking-wider mt-3">Before &amp; After Preview</p>
+                  </div>
+                </div>
+
+                {/* Selling points */}
+                <div className="flex-1 space-y-3">
+                  {slide.items?.map((item, i) => (
+                    <div key={i} className="flex items-center gap-4 bg-neutral-950 border-2 border-[#0066CC]/15 rounded-2xl px-5 py-3 hover:border-[#0066CC]/40 transition-colors">
+                      <span className="text-[#0066CC] font-black text-sm w-8 flex-shrink-0">0{i + 1}</span>
+                      <span className="text-neutral-200">{item}</span>
+                    </div>
+                  ))}
+                  {/* Badge */}
+                  {slide.badge && (
+                    <div className="flex items-center gap-3 mt-4 px-5 py-3 bg-[#0066CC]/10 border-2 border-[#0066CC]/30 rounded-2xl">
+                      <svg className="w-5 h-5 text-[#0066CC] flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                      </svg>
+                      <span className="text-[#0066CC] font-black uppercase tracking-[0.15em] text-xs">{slide.badge}</span>
+                    </div>
+                  )}
+                </div>
               </div>
+
+              {/* CTA */}
               {slide.cta && (
-                <a href={slide.cta.href} target="_blank" rel="noopener noreferrer"
-                  className="inline-block bg-[#0066CC] text-white font-black uppercase tracking-[0.15em] px-8 py-4 rounded-xl text-sm hover:shadow-[0_0_30px_rgba(0,102,204,0.4)] transition-all">
-                  {slide.cta.text} &rarr;
-                </a>
+                <div>
+                  <a href={slide.cta.href} target="_blank" rel="noopener noreferrer"
+                    className="inline-block bg-[#0066CC] text-white font-black uppercase tracking-[0.15em] px-8 py-4 rounded-xl text-sm hover:shadow-[0_0_30px_rgba(0,102,204,0.4)] transition-all">
+                    {slide.cta.text} &rarr;
+                  </a>
+                  {slide.ctaNote && <p className="text-neutral-500 text-xs mt-3 uppercase tracking-wider">{slide.ctaNote}</p>}
+                </div>
               )}
             </div>
           )}

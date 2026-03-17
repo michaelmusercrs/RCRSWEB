@@ -13,8 +13,6 @@ export default function BNIPresentationV2Page() {
   const [notesVisible, setNotesVisible] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
   const [direction, setDirection] = useState<'left' | 'right'>('right');
-  const [imgErrors, setImgErrors] = useState<Record<string, boolean>>({});
-
   const totalSlides = 6;
 
   const goToSlide = useCallback(
@@ -57,10 +55,6 @@ export default function BNIPresentationV2Page() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [nextSlide, prevSlide]);
-
-  const handleImgError = (key: string) => {
-    setImgErrors((prev) => ({ ...prev, [key]: true }));
-  };
 
   const GreenBullet = () => (
     <span className="inline-block w-2.5 h-2.5 rounded-full bg-[#39FF14] mr-3 mt-2 flex-shrink-0" />
@@ -256,78 +250,83 @@ export default function BNIPresentationV2Page() {
       title: 'IKO Roof Visualizer',
       speakerNote: SPEAKER_NOTES[4],
       render: (notes) => {
-        const streetViewImages = [
-          {
-            key: 'front',
-            label: 'Front View',
-            url: 'https://maps.googleapis.com/maps/api/streetview?size=600x400&location=34.8025,-86.9717&heading=0&pitch=20&key=AIzaSyB8lFAdlWJ4MP4vJi0nMxcl2whstCPsv4g',
-          },
-          {
-            key: 'side',
-            label: 'Side View',
-            url: 'https://maps.googleapis.com/maps/api/streetview?size=600x400&location=34.8025,-86.9717&heading=90&pitch=20&key=AIzaSyB8lFAdlWJ4MP4vJi0nMxcl2whstCPsv4g',
-          },
-          {
-            key: 'rear',
-            label: 'Rear View',
-            url: 'https://maps.googleapis.com/maps/api/streetview?size=600x400&location=34.8025,-86.9717&heading=180&pitch=20&key=AIzaSyB8lFAdlWJ4MP4vJi0nMxcl2whstCPsv4g',
-          },
+        const sellingPoints = [
+          'Upload your own home photo',
+          'Try IKO Dynasty, Cambridge, and Nordic shingle lines',
+          'See realistic color previews',
+          'Choose your perfect look before committing',
         ];
         return (
           <div className="flex flex-col justify-center h-full px-8 md:px-16 lg:px-24 relative">
             <h1 className="text-3xl md:text-5xl font-bold text-white mb-0">
-              See Your New Roof <span className="text-[#39FF14]">Before We Install</span>
+              See Your New Roof <span className="text-[#39FF14]">Before We Install It</span>
             </h1>
             <SectionUnderline />
             <h2 className="text-lg md:text-xl text-neutral-300 mb-6">
-              IKO Roof Visualizer: Choose your perfect look
+              Our IKO Roof Visualizer lets you upload a photo of your home and try different shingle styles and colors
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 max-w-5xl">
-              {streetViewImages.map((img) => (
-                <div key={img.key} className="relative">
-                  {imgErrors[img.key] ? (
-                    <div className="w-full aspect-[3/2] bg-neutral-800 border border-neutral-700 rounded-lg flex items-center justify-center">
-                      <div className="text-center text-neutral-500">
-                        <svg
-                          className="w-12 h-12 mx-auto mb-2 text-neutral-600"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={1.5}
-                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                          />
-                        </svg>
-                        <p className="text-sm">Image unavailable</p>
-                      </div>
+
+            <div className="flex flex-col md:flex-row gap-6 mb-6">
+              {/* Visual: house with color swatches */}
+              <div className="flex-shrink-0 w-full md:w-72">
+                <div className="bg-neutral-800/80 border border-neutral-700 rounded-xl p-5 hover:border-[#39FF14]/40 hover:shadow-[0_0_20px_rgba(57,255,20,0.08)] transition-all">
+                  <div className="flex flex-col items-center">
+                    {/* Roof shape */}
+                    <div className="relative w-48 h-0 border-l-[96px] border-r-[96px] border-b-[52px] border-l-transparent border-r-transparent border-b-[#0066CC] mb-0">
+                      <div className="absolute top-[16px] left-[-58px] text-[9px] font-bold text-white/80 uppercase tracking-wider whitespace-nowrap">Your shingle color</div>
                     </div>
-                  ) : (
-                    <img
-                      src={img.url}
-                      alt={`${img.label} of Athens-Limestone Visitors Center`}
-                      loading="lazy"
-                      className="w-full aspect-[3/2] object-cover rounded-lg border border-neutral-700"
-                      onError={() => handleImgError(img.key)}
-                    />
-                  )}
-                  <p className="text-center text-sm text-neutral-400 mt-2 font-medium">
-                    {img.label}
-                  </p>
+                    {/* House body */}
+                    <div className="w-48 h-24 bg-neutral-600 flex items-center justify-center relative">
+                      <div className="w-9 h-14 bg-neutral-700 border-2 border-neutral-500 absolute bottom-0"></div>
+                      <div className="w-7 h-7 bg-neutral-500/30 border-2 border-neutral-500 absolute left-5 top-3"></div>
+                      <div className="w-7 h-7 bg-neutral-500/30 border-2 border-neutral-500 absolute right-5 top-3"></div>
+                    </div>
+                  </div>
+                  {/* Color swatches */}
+                  <div className="mt-3 flex justify-center gap-2">
+                    {[
+                      { color: '#2d2926', label: 'Charcoal' },
+                      { color: '#5c4033', label: 'Brown' },
+                      { color: '#1a1a2e', label: 'Black' },
+                      { color: '#6b4c3b', label: 'Cedar' },
+                      { color: '#4a5568', label: 'Slate' },
+                    ].map((swatch) => (
+                      <div key={swatch.label} className="flex flex-col items-center gap-1">
+                        <div className="w-7 h-7 rounded-lg border-2 border-white/20 hover:border-[#39FF14] transition-colors cursor-pointer" style={{ backgroundColor: swatch.color }} />
+                        <span className="text-[7px] text-neutral-500 uppercase">{swatch.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-center text-[9px] text-[#39FF14] font-bold uppercase tracking-wider mt-2">Before &amp; After Preview</p>
                 </div>
-              ))}
+              </div>
+
+              {/* Selling points */}
+              <div className="flex-1">
+                <ul className="space-y-3 mb-4">
+                  {sellingPoints.map((item, i) => (
+                    <li key={i} className="flex items-start text-lg text-neutral-200">
+                      <GreenBullet />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+                {/* IKO ROOFPRO badge */}
+                <div className="flex items-center gap-3 bg-neutral-800/60 border border-[#0066CC]/30 rounded-lg px-4 py-3">
+                  <svg className="w-5 h-5 text-[#0066CC] flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                  </svg>
+                  <span className="text-[#0066CC] font-bold uppercase tracking-wide text-xs">IKO ROOFPRO Craftsman Premier</span>
+                </div>
+              </div>
             </div>
-            <p className="text-neutral-400 mb-6 text-sm">
-              Upload any of these photos to see different shingle styles instantly
-            </p>
+
             <div className="flex flex-col items-start gap-2">
-              <CTAButton href="https://www.ikoroofing.com/en-us/roofing-tools/roof-visualizer/">
-                OPEN IKO VISUALIZER &rarr;
+              <CTAButton href="https://www.rivercityroofingsolutions.com/roof-visualizer">
+                TRY IT NOW &rarr;
               </CTAButton>
-              <p className="text-xs text-neutral-600 mt-1">
-                Right-click images above to save for upload
+              <p className="text-xs text-neutral-500 mt-1">
+                rivercityroofingsolutions.com/roof-visualizer
               </p>
             </div>
             <SpeakerNote note={SPEAKER_NOTES[4]} visible={notes} />

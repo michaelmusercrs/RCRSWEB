@@ -1622,14 +1622,19 @@ function DeliveryTracker({ deliveries }: { deliveries: DeliveryInfo[] }) {
 // --- Sales Rep Card ---
 function SalesRepCard({ rep }: { rep: SalesRep }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
+    <div className="bg-white rounded-xl border border-gray-200 p-5 hover:border-[#0066CC]/40 hover:shadow-md transition-all duration-200">
       <h3 className="text-sm font-medium text-gray-500 mb-4">Your Roofing Specialist</h3>
-      <div className="flex items-center gap-4">
+      <a
+        href={rep.slug ? `/team/${rep.slug}` : '#'}
+        target={rep.slug ? '_blank' : undefined}
+        rel={rep.slug ? 'noopener noreferrer' : undefined}
+        className="flex items-center gap-4 group"
+      >
         {rep.photo ? (
           <img
             src={rep.photo}
             alt={rep.name}
-            className="w-14 h-14 rounded-full object-cover border-2 border-[#0066CC]"
+            className="w-14 h-14 rounded-full object-cover border-2 border-[#0066CC] group-hover:border-[#0077dd] transition-colors"
           />
         ) : (
           <div className="w-14 h-14 rounded-full bg-[#0066CC]/20 flex items-center justify-center border-2 border-[#0066CC]">
@@ -1637,15 +1642,18 @@ function SalesRepCard({ rep }: { rep: SalesRep }) {
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <p className="text-gray-900 font-semibold">{rep.name}</p>
+          <p className="text-gray-900 font-semibold group-hover:text-[#0066CC] transition-colors">
+            {rep.name}
+            {rep.slug && <ExternalLink className="w-3.5 h-3.5 inline-block ml-1.5 opacity-0 group-hover:opacity-60 transition-opacity" />}
+          </p>
           <p className="text-[#0066CC] text-sm">{rep.position}</p>
         </div>
-      </div>
+      </a>
       <div className="grid grid-cols-2 gap-2 mt-4">
         {rep.phone && (
           <a
             href={`tel:${rep.phone}`}
-            className="flex items-center justify-center gap-2 px-3 py-2.5 bg-[#0066CC] text-white font-semibold rounded-lg hover:bg-[#0077dd] transition-all text-sm"
+            className="flex items-center justify-center gap-2 px-3 py-3 bg-[#0066CC] text-white font-semibold rounded-lg hover:bg-[#0077dd] active:bg-[#005bb5] transition-all text-sm min-h-[44px]"
           >
             <Phone className="w-4 h-4" />
             Call
@@ -1654,7 +1662,7 @@ function SalesRepCard({ rep }: { rep: SalesRep }) {
         {rep.email && (
           <a
             href={`mailto:${rep.email}`}
-            className="flex items-center justify-center gap-2 px-3 py-2.5 bg-gray-100 text-gray-900 rounded-lg hover:bg-gray-200 transition-all text-sm"
+            className="flex items-center justify-center gap-2 px-3 py-3 bg-gray-100 text-gray-900 rounded-lg hover:bg-gray-200 active:bg-gray-300 transition-all text-sm min-h-[44px]"
           >
             <Mail className="w-4 h-4" />
             Email

@@ -425,10 +425,15 @@ export default function CustomerPortal() {
 
       {/* Sales Rep Card */}
       <div className="max-w-4xl mx-auto px-4 mt-6">
-        <div className="bg-neutral-900 rounded-xl border border-neutral-800 p-6">
+        <div className="bg-neutral-900 rounded-xl border border-neutral-800 p-6 hover:border-[#39FF14]/30 hover:shadow-lg hover:shadow-[#39FF14]/5 transition-all duration-200">
           <h3 className="font-semibold text-white mb-4">Your Roofing Specialist</h3>
           <div className="flex items-start gap-4">
-            <div className="w-16 h-16 bg-neutral-800 rounded-xl overflow-hidden flex-shrink-0">
+            <a
+              href={salesRep.slug ? `/team/${salesRep.slug}` : '#'}
+              target={salesRep.slug ? '_blank' : undefined}
+              rel={salesRep.slug ? 'noopener noreferrer' : undefined}
+              className="w-16 h-16 bg-neutral-800 rounded-xl overflow-hidden flex-shrink-0 block hover:ring-2 hover:ring-[#39FF14]/40 transition-all"
+            >
               {salesRep.photo ? (
                 <Image
                   src={salesRep.photo}
@@ -442,15 +447,23 @@ export default function CustomerPortal() {
                   <User className="text-[#39FF14]" size={28} />
                 </div>
               )}
-            </div>
+            </a>
             <div className="flex-1">
-              <h4 className="font-semibold text-white">{salesRep.name}</h4>
+              <a
+                href={salesRep.slug ? `/team/${salesRep.slug}` : '#'}
+                target={salesRep.slug ? '_blank' : undefined}
+                rel={salesRep.slug ? 'noopener noreferrer' : undefined}
+                className="group inline-flex items-center gap-1.5"
+              >
+                <h4 className="font-semibold text-white group-hover:text-[#39FF14] transition-colors">{salesRep.name}</h4>
+                {salesRep.slug && <ExternalLink size={14} className="text-neutral-600 group-hover:text-[#39FF14]/70 transition-colors" />}
+              </a>
               <p className="text-sm text-neutral-500 mb-3">{salesRep.position}</p>
               <div className="flex flex-wrap gap-2">
                 {salesRep.phone && (
                   <a
                     href={`tel:${salesRep.phone}`}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#39FF14] text-black rounded-lg text-sm font-medium hover:bg-[#32d911] transition-colors"
+                    className="inline-flex items-center gap-2 px-4 py-3 bg-[#39FF14] text-black rounded-lg text-sm font-medium hover:bg-[#32d911] active:bg-[#2bc810] transition-colors min-h-[44px]"
                   >
                     <Phone size={16} />
                     Call
@@ -459,7 +472,7 @@ export default function CustomerPortal() {
                 {salesRep.email && (
                   <a
                     href={`mailto:${salesRep.email}`}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-neutral-800 text-neutral-300 rounded-lg text-sm font-medium hover:bg-neutral-700 transition-colors"
+                    className="inline-flex items-center gap-2 px-4 py-3 bg-neutral-800 text-neutral-300 rounded-lg text-sm font-medium hover:bg-neutral-700 active:bg-neutral-600 transition-colors min-h-[44px]"
                   >
                     <Mail size={16} />
                     Email
