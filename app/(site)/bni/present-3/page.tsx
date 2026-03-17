@@ -318,11 +318,11 @@ export default function BNIPresentationV3Page() {
             </div>
 
             <div className="flex flex-col items-start gap-2">
-              <CTAButton href="https://www.rivercityroofingsolutions.com/roof-visualizer">
+              <CTAButton href="https://www.ikoroofing.com/en-us/roofing-tools/roof-visualizer/">
                 TRY IT NOW &rarr;
               </CTAButton>
               <p className="text-xs text-neutral-600 mt-1">
-                rivercityroofingsolutions.com/roof-visualizer
+                ikoroofing.com/roof-visualizer
               </p>
             </div>
           </div>

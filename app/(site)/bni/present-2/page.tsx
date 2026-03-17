@@ -322,11 +322,11 @@ export default function BNIPresentationV2Page() {
             </div>
 
             <div className="flex flex-col items-start gap-2">
-              <CTAButton href="https://www.rivercityroofingsolutions.com/roof-visualizer">
+              <CTAButton href="https://www.ikoroofing.com/roof-visualizer">
                 TRY IT NOW &rarr;
               </CTAButton>
               <p className="text-xs text-neutral-500 mt-1">
-                rivercityroofingsolutions.com/roof-visualizer
+                ikoroofing.com/roof-visualizer
               </p>
             </div>
             <SpeakerNote note={SPEAKER_NOTES[4]} visible={notes} />
