@@ -1,0 +1,190 @@
+{
+  "tournament": {
+    "id": "double-elimination",
+    "name": "Redemption Bracket 2026",
+    "type": "double_elimination",
+    "year": 2026,
+    "startDate": "2026-03-02",
+    "endDate": "2026-04-05",
+    "status": "in_progress",
+    "currentWeek": 3,
+    "description": "Double elimination - lose once, drop to the Losers Bracket. Lose twice, you're out. Last rep standing wins."
+  },
+  "settings": {
+    "roundDuration": "1week",
+    "advancementDay": "monday",
+    "advancementTime": "09:00",
+    "salesType": "accrual",
+    "totalWeeks": 5
+  },
+  "participants": [
+    { "seed": 1, "name": "Hunter Rivers", "slug": "hunter", "ytdSales": 15870, "nickname": "The Hunter", "lives": 2, "status": "winners" },
+    { "seed": 2, "name": "Aaron Lussi", "slug": "aaron", "ytdSales": 11712, "nickname": "Roof Angel", "lives": 1, "status": "losers" },
+    { "seed": 3, "name": "Greg Muse", "slug": "greg", "ytdSales": 17207, "nickname": "Big G", "lives": 2, "status": "winners" },
+    { "seed": 4, "name": "Brendon Muse", "slug": "brendon", "ytdSales": 9011, "nickname": "BCM", "lives": 1, "status": "losers" },
+    { "seed": 5, "name": "Adam Rudell", "slug": "adam", "ytdSales": 20688, "nickname": "Rudell", "lives": 1, "status": "losers" },
+    { "seed": 6, "name": "Joseph Dowd", "slug": "joseph", "ytdSales": 0, "nickname": "JD", "lives": 0, "status": "eliminated" },
+    { "seed": 7, "name": "Travis Wages", "slug": "travis", "ytdSales": 0, "nickname": "T-Money", "lives": 1, "status": "losers" }
+  ],
+  "weeks": [
+    { "week": 1, "start": "2026-03-02", "end": "2026-03-08", "status": "completed", "label": "Week 1 - Opening Round" },
+    { "week": 2, "start": "2026-03-09", "end": "2026-03-15", "status": "completed", "label": "Week 2 - Winners Semis + Losers R1" },
+    { "week": 3, "start": "2026-03-16", "end": "2026-03-22", "status": "active", "label": "Week 3 - Winners Final + Losers R2" },
+    { "week": 4, "start": "2026-03-23", "end": "2026-03-29", "status": "upcoming", "label": "Week 4 - Losers Final" },
+    { "week": 5, "start": "2026-03-30", "end": "2026-04-05", "status": "upcoming", "label": "Week 5 - Grand Finals" }
+  ],
+  "winnersBracket": [
+    {
+      "round": "W-R1",
+      "name": "Winners Round 1",
+      "week": 1,
+      "status": "completed",
+      "matches": [
+        {
+          "matchId": "W-R1-M1",
+          "topSeed": { "seed": 1, "name": "Hunter Rivers", "weekSales": 0, "winner": true },
+          "bottomSeed": null,
+          "note": "BYE"
+        },
+        {
+          "matchId": "W-R1-M2",
+          "topSeed": { "seed": 4, "name": "Brendon Muse", "weekSales": 0, "winner": false },
+          "bottomSeed": { "seed": 5, "name": "Adam Rudell", "weekSales": 485.71, "winner": true }
+        },
+        {
+          "matchId": "W-R1-M3",
+          "topSeed": { "seed": 3, "name": "Greg Muse", "weekSales": 1404.19, "winner": true },
+          "bottomSeed": { "seed": 6, "name": "Joseph Dowd", "weekSales": 0, "winner": false }
+        },
+        {
+          "matchId": "W-R1-M4",
+          "topSeed": { "seed": 2, "name": "Aaron Lussi", "weekSales": 1831.60, "winner": true },
+          "bottomSeed": { "seed": 7, "name": "Travis Wages", "weekSales": 0, "winner": false }
+        }
+      ]
+    },
+    {
+      "round": "W-R2",
+      "name": "Winners Semifinals",
+      "week": 2,
+      "status": "completed",
+      "matches": [
+        {
+          "matchId": "W-R2-M1",
+          "topSeed": { "seed": 1, "name": "Hunter Rivers", "weekSales": 1985.92, "winner": true },
+          "bottomSeed": { "seed": 5, "name": "Adam Rudell", "weekSales": 0, "winner": false }
+        },
+        {
+          "matchId": "W-R2-M2",
+          "topSeed": { "seed": 3, "name": "Greg Muse", "weekSales": 1925.22, "winner": true },
+          "bottomSeed": { "seed": 2, "name": "Aaron Lussi", "weekSales": 411.64, "winner": false }
+        }
+      ]
+    },
+    {
+      "round": "W-Final",
+      "name": "Winners Final",
+      "week": 3,
+      "status": "active",
+      "matches": [
+        {
+          "matchId": "W-F-M1",
+          "topSeed": { "seed": 1, "name": "Hunter Rivers", "weekSales": 0, "winner": false },
+          "bottomSeed": { "seed": 3, "name": "Greg Muse", "weekSales": 0, "winner": false }
+        }
+      ]
+    }
+  ],
+  "losersBracket": [
+    {
+      "round": "L-R1",
+      "name": "Losers Round 1",
+      "week": 2,
+      "status": "completed",
+      "matches": [
+        {
+          "matchId": "L-R1-M1",
+          "topSeed": { "seed": 4, "name": "Brendon Muse", "weekSales": 1571.79, "winner": true },
+          "bottomSeed": { "seed": 6, "name": "Joseph Dowd", "weekSales": 0, "winner": false },
+          "note": "Joseph eliminated (2 losses)"
+        },
+        {
+          "matchId": "L-R1-M2",
+          "topSeed": { "seed": 7, "name": "Travis Wages", "weekSales": 0, "winner": true },
+          "bottomSeed": null,
+          "note": "BYE"
+        }
+      ]
+    },
+    {
+      "round": "L-R2",
+      "name": "Losers Round 2",
+      "week": 3,
+      "status": "active",
+      "description": "W-R2 losers drop in to face L-R1 winners",
+      "matches": [
+        {
+          "matchId": "L-R2-M1",
+          "topSeed": { "seed": 4, "name": "Brendon Muse", "weekSales": 0, "winner": false },
+          "bottomSeed": { "seed": 5, "name": "Adam Rudell", "weekSales": 0, "winner": false }
+        },
+        {
+          "matchId": "L-R2-M2",
+          "topSeed": { "seed": 7, "name": "Travis Wages", "weekSales": 0, "winner": false },
+          "bottomSeed": { "seed": 2, "name": "Aaron Lussi", "weekSales": 0, "winner": false }
+        }
+      ]
+    },
+    {
+      "round": "L-R3",
+      "name": "Losers Semifinal",
+      "week": 4,
+      "status": "upcoming",
+      "matches": [
+        {
+          "matchId": "L-R3-M1",
+          "topSeed": null,
+          "bottomSeed": null,
+          "note": "L-R2 winners face off"
+        }
+      ]
+    },
+    {
+      "round": "L-Final",
+      "name": "Losers Final",
+      "week": 4,
+      "status": "upcoming",
+      "description": "L-R3 winner vs Winners Final loser",
+      "matches": [
+        {
+          "matchId": "L-F-M1",
+          "topSeed": null,
+          "bottomSeed": null,
+          "note": "Winners Final loser vs Losers Semifinal winner"
+        }
+      ]
+    }
+  ],
+  "grandFinals": {
+    "week": 5,
+    "status": "upcoming",
+    "description": "Winners Bracket champion vs Losers Bracket survivor. Winners bracket champion gets 15% sales bonus.",
+    "advantageRule": "Winners bracket champion has a 15% sales bonus applied to their total",
+    "match": {
+      "matchId": "GF-M1",
+      "topSeed": null,
+      "bottomSeed": null,
+      "note": "TBD - Winners champ vs Losers survivor"
+    }
+  },
+  "eliminated": [
+    { "name": "Joseph Dowd", "seed": 6, "eliminatedWeek": 2, "losses": 2, "totalSales": 0, "winsBeforeElim": 0 }
+  ],
+  "champion": null,
+  "prizes": {
+    "champion": "$750 Cash + Redemption Crown",
+    "runnerUp": "$350 Cash",
+    "ironMan": "$150 Cash - Most Total Sales Across All Rounds",
+    "comebackKing": "$100 Gift Card - Won Most Matches in Losers Bracket"
+  }
+}

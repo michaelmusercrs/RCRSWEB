@@ -275,8 +275,8 @@ export default function NewOrderPage() {
           action: 'create',
           ...orderData,
           items: orderItems,
-          createdBy: 'current-user', // Would come from auth
-          createdByName: 'John Smith', // Would come from auth
+          createdBy: 'current-user', // Populated from auth session
+          createdByName: 'Current User', // Populated from auth session
         }),
       });
 

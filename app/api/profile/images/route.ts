@@ -85,13 +85,16 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate file type (images + videos)
-    const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/quicktime'];
+    const allowedImageTypes = [
+      'image/jpeg', 'image/jpg', 'image/png', 'image/webp',
+      'image/heic', 'image/heif', 'image/gif', 'image/tiff', 'image/bmp',
+    ];
+    const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo'];
     const allAllowed = [...allowedImageTypes, ...allowedVideoTypes];
 
     if (!allAllowed.includes(file.type)) {
       return NextResponse.json(
-        { success: false, error: 'Invalid file type. Allowed: JPEG, PNG, WebP, MP4, WebM, MOV' },
+        { success: false, error: 'Invalid file type. Allowed: JPEG, PNG, WebP, HEIC, GIF, TIFF, BMP, MP4, WebM, MOV, AVI' },
         { status: 400 }
       );
     }

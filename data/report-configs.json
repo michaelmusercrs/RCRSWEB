@@ -1,0 +1,42 @@
+{
+  "configs": [
+    {
+      "id": "config-daily",
+      "name": "Daily Operations Report",
+      "type": "daily",
+      "sections": [
+        { "id": "s1", "name": "Sales Summary", "type": "sales_summary", "enabled": true, "order": 1 },
+        { "id": "s2", "name": "Lead Activity", "type": "lead_activity", "enabled": true, "order": 2 },
+        { "id": "s3", "name": "Call Stats", "type": "call_stats", "enabled": true, "order": 3 },
+        { "id": "s4", "name": "Delivery Status", "type": "delivery_status", "enabled": true, "order": 4 },
+        { "id": "s5", "name": "Open Items", "type": "open_items", "enabled": true, "order": 5 },
+        { "id": "s6", "name": "Weather", "type": "weather_alerts", "enabled": true, "order": 6 }
+      ],
+      "recipients": ["michaelmuse@rivercityroofingsolutions.com"],
+      "schedule": "manual",
+      "format": "html",
+      "isActive": true,
+      "createdBy": "system",
+      "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+      "id": "config-weekly",
+      "name": "Weekly Performance Report",
+      "type": "weekly",
+      "sections": [
+        { "id": "s1", "name": "Sales Summary", "type": "sales_summary", "enabled": true, "order": 1 },
+        { "id": "s2", "name": "Team Performance", "type": "team_performance", "enabled": true, "order": 2 },
+        { "id": "s3", "name": "Lead Activity", "type": "lead_activity", "enabled": true, "order": 3 },
+        { "id": "s4", "name": "Customer Feedback", "type": "customer_feedback", "enabled": true, "order": 4 },
+        { "id": "s5", "name": "Inventory", "type": "inventory_levels", "enabled": true, "order": 5 },
+        { "id": "s6", "name": "Achievements", "type": "achievements", "enabled": true, "order": 6 }
+      ],
+      "recipients": ["michaelmuse@rivercityroofingsolutions.com", "chrismuse@rivercityroofingsolutions.com"],
+      "schedule": "manual",
+      "format": "html",
+      "isActive": true,
+      "createdBy": "system",
+      "createdAt": "2026-01-01T00:00:00Z"
+    }
+  ]
+}

@@ -4,7 +4,8 @@
  */
 
 
-const COMPANY_EMAIL = 'rivercityreconsolutions@gmail.com';
+const COMPANY_EMAIL = 'rcrs@rivercityroofingsolutions.com';
+const COMPANY_EMAIL_BACKUP = 'rivercityroofingsolutions@gmail.com';
 
 export interface ContactFormData {
   name: string;
@@ -169,41 +170,110 @@ class FormService {
       status: 'new',
       ...sanitizedData,
     });
+
+    // Save backup copy to 'Form Backup' tab
+    try {
+      let backupSheet = doc.sheetsByTitle['Form Backup'];
+      if (!backupSheet) {
+        backupSheet = await doc.addSheet({
+          title: 'Form Backup',
+          headerValues: ['id', 'timestamp', 'formType', 'status', ...Object.keys(sanitizedData)],
+        });
+      }
+      await backupSheet.addRow({
+        id: `${formType}-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        formType,
+        status: 'new',
+        ...sanitizedData,
+      });
+    } catch (backupErr) {
+      console.error('Backup sheet save failed:', backupErr);
+    }
   }
 
   /**
-   * Send email notification via Google Apps Script or direct SMTP
+   * Send email notification via Google Apps Script + direct email to both company addresses
    */
   private async sendEmailNotification(formType: string, data: ContactFormData | ReferralFormData): Promise<void> {
+    // 1. Send via Google Apps Script (existing)
     const endpoint = process.env.NEXT_PUBLIC_GOOGLE_SCRIPT_ENDPOINT;
-
-    if (!endpoint) {
-      return;
-    }
-
-    const formData = new URLSearchParams();
-    formData.append('formType', formType);
-    formData.append('sourcePage', data.sourcePage);
-
-    // Add all data fields
-    Object.entries(data).forEach(([key, value]) => {
-      if (value) formData.append(key, String(value));
-    });
-
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: formData.toString(),
+    if (endpoint) {
+      const formData = new URLSearchParams();
+      formData.append('formType', formType);
+      formData.append('sourcePage', data.sourcePage);
+      Object.entries(data).forEach(([key, value]) => {
+        if (value) formData.append(key, String(value));
       });
 
-      const result = await response.json();
-      if (result.result !== 'success') {
-        console.error('Email notification failed:', result);
+      try {
+        await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: formData.toString(),
+        });
+      } catch (error) {
+        console.error('Google Apps Script email failed:', error);
       }
+    }
+
+    // 2. Send direct email notification to both company addresses
+    try {
+      const { emailService } = await import('./email-service');
+      const isContact = formType === 'contact';
+      const contactData = data as ContactFormData;
+      const referralData = data as ReferralFormData;
+
+      const subject = isContact
+        ? `New Contact Form: ${contactData.subject} - ${contactData.name}`
+        : `New Referral: ${referralData.referralName} (from ${referralData.referrerName})`;
+
+      const body = isContact
+        ? `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #000; padding: 20px; text-align: center;">
+              <h1 style="color: #39FF14; margin: 0;">New Contact Form Submission</h1>
+            </div>
+            <div style="padding: 30px; background: #fff;">
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Name</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${contactData.name}</td></tr>
+                <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Email</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${contactData.email || 'Not provided'}</td></tr>
+                <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Phone</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${contactData.phone || 'Not provided'}</td></tr>
+                <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Subject</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${contactData.subject}</td></tr>
+                <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Message</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${contactData.message}</td></tr>
+                <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Source</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${contactData.sourcePage}</td></tr>
+              </table>
+            </div>
+          </div>`
+        : `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #000; padding: 20px; text-align: center;">
+              <h1 style="color: #39FF14; margin: 0;">New Referral Submission</h1>
+            </div>
+            <div style="padding: 30px; background: #fff;">
+              <h3>Referrer</h3>
+              <p>${referralData.referrerName} | ${referralData.referrerPhone} | ${referralData.referrerEmail || 'No email'}</p>
+              <h3>Referred Person</h3>
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Name</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${referralData.referralName}</td></tr>
+                <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Phone</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${referralData.referralPhone}</td></tr>
+                <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Address</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${referralData.referralAddress}</td></tr>
+              </table>
+              ${referralData.notes ? `<p><strong>Notes:</strong> ${referralData.notes}</p>` : ''}
+            </div>
+          </div>`;
+
+      // Send to primary address with backup as CC
+      await emailService.send({
+        to: COMPANY_EMAIL,
+        subject,
+        body,
+        cc: COMPANY_EMAIL_BACKUP,
+        replyTo: isContact ? (contactData.email || undefined) : (referralData.referrerEmail || undefined),
+        fromName: 'RCRS Website Forms',
+      });
     } catch (error) {
-      console.error('Error sending email notification:', error);
-      // Don't throw - form was still saved to sheets
+      console.error('Direct email notification failed:', error);
     }
   }
 }

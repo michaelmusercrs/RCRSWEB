@@ -1,0 +1,34 @@
+{
+  "enabled": true,
+  "strategy": "next_best_score",
+  "maxReassignments": 3,
+  "cooldownMinutes": 15,
+  "excludeRepSlugs": [],
+  "notifyOriginalRep": true,
+  "notifyNewRep": true,
+  "notifyManager": true,
+  "afterMaxReassignments": "escalate_manager",
+  "warningChannels": {
+    "groupme": true,
+    "sms": false,
+    "email": true,
+    "inPortal": true
+  },
+  "warningRecipients": "rep_and_manager",
+  "warningMessages": {
+    "reminder": "Hey {repName}, you have a new lead from {customerName} at {address}. Please reach out ASAP!",
+    "warning": "Reminder: Lead from {customerName} has been waiting {minutes} minutes for contact. Please respond soon.",
+    "urgentWarning": "URGENT: Lead from {customerName} has been waiting {minutes} minutes. This lead will be reassigned in {remainingMinutes} minutes if not contacted.",
+    "reassigned": "Lead from {customerName} has been reassigned from {originalRep} to {newRep} due to no response after {minutes} minutes."
+  },
+  "soundAlerts": true,
+  "visualAlerts": true,
+  "timerStepsEnabled": {
+    "reminder": true,
+    "warning": true,
+    "urgentWarning": true,
+    "reassign": true
+  },
+  "updatedAt": "",
+  "updatedBy": ""
+}

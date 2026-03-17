@@ -569,20 +569,29 @@ export default function RepDetailPage() {
   const mockTransactions = useMemo(() => {
     if (!rep) return [];
 
-    // Generate mock weekly data based on rep's stats
-    const weeks = 12;
-    const avgWeekly = rep.totalCommissions / (rep.transactionCount / 3); // Rough estimate
+    // Use real transaction data grouped by week
+    const recentTx = rep.recentTransactions || [];
+    const weeklyMap = new Map<string, number>();
+
+    // Group real transactions by week
+    for (const tx of recentTx) {
+      const d = new Date(tx.date);
+      if (isNaN(d.getTime())) continue;
+      const weekStart = new Date(d);
+      weekStart.setDate(d.getDate() - d.getDay());
+      const key = weekStart.toISOString().split('T')[0];
+      weeklyMap.set(key, (weeklyMap.get(key) || 0) + tx.amount);
+    }
+
+    // Fill in last 12 weeks (real data where available, 0 where not)
     const transactions: Array<{ date: string; amount: number }> = [];
-
-    for (let i = weeks - 1; i >= 0; i--) {
+    for (let i = 11; i >= 0; i--) {
       const date = new Date();
-      date.setDate(date.getDate() - i * 7);
-
-      // Add some variance
-      const variance = (Math.random() - 0.5) * avgWeekly * 0.5;
+      date.setDate(date.getDate() - i * 7 - date.getDay());
+      const key = date.toISOString().split('T')[0];
       transactions.push({
-        date: date.toISOString().split('T')[0],
-        amount: Math.max(0, avgWeekly + variance),
+        date: key,
+        amount: weeklyMap.get(key) || 0,
       });
     }
 

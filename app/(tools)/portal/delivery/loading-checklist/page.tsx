@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -31,6 +31,7 @@ import {
   Undo2,
   AlertOctagon,
   MessageSquare,
+  Info,
 } from 'lucide-react';
 
 // ============================================
@@ -164,9 +165,78 @@ const MOCK_DELIVERIES: DeliveryForToday[] = [
 // ============================================
 
 export default function LoadingChecklistPage() {
+  // API data state
+  const [allDeliveries, setAllDeliveries] = useState<DeliveryForToday[]>(MOCK_DELIVERIES);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUsingMockData, setIsUsingMockData] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchDeliveries();
+  }, []);
+
+  async function fetchDeliveries() {
+    setIsLoading(true);
+    setFetchError(null);
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const res = await fetch(`/api/portal/deliveries?date=${today}`);
+      if (!res.ok) throw new Error(`API returned ${res.status}`);
+      const data = await res.json();
+      const apiDeliveries = (data.data?.deliveries || data.deliveries || []).map((d: any) => ({
+        ticketId: d.ticketId || d.id || d.deliveryId,
+        jobName: d.jobName || d.job_name || 'Delivery',
+        customerName: d.customerName || d.customer_name || 'Customer',
+        customerPhone: d.customerPhone || d.customer_phone || '',
+        address: d.address || d.jobAddress || '',
+        city: d.city || '',
+        state: d.state || 'AL',
+        zip: d.zip || '',
+        scheduledDate: d.scheduledDate || d.scheduled_date || today,
+        scheduledTime: d.scheduledTime || d.scheduled_time || '',
+        priority: d.priority || 'normal',
+        specialInstructions: d.specialInstructions || d.special_instructions || '',
+        status: d.status || 'assigned',
+        vehicle: d.vehicle || d.assignedVehicle || 'TBD',
+        driverName: d.driverName || d.assignedDriverName || 'Unassigned',
+        materials: (d.materials || []).map((m: any, idx: number) => ({
+          id: m.id || `mat-${idx}`,
+          productId: m.productId || m.product_id || '',
+          productName: m.productName || m.product_name || m.name || 'Material',
+          sku: m.sku || '',
+          quantity: m.quantity || 0,
+          unit: m.unit || 'ea',
+          location: m.location || '',
+          category: m.category || 'accessories',
+          weight: m.weight || m.weightLbs || 0,
+          loadOrder: m.loadOrder || m.load_order || idx + 1,
+          notes: m.notes || m.handlingTip || undefined,
+        })),
+      }));
+
+      if (apiDeliveries.length > 0) {
+        setAllDeliveries(apiDeliveries);
+        setSelectedTicketId(apiDeliveries[0].ticketId);
+        setIsUsingMockData(false);
+      } else {
+        setAllDeliveries(MOCK_DELIVERIES);
+        setSelectedTicketId(MOCK_DELIVERIES[0].ticketId);
+        setIsUsingMockData(true);
+      }
+    } catch (err) {
+      console.error('Failed to fetch deliveries for checklist:', err);
+      setFetchError(err instanceof Error ? err.message : 'Failed to load deliveries');
+      setAllDeliveries(MOCK_DELIVERIES);
+      setSelectedTicketId(MOCK_DELIVERIES[0].ticketId);
+      setIsUsingMockData(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   // Delivery selection
   const [selectedTicketId, setSelectedTicketId] = useState<string>(MOCK_DELIVERIES[0].ticketId);
-  const selectedDelivery = MOCK_DELIVERIES.find(d => d.ticketId === selectedTicketId) || MOCK_DELIVERIES[0];
+  const selectedDelivery = allDeliveries.find(d => d.ticketId === selectedTicketId) || allDeliveries[0];
 
   // Checklist state
   const [loadedItems, setLoadedItems] = useState<Set<string>>(new Set());
@@ -394,7 +464,7 @@ export default function LoadingChecklistPage() {
             onChange={e => handleTicketChange(e.target.value)}
             className="bg-zinc-800 border border-zinc-700 text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#39FF14]/50 focus:border-[#39FF14]/50 outline-none flex-1 max-w-lg"
           >
-            {MOCK_DELIVERIES.map(d => (
+            {allDeliveries.map(d => (
               <option key={d.ticketId} value={d.ticketId}>
                 {d.ticketId} - {d.jobName} ({d.scheduledTime})
               </option>
@@ -406,8 +476,37 @@ export default function LoadingChecklistPage() {
         </div>
       </div>
 
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex flex-col items-center justify-center py-16">
+          <Loader2 className="w-8 h-8 text-[#39FF14] animate-spin mb-3" />
+          <p className="text-sm text-zinc-400">Loading delivery data...</p>
+        </div>
+      )}
+
+      {/* Demo Data Banner */}
+      {isUsingMockData && !isLoading && (
+        <div className="mx-4 sm:mx-6 mt-4">
+          <div className="flex items-center gap-3 px-4 py-3 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+            <Info className="w-5 h-5 text-amber-400 shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-amber-400">Demo Data - Waiting for real deliveries</p>
+              <p className="text-xs text-amber-400/70 mt-0.5">
+                {fetchError ? `API Error: ${fetchError}` : 'No deliveries found. Showing sample data.'}
+              </p>
+            </div>
+            <button
+              onClick={fetchDeliveries}
+              className="px-3 py-1.5 text-xs font-medium text-amber-400 border border-amber-500/30 rounded-lg hover:bg-amber-500/10 transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Special Instructions */}
-      {selectedDelivery.specialInstructions && (
+      {!isLoading && selectedDelivery.specialInstructions && (
         <div className="mx-4 sm:mx-6 mt-4">
           <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
             <div className="flex items-start gap-3">
@@ -423,6 +522,7 @@ export default function LoadingChecklistPage() {
         </div>
       )}
 
+      {!isLoading && (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
 
         {/* Delivery Info Card */}
@@ -791,6 +891,7 @@ export default function LoadingChecklistPage() {
           </div>
         )}
       </div>
+      )}
 
       {/* Damage Report Modal */}
       {showDamageReport && (

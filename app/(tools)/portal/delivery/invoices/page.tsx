@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft, DollarSign, FileText, Send, Plus, Search, Filter,
@@ -8,7 +8,7 @@ import {
   Save, Trash2, Copy, Download, BarChart3, TrendingUp, Receipt,
   ChevronDown, X, Printer, Building2, Shield, Tag, PieChart,
   Users, Calendar, Hash, Phone, Mail, MapPin, ChevronRight,
-  RefreshCw, ExternalLink, GitCompare, Loader2, DownloadCloud,
+  RefreshCw, ExternalLink, GitCompare, Loader2, DownloadCloud, Info,
 } from 'lucide-react';
 
 // ============ TYPES ============
@@ -370,6 +370,87 @@ function calcTotals(items: LineItem[], taxRate: number, discount: number, discou
 export default function InvoicesPage() {
   const [tab, setTab] = useState<Tab>('dashboard');
   const [invoices, setInvoices] = useState<Invoice[]>(MOCK_INVOICES);
+  const [isPageLoading, setIsPageLoading] = useState(true);
+  const [isUsingMockData, setIsUsingMockData] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchInvoices();
+  }, []);
+
+  async function fetchInvoices() {
+    setIsPageLoading(true);
+    setFetchError(null);
+    try {
+      const res = await fetch('/api/portal/invoices');
+      if (!res.ok) throw new Error(`API returned ${res.status}`);
+      const data = await res.json();
+      const apiInvoices = data.data?.invoices || data.invoices || [];
+
+      if (apiInvoices.length > 0) {
+        const mapped: Invoice[] = apiInvoices.map((inv: any) => ({
+          invoiceId: inv.invoiceId || inv.id || '',
+          jobId: inv.jobId || inv.job_id || '',
+          breakdownId: inv.breakdownId || undefined,
+          customerName: inv.customerName || inv.customer_name || '',
+          customerEmail: inv.customerEmail || inv.customer_email || '',
+          customerPhone: inv.customerPhone || inv.customer_phone || '',
+          billingAddress: inv.billingAddress || { street: '', city: '', state: 'AL', zip: '' },
+          jobAddress: inv.jobAddress || inv.billingAddress || { street: '', city: '', state: 'AL', zip: '' },
+          type: inv.type || 'final',
+          status: inv.status || 'draft',
+          lineItems: (inv.lineItems || inv.line_items || []).map((li: any) => ({
+            id: li.id || `li-${Math.random().toString(36).slice(2)}`,
+            description: li.description || '',
+            category: li.category || 'materials',
+            quantity: li.quantity || 0,
+            unit: li.unit || 'ea',
+            unitPrice: li.unitPrice || li.unit_price || 0,
+            total: li.total || 0,
+            taxable: li.taxable ?? true,
+          })),
+          subtotal: inv.subtotal || 0,
+          taxRate: inv.taxRate || inv.tax_rate || TAX_RATE,
+          taxAmount: inv.taxAmount || inv.tax_amount || 0,
+          discount: inv.discount || 0,
+          discountType: inv.discountType || inv.discount_type || 'fixed',
+          total: inv.total || 0,
+          amountPaid: inv.amountPaid || inv.amount_paid || 0,
+          balanceDue: inv.balanceDue || inv.balance_due || 0,
+          payments: (inv.payments || []).map((p: any) => ({
+            paymentId: p.paymentId || p.id || '',
+            date: p.date || '',
+            amount: p.amount || 0,
+            method: p.method || 'check',
+            reference: p.reference || '',
+            notes: p.notes || '',
+          })),
+          insuranceClaim: inv.insuranceClaim || undefined,
+          dueDate: inv.dueDate || inv.due_date || '',
+          terms: inv.terms || 'Net 30',
+          notes: inv.notes || '',
+          internalNotes: inv.internalNotes || inv.internal_notes || '',
+          createdAt: inv.createdAt || inv.created_at || '',
+          updatedAt: inv.updatedAt || inv.updated_at || '',
+          sentAt: inv.sentAt || inv.sent_at || undefined,
+          paidAt: inv.paidAt || inv.paid_at || undefined,
+          createdBy: inv.createdBy || inv.created_by || '',
+        }));
+        setInvoices(mapped);
+        setIsUsingMockData(false);
+      } else {
+        setInvoices(MOCK_INVOICES);
+        setIsUsingMockData(true);
+      }
+    } catch (err) {
+      console.error('Failed to fetch invoices:', err);
+      setFetchError(err instanceof Error ? err.message : 'Failed to load');
+      setInvoices(MOCK_INVOICES);
+      setIsUsingMockData(true);
+    } finally {
+      setIsPageLoading(false);
+    }
+  }
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | ''>('');
   const [typeFilter, setTypeFilter] = useState<InvoiceType | ''>('');
@@ -1503,6 +1584,30 @@ export default function InvoicesPage() {
         </div>
       </div>
 
+      {/* Loading State */}
+      {isPageLoading && (
+        <div className="flex flex-col items-center justify-center py-16">
+          <Loader2 className="w-8 h-8 text-[#39FF14] animate-spin mb-3" />
+          <p className="text-sm text-zinc-400">Loading invoices...</p>
+        </div>
+      )}
+
+      {/* Demo Data Banner */}
+      {isUsingMockData && !isPageLoading && (
+        <div className="px-6 pt-4">
+          <div className="flex items-center gap-3 px-4 py-3 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+            <Info className="w-5 h-5 text-amber-400 shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-amber-400">Demo Data - Waiting for real invoices</p>
+              <p className="text-xs text-amber-400/70">{fetchError ? `API Error: ${fetchError}` : 'No invoices found from API. Showing sample data.'}</p>
+            </div>
+            <button onClick={fetchInvoices} className="px-3 py-1.5 text-xs font-medium text-amber-400 border border-amber-500/30 rounded-lg hover:bg-amber-500/10 transition-colors">Retry</button>
+          </div>
+        </div>
+      )}
+
+      {!isPageLoading && (
+      <>
       {/* Tabs */}
       <div className="border-b border-zinc-800 px-6">
         <div className="flex gap-1 overflow-x-auto">
@@ -1523,6 +1628,8 @@ export default function InvoicesPage() {
         {tab === 'payments' && renderPayments()}
         {tab === 'reports' && renderReports()}
       </div>
+      </>
+      )}
 
       {/* JN Import Modal */}
       {showJNModal && (

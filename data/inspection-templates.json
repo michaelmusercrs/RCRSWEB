@@ -1,0 +1,140 @@
+{
+  "templates": [
+    {
+      "id": "tmpl-standard",
+      "name": "Standard Roof Inspection",
+      "description": "Complete residential roof inspection checklist",
+      "estimatedMinutes": 45,
+      "isDefault": true,
+      "createdBy": "system",
+      "createdAt": "2026-01-01T00:00:00Z",
+      "sections": [
+        {
+          "id": "sec-exterior",
+          "name": "Exterior Roof Condition",
+          "order": 1,
+          "items": [
+            { "id": "ext-1", "label": "Shingle condition (curling, cracking, missing)", "type": "rating", "required": true, "order": 1 },
+            { "id": "ext-2", "label": "Granule loss visible", "type": "select", "required": true, "options": ["None", "Minor", "Moderate", "Severe"], "order": 2 },
+            { "id": "ext-3", "label": "Ridge cap condition", "type": "rating", "required": true, "order": 3 },
+            { "id": "ext-4", "label": "Flashing condition (chimney, walls, valleys)", "type": "rating", "required": true, "order": 4 },
+            { "id": "ext-5", "label": "Drip edge present and intact", "type": "checkbox", "required": true, "order": 5 },
+            { "id": "ext-6", "label": "Valley condition", "type": "rating", "required": true, "order": 6 },
+            { "id": "ext-7", "label": "Pipe boot/jack condition", "type": "rating", "required": true, "order": 7 },
+            { "id": "ext-8", "label": "Visible damage or wear photos", "type": "photo", "required": false, "helpText": "Take photos of any damage found", "order": 8 }
+          ]
+        },
+        {
+          "id": "sec-ventilation",
+          "name": "Ventilation",
+          "order": 2,
+          "items": [
+            { "id": "vent-1", "label": "Ridge vent present and functional", "type": "checkbox", "required": true, "order": 1 },
+            { "id": "vent-2", "label": "Soffit vents clear/unblocked", "type": "checkbox", "required": true, "order": 2 },
+            { "id": "vent-3", "label": "Attic ventilation adequate", "type": "select", "required": true, "options": ["Adequate", "Marginal", "Inadequate"], "order": 3 },
+            { "id": "vent-4", "label": "Number of vents", "type": "measurement", "required": false, "order": 4 },
+            { "id": "vent-5", "label": "Ventilation notes", "type": "text", "required": false, "order": 5 }
+          ]
+        },
+        {
+          "id": "sec-gutters",
+          "name": "Gutters & Drainage",
+          "order": 3,
+          "items": [
+            { "id": "gut-1", "label": "Gutter condition", "type": "rating", "required": true, "order": 1 },
+            { "id": "gut-2", "label": "Downspouts present and directing water away", "type": "checkbox", "required": true, "order": 2 },
+            { "id": "gut-3", "label": "Debris in gutters", "type": "select", "required": true, "options": ["Clean", "Light", "Moderate", "Heavy"], "order": 3 },
+            { "id": "gut-4", "label": "Gutter photos", "type": "photo", "required": false, "order": 4 }
+          ]
+        },
+        {
+          "id": "sec-structure",
+          "name": "Structural",
+          "order": 4,
+          "items": [
+            { "id": "str-1", "label": "Roof deck sagging or uneven", "type": "checkbox", "required": true, "order": 1 },
+            { "id": "str-2", "label": "Fascia board condition", "type": "rating", "required": true, "order": 2 },
+            { "id": "str-3", "label": "Soffit condition", "type": "rating", "required": true, "order": 3 },
+            { "id": "str-4", "label": "Signs of rot or water damage", "type": "checkbox", "required": true, "order": 4 },
+            { "id": "str-5", "label": "Chimney condition (if applicable)", "type": "rating", "required": false, "order": 5 }
+          ]
+        },
+        {
+          "id": "sec-interior",
+          "name": "Interior Signs (if accessible)",
+          "order": 5,
+          "items": [
+            { "id": "int-1", "label": "Water stains on ceiling", "type": "checkbox", "required": false, "order": 1 },
+            { "id": "int-2", "label": "Mold or mildew visible", "type": "checkbox", "required": false, "order": 2 },
+            { "id": "int-3", "label": "Daylight visible through roof boards", "type": "checkbox", "required": false, "order": 3 },
+            { "id": "int-4", "label": "Attic insulation condition", "type": "select", "required": false, "options": ["Good", "Fair", "Poor", "None"], "order": 4 },
+            { "id": "int-5", "label": "Interior photos", "type": "photo", "required": false, "order": 5 }
+          ]
+        },
+        {
+          "id": "sec-measurements",
+          "name": "Measurements",
+          "order": 6,
+          "items": [
+            { "id": "meas-1", "label": "Approximate roof area (sq ft)", "type": "measurement", "required": false, "order": 1 },
+            { "id": "meas-2", "label": "Pitch estimate", "type": "select", "required": false, "options": ["3/12", "4/12", "5/12", "6/12", "7/12", "8/12", "9/12", "10/12", "11/12", "12/12"], "order": 2 },
+            { "id": "meas-3", "label": "Number of layers", "type": "select", "required": false, "options": ["1", "2", "3+"], "order": 3 },
+            { "id": "meas-4", "label": "Approximate roof age (years)", "type": "measurement", "required": false, "order": 4 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tmpl-storm",
+      "name": "Storm Damage Assessment",
+      "description": "Post-storm damage inspection for insurance claims",
+      "estimatedMinutes": 60,
+      "isDefault": false,
+      "createdBy": "system",
+      "createdAt": "2026-01-01T00:00:00Z",
+      "sections": [
+        {
+          "id": "storm-overview",
+          "name": "Storm Information",
+          "order": 1,
+          "items": [
+            { "id": "s-1", "label": "Storm date", "type": "text", "required": true, "order": 1 },
+            { "id": "s-2", "label": "Storm type", "type": "select", "required": true, "options": ["Hail", "Wind", "Tornado", "Heavy Rain", "Mixed"], "order": 2 },
+            { "id": "s-3", "label": "Reported hail size", "type": "select", "required": false, "options": ["Pea", "Marble", "Dime", "Nickel", "Quarter", "Half Dollar", "Golf Ball", "Tennis Ball", "Baseball", "Softball"], "order": 3 },
+            { "id": "s-4", "label": "Reported wind speed (mph)", "type": "measurement", "required": false, "order": 4 }
+          ]
+        },
+        {
+          "id": "storm-damage",
+          "name": "Damage Assessment",
+          "order": 2,
+          "items": [
+            { "id": "d-1", "label": "Hail impact marks on shingles", "type": "select", "required": true, "options": ["None", "Light (1-5 per square)", "Moderate (6-15 per square)", "Heavy (15+ per square)"], "order": 1 },
+            { "id": "d-2", "label": "Wind-lifted or missing shingles", "type": "select", "required": true, "options": ["None", "1-3 shingles", "4-10 shingles", "10+ shingles", "Large sections"], "order": 2 },
+            { "id": "d-3", "label": "Soft metal damage (vents, AC units, gutters)", "type": "checkbox", "required": true, "order": 3 },
+            { "id": "d-4", "label": "Collateral damage (fence, shed, car, siding)", "type": "checkbox", "required": true, "order": 4 },
+            { "id": "d-5", "label": "Chalk circle test performed", "type": "checkbox", "required": true, "helpText": "Mark hail hits with chalk for photos", "order": 5 },
+            { "id": "d-6", "label": "Number of hail hits marked", "type": "measurement", "required": false, "order": 6 },
+            { "id": "d-7", "label": "Damage classification", "type": "select", "required": true, "options": ["No Damage", "Cosmetic Only", "Functional Damage - Repair", "Functional Damage - Full Replacement", "Emergency"], "order": 7 },
+            { "id": "d-8", "label": "Close-up damage photos", "type": "photo", "required": true, "helpText": "Include chalk circles, hail hits, missing shingles", "order": 8 },
+            { "id": "d-9", "label": "Wide-angle roof photos", "type": "photo", "required": true, "order": 9 },
+            { "id": "d-10", "label": "Collateral damage photos", "type": "photo", "required": false, "order": 10 }
+          ]
+        },
+        {
+          "id": "storm-insurance",
+          "name": "Insurance Information",
+          "order": 3,
+          "items": [
+            { "id": "i-1", "label": "Insurance company", "type": "text", "required": false, "order": 1 },
+            { "id": "i-2", "label": "Policy number", "type": "text", "required": false, "order": 2 },
+            { "id": "i-3", "label": "Claim filed", "type": "checkbox", "required": false, "order": 3 },
+            { "id": "i-4", "label": "Claim number", "type": "text", "required": false, "order": 4 },
+            { "id": "i-5", "label": "Adjuster assigned", "type": "text", "required": false, "order": 5 },
+            { "id": "i-6", "label": "Adjuster visit scheduled", "type": "text", "required": false, "order": 6 }
+          ]
+        }
+      ]
+    }
+  ]
+}

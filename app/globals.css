@@ -1063,44 +1063,50 @@ nav {
    PORTAL SPLASH & LOGIN ANIMATIONS
    ============================================ */
 
-/* Scanline sweeps top to bottom */
-@keyframes scanline {
-  0% {
-    top: -2%;
-  }
-  100% {
-    top: 102%;
-  }
+/* ── Ambient Background (plays once, freezes) ── */
+
+/* Grid lines fade in */
+@keyframes bg-grid-in {
+  0% { opacity: 0; }
+  100% { opacity: 0.04; }
+}
+.animate-bg-grid-in {
+  opacity: 0;
+  animation: bg-grid-in 1.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.3s 1 forwards;
 }
 
-.animate-scanline {
-  animation: scanline 8s linear infinite;
+/* Diagonal accent sweeps across */
+@keyframes bg-sweep {
+  0% { opacity: 0; transform: translateX(-60%) translateY(-30%); }
+  60% { opacity: 1; }
+  100% { opacity: 1; transform: translateX(0) translateY(0); }
+}
+.animate-bg-sweep {
+  opacity: 0;
+  animation: bg-sweep 2.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.1s 1 forwards;
 }
 
-/* Floating particles drift upward */
-@keyframes float-particle {
-  0%, 100% {
-    transform: translateY(0) translateX(0);
-    opacity: 0;
-  }
-  10% {
-    opacity: 1;
-  }
-  90% {
-    opacity: 1;
-  }
-  50% {
-    transform: translateY(-50vh) translateX(20px);
-  }
-  100% {
-    transform: translateY(-100vh) translateX(-10px);
-    opacity: 0;
-  }
+/* Corner glow fades in */
+@keyframes bg-glow-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+.animate-bg-glow-in {
+  opacity: 0;
+  animation: bg-glow-in 2.5s ease-out 0.6s 1 forwards;
 }
 
-.animate-float-particle {
-  animation: float-particle 20s ease-in-out infinite;
+/* Slow-device / reduced-motion: skip straight to final frame */
+@media (prefers-reduced-motion: reduce) {
+  .animate-bg-grid-in { animation: none; opacity: 0.04; }
+  .animate-bg-sweep   { animation: none; opacity: 1; transform: none; }
+  .animate-bg-glow-in { animation: none; opacity: 1; }
 }
+
+/* Fallback class for JS-detected slow devices */
+.bg-settled .animate-bg-grid-in { animation: none; opacity: 0.04; }
+.bg-settled .animate-bg-sweep   { animation: none; opacity: 1; transform: none; }
+.bg-settled .animate-bg-glow-in { animation: none; opacity: 1; }
 
 /* Glow pulse behind logo */
 @keyframes glow-pulse {

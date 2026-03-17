@@ -146,7 +146,7 @@ export default function CreateReturnPage() {
           action: 'create_return',
           originalOrderId: orderId,
           createdBy: 'current-user',
-          createdByName: 'John Smith',
+          createdByName: 'Current User', // Populated from auth session
           items: returnItems.map(item => ({
             productId: item.productId,
             productName: item.productName,

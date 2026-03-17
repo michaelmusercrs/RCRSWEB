@@ -1,0 +1,22 @@
+{
+  "surveys": [
+    {
+      "id": "survey-post-install",
+      "name": "Post-Installation Satisfaction Survey",
+      "type": "post_install",
+      "isActive": true,
+      "createdAt": "2026-01-01T00:00:00Z",
+      "questions": [
+        { "id": "q1", "text": "How would you rate the overall quality of your new roof installation?", "type": "rating", "required": true, "order": 1 },
+        { "id": "q2", "text": "How would you rate the professionalism of our crew?", "type": "rating", "required": true, "order": 2 },
+        { "id": "q3", "text": "Was the work completed on schedule?", "type": "yes_no", "required": true, "order": 3 },
+        { "id": "q4", "text": "How would you rate the cleanup after installation?", "type": "rating", "required": true, "order": 4 },
+        { "id": "q5", "text": "How would you rate your sales representative's communication?", "type": "rating", "required": true, "order": 5 },
+        { "id": "q6", "text": "How likely are you to recommend River City Roofing to a friend or neighbor?", "type": "nps", "required": true, "order": 6 },
+        { "id": "q7", "text": "What did we do well?", "type": "text", "required": false, "order": 7 },
+        { "id": "q8", "text": "What could we improve?", "type": "text", "required": false, "order": 8 },
+        { "id": "q9", "text": "Would you be willing to leave us a Google review?", "type": "yes_no", "required": false, "order": 9 }
+      ]
+    }
+  ]
+}

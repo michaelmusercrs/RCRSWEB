@@ -28,6 +28,8 @@ import {
   X,
   FileText,
   Play,
+  Info,
+  Loader2,
 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -251,9 +253,74 @@ const ROOFING_FACTS = [
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function LoadingAssistantPage() {
+  // API data state
+  const [allTickets, setAllTickets] = useState<DeliveryTicket[]>(MOCK_TICKETS);
+  const [isPageLoading, setIsPageLoading] = useState(true);
+  const [isUsingMockData, setIsUsingMockData] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchTickets();
+  }, []);
+
+  async function fetchTickets() {
+    setIsPageLoading(true);
+    setFetchError(null);
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const res = await fetch(`/api/portal/deliveries?date=${today}`);
+      if (!res.ok) throw new Error(`API returned ${res.status}`);
+      const data = await res.json();
+      const apiTickets = (data.data?.deliveries || data.deliveries || []).map((d: any) => ({
+        ticketId: d.ticketId || d.id || d.deliveryId,
+        jobName: d.jobName || d.job_name || 'Delivery',
+        customerName: d.customerName || d.customer_name || 'Customer',
+        customerPhone: d.customerPhone || d.customer_phone || '',
+        address: d.address || d.jobAddress || '',
+        city: d.city || '',
+        state: d.state || 'AL',
+        zip: d.zip || '',
+        scheduledDate: d.scheduledDate || d.scheduled_date || today,
+        scheduledTime: d.scheduledTime || d.scheduled_time || '',
+        priority: d.priority || 'normal',
+        specialInstructions: d.specialInstructions || d.special_instructions || '',
+        driverName: d.driverName || d.assignedDriverName || 'Unassigned',
+        vehicle: d.vehicle || d.assignedVehicle || 'TBD',
+        materials: (d.materials || []).map((m: any, idx: number) => ({
+          id: m.id || `mat-${idx}`,
+          productName: m.productName || m.product_name || m.name || 'Material',
+          quantity: m.quantity || 0,
+          unit: m.unit || 'ea',
+          weightLbs: m.weightLbs || m.weight || 0,
+          loadOrder: m.loadOrder || m.load_order || idx + 1,
+          handlingTip: m.handlingTip || m.notes || 'Handle with care.',
+          category: (['heavy', 'medium', 'light', 'fragile'].includes(m.category) ? m.category : 'medium') as 'heavy' | 'medium' | 'light' | 'fragile',
+        })),
+      }));
+
+      if (apiTickets.length > 0) {
+        setAllTickets(apiTickets);
+        setSelectedTicketId(apiTickets[0].ticketId);
+        setIsUsingMockData(false);
+      } else {
+        setAllTickets(MOCK_TICKETS);
+        setSelectedTicketId(MOCK_TICKETS[0].ticketId);
+        setIsUsingMockData(true);
+      }
+    } catch (err) {
+      console.error('Failed to fetch tickets for loading assistant:', err);
+      setFetchError(err instanceof Error ? err.message : 'Failed to load');
+      setAllTickets(MOCK_TICKETS);
+      setSelectedTicketId(MOCK_TICKETS[0].ticketId);
+      setIsUsingMockData(true);
+    } finally {
+      setIsPageLoading(false);
+    }
+  }
+
   // Ticket selection
   const [selectedTicketId, setSelectedTicketId] = useState<string>(MOCK_TICKETS[0].ticketId);
-  const selectedTicket = MOCK_TICKETS.find(t => t.ticketId === selectedTicketId) || MOCK_TICKETS[0];
+  const selectedTicket = allTickets.find(t => t.ticketId === selectedTicketId) || allTickets[0];
 
   // Material checklist
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
@@ -533,7 +600,30 @@ export default function LoadingAssistantPage() {
         </div>
       </header>
 
+      {/* Loading State */}
+      {isPageLoading && (
+        <div className="flex flex-col items-center justify-center py-16">
+          <Loader2 className="w-8 h-8 text-[#39FF14] animate-spin mb-3" />
+          <p className="text-sm text-zinc-400">Loading delivery tickets...</p>
+        </div>
+      )}
+
+      {/* Demo Data Banner */}
+      {isUsingMockData && !isPageLoading && (
+        <div className="px-4 lg:px-6 py-3 bg-amber-500/10 border-b border-amber-500/30">
+          <div className="flex items-center gap-3">
+            <Info className="w-5 h-5 text-amber-400 shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-amber-400">Demo Data - Waiting for real deliveries</p>
+              <p className="text-xs text-amber-400/70">{fetchError ? `API Error: ${fetchError}` : 'No deliveries found. Showing sample data.'}</p>
+            </div>
+            <button onClick={fetchTickets} className="px-3 py-1.5 text-xs font-medium text-amber-400 border border-amber-500/30 rounded-lg hover:bg-amber-500/10 transition-colors">Retry</button>
+          </div>
+        </div>
+      )}
+
       {/* Ticket Selector */}
+      {!isPageLoading && (<>
       <div className="bg-zinc-900/50 border-b border-zinc-800 px-4 lg:px-6 py-3">
         <div className="flex flex-wrap items-center gap-3">
           <label className="text-sm font-medium text-zinc-400">Delivery Ticket:</label>
@@ -542,7 +632,7 @@ export default function LoadingAssistantPage() {
             onChange={(e) => handleTicketChange(e.target.value)}
             className="bg-zinc-800 border border-zinc-700 text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#39FF14]/50 focus:border-[#39FF14]/50 outline-none flex-1 max-w-md"
           >
-            {MOCK_TICKETS.map(ticket => (
+            {allTickets.map(ticket => (
               <option key={ticket.ticketId} value={ticket.ticketId}>
                 {ticket.ticketId} - {ticket.jobName} ({ticket.scheduledTime})
               </option>
@@ -935,6 +1025,7 @@ export default function LoadingAssistantPage() {
           </div>
         </div>
       )}
+      </>)}
     </div>
   );
 }

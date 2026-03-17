@@ -116,7 +116,7 @@ export default function AdminOperationsPage() {
           id: '2',
           type: 'invoice',
           action: 'Invoice Created',
-          description: 'INV-2024-0125 - $3,450.00',
+          description: 'Recent invoice activity',
           user: 'Tia',
           timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
         },

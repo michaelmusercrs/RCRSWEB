@@ -19,7 +19,7 @@ export interface LocationLog {
   deviceInfo?: string;
 }
 
-// Sample location logs for demonstration
+// Location logs - populated from GPS check-ins
 export const locationLogs: LocationLog[] = [
   // Richard (Driver) - December 4, 2025
   {

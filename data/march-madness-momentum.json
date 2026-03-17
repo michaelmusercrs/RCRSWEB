@@ -1,0 +1,98 @@
+{
+  "tournament": {
+    "id": "momentum",
+    "name": "Momentum Bracket 2026",
+    "type": "carry_forward",
+    "year": 2026,
+    "startDate": "2026-03-02",
+    "endDate": "2026-03-22",
+    "status": "in_progress",
+    "currentRound": 3,
+    "carryForwardRate": 0.5,
+    "description": "Winners carry 50% of their previous round sales into the next matchup. Eliminated reps compete for Best Eliminated award."
+  },
+  "settings": {
+    "roundDuration": "1week",
+    "advancementDay": "monday",
+    "advancementTime": "09:00",
+    "salesType": "accrual"
+  },
+  "participants": [
+    { "seed": 1, "name": "Hunter Rivers", "slug": "hunter", "ytdSales": 15870, "nickname": "The Hunter" },
+    { "seed": 2, "name": "Aaron Lussi", "slug": "aaron", "ytdSales": 11712, "nickname": "Roof Angel" },
+    { "seed": 3, "name": "Greg Muse", "slug": "greg", "ytdSales": 17207, "nickname": "Big G" },
+    { "seed": 4, "name": "Brendon Muse", "slug": "brendon", "ytdSales": 9011, "nickname": "BCM" },
+    { "seed": 5, "name": "Adam Rudell", "slug": "adam", "ytdSales": 20688, "nickname": "Rudell" },
+    { "seed": 6, "name": "Joseph Dowd", "slug": "joseph", "ytdSales": 0, "nickname": "JD" },
+    { "seed": 7, "name": "Travis Wages", "slug": "travis", "ytdSales": 0, "nickname": "T-Money" }
+  ],
+  "rounds": [
+    { "round": 1, "name": "First Round", "weekStart": "2026-03-02", "weekEnd": "2026-03-08", "status": "completed" },
+    { "round": 2, "name": "Semifinals", "weekStart": "2026-03-09", "weekEnd": "2026-03-15", "status": "completed" },
+    { "round": 3, "name": "Championship", "weekStart": "2026-03-16", "weekEnd": "2026-03-22", "status": "active" }
+  ],
+  "bracket": {
+    "round1": [
+      {
+        "matchId": "M-R1-M1",
+        "topSeed": { "seed": 1, "name": "Hunter Rivers", "weekSales": 0, "carryForward": 0, "effectiveTotal": 0, "winner": true },
+        "bottomSeed": null
+      },
+      {
+        "matchId": "M-R1-M2",
+        "topSeed": { "seed": 4, "name": "Brendon Muse", "weekSales": 0, "carryForward": 0, "effectiveTotal": 0, "winner": false },
+        "bottomSeed": { "seed": 5, "name": "Adam Rudell", "weekSales": 485.71, "carryForward": 0, "effectiveTotal": 485.71, "winner": true }
+      },
+      {
+        "matchId": "M-R1-M3",
+        "topSeed": { "seed": 3, "name": "Greg Muse", "weekSales": 1404.19, "carryForward": 0, "effectiveTotal": 1404.19, "winner": true },
+        "bottomSeed": { "seed": 6, "name": "Joseph Dowd", "weekSales": 0, "carryForward": 0, "effectiveTotal": 0, "winner": false }
+      },
+      {
+        "matchId": "M-R1-M4",
+        "topSeed": { "seed": 2, "name": "Aaron Lussi", "weekSales": 1831.60, "carryForward": 0, "effectiveTotal": 1831.60, "winner": true },
+        "bottomSeed": { "seed": 7, "name": "Travis Wages", "weekSales": 0, "carryForward": 0, "effectiveTotal": 0, "winner": false }
+      }
+    ],
+    "round2": [
+      {
+        "matchId": "M-R2-M1",
+        "topSeed": { "seed": 1, "name": "Hunter Rivers", "weekSales": 1985.92, "carryForward": 0, "effectiveTotal": 1985.92, "winner": true },
+        "bottomSeed": { "seed": 5, "name": "Adam Rudell", "weekSales": 0, "carryForward": 242.86, "effectiveTotal": 242.86, "winner": false }
+      },
+      {
+        "matchId": "M-R2-M2",
+        "topSeed": { "seed": 3, "name": "Greg Muse", "weekSales": 1925.22, "carryForward": 702.10, "effectiveTotal": 2627.32, "winner": true },
+        "bottomSeed": { "seed": 2, "name": "Aaron Lussi", "weekSales": 411.64, "carryForward": 915.80, "effectiveTotal": 1327.44, "winner": false }
+      }
+    ],
+    "round3": [
+      {
+        "matchId": "M-R3-M1",
+        "topSeed": { "seed": 1, "name": "Hunter Rivers", "weekSales": 0, "carryForward": 992.96, "effectiveTotal": 992.96, "winner": false },
+        "bottomSeed": { "seed": 3, "name": "Greg Muse", "weekSales": 0, "carryForward": 962.61, "effectiveTotal": 962.61, "winner": false }
+      }
+    ]
+  },
+  "eliminatedStats": [
+    { "name": "Brendon Muse", "seed": 4, "eliminatedRound": 1, "totalSales": 0, "roundsPlayed": 1 },
+    { "name": "Joseph Dowd", "seed": 6, "eliminatedRound": 1, "totalSales": 0, "roundsPlayed": 1 },
+    { "name": "Travis Wages", "seed": 7, "eliminatedRound": 1, "totalSales": 0, "roundsPlayed": 1 },
+    { "name": "Adam Rudell", "seed": 5, "eliminatedRound": 2, "totalSales": 485.71, "roundsPlayed": 2 },
+    { "name": "Aaron Lussi", "seed": 2, "eliminatedRound": 2, "totalSales": 2243.24, "roundsPlayed": 2 }
+  ],
+  "bestEliminated": {
+    "name": "Aaron Lussi",
+    "seed": 2,
+    "totalSales": 2243.24,
+    "roundsPlayed": 2,
+    "prize": "$150 Cash - Best Eliminated"
+  },
+  "champion": null,
+  "prizes": {
+    "champion": "$500 Cash + Championship Belt",
+    "runnerUp": "$250 Cash",
+    "bestEliminated": "$150 Cash - Highest Total Sales Among Eliminated",
+    "mvpWeek": "$100 Gift Card - Highest Single Week"
+  }
+}

@@ -14,7 +14,6 @@ export default function GlobalVideoBackground({
 }: GlobalVideoBackgroundProps) {
   const [useVideo, setUseVideo] = useState(false);
   const [videoLoaded, setVideoLoaded] = useState(false);
-  const [videoEnded, setVideoEnded] = useState(false);
   const [animationKey, setAnimationKey] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const pathname = usePathname();
@@ -47,7 +46,6 @@ export default function GlobalVideoBackground({
   // Refresh animation on route change
   useEffect(() => {
     setAnimationKey(prev => prev + 1);
-    setVideoEnded(false);
 
     // Restart video from beginning on route change
     if (videoRef.current) {
@@ -73,10 +71,6 @@ export default function GlobalVideoBackground({
     setVideoLoaded(true);
   };
 
-  const handleVideoEnded = () => {
-    setVideoEnded(true);
-  };
-
   const handleVideoError = () => {
     setUseVideo(false);
   };
@@ -97,7 +91,6 @@ export default function GlobalVideoBackground({
           playsInline
           poster="/uploads/hero-video-poster.jpg"
           onLoadedData={handleVideoLoaded}
-          onEnded={handleVideoEnded}
           onError={handleVideoError}
           className="absolute inset-0 w-full h-full object-cover"
         >
@@ -106,10 +99,10 @@ export default function GlobalVideoBackground({
         </video>
       )}
 
-      {/* Background Image - always present as base layer, video overlays on top */}
+      {/* Background Image - always present as base layer with subtle ken-burns zoom */}
       <div
         key={`image-${animationKey}`}
-        className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat"
+        className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat animate-ken-burns"
         style={{ backgroundImage: `url(${fallbackImage})` }}
       />
 

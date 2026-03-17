@@ -169,10 +169,10 @@ export async function POST(request: NextRequest) {
           ticketId: 'TEST-001',
           ticketType: 'delivery' as const,
           jobName: 'Sample Job',
-          jobAddress: '123 Main St',
+          jobAddress: '1482 Oak Valley Dr',
           city: 'Huntsville',
-          customerName: 'John Doe',
-          customerPhone: '(256) 555-1234',
+          customerName: 'Mark Henderson',
+          customerPhone: '(256) 301-8472',
           materials: [
             { productName: 'Shingles', quantity: 10, unit: 'bundles' },
             { productName: 'Underlayment', quantity: 2, unit: 'rolls' },

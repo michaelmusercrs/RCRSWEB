@@ -1,7 +1,6 @@
 // New Lead API Route
-// Processes new leads and auto-generates customer portals
-// Sends portal link to customer via email + SMS
-// Notifies assigned rep via River bot DM
+// Processes new leads: spam filter → log to sheet → notify office staff → scan JN for matches
+// NO auto-assignment. Office staff (Tia/Destin/Sara) review and manually enter into lead distribution.
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createFormRateLimiter, withRateLimit } from '@/lib/rate-limiter';
@@ -12,19 +11,23 @@ import { teamMembers } from '@/lib/teamData';
 import { geocodingService, GeocodedContact } from '@/lib/geocoding-service';
 import { geocodeAndSaveContact } from '@/lib/geocode-sync';
 import { googleSheetsService } from '@/lib/google-sheets-service';
-import { leadDistributionService } from '@/lib/lead-distribution-service';
-import { leadResponseTimerService } from '@/lib/lead-response-timer';
 import { leadPipelineOrchestrator } from '@/lib/lead-pipeline-orchestrator';
 import { emailService } from '@/lib/email-service';
-import { smsService } from '@/lib/sms-service';
 import { riverBot } from '@/lib/river-bot-service';
 import { stormReportService } from '@/lib/storm-report-service';
-import { notificationService } from '@/lib/notification-service';
 import { jnSyncEngine } from '@/lib/jn-sync-engine';
-import { isJobNimbusConfigured } from '@/lib/jobnimbus-service';
+import { isJobNimbusConfigured, jobNimbusService } from '@/lib/jobnimbus-service';
 import { roofReportService } from '@/lib/roof-report-service';
+import { checkForSpam } from '@/lib/spam-filter';
 
 const formRateLimiter = createFormRateLimiter();
+
+// Office staff who receive new lead notifications
+const OFFICE_NOTIFY_EMAILS = [
+  'sara@rcrsal.com',
+  'destin@rcrsal.com',
+  'tia@rcrsal.com',
+];
 
 interface NewLeadRequest {
   // Required fields
@@ -39,10 +42,11 @@ interface NewLeadRequest {
   zip?: string;
 
   // Source tracking
-  source: 'contact_form' | 'jobnimbus' | 'phone_call' | 'referral' | 'walk_in' | 'other';
+  source: 'contact_form' | 'jobnimbus' | 'phone_call' | 'referral' | 'walk_in' | 'other' | 'email_capture';
   sourceDetails?: string;
+  sourcePage?: string;
 
-  // Sales rep preference
+  // Sales rep preference (used when office manually distributes)
   preferredRepSlug?: string;
   assignedRepSlug?: string;
 
@@ -84,13 +88,13 @@ export async function POST(request: NextRequest) {
     body.message = sanitizeInput(body.message) || undefined;
     body.sourceDetails = sanitizeInput(body.sourceDetails) || undefined;
 
-    // Validate required fields
-    if (!body.name || !body.email || !body.phone || !body.address) {
+    // Validate required fields (address is optional for quick forms)
+    if (!body.name || !body.email) {
       return NextResponse.json(
         {
           success: false,
           error: 'Missing required fields',
-          required: ['name', 'email', 'phone', 'address'],
+          required: ['name', 'email'],
         },
         { status: 400 }
       );
@@ -118,40 +122,240 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate source
-    const validSources = ['contact_form', 'jobnimbus', 'phone_call', 'referral', 'walk_in', 'other'];
-    if (!validSources.includes(body.source)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Invalid source',
-          validSources,
-        },
-        { status: 400 }
-      );
+    const validSources = ['contact_form', 'jobnimbus', 'phone_call', 'referral', 'walk_in', 'other', 'email_capture'];
+    if (body.source && !validSources.includes(body.source)) {
+      body.source = 'other';
+    }
+    if (!body.source) body.source = 'contact_form';
+
+    // ── SPAM FILTER ──────────────────────────────────────────────────────
+    const spamResult = await checkForSpam({
+      name: body.name,
+      email: body.email,
+      phone: body.phone,
+      message: body.message,
+      address: body.address,
+    });
+
+    // ── LOG EVERYTHING TO SHEET (spam or not) ────────────────────────────
+    // All submissions get logged with full metadata for audit trail
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const userAgent = request.headers.get('user-agent') || '';
+    const referer = request.headers.get('referer') || '';
+    const timestamp = new Date().toISOString();
+
+    try {
+      const { GoogleSpreadsheet } = await import('google-spreadsheet');
+      const { JWT } = await import('google-auth-library');
+      const auth = new JWT({
+        email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+      });
+      const doc = new GoogleSpreadsheet(process.env.GOOGLE_SHEETS_ID!, auth);
+      await doc.loadInfo();
+
+      let allLeadsSheet = doc.sheetsByTitle['All Lead Submissions'];
+      if (!allLeadsSheet) {
+        allLeadsSheet = await doc.addSheet({
+          title: 'All Lead Submissions',
+          headerValues: [
+            'Timestamp', 'Lead ID', 'Name', 'Email', 'Phone', 'Address',
+            'City', 'State', 'Zip', 'Source', 'Source Details', 'Source Page',
+            'Service Type', 'Message', 'Urgency',
+            'Spam Score', 'Spam Reasons', 'Is Spam', 'Passed Filter',
+            'IP Address', 'User Agent', 'Referer',
+            'JN Match Found', 'JN Match ID', 'JN Match Name', 'JN Match Type',
+            'Duplicate Found', 'Duplicate Match By',
+            'County', 'Status',
+          ],
+        });
+      }
+
+      // We'll fill JN matches after the scan below
+      await allLeadsSheet.addRow({
+        Timestamp: timestamp,
+        'Lead ID': `LEAD-${Date.now()}`,
+        Name: body.name,
+        Email: body.email,
+        Phone: body.phone || '',
+        Address: body.address || '',
+        City: body.city || '',
+        State: body.state || '',
+        Zip: body.zip || '',
+        Source: body.source,
+        'Source Details': body.sourceDetails || '',
+        'Source Page': body.sourcePage || '',
+        'Service Type': body.serviceType || '',
+        Message: body.message || '',
+        Urgency: body.urgency || 'normal',
+        'Spam Score': spamResult.spamScore.toString(),
+        'Spam Reasons': spamResult.reasons.join('; '),
+        'Is Spam': spamResult.isSpam ? 'YES' : 'NO',
+        'Passed Filter': spamResult.passedFilter ? 'YES' : 'NO',
+        'IP Address': ip,
+        'User Agent': userAgent.substring(0, 200),
+        Referer: referer,
+        'JN Match Found': '',
+        'JN Match ID': '',
+        'JN Match Name': '',
+        'JN Match Type': '',
+        'Duplicate Found': '',
+        'Duplicate Match By': '',
+        County: '',
+        Status: spamResult.isSpam ? 'spam' : 'new',
+      });
+    } catch (logErr) {
+      console.error('[NewLead] Sheet logging failed:', logErr);
     }
 
-    // Geocode the lead address
-    const geocoded = await geocodingService.geocodeAddress(body.address);
+    // If spam, stop here — logged but no further processing
+    if (spamResult.isSpam) {
+      console.log(`[NewLead] Spam filtered: ${body.name} (${body.email}) score=${spamResult.spamScore} reasons=${spamResult.reasons.join(', ')}`);
+      return NextResponse.json({
+        success: true,
+        data: {
+          leadId: null,
+          filtered: true,
+          spamScore: spamResult.spamScore,
+          message: 'Thank you! We\'ll be in touch soon.',
+        },
+      });
+    }
 
-    // Auto-assign rep via lead distribution if not already assigned
-    let distributionResult: { assignedRep: any; allScores: any[]; method: string } | null = null;
-    if (!body.assignedRepSlug && geocoded) {
-      const distribution = await leadDistributionService.distributeLead(
-        body.address,
-        body.name,
-        'pending', // leadId not yet created
-        body.source,
-        body.preferredRepSlug
-      );
-      distributionResult = distribution;
-      if (distribution.assignedRep) {
-        body.assignedRepSlug = distribution.assignedRep.repSlug;
+    // ── GEOCODE ──────────────────────────────────────────────────────────
+    const geocoded = body.address ? await geocodingService.geocodeAddress(body.address) : null;
+
+    // ── JN MATCH SCAN ────────────────────────────────────────────────────
+    // Search JobNimbus for similar contacts by email, phone, name
+    let jnMatches: Array<{ jnid: string; displayName: string; matchType: string; phone?: string; email?: string; address?: string }> = [];
+    if (isJobNimbusConfigured()) {
+      try {
+        // Search by email
+        if (body.email) {
+          const byEmail = await jobNimbusService.searchContactByEmail(body.email).catch(() => null);
+          if (byEmail) {
+            jnMatches.push({
+              jnid: byEmail.jnid,
+              displayName: jobNimbusService.getContactName(byEmail),
+              matchType: 'email',
+              email: byEmail.email,
+              phone: byEmail.mobile_phone || byEmail.home_phone || '',
+              address: [byEmail.address_line1, byEmail.city, byEmail.state_text].filter(Boolean).join(', '),
+            });
+          }
+        }
+        // Search by phone
+        if (body.phone && !jnMatches.length) {
+          const byPhone = await jobNimbusService.searchContactByPhone(body.phone).catch(() => null);
+          if (byPhone) {
+            jnMatches.push({
+              jnid: byPhone.jnid,
+              displayName: jobNimbusService.getContactName(byPhone),
+              matchType: 'phone',
+              email: byPhone.email,
+              phone: byPhone.mobile_phone || byPhone.home_phone || '',
+              address: [byPhone.address_line1, byPhone.city, byPhone.state_text].filter(Boolean).join(', '),
+            });
+          }
+        }
+      } catch (jnErr) {
+        console.warn('[NewLead] JN match scan failed:', jnErr);
       }
     }
 
-    // Get address intelligence with real geocoded contacts (fix: was passing empty [])
+    // ── DUPLICATE CHECK (Sheets + JN) ────────────────────────────────────
+    const duplicateCheck = await leadPortalService.findDuplicate({
+      email: body.email,
+      phone: body.phone,
+      name: body.name,
+      address: body.address,
+    });
+
+    if (duplicateCheck.found && duplicateCheck.lead) {
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://rivercityroofingsolutions.com';
+      return NextResponse.json({
+        success: true,
+        existing: true,
+        message: `Lead already exists (matched by ${duplicateCheck.matchedBy})`,
+        data: {
+          leadId: duplicateCheck.lead.leadId,
+          customerId: duplicateCheck.lead.customerId,
+          portalUrl: `${baseUrl}/my/${duplicateCheck.lead.accessToken}`,
+          salesRep: {
+            name: duplicateCheck.lead.salesRepName,
+            slug: duplicateCheck.lead.salesRepSlug,
+          },
+          matchedBy: duplicateCheck.matchedBy,
+          createdAt: duplicateCheck.lead.createdAt,
+          jnMatches,
+        },
+      });
+    }
+
+    // If JN match found but no Sheets match, link the JN contact ID
+    if (duplicateCheck.jnMatch && !body.jobnimbusContactId) {
+      body.jobnimbusContactId = duplicateCheck.jnMatch.jnid;
+    }
+
+    // ── CREATE LEAD (no rep assigned yet) ────────────────────────────────
+    // Do NOT assign a rep — leads sit unassigned until office staff manually distributes
+    const leadData: LeadData = {
+      name: body.name,
+      email: body.email,
+      phone: body.phone || '',
+      address: body.address || 'Not provided',
+      city: body.city,
+      state: body.state,
+      zip: body.zip,
+      source: body.source,
+      sourceDetails: body.sourceDetails,
+      preferredRepSlug: body.preferredRepSlug,
+      assignedRepSlug: undefined, // NO auto-assignment
+      serviceType: body.serviceType,
+      message: body.message,
+      urgency: body.urgency,
+      jobnimbusId: body.jobnimbusId,
+      jobnimbusContactId: body.jobnimbusContactId,
+    };
+
+    const portalResult = await portalGenerator.generatePortalForLead(leadData);
+
+    if (!portalResult.success || !portalResult.portalAccess) {
+      return NextResponse.json(
+        { success: false, error: portalResult.error || 'Failed to generate portal' },
+        { status: 500 }
+      );
+    }
+
+    const lead = await leadPortalService.createLead({
+      portalAccess: portalResult.portalAccess,
+      shortCode: portalResult.shortCode!,
+      source: body.source,
+      sourceDetails: body.sourceDetails,
+      serviceType: body.serviceType,
+      message: body.message,
+      jobnimbusId: body.jobnimbusId,
+      jobnimbusContactId: body.jobnimbusContactId,
+    });
+
+    // ── GEOCODE & SAVE (fire-and-forget) ─────────────────────────────────
+    if (body.address && body.address !== 'Not provided') {
+      const fullAddress = [body.address, body.city, body.state, body.zip].filter(Boolean).join(', ');
+      geocodeAndSaveContact({
+        id: lead.leadId || `lead-${Date.now()}`,
+        name: body.name,
+        address: fullAddress,
+        salesRep: '', // No rep assigned yet
+        type: 'lead',
+        status: 'new',
+      }).catch(err => {
+        console.warn(`[NewLead] Geocode save failed for ${body.name}:`, err);
+      });
+    }
+
+    // ── ADDRESS INTELLIGENCE (fire-and-forget enrichment) ────────────────
     let addressIntel = null;
-    let pipelineEnrichment = null;
     if (geocoded) {
       try {
         const contactRecords = await googleSheetsService.getGeocodedContacts();
@@ -174,336 +378,116 @@ export async function POST(request: NextRequest) {
         addressIntel = await geocodingService.getAddressIntelligence(body.address, contacts);
       } catch (err) {
         console.warn('[NewLead] Address intelligence failed:', err);
-        addressIntel = await geocodingService.getAddressIntelligence(body.address, []);
-      }
-
-      // Run pipeline enrichment (rep recommendations, nearby jobs) non-blocking
-      // Note: Storm report is now auto-generated separately (linked to lead ID)
-      // so pipeline enrichment still runs for geocoding + rep scoring
-      leadPipelineOrchestrator.processNewLead({
-        address: body.address,
-        city: body.city,
-        state: body.state,
-        zip: body.zip,
-        name: body.name,
-        source: body.source,
-        referralRepSlug: body.preferredRepSlug,
-      }).then(result => {
-        if (result.enrichment.stormReport) {
-          // Store pipeline enrichment data for later reference
-          pipelineEnrichment = result.enrichment;
-        }
-      }).catch(err => {
-        console.warn('[NewLead] Pipeline enrichment failed:', err);
-      });
-    }
-
-    // Comprehensive duplicate detection: check email, phone, name+address in Sheets AND JobNimbus
-    const duplicateCheck = await leadPortalService.findDuplicate({
-      email: body.email,
-      phone: body.phone,
-      name: body.name,
-      address: body.address,
-    });
-
-    if (duplicateCheck.found) {
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://rivercityroofingsolutions.com';
-
-      // If we found a lead in our Sheets
-      if (duplicateCheck.lead) {
-        return NextResponse.json({
-          success: true,
-          existing: true,
-          message: `Lead already exists (matched by ${duplicateCheck.matchedBy})`,
-          data: {
-            leadId: duplicateCheck.lead.leadId,
-            customerId: duplicateCheck.lead.customerId,
-            portalUrl: `${baseUrl}/my/${duplicateCheck.lead.accessToken}`,
-            qrCodeUrl: `${baseUrl}/api/portal/qr/${duplicateCheck.lead.accessToken}`,
-            salesRep: {
-              name: duplicateCheck.lead.salesRepName,
-              slug: duplicateCheck.lead.salesRepSlug,
-            },
-            matchedBy: duplicateCheck.matchedBy,
-            createdAt: duplicateCheck.lead.createdAt,
-          },
-        });
-      }
-
-      // If we found a match in JobNimbus but not in our Sheets, warn but allow creation
-      if (duplicateCheck.jnMatch) {
-        // Set JN contact ID so the portal links to existing JN record
-        if (!body.jobnimbusContactId) {
-          body.jobnimbusContactId = duplicateCheck.jnMatch.jnid;
-        }
       }
     }
 
-    // Prepare lead data
-    const leadData: LeadData = {
-      name: body.name,
-      email: body.email,
-      phone: body.phone,
-      address: body.address,
-      city: body.city,
-      state: body.state,
-      zip: body.zip,
-      source: body.source,
-      sourceDetails: body.sourceDetails,
-      preferredRepSlug: body.preferredRepSlug,
-      assignedRepSlug: body.assignedRepSlug,
-      serviceType: body.serviceType,
-      message: body.message,
-      urgency: body.urgency,
-      jobnimbusId: body.jobnimbusId,
-      jobnimbusContactId: body.jobnimbusContactId,
-    };
-
-    // Generate portal
-    const portalResult = await portalGenerator.generatePortalForLead(leadData);
-
-    if (!portalResult.success || !portalResult.portalAccess) {
-      return NextResponse.json(
-        { success: false, error: portalResult.error || 'Failed to generate portal' },
-        { status: 500 }
-      );
-    }
-
-    // Store lead record
-    const lead = await leadPortalService.createLead({
-      portalAccess: portalResult.portalAccess,
-      shortCode: portalResult.shortCode!,
-      source: body.source,
-      sourceDetails: body.sourceDetails,
-      serviceType: body.serviceType,
-      message: body.message,
-      jobnimbusId: body.jobnimbusId,
-      jobnimbusContactId: body.jobnimbusContactId,
-    });
-
-    // Get full sales rep info
-    const salesRep = teamMembers.find(m => m.slug === portalResult.salesRep?.slug);
-
-    // Auto-geocode the new lead address and save to Geocoded_Contacts sheet (fire-and-forget)
-    // Uses Nominatim (free, no API key) so this works even without Google Maps API key
-    if (body.address && body.address !== 'Not provided') {
-      const fullAddress = [body.address, body.city, body.state, body.zip].filter(Boolean).join(', ');
-      geocodeAndSaveContact({
-        id: lead.leadId || `lead-${Date.now()}`,
-        name: body.name,
-        address: fullAddress,
-        salesRep: portalResult.salesRep?.slug || body.assignedRepSlug || '',
-        type: 'lead',
-        status: 'new',
-      }).then(result => {
-        if (result) {
-        }
-      }).catch(err => {
-        console.warn(`[NewLead] Geocode save failed for ${body.name}:`, err);
-      });
-    }
-
-    // ── SYNC TO JOBNIMBUS (fire-and-forget) ──────────────────────────────
-    // Create a contact in JobNimbus for this new lead if not already linked.
-    // Runs async so it doesn't slow the API response.
-    if (!body.jobnimbusContactId && isJobNimbusConfigured()) {
-      const nameParts = body.name.trim().split(/\s+/);
-      const firstName = nameParts[0] || body.name;
-      const lastName = nameParts.slice(1).join(' ') || '';
-
-      jnSyncEngine.pushNewContact({
-        firstName,
-        lastName,
-        email: body.email,
-        phone: body.phone,
-        address: body.address,
-        city: body.city,
-        state: body.state,
-        zip: body.zip,
-        source: `RCRS Portal - ${body.source}`,
-        salesRepName: salesRep?.name,
-        status: 'Lead',
-      }).then(async (result) => {
-        if (result.success && result.jnid) {
-          // Update the lead record with the JN contact ID
-          try {
-            await leadPortalService.updateLeadJNContactId(lead.leadId, result.jnid);
-          } catch {
-            console.warn(`[Lead ${lead.leadId}] Failed to save JN contact ID to lead record`);
-          }
-        } else {
-          console.warn(`[Lead ${lead.leadId}] JN sync failed: ${result.message}`);
-        }
-      }).catch(err => {
-        console.warn(`[Lead ${lead.leadId}] JN sync error:`, err);
-      });
-    }
-
-    // Generate SMS and email templates
-    const smsTemplates = portalGenerator.getSmsTemplates(
-      portalResult.portalAccess,
-      portalResult.salesRep!
-    );
-    const emailTemplates = portalGenerator.getEmailTemplates(
-      portalResult.portalAccess,
-      portalResult.salesRep!
-    );
-    // ── AUTO-SEND NOTIFICATIONS (non-blocking) ──────────────────────────
-    // All notification sends are fire-and-forget to not slow the API response
-
-    const notificationPromises: Promise<any>[] = [];
-
-    // 1. Send portal link EMAIL to customer
-    if (body.sendNotifications !== false && salesRep) {
-      notificationPromises.push(
-        emailService.sendPortalLink({
-          customerEmail: body.email,
-          customerName: body.name,
-          portalUrl: portalResult.portalUrl!,
-          repName: salesRep.name,
-          repEmail: salesRep.email,
-          repPhone: salesRep.phone,
-          stormReportIncluded: body.sourceDetails?.includes('Storm Report'),
-        }).then(r => {
-          if (!r.success) console.warn(`[Lead ${lead.leadId}] Email failed: ${r.error}`);
-        })
-      );
-    }
-
-    // 2. Send portal link SMS to customer (respects admin toggle + topic controls)
-    if (body.sendNotifications !== false && body.phone && salesRep) {
-      notificationPromises.push(
-        smsService.sendPortalLink(
-          body.phone,
-          body.name,
-          portalResult.portalUrl!,
-          salesRep.name
-        ).then(r => {
-          if (!r.success) console.warn(`[Lead ${lead.leadId}] SMS failed: ${r.error}`);
-        })
-      );
-    }
-
-    // 3. Notify team via River bot (group post + DM to assigned rep)
-    if (body.notifyTeam !== false && salesRep) {
-      notificationPromises.push(
-        riverBot.notifyNewLead({
-          leadName: body.name,
-          leadId: lead.leadId,
-          address: body.address,
-          source: body.source,
-          assignedRep: salesRep.name,
-          assignedRepEmail: salesRep.email,
-          riskScore: undefined,
-          portalUrl: portalResult.portalUrl,
-        }).catch(err => {
-          console.warn(`[Lead ${lead.leadId}] River bot notification failed:`, err);
-        })
-      );
-    }
-
-    // 4. Send lead assignment email to rep
-    if (body.notifyTeam !== false && salesRep) {
-      notificationPromises.push(
-        emailService.sendLeadAssignment({
-          repEmail: salesRep.email,
-          repName: salesRep.name,
-          leadName: body.name,
-          leadPhone: body.phone,
-          leadEmail: body.email,
-          leadAddress: body.address,
-          source: body.source,
-          portalUrl: portalResult.portalUrl,
-        }).then(() => {})
-      );
-    }
-
-    // 5. Send unified notification via preference cascade (covers all channels)
-    if (body.notifyTeam !== false && salesRep) {
-      notificationPromises.push(
-        notificationService.notifyLeadAssigned({
-          repSlug: salesRep.slug,
-          leadName: body.name,
-          leadPhone: body.phone,
-          leadEmail: body.email,
-          leadAddress: body.address,
-          source: body.source,
-          leadId: lead.leadId,
-          portalUrl: portalResult.portalUrl,
-        }).then(result => {
-          const sentChannels = Object.entries(result.channelResults)
-            .filter(([, r]) => r.sent)
-            .map(([ch]) => ch);
-        }).catch(err => {
-          console.warn(`[Lead ${lead.leadId}] Notification service failed:`, err);
-        })
-      );
-    }
-
-    // Start response timer
-    if (portalResult.salesRep?.slug) {
-      leadResponseTimerService.startTimer(lead.leadId, portalResult.salesRep.slug, body.name);
-    }
-
-    // ── AUTO-GENERATE STORM REPORT (fire-and-forget) ──────────────────────
-    // Automatically pull a storm/hail report for the lead address.
-    // This runs in the background so it does not block the API response.
+    // ── AUTO-GENERATE STORM REPORT (fire-and-forget) ─────────────────────
     const stormReportCity = body.city || geocoded?.components?.city || '';
     const stormReportState = body.state || geocoded?.components?.state || 'AL';
     const stormReportZip = body.zip || geocoded?.components?.zip || '';
 
-    let stormReportSummary: {
-      reportId: string;
-      riskLevel: string;
-      riskScore: number;
-      totalHailReports: number;
-      recommendation: string;
-      generatedAt: string;
-    } | null = null;
-
     if (stormReportCity && stormReportZip) {
-      // Fire-and-forget: generate storm report linked to this lead
       stormReportService.generateReport({
-        address: body.address,
+        address: body.address || '',
         city: stormReportCity,
         state: stormReportState,
         zip: stormReportZip,
         leadId: lead.leadId,
         customerId: lead.customerId,
-      }).then(report => {
       }).catch(err => {
         console.warn(`[Lead ${lead.leadId}] Auto storm report failed:`, err);
       });
     }
 
     // ── AUTO-GENERATE ROOF REPORT (fire-and-forget) ──────────────────────
-    // Automatically run AI roof measurement for the lead address.
-    // This is a heavy operation (satellite imagery + AI analysis) so it
-    // runs fully in the background without blocking.
     if (body.address && body.address !== 'Not provided') {
       roofReportService.generateReport({
         address: body.address,
         leadId: lead.leadId,
         customerId: lead.customerId,
-      }).then(report => {
       }).catch(err => {
         console.warn(`[Lead ${lead.leadId}] Auto roof report failed:`, err);
       });
     }
 
-    // Fire all notifications without blocking response
-    Promise.allSettled(notificationPromises).catch(() => {});
+    // ── NOTIFY OFFICE STAFF (Tia, Destin, Sara) ─────────────────────────
+    // Email all office staff about the new lead. NO rep notifications, NO customer notifications.
+    // Customer notifications happen AFTER office staff processes and distributes the lead.
+    const officeNotifyPromises: Promise<any>[] = [];
+
+    const newLeadEmailBody = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #000; padding: 20px; text-align: center;">
+          <h1 style="color: #39FF14; margin: 0;">New Lead Received</h1>
+          <p style="color: #ccc; margin: 5px 0 0 0;">Action Required — Review &amp; Distribute</p>
+        </div>
+        <div style="padding: 30px; background: #fff;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr><td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold; width: 120px;">Name</td><td style="padding: 10px; border-bottom: 1px solid #eee;">${body.name}</td></tr>
+            <tr><td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold;">Email</td><td style="padding: 10px; border-bottom: 1px solid #eee;"><a href="mailto:${body.email}">${body.email}</a></td></tr>
+            <tr><td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold;">Phone</td><td style="padding: 10px; border-bottom: 1px solid #eee;"><a href="tel:${body.phone || ''}">${body.phone || 'Not provided'}</a></td></tr>
+            <tr><td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold;">Address</td><td style="padding: 10px; border-bottom: 1px solid #eee;">${body.address || 'Not provided'}</td></tr>
+            <tr><td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold;">Source</td><td style="padding: 10px; border-bottom: 1px solid #eee;">${body.source}${body.sourceDetails ? ` — ${body.sourceDetails}` : ''}</td></tr>
+            <tr><td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold;">Service</td><td style="padding: 10px; border-bottom: 1px solid #eee;">${body.serviceType || 'General'}</td></tr>
+            ${body.message ? `<tr><td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold;">Message</td><td style="padding: 10px; border-bottom: 1px solid #eee;">${body.message}</td></tr>` : ''}
+            ${geocoded?.components?.county ? `<tr><td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold;">County</td><td style="padding: 10px; border-bottom: 1px solid #eee;">${geocoded.components.county}</td></tr>` : ''}
+          </table>
+          ${jnMatches.length > 0 ? `
+            <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px;">
+              <strong>JobNimbus Match Found:</strong><br>
+              ${jnMatches.map(m => `${m.displayName} (matched by ${m.matchType}) — ${m.address || 'no address'}`).join('<br>')}
+            </div>
+          ` : ''}
+          <div style="text-align: center; margin: 25px 0;">
+            <a href="${process.env.NEXT_PUBLIC_PORTAL_URL || 'https://rcrsal.com'}/command-center/leads" style="background: #39FF14; color: #000; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+              Review &amp; Distribute Lead
+            </a>
+          </div>
+        </div>
+        <div style="background: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #666;">
+          Lead ID: ${lead.leadId} | ${timestamp}
+        </div>
+      </div>`;
+
+    for (const officeEmail of OFFICE_NOTIFY_EMAILS) {
+      officeNotifyPromises.push(
+        emailService.send({
+          to: officeEmail,
+          subject: `New Lead: ${body.name} — ${body.serviceType || body.source}`,
+          body: newLeadEmailBody,
+          fromName: 'RCRS New Leads',
+        }).catch(err => {
+          console.warn(`[Lead ${lead.leadId}] Office notify failed for ${officeEmail}:`, err);
+        })
+      );
+    }
+
+    // Also notify via GroupMe so office sees it immediately
+    officeNotifyPromises.push(
+      riverBot.notifyNewLead({
+        leadName: body.name,
+        leadId: lead.leadId,
+        address: body.address || 'Not provided',
+        source: body.source,
+        assignedRep: 'UNASSIGNED — Needs Review',
+        assignedRepEmail: '',
+        riskScore: undefined,
+        portalUrl: `${process.env.NEXT_PUBLIC_PORTAL_URL || 'https://rcrsal.com'}/command-center/leads`,
+      }).catch(err => {
+        console.warn(`[Lead ${lead.leadId}] GroupMe notification failed:`, err);
+      })
+    );
+
+    // Fire all office notifications without blocking response
+    Promise.allSettled(officeNotifyPromises).catch(() => {});
 
     return NextResponse.json({
       success: true,
       data: {
-        // Lead identifiers
         leadId: lead.leadId,
         customerId: lead.customerId,
         accessToken: portalResult.portalAccess.accessToken,
         shortCode: portalResult.shortCode,
-
-        // Portal URLs
         portalUrl: portalResult.portalUrl,
         qrCodeUrl: portalResult.qrCodeUrl,
 
@@ -511,54 +495,34 @@ export async function POST(request: NextRequest) {
         county: geocoded?.components?.county,
         addressIntel,
 
-        // Storm report info (will be generated async, fetch via /api/leads/[id]/storm-report)
+        // Storm/roof reports generating in background
         stormReport: {
           status: stormReportCity && stormReportZip ? 'generating' : 'skipped',
-          message: stormReportCity && stormReportZip
-            ? 'Storm report is being generated automatically. Fetch via /api/leads/[leadId]/storm-report'
-            : 'Missing city or zip - storm report skipped',
           fetchUrl: `/api/leads/${lead.leadId}/storm-report`,
         },
-
-        // Roof report info (will be generated async, fetch via /api/leads/[id]/roof-report)
         roofReport: {
           status: body.address && body.address !== 'Not provided' ? 'generating' : 'skipped',
-          message: body.address && body.address !== 'Not provided'
-            ? 'Roof measurement report is being generated automatically. Fetch via /api/leads/[leadId]/roof-report'
-            : 'No address provided - roof report skipped',
           fetchUrl: `/api/leads/${lead.leadId}/roof-report`,
         },
 
-        // Assigned sales rep
-        salesRep: salesRep ? {
-          name: salesRep.name,
-          slug: salesRep.slug,
-          position: salesRep.position,
-          phone: salesRep.phone,
-          email: salesRep.email,
-          profileImage: salesRep.profileImage,
-          truckImage: salesRep.truckImage,
-          profileUrl: portalGenerator.getSalesRepUrl(salesRep.slug),
+        // NO rep assigned — office staff will distribute manually
+        salesRep: null,
+        status: 'unassigned',
+
+        // JN matches for office portal to display
+        jnMatches,
+        duplicateCheck: duplicateCheck.found ? {
+          matchedBy: duplicateCheck.matchedBy,
+          jnMatch: duplicateCheck.jnMatch,
         } : null,
 
-        // Pre-generated notification templates
-        templates: {
-          sms: smsTemplates,
-          email: emailTemplates,
+        // Spam filter results (for admin visibility)
+        spamFilter: {
+          score: spamResult.spamScore,
+          passed: spamResult.passedFilter,
+          reasons: spamResult.reasons,
         },
 
-        // Distribution scores (so the UI can display them without a second API call)
-        distributionScores: distributionResult?.allScores?.map(s => ({
-          slug: s.repSlug,
-          name: s.repName,
-          score: s.totalScore,
-          isEligible: s.isEligible,
-          disqualifyReason: s.disqualifyReason,
-          factors: s.factors,
-        })) || [],
-        distributionMethod: distributionResult?.method || null,
-
-        // Metadata
         createdAt: lead.createdAt,
       },
     });
@@ -614,7 +578,7 @@ export async function GET(request: NextRequest) {
       data: leads.map(lead => ({
         ...lead,
         // Remove sensitive token from list view
-        accessToken: lead.accessToken.substring(0, 8) + '...',
+        accessToken: lead.accessToken ? lead.accessToken.substring(0, 8) + '...' : '',
         activityLog: undefined,
       })),
       stats,

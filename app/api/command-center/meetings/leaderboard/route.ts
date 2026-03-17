@@ -1,30 +1,64 @@
 /**
  * RCRS Command Center - Meeting Leaderboard API
  *
- * Provides real-time leaderboard data optimized for Monday meetings.
- * Includes ranking, achievements, streaks, and celebratory triggers.
+ * Provides leaderboard data from the REAL Monday meeting numbers
+ * (data/meeting-numbers-2026.json and data/meeting-numbers-all.json).
+ *
+ * Shows actual meeting sheet columns: Inspected, Damage, Signed, $$$$$,
+ * Approved, Referrals, Agents, etc. Default sort by $$$$$ (revenue).
  *
  * GET /api/command-center/meetings/leaderboard
  * Query params:
  *   - view: 'full' | 'compact' (default: 'full')
  *   - animate: 'true' | 'false' (include animation triggers)
+ *   - metric: sort metric key (default: 'revenue' = $$$$$ column)
+ *   - period: 'thisWeek' | 'thisMonth' | 'thisYear' | 'allTime' (default: 'thisYear')
  *
  * @author RCRS Development Team
- * @version 1.0.0
+ * @version 2.0.0 - Now reads from meeting-numbers cached JSON
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import commissionsData from '@/data/commissions.json';
+import { readFileSync, existsSync } from 'fs';
+import * as path from 'path';
 
 // ============================================================================
 // Types
 // ============================================================================
 
-interface RawCommissionRecord {
-  salesRep: string;
-  date: string;
-  amount: number;
-  balance: number;
+interface RawMeetingRecord {
+  meetingDate: string;
+  tabName: string;
+  repName: string;
+  Inspected: string;
+  Damage: string;
+  Signed: string;
+  Repair: string;
+  Gutter: string;
+  '$$$$$': string;
+  Approved: string;
+  Goal: string;
+  Referrals: string;
+  Agents: string;
+  Present: string;
+  'Home Show': string;
+}
+
+interface ParsedRecord {
+  meetingDate: string;
+  repName: string;
+  inspected: number;
+  damage: number;
+  signed: number;
+  repair: number;
+  gutter: number;
+  revenue: number;
+  approved: number;
+  goal: number;
+  referrals: number;
+  agents: number;
+  present: string;
+  homeShow: number;
 }
 
 interface LeaderboardRep {
@@ -33,24 +67,38 @@ interface LeaderboardRep {
   initials: string;
   avatarColor: string;
 
-  // Commission data
+  // Meeting sheet metrics (REAL data)
+  meetingMetrics: {
+    inspected: number;
+    damage: number;
+    signed: number;
+    repair: number;
+    gutter: number;
+    revenue: number;
+    approved: number;
+    goal: number;
+    referrals: number;
+    agents: number;
+    homeShow: number;
+    weeksPresent: number;
+    totalWeeks: number;
+    attendanceRate: number;
+  };
+
+  // Backward-compatible commission fields (mapped from $$$$$ revenue)
   totalCommissions: number;
   weeklyCommissions: number;
   monthlyCommissions: number;
   ytdCommissions: number;
-
-  // Transaction counts
   totalTransactions: number;
   weeklyTransactions: number;
   monthlyTransactions: number;
-
-  // Computed metrics
   avgTransaction: number;
   percentOfTeamTotal: number;
 
-  // Status indicators
+  // Status
   streak: 'hot' | 'cold' | 'neutral';
-  rankChange: number; // +1, -1, 0
+  rankChange: number;
   isTopPerformer: boolean;
 
   // Achievements
@@ -68,30 +116,6 @@ interface LeaderboardRep {
   }>;
 }
 
-interface LeaderboardResponse {
-  success: boolean;
-  data: {
-    leaderboard: LeaderboardRep[];
-    summary: {
-      totalTeamCommissions: number;
-      totalTransactions: number;
-      weeklyTotal: number;
-      monthlyTotal: number;
-      ytdTotal: number;
-      avgTeamTransaction: number;
-      dateGenerated: string;
-    };
-    celebrationTriggers: Array<{
-      type: 'milestone' | 'record' | 'achievement';
-      message: string;
-      rep?: string;
-      value?: number;
-      animation: 'confetti' | 'fireworks' | 'spotlight';
-    }>;
-  };
-  timestamp: string;
-}
-
 // ============================================================================
 // Constants
 // ============================================================================
@@ -105,44 +129,60 @@ const AVATAR_COLORS = [
   'from-purple-500 to-purple-600',
   'from-pink-500 to-pink-600',
   'from-red-500 to-red-600',
+  'from-cyan-500 to-cyan-600',
+  'from-rose-500 to-rose-600',
 ];
 
-const ACHIEVEMENT_THRESHOLDS = {
-  millionaire: 1000000,
-  halfMillionaire: 500000,
-  quarterMillionaire: 250000,
-  centuryClub: 100,
-  halfCentury: 50,
-  bigTicket: 1000,
-  teamMVP: 20,
-};
-
 // ============================================================================
-// Utility Functions
+// Helpers
 // ============================================================================
 
-function parseDate(dateStr: string): Date | null {
-  if (!dateStr || typeof dateStr !== 'string') return null;
-
-  const parts = dateStr.trim().split('/');
-  if (parts.length !== 3) return null;
-
-  const month = parseInt(parts[0], 10);
-  const day = parseInt(parts[1], 10);
-  let year = parseInt(parts[2], 10);
-
-  if (isNaN(month) || isNaN(day) || isNaN(year)) return null;
-  if (year < 100) year = 2000 + year;
-  if (year < 2019 || year > 2030) return null;
-
-  const date = new Date(year, month - 1, day);
-  if (date.getMonth() !== month - 1) return null;
-
-  return date;
+function parseNum(val: string | undefined | null): number {
+  if (!val || val.trim() === '') return 0;
+  const cleaned = val.replace(/[$,]/g, '').trim();
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? 0 : num;
 }
 
-function normalizeRepName(name: string): string {
-  return name.replace(/\s+/g, ' ').trim();
+function parseRecord(raw: RawMeetingRecord): ParsedRecord {
+  return {
+    meetingDate: raw.meetingDate,
+    repName: raw.repName,
+    inspected: parseNum(raw.Inspected),
+    damage: parseNum(raw.Damage),
+    signed: parseNum(raw.Signed),
+    repair: parseNum(raw.Repair),
+    gutter: parseNum(raw.Gutter),
+    revenue: parseNum(raw['$$$$$']),
+    approved: parseNum(raw.Approved),
+    goal: parseNum(raw.Goal),
+    referrals: parseNum(raw.Referrals),
+    agents: parseNum(raw.Agents),
+    present: (raw.Present || '').trim(),
+    homeShow: parseNum(raw['Home Show']),
+  };
+}
+
+function loadMeetingData(): ParsedRecord[] {
+  const allPath = path.join(process.cwd(), 'data', 'meeting-numbers-all.json');
+  const yearPath = path.join(process.cwd(), 'data', 'meeting-numbers-2026.json');
+
+  let rawRecords: RawMeetingRecord[] = [];
+
+  try {
+    if (existsSync(allPath)) {
+      rawRecords = JSON.parse(readFileSync(allPath, 'utf-8'));
+    } else if (existsSync(yearPath)) {
+      rawRecords = JSON.parse(readFileSync(yearPath, 'utf-8'));
+    }
+  } catch (err) {
+    console.error('[Leaderboard] Error loading meeting data:', err);
+    return [];
+  }
+
+  return rawRecords
+    .filter(r => r.repName && r.repName.trim() !== '' && r.repName.toLowerCase() !== 'total')
+    .map(parseRecord);
 }
 
 function getInitials(name: string): string {
@@ -154,30 +194,43 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-function getWeekBoundaries(date: Date): { start: Date; end: Date } {
-  const dayOfWeek = date.getDay();
-  const start = new Date(date);
-  start.setDate(date.getDate() - dayOfWeek);
-  start.setHours(0, 0, 0, 0);
-
-  const end = new Date(start);
-  end.setDate(start.getDate() + 6);
-  end.setHours(23, 59, 59, 999);
-
-  return { start, end };
+function formatDateISO(date: Date): string {
+  return date.toISOString().split('T')[0];
 }
 
-function getMonthBoundaries(date: Date): { start: Date; end: Date } {
+function getWeekBoundaries(date: Date): { start: string; end: string } {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  const monday = new Date(d);
+  monday.setDate(d.getDate() + diff);
+  monday.setHours(0, 0, 0, 0);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  return { start: formatDateISO(monday), end: formatDateISO(sunday) };
+}
+
+function getMonthBoundaries(date: Date): { start: string; end: string } {
   const start = new Date(date.getFullYear(), date.getMonth(), 1);
-  const end = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
-  return { start, end };
+  const end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+  return { start: formatDateISO(start), end: formatDateISO(end) };
 }
 
-function getYTDBoundaries(date: Date): { start: Date; end: Date } {
-  const start = new Date(date.getFullYear(), 0, 1);
-  const end = new Date(date);
-  end.setHours(23, 59, 59, 999);
-  return { start, end };
+function getYTDBoundaries(date: Date): { start: string; end: string } {
+  return { start: `${date.getFullYear()}-01-01`, end: formatDateISO(date) };
+}
+
+function filterByRange(records: ParsedRecord[], start: string, end: string): ParsedRecord[] {
+  return records.filter(r => r.meetingDate >= start && r.meetingDate <= end);
+}
+
+function isPresent(val: string): boolean {
+  return val === '1';
+}
+
+function isExcused(val: string): boolean {
+  const lower = val.toLowerCase().trim();
+  return lower === 'e' || lower === 'ex' || lower === 'excused';
 }
 
 // ============================================================================
@@ -185,78 +238,43 @@ function getYTDBoundaries(date: Date): { start: Date; end: Date } {
 // ============================================================================
 
 function calculateAchievements(
-  totalCommissions: number,
-  totalTransactions: number,
-  avgTransaction: number,
-  percentOfTotal: number
+  revenue: number,
+  signed: number,
+  inspected: number,
+  referrals: number,
+  attendanceRate: number,
 ): LeaderboardRep['achievements'] {
   const achievements: LeaderboardRep['achievements'] = [];
 
-  // Legendary tier
-  if (totalCommissions >= ACHIEVEMENT_THRESHOLDS.millionaire) {
-    achievements.push({
-      id: 'millionaire',
-      icon: '💰',
-      name: 'Millionaire',
-      tier: 'legendary',
-    });
+  // Revenue milestones
+  if (revenue >= 500000) {
+    achievements.push({ id: 'half-million', icon: '💰', name: 'Half-Million Club', tier: 'legendary' });
+  } else if (revenue >= 250000) {
+    achievements.push({ id: 'quarter-million', icon: '💵', name: 'Quarter-Million Club', tier: 'epic' });
+  } else if (revenue >= 100000) {
+    achievements.push({ id: '100k-club', icon: '💎', name: '$100K Club', tier: 'rare' });
   }
 
-  // Epic tier
-  if (totalCommissions >= ACHIEVEMENT_THRESHOLDS.halfMillionaire && totalCommissions < ACHIEVEMENT_THRESHOLDS.millionaire) {
-    achievements.push({
-      id: 'half-millionaire',
-      icon: '💵',
-      name: 'Half-Millionaire',
-      tier: 'epic',
-    });
+  // Signing achievements
+  if (signed >= 50) {
+    achievements.push({ id: 'closer-50', icon: '🎯', name: 'Master Closer (50+)', tier: 'epic' });
+  } else if (signed >= 20) {
+    achievements.push({ id: 'closer-20', icon: '📝', name: 'Proven Closer (20+)', tier: 'rare' });
   }
 
-  if (totalTransactions >= ACHIEVEMENT_THRESHOLDS.centuryClub) {
-    achievements.push({
-      id: 'century-club',
-      icon: '💯',
-      name: 'Century Club',
-      tier: 'epic',
-    });
+  // Inspection achievements
+  if (inspected >= 100) {
+    achievements.push({ id: 'inspector-100', icon: '🔍', name: 'Century Inspector', tier: 'epic' });
   }
 
-  // Rare tier
-  if (avgTransaction >= ACHIEVEMENT_THRESHOLDS.bigTicket) {
-    achievements.push({
-      id: 'big-ticket',
-      icon: '🎫',
-      name: 'Big Ticket Closer',
-      tier: 'rare',
-    });
+  // Referral achievements
+  if (referrals >= 20) {
+    achievements.push({ id: 'referral-king', icon: '🤝', name: 'Referral King', tier: 'rare' });
   }
 
-  if (percentOfTotal >= ACHIEVEMENT_THRESHOLDS.teamMVP) {
-    achievements.push({
-      id: 'team-mvp',
-      icon: '🌟',
-      name: 'Team MVP',
-      tier: 'rare',
-    });
-  }
-
-  // Common tier
-  if (totalTransactions >= ACHIEVEMENT_THRESHOLDS.halfCentury && totalTransactions < ACHIEVEMENT_THRESHOLDS.centuryClub) {
-    achievements.push({
-      id: 'half-century',
-      icon: '🎯',
-      name: 'Half Century',
-      tier: 'common',
-    });
-  }
-
-  if (totalCommissions >= ACHIEVEMENT_THRESHOLDS.quarterMillionaire && totalCommissions < ACHIEVEMENT_THRESHOLDS.halfMillionaire) {
-    achievements.push({
-      id: 'quarter-millionaire',
-      icon: '💎',
-      name: 'Quarter-Millionaire',
-      tier: 'common',
-    });
+  // Attendance
+  if (attendanceRate >= 0.95) {
+    achievements.push({ id: 'always-there', icon: '⭐', name: 'Always There (95%+)', tier: 'common' });
   }
 
   return achievements;
@@ -273,230 +291,308 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const view = searchParams.get('view') || 'full';
     const includeAnimations = searchParams.get('animate') === 'true';
+    const sortMetric = searchParams.get('metric') || 'revenue';
+    const periodParam = searchParams.get('period') || 'thisYear';
 
     const now = new Date();
+    const allRecords = loadMeetingData();
+
+    if (allRecords.length === 0) {
+      return NextResponse.json({
+        success: false,
+        error: 'No meeting numbers data found',
+        timestamp,
+      }, { status: 404 });
+    }
+
+    // Date boundaries
     const weekBounds = getWeekBoundaries(now);
     const monthBounds = getMonthBoundaries(now);
     const ytdBounds = getYTDBoundaries(now);
+    const prevWeekStart = new Date(now);
+    prevWeekStart.setDate(prevWeekStart.getDate() - 7);
+    const prevWeekBounds = getWeekBoundaries(prevWeekStart);
 
-    const rawData = commissionsData as RawCommissionRecord[];
+    // Determine the primary filter period for the leaderboard ranking
+    let periodStart: string | undefined;
+    let periodEnd: string | undefined;
 
-    // Aggregate data by rep
-    const repMap = new Map<
-      string,
-      {
-        total: number;
-        count: number;
-        weekTotal: number;
-        weekCount: number;
-        monthTotal: number;
-        monthCount: number;
-        ytdTotal: number;
-        ytdCount: number;
-        recentTransactions: number;
-        previousWeekTotal: number;
-      }
-    >();
+    switch (periodParam) {
+      case 'thisWeek':
+        periodStart = weekBounds.start;
+        periodEnd = weekBounds.end;
+        break;
+      case 'thisMonth':
+        periodStart = monthBounds.start;
+        periodEnd = monthBounds.end;
+        break;
+      case 'thisYear':
+        periodStart = ytdBounds.start;
+        periodEnd = ytdBounds.end;
+        break;
+      case 'allTime':
+      default:
+        // No filter - all data
+        break;
+    }
 
-    const prevWeekBounds = {
-      start: new Date(weekBounds.start),
-      end: new Date(weekBounds.end),
-    };
-    prevWeekBounds.start.setDate(prevWeekBounds.start.getDate() - 7);
-    prevWeekBounds.end.setDate(prevWeekBounds.end.getDate() - 7);
+    // Filter records for the primary period
+    const periodRecords = periodStart && periodEnd
+      ? filterByRange(allRecords, periodStart, periodEnd)
+      : allRecords;
 
-    let grandTotal = 0;
-    let totalTransactions = 0;
-    let weeklyTotal = 0;
-    let monthlyTotal = 0;
-    let ytdTotal = 0;
+    // Aggregate by rep
+    const repMap = new Map<string, {
+      records: ParsedRecord[];
+      weekRecords: ParsedRecord[];
+      prevWeekRecords: ParsedRecord[];
+      monthRecords: ParsedRecord[];
+      ytdRecords: ParsedRecord[];
+    }>();
 
-    for (const record of rawData) {
-      const salesRep = normalizeRepName(record.salesRep);
-      const date = parseDate(record.date);
-
-      if (!date || !salesRep) continue;
-
-      // HARD RULE: Michael, Chris, and Sara are NOT sales reps.
-      // NEVER put them on commissions, leaderboards, or sales competition.
-      // Subcontractor pay (Diego Garcia, Jesus M Lara, Rogelio Gonzalez-Flores) is NOT commission.
-      const EXCLUDED_FROM_LEADERBOARD = [
-        // Owners/Management - NOT sales reps
-        'michael muse', 'chris muse', 'sara hill',
-        // Project managers - NOT sales reps
-        'john cordonis', 'bart roberts',
-        // Office staff
-        'destin mccary', 'tia muse morris', 'tia muse',
-        // Subcontractors - labor pay, NOT commission
-        'diego garcia', 'jesus m lara', 'jesus lara', 'rogelio gonzalez-flores', 'rogelio gonzalez',
-      ];
-      if (EXCLUDED_FROM_LEADERBOARD.includes(salesRep.toLowerCase())) continue;
-
-      if (!repMap.has(salesRep)) {
-        repMap.set(salesRep, {
-          total: 0,
-          count: 0,
-          weekTotal: 0,
-          weekCount: 0,
-          monthTotal: 0,
-          monthCount: 0,
-          ytdTotal: 0,
-          ytdCount: 0,
-          recentTransactions: 0,
-          previousWeekTotal: 0,
+    for (const rec of allRecords) {
+      if (!repMap.has(rec.repName)) {
+        repMap.set(rec.repName, {
+          records: [],
+          weekRecords: [],
+          prevWeekRecords: [],
+          monthRecords: [],
+          ytdRecords: [],
         });
       }
+      const bucket = repMap.get(rec.repName)!;
 
-      const stats = repMap.get(salesRep)!;
-      stats.total += record.amount;
-      stats.count++;
-      grandTotal += record.amount;
-      totalTransactions++;
+      // All-time records for this rep
+      bucket.records.push(rec);
 
       // Weekly
-      if (date >= weekBounds.start && date <= weekBounds.end) {
-        stats.weekTotal += record.amount;
-        stats.weekCount++;
-        weeklyTotal += record.amount;
+      if (rec.meetingDate >= weekBounds.start && rec.meetingDate <= weekBounds.end) {
+        bucket.weekRecords.push(rec);
       }
-
-      // Previous week (for streak calculation)
-      if (date >= prevWeekBounds.start && date <= prevWeekBounds.end) {
-        stats.previousWeekTotal += record.amount;
+      // Previous week
+      if (rec.meetingDate >= prevWeekBounds.start && rec.meetingDate <= prevWeekBounds.end) {
+        bucket.prevWeekRecords.push(rec);
       }
-
       // Monthly
-      if (date >= monthBounds.start && date <= monthBounds.end) {
-        stats.monthTotal += record.amount;
-        stats.monthCount++;
-        monthlyTotal += record.amount;
+      if (rec.meetingDate >= monthBounds.start && rec.meetingDate <= monthBounds.end) {
+        bucket.monthRecords.push(rec);
       }
-
       // YTD
-      if (date >= ytdBounds.start && date <= ytdBounds.end) {
-        stats.ytdTotal += record.amount;
-        stats.ytdCount++;
-        ytdTotal += record.amount;
-      }
-
-      // Recent (last 30 days)
-      const thirtyDaysAgo = new Date(now);
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      if (date >= thirtyDaysAgo) {
-        stats.recentTransactions++;
+      if (rec.meetingDate >= ytdBounds.start && rec.meetingDate <= ytdBounds.end) {
+        bucket.ytdRecords.push(rec);
       }
     }
 
-    // Build leaderboard
+    // Build leaderboard entries
+    let grandTotal = 0;
+    let weeklyTotal = 0;
+    let monthlyTotal = 0;
+    let ytdTotal = 0;
+    let totalTransactions = 0;
+
     const leaderboard: LeaderboardRep[] = [];
-    let colorIndex = 0;
 
-    for (const [name, stats] of repMap.entries()) {
-      const avgTransaction = stats.count > 0 ? stats.total / stats.count : 0;
-      const percentOfTotal = grandTotal > 0 ? (stats.total / grandTotal) * 100 : 0;
+    repMap.forEach((bucket, repName) => {
+      // Use period-filtered records for the primary metric ranking
+      const periodRecs = periodStart && periodEnd
+        ? bucket.records.filter(r => r.meetingDate >= periodStart! && r.meetingDate <= periodEnd!)
+        : bucket.records;
 
-      // Determine streak
+      // Sum all metrics for the period
+      const sumMetric = (recs: ParsedRecord[], field: keyof ParsedRecord) =>
+        recs.reduce((s, r) => s + (typeof r[field] === 'number' ? r[field] as number : 0), 0);
+
+      const periodRevenue = sumMetric(periodRecs, 'revenue');
+      const periodInspected = sumMetric(periodRecs, 'inspected');
+      const periodDamage = sumMetric(periodRecs, 'damage');
+      const periodSigned = sumMetric(periodRecs, 'signed');
+      const periodRepair = sumMetric(periodRecs, 'repair');
+      const periodGutter = sumMetric(periodRecs, 'gutter');
+      const periodApproved = sumMetric(periodRecs, 'approved');
+      const periodGoal = sumMetric(periodRecs, 'goal');
+      const periodReferrals = sumMetric(periodRecs, 'referrals');
+      const periodAgents = sumMetric(periodRecs, 'agents');
+      const periodHomeShow = sumMetric(periodRecs, 'homeShow');
+
+      // Attendance
+      const periodPresent = periodRecs.filter(r => isPresent(r.present)).length;
+      const periodExcused = periodRecs.filter(r => isExcused(r.present)).length;
+      const eligibleWeeks = periodRecs.length - periodExcused;
+      const attendanceRate = eligibleWeeks > 0 ? periodPresent / eligibleWeeks : 0;
+
+      // Weekly / monthly / YTD revenue for backward compat
+      const weekRevenue = sumMetric(bucket.weekRecords, 'revenue');
+      const monthRevenue = sumMetric(bucket.monthRecords, 'revenue');
+      const ytdRevenue = sumMetric(bucket.ytdRecords, 'revenue');
+      const allTimeRevenue = sumMetric(bucket.records, 'revenue');
+
+      // All-time totals for "totalCommissions"
+      grandTotal += allTimeRevenue;
+      weeklyTotal += weekRevenue;
+      monthlyTotal += monthRevenue;
+      ytdTotal += ytdRevenue;
+      totalTransactions += bucket.records.length;
+
+      // Streak: compare this week vs previous week revenue
+      const prevWeekRevenue = sumMetric(bucket.prevWeekRecords, 'revenue');
       let streak: 'hot' | 'cold' | 'neutral' = 'neutral';
-      if (stats.weekTotal > stats.previousWeekTotal * 1.2) {
+      if (weekRevenue > prevWeekRevenue * 1.2 && weekRevenue > 0) {
         streak = 'hot';
-      } else if (stats.weekTotal < stats.previousWeekTotal * 0.8 && stats.previousWeekTotal > 0) {
+      } else if (weekRevenue < prevWeekRevenue * 0.8 && prevWeekRevenue > 0) {
         streak = 'cold';
       }
 
-      // Calculate achievements
+      // Achievements (based on all-time data)
+      const allTimeSigned = sumMetric(bucket.records, 'signed');
+      const allTimeInspected = sumMetric(bucket.records, 'inspected');
+      const allTimeReferrals = sumMetric(bucket.records, 'referrals');
       const achievements = calculateAchievements(
-        stats.total,
-        stats.count,
-        avgTransaction,
-        percentOfTotal
+        allTimeRevenue, allTimeSigned, allTimeInspected, allTimeReferrals, attendanceRate,
       );
 
-      // Animation triggers (only if requested)
+      // Animations
       const animations: LeaderboardRep['animations'] = [];
       if (includeAnimations) {
-        if (stats.total >= 700000 && stats.total < 710000) {
-          animations.push({ type: 'fireworks', reason: 'Approaching $750K milestone!' });
-        }
-        if (stats.weekTotal > 5000) {
+        if (weekRevenue > 20000) {
           animations.push({ type: 'confetti', reason: 'Big week!' });
         }
         if (streak === 'hot') {
           animations.push({ type: 'glow', reason: 'On fire!' });
         }
+        if (periodSigned >= 3) {
+          animations.push({ type: 'fireworks', reason: 'Signing machine!' });
+        }
       }
+
+      // Determine the value to sort by
+      const metricMap: Record<string, number> = {
+        revenue: periodRevenue,
+        inspected: periodInspected,
+        damage: periodDamage,
+        signed: periodSigned,
+        repair: periodRepair,
+        gutter: periodGutter,
+        approved: periodApproved,
+        goal: periodGoal,
+        referrals: periodReferrals,
+        agents: periodAgents,
+        homeShow: periodHomeShow,
+      };
 
       leaderboard.push({
         rank: 0,
-        name,
-        initials: getInitials(name),
-        avatarColor: AVATAR_COLORS[colorIndex % AVATAR_COLORS.length],
-        totalCommissions: Math.round(stats.total * 100) / 100,
-        weeklyCommissions: Math.round(stats.weekTotal * 100) / 100,
-        monthlyCommissions: Math.round(stats.monthTotal * 100) / 100,
-        ytdCommissions: Math.round(stats.ytdTotal * 100) / 100,
-        totalTransactions: stats.count,
-        weeklyTransactions: stats.weekCount,
-        monthlyTransactions: stats.monthCount,
-        avgTransaction: Math.round(avgTransaction * 100) / 100,
-        percentOfTeamTotal: Math.round(percentOfTotal * 10) / 10,
+        name: repName,
+        initials: getInitials(repName),
+        avatarColor: '',
+
+        meetingMetrics: {
+          inspected: periodInspected,
+          damage: periodDamage,
+          signed: periodSigned,
+          repair: periodRepair,
+          gutter: periodGutter,
+          revenue: Math.round(periodRevenue * 100) / 100,
+          approved: periodApproved,
+          goal: periodGoal,
+          referrals: periodReferrals,
+          agents: periodAgents,
+          homeShow: periodHomeShow,
+          weeksPresent: periodPresent,
+          totalWeeks: periodRecs.length,
+          attendanceRate: Math.round(attendanceRate * 1000) / 10,
+        },
+
+        // Backward-compatible fields (mapped from revenue / $$$$$ column)
+        totalCommissions: Math.round(allTimeRevenue * 100) / 100,
+        weeklyCommissions: Math.round(weekRevenue * 100) / 100,
+        monthlyCommissions: Math.round(monthRevenue * 100) / 100,
+        ytdCommissions: Math.round(ytdRevenue * 100) / 100,
+        totalTransactions: bucket.records.length,
+        weeklyTransactions: bucket.weekRecords.length,
+        monthlyTransactions: bucket.monthRecords.length,
+        avgTransaction: bucket.records.length > 0
+          ? Math.round((allTimeRevenue / bucket.records.length) * 100) / 100
+          : 0,
+        percentOfTeamTotal: 0, // calculated after sorting
+
         streak,
         rankChange: 0,
         isTopPerformer: false,
         achievements,
         animations,
-      });
 
-      colorIndex++;
-    }
+        // Stash sort value for sorting
+        _sortValue: metricMap[sortMetric] ?? periodRevenue,
+      } as LeaderboardRep & { _sortValue: number });
+    });
 
-    // Sort by total commissions and assign ranks
-    leaderboard.sort((a, b) => b.totalCommissions - a.totalCommissions);
+    // Sort by the selected metric
+    leaderboard.sort((a, b) => {
+      const aVal = (a as LeaderboardRep & { _sortValue?: number })._sortValue ?? 0;
+      const bVal = (b as LeaderboardRep & { _sortValue?: number })._sortValue ?? 0;
+      return bVal - aVal;
+    });
+
+    // Assign ranks, colors, percentages
     leaderboard.forEach((rep, index) => {
       rep.rank = index + 1;
       rep.isTopPerformer = index < 3;
-      // Assign correct colors based on rank
-      if (index === 0) rep.avatarColor = AVATAR_COLORS[0]; // Gold
-      else if (index === 1) rep.avatarColor = AVATAR_COLORS[1]; // Silver
-      else if (index === 2) rep.avatarColor = AVATAR_COLORS[2]; // Bronze
-    });
+      rep.percentOfTeamTotal = grandTotal > 0
+        ? Math.round((rep.totalCommissions / grandTotal) * 1000) / 10
+        : 0;
 
-    // Generate celebration triggers
-    const celebrationTriggers: LeaderboardResponse['data']['celebrationTriggers'] = [];
-
-    // Check for milestones
-    for (const rep of leaderboard) {
-      if (rep.totalCommissions >= 740000 && rep.totalCommissions < 750000) {
-        celebrationTriggers.push({
-          type: 'milestone',
-          message: `${rep.name} is just $${Math.round(750000 - rep.totalCommissions).toLocaleString()} away from $750K!`,
-          rep: rep.name,
-          value: rep.totalCommissions,
-          animation: 'spotlight',
-        });
+      // Rank-based colors
+      if (index < AVATAR_COLORS.length) {
+        rep.avatarColor = AVATAR_COLORS[index];
+      } else {
+        rep.avatarColor = AVATAR_COLORS[AVATAR_COLORS.length - 1];
       }
 
-      if (rep.weeklyCommissions > 5000) {
+      // Clean up internal sort field
+      delete (rep as LeaderboardRep & { _sortValue?: number })._sortValue;
+    });
+
+    // Celebration triggers
+    const celebrationTriggers: Array<{
+      type: 'milestone' | 'record' | 'achievement';
+      message: string;
+      rep?: string;
+      value?: number;
+      animation: 'confetti' | 'fireworks' | 'spotlight';
+    }> = [];
+
+    for (const rep of leaderboard) {
+      if (rep.weeklyCommissions > 20000) {
         celebrationTriggers.push({
           type: 'record',
-          message: `${rep.name} had a massive week with $${rep.weeklyCommissions.toLocaleString()}!`,
+          message: `${rep.name} had a massive week with $${rep.weeklyCommissions.toLocaleString()} in revenue!`,
           rep: rep.name,
           value: rep.weeklyCommissions,
           animation: 'confetti',
         });
       }
+      if (rep.meetingMetrics.signed >= 3 && rep.meetingMetrics.revenue > 0) {
+        celebrationTriggers.push({
+          type: 'achievement',
+          message: `${rep.name} signed ${rep.meetingMetrics.signed} contracts!`,
+          rep: rep.name,
+          value: rep.meetingMetrics.signed,
+          animation: 'fireworks',
+        });
+      }
     }
 
-    // Team milestones
-    if (ytdTotal >= 2500000) {
+    // Team revenue milestones
+    if (ytdTotal >= 1000000) {
       celebrationTriggers.push({
         type: 'milestone',
-        message: `Team has surpassed $2.5M YTD! Total: $${Math.round(ytdTotal).toLocaleString()}`,
+        message: `Team has surpassed $${(ytdTotal / 1000000).toFixed(1)}M YTD revenue!`,
         value: ytdTotal,
         animation: 'fireworks',
       });
     }
 
-    const response: LeaderboardResponse = {
+    const response = {
       success: true,
       data: {
         leaderboard: view === 'compact' ? leaderboard.slice(0, 6) : leaderboard,
@@ -506,12 +602,14 @@ export async function GET(request: NextRequest) {
           weeklyTotal: Math.round(weeklyTotal * 100) / 100,
           monthlyTotal: Math.round(monthlyTotal * 100) / 100,
           ytdTotal: Math.round(ytdTotal * 100) / 100,
-          avgTeamTransaction:
-            totalTransactions > 0 ? Math.round((grandTotal / totalTransactions) * 100) / 100 : 0,
+          avgTeamTransaction: totalTransactions > 0
+            ? Math.round((grandTotal / totalTransactions) * 100) / 100
+            : 0,
           dateGenerated: now.toISOString(),
         },
         celebrationTriggers,
       },
+      dataSource: 'meeting-numbers',
       timestamp,
     };
 

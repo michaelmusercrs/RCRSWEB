@@ -1,0 +1,30 @@
+[
+  {
+    "id": "daily-ops",
+    "name": "Daily Operations Report",
+    "sections": ["leads", "calls", "deliveries", "weather", "inventory_alerts"],
+    "schedule": "daily",
+    "recipients": ["michael@rcrsal.com"]
+  },
+  {
+    "id": "weekly-sales",
+    "name": "Weekly Sales Report",
+    "sections": ["revenue", "commissions", "lead_conversion", "rep_performance", "pipeline"],
+    "schedule": "weekly",
+    "recipients": ["michael@rcrsal.com"]
+  },
+  {
+    "id": "monthly-financial",
+    "name": "Monthly Financial Report",
+    "sections": ["revenue", "expenses", "profit_loss", "accounts_receivable", "cash_flow", "budget_variance"],
+    "schedule": "monthly",
+    "recipients": ["michael@rcrsal.com"]
+  },
+  {
+    "id": "quarterly-business",
+    "name": "Quarterly Business Review",
+    "sections": ["revenue_trends", "customer_satisfaction", "rep_rankings", "market_analysis", "warranty_claims", "subcontractor_performance"],
+    "schedule": "quarterly",
+    "recipients": ["michael@rcrsal.com"]
+  }
+]

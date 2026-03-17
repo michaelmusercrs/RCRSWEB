@@ -44,7 +44,7 @@ const RIVER_COMMANDS: Record<string, { description: string; handler: (msg: Group
     description: 'Today\'s lead count',
     handler: async () => {
       // In production, this would query Google Sheets
-      return '📊 Lead summary coming soon - connect to Google Sheets for live data';
+      return '📊 Lead summary requires Google Sheets API connection. Configure GOOGLE_SHEETS_API_KEY in environment.';
     },
   },
 };

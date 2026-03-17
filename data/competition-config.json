@@ -1,0 +1,54 @@
+{
+  "currentPeriod": {
+    "start": "2026-01-01",
+    "end": "2026-06-30",
+    "name": "H1 2026"
+  },
+  "bonusTiers": [
+    { "threshold": 50000, "bonus": 100, "label": "$50K" },
+    { "threshold": 75000, "bonus": 250, "label": "$75K" },
+    { "threshold": 100000, "bonus": 400, "label": "$100K" },
+    { "threshold": 125000, "bonus": 550, "label": "$125K" },
+    { "threshold": 150000, "bonus": 750, "label": "$150K" },
+    { "threshold": 200000, "bonus": 1200, "label": "$200K" },
+    { "threshold": 300000, "bonus": 2000, "label": "$300K" },
+    { "threshold": 400000, "bonus": 3000, "label": "$400K" },
+    { "threshold": 500000, "bonus": 4000, "label": "$500K" }
+  ],
+  "monthlyBonusTiers": [
+    { "threshold": 50000, "bonus": 100, "label": "$50K" },
+    { "threshold": 75000, "bonus": 250, "label": "$75K" },
+    { "threshold": 100000, "bonus": 400, "label": "$100K" },
+    { "threshold": 125000, "bonus": 550, "label": "$125K" },
+    { "threshold": 150000, "bonus": 750, "label": "$150K" },
+    { "threshold": 200000, "bonus": 1200, "label": "$200K" },
+    { "threshold": 300000, "bonus": 2000, "label": "$300K" },
+    { "threshold": 400000, "bonus": 3000, "label": "$400K" },
+    { "threshold": 500000, "bonus": 4000, "label": "$500K" }
+  ],
+  "biannualBonusTiers": [
+    { "threshold": 50000, "bonus": 500, "label": "Bronze" },
+    { "threshold": 100000, "bonus": 1500, "label": "Silver" },
+    { "threshold": 200000, "bonus": 4000, "label": "Gold" },
+    { "threshold": 350000, "bonus": 8000, "label": "Platinum" },
+    { "threshold": 500000, "bonus": 15000, "label": "Diamond" }
+  ],
+  "awardsTrip": {
+    "threshold": 400000,
+    "periodType": "biannual",
+    "description": "Must sell $400,000 total in a bi-annual period to qualify"
+  },
+  "monthlyGasCard": {
+    "amount": 500,
+    "minDeals": 5,
+    "minSales": 75000,
+    "description": "$500 gas card to top sales inspector each month (min $75K in sales)"
+  },
+  "officeBonusStructure": {
+    "description": "Per every $100,000 over $1,000,000 quarterly by all inspectors combined",
+    "saraBonusPer100K": 200,
+    "destinBonusPer100K": 200,
+    "tiaBonusPer100K": 100,
+    "quarterlyThreshold": 1000000
+  }
+}

@@ -39,6 +39,8 @@ data/roof-calibration.json
 !tsconfig.json
 !components.json
 !tailwind.config.json
+!vercel.json
+!data/*.json
 gen-lang-client-*.json
 *-service-account*.json
 *credentials*.json
@@ -74,3 +76,7 @@ Thumbs.db
 
 .vercel
 .env*.local
+.next-del-*
+.next-old*
+.next*
+preview/

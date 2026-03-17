@@ -1,0 +1,42 @@
+[
+  {
+    "id": "NOTIF-MLPJCOB8-0QBR",
+    "type": "edit_submitted",
+    "profileEditId": "PROF-MLPJCOB3-ISXKOY",
+    "recipientEmail": "admin@rcrsal.com",
+    "recipientName": "Admin",
+    "message": "Michael Muse submitted a profile edit request for review.",
+    "createdAt": "2026-02-16T18:56:37.652Z",
+    "sent": false
+  },
+  {
+    "id": "NOTIF-MLPJCZK7-4905",
+    "type": "edit_approved",
+    "profileEditId": "PROF-MLPJCOB3-ISXKOY",
+    "recipientEmail": "michaelmuse@rcrsal.com",
+    "recipientName": "Michael Muse",
+    "message": "Your profile edit has been approved by Chris Muse. Changes are now live!",
+    "createdAt": "2026-02-16T18:56:52.231Z",
+    "sent": false
+  },
+  {
+    "id": "NOTIF-MLPML8U0-BXKF",
+    "type": "edit_submitted",
+    "profileEditId": "PROF-MLPML8TX-PK8YQT",
+    "recipientEmail": "admin@rcrsal.com",
+    "recipientName": "Admin",
+    "message": "Aaron Lussi submitted a profile edit request for review.",
+    "createdAt": "2026-02-16T20:27:16.344Z",
+    "sent": false
+  },
+  {
+    "id": "NOTIF-MLPML8Y1-1DEF",
+    "type": "edit_approved",
+    "profileEditId": "PROF-MLPML8TX-PK8YQT",
+    "recipientEmail": "aaron@rcrsal.com",
+    "recipientName": "Aaron Lussi",
+    "message": "Your profile edit has been approved by Michael Muse. Changes are now live!",
+    "createdAt": "2026-02-16T20:27:16.489Z",
+    "sent": false
+  }
+]

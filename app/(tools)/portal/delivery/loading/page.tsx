@@ -40,6 +40,8 @@ import {
   Plus,
   ArrowRight,
   Layers,
+  Info,
+  Loader2,
 } from 'lucide-react';
 
 // ============================================================================
@@ -484,7 +486,79 @@ function getWeightBarColor(pct: number) {
 export default function LoadingManagementPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('queue');
   const [tickets, setTickets] = useState<LoadingTicket[]>(MOCK_TICKETS);
-  const [history] = useState<LoadHistoryEntry[]>(MOCK_HISTORY);
+  const [history, setHistory] = useState<LoadHistoryEntry[]>(MOCK_HISTORY);
+  const [isPageLoading, setIsPageLoading] = useState(true);
+  const [isUsingMockData, setIsUsingMockData] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchLoadingData();
+  }, []);
+
+  async function fetchLoadingData() {
+    setIsPageLoading(true);
+    setFetchError(null);
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const res = await fetch(`/api/portal/deliveries?date=${today}`);
+      if (!res.ok) throw new Error(`API returned ${res.status}`);
+      const data = await res.json();
+      const apiDeliveries = data.data?.deliveries || data.deliveries || [];
+
+      if (apiDeliveries.length > 0) {
+        const mappedTickets: LoadingTicket[] = apiDeliveries.map((d: any, idx: number) => ({
+          id: d.ticketId || d.id || d.deliveryId || `DT-${Date.now()}-${idx}`,
+          customer: d.customerName || d.customer_name || 'Customer',
+          jobName: d.jobName || d.job_name || 'Delivery',
+          address: d.address ? `${d.address}, ${d.city || ''}, ${d.state || 'AL'} ${d.zip || ''}` : d.jobAddress || '',
+          phone: d.customerPhone || d.customer_phone || '',
+          priority: d.priority || 'normal',
+          status: d.status || 'assigned',
+          scheduledTime: d.scheduledTime || d.scheduled_time || '',
+          scheduledDate: d.scheduledDate || d.scheduled_date || today,
+          driverName: d.driverName || d.assignedDriverName || 'Unassigned',
+          driverId: d.driverId || d.assignedDriver || 'driver-1',
+          vehicle: d.vehicle || d.assignedVehicle || 'TBD',
+          vehicleType: (d.vehicleType || 'flatbed') as VehicleType,
+          vehicleCapacityLbs: d.vehicleCapacityLbs || 6000,
+          loadingBay: d.loadingBay || null,
+          loadingStartTime: d.loadingStartTime || null,
+          loadingEndTime: d.loadingEndTime || null,
+          materials: (d.materials || []).map((m: any, mIdx: number) => ({
+            id: m.id || `mat-${mIdx}`,
+            name: m.name || m.productName || m.product_name || 'Material',
+            quantity: m.quantity || 0,
+            unit: m.unit || 'ea',
+            weightLbs: m.weightLbs || m.weight || 0,
+            category: (['heavy', 'medium', 'light', 'fragile'].includes(m.category) ? m.category : 'medium') as MaterialCategory,
+            pulled: m.pulled ?? false,
+            loaded: m.loaded ?? false,
+            flagged: m.flagged ?? false,
+            flagReason: m.flagReason || undefined,
+          })),
+          qcPassed: d.qcPassed ?? null,
+          qcNotes: d.qcNotes || '',
+          photosTaken: d.photosTaken || 0,
+          photosRequired: d.photosRequired || 3,
+        }));
+
+        setTickets(mappedTickets);
+        setIsUsingMockData(false);
+      } else {
+        setTickets(MOCK_TICKETS);
+        setHistory(MOCK_HISTORY);
+        setIsUsingMockData(true);
+      }
+    } catch (err) {
+      console.error('Failed to fetch loading data:', err);
+      setFetchError(err instanceof Error ? err.message : 'Failed to load');
+      setTickets(MOCK_TICKETS);
+      setHistory(MOCK_HISTORY);
+      setIsUsingMockData(true);
+    } finally {
+      setIsPageLoading(false);
+    }
+  }
 
   // Filters
   const [filterDriver, setFilterDriver] = useState<string>('all');
@@ -696,6 +770,28 @@ export default function LoadingManagementPage() {
           </div>
         </div>
       </header>
+
+      {/* Loading State */}
+      {isPageLoading && (
+        <div className="flex flex-col items-center justify-center py-16">
+          <Loader2 className="w-8 h-8 text-[#39FF14] animate-spin mb-3" />
+          <p className="text-sm text-zinc-400">Loading warehouse data...</p>
+        </div>
+      )}
+
+      {/* Demo Data Banner */}
+      {isUsingMockData && !isPageLoading && (
+        <div className="max-w-[1600px] mx-auto px-4 lg:px-6 mt-4">
+          <div className="flex items-center gap-3 px-4 py-3 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+            <Info className="w-5 h-5 text-amber-400 shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-amber-400">Demo Data - Waiting for real deliveries</p>
+              <p className="text-xs text-amber-400/70">{fetchError ? `API Error: ${fetchError}` : 'No loading tickets found. Showing sample data.'}</p>
+            </div>
+            <button onClick={fetchLoadingData} className="px-3 py-1.5 text-xs font-medium text-amber-400 border border-amber-500/30 rounded-lg hover:bg-amber-500/10 transition-colors">Retry</button>
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="bg-zinc-900/50 border-b border-zinc-800">

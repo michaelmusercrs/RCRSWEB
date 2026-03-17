@@ -1,0 +1,49 @@
+{
+  "weights": {
+    "installProximity": 30,
+    "contactProximity": 15,
+    "doorKnockRecency": 10,
+    "referralBonus": 25,
+    "meetingAttendance": 10,
+    "closeRate": 5,
+    "responseTime": 5
+  },
+  "thresholds": {
+    "proximityRadiusMiles": 2.0,
+    "recentInteractionDays": 90,
+    "staleInteractionDays": 730,
+    "minRepsForDistribution": 2
+  },
+  "responseTimers": {
+    "reminderMinutes": 5,
+    "warningMinutes": 20,
+    "urgentWarningMinutes": 45,
+    "reassignMinutes": 60
+  },
+  "counties": [
+    "Madison",
+    "Limestone",
+    "Morgan",
+    "Marshall",
+    "Jackson",
+    "DeKalb",
+    "Lawrence",
+    "Cullman",
+    "Blount",
+    "Etowah",
+    "Cherokee",
+    "Colbert",
+    "Franklin",
+    "Marion",
+    "Winston"
+  ],
+  "spamFilter": {
+    "enabled": true,
+    "threshold": 70,
+    "customBlockedDomains": [],
+    "customBlockedPhrases": [],
+    "allowList": []
+  },
+  "updatedAt": "",
+  "updatedBy": ""
+}

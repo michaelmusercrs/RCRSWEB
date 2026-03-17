@@ -1,0 +1,91 @@
+[
+  {
+    "orderId": "TEST-DEL-001",
+    "ticketType": "delivery",
+    "currentStage": "DRIVER_ASSIGNED",
+    "priority": "high",
+    "createdAt": "2026-03-15T23:59:55.649142",
+    "createdByName": "John Cordonis",
+    "jobNumber": "J-TEST-001",
+    "jobName": "FAKETEST McTestface Roof",
+    "customerName": "FAKETEST McTestface",
+    "deliveryAddress": "100 Test Drive, Decatur AL 35601",
+    "assignedDriverName": "Richard Geahr",
+    "requestedDeliveryDate": "2026-03-17",
+    "totalPrice": 3850.0,
+    "items": [
+      {
+        "productName": "IKO Dynasty - Granite Black",
+        "quantity": 45,
+        "unit": "bundle",
+        "unitPrice": 42.5
+      },
+      {
+        "productName": "Ridge Vent - 4ft",
+        "quantity": 12,
+        "unit": "piece",
+        "unitPrice": 18.75
+      },
+      {
+        "productName": "IKO StormShield Underlayment",
+        "quantity": 6,
+        "unit": "roll",
+        "unitPrice": 85.0
+      }
+    ],
+    "notes": "TEST ORDER - Edge case: large delivery, multiple materials"
+  },
+  {
+    "orderId": "TEST-RET-001",
+    "ticketType": "return",
+    "currentStage": "ORDER_CREATED",
+    "priority": "medium",
+    "createdAt": "2026-03-16T03:59:55.649180",
+    "createdByName": "Bart Roberts",
+    "jobNumber": "J-TEST-002",
+    "jobName": "TEST RETURN - Surplus Material",
+    "customerName": "TEST JOB - Sara Entry",
+    "deliveryAddress": "Warehouse - 123 Industrial Blvd, Decatur AL",
+    "requestedDeliveryDate": "2026-03-18",
+    "totalPrice": 425.0,
+    "items": [
+      {
+        "productName": "IKO Dynasty - Shadow Brown",
+        "quantity": 5,
+        "unit": "bundle",
+        "unitPrice": 42.5
+      },
+      {
+        "productName": "Drip Edge - 10ft",
+        "quantity": 8,
+        "unit": "piece",
+        "unitPrice": 12.5
+      }
+    ],
+    "notes": "TEST RETURN - Edge case: return to distributor (Advance Build Products)"
+  },
+  {
+    "orderId": "TEST-PICK-001",
+    "ticketType": "pickup",
+    "currentStage": "EN_ROUTE",
+    "priority": "urgent",
+    "createdAt": "2026-03-16T02:59:55.649185",
+    "createdByName": "John Cordonis",
+    "jobNumber": "J-TEST-003",
+    "jobName": "DEMO FAKERSON Pickup",
+    "customerName": "DEMO FAKERSON III",
+    "deliveryAddress": "300 Obvious Test Blvd, Madison AL 35758",
+    "assignedDriverName": "Travis Wages",
+    "requestedDeliveryDate": "2026-03-16",
+    "totalPrice": 0,
+    "items": [
+      {
+        "productName": "IKO Dynasty - Cornerstone WW (leftover)",
+        "quantity": 3,
+        "unit": "bundle",
+        "unitPrice": 0
+      }
+    ],
+    "notes": "TEST PICKUP - Edge case: urgent same-day pickup, job site materials"
+  }
+]

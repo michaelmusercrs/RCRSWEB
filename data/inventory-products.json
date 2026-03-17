@@ -1,0 +1,83 @@
+[
+  {
+    "Item ID": "item-123",
+    "Name": "1 1/4 EG Nails",
+    "Description": "15-18 Sq. per box",
+    "Image": "https://encrypted-tbn3.gstatic.com/shopping?q=tbn:ANd9GcS_7eWm-LY8KpN1vdKwV2RIR6dolS2dTEJHWgkx3Uvums0B9v3WNMrB5OvBHE5NK9gpcAPYDYMlUmdkHMWEbD8DIaylxnDFfCJjmRC9Sn6dh38yPghoI20JEA",
+    "Cost": 27.5,
+    "Price": 64.9
+  },
+  {
+    "Item ID": "item-124",
+    "Name": "Buttom Caps (plastic)",
+    "Description": "25-35 SQ per bucket by pitch",
+    "Image": "https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcQ1yuW7vg_MsldvgGj0y6wzwUL4kUtTtycnViW9RLxMuJZnL40DFI4ij8d6-nBO0R8o4iytQf8oIFuGlGvMTrxQd0Pb9k93AllbPsx7L_meRwQAIFWrOC8ArN6OVGZ6hMLeKOnUYVoBY_U&usqp=CAc",
+    "Cost": 16.5,
+    "Price": 29.15
+  },
+  {
+    "Item ID": "item-125",
+    "Name": "RCRS Syn Felt",
+    "Description": "10 Sq",
+    "Image": "https://photos.fife.usercontent.google.com/pw/AP1GczNY46QB5i9LjktiAVdMllW_jaIex15ncztJGTIB0WQ1CqtR-TYANkQonA=w635-h411-no?authuser=0",
+    "Cost": 66,
+    "Price": 79.86
+  },
+  {
+    "Item ID": "item-126",
+    "Name": "Ice & Water Shield",
+    "Description": "Peel and Stick, 67LF, 2 SQ. ,200 SQFT",
+    "Image": "https://encrypted-tbn2.gstatic.com/shopping?q=tbn:ANd9GcSzOAw4Aj4ZG4pmhJXJCLg51yxr0Y35tAQPTWdwS6VgVdcnqncXijRIT87s4ob1SRGXCrVFgatcJuU0LI_CIeV6FbuY7TRsNPawLxZuSjsLRZmPfDmU70mM5j9vfzUkoB6Z-ddBu9Q&usqp=CAc",
+    "Cost": 62.7,
+    "Price": 114.22
+  },
+  {
+    "Item ID": "item-127",
+    "Name": "Ridge Vent 4LF",
+    "Image": "https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcSHRVpFg9rrzAiq3H3cXgKDHQ3oBmdhOLjeikFgLv_Tu6RdK6wMwgbf_Sq-KoNhq9R0p7DezHvz7bnClmFQcIfnb2_K-tL6GF9b7svBQ42aPy90DiHbKnVxkLZXGeZ_yyN42eoS4sgkGQ&usqp=CAc",
+    "Cost": 7.15,
+    "Price": 10.2
+  },
+  {
+    "Item ID": "item-128",
+    "Name": "1 1/2\" Black Bullet Boot",
+    "Image": "https://i.ebayimg.com/images/g/BCoAAOSwddRjhlWU/s-l1200.jpg",
+    "Cost": 16.67,
+    "Price": 20.89
+  },
+  {
+    "Item ID": "item-129",
+    "Name": "2\" Black Bullet Boot",
+    "Image": "https://i.ebayimg.com/images/g/BCoAAOSwddRjhlWU/s-l1200.jpg",
+    "Cost": 17.77,
+    "Price": 22.54
+  },
+  {
+    "Item ID": "item-130",
+    "Name": "3\" Black Bullet Boot",
+    "Image": "https://i.ebayimg.com/images/g/BCoAAOSwddRjhlWU/s-l1200.jpg",
+    "Cost": 20.19,
+    "Price": 38.29
+  },
+  {
+    "Item ID": "item-131",
+    "Name": "4\" Black Bullet Boot",
+    "Image": "https://i.ebayimg.com/images/g/BCoAAOSwddRjhlWU/s-l1200.jpg",
+    "Cost": 37.48,
+    "Price": 42.5
+  },
+  {
+    "Item ID": "item-132",
+    "Name": "Sealant",
+    "Image": "https://www.topshieldproducts.com/siteassets/ts-product-images/sealants--paints/selants/elastomeric-sealant-clear_default.jpg",
+    "Cost": 9.35,
+    "Price": 10
+  },
+  {
+    "Item ID": "item-133",
+    "Name": "Zipper boot",
+    "Image": "https://images.thdstatic.com/productImages/3e28c711-45ad-4010-926e-578b9e99684c/svn/oatey-vent-pipe-flashing-14751-e1_600.jpg",
+    "Cost": 37.4,
+    "Price": 48
+  }
+]

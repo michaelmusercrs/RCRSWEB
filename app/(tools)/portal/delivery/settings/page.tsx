@@ -162,12 +162,12 @@ const ALL_PERMISSIONS = [
 const ALL_ROLES = ['admin', 'manager', 'office', 'driver', 'warehouse'];
 
 const MOCK_USERS = [
-  { id: 'u1', name: 'Michael (Owner)', email: 'michael@rcrsal.com', role: 'admin' },
-  { id: 'u2', name: 'Sarah Johnson', email: 'sarah@rcrsal.com', role: 'manager' },
-  { id: 'u3', name: 'Emily Clark', email: 'emily@rcrsal.com', role: 'office' },
-  { id: 'u4', name: 'Marcus Williams', email: 'marcus@rcrsal.com', role: 'driver' },
-  { id: 'u5', name: 'Jake Torres', email: 'jake@rcrsal.com', role: 'driver' },
-  { id: 'u6', name: 'David Chen', email: 'david@rcrsal.com', role: 'warehouse' },
+  { id: 'u1', name: 'Michael Muse', email: 'michaelmuse@rcrsal.com', role: 'admin' },
+  { id: 'u2', name: 'Sara Hill', email: 'sara@rcrsal.com', role: 'manager' },
+  { id: 'u3', name: 'Tia', email: 'tia@rcrsal.com', role: 'office' },
+  { id: 'u4', name: 'Carlos Rivera', email: 'carlos@rcrsal.com', role: 'driver' },
+  { id: 'u5', name: 'Marcus Johnson', email: 'marcus@rcrsal.com', role: 'driver' },
+  { id: 'u6', name: 'Destin', email: 'destin@rcrsal.com', role: 'warehouse' },
 ];
 
 const STATUS_LABELS: Record<string, string> = {
@@ -584,7 +584,7 @@ export default function DeliverySettingsPage() {
             confidence: 'high',
           },
           coachingTipsCount: 8,
-          sampleCoachingTip: 'When you arrive, introduce yourself. Say: Hi, I am from River City Roofing Solutions. I have a delivery for John Doe. Where would you like the materials placed?',
+          sampleCoachingTip: 'When you arrive, introduce yourself. Say: Hi, I am from River City Roofing Solutions. I have a delivery for the homeowner. Where would you like the materials placed?',
         },
       });
     }

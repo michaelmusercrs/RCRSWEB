@@ -1,16 +1,22 @@
 'use client';
 
 /**
- * Email Capture Popup
- * 
- * Shows after 10 seconds or 50% scroll on the public site.
- * Captures name, email, phone (optional), address (optional).
- * Submits to /api/email-capture.
- * 
+ * Email Capture Popup — Exit-Intent Only
+ *
+ * Only shows when the user moves their mouse toward the top of the viewport
+ * (indicating they're about to leave/close the tab). On mobile, triggers
+ * when the user has been idle for 45 seconds and then scrolls up quickly.
+ *
+ * Multiple ways to dismiss:
+ * - X button (top-right)
+ * - "No thanks" link at the bottom
+ * - Click/tap the dark backdrop
+ * - Press Escape key
+ *
  * Stores a localStorage flag to avoid showing again for 7 days after dismiss/submit.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { X, Shield, Phone, Mail, MapPin, CheckCircle } from 'lucide-react';
 
 const DISMISS_KEY = 'rcrs_email_popup_dismissed';
@@ -46,6 +52,7 @@ export default function EmailCapturePopup() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const firedRef = useRef(false);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -53,30 +60,67 @@ export default function EmailCapturePopup() {
   const [address, setAddress] = useState('');
 
   const show = useCallback(() => {
-    if (shouldShow()) setVisible(true);
+    if (!firedRef.current && shouldShow()) {
+      firedRef.current = true;
+      setVisible(true);
+    }
   }, []);
 
+  // Exit-intent detection
   useEffect(() => {
     if (!shouldShow()) return;
 
-    // Show after 10 seconds
-    const timer = setTimeout(show, 10000);
-
-    // Or show on 50% scroll
-    const handleScroll = () => {
-      const scrollPercent = window.scrollY / (document.body.scrollHeight - window.innerHeight);
-      if (scrollPercent >= 0.5) {
+    // Desktop: detect mouse leaving toward top of viewport (exit intent)
+    const handleMouseLeave = (e: MouseEvent) => {
+      if (e.clientY <= 5 && e.relatedTarget === null) {
         show();
-        window.removeEventListener('scroll', handleScroll);
       }
     };
+
+    // Mobile: detect rapid scroll-up after idle (proxy for exit intent)
+    let lastScrollY = window.scrollY;
+    let idleTimer: ReturnType<typeof setTimeout>;
+    let isIdle = false;
+
+    const resetIdle = () => {
+      isIdle = false;
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => { isIdle = true; }, 45000);
+    };
+
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+      // Rapid upward scroll of 300px+ while idle = likely leaving
+      if (isIdle && lastScrollY - currentY > 300) {
+        show();
+      }
+      lastScrollY = currentY;
+    };
+
+    // Start idle timer
+    resetIdle();
+
+    document.addEventListener('mouseleave', handleMouseLeave);
     window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('touchstart', resetIdle, { passive: true });
 
     return () => {
-      clearTimeout(timer);
+      document.removeEventListener('mouseleave', handleMouseLeave);
       window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('touchstart', resetIdle);
+      clearTimeout(idleTimer);
     };
   }, [show]);
+
+  // Escape key to dismiss
+  useEffect(() => {
+    if (!visible) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleDismiss();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [visible]);
 
   const handleDismiss = () => {
     setVisible(false);
@@ -145,15 +189,24 @@ export default function EmailCapturePopup() {
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn" role="dialog" aria-label="Free roof assessment signup">
-      <div className="relative bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl max-w-md w-full p-6 md:p-8">
-        {/* Close button */}
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn"
+      role="dialog"
+      aria-label="Free roof assessment signup"
+      onClick={handleDismiss}
+    >
+      {/* Stop clicks inside the modal from dismissing */}
+      <div
+        className="relative bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl max-w-md w-full p-6 md:p-8"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Close button — large and obvious */}
         <button
           onClick={handleDismiss}
-          className="absolute top-3 right-3 p-1.5 text-gray-500 hover:text-white rounded-full hover:bg-zinc-800 transition"
-          aria-label="Close"
+          className="absolute top-3 right-3 p-2 text-gray-400 hover:text-white rounded-full hover:bg-zinc-700 bg-zinc-800 transition"
+          aria-label="Close popup"
         >
-          <X size={20} />
+          <X size={22} />
         </button>
 
         {submitted ? (
@@ -171,10 +224,10 @@ export default function EmailCapturePopup() {
                 100% Free — No Obligation
               </div>
               <h3 className="text-2xl font-bold text-white mb-2">
-                Storm Damage?<br />Get Your Free Assessment
+                Wait! Before You Go...
               </h3>
               <p className="text-gray-400 text-sm">
-                North Alabama&apos;s #1 rated roofing team. We&apos;ll inspect your roof and handle the insurance claim.
+                Get a free roof assessment — North Alabama&apos;s #1 rated team will inspect your roof and handle the insurance claim.
               </p>
             </div>
 
@@ -249,6 +302,15 @@ export default function EmailCapturePopup() {
                 className="w-full py-3 bg-brand-green hover:bg-brand-green/90 text-white font-bold rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed text-lg"
               >
                 {submitting ? 'Sending...' : 'Get My Free Roof Assessment →'}
+              </button>
+
+              {/* Clear "No thanks" dismiss link */}
+              <button
+                type="button"
+                onClick={handleDismiss}
+                className="w-full py-2 text-gray-500 hover:text-gray-300 text-sm underline underline-offset-2 transition"
+              >
+                No thanks, I&apos;m just browsing
               </button>
 
               <p className="text-gray-600 text-xs text-center">

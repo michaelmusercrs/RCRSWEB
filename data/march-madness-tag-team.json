@@ -1,0 +1,196 @@
+{
+  "tournament": {
+    "id": "tag-team",
+    "name": "Tag Team Showdown 2026",
+    "type": "random_pairs",
+    "year": 2026,
+    "startDate": "2026-03-02",
+    "endDate": "2026-03-29",
+    "status": "in_progress",
+    "currentWeek": 3,
+    "description": "Each week you're randomly paired with a new partner. Your sales are combined for a team score. Solo reps get a 1.5x multiplier. Most individual points after 4 weeks wins."
+  },
+  "settings": {
+    "roundDuration": "1week",
+    "advancementDay": "monday",
+    "advancementTime": "09:00",
+    "salesType": "accrual",
+    "totalWeeks": 4,
+    "soloMultiplier": 1.5,
+    "winPoints": 3,
+    "tiePoints": 1,
+    "lossPoints": 0
+  },
+  "participants": [
+    { "name": "Hunter Rivers", "slug": "hunter", "seed": 1, "nickname": "The Hunter", "totalPoints": 3, "totalSales": 1985.92, "wins": 1, "losses": 1, "pairHistory": ["Travis Wages", "Joseph Dowd"] },
+    { "name": "Aaron Lussi", "slug": "aaron", "seed": 2, "nickname": "Roof Angel", "totalPoints": 6, "totalSales": 2243.24, "wins": 2, "losses": 0, "pairHistory": ["Joseph Dowd", "Brendon Muse"] },
+    { "name": "Greg Muse", "slug": "greg", "seed": 3, "nickname": "Big G", "totalPoints": 6, "totalSales": 3329.41, "wins": 2, "losses": 0, "pairHistory": ["Adam Rudell", "Travis Wages"] },
+    { "name": "Brendon Muse", "slug": "brendon", "seed": 4, "nickname": "BCM", "totalPoints": 3, "totalSales": 1571.79, "wins": 1, "losses": 1, "pairHistory": ["SOLO", "Aaron Lussi"] },
+    { "name": "Adam Rudell", "slug": "adam", "seed": 5, "nickname": "Rudell", "totalPoints": 3, "totalSales": 485.71, "wins": 1, "losses": 1, "pairHistory": ["Greg Muse", "SOLO"] },
+    { "name": "Joseph Dowd", "slug": "joseph", "seed": 6, "nickname": "JD", "totalPoints": 0, "totalSales": 0, "wins": 0, "losses": 2, "pairHistory": ["Aaron Lussi", "Hunter Rivers"] },
+    { "name": "Travis Wages", "slug": "travis", "seed": 7, "nickname": "T-Money", "totalPoints": 0, "totalSales": 500.00, "wins": 0, "losses": 2, "pairHistory": ["Hunter Rivers", "Greg Muse"] }
+  ],
+  "weeks": [
+    {
+      "week": 1,
+      "start": "2026-03-02",
+      "end": "2026-03-08",
+      "status": "completed",
+      "pairings": [
+        {
+          "pairId": "W1-P1",
+          "type": "pair",
+          "rep1": { "name": "Hunter Rivers", "individualSales": 0 },
+          "rep2": { "name": "Travis Wages", "individualSales": 0 },
+          "combinedSales": 0
+        },
+        {
+          "pairId": "W1-P2",
+          "type": "pair",
+          "rep1": { "name": "Aaron Lussi", "individualSales": 1831.60 },
+          "rep2": { "name": "Joseph Dowd", "individualSales": 0 },
+          "combinedSales": 1831.60
+        },
+        {
+          "pairId": "W1-P3",
+          "type": "pair",
+          "rep1": { "name": "Greg Muse", "individualSales": 1404.19 },
+          "rep2": { "name": "Adam Rudell", "individualSales": 485.71 },
+          "combinedSales": 1889.90
+        },
+        {
+          "pairId": "W1-P4",
+          "type": "solo",
+          "rep1": { "name": "Brendon Muse", "individualSales": 0 },
+          "rep2": null,
+          "combinedSales": 0,
+          "soloNote": "1.5x multiplier applied ($0 x 1.5)"
+        }
+      ],
+      "rankings": [
+        { "rank": 1, "pairId": "W1-P3", "names": "Greg + Adam", "score": 1889.90 },
+        { "rank": 2, "pairId": "W1-P2", "names": "Aaron + Joseph", "score": 1831.60 },
+        { "rank": 3, "pairId": "W1-P1", "names": "Hunter + Travis", "score": 0 },
+        { "rank": 4, "pairId": "W1-P4", "names": "Brendon (Solo)", "score": 0 }
+      ],
+      "weekWinners": ["Greg Muse", "Adam Rudell"],
+      "weekLosers": ["Hunter Rivers", "Travis Wages", "Brendon Muse"]
+    },
+    {
+      "week": 2,
+      "start": "2026-03-09",
+      "end": "2026-03-15",
+      "status": "completed",
+      "pairings": [
+        {
+          "pairId": "W2-P1",
+          "type": "pair",
+          "rep1": { "name": "Aaron Lussi", "individualSales": 411.64 },
+          "rep2": { "name": "Brendon Muse", "individualSales": 1571.79 },
+          "combinedSales": 1983.43
+        },
+        {
+          "pairId": "W2-P2",
+          "type": "pair",
+          "rep1": { "name": "Hunter Rivers", "individualSales": 1985.92 },
+          "rep2": { "name": "Joseph Dowd", "individualSales": 0 },
+          "combinedSales": 1985.92
+        },
+        {
+          "pairId": "W2-P3",
+          "type": "pair",
+          "rep1": { "name": "Greg Muse", "individualSales": 1925.22 },
+          "rep2": { "name": "Travis Wages", "individualSales": 500.00 },
+          "combinedSales": 2425.22
+        },
+        {
+          "pairId": "W2-P4",
+          "type": "solo",
+          "rep1": { "name": "Adam Rudell", "individualSales": 0 },
+          "rep2": null,
+          "combinedSales": 0,
+          "soloNote": "1.5x multiplier applied ($0 x 1.5)"
+        }
+      ],
+      "rankings": [
+        { "rank": 1, "pairId": "W2-P3", "names": "Greg + Travis", "score": 2425.22 },
+        { "rank": 2, "pairId": "W2-P2", "names": "Hunter + Joseph", "score": 1985.92 },
+        { "rank": 3, "pairId": "W2-P1", "names": "Aaron + Brendon", "score": 1983.43 },
+        { "rank": 4, "pairId": "W2-P4", "names": "Adam (Solo)", "score": 0 }
+      ],
+      "weekWinners": ["Greg Muse", "Travis Wages"],
+      "weekLosers": ["Aaron Lussi", "Brendon Muse", "Adam Rudell"]
+    },
+    {
+      "week": 3,
+      "start": "2026-03-16",
+      "end": "2026-03-22",
+      "status": "active",
+      "pairings": [
+        {
+          "pairId": "W3-P1",
+          "type": "pair",
+          "rep1": { "name": "Greg Muse", "individualSales": 0 },
+          "rep2": { "name": "Aaron Lussi", "individualSales": 0 },
+          "combinedSales": 0
+        },
+        {
+          "pairId": "W3-P2",
+          "type": "pair",
+          "rep1": { "name": "Brendon Muse", "individualSales": 0 },
+          "rep2": { "name": "Travis Wages", "individualSales": 0 },
+          "combinedSales": 0
+        },
+        {
+          "pairId": "W3-P3",
+          "type": "pair",
+          "rep1": { "name": "Hunter Rivers", "individualSales": 0 },
+          "rep2": { "name": "Adam Rudell", "individualSales": 0 },
+          "combinedSales": 0
+        },
+        {
+          "pairId": "W3-P4",
+          "type": "solo",
+          "rep1": { "name": "Joseph Dowd", "individualSales": 0 },
+          "rep2": null,
+          "combinedSales": 0,
+          "soloNote": "1.5x multiplier applied"
+        }
+      ],
+      "rankings": [],
+      "weekWinners": [],
+      "weekLosers": []
+    },
+    {
+      "week": 4,
+      "start": "2026-03-23",
+      "end": "2026-03-29",
+      "status": "upcoming",
+      "pairings": [],
+      "rankings": [],
+      "weekWinners": [],
+      "weekLosers": []
+    }
+  ],
+  "standings": [
+    { "rank": 1, "name": "Greg Muse", "points": 6, "totalSales": 3329.41, "avgSales": 1664.71, "wins": 2, "losses": 0, "bestPair": "Travis Wages" },
+    { "rank": 2, "name": "Aaron Lussi", "points": 6, "totalSales": 2243.24, "avgSales": 1121.62, "wins": 2, "losses": 0, "bestPair": "Joseph Dowd" },
+    { "rank": 3, "name": "Hunter Rivers", "points": 3, "totalSales": 1985.92, "avgSales": 992.96, "wins": 1, "losses": 1, "bestPair": "Joseph Dowd" },
+    { "rank": 4, "name": "Brendon Muse", "points": 3, "totalSales": 1571.79, "avgSales": 785.90, "wins": 1, "losses": 1, "bestPair": "Aaron Lussi" },
+    { "rank": 5, "name": "Adam Rudell", "points": 3, "totalSales": 485.71, "avgSales": 242.86, "wins": 1, "losses": 1, "bestPair": "Greg Muse" },
+    { "rank": 6, "name": "Travis Wages", "points": 0, "totalSales": 500.00, "avgSales": 250.00, "wins": 0, "losses": 2, "bestPair": "Greg Muse" },
+    { "rank": 7, "name": "Joseph Dowd", "points": 0, "totalSales": 0, "avgSales": 0, "wins": 0, "losses": 2, "bestPair": "Aaron Lussi" }
+  ],
+  "bestPairAllTime": {
+    "names": "Greg + Travis",
+    "week": 2,
+    "combinedSales": 2425.22
+  },
+  "champion": null,
+  "prizes": {
+    "champion": "$500 Cash + Tag Team Belt",
+    "runnerUp": "$250 Cash",
+    "bestPartner": "$100 Gift Card - Highest Combined Pair Score in Any Week",
+    "ironMan": "$100 Gift Card - Highest Individual Sales Total"
+  }
+}

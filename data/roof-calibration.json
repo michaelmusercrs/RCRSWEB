@@ -1,0 +1,14 @@
+{
+  "calibrations": [],
+  "methodAccuracy": {},
+  "photoCorrections": {
+    "sampleCount": 0,
+    "avgDelta": {
+      "ridge": 0,
+      "rake": 0,
+      "valley": 0,
+      "eave": 0,
+      "hip": 0
+    }
+  }
+}

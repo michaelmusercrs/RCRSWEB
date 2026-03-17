@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
@@ -16,64 +16,70 @@ type LoginMode = 'select' | 'driver' | 'staff';
 type ForgotMode = 'none' | 'form' | 'sent';
 
 // ──────────────────────────────────────────────
-// Animated Grid Background
+// Ambient Background — animates once, freezes
 // ──────────────────────────────────────────────
-function GridBackground() {
-  return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none">
-      {/* Dot grid */}
-      <div className="absolute inset-0 opacity-20" style={{
-        backgroundImage: `radial-gradient(circle at 1px 1px, rgba(57,255,20,0.15) 1px, transparent 0)`,
-        backgroundSize: '40px 40px'
-      }} />
-      {/* Horizontal scan line */}
-      <div className="absolute inset-0">
-        <div className="absolute w-full h-[1px] animate-scanline" style={{
-          background: 'linear-gradient(90deg, transparent 0%, rgba(57,255,20,0.08) 20%, rgba(57,255,20,0.15) 50%, rgba(57,255,20,0.08) 80%, transparent 100%)',
-        }} />
-      </div>
-      {/* Radial vignette */}
-      <div className="absolute inset-0" style={{
-        background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.8) 100%)'
-      }} />
-    </div>
-  );
-}
+function AmbientBackground() {
+  const [skipAnimation, setSkipAnimation] = useState(false);
 
-// ──────────────────────────────────────────────
-// Floating Particles
-// ──────────────────────────────────────────────
-function FloatingParticles() {
-  const particles = useRef(
-    Array.from({ length: 30 }, (_, i) => ({
-      id: i,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      size: Math.random() * 3 + 1,
-      duration: Math.random() * 20 + 15,
-      delay: Math.random() * -20,
-      opacity: Math.random() * 0.4 + 0.1,
-    }))
-  ).current;
+  useEffect(() => {
+    // Skip animation on slow devices or if user prefers reduced motion
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const isSlowDevice =
+      (navigator.hardwareConcurrency !== undefined && navigator.hardwareConcurrency <= 2) ||
+      ('connection' in navigator && (navigator as any).connection?.saveData);
+    if (prefersReduced || isSlowDevice) setSkipAnimation(true);
+  }, []);
+
+  const finalState = skipAnimation ? ' bg-settled' : '';
 
   return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none">
-      {particles.map(p => (
+    <div className={`fixed inset-0 overflow-hidden pointer-events-none${finalState}`}>
+      {/* Base gradient — subtle warm-to-cool diagonal */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: 'linear-gradient(135deg, rgba(10,10,12,1) 0%, rgba(8,10,14,1) 40%, rgba(6,8,12,1) 100%)',
+        }}
+      />
+
+      {/* Fine grid lines — fade in once via CSS */}
+      <div
+        className={skipAnimation ? 'absolute inset-0 opacity-[0.04]' : 'absolute inset-0 animate-bg-grid-in'}
+        style={{
+          backgroundImage: `
+            linear-gradient(rgba(57,255,20,0.07) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(57,255,20,0.07) 1px, transparent 1px)`,
+          backgroundSize: '64px 64px',
+        }}
+      />
+
+      {/* Diagonal accent line — sweeps once then stays */}
+      <div
+        className={skipAnimation ? 'absolute inset-0 opacity-100' : 'absolute inset-0 animate-bg-sweep'}
+      >
         <div
-          key={p.id}
-          className="absolute rounded-full animate-float-particle"
+          className="absolute inset-0"
           style={{
-            left: `${p.x}%`,
-            top: `${p.y}%`,
-            width: `${p.size}px`,
-            height: `${p.size}px`,
-            backgroundColor: `rgba(57, 255, 20, ${p.opacity})`,
-            boxShadow: `0 0 ${p.size * 3}px rgba(57, 255, 20, ${p.opacity * 0.5})`,
-            animationDuration: `${p.duration}s`,
-            animationDelay: `${p.delay}s`,
+            background: 'linear-gradient(135deg, transparent 0%, transparent 42%, rgba(57,255,20,0.03) 48%, rgba(57,255,20,0.05) 50%, rgba(57,255,20,0.03) 52%, transparent 58%, transparent 100%)',
           }}
         />
-      ))}
+      </div>
+
+      {/* Corner glow — top left, fades in once */}
+      <div
+        className={skipAnimation ? 'absolute inset-0 opacity-100' : 'absolute inset-0 animate-bg-glow-in'}
+        style={{
+          background: 'radial-gradient(ellipse 60% 50% at 15% 20%, rgba(57,255,20,0.025) 0%, transparent 70%)',
+        }}
+      />
+
+      {/* Vignette — always present */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: 'radial-gradient(ellipse 70% 60% at 50% 50%, transparent 0%, rgba(0,0,0,0.5) 100%)',
+        }}
+      />
     </div>
   );
 }
@@ -467,8 +473,7 @@ export default function PortalLogin() {
   if (authLoading) {
     return (
       <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
-        <FloatingParticles />
-        <GridBackground />
+        <AmbientBackground />
         <div className="relative z-10">
           <Loader2 className="animate-spin text-brand-green" size={48} />
         </div>
@@ -480,8 +485,7 @@ export default function PortalLogin() {
   if (user) {
     return (
       <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
-        <FloatingParticles />
-        <GridBackground />
+        <AmbientBackground />
         <div className="relative z-10 text-center">
           <Loader2 className="animate-spin text-brand-green mx-auto mb-4" size={48} />
           <p className="text-neutral-400">Redirecting to dashboard...</p>
@@ -579,8 +583,7 @@ export default function PortalLogin() {
   if (loginMode === 'select') {
     return (
       <div className="min-h-screen bg-neutral-950">
-        <FloatingParticles />
-        <GridBackground />
+        <AmbientBackground />
         <ForgotPasswordOverlay />
 
         <div
@@ -675,8 +678,7 @@ export default function PortalLogin() {
   if (loginMode === 'staff') {
     return (
       <div className="min-h-screen bg-neutral-950">
-        <FloatingParticles />
-        <GridBackground />
+        <AmbientBackground />
         <ForgotPasswordOverlay />
 
         <div
@@ -826,8 +828,7 @@ export default function PortalLogin() {
   // ── Driver Login Screen ──────────────────────
   return (
     <div className="min-h-screen bg-neutral-950">
-      <FloatingParticles />
-      <GridBackground />
+      <AmbientBackground />
 
       <div
         className="relative z-10 min-h-screen flex flex-col items-center justify-center p-6"

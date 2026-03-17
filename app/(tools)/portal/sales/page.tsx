@@ -16,6 +16,8 @@ import {
 import { useAuth } from '@/lib/auth-context';
 import { TeamRole } from '@/lib/team-roles';
 import WeeklyNumbersWidget from '@/components/portal/WeeklyNumbersWidget';
+import dynamic from 'next/dynamic';
+const SmartTipsWidget = dynamic(() => import('@/components/portal/SmartTipsWidget'), { ssr: false });
 
 // =============================================================================
 // Types

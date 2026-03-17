@@ -1,9 +1,12 @@
 /**
  * RCRS Command Center - Meeting Statistics API
  *
- * Provides aggregated statistics for Monday meetings including:
- * - Weekly/Monthly/YTD commission summaries
- * - Rep performance comparisons
+ * Provides aggregated statistics from the REAL Monday meeting numbers data
+ * (data/meeting-numbers-2026.json and data/meeting-numbers-all.json).
+ *
+ * Includes:
+ * - Weekly/Monthly/YTD summaries using real meeting sheet columns
+ * - Rep performance comparisons (Inspected, Damage, Signed, $$$$$, etc.)
  * - Goal tracking metrics
  * - Period-over-period comparisons
  *
@@ -12,35 +15,78 @@
  *   - period: 'week' | 'month' | 'ytd' (default: 'week')
  *
  * @author RCRS Development Team
- * @version 1.0.0
+ * @version 2.0.0 - Now reads from meeting-numbers cached JSON
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import commissionsData from '@/data/commissions.json';
+import { readFileSync, existsSync } from 'fs';
+import * as path from 'path';
 
 // ============================================================================
 // Types
 // ============================================================================
 
-interface CommissionEntry {
-  salesRep: string;
-  date: Date;
-  amount: number;
-  balance: number;
-  dateString: string;
+interface RawMeetingRecord {
+  meetingDate: string;   // YYYY-MM-DD
+  tabName: string;
+  repName: string;
+  Inspected: string;
+  Damage: string;
+  Signed: string;
+  Repair: string;
+  Gutter: string;
+  '$$$$$': string;
+  Approved: string;
+  Goal: string;
+  Referrals: string;
+  Agents: string;
+  Present: string;
+  'Home Show': string;
+}
+
+interface ParsedRecord {
+  meetingDate: string;
+  repName: string;
+  inspected: number;
+  damage: number;
+  signed: number;
+  repair: number;
+  gutter: number;
+  revenue: number;
+  approved: number;
+  goal: number;
+  referrals: number;
+  agents: number;
+  present: string;
+  homeShow: number;
 }
 
 interface RepPeriodStats {
   name: string;
-  currentPeriod: number;
-  previousPeriod: number;
+  // Meeting sheet metrics
+  inspected: number;
+  damage: number;
+  signed: number;
+  repair: number;
+  gutter: number;
+  revenue: number;
+  approved: number;
+  goal: number;
+  referrals: number;
+  agents: number;
+  homeShow: number;
+  weeksPresent: number;
+  totalWeeks: number;
+  // Derived / comparison
+  currentPeriod: number;        // revenue for this period (backward compat)
+  previousPeriod: number;       // revenue for previous period
   change: number;
   changePercent: number;
-  transactionCount: number;
-  avgTransaction: number;
+  transactionCount: number;     // number of weeks with data
+  avgTransaction: number;       // average revenue per week
   rank: number;
-  isHot: boolean; // Top performer or improving
-  isCold: boolean; // Underperforming
+  isHot: boolean;
+  isCold: boolean;
 }
 
 interface MeetingStats {
@@ -50,6 +96,7 @@ interface MeetingStats {
     start: string;
     end: string;
   };
+  // Backward-compatible commission fields (now sourced from meeting $$$$$ column)
   totalCommissions: number;
   totalTransactions: number;
   avgTransaction: number;
@@ -69,6 +116,19 @@ interface MeetingStats {
     percentOfTotal: number;
   };
   repStats: RepPeriodStats[];
+  // Meeting-specific team totals
+  teamTotals: {
+    inspected: number;
+    damage: number;
+    signed: number;
+    repair: number;
+    gutter: number;
+    revenue: number;
+    approved: number;
+    referrals: number;
+    agents: number;
+    homeShow: number;
+  };
   goals: {
     weeklyTarget: number;
     monthlyTarget: number;
@@ -84,13 +144,7 @@ interface MeetingStats {
     rep?: string;
     value?: number;
   }>;
-}
-
-interface RawCommissionRecord {
-  salesRep: string;
-  date: string;
-  amount: number;
-  balance: number;
+  dataSource: string;
 }
 
 // ============================================================================
@@ -98,249 +152,112 @@ interface RawCommissionRecord {
 // ============================================================================
 
 const GOALS = {
-  weeklyTarget: 15000, // $15K per week target
-  monthlyTarget: 65000, // $65K per month target
-  yearlyTarget: 780000, // $780K per year target
+  weeklyTarget: 50000,    // $50K per week target (team total from meeting sheet)
+  monthlyTarget: 200000,  // $200K per month target
+  yearlyTarget: 2400000,  // $2.4M per year target
 };
 
 // ============================================================================
-// Utility Functions
+// Helpers
 // ============================================================================
 
-function parseDate(dateStr: string): Date | null {
-  if (!dateStr || typeof dateStr !== 'string') return null;
-
-  const parts = dateStr.trim().split('/');
-  if (parts.length !== 3) return null;
-
-  const month = parseInt(parts[0], 10);
-  const day = parseInt(parts[1], 10);
-  let year = parseInt(parts[2], 10);
-
-  if (isNaN(month) || isNaN(day) || isNaN(year)) return null;
-  if (month < 1 || month > 12) return null;
-  if (day < 1 || day > 31) return null;
-
-  if (year < 100) {
-    year = 2000 + year;
-  }
-
-  if (year < 2019 || year > 2030) return null;
-
-  const date = new Date(year, month - 1, day);
-  if (date.getMonth() !== month - 1) return null;
-
-  return date;
+function parseNum(val: string | undefined | null): number {
+  if (!val || val.trim() === '') return 0;
+  const cleaned = val.replace(/[$,]/g, '').trim();
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? 0 : num;
 }
 
-function normalizeRepName(name: string): string {
-  return name.replace(/\s+/g, ' ').trim();
+function parseRecord(raw: RawMeetingRecord): ParsedRecord {
+  return {
+    meetingDate: raw.meetingDate,
+    repName: raw.repName,
+    inspected: parseNum(raw.Inspected),
+    damage: parseNum(raw.Damage),
+    signed: parseNum(raw.Signed),
+    repair: parseNum(raw.Repair),
+    gutter: parseNum(raw.Gutter),
+    revenue: parseNum(raw['$$$$$']),
+    approved: parseNum(raw.Approved),
+    goal: parseNum(raw.Goal),
+    referrals: parseNum(raw.Referrals),
+    agents: parseNum(raw.Agents),
+    present: (raw.Present || '').trim(),
+    homeShow: parseNum(raw['Home Show']),
+  };
+}
+
+function loadMeetingData(): ParsedRecord[] {
+  // Try combined all-years file first, then fall back to 2026
+  const allPath = path.join(process.cwd(), 'data', 'meeting-numbers-all.json');
+  const yearPath = path.join(process.cwd(), 'data', 'meeting-numbers-2026.json');
+
+  let rawRecords: RawMeetingRecord[] = [];
+
+  try {
+    if (existsSync(allPath)) {
+      rawRecords = JSON.parse(readFileSync(allPath, 'utf-8'));
+    } else if (existsSync(yearPath)) {
+      rawRecords = JSON.parse(readFileSync(yearPath, 'utf-8'));
+    }
+  } catch (err) {
+    console.error('[Meeting Stats] Error loading meeting data:', err);
+    return [];
+  }
+
+  // Parse and filter out Total rows and empty names
+  return rawRecords
+    .filter(r => r.repName && r.repName.trim() !== '' && r.repName.toLowerCase() !== 'total')
+    .map(parseRecord);
 }
 
 function formatDateISO(date: Date): string {
   return date.toISOString().split('T')[0];
 }
 
-function getWeekBoundaries(date: Date): { start: Date; end: Date } {
-  const dayOfWeek = date.getDay();
-  const start = new Date(date);
-  start.setDate(date.getDate() - dayOfWeek);
-  start.setHours(0, 0, 0, 0);
-
-  const end = new Date(start);
-  end.setDate(start.getDate() + 6);
-  end.setHours(23, 59, 59, 999);
-
-  return { start, end };
+function getWeekBoundaries(date: Date): { start: string; end: string } {
+  // Meeting weeks run Monday-Sunday
+  const d = new Date(date);
+  const day = d.getDay(); // 0=Sun, 1=Mon
+  const diff = day === 0 ? -6 : 1 - day;
+  const monday = new Date(d);
+  monday.setDate(d.getDate() + diff);
+  monday.setHours(0, 0, 0, 0);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  return { start: formatDateISO(monday), end: formatDateISO(sunday) };
 }
 
-function getPreviousWeekBoundaries(date: Date): { start: Date; end: Date } {
-  const current = getWeekBoundaries(date);
-  const start = new Date(current.start);
-  start.setDate(start.getDate() - 7);
-  const end = new Date(current.end);
-  end.setDate(end.getDate() - 7);
-  return { start, end };
+function getPreviousWeekBoundaries(date: Date): { start: string; end: string } {
+  const prev = new Date(date);
+  prev.setDate(prev.getDate() - 7);
+  return getWeekBoundaries(prev);
 }
 
-function getMonthBoundaries(date: Date): { start: Date; end: Date } {
+function getMonthBoundaries(date: Date): { start: string; end: string } {
   const start = new Date(date.getFullYear(), date.getMonth(), 1);
-  const end = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
-  return { start, end };
+  const end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+  return { start: formatDateISO(start), end: formatDateISO(end) };
 }
 
-function getPreviousMonthBoundaries(date: Date): { start: Date; end: Date } {
+function getPreviousMonthBoundaries(date: Date): { start: string; end: string } {
   const start = new Date(date.getFullYear(), date.getMonth() - 1, 1);
-  const end = new Date(date.getFullYear(), date.getMonth(), 0, 23, 59, 59, 999);
-  return { start, end };
+  const end = new Date(date.getFullYear(), date.getMonth(), 0);
+  return { start: formatDateISO(start), end: formatDateISO(end) };
 }
 
-function getYTDBoundaries(date: Date): { start: Date; end: Date } {
-  const start = new Date(date.getFullYear(), 0, 1);
-  const end = new Date(date);
-  end.setHours(23, 59, 59, 999);
-  return { start, end };
+function getYTDBoundaries(date: Date): { start: string; end: string } {
+  return { start: `${date.getFullYear()}-01-01`, end: formatDateISO(date) };
 }
 
-function getPreviousYTDBoundaries(date: Date): { start: Date; end: Date } {
-  const start = new Date(date.getFullYear() - 1, 0, 1);
-  const end = new Date(date.getFullYear() - 1, date.getMonth(), date.getDate());
-  end.setHours(23, 59, 59, 999);
-  return { start, end };
+function getPreviousYTDBoundaries(date: Date): { start: string; end: string } {
+  const prevYear = date.getFullYear() - 1;
+  const sameDay = new Date(prevYear, date.getMonth(), date.getDate());
+  return { start: `${prevYear}-01-01`, end: formatDateISO(sameDay) };
 }
 
-// ============================================================================
-// Data Processing
-// ============================================================================
-
-function loadAndParseData(): CommissionEntry[] {
-  const rawData = commissionsData as RawCommissionRecord[];
-  const entries: CommissionEntry[] = [];
-
-  for (const record of rawData) {
-    const salesRep = normalizeRepName(record.salesRep);
-    const date = parseDate(record.date);
-
-    if (!date || !salesRep) continue;
-
-    entries.push({
-      salesRep,
-      date,
-      amount: record.amount,
-      balance: record.balance,
-      dateString: record.date,
-    });
-  }
-
-  return entries.sort((a, b) => a.date.getTime() - b.date.getTime());
-}
-
-function filterByDateRange(
-  entries: CommissionEntry[],
-  start: Date,
-  end: Date
-): CommissionEntry[] {
-  return entries.filter((e) => e.date >= start && e.date <= end);
-}
-
-function calculateRepStats(
-  currentEntries: CommissionEntry[],
-  previousEntries: CommissionEntry[]
-): RepPeriodStats[] {
-  const currentMap = new Map<string, { total: number; count: number }>();
-  const previousMap = new Map<string, { total: number; count: number }>();
-
-  let grandTotal = 0;
-
-  for (const entry of currentEntries) {
-    if (!currentMap.has(entry.salesRep)) {
-      currentMap.set(entry.salesRep, { total: 0, count: 0 });
-    }
-    const stats = currentMap.get(entry.salesRep)!;
-    stats.total += entry.amount;
-    stats.count++;
-    grandTotal += entry.amount;
-  }
-
-  for (const entry of previousEntries) {
-    if (!previousMap.has(entry.salesRep)) {
-      previousMap.set(entry.salesRep, { total: 0, count: 0 });
-    }
-    const stats = previousMap.get(entry.salesRep)!;
-    stats.total += entry.amount;
-    stats.count++;
-  }
-
-  const repStats: RepPeriodStats[] = [];
-
-  for (const [name, current] of currentMap.entries()) {
-    const previous = previousMap.get(name) || { total: 0, count: 0 };
-    const change = current.total - previous.total;
-    const changePercent =
-      previous.total > 0 ? ((change / previous.total) * 100) : (current.total > 0 ? 100 : 0);
-
-    repStats.push({
-      name,
-      currentPeriod: Math.round(current.total * 100) / 100,
-      previousPeriod: Math.round(previous.total * 100) / 100,
-      change: Math.round(change * 100) / 100,
-      changePercent: Math.round(changePercent * 10) / 10,
-      transactionCount: current.count,
-      avgTransaction:
-        current.count > 0 ? Math.round((current.total / current.count) * 100) / 100 : 0,
-      rank: 0,
-      isHot: false,
-      isCold: false,
-    });
-  }
-
-  // Sort by current period and assign ranks
-  repStats.sort((a, b) => b.currentPeriod - a.currentPeriod);
-  repStats.forEach((rep, index) => {
-    rep.rank = index + 1;
-    // Top 3 or improving significantly
-    rep.isHot = index < 3 || rep.changePercent > 20;
-    // Bottom performers or declining significantly
-    rep.isCold = index >= repStats.length - 2 || rep.changePercent < -20;
-  });
-
-  return repStats;
-}
-
-function detectMilestones(
-  repStats: RepPeriodStats[],
-  allTimeStats: Map<string, number>
-): MeetingStats['milestones'] {
-  const milestones: MeetingStats['milestones'] = [];
-
-  for (const rep of repStats) {
-    const allTimeTotal = allTimeStats.get(rep.name) || 0;
-
-    // Career milestones
-    if (allTimeTotal >= 700000 && allTimeTotal < 750000) {
-      milestones.push({
-        type: 'achievement',
-        title: 'Approaching $750K!',
-        description: `${rep.name} is closing in on $750K career commissions`,
-        rep: rep.name,
-        value: allTimeTotal,
-      });
-    }
-
-    if (allTimeTotal >= 600000 && allTimeTotal < 650000) {
-      milestones.push({
-        type: 'achievement',
-        title: '$600K Club',
-        description: `${rep.name} has reached $600K in career commissions`,
-        rep: rep.name,
-        value: allTimeTotal,
-      });
-    }
-
-    // Weekly streaks
-    if (rep.changePercent > 50) {
-      milestones.push({
-        type: 'streak',
-        title: 'On Fire!',
-        description: `${rep.name} is up ${rep.changePercent.toFixed(1)}% vs last period`,
-        rep: rep.name,
-        value: rep.changePercent,
-      });
-    }
-
-    // Record weeks
-    if (rep.currentPeriod > 5000) {
-      milestones.push({
-        type: 'record',
-        title: 'Big Week!',
-        description: `${rep.name} closed $${(rep.currentPeriod / 1000).toFixed(1)}K this period`,
-        rep: rep.name,
-        value: rep.currentPeriod,
-      });
-    }
-  }
-
-  return milestones.slice(0, 5); // Limit to 5 milestones
+function filterByRange(records: ParsedRecord[], start: string, end: string): ParsedRecord[] {
+  return records.filter(r => r.meetingDate >= start && r.meetingDate <= end);
 }
 
 // ============================================================================
@@ -358,141 +275,249 @@ export async function GET(request: NextRequest) {
       : 'week') as 'week' | 'month' | 'ytd';
 
     const now = new Date();
-    const allEntries = loadAndParseData();
+    const allRecords = loadMeetingData();
+
+    if (allRecords.length === 0) {
+      return NextResponse.json({
+        success: false,
+        error: 'No meeting numbers data found. Run a sync first.',
+        timestamp,
+      }, { status: 404 });
+    }
 
     // Get date boundaries based on period
-    let currentBoundaries: { start: Date; end: Date };
-    let previousBoundaries: { start: Date; end: Date };
+    let currentBounds: { start: string; end: string };
+    let previousBounds: { start: string; end: string };
     let periodLabel: string;
 
     switch (period) {
       case 'week':
-        currentBoundaries = getWeekBoundaries(now);
-        previousBoundaries = getPreviousWeekBoundaries(now);
+        currentBounds = getWeekBoundaries(now);
+        previousBounds = getPreviousWeekBoundaries(now);
         periodLabel = 'This Week';
         break;
       case 'month':
-        currentBoundaries = getMonthBoundaries(now);
-        previousBoundaries = getPreviousMonthBoundaries(now);
+        currentBounds = getMonthBoundaries(now);
+        previousBounds = getPreviousMonthBoundaries(now);
         periodLabel = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
         break;
       case 'ytd':
-        currentBoundaries = getYTDBoundaries(now);
-        previousBoundaries = getPreviousYTDBoundaries(now);
+        currentBounds = getYTDBoundaries(now);
+        previousBounds = getPreviousYTDBoundaries(now);
         periodLabel = `YTD ${now.getFullYear()}`;
         break;
     }
 
-    // Filter entries
-    const currentEntries = filterByDateRange(
-      allEntries,
-      currentBoundaries.start,
-      currentBoundaries.end
-    );
-    const previousEntries = filterByDateRange(
-      allEntries,
-      previousBoundaries.start,
-      previousBoundaries.end
-    );
+    const currentRecords = filterByRange(allRecords, currentBounds.start, currentBounds.end);
+    const previousRecords = filterByRange(allRecords, previousBounds.start, previousBounds.end);
 
-    // Calculate totals
-    let currentTotal = 0;
-    let previousTotal = 0;
-
-    for (const e of currentEntries) currentTotal += e.amount;
-    for (const e of previousEntries) previousTotal += e.amount;
-
-    currentTotal = Math.round(currentTotal * 100) / 100;
-    previousTotal = Math.round(previousTotal * 100) / 100;
-
-    const commissionChange = currentTotal - previousTotal;
-    const commissionChangePercent =
-      previousTotal > 0 ? (commissionChange / previousTotal) * 100 : currentTotal > 0 ? 100 : 0;
-
-    const transactionChange = currentEntries.length - previousEntries.length;
-    const transactionChangePercent =
-      previousEntries.length > 0
-        ? (transactionChange / previousEntries.length) * 100
-        : currentEntries.length > 0
-          ? 100
-          : 0;
-
-    // Calculate rep stats
-    const repStats = calculateRepStats(currentEntries, previousEntries);
-
-    // Calculate all-time totals for milestones
-    const allTimeStats = new Map<string, number>();
-    for (const e of allEntries) {
-      allTimeStats.set(e.salesRep, (allTimeStats.get(e.salesRep) || 0) + e.amount);
+    // Group by rep for current period
+    const currentByRep = new Map<string, ParsedRecord[]>();
+    for (const rec of currentRecords) {
+      const existing = currentByRep.get(rec.repName) || [];
+      existing.push(rec);
+      currentByRep.set(rec.repName, existing);
     }
 
-    // Find top performer
-    const topPerformer = repStats[0] || { name: 'N/A', currentPeriod: 0 };
-    const topPerformerPercent =
-      currentTotal > 0 ? (topPerformer.currentPeriod / currentTotal) * 100 : 0;
+    // Group by rep for previous period
+    const previousByRep = new Map<string, ParsedRecord[]>();
+    for (const rec of previousRecords) {
+      const existing = previousByRep.get(rec.repName) || [];
+      existing.push(rec);
+      previousByRep.set(rec.repName, existing);
+    }
 
-    // Detect milestones
-    const milestones = detectMilestones(repStats, allTimeStats);
+    // Calculate team totals for current period
+    const teamTotals = {
+      inspected: 0, damage: 0, signed: 0, repair: 0, gutter: 0,
+      revenue: 0, approved: 0, referrals: 0, agents: 0, homeShow: 0,
+    };
 
-    // Calculate goal progress
-    const weekBoundaries = getWeekBoundaries(now);
-    const monthBoundaries = getMonthBoundaries(now);
-    const ytdBoundaries = getYTDBoundaries(now);
+    for (const rec of currentRecords) {
+      teamTotals.inspected += rec.inspected;
+      teamTotals.damage += rec.damage;
+      teamTotals.signed += rec.signed;
+      teamTotals.repair += rec.repair;
+      teamTotals.gutter += rec.gutter;
+      teamTotals.revenue += rec.revenue;
+      teamTotals.approved += rec.approved;
+      teamTotals.referrals += rec.referrals;
+      teamTotals.agents += rec.agents;
+      teamTotals.homeShow += rec.homeShow;
+    }
 
-    let weekTotal = 0;
-    let monthTotal = 0;
-    let ytdTotal = 0;
+    // Previous period revenue total
+    let previousRevenueTotal = 0;
+    for (const rec of previousRecords) {
+      previousRevenueTotal += rec.revenue;
+    }
 
-    for (const e of allEntries) {
-      if (e.date >= weekBoundaries.start && e.date <= weekBoundaries.end) {
-        weekTotal += e.amount;
+    // Build rep stats
+    const repStats: RepPeriodStats[] = [];
+
+    currentByRep.forEach((records, repName) => {
+      const prevRecords = previousByRep.get(repName) || [];
+
+      const currentRevenue = records.reduce((sum, r) => sum + r.revenue, 0);
+      const previousRevenue = prevRecords.reduce((sum, r) => sum + r.revenue, 0);
+      const change = currentRevenue - previousRevenue;
+      const changePercent = previousRevenue > 0
+        ? ((change / previousRevenue) * 100)
+        : (currentRevenue > 0 ? 100 : 0);
+
+      const weeksPresent = records.filter(r => r.present === '1').length;
+
+      repStats.push({
+        name: repName,
+        inspected: records.reduce((s, r) => s + r.inspected, 0),
+        damage: records.reduce((s, r) => s + r.damage, 0),
+        signed: records.reduce((s, r) => s + r.signed, 0),
+        repair: records.reduce((s, r) => s + r.repair, 0),
+        gutter: records.reduce((s, r) => s + r.gutter, 0),
+        revenue: currentRevenue,
+        approved: records.reduce((s, r) => s + r.approved, 0),
+        goal: records.reduce((s, r) => s + r.goal, 0),
+        referrals: records.reduce((s, r) => s + r.referrals, 0),
+        agents: records.reduce((s, r) => s + r.agents, 0),
+        homeShow: records.reduce((s, r) => s + r.homeShow, 0),
+        weeksPresent,
+        totalWeeks: records.length,
+        currentPeriod: Math.round(currentRevenue * 100) / 100,
+        previousPeriod: Math.round(previousRevenue * 100) / 100,
+        change: Math.round(change * 100) / 100,
+        changePercent: Math.round(changePercent * 10) / 10,
+        transactionCount: records.length,
+        avgTransaction: records.length > 0 ? Math.round((currentRevenue / records.length) * 100) / 100 : 0,
+        rank: 0,
+        isHot: false,
+        isCold: false,
+      });
+    });
+
+    // Sort by revenue ($$$$$ column) descending and assign ranks
+    repStats.sort((a, b) => b.revenue - a.revenue);
+    repStats.forEach((rep, index) => {
+      rep.rank = index + 1;
+      rep.isHot = index < 3 || rep.changePercent > 20;
+      rep.isCold = index >= repStats.length - 2 || rep.changePercent < -20;
+    });
+
+    // Top performer
+    const topPerformer = repStats[0] || { name: 'N/A', revenue: 0 };
+    const topPerformerPercent = teamTotals.revenue > 0
+      ? (topPerformer.revenue / teamTotals.revenue) * 100
+      : 0;
+
+    // Revenue change
+    const revenueChange = teamTotals.revenue - previousRevenueTotal;
+    const revenueChangePercent = previousRevenueTotal > 0
+      ? (revenueChange / previousRevenueTotal) * 100
+      : (teamTotals.revenue > 0 ? 100 : 0);
+
+    const weekCountChange = currentRecords.length - previousRecords.length;
+    const weekCountChangePercent = previousRecords.length > 0
+      ? (weekCountChange / previousRecords.length) * 100
+      : (currentRecords.length > 0 ? 100 : 0);
+
+    // Goal progress: use the current year's data for YTD calculations
+    const weekBounds = getWeekBoundaries(now);
+    const monthBounds = getMonthBoundaries(now);
+    const ytdBounds = getYTDBoundaries(now);
+
+    const weekRevenue = filterByRange(allRecords, weekBounds.start, weekBounds.end)
+      .reduce((s, r) => s + r.revenue, 0);
+    const monthRevenue = filterByRange(allRecords, monthBounds.start, monthBounds.end)
+      .reduce((s, r) => s + r.revenue, 0);
+    const ytdRevenue = filterByRange(allRecords, ytdBounds.start, ytdBounds.end)
+      .reduce((s, r) => s + r.revenue, 0);
+
+    // Milestones
+    const milestones: MeetingStats['milestones'] = [];
+
+    for (const rep of repStats) {
+      if (rep.changePercent > 50) {
+        milestones.push({
+          type: 'streak',
+          title: 'On Fire!',
+          description: `${rep.name} is up ${rep.changePercent.toFixed(1)}% vs last period`,
+          rep: rep.name,
+          value: rep.changePercent,
+        });
       }
-      if (e.date >= monthBoundaries.start && e.date <= monthBoundaries.end) {
-        monthTotal += e.amount;
+      if (rep.revenue > 20000) {
+        milestones.push({
+          type: 'record',
+          title: 'Big Period!',
+          description: `${rep.name} hit $${(rep.revenue / 1000).toFixed(1)}K in revenue`,
+          rep: rep.name,
+          value: rep.revenue,
+        });
       }
-      if (e.date >= ytdBoundaries.start && e.date <= ytdBoundaries.end) {
-        ytdTotal += e.amount;
+      if (rep.signed >= 3) {
+        milestones.push({
+          type: 'achievement',
+          title: 'Signing Machine!',
+          description: `${rep.name} signed ${rep.signed} contracts`,
+          rep: rep.name,
+          value: rep.signed,
+        });
       }
     }
+
+    // Unique meeting dates in current period (for "transactions" backward compat)
+    const uniqueWeeks = new Set(currentRecords.map(r => r.meetingDate));
 
     const stats: MeetingStats = {
       period,
       periodLabel,
       dateRange: {
-        start: formatDateISO(currentBoundaries.start),
-        end: formatDateISO(currentBoundaries.end),
+        start: currentBounds.start,
+        end: currentBounds.end,
       },
-      totalCommissions: currentTotal,
-      totalTransactions: currentEntries.length,
-      avgTransaction:
-        currentEntries.length > 0
-          ? Math.round((currentTotal / currentEntries.length) * 100) / 100
-          : 0,
+      // Backward-compatible: map revenue -> totalCommissions, weeks -> transactions
+      totalCommissions: Math.round(teamTotals.revenue * 100) / 100,
+      totalTransactions: uniqueWeeks.size,
+      avgTransaction: uniqueWeeks.size > 0
+        ? Math.round((teamTotals.revenue / uniqueWeeks.size) * 100) / 100
+        : 0,
       previousPeriod: {
-        totalCommissions: previousTotal,
-        totalTransactions: previousEntries.length,
+        totalCommissions: Math.round(previousRevenueTotal * 100) / 100,
+        totalTransactions: new Set(previousRecords.map(r => r.meetingDate)).size,
       },
       change: {
-        commissions: Math.round(commissionChange * 100) / 100,
-        commissionsPercent: Math.round(commissionChangePercent * 10) / 10,
-        transactions: transactionChange,
-        transactionsPercent: Math.round(transactionChangePercent * 10) / 10,
+        commissions: Math.round(revenueChange * 100) / 100,
+        commissionsPercent: Math.round(revenueChangePercent * 10) / 10,
+        transactions: weekCountChange,
+        transactionsPercent: Math.round(weekCountChangePercent * 10) / 10,
       },
       topPerformer: {
         name: topPerformer.name,
-        amount: topPerformer.currentPeriod,
+        amount: Math.round(topPerformer.revenue * 100) / 100,
         percentOfTotal: Math.round(topPerformerPercent * 10) / 10,
       },
       repStats,
+      teamTotals: {
+        inspected: teamTotals.inspected,
+        damage: teamTotals.damage,
+        signed: teamTotals.signed,
+        repair: teamTotals.repair,
+        gutter: teamTotals.gutter,
+        revenue: Math.round(teamTotals.revenue * 100) / 100,
+        approved: teamTotals.approved,
+        referrals: teamTotals.referrals,
+        agents: teamTotals.agents,
+        homeShow: teamTotals.homeShow,
+      },
       goals: {
         weeklyTarget: GOALS.weeklyTarget,
         monthlyTarget: GOALS.monthlyTarget,
         yearlyTarget: GOALS.yearlyTarget,
-        weeklyProgress: Math.round((weekTotal / GOALS.weeklyTarget) * 1000) / 10,
-        monthlyProgress: Math.round((monthTotal / GOALS.monthlyTarget) * 1000) / 10,
-        yearlyProgress: Math.round((ytdTotal / GOALS.yearlyTarget) * 1000) / 10,
+        weeklyProgress: Math.round((weekRevenue / GOALS.weeklyTarget) * 1000) / 10,
+        monthlyProgress: Math.round((monthRevenue / GOALS.monthlyTarget) * 1000) / 10,
+        yearlyProgress: Math.round((ytdRevenue / GOALS.yearlyTarget) * 1000) / 10,
       },
-      milestones,
+      milestones: milestones.slice(0, 5),
+      dataSource: 'meeting-numbers',
     };
 
     return NextResponse.json(

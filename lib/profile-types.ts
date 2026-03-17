@@ -5,7 +5,7 @@
 
 export interface ProfileImage {
   id: string;
-  type: 'profile' | 'truck' | 'job-before' | 'job-after' | 'video';
+  type: 'profile' | 'truck' | 'vehicle' | 'job-before' | 'job-after' | 'job-site' | 'video';
   url: string;
   thumbnailUrl?: string;
   filename: string;
@@ -123,7 +123,9 @@ export const REVIEW_SOURCES = [
 export const IMAGE_TYPE_LABELS: Record<ProfileImage['type'], string> = {
   'profile': 'Profile Photo',
   'truck': 'Truck Photo',
+  'vehicle': 'Work Vehicle',
   'job-before': 'Job Before',
   'job-after': 'Job After',
+  'job-site': 'Job Site',
   'video': 'Video',
 };

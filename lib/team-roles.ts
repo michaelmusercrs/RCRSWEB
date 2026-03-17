@@ -886,10 +886,15 @@ export function getOverrideCount(memberId: string): number {
 // ============================================
 
 // Subcontractors — NOT internal sales reps (they get 1099 subcontractor pay, not commissions)
+// TRUE subcontractors — NOT sales reps
+// BCM Contracting = Brendon Muse (SALES REP), Roof Angel = Aaron Lussi (SALES REP),
+// Rudys Roofing = Adam Rudell (SALES REP) — these are NOT subcontractors!
 const SUBCONTRACTOR_NAMES = [
   'pablo compuzano', 'pablo compuzano-cruz', 'jesus lara', 'jesus m lara',
   'martin martinez', 'martin martinez-mendoza', 'patrick manuel',
-  'bcm contracting', 'roof angel', 'rudys roofing',
+  'diego garcia', 'mr. rogelio gonzalez', 'rogelio gonzalez',
+  'dollins & associates', 'dollins', 'spradlin construction',
+  'reggie jackson',
 ];
 
 /** Returns true if the name belongs to an internal sales rep (not a subcontractor) */
@@ -901,21 +906,44 @@ export function isInternalSalesRep(name: string): boolean {
 
 /** Normalize commission name variants to canonical names */
 const NAME_ALIASES: Record<string, string> = {
+  // === CRITICAL: 1099 Business Entity → Personal Name ===
+  // All sales reps are 1099 contractors. Commission reports use entity names.
+  'bcm contracting llc': 'Brendon Muse',
+  'bcm contracting': 'Brendon Muse',
+  'rudys roofing insights llc': 'Adam Rudell',
+  'rudys roofing insights': 'Adam Rudell',
+  'rudys roofing': 'Adam Rudell',
+  'rudys roof consulting': 'Adam Rudell',
+  'roof angel, llc': 'Aaron Lussi',
+  'roof angel llc': 'Aaron Lussi',
+  'roof angel': 'Aaron Lussi',
+  'jeremy t. wages': 'Travis Wages',
+  'jeremy wages': 'Travis Wages',
+  // === Personal name variations ===
   'greg muse': 'Greg Muse',
   'gregory ray muse': 'Greg Muse',
   'gregory muse': 'Greg Muse',
   'adam rudell': 'Adam Rudell',
   'rudy': 'Adam Rudell',
   'aaron lussi': 'Aaron Lussi',
+  'brendon muse': 'Brendon Muse',
+  'brendon russell': 'Brendon Muse',
+  'boston muse': 'Brendon Muse',
+  'hunter rivers': 'Hunter Rivers',
+  'richard geahr': 'Richard Geahr',
+  'richard  geahr': 'Richard Geahr',
+  'joseph dowd': 'Joseph Dowd',
+  'travis wages': 'Travis Wages',
+  'john cordonis': 'John Cordonis',
+  // === Non-sales (for reference, NOT on sales leaderboard) ===
   'michael muse': 'Michael Muse',
   'chris muse': 'Chris Muse',
-  'sara muse': 'Sara Muse',
-  'brendon russell': 'Brendon Russell',
-  'richard geahr': 'Richard Geahr',
-  'john cordonis': 'John Cordonis',
-  'destin woodall': 'Destin Woodall',
-  'tia woodall': 'Tia Woodall',
-  'hunter muse': 'Hunter Muse',
+  'sara hill': 'Sara Hill',
+  'sara muse': 'Sara Hill',
+  'destin mccary': 'Destin Mccary',
+  'destin woodall': 'Destin Mccary',
+  'tia muse morris': 'Tia Muse Morris',
+  'tia woodall': 'Tia Muse Morris',
 };
 
 export function resolveCommissionName(name: string): string {

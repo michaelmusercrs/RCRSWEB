@@ -1,0 +1,152 @@
+{
+  "environment": "development",
+  "maintenanceMode": false,
+  "maintenanceMessage": "We're currently performing scheduled maintenance. Please check back soon.",
+  "maintenanceEndTime": null,
+  "allowedIPs": [],
+  "features": {
+    "customer-portal": {
+      "id": "customer-portal",
+      "name": "Customer Portal",
+      "description": "Customer-facing portal for viewing project status and documents",
+      "enabled": true,
+      "requiresApproval": false,
+      "category": "core",
+      "enabledEnvironments": ["development", "staging", "production"]
+    },
+    "team-portal": {
+      "id": "team-portal",
+      "name": "Team Portal",
+      "description": "Internal team portal for employees",
+      "enabled": true,
+      "requiresApproval": false,
+      "category": "core",
+      "enabledEnvironments": ["development", "staging", "production"]
+    },
+    "command-center": {
+      "id": "command-center",
+      "name": "Command Center",
+      "description": "Centralized operations dashboard",
+      "enabled": true,
+      "requiresApproval": false,
+      "category": "admin",
+      "enabledEnvironments": ["development", "staging", "production"]
+    },
+    "jobnimbus-sync": {
+      "id": "jobnimbus-sync",
+      "name": "JobNimbus Sync",
+      "description": "Real-time synchronization with JobNimbus CRM",
+      "enabled": true,
+      "requiresApproval": true,
+      "category": "api",
+      "enabledEnvironments": ["development", "staging", "production"]
+    },
+    "inventory-management": {
+      "id": "inventory-management",
+      "name": "Inventory Management",
+      "description": "Material and inventory tracking system",
+      "enabled": true,
+      "requiresApproval": false,
+      "category": "core",
+      "enabledEnvironments": ["development", "staging", "production"]
+    },
+    "commissions-tracking": {
+      "id": "commissions-tracking",
+      "name": "Commissions Tracking",
+      "description": "Sales commissions calculation and tracking",
+      "enabled": true,
+      "requiresApproval": true,
+      "category": "core",
+      "enabledEnvironments": ["development", "staging", "production"]
+    },
+    "marketing-dashboard": {
+      "id": "marketing-dashboard",
+      "name": "Marketing Dashboard",
+      "description": "Marketing campaign and lead tracking",
+      "enabled": true,
+      "requiresApproval": false,
+      "category": "admin",
+      "enabledEnvironments": ["development", "staging", "production"]
+    },
+    "blog-management": {
+      "id": "blog-management",
+      "name": "Blog Management",
+      "description": "Blog post creation and editing",
+      "enabled": true,
+      "requiresApproval": false,
+      "category": "admin",
+      "enabledEnvironments": ["development", "staging", "production"]
+    },
+    "profile-approval": {
+      "id": "profile-approval",
+      "name": "Profile Approval Workflow",
+      "description": "Team member profile change approval system",
+      "enabled": true,
+      "requiresApproval": true,
+      "category": "admin",
+      "enabledEnvironments": ["development", "staging", "production"]
+    },
+    "route-optimization": {
+      "id": "route-optimization",
+      "name": "Route Optimization",
+      "description": "Delivery and service route optimization",
+      "enabled": true,
+      "requiresApproval": false,
+      "category": "experimental",
+      "enabledEnvironments": ["development", "staging"]
+    },
+    "voice-notifications": {
+      "id": "voice-notifications",
+      "name": "Voice Notifications",
+      "description": "Automated voice call notifications",
+      "enabled": false,
+      "requiresApproval": true,
+      "category": "experimental",
+      "enabledEnvironments": ["development"]
+    },
+    "ai-chat-support": {
+      "id": "ai-chat-support",
+      "name": "AI Chat Support",
+      "description": "AI-powered customer chat support",
+      "enabled": false,
+      "requiresApproval": true,
+      "category": "experimental",
+      "enabledEnvironments": ["development"]
+    }
+  },
+  "apiKeys": [
+    {
+      "id": "api_jobnimbus_001",
+      "name": "JobNimbus Integration",
+      "keyHash": "****hidden****",
+      "lastFourChars": "50rc",
+      "permissions": ["jobs:read", "jobs:write", "contacts:read", "contacts:write"],
+      "createdAt": "2024-01-01T00:00:00Z",
+      "expiresAt": null,
+      "isActive": true
+    },
+    {
+      "id": "api_vercel_blob_001",
+      "name": "Vercel Blob Storage",
+      "keyHash": "****hidden****",
+      "lastFourChars": "xzsV",
+      "permissions": ["blob:read", "blob:write"],
+      "createdAt": "2024-01-01T00:00:00Z",
+      "expiresAt": null,
+      "isActive": true
+    },
+    {
+      "id": "api_github_001",
+      "name": "GitHub Integration",
+      "keyHash": "****hidden****",
+      "lastFourChars": "oLT",
+      "permissions": ["repo:read", "repo:write"],
+      "createdAt": "2024-01-01T00:00:00Z",
+      "expiresAt": null,
+      "isActive": true
+    }
+  ],
+  "auditLogEnabled": true,
+  "lastUpdated": "2026-02-05T00:00:00Z",
+  "lastUpdatedBy": "system"
+}
