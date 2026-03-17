@@ -224,9 +224,10 @@ export const services: Service[] = [
     image: '/uploads/service-leafx.png',
     title: 'LeafX® Gutter Protection',
     category: 'Primary',
-    description: 'LeafX gutter guard installation in Decatur, Huntsville & North Alabama. .024-gauge aluminum gutter protection with a lifetime clog-free guarantee. Stop cleaning gutters forever.',
+    description: 'LeafX gutter guard installation in Decatur, Huntsville & North Alabama by a Boral Certified LeafX Dealer & Pro Installer. .024-gauge aluminum gutter protection with a lifetime clog-free guarantee. Stop cleaning gutters forever.',
     icon: 'Shield',
     features: [
+      'Boral Certified LeafX Dealer & Pro Installer',
       '.024-gauge aluminum construction',
       'Slides under shingles',
       'Attaches to gutter lip',
@@ -400,7 +401,7 @@ export const serviceAreas: ServiceArea[] = [
     keyDetails: [
       'Metal roofing specialists for Huntsville homes',
       'Frequent storm and hail damage area',
-      'IKO certified contractor',
+      'IKO ROOFPRO, Owens Corning & Boral certified contractor',
       'Full insurance claim assistance'
     ]
   },
@@ -854,7 +855,7 @@ export const serviceAreas: ServiceArea[] = [
     keyDetails: [
       'Storm and hail damage expertise coming to Birmingham',
       'Full insurance claim assistance',
-      'IKO certified contractor',
+      'IKO ROOFPRO, Owens Corning & Boral certified contractor',
       'Free inspections at launch'
     ]
   },

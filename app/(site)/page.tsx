@@ -410,7 +410,7 @@ export default async function HomePage() {
             </h2>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
             <a
               href="https://www.iko.com/na/roofpro/"
               target="_blank"
@@ -421,6 +421,32 @@ export default async function HomePage() {
               <div className="text-center">
                 <p className="font-black text-white uppercase tracking-wider text-sm group-hover:text-brand-green transition-colors">IKO ROOFPRO&reg;</p>
                 <p className="text-neutral-500 text-xs mt-1">Craftsman Premier</p>
+              </div>
+            </a>
+
+            <a
+              href="https://www.owenscorning.com/en-us/roofing/contractors"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center gap-3 p-6 bg-neutral-950 border border-neutral-800 rounded-2xl hover:border-brand-green transition-all group"
+            >
+              <Award className="w-16 h-16 text-[#E75B8D]" />
+              <div className="text-center">
+                <p className="font-black text-white uppercase tracking-wider text-sm group-hover:text-brand-green transition-colors">Owens Corning</p>
+                <p className="text-neutral-500 text-xs mt-1">Preferred Contractor</p>
+              </div>
+            </a>
+
+            <a
+              href="https://www.boralroof.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center gap-3 p-6 bg-neutral-950 border border-neutral-800 rounded-2xl hover:border-brand-green transition-all group"
+            >
+              <Shield className="w-16 h-16 text-brand-green" />
+              <div className="text-center">
+                <p className="font-black text-white uppercase tracking-wider text-sm group-hover:text-brand-green transition-colors">Boral Certified</p>
+                <p className="text-neutral-500 text-xs mt-1">LeafX Dealer / Pro Installer</p>
               </div>
             </a>
 

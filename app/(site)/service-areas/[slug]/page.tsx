@@ -22,7 +22,7 @@ const areaMetaMap: Record<string, { title: string; description: string; keywords
   },
   'huntsville-al': {
     title: 'Roofing Contractor Huntsville AL | Roof Replacement & Storm Damage',
-    description: 'Trusted roofing contractor in Huntsville, AL. Expert roof replacement, hail damage repair, metal roofing & free inspections. IKO certified, serving Madison County. Call (256) 274-8530 for a free estimate.',
+    description: 'Trusted roofing contractor in Huntsville, AL. Expert roof replacement, hail damage repair, metal roofing & free inspections. IKO ROOFPRO & Owens Corning certified, serving Madison County. Call (256) 274-8530.',
     keywords: ['roofing contractor Huntsville AL', 'roof replacement Huntsville AL', 'roof repair Huntsville AL', 'best roofer Huntsville AL', 'hail damage Huntsville AL', 'free roof inspection Huntsville', 'metal roofing Huntsville AL'],
   },
   'madison-al': {

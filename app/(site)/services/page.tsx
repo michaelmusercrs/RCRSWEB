@@ -7,7 +7,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = genMeta({
   title: 'Roofing Services Decatur & Huntsville AL | Roof Replacement, Repair & Storm Damage',
-  description: 'Full-service roofing in Decatur, Huntsville & North Alabama. Residential roof replacement, commercial roofing, storm & hail damage repair, gutter installation, chimney services & free inspections. Licensed, insured & IKO certified. Call (256) 274-8530.',
+  description: 'Full-service roofing in Decatur, Huntsville & North Alabama. Residential roof replacement, commercial roofing, storm & hail damage repair, gutter installation, chimney services & free inspections. IKO ROOFPRO, Owens Corning Preferred & Boral Certified. Call (256) 274-8530.',
   path: '/services',
   keywords: ['roofing services Decatur AL', 'roof replacement Huntsville AL', 'roof repair near me', 'commercial roofing Huntsville Decatur AL', 'storm damage roof repair Alabama', 'emergency roof repair North Alabama', 'gutter installation North Alabama', 'chimney repair services Alabama', 'free roof inspection', 'hail damage repair'],
 });

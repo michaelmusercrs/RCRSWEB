@@ -221,8 +221,8 @@ export default function ReviewsPage() {
               },
               {
                 icon: Award,
-                title: 'IKO Certified',
-                desc: 'IKO certified contractor using only premium materials with manufacturer warranties.',
+                title: 'Multi-Certified',
+                desc: 'IKO ROOFPRO Craftsman Premier, Owens Corning Preferred Contractor, and Boral Certified LeafX Dealer.',
               },
             ].map((item, idx) => {
               const Icon = item.icon;

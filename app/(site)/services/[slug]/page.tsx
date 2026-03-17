@@ -17,8 +17,8 @@ export async function generateStaticParams() {
 const serviceMetaMap: Record<string, { title: string; description: string; keywords: string[] }> = {
   'residential-roof-replacement': {
     title: 'Roof Replacement Decatur & Huntsville AL | Free Estimate',
-    description: 'Expert residential roof replacement in Decatur, Huntsville, Madison & North Alabama. IKO Dynasty & Owens Corning shingles, 5-year workmanship warranty. Insurance claims welcome. Free inspection — call (256) 274-8530.',
-    keywords: ['roof replacement Decatur AL', 'roof replacement Huntsville AL', 'new roof cost North Alabama', 'residential roofer near me', 'shingle roof replacement Alabama', 'IKO Dynasty shingles'],
+    description: 'Expert residential roof replacement in Decatur, Huntsville, Madison & North Alabama. IKO ROOFPRO Craftsman Premier & Owens Corning Preferred Contractor. 5-year workmanship warranty. Free inspection — call (256) 274-8530.',
+    keywords: ['roof replacement Decatur AL', 'roof replacement Huntsville AL', 'new roof cost North Alabama', 'residential roofer near me', 'shingle roof replacement Alabama', 'IKO Dynasty shingles', 'Owens Corning Preferred Contractor'],
   },
   'residential-roof-repair': {
     title: 'Roof Repair Decatur & Huntsville AL | Same-Day Service Available',
@@ -42,8 +42,8 @@ const serviceMetaMap: Record<string, { title: string; description: string; keywo
   },
   'leafx-gutter-protection': {
     title: 'Gutter Guards & LeafX Gutter Protection | Decatur & Huntsville AL',
-    description: 'LeafX gutter guard installation in Decatur, Huntsville & North Alabama. Lifetime clog-free guarantee, .024-gauge aluminum, no roof penetration. Stop cleaning gutters forever. Call (256) 274-8530.',
-    keywords: ['gutter installation North Alabama', 'gutter guards Decatur AL', 'LeafX gutter protection Huntsville', 'gutter guard installation Alabama', 'clog free gutter system', 'gutter protection near me'],
+    description: 'LeafX gutter guard installation by a Boral Certified LeafX Dealer in Decatur, Huntsville & North Alabama. Lifetime clog-free guarantee, .024-gauge aluminum, no roof penetration. Call (256) 274-8530.',
+    keywords: ['gutter installation North Alabama', 'gutter guards Decatur AL', 'LeafX gutter protection Huntsville', 'gutter guard installation Alabama', 'clog free gutter system', 'gutter protection near me', 'Boral certified LeafX dealer'],
   },
   'roof-inspections-maintenance': {
     title: 'Free Roof Inspection Decatur & Huntsville AL | Annual Maintenance',

@@ -29,7 +29,7 @@ const decaturFAQs = [
 
 export const metadata: Metadata = genMeta({
   title: 'Roofing Contractor Decatur AL | Roof Repair & Replacement Near Me',
-  description: 'Top-rated roofing contractor in Decatur, AL. Expert roof repair, roof replacement, storm & hail damage restoration and free inspections. BBB A+ rated, IKO certified. Same-day service. Call (256) 274-8530.',
+  description: 'Top-rated roofing contractor in Decatur, AL. Expert roof repair, roof replacement, storm & hail damage restoration and free inspections. BBB A+ rated, IKO ROOFPRO & Owens Corning certified. Same-day service. Call (256) 274-8530.',
   keywords: ['roofing contractor Decatur AL', 'roof repair Decatur AL', 'roof replacement Decatur AL', 'best roofer Decatur AL', 'storm damage Decatur AL', 'hail damage roof repair Decatur', 'free roof inspection Decatur AL'],
   path: '/locations/decatur',
 });
