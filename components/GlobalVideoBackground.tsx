@@ -87,8 +87,10 @@ export default function GlobalVideoBackground({
           ref={videoRef}
           key={`video-${animationKey}`}
           autoPlay
+          loop
           muted
           playsInline
+          preload="metadata"
           poster="/uploads/hero-video-poster.jpg"
           onLoadedData={handleVideoLoaded}
           onError={handleVideoError}
