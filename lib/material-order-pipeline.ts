@@ -612,6 +612,65 @@ class MaterialOrderPipelineService {
     }
   }
 
+  /**
+   * Update existing order items in Sheets (for pulled/verified/delivered qty updates).
+   */
+  private async _updateOrderItems(orderId: string, items: PipelineOrderItem[]): Promise<void> {
+    const result = await getOrCreateSheet(SHEET_TABS.PIPELINE_ITEMS, [
+      'itemId', 'orderId', 'productId', 'productName', 'sku', 'category',
+      'quantity', 'unit', 'unitCost', 'unitPrice', 'totalCost', 'totalPrice',
+      'pulledQty', 'verifiedQty', 'deliveredQty', 'returnedQty', 'holdId', 'notes'
+    ]);
+    if (!result) return;
+    try {
+      const rows = await result.sheet.getRows();
+      for (const item of items) {
+        const existing = rows.find((r: GoogleSpreadsheetRow) =>
+          r.get('orderId') === orderId && r.get('itemId') === item.itemId
+        );
+        if (existing) {
+          existing.set('pulledQty', item.pulledQty.toString());
+          existing.set('verifiedQty', item.verifiedQty.toString());
+          existing.set('deliveredQty', item.deliveredQty.toString());
+          existing.set('returnedQty', item.returnedQty.toString());
+          if (item.notes) existing.set('notes', item.notes);
+          await existing.save();
+        }
+      }
+    } catch (error) {
+      console.error('Failed to update pipeline items:', error);
+    }
+  }
+
+  /**
+   * Validate that a target stage is the exact next stage (no skipping).
+   * Returns { valid, error } with the expected next stage name on failure.
+   */
+  validateStrictNextStage(currentStage: PipelineStage, targetStage: PipelineStage): { valid: boolean; error?: string; expectedNext?: PipelineStage } {
+    const currentIdx = PIPELINE_STAGES.indexOf(currentStage);
+    const targetIdx = PIPELINE_STAGES.indexOf(targetStage);
+
+    if (targetIdx === -1) {
+      return { valid: false, error: `Invalid target stage: ${targetStage}` };
+    }
+
+    const expectedIdx = currentIdx + 1;
+    if (expectedIdx >= PIPELINE_STAGES.length) {
+      return { valid: false, error: `Order is already at final stage: ${currentStage}` };
+    }
+
+    const expectedNext = PIPELINE_STAGES[expectedIdx];
+    if (targetStage !== expectedNext) {
+      return {
+        valid: false,
+        error: `Cannot skip stages. Current: ${currentStage} (${currentIdx + 1}). Expected next: ${expectedNext} (${expectedIdx + 1}). Got: ${targetStage} (${targetIdx + 1})`,
+        expectedNext,
+      };
+    }
+
+    return { valid: true };
+  }
+
   private async _persistInvoice(invoice: PipelineInvoice): Promise<void> {
     const result = await getOrCreateSheet(SHEET_TABS.INVOICES, [
       'invoiceId', 'orderId', 'type', 'jobNumber', 'jobName',
@@ -779,6 +838,34 @@ class MaterialOrderPipelineService {
     this._persistOrderItems(orderId, orderItems).catch(() => {});
     this._persistEvent(event).catch(() => {});
 
+    // Auto-transition to ORDER_REVIEWED if all items are in stock
+    let allInStock = true;
+    for (const item of orderItems) {
+      const invItem = await unifiedInventoryService.getItemById(item.productId);
+      if (!invItem || invItem.availableQty < item.quantity) {
+        allInStock = false;
+        break;
+      }
+    }
+    if (allInStock && orderItems.length > 0) {
+      const autoEvent: PipelineEvent = {
+        eventId: `EVT-${String(this.nextIds.event++).padStart(6, '0')}`,
+        orderId,
+        stage: 'ORDER_REVIEWED',
+        timestamp: new Date().toISOString(),
+        performedBy: 'system',
+        performedByName: 'System (Auto)',
+        performedByRole: 'system',
+        photoUrls: [],
+        notes: 'Auto-reviewed: all items in stock',
+      };
+      order.currentStage = 'ORDER_REVIEWED';
+      order.updatedAt = autoEvent.timestamp;
+      order.events.push(autoEvent);
+      this._persistOrder(order).catch(() => {});
+      this._persistEvent(autoEvent).catch(() => {});
+    }
+
     return order;
   }
 
@@ -875,7 +962,14 @@ class MaterialOrderPipelineService {
             const item = order.items.find(i => i.productId === resolveProductId(pulled.productId));
             if (item) item.pulledQty = pulled.pulledQty;
           }
+        } else {
+          // Default: mark all items as fully pulled
+          for (const item of order.items) {
+            item.pulledQty = item.quantity;
+          }
         }
+        // Persist updated item quantities
+        this._updateOrderItems(orderId, order.items).catch(() => {});
         break;
 
       case 'LOAD_VERIFIED':
@@ -884,7 +978,14 @@ class MaterialOrderPipelineService {
             const item = order.items.find(i => i.productId === resolveProductId(verified.productId));
             if (item) item.verifiedQty = verified.verifiedQty;
           }
+        } else {
+          // Default: verify matches pulled quantities
+          for (const item of order.items) {
+            item.verifiedQty = item.pulledQty || item.quantity;
+          }
         }
+        // Persist updated item quantities
+        this._updateOrderItems(orderId, order.items).catch(() => {});
         break;
 
       case 'ARRIVED_AT_SITE':
@@ -909,6 +1010,11 @@ class MaterialOrderPipelineService {
             const item = order.items.find(i => i.productId === resolveProductId(delivered.productId));
             if (item) item.deliveredQty = delivered.deliveredQty;
           }
+        } else {
+          // Default: delivered matches verified/pulled quantities
+          for (const item of order.items) {
+            item.deliveredQty = item.verifiedQty || item.pulledQty || item.quantity;
+          }
         }
         // Deduct stock for all delivered items
         for (const item of order.items) {
@@ -925,6 +1031,8 @@ class MaterialOrderPipelineService {
             );
           }
         }
+        // Persist updated item quantities
+        this._updateOrderItems(orderId, order.items).catch(() => {});
         break;
 
       case 'OFFICE_NOTIFIED':
@@ -955,6 +1063,13 @@ class MaterialOrderPipelineService {
         if (data?.metadata) {
           const meta = data.metadata as Record<string, unknown>;
           if (meta.paymentAmount) order.paymentAmount = meta.paymentAmount as number;
+          // Store payment method and reference in event metadata
+          event.metadata = JSON.stringify({
+            ...JSON.parse(event.metadata || '{}'),
+            paymentAmount: meta.paymentAmount,
+            paymentMethod: meta.paymentMethod || 'unknown',
+            paymentReference: meta.paymentReference || '',
+          });
         }
         // Update invoices
         if (order.customerInvoiceId) {
@@ -966,10 +1081,27 @@ class MaterialOrderPipelineService {
             this._persistInvoice(custInv).catch(() => {});
           }
         }
+        if (order.internalInvoiceId) {
+          const intInv = this.invoices.find(i => i.invoiceId === order.internalInvoiceId);
+          if (intInv) {
+            intInv.status = 'paid';
+            intInv.paidAt = now;
+            intInv.paidAmount = order.paymentAmount || intInv.total;
+            this._persistInvoice(intInv).catch(() => {});
+          }
+        }
         break;
 
       case 'JOB_CLOSED':
         order.completedAt = now;
+        // Archive: mark as final state
+        event.metadata = JSON.stringify({
+          ...JSON.parse(event.metadata || '{}'),
+          archivedAt: now,
+          finalPaymentStatus: order.paymentStatus,
+          totalDelivered: order.items.reduce((sum, i) => sum + (i.deliveredQty || 0), 0),
+          totalReturned: order.items.reduce((sum, i) => sum + (i.returnedQty || 0), 0),
+        });
         break;
     }
 

@@ -1,0 +1,1467 @@
+[
+  {
+    "orderId": "MOP-2026-1001",
+    "jobNumber": "10920",
+    "jobName": "Henderson Residence",
+    "jobAddress": "2804 Danville Rd SW",
+    "city": "Decatur",
+    "state": "AL",
+    "zip": "35603",
+    "customerName": "Robert Henderson",
+    "customerPhone": "256-353-4118",
+    "salesRep": "Aaron Lussi",
+    "projectManager": "Bart Roberts",
+    "assignedDriver": "Richard Geahr",
+    "items": [
+      {
+        "productId": "item-123",
+        "productName": "1 1/4 EG Nails",
+        "quantity": 3,
+        "unit": "box",
+        "unitPrice": 64.9,
+        "totalPrice": 194.7,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-124",
+        "productName": "Bottom Caps (plastic)",
+        "quantity": 3,
+        "unit": "bag",
+        "unitPrice": 29.15,
+        "totalPrice": 87.45,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-125",
+        "productName": "RCRS Syn Felt",
+        "quantity": 4,
+        "unit": "roll",
+        "unitPrice": 79.86,
+        "totalPrice": 319.44,
+        "category": "Underlayment"
+      },
+      {
+        "productId": "item-127",
+        "productName": "Ridge Vent 4LF",
+        "quantity": 16,
+        "unit": "piece",
+        "unitPrice": 10.2,
+        "totalPrice": 163.2,
+        "category": "Ventilation"
+      },
+      {
+        "productId": "item-132",
+        "productName": "Sealant",
+        "quantity": 4,
+        "unit": "tube",
+        "unitPrice": 10.0,
+        "totalPrice": 40.0,
+        "category": "Sealants"
+      }
+    ],
+    "totalMaterialCost": 804.79,
+    "ourCost": 547.8,
+    "priority": "normal",
+    "status": "completed",
+    "notes": "",
+    "createdAt": "2026-02-11T08:30:00Z",
+    "reviewedAt": "2026-02-11T09:45:00Z",
+    "driverAssignedAt": "2026-02-11T11:00:00Z",
+    "materialsPulledAt": "2026-02-12T00:30:00Z",
+    "loadedAt": "2026-02-12T06:30:00Z",
+    "departedAt": "2026-02-12T17:00:00Z",
+    "arrivedAt": "2026-02-12T17:25:00Z",
+    "deliveredAt": "2026-02-12T18:05:00Z",
+    "qcAt": "2026-02-12T20:00:00Z",
+    "billedAt": "2026-02-14T17:00:00Z",
+    "paidAt": "2026-02-26T17:00:00Z",
+    "closedAt": "2026-03-05T17:00:00Z"
+  },
+  {
+    "orderId": "MOP-2026-1002",
+    "jobNumber": "10925",
+    "jobName": "Whitfield Residence",
+    "jobAddress": "1507 Somerville Rd SE",
+    "city": "Decatur",
+    "state": "AL",
+    "zip": "35601",
+    "customerName": "Karen Whitfield",
+    "customerPhone": "256-350-2761",
+    "salesRep": "Brendon Muse",
+    "projectManager": "Bart Roberts",
+    "assignedDriver": "Travis Wages",
+    "items": [
+      {
+        "productId": "item-123",
+        "productName": "1 1/4 EG Nails",
+        "quantity": 2,
+        "unit": "box",
+        "unitPrice": 64.9,
+        "totalPrice": 129.8,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-124",
+        "productName": "Bottom Caps (plastic)",
+        "quantity": 2,
+        "unit": "bag",
+        "unitPrice": 29.15,
+        "totalPrice": 58.3,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-125",
+        "productName": "RCRS Syn Felt",
+        "quantity": 3,
+        "unit": "roll",
+        "unitPrice": 79.86,
+        "totalPrice": 239.58,
+        "category": "Underlayment"
+      },
+      {
+        "productId": "item-126",
+        "productName": "Ice & Water Shield",
+        "quantity": 2,
+        "unit": "roll",
+        "unitPrice": 114.22,
+        "totalPrice": 228.44,
+        "category": "Underlayment"
+      },
+      {
+        "productId": "item-127",
+        "productName": "Ridge Vent 4LF",
+        "quantity": 12,
+        "unit": "piece",
+        "unitPrice": 10.2,
+        "totalPrice": 122.4,
+        "category": "Ventilation"
+      },
+      {
+        "productId": "item-128",
+        "productName": "1 1/2\" Black Bullet Boot",
+        "quantity": 3,
+        "unit": "each",
+        "unitPrice": 20.89,
+        "totalPrice": 62.67,
+        "category": "Flashing"
+      }
+    ],
+    "totalMaterialCost": 841.19,
+    "ourCost": 547.21,
+    "priority": "normal",
+    "status": "completed",
+    "notes": "",
+    "createdAt": "2026-02-13T09:15:00Z",
+    "reviewedAt": "2026-02-13T10:30:00Z",
+    "driverAssignedAt": "2026-02-13T11:45:00Z",
+    "materialsPulledAt": "2026-02-14T01:15:00Z",
+    "loadedAt": "2026-02-14T07:15:00Z",
+    "departedAt": "2026-02-14T17:45:00Z",
+    "arrivedAt": "2026-02-14T18:10:00Z",
+    "deliveredAt": "2026-02-14T18:50:00Z",
+    "qcAt": "2026-02-14T20:45:00Z",
+    "billedAt": "2026-02-16T17:45:00Z",
+    "paidAt": "2026-02-28T17:45:00Z",
+    "closedAt": "2026-03-07T17:45:00Z"
+  },
+  {
+    "orderId": "MOP-2026-1003",
+    "jobNumber": "10931",
+    "jobName": "Campbell Roof Replacement",
+    "jobAddress": "119 Plummer Dr",
+    "city": "Madison",
+    "state": "AL",
+    "zip": "35758",
+    "customerName": "David Campbell",
+    "customerPhone": "256-325-8842",
+    "salesRep": "Hunter Rivers",
+    "projectManager": "John Cordonis",
+    "assignedDriver": "Richard Geahr",
+    "items": [
+      {
+        "productId": "item-123",
+        "productName": "1 1/4 EG Nails",
+        "quantity": 4,
+        "unit": "box",
+        "unitPrice": 64.9,
+        "totalPrice": 259.6,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-124",
+        "productName": "Bottom Caps (plastic)",
+        "quantity": 3,
+        "unit": "bag",
+        "unitPrice": 29.15,
+        "totalPrice": 87.45,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-125",
+        "productName": "RCRS Syn Felt",
+        "quantity": 5,
+        "unit": "roll",
+        "unitPrice": 79.86,
+        "totalPrice": 399.3,
+        "category": "Underlayment"
+      },
+      {
+        "productId": "item-126",
+        "productName": "Ice & Water Shield",
+        "quantity": 2,
+        "unit": "roll",
+        "unitPrice": 114.22,
+        "totalPrice": 228.44,
+        "category": "Underlayment"
+      },
+      {
+        "productId": "item-127",
+        "productName": "Ridge Vent 4LF",
+        "quantity": 20,
+        "unit": "piece",
+        "unitPrice": 10.2,
+        "totalPrice": 204.0,
+        "category": "Ventilation"
+      },
+      {
+        "productId": "item-129",
+        "productName": "2\" Black Bullet Boot",
+        "quantity": 3,
+        "unit": "each",
+        "unitPrice": 22.54,
+        "totalPrice": 67.62,
+        "category": "Flashing"
+      },
+      {
+        "productId": "item-130",
+        "productName": "3\" Black Bullet Boot",
+        "quantity": 2,
+        "unit": "each",
+        "unitPrice": 38.29,
+        "totalPrice": 76.58,
+        "category": "Flashing"
+      }
+    ],
+    "totalMaterialCost": 1322.99,
+    "ourCost": 851.59,
+    "priority": "normal",
+    "status": "completed",
+    "notes": "",
+    "createdAt": "2026-02-17T07:45:00Z",
+    "reviewedAt": "2026-02-17T09:00:00Z",
+    "driverAssignedAt": "2026-02-17T10:15:00Z",
+    "materialsPulledAt": "2026-02-17T23:45:00Z",
+    "loadedAt": "2026-02-18T05:45:00Z",
+    "departedAt": "2026-02-18T16:15:00Z",
+    "arrivedAt": "2026-02-18T16:40:00Z",
+    "deliveredAt": "2026-02-18T17:20:00Z",
+    "qcAt": "2026-02-18T19:15:00Z",
+    "billedAt": "2026-02-20T16:15:00Z",
+    "paidAt": "2026-03-04T16:15:00Z",
+    "closedAt": "2026-03-11T16:15:00Z"
+  },
+  {
+    "orderId": "MOP-2026-1004",
+    "jobNumber": "10936",
+    "jobName": "Patterson Hail Damage",
+    "jobAddress": "2307 Stratford Rd SE",
+    "city": "Huntsville",
+    "state": "AL",
+    "zip": "35801",
+    "customerName": "James Patterson",
+    "customerPhone": "256-536-1290",
+    "salesRep": "Greg Muse",
+    "projectManager": "Bart Roberts",
+    "assignedDriver": "Travis Wages",
+    "items": [
+      {
+        "productId": "item-123",
+        "productName": "1 1/4 EG Nails",
+        "quantity": 3,
+        "unit": "box",
+        "unitPrice": 64.9,
+        "totalPrice": 194.7,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-124",
+        "productName": "Bottom Caps (plastic)",
+        "quantity": 2,
+        "unit": "bag",
+        "unitPrice": 29.15,
+        "totalPrice": 58.3,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-125",
+        "productName": "RCRS Syn Felt",
+        "quantity": 4,
+        "unit": "roll",
+        "unitPrice": 79.86,
+        "totalPrice": 319.44,
+        "category": "Underlayment"
+      },
+      {
+        "productId": "item-126",
+        "productName": "Ice & Water Shield",
+        "quantity": 1,
+        "unit": "roll",
+        "unitPrice": 114.22,
+        "totalPrice": 114.22,
+        "category": "Underlayment"
+      },
+      {
+        "productId": "item-127",
+        "productName": "Ridge Vent 4LF",
+        "quantity": 14,
+        "unit": "piece",
+        "unitPrice": 10.2,
+        "totalPrice": 142.8,
+        "category": "Ventilation"
+      },
+      {
+        "productId": "item-132",
+        "productName": "Sealant",
+        "quantity": 5,
+        "unit": "tube",
+        "unitPrice": 10.0,
+        "totalPrice": 50.0,
+        "category": "Sealants"
+      },
+      {
+        "productId": "item-133",
+        "productName": "Zipper Boot",
+        "quantity": 2,
+        "unit": "each",
+        "unitPrice": 48.0,
+        "totalPrice": 96.0,
+        "category": "Flashing"
+      },
+      {
+        "productId": "item-123",
+        "productName": "1 1/4 EG Nails",
+        "quantity": 2,
+        "unit": "box",
+        "unitPrice": 64.9,
+        "totalPrice": 129.8,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-125",
+        "productName": "RCRS Syn Felt",
+        "quantity": 3,
+        "unit": "roll",
+        "unitPrice": 79.86,
+        "totalPrice": 239.58,
+        "category": "Underlayment"
+      },
+      {
+        "productId": "item-127",
+        "productName": "Ridge Vent 4LF",
+        "quantity": 10,
+        "unit": "piece",
+        "unitPrice": 10.2,
+        "totalPrice": 102.0,
+        "category": "Ventilation"
+      },
+      {
+        "productId": "item-128",
+        "productName": "1 1/2\" Black Bullet Boot",
+        "quantity": 2,
+        "unit": "each",
+        "unitPrice": 20.89,
+        "totalPrice": 41.78,
+        "category": "Flashing"
+      },
+      {
+        "productId": "item-129",
+        "productName": "2\" Black Bullet Boot",
+        "quantity": 2,
+        "unit": "each",
+        "unitPrice": 22.54,
+        "totalPrice": 45.08,
+        "category": "Flashing"
+      },
+      {
+        "productId": "item-132",
+        "productName": "Sealant",
+        "quantity": 3,
+        "unit": "tube",
+        "unitPrice": 10.0,
+        "totalPrice": 30.0,
+        "category": "Sealants"
+      }
+    ],
+    "totalMaterialCost": 1563.7,
+    "ourCost": 1085.28,
+    "priority": "normal",
+    "status": "completed",
+    "notes": "",
+    "createdAt": "2026-02-20T10:00:00Z",
+    "reviewedAt": "2026-02-20T11:15:00Z",
+    "driverAssignedAt": "2026-02-20T12:30:00Z",
+    "materialsPulledAt": "2026-02-21T02:00:00Z",
+    "loadedAt": "2026-02-21T08:00:00Z",
+    "departedAt": "2026-02-21T18:30:00Z",
+    "arrivedAt": "2026-02-21T18:55:00Z",
+    "deliveredAt": "2026-02-21T19:35:00Z",
+    "qcAt": "2026-02-21T21:30:00Z",
+    "billedAt": "2026-02-23T18:30:00Z",
+    "paidAt": "2026-03-07T18:30:00Z",
+    "closedAt": "2026-03-14T18:30:00Z",
+    "additionalJobs": [
+      {
+        "jobNumber": "10940",
+        "jobName": "Brooks Storm Repair",
+        "jobAddress": "503 E Hobbs St",
+        "city": "Athens"
+      }
+    ]
+  },
+  {
+    "orderId": "MOP-2026-1005",
+    "jobNumber": "10945",
+    "jobName": "Mitchell Reroof",
+    "jobAddress": "3012 Sandlin Rd SW",
+    "city": "Decatur",
+    "state": "AL",
+    "zip": "35603",
+    "customerName": "Tommy Mitchell",
+    "customerPhone": "256-355-7103",
+    "salesRep": "Aaron Lussi",
+    "projectManager": "John Cordonis",
+    "assignedDriver": "Richard Geahr",
+    "items": [
+      {
+        "productId": "item-123",
+        "productName": "1 1/4 EG Nails",
+        "quantity": 3,
+        "unit": "box",
+        "unitPrice": 64.9,
+        "totalPrice": 194.7,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-124",
+        "productName": "Bottom Caps (plastic)",
+        "quantity": 3,
+        "unit": "bag",
+        "unitPrice": 29.15,
+        "totalPrice": 87.45,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-125",
+        "productName": "RCRS Syn Felt",
+        "quantity": 5,
+        "unit": "roll",
+        "unitPrice": 79.86,
+        "totalPrice": 399.3,
+        "category": "Underlayment"
+      },
+      {
+        "productId": "item-126",
+        "productName": "Ice & Water Shield",
+        "quantity": 2,
+        "unit": "roll",
+        "unitPrice": 114.22,
+        "totalPrice": 228.44,
+        "category": "Underlayment"
+      },
+      {
+        "productId": "item-127",
+        "productName": "Ridge Vent 4LF",
+        "quantity": 18,
+        "unit": "piece",
+        "unitPrice": 10.2,
+        "totalPrice": 183.6,
+        "category": "Ventilation"
+      },
+      {
+        "productId": "item-130",
+        "productName": "3\" Black Bullet Boot",
+        "quantity": 3,
+        "unit": "each",
+        "unitPrice": 38.29,
+        "totalPrice": 114.87,
+        "category": "Flashing"
+      },
+      {
+        "productId": "item-131",
+        "productName": "4\" Black Bullet Boot",
+        "quantity": 2,
+        "unit": "each",
+        "unitPrice": 42.5,
+        "totalPrice": 85.0,
+        "category": "Flashing"
+      }
+    ],
+    "totalMaterialCost": 1293.36,
+    "ourCost": 851.63,
+    "priority": "rush",
+    "status": "completed",
+    "notes": "RUSH - Insurance adjuster visiting tomorrow, need materials on site",
+    "createdAt": "2026-02-24T14:30:00Z",
+    "reviewedAt": "2026-02-24T15:45:00Z",
+    "driverAssignedAt": "2026-02-24T17:00:00Z",
+    "materialsPulledAt": "2026-02-25T06:30:00Z",
+    "loadedAt": "2026-02-25T12:30:00Z",
+    "departedAt": "2026-02-25T23:00:00Z",
+    "arrivedAt": "2026-02-25T23:25:00Z",
+    "deliveredAt": "2026-02-26T00:05:00Z",
+    "qcAt": "2026-02-26T02:00:00Z",
+    "billedAt": "2026-02-27T23:00:00Z",
+    "paidAt": "2026-03-11T23:00:00Z",
+    "closedAt": "2026-03-18T23:00:00Z"
+  },
+  {
+    "orderId": "MOP-2026-1006",
+    "jobNumber": "10948",
+    "jobName": "Foster Insurance Claim",
+    "jobAddress": "210 Jeff Rd NW",
+    "city": "Huntsville",
+    "state": "AL",
+    "zip": "35806",
+    "customerName": "Angela Foster",
+    "customerPhone": "256-837-2219",
+    "salesRep": "Joseph Dowd",
+    "projectManager": "Bart Roberts",
+    "assignedDriver": "Travis Wages",
+    "items": [
+      {
+        "productId": "item-123",
+        "productName": "1 1/4 EG Nails",
+        "quantity": 2,
+        "unit": "box",
+        "unitPrice": 64.9,
+        "totalPrice": 129.8,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-124",
+        "productName": "Bottom Caps (plastic)",
+        "quantity": 2,
+        "unit": "bag",
+        "unitPrice": 29.15,
+        "totalPrice": 58.3,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-125",
+        "productName": "RCRS Syn Felt",
+        "quantity": 3,
+        "unit": "roll",
+        "unitPrice": 79.86,
+        "totalPrice": 239.58,
+        "category": "Underlayment"
+      },
+      {
+        "productId": "item-126",
+        "productName": "Ice & Water Shield",
+        "quantity": 1,
+        "unit": "roll",
+        "unitPrice": 114.22,
+        "totalPrice": 114.22,
+        "category": "Underlayment"
+      },
+      {
+        "productId": "item-127",
+        "productName": "Ridge Vent 4LF",
+        "quantity": 12,
+        "unit": "piece",
+        "unitPrice": 10.2,
+        "totalPrice": 122.4,
+        "category": "Ventilation"
+      },
+      {
+        "productId": "item-128",
+        "productName": "1 1/2\" Black Bullet Boot",
+        "quantity": 2,
+        "unit": "each",
+        "unitPrice": 20.89,
+        "totalPrice": 41.78,
+        "category": "Flashing"
+      },
+      {
+        "productId": "item-132",
+        "productName": "Sealant",
+        "quantity": 4,
+        "unit": "tube",
+        "unitPrice": 10.0,
+        "totalPrice": 40.0,
+        "category": "Sealants"
+      },
+      {
+        "productId": "item-123",
+        "productName": "1 1/4 EG Nails",
+        "quantity": 4,
+        "unit": "box",
+        "unitPrice": 64.9,
+        "totalPrice": 259.6,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-124",
+        "productName": "Bottom Caps (plastic)",
+        "quantity": 3,
+        "unit": "bag",
+        "unitPrice": 29.15,
+        "totalPrice": 87.45,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-125",
+        "productName": "RCRS Syn Felt",
+        "quantity": 6,
+        "unit": "roll",
+        "unitPrice": 79.86,
+        "totalPrice": 479.16,
+        "category": "Underlayment"
+      },
+      {
+        "productId": "item-126",
+        "productName": "Ice & Water Shield",
+        "quantity": 2,
+        "unit": "roll",
+        "unitPrice": 114.22,
+        "totalPrice": 228.44,
+        "category": "Underlayment"
+      },
+      {
+        "productId": "item-127",
+        "productName": "Ridge Vent 4LF",
+        "quantity": 22,
+        "unit": "piece",
+        "unitPrice": 10.2,
+        "totalPrice": 224.4,
+        "category": "Ventilation"
+      },
+      {
+        "productId": "item-129",
+        "productName": "2\" Black Bullet Boot",
+        "quantity": 3,
+        "unit": "each",
+        "unitPrice": 22.54,
+        "totalPrice": 67.62,
+        "category": "Flashing"
+      },
+      {
+        "productId": "item-131",
+        "productName": "4\" Black Bullet Boot",
+        "quantity": 2,
+        "unit": "each",
+        "unitPrice": 42.5,
+        "totalPrice": 85.0,
+        "category": "Flashing"
+      },
+      {
+        "productId": "item-133",
+        "productName": "Zipper Boot",
+        "quantity": 3,
+        "unit": "each",
+        "unitPrice": 48.0,
+        "totalPrice": 144.0,
+        "category": "Flashing"
+      }
+    ],
+    "totalMaterialCost": 2321.75,
+    "ourCost": 1583.91,
+    "priority": "normal",
+    "status": "completed",
+    "notes": "",
+    "createdAt": "2026-02-26T09:00:00Z",
+    "reviewedAt": "2026-02-26T10:15:00Z",
+    "driverAssignedAt": "2026-02-26T11:30:00Z",
+    "materialsPulledAt": "2026-02-27T01:00:00Z",
+    "loadedAt": "2026-02-27T07:00:00Z",
+    "departedAt": "2026-02-27T17:30:00Z",
+    "arrivedAt": "2026-02-27T17:55:00Z",
+    "deliveredAt": "2026-02-27T18:35:00Z",
+    "qcAt": "2026-02-27T20:30:00Z",
+    "billedAt": "2026-03-01T17:30:00Z",
+    "paidAt": "2026-03-13T17:30:00Z",
+    "closedAt": "2026-03-20T17:30:00Z",
+    "additionalJobs": [
+      {
+        "jobNumber": "10952",
+        "jobName": "Nguyen Roof Replacement",
+        "jobAddress": "8506 Whitesburg Dr SE",
+        "city": "Huntsville"
+      }
+    ]
+  },
+  {
+    "orderId": "MOP-2026-1007",
+    "jobNumber": "10957",
+    "jobName": "Lawson Gutter and Roof",
+    "jobAddress": "1415 Olive St NW",
+    "city": "Decatur",
+    "state": "AL",
+    "zip": "35601",
+    "customerName": "Charles Lawson",
+    "customerPhone": "256-353-8821",
+    "salesRep": "Greg Muse",
+    "projectManager": "John Cordonis",
+    "assignedDriver": "Richard Geahr",
+    "items": [
+      {
+        "productId": "item-123",
+        "productName": "1 1/4 EG Nails",
+        "quantity": 2,
+        "unit": "box",
+        "unitPrice": 64.9,
+        "totalPrice": 129.8,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-124",
+        "productName": "Bottom Caps (plastic)",
+        "quantity": 2,
+        "unit": "bag",
+        "unitPrice": 29.15,
+        "totalPrice": 58.3,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-125",
+        "productName": "RCRS Syn Felt",
+        "quantity": 3,
+        "unit": "roll",
+        "unitPrice": 79.86,
+        "totalPrice": 239.58,
+        "category": "Underlayment"
+      },
+      {
+        "productId": "item-127",
+        "productName": "Ridge Vent 4LF",
+        "quantity": 8,
+        "unit": "piece",
+        "unitPrice": 10.2,
+        "totalPrice": 81.6,
+        "category": "Ventilation"
+      },
+      {
+        "productId": "item-132",
+        "productName": "Sealant",
+        "quantity": 6,
+        "unit": "tube",
+        "unitPrice": 10.0,
+        "totalPrice": 60.0,
+        "category": "Sealants"
+      },
+      {
+        "productId": "item-130",
+        "productName": "3\" Black Bullet Boot",
+        "quantity": 2,
+        "unit": "each",
+        "unitPrice": 38.29,
+        "totalPrice": 76.58,
+        "category": "Flashing"
+      },
+      {
+        "productId": "item-123",
+        "productName": "1 1/4 EG Nails",
+        "quantity": 2,
+        "unit": "box",
+        "unitPrice": 64.9,
+        "totalPrice": 129.8,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-125",
+        "productName": "RCRS Syn Felt",
+        "quantity": 4,
+        "unit": "roll",
+        "unitPrice": 79.86,
+        "totalPrice": 319.44,
+        "category": "Underlayment"
+      },
+      {
+        "productId": "item-126",
+        "productName": "Ice & Water Shield",
+        "quantity": 1,
+        "unit": "roll",
+        "unitPrice": 114.22,
+        "totalPrice": 114.22,
+        "category": "Underlayment"
+      },
+      {
+        "productId": "item-127",
+        "productName": "Ridge Vent 4LF",
+        "quantity": 15,
+        "unit": "piece",
+        "unitPrice": 10.2,
+        "totalPrice": 153.0,
+        "category": "Ventilation"
+      },
+      {
+        "productId": "item-128",
+        "productName": "1 1/2\" Black Bullet Boot",
+        "quantity": 3,
+        "unit": "each",
+        "unitPrice": 20.89,
+        "totalPrice": 62.67,
+        "category": "Flashing"
+      },
+      {
+        "productId": "item-133",
+        "productName": "Zipper Boot",
+        "quantity": 2,
+        "unit": "each",
+        "unitPrice": 48.0,
+        "totalPrice": 96.0,
+        "category": "Flashing"
+      }
+    ],
+    "totalMaterialCost": 1520.99,
+    "ourCost": 1053.44,
+    "priority": "normal",
+    "status": "completed",
+    "notes": "",
+    "createdAt": "2026-03-03T10:30:00Z",
+    "reviewedAt": "2026-03-03T11:45:00Z",
+    "driverAssignedAt": "2026-03-03T13:00:00Z",
+    "materialsPulledAt": "2026-03-04T02:30:00Z",
+    "loadedAt": "2026-03-04T08:30:00Z",
+    "departedAt": "2026-03-04T19:00:00Z",
+    "arrivedAt": "2026-03-04T19:25:00Z",
+    "deliveredAt": "2026-03-04T20:05:00Z",
+    "qcAt": "2026-03-04T22:00:00Z",
+    "billedAt": "2026-03-06T19:00:00Z",
+    "paidAt": "2026-03-18T19:00:00Z",
+    "closedAt": "2026-03-25T19:00:00Z",
+    "additionalJobs": [
+      {
+        "jobNumber": "10960",
+        "jobName": "Turner Wind Damage",
+        "jobAddress": "425 Nance Rd",
+        "city": "Madison"
+      }
+    ]
+  },
+  {
+    "orderId": "MOP-2026-1008",
+    "jobNumber": "10963",
+    "jobName": "Barnett Reroof",
+    "jobAddress": "1803 Clearbrook Dr",
+    "city": "Decatur",
+    "state": "AL",
+    "zip": "35601",
+    "customerName": "Wayne Barnett",
+    "customerPhone": "256-350-6612",
+    "salesRep": "Adam Rudell",
+    "projectManager": "Bart Roberts",
+    "assignedDriver": "Travis Wages",
+    "items": [
+      {
+        "productId": "item-123",
+        "productName": "1 1/4 EG Nails",
+        "quantity": 3,
+        "unit": "box",
+        "unitPrice": 64.9,
+        "totalPrice": 194.7,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-124",
+        "productName": "Bottom Caps (plastic)",
+        "quantity": 3,
+        "unit": "bag",
+        "unitPrice": 29.15,
+        "totalPrice": 87.45,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-125",
+        "productName": "RCRS Syn Felt",
+        "quantity": 4,
+        "unit": "roll",
+        "unitPrice": 79.86,
+        "totalPrice": 319.44,
+        "category": "Underlayment"
+      },
+      {
+        "productId": "item-126",
+        "productName": "Ice & Water Shield",
+        "quantity": 2,
+        "unit": "roll",
+        "unitPrice": 114.22,
+        "totalPrice": 228.44,
+        "category": "Underlayment"
+      },
+      {
+        "productId": "item-127",
+        "productName": "Ridge Vent 4LF",
+        "quantity": 16,
+        "unit": "piece",
+        "unitPrice": 10.2,
+        "totalPrice": 163.2,
+        "category": "Ventilation"
+      },
+      {
+        "productId": "item-129",
+        "productName": "2\" Black Bullet Boot",
+        "quantity": 2,
+        "unit": "each",
+        "unitPrice": 22.54,
+        "totalPrice": 45.08,
+        "category": "Flashing"
+      },
+      {
+        "productId": "item-130",
+        "productName": "3\" Black Bullet Boot",
+        "quantity": 2,
+        "unit": "each",
+        "unitPrice": 38.29,
+        "totalPrice": 76.58,
+        "category": "Flashing"
+      },
+      {
+        "productId": "item-132",
+        "productName": "Sealant",
+        "quantity": 3,
+        "unit": "tube",
+        "unitPrice": 10.0,
+        "totalPrice": 30.0,
+        "category": "Sealants"
+      },
+      {
+        "productId": "item-123",
+        "productName": "1 1/4 EG Nails",
+        "quantity": 2,
+        "unit": "box",
+        "unitPrice": 64.9,
+        "totalPrice": 129.8,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-124",
+        "productName": "Bottom Caps (plastic)",
+        "quantity": 2,
+        "unit": "bag",
+        "unitPrice": 29.15,
+        "totalPrice": 58.3,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-125",
+        "productName": "RCRS Syn Felt",
+        "quantity": 2,
+        "unit": "roll",
+        "unitPrice": 79.86,
+        "totalPrice": 159.72,
+        "category": "Underlayment"
+      },
+      {
+        "productId": "item-127",
+        "productName": "Ridge Vent 4LF",
+        "quantity": 8,
+        "unit": "piece",
+        "unitPrice": 10.2,
+        "totalPrice": 81.6,
+        "category": "Ventilation"
+      },
+      {
+        "productId": "item-131",
+        "productName": "4\" Black Bullet Boot",
+        "quantity": 1,
+        "unit": "each",
+        "unitPrice": 42.5,
+        "totalPrice": 42.5,
+        "category": "Flashing"
+      }
+    ],
+    "totalMaterialCost": 1616.81,
+    "ourCost": 1054.45,
+    "priority": "normal",
+    "status": "completed",
+    "notes": "Partial delivery - remaining felt and ridge vent to follow with next run",
+    "createdAt": "2026-03-05T09:00:00Z",
+    "reviewedAt": "2026-03-05T10:15:00Z",
+    "driverAssignedAt": "2026-03-05T11:30:00Z",
+    "materialsPulledAt": "2026-03-06T01:00:00Z",
+    "loadedAt": "2026-03-06T07:00:00Z",
+    "departedAt": "2026-03-06T17:30:00Z",
+    "arrivedAt": "2026-03-06T17:55:00Z",
+    "deliveredAt": "2026-03-06T18:35:00Z",
+    "qcAt": "2026-03-06T20:30:00Z",
+    "billedAt": "2026-03-08T17:30:00Z",
+    "paidAt": "2026-03-20T17:30:00Z",
+    "closedAt": "2026-03-27T17:30:00Z",
+    "additionalJobs": [
+      {
+        "jobNumber": "10968",
+        "jobName": "Dixon Residence",
+        "jobAddress": "14789 Browns Ferry Rd",
+        "city": "Athens"
+      }
+    ]
+  },
+  {
+    "orderId": "MOP-2026-1009",
+    "jobNumber": "10972",
+    "jobName": "Pratt Hail Damage Repair",
+    "jobAddress": "109 Teakwood Dr",
+    "city": "Huntsville",
+    "state": "AL",
+    "zip": "35811",
+    "customerName": "Michael Pratt",
+    "customerPhone": "256-852-7748",
+    "salesRep": "Aaron Lussi",
+    "projectManager": "John Cordonis",
+    "assignedDriver": "Richard Geahr",
+    "items": [
+      {
+        "productId": "item-123",
+        "productName": "1 1/4 EG Nails",
+        "quantity": 3,
+        "unit": "box",
+        "unitPrice": 64.9,
+        "totalPrice": 194.7,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-124",
+        "productName": "Bottom Caps (plastic)",
+        "quantity": 2,
+        "unit": "bag",
+        "unitPrice": 29.15,
+        "totalPrice": 58.3,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-125",
+        "productName": "RCRS Syn Felt",
+        "quantity": 4,
+        "unit": "roll",
+        "unitPrice": 79.86,
+        "totalPrice": 319.44,
+        "category": "Underlayment"
+      },
+      {
+        "productId": "item-126",
+        "productName": "Ice & Water Shield",
+        "quantity": 2,
+        "unit": "roll",
+        "unitPrice": 114.22,
+        "totalPrice": 228.44,
+        "category": "Underlayment"
+      },
+      {
+        "productId": "item-127",
+        "productName": "Ridge Vent 4LF",
+        "quantity": 14,
+        "unit": "piece",
+        "unitPrice": 10.2,
+        "totalPrice": 142.8,
+        "category": "Ventilation"
+      },
+      {
+        "productId": "item-128",
+        "productName": "1 1/2\" Black Bullet Boot",
+        "quantity": 3,
+        "unit": "each",
+        "unitPrice": 20.89,
+        "totalPrice": 62.67,
+        "category": "Flashing"
+      },
+      {
+        "productId": "item-130",
+        "productName": "3\" Black Bullet Boot",
+        "quantity": 2,
+        "unit": "each",
+        "unitPrice": 38.29,
+        "totalPrice": 76.58,
+        "category": "Flashing"
+      },
+      {
+        "productId": "item-132",
+        "productName": "Sealant",
+        "quantity": 4,
+        "unit": "tube",
+        "unitPrice": 10.0,
+        "totalPrice": 40.0,
+        "category": "Sealants"
+      },
+      {
+        "productId": "item-123",
+        "productName": "1 1/4 EG Nails",
+        "quantity": 5,
+        "unit": "box",
+        "unitPrice": 64.9,
+        "totalPrice": 324.5,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-124",
+        "productName": "Bottom Caps (plastic)",
+        "quantity": 4,
+        "unit": "bag",
+        "unitPrice": 29.15,
+        "totalPrice": 116.6,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-125",
+        "productName": "RCRS Syn Felt",
+        "quantity": 7,
+        "unit": "roll",
+        "unitPrice": 79.86,
+        "totalPrice": 559.02,
+        "category": "Underlayment"
+      },
+      {
+        "productId": "item-126",
+        "productName": "Ice & Water Shield",
+        "quantity": 3,
+        "unit": "roll",
+        "unitPrice": 114.22,
+        "totalPrice": 342.66,
+        "category": "Underlayment"
+      },
+      {
+        "productId": "item-127",
+        "productName": "Ridge Vent 4LF",
+        "quantity": 24,
+        "unit": "piece",
+        "unitPrice": 10.2,
+        "totalPrice": 244.8,
+        "category": "Ventilation"
+      },
+      {
+        "productId": "item-129",
+        "productName": "2\" Black Bullet Boot",
+        "quantity": 4,
+        "unit": "each",
+        "unitPrice": 22.54,
+        "totalPrice": 90.16,
+        "category": "Flashing"
+      },
+      {
+        "productId": "item-131",
+        "productName": "4\" Black Bullet Boot",
+        "quantity": 3,
+        "unit": "each",
+        "unitPrice": 42.5,
+        "totalPrice": 127.5,
+        "category": "Flashing"
+      },
+      {
+        "productId": "item-133",
+        "productName": "Zipper Boot",
+        "quantity": 3,
+        "unit": "each",
+        "unitPrice": 48.0,
+        "totalPrice": 144.0,
+        "category": "Flashing"
+      },
+      {
+        "productId": "item-123",
+        "productName": "1 1/4 EG Nails",
+        "quantity": 2,
+        "unit": "box",
+        "unitPrice": 64.9,
+        "totalPrice": 129.8,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-124",
+        "productName": "Bottom Caps (plastic)",
+        "quantity": 2,
+        "unit": "bag",
+        "unitPrice": 29.15,
+        "totalPrice": 58.3,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-125",
+        "productName": "RCRS Syn Felt",
+        "quantity": 3,
+        "unit": "roll",
+        "unitPrice": 79.86,
+        "totalPrice": 239.58,
+        "category": "Underlayment"
+      },
+      {
+        "productId": "item-126",
+        "productName": "Ice & Water Shield",
+        "quantity": 1,
+        "unit": "roll",
+        "unitPrice": 114.22,
+        "totalPrice": 114.22,
+        "category": "Underlayment"
+      },
+      {
+        "productId": "item-127",
+        "productName": "Ridge Vent 4LF",
+        "quantity": 10,
+        "unit": "piece",
+        "unitPrice": 10.2,
+        "totalPrice": 102.0,
+        "category": "Ventilation"
+      },
+      {
+        "productId": "item-128",
+        "productName": "1 1/2\" Black Bullet Boot",
+        "quantity": 2,
+        "unit": "each",
+        "unitPrice": 20.89,
+        "totalPrice": 41.78,
+        "category": "Flashing"
+      },
+      {
+        "productId": "item-132",
+        "productName": "Sealant",
+        "quantity": 3,
+        "unit": "tube",
+        "unitPrice": 10.0,
+        "totalPrice": 30.0,
+        "category": "Sealants"
+      },
+      {
+        "productId": "item-133",
+        "productName": "Zipper Boot",
+        "quantity": 2,
+        "unit": "each",
+        "unitPrice": 48.0,
+        "totalPrice": 96.0,
+        "category": "Flashing"
+      },
+      {
+        "productId": "item-125",
+        "productName": "RCRS Syn Felt",
+        "quantity": 2,
+        "unit": "roll",
+        "unitPrice": 79.86,
+        "totalPrice": 159.72,
+        "category": "Underlayment"
+      },
+      {
+        "productId": "item-127",
+        "productName": "Ridge Vent 4LF",
+        "quantity": 8,
+        "unit": "piece",
+        "unitPrice": 10.2,
+        "totalPrice": 81.6,
+        "category": "Ventilation"
+      },
+      {
+        "productId": "item-132",
+        "productName": "Sealant",
+        "quantity": 3,
+        "unit": "tube",
+        "unitPrice": 10.0,
+        "totalPrice": 30.0,
+        "category": "Sealants"
+      },
+      {
+        "productId": "item-130",
+        "productName": "3\" Black Bullet Boot",
+        "quantity": 1,
+        "unit": "each",
+        "unitPrice": 38.29,
+        "totalPrice": 38.29,
+        "category": "Flashing"
+      }
+    ],
+    "totalMaterialCost": 4193.46,
+    "ourCost": 2847.54,
+    "priority": "normal",
+    "status": "completed",
+    "notes": "",
+    "createdAt": "2026-03-09T08:30:00Z",
+    "reviewedAt": "2026-03-09T09:45:00Z",
+    "driverAssignedAt": "2026-03-09T11:00:00Z",
+    "materialsPulledAt": "2026-03-10T00:30:00Z",
+    "loadedAt": "2026-03-10T06:30:00Z",
+    "departedAt": "2026-03-10T17:00:00Z",
+    "arrivedAt": "2026-03-10T17:25:00Z",
+    "deliveredAt": "2026-03-10T18:05:00Z",
+    "qcAt": "2026-03-10T20:00:00Z",
+    "billedAt": "2026-03-12T17:00:00Z",
+    "paidAt": "2026-03-24T17:00:00Z",
+    "closedAt": "2026-03-31T17:00:00Z",
+    "additionalJobs": [
+      {
+        "jobNumber": "10975",
+        "jobName": "Simmons Full Reroof",
+        "jobAddress": "601 Country Club Dr",
+        "city": "Decatur"
+      },
+      {
+        "jobNumber": "10980",
+        "jobName": "Garrett Storm Damage",
+        "jobAddress": "2211 Governors Dr SE",
+        "city": "Huntsville"
+      },
+      {
+        "jobNumber": "10983",
+        "jobName": "Wallace Roof Repair",
+        "jobAddress": "1012 Hwy 31 S",
+        "city": "Athens"
+      }
+    ]
+  },
+  {
+    "orderId": "MOP-2026-1010",
+    "jobNumber": "10988",
+    "jobName": "Owens Insurance Claim",
+    "jobAddress": "316 Shelton Rd",
+    "city": "Madison",
+    "state": "AL",
+    "zip": "35758",
+    "customerName": "Ronald Owens",
+    "customerPhone": "256-772-3356",
+    "salesRep": "Adam Rudell",
+    "projectManager": "Bart Roberts",
+    "assignedDriver": "Travis Wages",
+    "items": [
+      {
+        "productId": "item-123",
+        "productName": "1 1/4 EG Nails",
+        "quantity": 3,
+        "unit": "box",
+        "unitPrice": 64.9,
+        "totalPrice": 194.7,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-124",
+        "productName": "Bottom Caps (plastic)",
+        "quantity": 3,
+        "unit": "bag",
+        "unitPrice": 29.15,
+        "totalPrice": 87.45,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-125",
+        "productName": "RCRS Syn Felt",
+        "quantity": 4,
+        "unit": "roll",
+        "unitPrice": 79.86,
+        "totalPrice": 319.44,
+        "category": "Underlayment"
+      },
+      {
+        "productId": "item-126",
+        "productName": "Ice & Water Shield",
+        "quantity": 2,
+        "unit": "roll",
+        "unitPrice": 114.22,
+        "totalPrice": 228.44,
+        "category": "Underlayment"
+      },
+      {
+        "productId": "item-127",
+        "productName": "Ridge Vent 4LF",
+        "quantity": 16,
+        "unit": "piece",
+        "unitPrice": 10.2,
+        "totalPrice": 163.2,
+        "category": "Ventilation"
+      },
+      {
+        "productId": "item-128",
+        "productName": "1 1/2\" Black Bullet Boot",
+        "quantity": 2,
+        "unit": "each",
+        "unitPrice": 20.89,
+        "totalPrice": 41.78,
+        "category": "Flashing"
+      },
+      {
+        "productId": "item-129",
+        "productName": "2\" Black Bullet Boot",
+        "quantity": 2,
+        "unit": "each",
+        "unitPrice": 22.54,
+        "totalPrice": 45.08,
+        "category": "Flashing"
+      },
+      {
+        "productId": "item-131",
+        "productName": "4\" Black Bullet Boot",
+        "quantity": 2,
+        "unit": "each",
+        "unitPrice": 42.5,
+        "totalPrice": 85.0,
+        "category": "Flashing"
+      },
+      {
+        "productId": "item-132",
+        "productName": "Sealant",
+        "quantity": 4,
+        "unit": "tube",
+        "unitPrice": 10.0,
+        "totalPrice": 40.0,
+        "category": "Sealants"
+      }
+    ],
+    "totalMaterialCost": 1205.09,
+    "ourCost": 817.04,
+    "priority": "normal",
+    "status": "in_progress",
+    "notes": "Driver en route - departed warehouse 10:00 AM",
+    "createdAt": "2026-03-15T10:00:00Z",
+    "reviewedAt": "2026-03-15T11:15:00Z",
+    "driverAssignedAt": "2026-03-15T12:30:00Z",
+    "materialsPulledAt": "2026-03-16T02:00:00Z",
+    "loadedAt": "2026-03-16T08:00:00Z",
+    "departedAt": "2026-03-16T18:30:00Z"
+  },
+  {
+    "orderId": "MOP-2026-1011",
+    "jobNumber": "10983",
+    "jobName": "Wallace Roof Repair",
+    "jobAddress": "1012 Hwy 31 S",
+    "city": "Athens",
+    "state": "AL",
+    "zip": "35611",
+    "customerName": "Betty Wallace",
+    "customerPhone": "256-232-8814",
+    "salesRep": "Hunter Rivers",
+    "projectManager": "John Cordonis",
+    "assignedDriver": "Richard Geahr",
+    "items": [
+      {
+        "productId": "item-123",
+        "productName": "1 1/4 EG Nails",
+        "quantity": 2,
+        "unit": "box",
+        "unitPrice": 64.9,
+        "totalPrice": 129.8,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-124",
+        "productName": "Bottom Caps (plastic)",
+        "quantity": 2,
+        "unit": "bag",
+        "unitPrice": 29.15,
+        "totalPrice": 58.3,
+        "category": "Fasteners"
+      },
+      {
+        "productId": "item-128",
+        "productName": "1 1/2\" Black Bullet Boot",
+        "quantity": 2,
+        "unit": "each",
+        "unitPrice": 20.89,
+        "totalPrice": 41.78,
+        "category": "Flashing"
+      }
+    ],
+    "totalMaterialCost": 229.88,
+    "ourCost": 121.34,
+    "priority": "normal",
+    "status": "in_progress",
+    "notes": "Follow-up delivery for Wallace job - additional materials requested by PM",
+    "createdAt": "2026-03-16T08:00:00.000Z",
+    "reviewedAt": "2026-03-16T09:15:00.000Z",
+    "driverAssignedAt": "2026-03-16T10:00:00.000Z",
+    "materialsPulledAt": "2026-03-16T14:30:00.000Z",
+    "loadedAt": "2026-03-17T07:00:00.000Z",
+    "departedAt": "2026-03-17T08:15:00.000Z"
+  }
+]

@@ -14174,5 +14174,1021 @@
     "Amount": 1,
     "R#": 10843,
     "Cost": 79.86
+  },
+  {
+    "Inventory ID": "332df3c6",
+    "Item ID": "item-123",
+    "DateTime": 46065.354166666664,
+    "Amount": -3,
+    "R#": 10920,
+    "Cost": -194.7
+  },
+  {
+    "Inventory ID": "539b5c09",
+    "Item ID": "item-124",
+    "DateTime": 46065.354166666664,
+    "Amount": -3,
+    "R#": 10920,
+    "Cost": -87.45
+  },
+  {
+    "Inventory ID": "96973186",
+    "Item ID": "item-125",
+    "DateTime": 46065.354166666664,
+    "Amount": -4,
+    "R#": 10920,
+    "Cost": -319.44
+  },
+  {
+    "Inventory ID": "70601880",
+    "Item ID": "item-127",
+    "DateTime": 46065.354166666664,
+    "Amount": -16,
+    "R#": 10920,
+    "Cost": -163.2
+  },
+  {
+    "Inventory ID": "0c1732e2",
+    "Item ID": "item-132",
+    "DateTime": 46065.354166666664,
+    "Amount": -4,
+    "R#": 10920,
+    "Cost": -40.0
+  },
+  {
+    "Inventory ID": "ca3f87a9",
+    "Item ID": "item-123",
+    "DateTime": 46066.583333333336,
+    "Amount": 20,
+    "R#": 0,
+    "Cost": 550.0
+  },
+  {
+    "Inventory ID": "9c5445aa",
+    "Item ID": "item-124",
+    "DateTime": 46066.583333333336,
+    "Amount": 71,
+    "R#": 0,
+    "Cost": 1171.5
+  },
+  {
+    "Inventory ID": "ec438c21",
+    "Item ID": "item-123",
+    "DateTime": 46067.385416666664,
+    "Amount": -2,
+    "R#": 10925,
+    "Cost": -129.8
+  },
+  {
+    "Inventory ID": "d9837a29",
+    "Item ID": "item-124",
+    "DateTime": 46067.385416666664,
+    "Amount": -2,
+    "R#": 10925,
+    "Cost": -58.3
+  },
+  {
+    "Inventory ID": "ba4c4cd3",
+    "Item ID": "item-125",
+    "DateTime": 46067.385416666664,
+    "Amount": -3,
+    "R#": 10925,
+    "Cost": -239.58
+  },
+  {
+    "Inventory ID": "96380768",
+    "Item ID": "item-126",
+    "DateTime": 46067.385416666664,
+    "Amount": -2,
+    "R#": 10925,
+    "Cost": -228.44
+  },
+  {
+    "Inventory ID": "c81ca4f6",
+    "Item ID": "item-127",
+    "DateTime": 46067.385416666664,
+    "Amount": -12,
+    "R#": 10925,
+    "Cost": -122.4
+  },
+  {
+    "Inventory ID": "4b98727f",
+    "Item ID": "item-128",
+    "DateTime": 46067.385416666664,
+    "Amount": -3,
+    "R#": 10925,
+    "Cost": -62.67
+  },
+  {
+    "Inventory ID": "8e13c546",
+    "Item ID": "item-123",
+    "DateTime": 46071.322916666664,
+    "Amount": -4,
+    "R#": 10931,
+    "Cost": -259.6
+  },
+  {
+    "Inventory ID": "0a8093f2",
+    "Item ID": "item-124",
+    "DateTime": 46071.322916666664,
+    "Amount": -3,
+    "R#": 10931,
+    "Cost": -87.45
+  },
+  {
+    "Inventory ID": "73c9f04d",
+    "Item ID": "item-125",
+    "DateTime": 46071.322916666664,
+    "Amount": -5,
+    "R#": 10931,
+    "Cost": -399.3
+  },
+  {
+    "Inventory ID": "ca3cba19",
+    "Item ID": "item-126",
+    "DateTime": 46071.322916666664,
+    "Amount": -2,
+    "R#": 10931,
+    "Cost": -228.44
+  },
+  {
+    "Inventory ID": "0522e44b",
+    "Item ID": "item-127",
+    "DateTime": 46071.322916666664,
+    "Amount": -20,
+    "R#": 10931,
+    "Cost": -204.0
+  },
+  {
+    "Inventory ID": "b63ca24b",
+    "Item ID": "item-129",
+    "DateTime": 46071.322916666664,
+    "Amount": -3,
+    "R#": 10931,
+    "Cost": -67.62
+  },
+  {
+    "Inventory ID": "aa5ab31c",
+    "Item ID": "item-130",
+    "DateTime": 46071.322916666664,
+    "Amount": -2,
+    "R#": 10931,
+    "Cost": -76.58
+  },
+  {
+    "Inventory ID": "d9ce8af4",
+    "Item ID": "item-123",
+    "DateTime": 46074.416666666664,
+    "Amount": -3,
+    "R#": 10936,
+    "Cost": -194.7
+  },
+  {
+    "Inventory ID": "6e51a05f",
+    "Item ID": "item-124",
+    "DateTime": 46074.416666666664,
+    "Amount": -2,
+    "R#": 10936,
+    "Cost": -58.3
+  },
+  {
+    "Inventory ID": "5233683b",
+    "Item ID": "item-125",
+    "DateTime": 46074.416666666664,
+    "Amount": -4,
+    "R#": 10936,
+    "Cost": -319.44
+  },
+  {
+    "Inventory ID": "65b4e7ad",
+    "Item ID": "item-126",
+    "DateTime": 46074.416666666664,
+    "Amount": -1,
+    "R#": 10936,
+    "Cost": -114.22
+  },
+  {
+    "Inventory ID": "4515dc6d",
+    "Item ID": "item-127",
+    "DateTime": 46074.416666666664,
+    "Amount": -14,
+    "R#": 10936,
+    "Cost": -142.8
+  },
+  {
+    "Inventory ID": "b15a6174",
+    "Item ID": "item-132",
+    "DateTime": 46074.416666666664,
+    "Amount": -5,
+    "R#": 10936,
+    "Cost": -50.0
+  },
+  {
+    "Inventory ID": "afe3b6a3",
+    "Item ID": "item-133",
+    "DateTime": 46074.416666666664,
+    "Amount": -2,
+    "R#": 10936,
+    "Cost": -96.0
+  },
+  {
+    "Inventory ID": "5567dc53",
+    "Item ID": "item-123",
+    "DateTime": 46077.333333333336,
+    "Amount": -2,
+    "R#": 10940,
+    "Cost": -129.8
+  },
+  {
+    "Inventory ID": "6c83bb13",
+    "Item ID": "item-125",
+    "DateTime": 46077.333333333336,
+    "Amount": -3,
+    "R#": 10940,
+    "Cost": -239.58
+  },
+  {
+    "Inventory ID": "6e5d8580",
+    "Item ID": "item-127",
+    "DateTime": 46077.333333333336,
+    "Amount": -10,
+    "R#": 10940,
+    "Cost": -102.0
+  },
+  {
+    "Inventory ID": "2015a8b9",
+    "Item ID": "item-128",
+    "DateTime": 46077.333333333336,
+    "Amount": -2,
+    "R#": 10940,
+    "Cost": -41.78
+  },
+  {
+    "Inventory ID": "f9ba60e8",
+    "Item ID": "item-129",
+    "DateTime": 46077.333333333336,
+    "Amount": -2,
+    "R#": 10940,
+    "Cost": -45.08
+  },
+  {
+    "Inventory ID": "8a9acbb7",
+    "Item ID": "item-132",
+    "DateTime": 46077.333333333336,
+    "Amount": -3,
+    "R#": 10940,
+    "Cost": -30.0
+  },
+  {
+    "Inventory ID": "1f807bc5",
+    "Item ID": "item-123",
+    "DateTime": 46078.604166666664,
+    "Amount": -3,
+    "R#": 10945,
+    "Cost": -194.7
+  },
+  {
+    "Inventory ID": "1933c421",
+    "Item ID": "item-124",
+    "DateTime": 46078.604166666664,
+    "Amount": -3,
+    "R#": 10945,
+    "Cost": -87.45
+  },
+  {
+    "Inventory ID": "c86c1c08",
+    "Item ID": "item-125",
+    "DateTime": 46078.604166666664,
+    "Amount": -5,
+    "R#": 10945,
+    "Cost": -399.3
+  },
+  {
+    "Inventory ID": "1567fd7f",
+    "Item ID": "item-126",
+    "DateTime": 46078.604166666664,
+    "Amount": -2,
+    "R#": 10945,
+    "Cost": -228.44
+  },
+  {
+    "Inventory ID": "f2766e0e",
+    "Item ID": "item-127",
+    "DateTime": 46078.604166666664,
+    "Amount": -18,
+    "R#": 10945,
+    "Cost": -183.6
+  },
+  {
+    "Inventory ID": "90eb0d53",
+    "Item ID": "item-130",
+    "DateTime": 46078.604166666664,
+    "Amount": -3,
+    "R#": 10945,
+    "Cost": -114.87
+  },
+  {
+    "Inventory ID": "3de73ab7",
+    "Item ID": "item-131",
+    "DateTime": 46078.604166666664,
+    "Amount": -2,
+    "R#": 10945,
+    "Cost": -85.0
+  },
+  {
+    "Inventory ID": "40190b87",
+    "Item ID": "item-125",
+    "DateTime": 46079.458333333336,
+    "Amount": 64,
+    "R#": 0,
+    "Cost": 4224.0
+  },
+  {
+    "Inventory ID": "ca323ac2",
+    "Item ID": "item-126",
+    "DateTime": 46079.458333333336,
+    "Amount": 28,
+    "R#": 0,
+    "Cost": 1755.6
+  },
+  {
+    "Inventory ID": "9124c371",
+    "Item ID": "item-127",
+    "DateTime": 46079.458333333336,
+    "Amount": 48,
+    "R#": 0,
+    "Cost": 343.2
+  },
+  {
+    "Inventory ID": "589512c5",
+    "Item ID": "item-123",
+    "DateTime": 46080.375,
+    "Amount": -2,
+    "R#": 10948,
+    "Cost": -129.8
+  },
+  {
+    "Inventory ID": "f6916d05",
+    "Item ID": "item-124",
+    "DateTime": 46080.375,
+    "Amount": -2,
+    "R#": 10948,
+    "Cost": -58.3
+  },
+  {
+    "Inventory ID": "ac528bb0",
+    "Item ID": "item-125",
+    "DateTime": 46080.375,
+    "Amount": -3,
+    "R#": 10948,
+    "Cost": -239.58
+  },
+  {
+    "Inventory ID": "39fd2c9f",
+    "Item ID": "item-126",
+    "DateTime": 46080.375,
+    "Amount": -1,
+    "R#": 10948,
+    "Cost": -114.22
+  },
+  {
+    "Inventory ID": "09c3d32b",
+    "Item ID": "item-127",
+    "DateTime": 46080.375,
+    "Amount": -12,
+    "R#": 10948,
+    "Cost": -122.4
+  },
+  {
+    "Inventory ID": "1112df8d",
+    "Item ID": "item-128",
+    "DateTime": 46080.375,
+    "Amount": -2,
+    "R#": 10948,
+    "Cost": -41.78
+  },
+  {
+    "Inventory ID": "d3420b0d",
+    "Item ID": "item-132",
+    "DateTime": 46080.375,
+    "Amount": -4,
+    "R#": 10948,
+    "Cost": -40.0
+  },
+  {
+    "Inventory ID": "4bc2b612",
+    "Item ID": "item-123",
+    "DateTime": 46083.34375,
+    "Amount": -4,
+    "R#": 10952,
+    "Cost": -259.6
+  },
+  {
+    "Inventory ID": "a6d162a8",
+    "Item ID": "item-124",
+    "DateTime": 46083.34375,
+    "Amount": -3,
+    "R#": 10952,
+    "Cost": -87.45
+  },
+  {
+    "Inventory ID": "cb4659a6",
+    "Item ID": "item-125",
+    "DateTime": 46083.34375,
+    "Amount": -6,
+    "R#": 10952,
+    "Cost": -479.16
+  },
+  {
+    "Inventory ID": "77442732",
+    "Item ID": "item-126",
+    "DateTime": 46083.34375,
+    "Amount": -2,
+    "R#": 10952,
+    "Cost": -228.44
+  },
+  {
+    "Inventory ID": "e8b5e3cd",
+    "Item ID": "item-127",
+    "DateTime": 46083.34375,
+    "Amount": -22,
+    "R#": 10952,
+    "Cost": -224.4
+  },
+  {
+    "Inventory ID": "4b701b4a",
+    "Item ID": "item-129",
+    "DateTime": 46083.34375,
+    "Amount": -3,
+    "R#": 10952,
+    "Cost": -67.62
+  },
+  {
+    "Inventory ID": "7b3276f5",
+    "Item ID": "item-131",
+    "DateTime": 46083.34375,
+    "Amount": -2,
+    "R#": 10952,
+    "Cost": -85.0
+  },
+  {
+    "Inventory ID": "0390ec2d",
+    "Item ID": "item-133",
+    "DateTime": 46083.34375,
+    "Amount": -3,
+    "R#": 10952,
+    "Cost": -144.0
+  },
+  {
+    "Inventory ID": "aa0cf7ed",
+    "Item ID": "item-123",
+    "DateTime": 46085.4375,
+    "Amount": -2,
+    "R#": 10957,
+    "Cost": -129.8
+  },
+  {
+    "Inventory ID": "a8f5f85b",
+    "Item ID": "item-124",
+    "DateTime": 46085.4375,
+    "Amount": -2,
+    "R#": 10957,
+    "Cost": -58.3
+  },
+  {
+    "Inventory ID": "915774f3",
+    "Item ID": "item-125",
+    "DateTime": 46085.4375,
+    "Amount": -3,
+    "R#": 10957,
+    "Cost": -239.58
+  },
+  {
+    "Inventory ID": "e4b996af",
+    "Item ID": "item-127",
+    "DateTime": 46085.4375,
+    "Amount": -8,
+    "R#": 10957,
+    "Cost": -81.6
+  },
+  {
+    "Inventory ID": "4ff61a9d",
+    "Item ID": "item-132",
+    "DateTime": 46085.4375,
+    "Amount": -6,
+    "R#": 10957,
+    "Cost": -60.0
+  },
+  {
+    "Inventory ID": "a27f2454",
+    "Item ID": "item-130",
+    "DateTime": 46085.4375,
+    "Amount": -2,
+    "R#": 10957,
+    "Cost": -76.58
+  },
+  {
+    "Inventory ID": "8ca9f75e",
+    "Item ID": "item-123",
+    "DateTime": 46086.322916666664,
+    "Amount": -2,
+    "R#": 10960,
+    "Cost": -129.8
+  },
+  {
+    "Inventory ID": "449ef09c",
+    "Item ID": "item-125",
+    "DateTime": 46086.322916666664,
+    "Amount": -4,
+    "R#": 10960,
+    "Cost": -319.44
+  },
+  {
+    "Inventory ID": "8d33ac75",
+    "Item ID": "item-126",
+    "DateTime": 46086.322916666664,
+    "Amount": -1,
+    "R#": 10960,
+    "Cost": -114.22
+  },
+  {
+    "Inventory ID": "26588792",
+    "Item ID": "item-127",
+    "DateTime": 46086.322916666664,
+    "Amount": -15,
+    "R#": 10960,
+    "Cost": -153.0
+  },
+  {
+    "Inventory ID": "43511452",
+    "Item ID": "item-128",
+    "DateTime": 46086.322916666664,
+    "Amount": -3,
+    "R#": 10960,
+    "Cost": -62.67
+  },
+  {
+    "Inventory ID": "6300632c",
+    "Item ID": "item-133",
+    "DateTime": 46086.322916666664,
+    "Amount": -2,
+    "R#": 10960,
+    "Cost": -96.0
+  },
+  {
+    "Inventory ID": "c5170e33",
+    "Item ID": "item-123",
+    "DateTime": 46087.375,
+    "Amount": -3,
+    "R#": 10963,
+    "Cost": -194.7
+  },
+  {
+    "Inventory ID": "ea4098b8",
+    "Item ID": "item-124",
+    "DateTime": 46087.375,
+    "Amount": -3,
+    "R#": 10963,
+    "Cost": -87.45
+  },
+  {
+    "Inventory ID": "02da77da",
+    "Item ID": "item-125",
+    "DateTime": 46087.375,
+    "Amount": -4,
+    "R#": 10963,
+    "Cost": -319.44
+  },
+  {
+    "Inventory ID": "b2e1a267",
+    "Item ID": "item-126",
+    "DateTime": 46087.375,
+    "Amount": -2,
+    "R#": 10963,
+    "Cost": -228.44
+  },
+  {
+    "Inventory ID": "33785352",
+    "Item ID": "item-127",
+    "DateTime": 46087.375,
+    "Amount": -16,
+    "R#": 10963,
+    "Cost": -163.2
+  },
+  {
+    "Inventory ID": "feedc16c",
+    "Item ID": "item-129",
+    "DateTime": 46087.375,
+    "Amount": -2,
+    "R#": 10963,
+    "Cost": -45.08
+  },
+  {
+    "Inventory ID": "22ba0884",
+    "Item ID": "item-130",
+    "DateTime": 46087.375,
+    "Amount": -2,
+    "R#": 10963,
+    "Cost": -76.58
+  },
+  {
+    "Inventory ID": "e85c89a0",
+    "Item ID": "item-132",
+    "DateTime": 46087.375,
+    "Amount": -3,
+    "R#": 10963,
+    "Cost": -30.0
+  },
+  {
+    "Inventory ID": "5207d591",
+    "Item ID": "item-123",
+    "DateTime": 46088.458333333336,
+    "Amount": -2,
+    "R#": 10968,
+    "Cost": -129.8
+  },
+  {
+    "Inventory ID": "d088ef96",
+    "Item ID": "item-124",
+    "DateTime": 46088.458333333336,
+    "Amount": -2,
+    "R#": 10968,
+    "Cost": -58.3
+  },
+  {
+    "Inventory ID": "50c8d967",
+    "Item ID": "item-125",
+    "DateTime": 46088.458333333336,
+    "Amount": -2,
+    "R#": 10968,
+    "Cost": -159.72
+  },
+  {
+    "Inventory ID": "8ebe26ea",
+    "Item ID": "item-127",
+    "DateTime": 46088.458333333336,
+    "Amount": -8,
+    "R#": 10968,
+    "Cost": -81.6
+  },
+  {
+    "Inventory ID": "0995c127",
+    "Item ID": "item-131",
+    "DateTime": 46088.458333333336,
+    "Amount": -1,
+    "R#": 10968,
+    "Cost": -42.5
+  },
+  {
+    "Inventory ID": "fcf67a85",
+    "Item ID": "item-131",
+    "DateTime": 46089.666666666664,
+    "Amount": -2,
+    "R#": 0,
+    "Cost": -74.96
+  },
+  {
+    "Inventory ID": "5f58514f",
+    "Item ID": "item-128",
+    "DateTime": 46090.645833333336,
+    "Amount": 87,
+    "R#": 0,
+    "Cost": 1450.29
+  },
+  {
+    "Inventory ID": "5ae4a7fa",
+    "Item ID": "item-129",
+    "DateTime": 46090.645833333336,
+    "Amount": 78,
+    "R#": 0,
+    "Cost": 1386.06
+  },
+  {
+    "Inventory ID": "75aaae9c",
+    "Item ID": "item-130",
+    "DateTime": 46090.645833333336,
+    "Amount": 75,
+    "R#": 0,
+    "Cost": 1514.25
+  },
+  {
+    "Inventory ID": "f4f1b8a3",
+    "Item ID": "item-131",
+    "DateTime": 46090.645833333336,
+    "Amount": 44,
+    "R#": 0,
+    "Cost": 1649.12
+  },
+  {
+    "Inventory ID": "e3d24aa0",
+    "Item ID": "item-132",
+    "DateTime": 46090.645833333336,
+    "Amount": 112,
+    "R#": 0,
+    "Cost": 1047.2
+  },
+  {
+    "Inventory ID": "53ee5f99",
+    "Item ID": "item-133",
+    "DateTime": 46090.645833333336,
+    "Amount": 73,
+    "R#": 0,
+    "Cost": 2730.2
+  },
+  {
+    "Inventory ID": "83f23adb",
+    "Item ID": "item-123",
+    "DateTime": 46091.354166666664,
+    "Amount": -3,
+    "R#": 10972,
+    "Cost": -194.7
+  },
+  {
+    "Inventory ID": "f7d507d2",
+    "Item ID": "item-124",
+    "DateTime": 46091.354166666664,
+    "Amount": -2,
+    "R#": 10972,
+    "Cost": -58.3
+  },
+  {
+    "Inventory ID": "a3110ef3",
+    "Item ID": "item-125",
+    "DateTime": 46091.354166666664,
+    "Amount": -4,
+    "R#": 10972,
+    "Cost": -319.44
+  },
+  {
+    "Inventory ID": "9266ea02",
+    "Item ID": "item-126",
+    "DateTime": 46091.354166666664,
+    "Amount": -2,
+    "R#": 10972,
+    "Cost": -228.44
+  },
+  {
+    "Inventory ID": "a9a2cb56",
+    "Item ID": "item-127",
+    "DateTime": 46091.354166666664,
+    "Amount": -14,
+    "R#": 10972,
+    "Cost": -142.8
+  },
+  {
+    "Inventory ID": "8a6e2380",
+    "Item ID": "item-128",
+    "DateTime": 46091.354166666664,
+    "Amount": -3,
+    "R#": 10972,
+    "Cost": -62.67
+  },
+  {
+    "Inventory ID": "c097da46",
+    "Item ID": "item-130",
+    "DateTime": 46091.354166666664,
+    "Amount": -2,
+    "R#": 10972,
+    "Cost": -76.58
+  },
+  {
+    "Inventory ID": "9a6ed6fa",
+    "Item ID": "item-132",
+    "DateTime": 46091.354166666664,
+    "Amount": -4,
+    "R#": 10972,
+    "Cost": -40.0
+  },
+  {
+    "Inventory ID": "f23e81ef",
+    "Item ID": "item-123",
+    "DateTime": 46093.3125,
+    "Amount": -5,
+    "R#": 10975,
+    "Cost": -324.5
+  },
+  {
+    "Inventory ID": "cd951bda",
+    "Item ID": "item-124",
+    "DateTime": 46093.3125,
+    "Amount": -4,
+    "R#": 10975,
+    "Cost": -116.6
+  },
+  {
+    "Inventory ID": "ce756d8b",
+    "Item ID": "item-125",
+    "DateTime": 46093.3125,
+    "Amount": -7,
+    "R#": 10975,
+    "Cost": -559.02
+  },
+  {
+    "Inventory ID": "170b0735",
+    "Item ID": "item-126",
+    "DateTime": 46093.3125,
+    "Amount": -3,
+    "R#": 10975,
+    "Cost": -342.66
+  },
+  {
+    "Inventory ID": "9345f50e",
+    "Item ID": "item-127",
+    "DateTime": 46093.3125,
+    "Amount": -24,
+    "R#": 10975,
+    "Cost": -244.8
+  },
+  {
+    "Inventory ID": "d9f81d88",
+    "Item ID": "item-129",
+    "DateTime": 46093.3125,
+    "Amount": -4,
+    "R#": 10975,
+    "Cost": -90.16
+  },
+  {
+    "Inventory ID": "89e43d59",
+    "Item ID": "item-131",
+    "DateTime": 46093.3125,
+    "Amount": -3,
+    "R#": 10975,
+    "Cost": -127.5
+  },
+  {
+    "Inventory ID": "5cb46ba0",
+    "Item ID": "item-133",
+    "DateTime": 46093.3125,
+    "Amount": -3,
+    "R#": 10975,
+    "Cost": -144.0
+  },
+  {
+    "Inventory ID": "0ca96424",
+    "Item ID": "item-123",
+    "DateTime": 46094.40625,
+    "Amount": -2,
+    "R#": 10980,
+    "Cost": -129.8
+  },
+  {
+    "Inventory ID": "26673d88",
+    "Item ID": "item-124",
+    "DateTime": 46094.40625,
+    "Amount": -2,
+    "R#": 10980,
+    "Cost": -58.3
+  },
+  {
+    "Inventory ID": "32c9ab0b",
+    "Item ID": "item-125",
+    "DateTime": 46094.40625,
+    "Amount": -3,
+    "R#": 10980,
+    "Cost": -239.58
+  },
+  {
+    "Inventory ID": "93ee3a13",
+    "Item ID": "item-126",
+    "DateTime": 46094.40625,
+    "Amount": -1,
+    "R#": 10980,
+    "Cost": -114.22
+  },
+  {
+    "Inventory ID": "36176a23",
+    "Item ID": "item-127",
+    "DateTime": 46094.40625,
+    "Amount": -10,
+    "R#": 10980,
+    "Cost": -102.0
+  },
+  {
+    "Inventory ID": "8c854442",
+    "Item ID": "item-128",
+    "DateTime": 46094.40625,
+    "Amount": -2,
+    "R#": 10980,
+    "Cost": -41.78
+  },
+  {
+    "Inventory ID": "073f99f7",
+    "Item ID": "item-132",
+    "DateTime": 46094.40625,
+    "Amount": -3,
+    "R#": 10980,
+    "Cost": -30.0
+  },
+  {
+    "Inventory ID": "bd9d75fb",
+    "Item ID": "item-133",
+    "DateTime": 46094.40625,
+    "Amount": -2,
+    "R#": 10980,
+    "Cost": -96.0
+  },
+  {
+    "Inventory ID": "9c21e6b6",
+    "Item ID": "item-125",
+    "DateTime": 46095.333333333336,
+    "Amount": -2,
+    "R#": 10983,
+    "Cost": -159.72
+  },
+  {
+    "Inventory ID": "4427366a",
+    "Item ID": "item-127",
+    "DateTime": 46095.333333333336,
+    "Amount": -8,
+    "R#": 10983,
+    "Cost": -81.6
+  },
+  {
+    "Inventory ID": "67b6ad49",
+    "Item ID": "item-132",
+    "DateTime": 46095.333333333336,
+    "Amount": -3,
+    "R#": 10983,
+    "Cost": -30.0
+  },
+  {
+    "Inventory ID": "d1bc5e6f",
+    "Item ID": "item-130",
+    "DateTime": 46095.333333333336,
+    "Amount": -1,
+    "R#": 10983,
+    "Cost": -38.29
+  },
+  {
+    "Inventory ID": "23759041",
+    "Item ID": "item-123",
+    "DateTime": 46097.416666666664,
+    "Amount": -3,
+    "R#": 10988,
+    "Cost": -194.7
+  },
+  {
+    "Inventory ID": "8abf03d9",
+    "Item ID": "item-124",
+    "DateTime": 46097.416666666664,
+    "Amount": -3,
+    "R#": 10988,
+    "Cost": -87.45
+  },
+  {
+    "Inventory ID": "5c051fd2",
+    "Item ID": "item-125",
+    "DateTime": 46097.416666666664,
+    "Amount": -4,
+    "R#": 10988,
+    "Cost": -319.44
+  },
+  {
+    "Inventory ID": "ac19111b",
+    "Item ID": "item-126",
+    "DateTime": 46097.416666666664,
+    "Amount": -2,
+    "R#": 10988,
+    "Cost": -228.44
+  },
+  {
+    "Inventory ID": "6a41fa58",
+    "Item ID": "item-127",
+    "DateTime": 46097.416666666664,
+    "Amount": -16,
+    "R#": 10988,
+    "Cost": -163.2
+  },
+  {
+    "Inventory ID": "1fe65110",
+    "Item ID": "item-128",
+    "DateTime": 46097.416666666664,
+    "Amount": -2,
+    "R#": 10988,
+    "Cost": -41.78
+  },
+  {
+    "Inventory ID": "c74d1ea4",
+    "Item ID": "item-129",
+    "DateTime": 46097.416666666664,
+    "Amount": -2,
+    "R#": 10988,
+    "Cost": -45.08
+  },
+  {
+    "Inventory ID": "c985a735",
+    "Item ID": "item-131",
+    "DateTime": 46097.416666666664,
+    "Amount": -2,
+    "R#": 10988,
+    "Cost": -85.0
+  },
+  {
+    "Inventory ID": "09b62a9e",
+    "Item ID": "item-132",
+    "DateTime": 46097.416666666664,
+    "Amount": -4,
+    "R#": 10988,
+    "Cost": -40.0
   }
 ]

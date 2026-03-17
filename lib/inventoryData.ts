@@ -150,7 +150,7 @@ export const inventoryProducts: InventoryProduct[] = [
     unit: 'each',
     minQty: 15,
     maxQty: 150,
-    currentQty: 55,
+    currentQty: 45,
     supplier: 'Oatey',
     location: 'Warehouse A'
   },
@@ -165,7 +165,7 @@ export const inventoryProducts: InventoryProduct[] = [
     unit: 'tube',
     minQty: 50,
     maxQty: 500,
-    currentQty: 180,
+    currentQty: 120,
     supplier: 'Geocel',
     location: 'Warehouse A'
   },
@@ -180,7 +180,7 @@ export const inventoryProducts: InventoryProduct[] = [
     unit: 'each',
     minQty: 10,
     maxQty: 100,
-    currentQty: 42,
+    currentQty: 75,
     supplier: 'Oatey',
     location: 'Warehouse A'
   }
