@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { RIVER_SYSTEM_PROMPT } from '@/lib/rcrs-knowledge';
+import { checkRequestSize } from '@/lib/request-size-limit';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
@@ -15,6 +16,10 @@ interface ChatMessage {
 }
 
 export async function POST(request: NextRequest) {
+  // SECURITY: Enforce request body size limit (chat messages can be large but not unbounded)
+  const sizeError = checkRequestSize(request, '500kb');
+  if (sizeError) return sizeError;
+
   try {
     const { messages, mode } = await request.json() as {
       messages: ChatMessage[];

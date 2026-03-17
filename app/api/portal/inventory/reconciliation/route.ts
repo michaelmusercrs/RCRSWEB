@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-service';
+import { checkRequestSize } from '@/lib/request-size-limit';
 import { inventoryReconciliationService } from '@/lib/inventory-reconciliation-service';
 import { unifiedInventoryService } from '@/lib/unified-inventory-service';
 
@@ -79,6 +80,10 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin();
   if (!auth.authenticated) return auth.response;
+
+  // SECURITY: Enforce request body size limit
+  const sizeError = checkRequestSize(request, '100kb');
+  if (sizeError) return sizeError;
 
   try {
     let body: { jobId?: string; syncToSheets?: boolean } = {};

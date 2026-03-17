@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { formService } from '@/lib/form-service';
 import { createFormRateLimiter, withRateLimit } from '@/lib/rate-limiter';
+import { checkRequestSize } from '@/lib/request-size-limit';
 
 const formRateLimiter = createFormRateLimiter();
 
 export async function POST(request: NextRequest) {
+  // SECURITY: Enforce request body size limit on public form
+  const sizeError = checkRequestSize(request, '50kb');
+  if (sizeError) return sizeError;
+
   return withRateLimit(request, formRateLimiter, async () => {
   try {
     const body = await request.json();

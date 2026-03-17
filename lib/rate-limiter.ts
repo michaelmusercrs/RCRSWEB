@@ -6,6 +6,30 @@
  * - Per-IP and per-user tracking
  * - Configurable limits per endpoint
  * - Automatic cleanup
+ *
+ * IMPORTANT: Serverless Limitation
+ * ================================
+ * This rate limiter uses in-memory storage. On Vercel's serverless platform,
+ * each function invocation may get a fresh memory space, which means:
+ *
+ * 1. Rate limits are NOT shared across concurrent function instances.
+ * 2. Limits may reset between cold starts.
+ * 3. Under high concurrency, more requests than maxRequests may be allowed.
+ *
+ * This provides "best effort" rate limiting that works well for:
+ * - Preventing casual abuse and simple scripted attacks
+ * - Warm function instances that handle multiple sequential requests
+ * - Development/testing environments
+ *
+ * For production-grade rate limiting, consider:
+ * - Vercel's built-in WAF/rate limiting (available on Pro/Enterprise plans)
+ * - Upstash Redis (@upstash/ratelimit) for distributed rate limiting
+ * - Cloudflare rate limiting at the edge
+ *
+ * The current implementation still adds value by:
+ * - Setting X-RateLimit-* response headers (useful for client-side handling)
+ * - Blocking repeated requests within the same warm instance
+ * - Providing rate limit infrastructure that can be swapped to Redis later
  */
 
 // ============================================
@@ -83,10 +107,16 @@ export const RATE_LIMIT_CONFIGS = {
 } as const;
 
 // ============================================
-// RATE LIMIT STORE (Use Redis in production)
+// RATE LIMIT STORE
 // ============================================
+// In-memory store with size cap to prevent unbounded growth.
+// On Vercel serverless, each warm instance maintains its own store.
+// See module-level doc comment for serverless limitations.
 
 const rateLimitStore = new Map<string, RateLimitEntry>();
+
+// Cap the store size to prevent memory issues in long-running warm instances
+const MAX_STORE_SIZE = 10000;
 
 // Cleanup expired entries every minute
 if (typeof setInterval !== 'undefined') {
@@ -98,6 +128,41 @@ if (typeof setInterval !== 'undefined') {
       }
     }
   }, 60000);
+}
+
+/**
+ * Evict oldest entries when store exceeds MAX_STORE_SIZE.
+ * Keeps the store from growing unbounded on warm instances.
+ */
+function evictIfNeeded(): void {
+  if (rateLimitStore.size <= MAX_STORE_SIZE) return;
+
+  // Remove entries that have expired first
+  const now = Date.now();
+  for (const [key, entry] of rateLimitStore.entries()) {
+    if (entry.resetAt < now) {
+      rateLimitStore.delete(key);
+    }
+  }
+
+  // If still over limit, remove oldest entries
+  if (rateLimitStore.size > MAX_STORE_SIZE) {
+    const toRemove = rateLimitStore.size - MAX_STORE_SIZE;
+    let removed = 0;
+    for (const key of rateLimitStore.keys()) {
+      if (removed >= toRemove) break;
+      rateLimitStore.delete(key);
+      removed++;
+    }
+  }
+}
+
+/**
+ * Get diagnostic info about the rate limit store.
+ * Useful for monitoring memory usage in warm instances.
+ */
+export function getRateLimitStoreStats(): { size: number; maxSize: number } {
+  return { size: rateLimitStore.size, maxSize: MAX_STORE_SIZE };
 }
 
 // ============================================
@@ -218,6 +283,7 @@ export class RateLimiter {
     }
 
     rateLimitStore.set(key, entry);
+    evictIfNeeded();
   }
 
   /**
