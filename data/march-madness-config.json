@@ -1,0 +1,40 @@
+{
+  "year": 2026,
+  "month": "march",
+  "settings": {
+    "roundDuration": "1week",
+    "advancementDay": "monday",
+    "advancementTime": "09:00",
+    "timeframe": "3weeks",
+    "salesType": "accrual",
+    "salesDescription": "Total job value for approved jobs. Deposit received = full contract credited.",
+    "carryoverRate": 0.5,
+    "excludeFromCompetition": ["Michael Muse", "Chris Muse", "Sara Hill"],
+    "theme": "shooting"
+  },
+  "participants": [
+    { "seed": 1, "name": "Aaron Lussi", "slug": "aaron-lussi", "ytdSales": 132650, "nickname": "Roof Angel" },
+    { "seed": 2, "name": "Greg Muse", "slug": "greg-muse", "ytdSales": 393000, "nickname": "Big G" },
+    { "seed": 3, "name": "Hunter Rivers", "slug": "hunter-rivers", "ytdSales": 305650, "nickname": "The Hunter" },
+    { "seed": 4, "name": "Adam Rudell", "slug": "adam-rudell", "ytdSales": 110000, "nickname": "Rudy" },
+    { "seed": 5, "name": "Travis Wages", "slug": "travis-wages", "ytdSales": 47500, "nickname": "T-Money" },
+    { "seed": 6, "name": "Brendon Muse", "slug": "brendon-muse", "ytdSales": 163400, "nickname": "BCM" },
+    { "seed": 7, "name": "Alijah", "slug": "alijah", "ytdSales": 15000, "nickname": "Alijah" }
+  ],
+  "weeks": [
+    { "week": 1, "start": "2026-03-16", "end": "2026-03-22", "status": "active" },
+    { "week": 2, "start": "2026-03-23", "end": "2026-03-29", "status": "upcoming" },
+    { "week": 3, "start": "2026-03-30", "end": "2026-04-05", "status": "upcoming" }
+  ],
+  "tournaments": [
+    {
+      "id": "classic",
+      "name": "March Madness 2026",
+      "description": "Single elimination with 50% carryover. Head-to-head each week, half your sales carry into the next round.",
+      "icon": "trophy",
+      "duration": "3 weeks",
+      "status": "active",
+      "dataFile": "march-madness-2026.json"
+    }
+  ]
+}
