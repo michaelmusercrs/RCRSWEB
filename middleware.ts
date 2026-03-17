@@ -210,6 +210,40 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // ── Portal domain: rcrsal.com (CHECK FIRST — before public domain) ────────
+  // rcrsal.com is the portal. Period. Root = login page. No public site content.
+
+  if (isPortalDomain(hostname)) {
+    // rcrsal.com root = login page. Always. No redirect. No intermediate page.
+    if (pathname === '/' || pathname === '') {
+      return NextResponse.rewrite(new URL('/portal', request.url));
+    }
+
+    // Allow portal routes
+    if (isPortalRoute(pathname)) {
+      return NextResponse.next();
+    }
+
+    // Allow BNI routes on portal domain (presentations)
+    if (pathname.startsWith('/bni')) {
+      return NextResponse.next();
+    }
+
+    // Allow roof report/measure on portal domain
+    if (pathname.startsWith('/roof-report') || pathname.startsWith('/roof-measure')) {
+      return NextResponse.next();
+    }
+
+    // Everything else on rcrsal.com that's not portal → redirect to public site
+    if (isPublicRoute(pathname)) {
+      const redirectUrl = new URL(pathname + request.nextUrl.search, SITE_URL);
+      return NextResponse.redirect(redirectUrl, 308);
+    }
+
+    // Unknown routes on portal domain → login
+    return NextResponse.rewrite(new URL('/portal', request.url));
+  }
+
   // ── Public domain: rivercityroofingsolutions.com ───────────────────────────
 
   if (isPublicDomain(hostname)) {
@@ -231,34 +265,6 @@ export function middleware(request: NextRequest) {
     }
 
     // For any other unrecognized route, let Next.js handle it (will 404 naturally)
-    return NextResponse.next();
-  }
-
-  // ── Portal domain: rcrsal.com ──────────────────────────────────────────────
-
-  if (isPortalDomain(hostname)) {
-    // rcrsal.com root ALWAYS goes to portal login — never the public site
-    if (pathname === '/' || pathname === '') {
-      return NextResponse.rewrite(new URL('/portal', request.url));
-    }
-
-    // Allow portal routes
-    if (isPortalRoute(pathname)) {
-      return NextResponse.next();
-    }
-
-    // Allow BNI routes on portal domain too (presentations)
-    if (pathname.startsWith('/bni')) {
-      return NextResponse.next();
-    }
-
-    // Redirect public page requests to rivercityroofingsolutions.com
-    if (isPublicRoute(pathname)) {
-      const redirectUrl = new URL(pathname + request.nextUrl.search, SITE_URL);
-      return NextResponse.redirect(redirectUrl, 308);
-    }
-
-    // For any other unrecognized route on the portal domain, let Next.js handle it
     return NextResponse.next();
   }
 
