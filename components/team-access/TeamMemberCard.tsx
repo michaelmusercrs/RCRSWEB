@@ -1,6 +1,6 @@
 'use client';
 
-import { Shield, Mail, Phone, Edit2, Lock } from 'lucide-react';
+import { Shield, Mail, Phone, Edit2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   ROLE_DISPLAY_NAMES,
@@ -14,7 +14,6 @@ interface TeamMemberAccessData {
   email: string;
   phone: string;
   role: TeamRole;
-  pin: string;
   isActive: boolean;
   defaultAccess: string[];
   overrides: Record<string, boolean>;
@@ -84,8 +83,6 @@ export function TeamMemberCard({ member, onEditAccess }: TeamMemberCardProps) {
           </div>
         )}
         <div className="flex items-center gap-2 text-sm text-zinc-400">
-          <Lock size={13} className="text-zinc-500" />
-          <span>PIN: {member.pin}</span>
           <span className={cn(
             'ml-auto rounded-full px-2 py-0.5 text-xs font-medium',
             member.isActive ? 'bg-lime-500/20 text-lime-400' : 'bg-red-500/20 text-red-400'

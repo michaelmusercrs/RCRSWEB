@@ -6,6 +6,14 @@
     {
       "path": "/api/cron/check-lead-timers",
       "schedule": "*/2 * * * *"
+    },
+    {
+      "path": "/api/cron/auto-reassign",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/publish-blog",
+      "schedule": "0 6 * * *"
     }
   ],
   "headers": [

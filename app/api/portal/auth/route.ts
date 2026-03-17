@@ -38,90 +38,16 @@ export async function POST(request: NextRequest) {
 
       switch (action) {
         case 'login-pin': {
-          const identifier = `portal-pin:${clientIP}`;
-
-          // Check rate limit
-          const rateLimitCheck = checkRateLimit(identifier);
-          if (!rateLimitCheck.allowed) {
-            return NextResponse.json(
-              {
-                success: false,
-                error: `Too many login attempts. Please try again in ${rateLimitCheck.lockoutMinutes} minutes.`,
-                remainingAttempts: 0,
-              },
-              {
-                status: 429,
-                headers: getSecurityHeaders(),
-              }
-            );
-          }
-
-          // Try Google Sheets auth first, then fall back to TEAM_MEMBERS
-          let authUser: AuthUser | null = null;
-
-          try {
-            const result = await portalAuthService.authenticateByPin(data.pin);
-            if (result.success && result.user) {
-              authUser = {
-                userId: result.user.userId,
-                name: result.user.name,
-                email: result.user.email,
-                role: result.user.role,
-                permissions: Object.entries(portalAuthService.getPermissions(result.user.role))
-                  .filter(([_, value]) => value === true)
-                  .map(([key]) => key),
-              };
-            }
-          } catch {
-            // Google Sheets auth failed (misconfigured, network error, etc.)
-          }
-
-          // Fallback: authenticate against TEAM_MEMBERS from team-roles.ts
-          if (!authUser) {
-            const member = TEAM_MEMBERS.find(m => m.pin === data.pin && m.isActive);
-            if (member) {
-              authUser = {
-                userId: member.id,
-                name: member.name,
-                email: member.email,
-                role: member.role,
-                permissions: member.permissions,
-              };
-            }
-          }
-
-          if (!authUser) {
-            recordLoginAttempt(identifier, false);
-            const newCheck = checkRateLimit(identifier);
-
-            return NextResponse.json(
-              {
-                success: false,
-                error: 'Invalid PIN',
-                remainingAttempts: newCheck.remainingAttempts,
-              },
-              {
-                status: 401,
-                headers: getSecurityHeaders(),
-              }
-            );
-          }
-
-          // Successful login
-          recordLoginAttempt(identifier, true);
-
-          const accessToken = generateAccessToken(authUser);
-          const refreshToken = generateRefreshToken(authUser);
-
-          // Set secure cookies
-          await setAuthCookies(accessToken, refreshToken);
-
+          // PIN login deprecated - use email+password instead
           return NextResponse.json(
             {
-              success: true,
-              user: authUser,
+              success: false,
+              error: 'PIN login has been removed. Please use email and password.',
             },
-            { headers: getSecurityHeaders() }
+            {
+              status: 410, // Gone
+              headers: getSecurityHeaders(),
+            }
           );
         }
 

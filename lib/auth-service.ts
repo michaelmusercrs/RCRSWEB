@@ -107,11 +107,6 @@ function createHmac(data: string, secret: string): string {
   return crypto.createHmac('sha256', secret).update(data).digest('base64url');
 }
 
-function hashPin(pin: string, salt: string): string {
-  const crypto = require('crypto');
-  return crypto.createHash('sha256').update(pin + salt).digest('hex');
-}
-
 // ============================================
 // JWT FUNCTIONS
 // ============================================
@@ -378,41 +373,7 @@ export async function refreshSession(): Promise<AuthResult> {
   };
 }
 
-// ============================================
-// PIN VALIDATION WITH ENHANCED SECURITY
-// ============================================
-
-export function validatePin(inputPin: string, storedPin: string, salt?: string): boolean {
-  // If salt is provided, compare hashes
-  if (salt) {
-    return hashPin(inputPin, salt) === storedPin;
-  }
-
-  // Fallback to direct comparison (for legacy data)
-  // Use timing-safe comparison to prevent timing attacks
-  if (inputPin.length !== storedPin.length) {
-    return false;
-  }
-
-  let result = 0;
-  for (let i = 0; i < inputPin.length; i++) {
-    result |= inputPin.charCodeAt(i) ^ storedPin.charCodeAt(i);
-  }
-  return result === 0;
-}
-
-export function generateSecurePin(length: number = 6): string {
-  const crypto = require('crypto');
-  const max = Math.pow(10, length) - 1;
-  const min = Math.pow(10, length - 1);
-  const randomNum = crypto.randomInt(min, max + 1);
-  return randomNum.toString().padStart(length, '0');
-}
-
-export function generateSalt(): string {
-  const crypto = require('crypto');
-  return crypto.randomBytes(16).toString('hex');
-}
+// PIN validation removed - email+password only auth
 
 // ============================================
 // IP EXTRACTION

@@ -16,25 +16,11 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
-  if (!auth.authenticated) return auth.response;
-
-  try {
-    const data = await request.json();
-    const { pin } = data;
-
-    // Driver login by PIN
-    const driver = await deliveryPortalService.getDriverByPin(pin);
-
-    if (driver) {
-      return NextResponse.json({ success: true, driver });
-    } else {
-      return NextResponse.json({ success: false, error: 'Invalid PIN' }, { status: 401 });
-    }
-  } catch (error) {
-    console.error('Error authenticating driver:', error);
-    return NextResponse.json({ error: 'Failed to authenticate' }, { status: 500 });
-  }
+  // PIN-based driver auth removed - drivers now use email+password login
+  return NextResponse.json(
+    { success: false, error: 'PIN login has been removed. Please use email and password.' },
+    { status: 410 }
+  );
 }
 
 export async function PATCH(request: NextRequest) {

@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
             name: result.user.name,
             email: result.user.email,
             role: result.user.role,
-            pin: result.user.pin, // Return PIN only on creation
+            // PIN auth removed - email+password only
           },
           tempPasscode: result.tempPasscode,
           message: `User created. Temporary passcode: ${result.tempPasscode} (expires in 24 hours)`,

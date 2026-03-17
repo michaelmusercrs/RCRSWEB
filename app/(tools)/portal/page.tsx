@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
-  Truck, Loader2, ChevronRight, Shield, ArrowRight,
+  Loader2, ChevronRight, Shield, ArrowRight,
   User, Mail, AlertCircle, Eye, EyeOff, Phone, Lock
 } from 'lucide-react';
 import { useAuth, ROLE_DEFAULT_ROUTES } from '@/lib/auth-context';
@@ -282,10 +282,9 @@ function SplashScreen({ onComplete }: { onComplete: () => void }) {
 // ──────────────────────────────────────────────
 export default function PortalLogin() {
   const router = useRouter();
-  const { user, isLoading: authLoading, login, loginWithPin } = useAuth();
+  const { user, isLoading: authLoading, login } = useAuth();
   const [showSplash, setShowSplash] = useState(true);
   const [loginMode, setLoginMode] = useState<LoginMode>('staff');
-  const [pin, setPin] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -379,30 +378,7 @@ export default function PortalLogin() {
     if (pendingRedirect) router.push(pendingRedirect);
   };
 
-  const handleDriverLogin = async () => {
-    if (pin.length !== 4) {
-      setError('Please enter your 4-digit PIN');
-      return;
-    }
-
-    setIsLoading(true);
-    setError('');
-
-    const result = await loginWithPin(pin);
-
-    if (result.success) {
-      const member = TEAM_MEMBERS.find(m => m.pin === pin);
-      if (member) {
-        router.push(ROLE_DEFAULT_ROUTES[member.role]);
-      } else {
-        router.push('/portal/driver');
-      }
-    } else {
-      setError(result.error || 'Invalid PIN');
-    }
-
-    setIsLoading(false);
-  };
+  // Driver login removed - all users login via email + password now
 
   const handleStaffLogin = async () => {
     if (!email) {
@@ -455,16 +431,12 @@ export default function PortalLogin() {
           return;
         }
 
-        // Check if user has multiple role capabilities (e.g., Rick = sales + driver)
-        // Check admin overrides for additional roles
+        // Check if user has multiple role capabilities (e.g., Richard Geahr "Rick" = driver + sales)
+        // Uses the roles[] array from team-roles.ts for dual-role users
         const dualRoleUsers: Record<string, { role: string; label: string; route: string; icon: string }[]> = {
-          'rick@rcrsal.com': [
-            { role: 'sales', label: 'Sales Portal', route: '/portal/sales', icon: '💰' },
-            { role: 'driver', label: 'Delivery & Inventory', route: '/portal/driver', icon: '🚛' },
-          ],
           'richard@rcrsal.com': [
-            { role: 'driver', label: 'Delivery & Inventory', route: '/portal/driver', icon: '🚛' },
             { role: 'sales', label: 'Sales Portal', route: '/portal/sales', icon: '💰' },
+            { role: 'driver', label: 'Delivery & Inventory', route: '/portal/driver', icon: '🚛' },
           ],
         };
 
@@ -485,13 +457,7 @@ export default function PortalLogin() {
     setIsLoading(false);
   };
 
-  const handlePinInput = (digit: string) => {
-    if (pin.length < 4) setPin(prev => prev + digit);
-  };
-
-  const handleBackspace = () => {
-    setPin(prev => prev.slice(0, -1));
-  };
+  // PIN input handlers removed - email+password only
 
   // ── Role Picker (for dual-role users like Rick) ────────────────────────
   if (showRolePicker && availableRoles.length > 0) {
@@ -730,26 +696,7 @@ export default function PortalLogin() {
                 </div>
               </button>
 
-              <button
-                onClick={() => { setLoginMode('driver'); setError(''); }}
-                className="w-full group relative overflow-hidden rounded-2xl border border-blue-500/20 bg-neutral-900/50 backdrop-blur-sm p-6 text-left transition-all duration-300 hover:border-blue-500/40 hover:bg-neutral-900/80 hover:shadow-2xl hover:shadow-blue-500/10"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <div className="relative flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-blue-500/10 rounded-xl flex items-center justify-center group-hover:scale-110 group-hover:bg-blue-500/20 transition-all duration-300">
-                      <Truck className="text-blue-400" size={28} />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-white group-hover:text-blue-400 transition-colors">
-                        Logistics
-                      </h3>
-                      <p className="text-sm text-neutral-400">Enter your 4-digit PIN</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="text-neutral-600 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" size={24} />
-                </div>
-              </button>
+              {/* Logistics/Driver login now uses email+password like all other roles */}
             </div>
 
             <div className="mt-10 text-center">
@@ -924,132 +871,7 @@ export default function PortalLogin() {
     );
   }
 
-  // ── Driver Login Screen ──────────────────────
-  return (
-    <div className="min-h-screen bg-neutral-950">
-      <AmbientBackground />
-
-      <div
-        className="relative z-10 min-h-screen flex flex-col items-center justify-center p-6"
-        style={{
-          animation: contentVisible ? 'login-pop-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both' : 'none',
-          opacity: contentVisible ? undefined : 0,
-        }}
-      >
-        <div className="w-full max-w-md">
-          {/* Logo + Brand */}
-          <div className="text-center mb-6">
-            <div className="relative w-14 h-14 mx-auto mb-3">
-              <div className="relative w-full h-full rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/10 border border-blue-500/30 p-0.5">
-                <div className="w-full h-full rounded-[10px] bg-neutral-950/90 flex items-center justify-center">
-                  <Image
-                    src="/logo-nobg.png"
-                    alt="RCRS"
-                    width={36}
-                    height={36}
-                    className="object-contain"
-                  />
-                </div>
-              </div>
-            </div>
-            <h1 className="text-xl font-bold tracking-tight">
-              <span className="text-brand-green">Roof</span>
-              <span className="text-white">Stack</span>
-            </h1>
-          </div>
-
-          {/* PIN Card */}
-          <div className="rounded-2xl border border-neutral-800 bg-neutral-900/60 backdrop-blur-xl p-8 shadow-2xl">
-            <div className="flex items-center gap-3 mb-7">
-              <button
-                onClick={() => {
-                  setLoginMode('select');
-                  setPin('');
-                  setError('');
-                }}
-                className="w-9 h-9 rounded-lg bg-neutral-800 hover:bg-neutral-700 flex items-center justify-center transition-colors group"
-              >
-                <ArrowRight className="rotate-180 text-neutral-400 group-hover:text-white transition-colors" size={16} />
-              </button>
-              <div>
-                <h2 className="text-lg font-semibold text-white">Driver Login</h2>
-                <p className="text-xs text-neutral-500">Enter your 4-digit PIN</p>
-              </div>
-            </div>
-
-            {/* PIN Display */}
-            <div className="flex justify-center gap-3 sm:gap-4 mb-7">
-              {[0, 1, 2, 3].map(i => (
-                <div
-                  key={i}
-                  className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl border-2 flex items-center justify-center transition-all duration-200 ${
-                    pin.length > i
-                      ? 'bg-gradient-to-br from-blue-500 to-cyan-500 border-transparent shadow-lg shadow-blue-500/25 scale-105'
-                      : pin.length === i
-                      ? 'bg-neutral-800/50 border-blue-500/30 animate-pulse'
-                      : 'bg-neutral-800/50 border-neutral-700/50'
-                  }`}
-                >
-                  {pin.length > i ? (
-                    <div className="w-3 h-3 rounded-full bg-white shadow-lg shadow-white/50" />
-                  ) : (
-                    <div className="w-2.5 h-2.5 rounded-full bg-neutral-700" />
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center py-3 px-4 rounded-xl mb-5 flex items-center justify-center gap-2 animate-shake">
-                <AlertCircle size={16} />
-                {error}
-              </div>
-            )}
-
-            {/* Number Pad */}
-            <div className="grid grid-cols-3 gap-2.5 mb-5">
-              {['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'back'].map((key, i) => (
-                <button
-                  key={i}
-                  onClick={() => {
-                    if (key === 'back') handleBackspace();
-                    else if (key) handlePinInput(key);
-                  }}
-                  disabled={key === ''}
-                  className={`h-14 rounded-xl font-semibold text-xl transition-all duration-150 ${
-                    key === ''
-                      ? 'bg-transparent cursor-default'
-                      : key === 'back'
-                      ? 'bg-neutral-800/50 text-neutral-400 hover:bg-neutral-700/50 hover:text-white active:scale-95'
-                      : 'bg-neutral-800/80 text-white hover:bg-neutral-700 hover:scale-[1.03] active:scale-95'
-                  }`}
-                >
-                  {key === 'back' ? '\u232b' : key}
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={handleDriverLogin}
-              disabled={pin.length !== 4 || isLoading}
-              className="w-full relative overflow-hidden bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-400 hover:to-cyan-400 disabled:from-neutral-700 disabled:to-neutral-700 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25 disabled:shadow-none group"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
-              <span className="relative flex items-center gap-2">
-                {isLoading && <Loader2 className="animate-spin" size={18} />}
-                {isLoading ? 'Signing In...' : 'Sign In'}
-              </span>
-            </button>
-          </div>
-
-          <div className="mt-8 text-center">
-            <div className="flex items-center justify-center gap-2 text-xs text-neutral-700">
-              <Shield size={12} />
-              <span>Secure Access</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  // All login modes now use email+password (PIN removed)
+  // If somehow loginMode is 'driver', redirect to staff login
+  return null;
 }

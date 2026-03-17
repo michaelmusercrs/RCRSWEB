@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { TEAM_MEMBERS, TeamRole, TeamMember } from './team-roles';
+import { TEAM_MEMBERS, TeamRole, TeamMember, hasPermission as checkMemberPermission } from './team-roles';
 
 export interface AuthUser {
   userId: string;
@@ -10,7 +10,6 @@ export interface AuthUser {
   email: string;
   role: TeamRole;
   permissions: string[];
-  pin?: string;
   mustChangePassword?: boolean;
 }
 
@@ -18,7 +17,6 @@ interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
   login: (email: string, password?: string) => Promise<{ success: boolean; error?: string; mustChangePassword?: boolean }>;
-  loginWithPin: (pin: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   completePasswordChange: (newPassword: string) => boolean;
   hasPermission: (permission: string) => boolean;
@@ -119,12 +117,15 @@ async function setServerSession(member: TeamMember): Promise<boolean> {
     const res = await fetch('/api/portal/auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'login-pin', pin: member.pin }),
+      body: JSON.stringify({
+        action: 'login-passcode',
+        email: member.email,
+        passcode: member.password,
+      }),
     });
     if (res.ok) return true;
-    // If server-side PIN auth fails (e.g. user not in Google Sheets),
-    // fall back to setting a client-generated token via a lightweight endpoint
-    console.warn('Server PIN auth failed, API routes may return 401');
+    // Fallback: try validate to see if session already exists
+    console.warn('Server auth failed, API routes may return 401');
     return false;
   } catch (err) {
     console.warn('Failed to set server session:', err);
@@ -195,13 +196,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const isChangePasswordPage = pathname === '/portal/change-password';
     const isOnboardingPage = isChangePasswordPage || pathname === '/portal/welcome';
 
-    // Not logged in → go to login
+    // Not logged in -> go to login
     if (isPortalRoute && !isLoginPage && !isOnboardingPage && !user) {
       router.push('/portal');
       return;
     }
 
-    // Logged in but must change password → force to change-password page
+    // Logged in but must change password -> force to change-password page
     if (user?.mustChangePassword && isPortalRoute && !isChangePasswordPage && !isLoginPage) {
       router.push('/portal/change-password');
     }
@@ -253,6 +254,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(authUser);
     sessionStorage.setItem('portalUser', JSON.stringify(authUser));
 
+    // Also set driver object for driver portal compatibility (if driver role)
+    if (member.role === 'driver' || member.roles?.includes('driver')) {
+      sessionStorage.setItem('driver', JSON.stringify({
+        id: member.id,
+        name: member.name,
+        email: member.email,
+        phone: member.phone || '',
+        vehicle: 'Company Truck',
+        isActive: true,
+      }));
+    }
+    sessionStorage.setItem('userRole', member.role);
+
     return { success: true, mustChangePassword: mustChange };
   };
 
@@ -272,45 +286,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionStorage.setItem('portalUser', JSON.stringify(updatedUser));
 
     return true;
-  };
-
-  const loginWithPin = async (pin: string): Promise<{ success: boolean; error?: string }> => {
-    // Find user by PIN - supports drivers AND any user with a PIN
-    const member = TEAM_MEMBERS.find(m => m.pin === pin && m.isActive);
-
-    if (!member) {
-      return { success: false, error: 'Invalid PIN. Please try again.' };
-    }
-
-    const authUser: AuthUser = {
-      userId: member.id,
-      name: member.name,
-      email: member.email,
-      role: member.role,
-      permissions: member.permissions,
-      pin: member.pin,
-    };
-
-    // Set server-side JWT cookies for API route auth
-    await setServerSession(member);
-
-    setUser(authUser);
-    sessionStorage.setItem('portalUser', JSON.stringify(authUser));
-
-    // Also set driver object for driver portal compatibility (if driver role)
-    if (member.role === 'driver') {
-      sessionStorage.setItem('driver', JSON.stringify({
-        id: member.id,
-        name: member.name,
-        email: member.email,
-        phone: member.phone || '',
-        vehicle: 'Company Truck',
-        isActive: true,
-      }));
-    }
-    sessionStorage.setItem('userRole', member.role);
-
-    return { success: true };
   };
 
   const logout = async () => {
@@ -334,7 +309,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasPermission = (permission: string): boolean => {
     if (!user) return false;
     if (user.permissions.includes('*')) return true;
-    return user.permissions.includes(permission);
+
+    // Exact match
+    if (user.permissions.includes(permission)) return true;
+
+    // Parent permission check: having 'sales' grants 'sales.leads', etc.
+    if (permission.includes('.')) {
+      const parent = permission.split('.')[0];
+      if (user.permissions.includes(parent)) return true;
+    }
+
+    return false;
   };
 
   const canAccessRoute = (route: string): boolean => {
@@ -351,7 +336,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       isLoading,
       login,
-      loginWithPin,
       logout,
       completePasswordChange,
       hasPermission,

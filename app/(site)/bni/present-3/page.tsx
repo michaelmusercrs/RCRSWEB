@@ -96,15 +96,24 @@ export default function BNIPresentationV3Page() {
     );
   };
 
+  // Speaker notes extracted to avoid self-referencing slides[] inside render
+  const SPEAKER_NOTES = [
+    'Good morning everyone. I\'m Michael with River City Roofing Solutions. Today I want to show you the technology we use that sets us apart and protects homeowners.',
+    'Let me show you our StormCheck tool. Any homeowner can enter their address and get a free storm damage risk assessment using real National Weather Service data. Let me pull up this building\'s address...',
+    'After the initial check, we generate a comprehensive report. This is the kind of documentation that insurance companies need. Let me show you a full report for this address...',
+    'Once a homeowner becomes a customer, they get access to their personal portal. They can track everything - job progress, messages with their rep, documents, weather, and payments. Let me show you what a real customer sees...',
+    'And here\'s something homeowners love - the IKO Roof Visualizer. We can take a photo of their home and show them exactly what different shingle styles will look like before we install. Let me show you with this building...',
+    'So when you refer someone to us, this is the experience they\'ll get. Full documentation, complete transparency, and a beautiful new roof they chose themselves. And don\'t forget - you earn $200 for every referral. Thank you!',
+  ];
+
   const slides: SlideData[] = [
     // Slide 1 - Title
     {
       title: 'Title',
-      speakerNote:
-        'Good morning everyone. I\'m Michael with River City Roofing Solutions. Today I want to show you the technology we use that sets us apart and protects homeowners.',
+      speakerNote: SPEAKER_NOTES[0],
       render: (notes) => (
         <div className="flex flex-col items-center justify-center h-full text-center px-8 relative">
-          <SpeakerNote note={slides[0].speakerNote} visible={notes} />
+          <SpeakerNote note={SPEAKER_NOTES[0]} visible={notes} />
           <div className="mb-6">
             <h1 className="text-3xl md:text-5xl font-bold text-white tracking-tight mb-1">
               RIVER CITY ROOFING SOLUTIONS
@@ -126,11 +135,10 @@ export default function BNIPresentationV3Page() {
     // Slide 2 - StormCheck
     {
       title: 'StormCheck',
-      speakerNote:
-        'Let me show you our StormCheck tool. Any homeowner can enter their address and get a free storm damage risk assessment using real National Weather Service data. Let me pull up this building\'s address...',
+      speakerNote: SPEAKER_NOTES[1],
       render: (notes) => (
         <div className="flex flex-col justify-center h-full px-8 md:px-16 lg:px-24 relative">
-          <SpeakerNote note={slides[1].speakerNote} visible={notes} />
+          <SpeakerNote note={SPEAKER_NOTES[1]} visible={notes} />
           <h1 className="text-3xl md:text-5xl font-bold text-white mb-2">
             StormCheck
           </h1>
@@ -167,11 +175,10 @@ export default function BNIPresentationV3Page() {
     // Slide 3 - Full Roof Report
     {
       title: 'Full Roof Report',
-      speakerNote:
-        'After the initial check, we generate a comprehensive report. This is the kind of documentation that insurance companies need. Let me show you a full report for this address...',
+      speakerNote: SPEAKER_NOTES[2],
       render: (notes) => (
         <div className="flex flex-col justify-center h-full px-8 md:px-16 lg:px-24 relative">
-          <SpeakerNote note={slides[2].speakerNote} visible={notes} />
+          <SpeakerNote note={SPEAKER_NOTES[2]} visible={notes} />
           <h1 className="text-3xl md:text-5xl font-bold text-white mb-2">
             The Complete Storm &amp; Hail Report
           </h1>
@@ -201,8 +208,7 @@ export default function BNIPresentationV3Page() {
     // Slide 4 - Customer Portal
     {
       title: 'Customer Portal',
-      speakerNote:
-        'Once a homeowner becomes a customer, they get access to their personal portal. They can track everything - job progress, messages with their rep, documents, weather, and payments. Let me show you what a real customer sees...',
+      speakerNote: SPEAKER_NOTES[3],
       render: (notes) => {
         const features = [
           { title: 'Job Progress', desc: 'Real-time status tracking' },
@@ -214,7 +220,7 @@ export default function BNIPresentationV3Page() {
         ];
         return (
           <div className="flex flex-col justify-center h-full px-8 md:px-16 lg:px-24 relative">
-            <SpeakerNote note={slides[3].speakerNote} visible={notes} />
+            <SpeakerNote note={SPEAKER_NOTES[3]} visible={notes} />
             <h1 className="text-3xl md:text-5xl font-bold text-white mb-2">
               Your Personal Customer Portal
             </h1>
@@ -243,8 +249,7 @@ export default function BNIPresentationV3Page() {
     // Slide 5 - IKO Roof Visualizer
     {
       title: 'IKO Roof Visualizer',
-      speakerNote:
-        'And here\'s something homeowners love - the IKO Roof Visualizer. We can take a photo of their home and show them exactly what different shingle styles will look like before we install. Let me show you with this building...',
+      speakerNote: SPEAKER_NOTES[4],
       render: (notes) => {
         const streetViewImages = [
           {
@@ -265,7 +270,7 @@ export default function BNIPresentationV3Page() {
         ];
         return (
           <div className="flex flex-col justify-center h-full px-8 md:px-16 lg:px-24 relative">
-            <SpeakerNote note={slides[4].speakerNote} visible={notes} />
+            <SpeakerNote note={SPEAKER_NOTES[4]} visible={notes} />
             <h1 className="text-3xl md:text-5xl font-bold text-white mb-2">
               See Your New Roof Before We Install
             </h1>
@@ -327,8 +332,7 @@ export default function BNIPresentationV3Page() {
     // Slide 6 - Close / Referral
     {
       title: 'Close / Referral',
-      speakerNote:
-        'So when you refer someone to us, this is the experience they\'ll get. Full documentation, complete transparency, and a beautiful new roof they chose themselves. And don\'t forget - you earn $200 for every referral. Thank you!',
+      speakerNote: SPEAKER_NOTES[5],
       render: (notes) => {
         const keyPoints = [
           'Every property gets verified storm data & professional documentation',
@@ -337,7 +341,7 @@ export default function BNIPresentationV3Page() {
         ];
         return (
           <div className="flex flex-col justify-center h-full px-8 md:px-16 lg:px-24 relative">
-            <SpeakerNote note={slides[5].speakerNote} visible={notes} />
+            <SpeakerNote note={SPEAKER_NOTES[5]} visible={notes} />
             <h1 className="text-3xl md:text-5xl font-bold text-white mb-2">
               Technology + Craftsmanship
             </h1>

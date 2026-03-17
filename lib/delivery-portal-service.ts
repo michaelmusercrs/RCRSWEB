@@ -33,7 +33,6 @@ export interface Driver {
   licensePlate: string;
   status: 'Available' | 'On Delivery' | 'Off Duty';
   currentLocation?: string;
-  pin?: string;
 }
 
 export interface MaterialOrder {
@@ -198,7 +197,7 @@ class DeliveryPortalService {
 
   async getDrivers(): Promise<Driver[]> {
     const sheet = await this.getOrCreateSheet(SHEETS.DRIVERS, [
-      'id', 'name', 'phone', 'email', 'vehicle', 'licensePlate', 'status', 'currentLocation', 'pin'
+      'id', 'name', 'phone', 'email', 'vehicle', 'licensePlate', 'status', 'currentLocation'
     ]);
 
     const rows = await sheet.getRows();
@@ -211,13 +210,7 @@ class DeliveryPortalService {
       licensePlate: row.get('licensePlate'),
       status: row.get('status') as Driver['status'],
       currentLocation: row.get('currentLocation'),
-      pin: row.get('pin'),
     }));
-  }
-
-  async getDriverByPin(pin: string): Promise<Driver | null> {
-    const drivers = await this.getDrivers();
-    return drivers.find(d => d.pin === pin) || null;
   }
 
   async updateDriverStatus(driverId: string, status: Driver['status'], location?: string): Promise<void> {

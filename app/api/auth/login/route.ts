@@ -19,24 +19,15 @@ export async function POST(request: NextRequest) {
   if (sizeError) return sizeError;
 
   try {
-    const { email, password, pin } = await request.json();
+    const { email, password } = await request.json();
 
     let member;
 
-    // Support login by PIN (for drivers/field)
-    if (pin) {
-      member = TEAM_MEMBERS.find(m => m.pin === pin && m.isActive);
-    }
-    // Support login by email + password
-    else if (email && password) {
+    // Login by email + password (only supported auth method)
+    if (email && password) {
       member = TEAM_MEMBERS.find(
         m => m.email?.toLowerCase() === email.toLowerCase() && m.password === password && m.isActive
       );
-    }
-    // Support login by name + password (convenience)
-    else if (password && !email) {
-      // Try matching password alone (for quick owner login)
-      member = TEAM_MEMBERS.find(m => m.password === password && m.isActive);
     }
 
     if (!member) {

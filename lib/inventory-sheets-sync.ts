@@ -303,7 +303,6 @@ class InventorySheetsSync {
           email: member.email,
           phone: member.phone || '',
           role: member.role,
-          pin: member.pin || '',
           isActive: member.isActive ? 'TRUE' : 'FALSE',
           permissions: JSON.stringify(member.permissions),
           createdAt: member.createdAt
@@ -332,7 +331,8 @@ class InventorySheetsSync {
         email: row.get('email'),
         phone: row.get('phone'),
         role: row.get('role') as TeamRoleMember['role'],
-        pin: row.get('pin'),
+        password: 'ChangeMe123!',
+        mustChangePassword: true,
         isActive: row.get('isActive') === 'TRUE',
         permissions: JSON.parse(row.get('permissions') || '[]'),
         createdAt: row.get('createdAt')

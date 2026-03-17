@@ -141,31 +141,7 @@ export function authenticateUser(email: string, password: string): LoginResult {
   };
 }
 
-// Authenticate driver with PIN
-export function authenticateDriver(pin: string): LoginResult {
-  const member = TEAM_MEMBERS.find(m => m.pin === pin && m.role === 'driver' && m.isActive);
-
-  if (!member) {
-    return { success: false, message: 'Invalid PIN' };
-  }
-
-  const session: UserSession = {
-    userId: member.id,
-    name: member.name,
-    email: member.email,
-    role: member.role,
-    permissions: member.permissions,
-    sessionId: generateSessionId(),
-    expiresAt: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(), // 12 hours for drivers
-    createdAt: new Date().toISOString(),
-  };
-
-  return {
-    success: true,
-    message: 'Login successful',
-    user: session,
-  };
-}
+// PIN-based driver auth removed - all users login via email+password
 
 // Change password
 export function changePassword(userId: string, currentPassword: string, newPassword: string): { success: boolean; message: string } {
@@ -275,7 +251,6 @@ export function createUser(data: {
   name: string;
   email: string;
   role: TeamRole;
-  pin?: string;
 }): { success: boolean; user?: TeamMember; tempPassword?: string; message: string } {
   // Check if email already exists
   const existing = TEAM_MEMBERS.find(m => m.email.toLowerCase() === data.email.toLowerCase());
@@ -284,7 +259,7 @@ export function createUser(data: {
   }
 
   const userId = data.name.toLowerCase().replace(/\s+/g, '-');
-  const tempPassword = data.role === 'driver' ? '' : generateTempPassword();
+  const tempPassword = generateTempPassword();
 
   const newMember: TeamMember = {
     id: userId,
@@ -292,7 +267,8 @@ export function createUser(data: {
     slug: userId,
     email: data.email,
     role: data.role,
-    pin: data.pin,
+    password: 'ChangeMe123!',
+    mustChangePassword: true,
     isActive: true,
     permissions: getDefaultPermissions(data.role),
     createdAt: new Date().toISOString(),

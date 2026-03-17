@@ -1,18 +1,44 @@
-﻿// Team Member Roles and Permissions for River City Roofing Portal
+// Team Member Roles and Permissions for River City Roofing Portal
 // Role hierarchy: owner > admin > manager > sales > office > project_manager > driver > viewer
 //
-// ROLE ASSIGNMENTS (Updated 2026-02-10 from Google Workspace):
+// ROLE ASSIGNMENTS (Updated 2026-03-16 from Google Workspace):
 // - OWNER (Michael Muse, Chris Muse): Full system access
 // - ADMIN (Sara Hill): Full system access, approval authority
 // - MANAGER (Destin Mccary): Operations oversight, view all, limited edit
 // - OFFICE (Tia Muse Morris): Billing, inventory, scheduling
 // - PROJECT_MANAGER (Bart Roberts, John Cordonis): Job scheduling, inventory coordination
-// - SALES (Aaron Lussi, Adam Rudell, Boston Muse, Brendon Muse, Greg Muse, Hunter Rivers, Joseph Dowd, Rick): Own leads/jobs, personal stats
-// - DRIVER (Richard Geahr, Travis Wages): Delivery queue, route navigation, photo upload
+// - SALES (Aaron Lussi, Adam Rudell, Boston Muse, Brendon Muse, Greg Muse, Hunter Rivers, Joseph Dowd, Alijah): Own leads/jobs, personal stats
+// - DRIVER (Travis Wages - also sells, Tae Orr - inactive): Delivery queue, route navigation, photo upload
+// - DUAL ROLE: Richard Geahr "Rick" (driver + sales) - gets role picker on login
 // - INACTIVE: Tae Orr, Rudy (not in Google Workspace)
 // - CUSTOMER: External - job status, weather alerts, document viewing
+//
+// AUTH: Email + password only. PIN system removed 2026-03-16.
 
 export type TeamRole = 'owner' | 'admin' | 'manager' | 'sales' | 'office' | 'project_manager' | 'driver' | 'viewer';
+
+// Granular permission strings
+export type Permission =
+  | '*'                  // Wildcard - all permissions (owners/admin)
+  | 'dashboard'          // Access to main dashboard
+  | 'sales'              // Sales portal access
+  | 'sales.leads'        // Lead management
+  | 'sales.customers'    // Customer management
+  | 'inventory'          // Inventory access
+  | 'inventory.manage'   // Can add/edit inventory
+  | 'delivery'           // Delivery portal access
+  | 'delivery.driver'    // Driver-specific features
+  | 'billing'            // Billing access
+  | 'billing.invoices'   // Invoice management
+  | 'reports'            // Reports access
+  | 'schedule'           // Schedule management
+  | 'team'               // Team management (admin)
+  | 'customers.portal'   // Customer portal management
+  | 'command-center'     // Command center access
+  | 'monday-notes'       // Monday notes access
+  | 'training'           // Training management
+  | 'blog'               // Blog management
+  | 'settings';          // System settings
 
 export interface TeamMember {
   id: string;
@@ -21,15 +47,40 @@ export interface TeamMember {
   email: string;
   phone?: string;
   role: TeamRole;
-  pin?: string; // 4-digit PIN for driver login
-  password: string; // Password for staff login
+  roles?: TeamRole[];          // For dual-role users (e.g., Richard Geahr: driver + sales)
+  aliases?: string[];          // Alternative names (e.g., "Rick" for Richard Geahr)
+  password: string;            // Password for staff login
   mustChangePassword: boolean; // Force password change on first login
   isActive: boolean;
   permissions: string[];
   createdAt: string;
 }
 
-// Define team members - Updated from PDF (items for web.pdf)
+// Human-readable labels for each permission (for admin UI)
+export const PERMISSION_LABELS: Record<string, string> = {
+  '*': 'Full Access (All Permissions)',
+  'dashboard': 'Dashboard',
+  'sales': 'Sales Portal',
+  'sales.leads': 'Lead Management',
+  'sales.customers': 'Customer Management',
+  'inventory': 'Inventory Access',
+  'inventory.manage': 'Inventory Management (Add/Edit)',
+  'delivery': 'Delivery Portal',
+  'delivery.driver': 'Driver Features',
+  'billing': 'Billing Access',
+  'billing.invoices': 'Invoice Management',
+  'reports': 'Reports',
+  'schedule': 'Schedule Management',
+  'team': 'Team Management',
+  'customers.portal': 'Customer Portal Management',
+  'command-center': 'Command Center',
+  'monday-notes': 'Monday Notes',
+  'training': 'Training Management',
+  'blog': 'Blog Management',
+  'settings': 'System Settings',
+};
+
+// Define team members - Updated 2026-03-16
 export const TEAM_MEMBERS: TeamMember[] = [
   // Owners - Full access to everything
   {
@@ -42,7 +93,7 @@ export const TEAM_MEMBERS: TeamMember[] = [
     password: 'ChangeMe123!',
     mustChangePassword: true,
     isActive: true,
-    permissions: ['*'], // All permissions
+    permissions: ['*'],
     createdAt: '2024-01-01'
   },
   {
@@ -59,7 +110,7 @@ export const TEAM_MEMBERS: TeamMember[] = [
     createdAt: '2024-01-01'
   },
 
-  // Admin - Full access
+  // Admin - Full access except settings
   {
     id: 'RVR-131',
     name: 'Sara Hill',
@@ -70,9 +121,16 @@ export const TEAM_MEMBERS: TeamMember[] = [
     password: 'ChangeMe123!',
     mustChangePassword: true,
     isActive: true,
-    permissions: ['*'],
+    permissions: [
+      'dashboard', 'sales', 'sales.leads', 'sales.customers',
+      'inventory', 'inventory.manage', 'delivery', 'delivery.driver',
+      'billing', 'billing.invoices', 'reports', 'schedule',
+      'team', 'customers.portal', 'command-center', 'monday-notes',
+      'training', 'blog'
+    ],
     createdAt: '2024-01-15'
   },
+
   // Manager - Operations Oversight
   {
     id: 'RVR-132',
@@ -85,24 +143,9 @@ export const TEAM_MEMBERS: TeamMember[] = [
     mustChangePassword: true,
     isActive: true,
     permissions: [
-      'view_dashboard',
-      'view_all_data',
-      'manage_billing',
-      'manage_inventory',
-      'view_tickets',
-      'update_ticket_status',
-      'create_invoices',
-      'manage_vendors',
-      'view_reports',
-      'export_reports',
-      'view_schedule',
-      'edit_schedule',
-      'manage_stock',
-      'view_team_performance',
-      'assign_deliveries',
-      'view_inventory_costs',
-      'enter_leads',
-      'lead_distro_manage'
+      'dashboard', 'reports', 'sales.leads', 'schedule',
+      'inventory', 'billing', 'delivery', 'monday-notes',
+      'command-center'
     ],
     createdAt: '2024-02-01'
   },
@@ -119,21 +162,13 @@ export const TEAM_MEMBERS: TeamMember[] = [
     mustChangePassword: true,
     isActive: true,
     permissions: [
-      'view_dashboard',
-      'manage_billing',
-      'manage_inventory',
-      'view_tickets',
-      'update_ticket_status',
-      'create_invoices',
-      'manage_vendors',
-      'view_reports',
-      'view_schedule',
-      'manage_stock',
-      'enter_leads',
-      'lead_distro_manage'
+      'dashboard', 'billing', 'billing.invoices', 'inventory',
+      'schedule', 'customers.portal', 'monday-notes'
     ],
     createdAt: '2024-02-01'
   },
+
+  // Project Managers
   {
     id: 'RVR-134',
     name: 'Bart Roberts',
@@ -145,18 +180,8 @@ export const TEAM_MEMBERS: TeamMember[] = [
     mustChangePassword: true,
     isActive: true,
     permissions: [
-      'view_dashboard',
-      'create_material_orders',
-      'create_delivery_tickets',
-      'create_pickup_tickets',
-      'create_return_tickets',
-      'schedule_events',
-      'view_schedule',
-      'view_own_tickets',
-      'update_own_tickets',
-      'view_inventory',
-      'view_drivers',
-      'enter_leads'
+      'dashboard', 'delivery', 'inventory', 'inventory.manage',
+      'schedule', 'billing', 'monday-notes'
     ],
     createdAt: '2024-03-15'
   },
@@ -171,23 +196,14 @@ export const TEAM_MEMBERS: TeamMember[] = [
     mustChangePassword: true,
     isActive: true,
     permissions: [
-      'view_dashboard',
-      'create_material_orders',
-      'create_delivery_tickets',
-      'create_pickup_tickets',
-      'create_return_tickets',
-      'schedule_events',
-      'view_schedule',
-      'view_own_tickets',
-      'update_own_tickets',
-      'view_inventory',
-      'view_drivers',
-      'enter_leads'
+      'dashboard', 'delivery', 'inventory', 'inventory.manage',
+      'schedule', 'billing', 'monday-notes'
     ],
     createdAt: '2024-02-15'
   },
 
-  // Drivers - View assigned, complete deliveries
+  // Dual-role: Driver + Sales (Richard Geahr / "Rick")
+  // Gets role picker on login. Single entry - NOT duplicated.
   {
     id: 'RVR-136',
     name: 'Richard Geahr',
@@ -195,25 +211,19 @@ export const TEAM_MEMBERS: TeamMember[] = [
     email: 'richard@rcrsal.com',
     phone: '256-701-7376',
     role: 'driver',
-    pin: '1136', // Driver login PIN from PDF
+    roles: ['driver', 'sales'],
+    aliases: ['Rick'],
     password: 'ChangeMe123!',
     mustChangePassword: true,
     isActive: true,
     permissions: [
-      'view_assigned_tickets',
-      'update_delivery_status',
-      'upload_photos',
-      'capture_signature',
-      'view_route',
-      'view_checklist',
-      'complete_checklist',
-      'edit_stock_qty',
-      'create_pickup_tickets',
-      'create_return_tickets',
-      'log_gps_activity'
+      'dashboard', 'delivery', 'delivery.driver', 'inventory',
+      'sales', 'sales.leads', 'sales.customers', 'monday-notes'
     ],
     createdAt: '2024-04-01'
   },
+
+  // Inactive driver
   {
     id: 'a8ad2e33',
     name: 'Tae Orr',
@@ -221,27 +231,16 @@ export const TEAM_MEMBERS: TeamMember[] = [
     email: 'tae@rcrsal.com',
     phone: '256-200-3467',
     role: 'driver',
-    pin: '2033', // Driver login PIN from PDF
     password: 'ChangeMe123!',
     mustChangePassword: true,
     isActive: false, // Not in Google Workspace - inactive
     permissions: [
-      'view_assigned_tickets',
-      'update_delivery_status',
-      'upload_photos',
-      'capture_signature',
-      'view_route',
-      'view_checklist',
-      'complete_checklist',
-      'edit_stock_qty',
-      'create_pickup_tickets',
-      'create_return_tickets',
-      'log_gps_activity'
+      'dashboard', 'delivery', 'delivery.driver'
     ],
     createdAt: '2024-05-01'
   },
 
-  // Sales Representatives - Lead management, inspections, quotes
+  // Sales Representatives
   {
     id: 'RVR-201',
     name: 'Hunter Rivers',
@@ -253,20 +252,8 @@ export const TEAM_MEMBERS: TeamMember[] = [
     mustChangePassword: true,
     isActive: true,
     permissions: [
-      'view_dashboard',
-      'view_leads',
-      'manage_leads',
-      'view_own_leads',
-      'update_lead_status',
-      'schedule_inspections',
-      'create_quotes',
-      'send_quotes',
-      'view_own_stats',
-      'view_leaderboard',
-      'upload_photos',
-      'view_customer_portal',
-      'send_customer_messages',
-      'view_schedule'
+      'dashboard', 'sales', 'sales.leads', 'sales.customers',
+      'monday-notes', 'training'
     ],
     createdAt: '2024-01-15'
   },
@@ -281,20 +268,8 @@ export const TEAM_MEMBERS: TeamMember[] = [
     mustChangePassword: true,
     isActive: true,
     permissions: [
-      'view_dashboard',
-      'view_leads',
-      'manage_leads',
-      'view_own_leads',
-      'update_lead_status',
-      'schedule_inspections',
-      'create_quotes',
-      'send_quotes',
-      'view_own_stats',
-      'view_leaderboard',
-      'upload_photos',
-      'view_customer_portal',
-      'send_customer_messages',
-      'view_schedule'
+      'dashboard', 'sales', 'sales.leads', 'sales.customers',
+      'monday-notes', 'training'
     ],
     createdAt: '2024-02-01'
   },
@@ -309,20 +284,8 @@ export const TEAM_MEMBERS: TeamMember[] = [
     mustChangePassword: true,
     isActive: true,
     permissions: [
-      'view_dashboard',
-      'view_leads',
-      'manage_leads',
-      'view_own_leads',
-      'update_lead_status',
-      'schedule_inspections',
-      'create_quotes',
-      'send_quotes',
-      'view_own_stats',
-      'view_leaderboard',
-      'upload_photos',
-      'view_customer_portal',
-      'send_customer_messages',
-      'view_schedule'
+      'dashboard', 'sales', 'sales.leads', 'sales.customers',
+      'monday-notes', 'training'
     ],
     createdAt: '2024-03-01'
   },
@@ -337,50 +300,10 @@ export const TEAM_MEMBERS: TeamMember[] = [
     mustChangePassword: true,
     isActive: true,
     permissions: [
-      'view_dashboard',
-      'view_leads',
-      'manage_leads',
-      'view_own_leads',
-      'update_lead_status',
-      'schedule_inspections',
-      'create_quotes',
-      'send_quotes',
-      'view_own_stats',
-      'view_leaderboard',
-      'upload_photos',
-      'view_customer_portal',
-      'send_customer_messages',
-      'view_schedule'
+      'dashboard', 'sales', 'sales.leads', 'sales.customers',
+      'monday-notes', 'training'
     ],
     createdAt: '2024-01-01'
-  },
-  {
-    id: 'RVR-205',
-    name: 'Rick',
-    slug: 'rick',
-    email: 'rick@rcrsal.com',
-    phone: '256-701-7376',
-    role: 'sales',
-    password: 'ChangeMe123!',
-    mustChangePassword: true,
-    isActive: true,
-    permissions: [
-      'view_dashboard',
-      'view_leads',
-      'manage_leads',
-      'view_own_leads',
-      'update_lead_status',
-      'schedule_inspections',
-      'create_quotes',
-      'send_quotes',
-      'view_own_stats',
-      'view_leaderboard',
-      'upload_photos',
-      'view_customer_portal',
-      'send_customer_messages',
-      'view_schedule'
-    ],
-    createdAt: '2024-04-01'
   },
   {
     id: 'RVR-206',
@@ -393,20 +316,8 @@ export const TEAM_MEMBERS: TeamMember[] = [
     mustChangePassword: true,
     isActive: false, // Not in Google Workspace - inactive
     permissions: [
-      'view_dashboard',
-      'view_leads',
-      'manage_leads',
-      'view_own_leads',
-      'update_lead_status',
-      'schedule_inspections',
-      'create_quotes',
-      'send_quotes',
-      'view_own_stats',
-      'view_leaderboard',
-      'upload_photos',
-      'view_customer_portal',
-      'send_customer_messages',
-      'view_schedule'
+      'dashboard', 'sales', 'sales.leads', 'sales.customers',
+      'monday-notes', 'training'
     ],
     createdAt: '2024-05-01'
   },
@@ -421,20 +332,8 @@ export const TEAM_MEMBERS: TeamMember[] = [
     mustChangePassword: true,
     isActive: true,
     permissions: [
-      'view_dashboard',
-      'view_leads',
-      'manage_leads',
-      'view_own_leads',
-      'update_lead_status',
-      'schedule_inspections',
-      'create_quotes',
-      'send_quotes',
-      'view_own_stats',
-      'view_leaderboard',
-      'upload_photos',
-      'view_customer_portal',
-      'send_customer_messages',
-      'view_schedule'
+      'dashboard', 'sales', 'sales.leads', 'sales.customers',
+      'monday-notes', 'training'
     ],
     createdAt: '2024-06-01'
   },
@@ -449,20 +348,8 @@ export const TEAM_MEMBERS: TeamMember[] = [
     mustChangePassword: true,
     isActive: true,
     permissions: [
-      'view_dashboard',
-      'view_leads',
-      'manage_leads',
-      'view_own_leads',
-      'update_lead_status',
-      'schedule_inspections',
-      'create_quotes',
-      'send_quotes',
-      'view_own_stats',
-      'view_leaderboard',
-      'upload_photos',
-      'view_customer_portal',
-      'send_customer_messages',
-      'view_schedule'
+      'dashboard', 'sales', 'sales.leads', 'sales.customers',
+      'monday-notes', 'training', 'blog'
     ],
     createdAt: '2026-02-10'
   },
@@ -477,25 +364,28 @@ export const TEAM_MEMBERS: TeamMember[] = [
     mustChangePassword: true,
     isActive: true,
     permissions: [
-      'view_dashboard',
-      'view_leads',
-      'manage_leads',
-      'view_own_leads',
-      'update_lead_status',
-      'schedule_inspections',
-      'create_quotes',
-      'send_quotes',
-      'view_own_stats',
-      'view_leaderboard',
-      'upload_photos',
-      'view_customer_portal',
-      'send_customer_messages',
-      'view_schedule'
+      'dashboard', 'sales', 'sales.leads', 'sales.customers',
+      'monday-notes', 'training'
     ],
     createdAt: '2026-02-10'
   },
+  {
+    id: 'RVR-210',
+    name: 'Alijah',
+    slug: 'alijah',
+    email: 'alijah@rcrsal.com',
+    role: 'sales',
+    password: 'ChangeMe123!',
+    mustChangePassword: true,
+    isActive: true,
+    permissions: [
+      'dashboard', 'sales', 'sales.leads', 'sales.customers',
+      'monday-notes', 'training'
+    ],
+    createdAt: '2026-03-16'
+  },
 
-  // Additional Drivers
+  // Driver who also sells
   {
     id: 'RVR-140',
     name: 'Travis Wages',
@@ -507,17 +397,8 @@ export const TEAM_MEMBERS: TeamMember[] = [
     mustChangePassword: true,
     isActive: true,
     permissions: [
-      'view_assigned_tickets',
-      'update_delivery_status',
-      'upload_photos',
-      'capture_signature',
-      'view_route',
-      'view_checklist',
-      'complete_checklist',
-      'edit_stock_qty',
-      'create_pickup_tickets',
-      'create_return_tickets',
-      'log_gps_activity'
+      'dashboard', 'delivery', 'delivery.driver', 'sales',
+      'sales.leads', 'inventory', 'monday-notes'
     ],
     createdAt: '2026-02-10'
   }
@@ -547,9 +428,29 @@ export const COMMAND_CENTER_ACCESS: Record<TeamRole, string[]> = {
   viewer: ['dashboard', 'reports']
 };
 
-// Permission descriptions
+// Permission descriptions (legacy - kept for backward compatibility)
 export const PERMISSION_DESCRIPTIONS: Record<string, string> = {
   '*': 'Full access to all features',
+  'dashboard': 'View main dashboard',
+  'sales': 'Sales portal access',
+  'sales.leads': 'Lead management',
+  'sales.customers': 'Customer management',
+  'inventory': 'Inventory access',
+  'inventory.manage': 'Inventory management (add/edit)',
+  'delivery': 'Delivery portal access',
+  'delivery.driver': 'Driver-specific features',
+  'billing': 'Billing access',
+  'billing.invoices': 'Invoice management',
+  'reports': 'Reports access',
+  'schedule': 'Schedule management',
+  'team': 'Team management (admin)',
+  'customers.portal': 'Customer portal management',
+  'command-center': 'Command center access',
+  'monday-notes': 'Monday notes access',
+  'training': 'Training management',
+  'blog': 'Blog management',
+  'settings': 'System settings',
+  // Legacy permission names (for backward compat with existing code)
   'view_dashboard': 'View main dashboard',
   'manage_billing': 'Create and manage invoices, billing records',
   'manage_inventory': 'Full inventory management',
@@ -578,7 +479,6 @@ export const PERMISSION_DESCRIPTIONS: Record<string, string> = {
   'complete_checklist': 'Complete checklist items',
   'edit_stock_qty': 'Edit stock quantities (logged)',
   'log_gps_activity': 'Log GPS activities',
-  // Sales-specific permissions
   'view_leads': 'View all leads',
   'manage_leads': 'Manage and assign leads',
   'view_own_leads': 'View only assigned leads',
@@ -590,7 +490,6 @@ export const PERMISSION_DESCRIPTIONS: Record<string, string> = {
   'view_leaderboard': 'View sales leaderboard',
   'view_customer_portal': 'View customer portal data',
   'send_customer_messages': 'Send messages to customers',
-  // Lead distribution permissions
   'lead_distro_admin': 'Configure lead distribution algorithm and weights',
   'lead_distro_manage': 'Toggle rep availability and view lead distribution',
   'enter_leads': 'Enter new leads into the system',
@@ -606,17 +505,48 @@ export function getTeamMemberByEmail(email: string): TeamMember | undefined {
   return TEAM_MEMBERS.find(m => m.email.toLowerCase() === email.toLowerCase());
 }
 
-export function getTeamMemberByPin(pin: string): TeamMember | undefined {
-  return TEAM_MEMBERS.find(m => m.pin === pin && m.role === 'driver');
-}
-
 export function getTeamMembersByRole(role: TeamRole): TeamMember[] {
   return TEAM_MEMBERS.filter(m => m.role === role && m.isActive);
 }
 
+/**
+ * Check if a team member has a specific permission.
+ *
+ * Rules:
+ * 1. If member has '*', return true for everything.
+ * 2. Parent permission grants child: having 'sales' grants 'sales.leads', 'sales.customers', etc.
+ * 3. Exact match check.
+ */
 export function hasPermission(member: TeamMember, permission: string): boolean {
+  // Wildcard grants everything
   if (member.permissions.includes('*')) return true;
-  return member.permissions.includes(permission);
+
+  // Exact match
+  if (member.permissions.includes(permission)) return true;
+
+  // Parent permission check: if checking 'sales.leads', also check if they have 'sales'
+  if (permission.includes('.')) {
+    const parent = permission.split('.')[0];
+    if (member.permissions.includes(parent)) return true;
+  }
+
+  return false;
+}
+
+/**
+ * Look up a team member by alias (e.g., "Rick" -> Richard Geahr).
+ */
+export function getTeamMemberByAlias(alias: string): TeamMember | undefined {
+  return TEAM_MEMBERS.find(m =>
+    m.aliases?.some(a => a.toLowerCase() === alias.toLowerCase())
+  );
+}
+
+/**
+ * Check if a team member has dual roles (e.g., driver + sales).
+ */
+export function hasDualRole(member: TeamMember): boolean {
+  return (member.roles?.length ?? 0) > 1;
 }
 
 export function canAccessPortal(member: TeamMember, portalPath: string): boolean {
@@ -625,7 +555,9 @@ export function canAccessPortal(member: TeamMember, portalPath: string): boolean
 }
 
 export function getDrivers(): TeamMember[] {
-  return getTeamMembersByRole('driver');
+  return TEAM_MEMBERS.filter(m =>
+    m.isActive && (m.role === 'driver' || m.roles?.includes('driver'))
+  );
 }
 
 export function getProjectManagers(): TeamMember[] {
@@ -906,7 +838,7 @@ export function isInternalSalesRep(name: string): boolean {
 
 /** Normalize commission name variants to canonical names */
 const NAME_ALIASES: Record<string, string> = {
-  // === CRITICAL: 1099 Business Entity → Personal Name ===
+  // === CRITICAL: 1099 Business Entity -> Personal Name ===
   // All sales reps are 1099 contractors. Commission reports use entity names.
   'bcm contracting llc': 'Brendon Muse',
   'bcm contracting': 'Brendon Muse',

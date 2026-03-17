@@ -1,467 +1,308 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 
-interface SlideData {
-  title: string;
-  render: (notesVisible: boolean) => React.ReactNode;
-  speakerNote: string;
-}
+const SLIDES = [
+  {
+    label: 'BNI Presentation — March 2026',
+    title: ['RIVER CITY', 'ROOFING SOLUTIONS'],
+    subtitle: 'Technology That Protects Homeowners',
+    body: 'How we use cutting-edge tools to deliver a better experience',
+    badges: ['IKO ROOFPRO', 'Owens Corning Preferred', 'Boral Certified', 'BBB A+'],
+    cta: null,
+    type: 'title' as const,
+    note: 'Good morning everyone. Last year, 47 hail storms hit within 10 miles of THIS building. Most homeowners had no idea.',
+  },
+  {
+    label: 'Free Tool',
+    title: ['STORM', 'CHECK'],
+    subtitle: 'Free Storm Damage Risk Assessment',
+    items: [
+      'Homeowner enters their address',
+      'We pull official National Weather Service hail & storm data',
+      'Instant risk score with damage probability',
+      'Identifies properties that need professional inspection',
+    ],
+    cta: { text: 'LIVE DEMO', href: '/check-my-address' },
+    ctaNote: 'Demo: Enter "100 N Beaty St, Athens, AL 35611"',
+    type: 'steps' as const,
+    note: 'Here\'s how to spot a referral: when someone says "we had that bad storm" or "my insurance adjuster came out" — that\'s your cue.',
+  },
+  {
+    label: 'Insurance Ready',
+    title: ['STORM & HAIL', 'REPORT'],
+    subtitle: 'Official Documentation Homeowners Can Trust',
+    cards: [
+      { head: 'NWS Verified', desc: 'Hail event data with dates, sizes, distances' },
+      { head: 'HailRecon Data', desc: 'Historical database from 2011 to present' },
+      { head: 'Risk Scoring', desc: 'Property-specific damage analysis' },
+      { head: 'Claim Ready', desc: 'Official documentation for insurance' },
+    ],
+    cta: { text: 'VIEW SAMPLE REPORT', href: '/bni/report', blue: true },
+    type: 'cards' as const,
+    note: 'Insurance companies need this documentation. Most roofers show up with a ladder and a handshake. We show up with verified government data.',
+  },
+  {
+    label: 'Your Referral Gets This',
+    title: ['CUSTOMER', 'PORTAL'],
+    subtitle: 'Complete Transparency From Inspection to Installation',
+    cards: [
+      { head: 'Job Progress', desc: 'Real-time status tracking' },
+      { head: 'Messages', desc: 'Direct communication with your rep' },
+      { head: 'Documents', desc: 'All paperwork in one place' },
+      { head: 'Weather', desc: 'Live forecast for your area' },
+      { head: 'Hail Report', desc: 'Storm data for your property' },
+      { head: 'Payments', desc: 'Transparent billing & insurance' },
+    ],
+    cta: { text: 'VIEW PORTAL DEMO', href: '/bni/portal' },
+    type: 'cards' as const,
+    note: 'When you refer someone, THIS is the experience they get. No wondering, no phone tag, no surprises.',
+  },
+  {
+    label: 'Design Tool',
+    title: ['SEE YOUR NEW ROOF', 'BEFORE WE INSTALL'],
+    subtitle: 'IKO ROOFViewer — Choose Your Perfect Look',
+    body: 'Homeowners upload a photo of their home and try different shingle colors and styles instantly. Dynasty, Cambridge, Nordic and more.',
+    cta: { text: 'OPEN IKO VISUALIZER', href: 'https://www.ikoroofing.com/en-us/roofing-tools/roof-visualizer/', blue: true },
+    type: 'feature' as const,
+    note: 'And here\'s the fun one — homeowners get to choose exactly what their roof looks like before we install it.',
+  },
+  {
+    label: 'My Specific Ask',
+    title: ['HOW TO REFER:', 'LISTEN FOR THESE'],
+    triggers: [
+      '"We had that bad storm last month"',
+      '"My insurance adjuster came out"',
+      '"Our roof is getting old"',
+      '"We\'re thinking about selling our home"',
+    ],
+    referral: {
+      amount: '$200 Per Referral',
+      instruction: 'Send a group text with me and the homeowner:',
+      phone: '(256) 274-8530',
+    },
+    partner: {
+      title: 'We Put YOU on Our Website',
+      desc: 'Your business is listed on our partner page — our customers can find you too.',
+      link: 'rivercityroofingsolutions.com/bni',
+    },
+    type: 'close' as const,
+    note: 'I\'m looking for homeowners whose roof is over 15 years old, OR anyone who mentions storm damage. The easiest way to refer? Group text — 256-274-8530.',
+  },
+];
 
 export default function BNIPresentationPage() {
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [notesVisible, setNotesVisible] = useState(false);
-  const [transitioning, setTransitioning] = useState(false);
-  const [direction, setDirection] = useState<'left' | 'right'>('right');
-  const [imgErrors, setImgErrors] = useState<Record<string, boolean>>({});
+  const [idx, setIdx] = useState(0);
+  const [showNotes, setShowNotes] = useState(false);
 
-  const totalSlides = 6;
+  const total = SLIDES.length;
+  const slide = SLIDES[idx];
+  const go = (n: number) => { if (n >= 0 && n < total) setIdx(n); };
+  const containerRef = React.useRef<HTMLDivElement>(null);
 
-  const goToSlide = useCallback(
-    (index: number, dir: 'left' | 'right') => {
-      if (index < 0 || index >= totalSlides || index === currentSlide || transitioning) return;
-      setDirection(dir);
-      setTransitioning(true);
-      setTimeout(() => {
-        setCurrentSlide(index);
-        setTimeout(() => setTransitioning(false), 50);
-      }, 200);
-    },
-    [currentSlide, transitioning]
-  );
-
-  const nextSlide = useCallback(() => {
-    goToSlide(currentSlide + 1, 'right');
-  }, [currentSlide, goToSlide]);
-
-  const prevSlide = useCallback(() => {
-    goToSlide(currentSlide - 1, 'left');
-  }, [currentSlide, goToSlide]);
-
-  useEffect(() => {
-    document.title = 'BNI Presentation - River City Roofing Solutions';
+  React.useEffect(() => {
+    containerRef.current?.focus();
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight' || e.key === ' ') {
-        e.preventDefault();
-        nextSlide();
-      } else if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        prevSlide();
-      } else if (e.key === 'n' || e.key === 'N') {
-        setNotesVisible((v) => !v);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [nextSlide, prevSlide]);
-
-  const handleImgError = (key: string) => {
-    setImgErrors((prev) => ({ ...prev, [key]: true }));
-  };
-
-  const GreenBullet = () => (
-    <span className="inline-block w-2.5 h-2.5 rounded-full bg-[#39FF14] mr-3 mt-2 flex-shrink-0" />
-  );
-
-  const CTAButton = ({ href, children }: { href: string; children: React.ReactNode }) => (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-block bg-[#39FF14] text-black font-bold px-8 py-4 rounded-lg text-xl hover:bg-[#32e614] transition-colors"
-    >
-      {children}
-    </a>
-  );
-
-  const SpeakerNote = ({ note, visible }: { note: string; visible: boolean }) => {
-    if (!visible) return null;
-    return (
-      <div className="absolute bottom-16 left-8 right-8 text-sm text-neutral-500 italic bg-neutral-900/90 p-4 rounded-lg border border-neutral-800">
-        <span className="text-neutral-600 font-semibold not-italic mr-2">Speaker Note:</span>
-        {note}
-      </div>
-    );
-  };
-
-  const slides: SlideData[] = [
-    // Slide 1 - Title
-    {
-      title: 'Title',
-      speakerNote:
-        'Good morning everyone. Last year, 47 hail storms hit within 10 miles of THIS building. Most homeowners had no idea. I\'m Michael with River City Roofing Solutions, and today I\'m going to show you exactly how we find that damage — and how to spot a referral for me. Here\'s what to listen for...',
-      render: (notes) => (
-        <div className="flex flex-col items-center justify-center h-full text-center px-8 relative">
-          <div className="mb-8">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-[#39FF14]/20 border-2 border-[#39FF14] flex items-center justify-center">
-              <svg viewBox="0 0 24 24" className="w-10 h-10 text-[#39FF14]" fill="currentColor">
-                <path d="M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3z" />
-              </svg>
-            </div>
-            <h1 className="text-4xl md:text-6xl font-bold text-white tracking-tight mb-2">
-              RIVER CITY
-            </h1>
-            <h1 className="text-4xl md:text-6xl font-bold text-[#39FF14] tracking-tight mb-6">
-              ROOFING SOLUTIONS
-            </h1>
-          </div>
-          <h2 className="text-xl md:text-2xl text-neutral-300 mb-4">
-            Technology That Protects Homeowners
-          </h2>
-          <p className="text-lg text-neutral-400 mb-12 max-w-2xl">
-            How we use cutting-edge tools to deliver a better experience
-          </p>
-          <p className="absolute bottom-24 text-sm text-neutral-600">
-            BNI Presentation &mdash; March 2026
-          </p>
-          <SpeakerNote
-            note={slides[0].speakerNote}
-            visible={notes}
-          />
-        </div>
-      ),
-    },
-    // Slide 2 - StormCheck
-    {
-      title: 'StormCheck',
-      speakerNote:
-        'Here\'s how to spot a referral for me: when someone says "we had that bad storm" or "my insurance adjuster came out" or "our roof is 15 years old" — that\'s your cue. Tell them to check their address free on our website. Let me show you what happens when they do...',
-      render: (notes) => (
-        <div className="flex flex-col justify-center h-full px-8 md:px-16 lg:px-24 relative">
-          <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
-            StormCheck: <span className="text-[#39FF14]">Free Storm Damage Risk Assessment</span>
-          </h1>
-          <h2 className="text-xl md:text-2xl text-neutral-300 mb-10">
-            Real NWS data. Real hail reports. Real answers.
-          </h2>
-          <ul className="space-y-5 mb-10 max-w-3xl">
-            {[
-              'Homeowner enters their address',
-              'We pull official National Weather Service hail & storm data',
-              'Instant risk score with damage probability',
-              'Identifies properties that need professional inspection',
-            ].map((item, i) => (
-              <li key={i} className="flex items-start text-lg text-neutral-200">
-                <GreenBullet />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-          <div className="flex flex-col items-start gap-3">
-            <CTAButton href="https://www.rivercityroofingsolutions.com/check-my-address">
-              LIVE DEMO &rarr;
-            </CTAButton>
-            <p className="text-sm text-neutral-500 mt-2">
-              Demo: Enter &quot;100 N Beaty St, Athens, AL 35611&quot;
-            </p>
-          </div>
-          <SpeakerNote note={slides[1].speakerNote} visible={notes} />
-        </div>
-      ),
-    },
-    // Slide 3 - Full Roof Report
-    {
-      title: 'Full Roof Report',
-      speakerNote:
-        'After the initial check, we generate this comprehensive report with OFFICIAL NWS data. Here\'s the key — insurance companies need this documentation. Most roofers show up with a ladder and a handshake. We show up with verified government data. That\'s why we close 80% of our claims.',
-      render: (notes) => (
-        <div className="flex flex-col justify-center h-full px-8 md:px-16 lg:px-24 relative">
-          <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
-            The Complete <span className="text-[#39FF14]">Storm &amp; Hail Report</span>
-          </h1>
-          <h2 className="text-xl md:text-2xl text-neutral-300 mb-10">
-            Official documentation homeowners can trust
-          </h2>
-          <ul className="space-y-5 mb-10 max-w-3xl">
-            {[
-              'Verified NWS hail event data with dates, sizes, distances',
-              'HailRecon historical database (2011-present)',
-              'Risk scoring with property-specific analysis',
-              'Official documentation for insurance claims',
-              'Shareable reports homeowners can reference',
-            ].map((item, i) => (
-              <li key={i} className="flex items-start text-lg text-neutral-200">
-                <GreenBullet />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-          <div>
-            <CTAButton href="/bni/report">VIEW SAMPLE REPORT &rarr;</CTAButton>
-          </div>
-          <SpeakerNote note={slides[2].speakerNote} visible={notes} />
-        </div>
-      ),
-    },
-    // Slide 4 - Customer Portal
-    {
-      title: 'Customer Portal',
-      speakerNote:
-        'Here\'s what your referral will experience. Once they become a customer, they get their own personal portal. They can see every step of the process — no wondering, no phone tag, no surprises. When you refer someone, THIS is the experience they get. Let me show you...',
-      render: (notes) => {
-        const features = [
-          { icon: '\u{1F4CB}', title: 'Job Progress', desc: 'Real-time status tracking' },
-          { icon: '\u{1F4AC}', title: 'Messages', desc: 'Direct communication with your rep' },
-          { icon: '\u{1F4C4}', title: 'Documents', desc: 'All paperwork in one place' },
-          { icon: '\u{1F324}\u{FE0F}', title: 'Weather', desc: 'Live forecast for your area' },
-          { icon: '\u{1F9CA}', title: 'Hail Report', desc: 'Historical storm data for your property' },
-          { icon: '\u{1F4B3}', title: 'Payments', desc: 'Transparent billing & insurance info' },
-        ];
-        return (
-          <div className="flex flex-col justify-center h-full px-8 md:px-16 lg:px-24 relative">
-            <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
-              Your Personal <span className="text-[#39FF14]">Customer Portal</span>
-            </h1>
-            <h2 className="text-xl md:text-2xl text-neutral-300 mb-10">
-              Complete transparency from inspection to installation
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-10 max-w-4xl">
-              {features.map((f, i) => (
-                <div
-                  key={i}
-                  className="bg-neutral-800/80 border border-neutral-700 rounded-xl p-6 hover:border-[#39FF14]/40 transition-colors"
-                >
-                  <div className="text-3xl mb-3">{f.icon}</div>
-                  <h3 className="text-white font-semibold text-lg mb-1">{f.title}</h3>
-                  <p className="text-neutral-400 text-sm">{f.desc}</p>
-                </div>
-              ))}
-            </div>
-            <div>
-              <CTAButton href="/bni/portal">VIEW PORTAL DEMO &rarr;</CTAButton>
-            </div>
-            <SpeakerNote note={slides[3].speakerNote} visible={notes} />
-          </div>
-        );
-      },
-    },
-    // Slide 5 - IKO Roof Visualizer
-    {
-      title: 'IKO Roof Visualizer',
-      speakerNote:
-        'And here\'s the fun one — homeowners get to choose exactly what their roof looks like before we install it. Take a photo of any home, upload it, and try different shingle styles. Let me show you with THIS building...',
-      render: (notes) => {
-        const streetViewImages = [
-          {
-            key: 'front',
-            label: 'Front View',
-            url: 'https://maps.googleapis.com/maps/api/streetview?size=600x400&location=34.8025,-86.9717&heading=0&pitch=20&key=AIzaSyB8lFAdlWJ4MP4vJi0nMxcl2whstCPsv4g',
-          },
-          {
-            key: 'side',
-            label: 'Side View',
-            url: 'https://maps.googleapis.com/maps/api/streetview?size=600x400&location=34.8025,-86.9717&heading=90&pitch=20&key=AIzaSyB8lFAdlWJ4MP4vJi0nMxcl2whstCPsv4g',
-          },
-          {
-            key: 'rear',
-            label: 'Rear View',
-            url: 'https://maps.googleapis.com/maps/api/streetview?size=600x400&location=34.8025,-86.9717&heading=180&pitch=20&key=AIzaSyB8lFAdlWJ4MP4vJi0nMxcl2whstCPsv4g',
-          },
-        ];
-        return (
-          <div className="flex flex-col justify-center h-full px-8 md:px-16 lg:px-24 relative">
-            <h1 className="text-3xl md:text-5xl font-bold text-white mb-3">
-              See Your New Roof <span className="text-[#39FF14]">Before We Install</span>
-            </h1>
-            <h2 className="text-lg md:text-xl text-neutral-300 mb-6">
-              IKO Roof Visualizer: Choose your perfect look
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 max-w-5xl">
-              {streetViewImages.map((img) => (
-                <div key={img.key} className="relative">
-                  {imgErrors[img.key] ? (
-                    <div className="w-full aspect-[3/2] bg-neutral-800 border border-neutral-700 rounded-lg flex items-center justify-center">
-                      <div className="text-center text-neutral-500">
-                        <svg
-                          className="w-12 h-12 mx-auto mb-2 text-neutral-600"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={1.5}
-                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                          />
-                        </svg>
-                        <p className="text-sm">Image unavailable</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <img
-                      src={img.url}
-                      alt={`${img.label} of Athens-Limestone Visitors Center`}
-                      loading="lazy"
-                      className="w-full aspect-[3/2] object-cover rounded-lg border border-neutral-700"
-                      onError={() => handleImgError(img.key)}
-                    />
-                  )}
-                  <p className="text-center text-sm text-neutral-400 mt-2 font-medium">
-                    {img.label}
-                  </p>
-                </div>
-              ))}
-            </div>
-            <p className="text-neutral-400 mb-6 text-sm">
-              Upload any of these photos to see different shingle styles instantly
-            </p>
-            <div className="flex flex-col items-start gap-2">
-              <CTAButton href="https://www.ikoroofing.com/en-us/roofing-tools/roof-visualizer/">
-                OPEN IKO VISUALIZER &rarr;
-              </CTAButton>
-              <p className="text-xs text-neutral-600 mt-1">
-                Right-click images above to save for upload
-              </p>
-            </div>
-            <SpeakerNote note={slides[4].speakerNote} visible={notes} />
-          </div>
-        );
-      },
-    },
-    // Slide 6 - Close / Referral
-    {
-      title: 'Close / Referral',
-      speakerNote:
-        'So here\'s my SPECIFIC ask: I\'m looking for homeowners in Athens, Decatur, Huntsville, or Madison whose roof is over 15 years old, OR anyone who mentions storm damage or an insurance adjuster visit. The easiest way to refer? Send a group text with me and the homeowner — my number is 256-274-8530. I\'ll handle everything from there, and you earn $200 when the project completes. Also — check out rivercityroofingsolutions.com/bni — we\'ve added all of YOUR businesses to our website so our customers can find YOU too. Thank you!',
-      render: (notes) => {
-        const referralTriggers = [
-          '"We had that bad storm last month"',
-          '"My insurance adjuster came out"',
-          '"Our roof is getting old"',
-          '"We\'re thinking about selling our home"',
-        ];
-        return (
-          <div className="flex flex-col justify-center h-full px-8 md:px-16 lg:px-24 relative">
-            <h1 className="text-3xl md:text-5xl font-bold text-white mb-2">
-              How to Refer:{' '}
-              <span className="text-[#39FF14]">Listen for These</span>
-            </h1>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6 max-w-4xl">
-              {referralTriggers.map((trigger, i) => (
-                <div key={i} className="flex items-center gap-3 bg-neutral-800/60 border border-neutral-700 rounded-lg px-5 py-3">
-                  <span className="text-[#39FF14] text-xl">&#x1F4AC;</span>
-                  <span className="text-neutral-200 italic">{trigger}</span>
-                </div>
-              ))}
-            </div>
-            <div className="flex flex-col md:flex-row gap-4 mb-6 max-w-4xl">
-              <div className="bg-[#39FF14]/10 border-2 border-[#39FF14]/50 rounded-xl p-6 flex-1">
-                <h3 className="text-2xl font-bold text-[#39FF14] mb-2">$200 Per Referral</h3>
-                <p className="text-neutral-300 text-sm mb-3">
-                  Send a group text with me and the homeowner:
-                </p>
-                <a href="tel:2562748530" className="text-2xl font-bold text-white hover:text-[#39FF14] transition-colors">
-                  (256) 274-8530
-                </a>
-              </div>
-              <div className="bg-neutral-800/80 border border-neutral-700 rounded-xl p-6 flex-1">
-                <h3 className="text-xl font-bold text-white mb-2">We Put YOU on Our Website</h3>
-                <p className="text-neutral-400 text-sm mb-3">
-                  Your business is listed on our partner page — our customers can find you too.
-                </p>
-                <a
-                  href="https://www.rivercityroofingsolutions.com/bni"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[#39FF14] hover:underline font-semibold"
-                >
-                  rivercityroofingsolutions.com/bni &rarr;
-                </a>
-              </div>
-            </div>
-            <div className="flex items-center gap-4 text-neutral-500 text-sm">
-              <span>rcrs@rivercityroofingsolutions.com</span>
-              <span>&bull;</span>
-              <span>IKO RoofPro Certified</span>
-              <span>&bull;</span>
-              <span>Serving Athens, Decatur, Huntsville &amp; North AL</span>
-            </div>
-            <SpeakerNote note={slides[5].speakerNote} visible={notes} />
-          </div>
-        );
-      },
-    },
-  ];
-
-  const progressPercent = ((currentSlide + 1) / totalSlides) * 100;
-
   return (
-    <div className="fixed inset-0 z-[9999] bg-black overflow-hidden select-none">
-      {/* Progress bar */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-neutral-800 z-50">
-        <div
-          className="h-full bg-[#39FF14] transition-all duration-500 ease-out"
-          style={{ width: `${progressPercent}%` }}
-        />
+    <div
+      ref={containerRef}
+      className="fixed inset-0 z-[9999] bg-black text-white overflow-hidden select-none flex flex-col outline-none"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(idx + 1); }
+        else if (e.key === 'ArrowLeft') { e.preventDefault(); go(idx - 1); }
+        else if (e.key === 'n' || e.key === 'N') setShowNotes(v => !v);
+        else if (e.key === 'Escape') window.location.href = '/bni';
+      }}
+    >
+      {/* Top bar */}
+      <div className="h-1.5 bg-neutral-900 flex-shrink-0">
+        <div className="h-full bg-[#39FF14] transition-all duration-300" style={{ width: `${((idx + 1) / total) * 100}%`, boxShadow: '0 0 12px #39FF14' }} />
       </div>
 
-      {/* ESC hint */}
-      <a
-        href="/bni"
-        className="absolute top-4 left-4 z-50 text-xs text-neutral-600 hover:text-neutral-400 transition-colors"
-      >
-        ESC to exit
-      </a>
-
-      {/* Notes toggle hint */}
-      <div className="absolute top-4 right-4 z-50 text-xs text-neutral-700">
-        Press N for notes
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-3 flex-shrink-0">
+        <a href="/bni" className="text-[10px] text-neutral-600 hover:text-[#39FF14] font-black uppercase tracking-[0.3em] transition-colors">ESC Exit</a>
+        <div className="text-[10px] text-neutral-600 font-black uppercase tracking-[0.3em]">Press N for Notes</div>
       </div>
 
       {/* Slide content */}
-      <div
-        className={`w-full h-full transition-opacity duration-200 ease-in-out ${
-          transitioning ? 'opacity-0' : 'opacity-100'
-        }`}
-      >
-        {slides[currentSlide].render(notesVisible)}
+      <div className="flex-1 flex items-center justify-center px-8 md:px-16 lg:px-24 overflow-hidden">
+        <div className="w-full max-w-5xl" key={idx}>
+
+          {/* TITLE SLIDE */}
+          {slide.type === 'title' && (
+            <div className="text-center">
+              <img src="/logo-nobg.png" alt="RCRS" className="w-56 md:w-72 lg:w-80 h-auto mx-auto mb-6 drop-shadow-2xl" />
+              <p className="text-[10px] uppercase tracking-[0.3em] font-black text-[#39FF14] mb-6">{slide.label}</p>
+              <h2 className="text-xl md:text-2xl font-black uppercase tracking-[0.15em] text-white mb-3">{slide.subtitle}</h2>
+              <p className="text-neutral-400 mb-8 max-w-xl mx-auto">{slide.body}</p>
+              <div className="flex flex-wrap justify-center gap-3">
+                {slide.badges?.map(b => (
+                  <span key={b} className="border-2 border-[#39FF14]/30 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#39FF14]">{b}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* STEPS SLIDE */}
+          {slide.type === 'steps' && (
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.3em] font-black text-[#39FF14] mb-3">{slide.label}</p>
+              <h1 className="text-3xl md:text-5xl font-black uppercase tracking-[0.1em] mb-1">
+                {slide.title[0]} <span className="text-[#39FF14]">{slide.title[1]}</span>
+              </h1>
+              <h2 className="text-lg md:text-xl text-neutral-400 uppercase tracking-wider mb-8">{slide.subtitle}</h2>
+              <div className="space-y-3 mb-8">
+                {slide.items?.map((item, i) => (
+                  <div key={i} className="flex items-center gap-4 bg-neutral-950 border-2 border-[#39FF14]/15 rounded-2xl px-6 py-4 hover:border-[#39FF14]/40 transition-colors">
+                    <span className="text-[#39FF14] font-black text-sm w-8 flex-shrink-0">0{i + 1}</span>
+                    <span className="text-neutral-200">{item}</span>
+                  </div>
+                ))}
+              </div>
+              {slide.cta && (
+                <div>
+                  <a href={slide.cta.href} target="_blank" rel="noopener noreferrer"
+                    className="inline-block bg-[#39FF14] text-black font-black uppercase tracking-[0.15em] px-8 py-4 rounded-xl text-sm hover:shadow-[0_0_30px_rgba(57,255,20,0.4)] transition-all">
+                    {slide.cta.text} &rarr;
+                  </a>
+                  {slide.ctaNote && <p className="text-neutral-600 text-xs mt-3 uppercase tracking-wider">{slide.ctaNote}</p>}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* CARDS SLIDE */}
+          {slide.type === 'cards' && (
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.3em] font-black text-[#39FF14] mb-3">{slide.label}</p>
+              <h1 className="text-3xl md:text-5xl font-black uppercase tracking-[0.1em] mb-1">
+                {slide.title[0]} <span className="text-[#39FF14]">{slide.title[1]}</span>
+              </h1>
+              <h2 className="text-lg md:text-xl text-neutral-400 uppercase tracking-wider mb-8">{slide.subtitle}</h2>
+              <div className={`grid gap-4 mb-8 ${(slide.cards?.length || 0) > 4 ? 'grid-cols-2 md:grid-cols-3' : 'grid-cols-1 md:grid-cols-2'}`}>
+                {slide.cards?.map((c, i) => (
+                  <div key={i} className={`bg-neutral-950 border-2 rounded-2xl p-5 hover:shadow-[0_0_20px_rgba(57,255,20,0.08)] transition-all ${
+                    slide.cta?.blue ? 'border-[#0066CC]/25 hover:border-[#0066CC]/50' : 'border-[#39FF14]/15 hover:border-[#39FF14]/40'
+                  }`}>
+                    <h3 className={`font-black uppercase tracking-[0.15em] text-xs mb-2 ${slide.cta?.blue ? 'text-[#0066CC]' : 'text-[#39FF14]'}`}>{c.head}</h3>
+                    <p className="text-neutral-300 text-sm">{c.desc}</p>
+                  </div>
+                ))}
+              </div>
+              {slide.cta && (
+                <a href={slide.cta.href} target="_blank" rel="noopener noreferrer"
+                  className={`inline-block font-black uppercase tracking-[0.15em] px-8 py-4 rounded-xl text-sm transition-all ${
+                    slide.cta.blue
+                      ? 'bg-[#0066CC] text-white hover:shadow-[0_0_30px_rgba(0,102,204,0.4)]'
+                      : 'bg-[#39FF14] text-black hover:shadow-[0_0_30px_rgba(57,255,20,0.4)]'
+                  }`}>
+                  {slide.cta.text} &rarr;
+                </a>
+              )}
+            </div>
+          )}
+
+          {/* FEATURE SLIDE */}
+          {slide.type === 'feature' && (
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.3em] font-black text-[#39FF14] mb-3">{slide.label}</p>
+              <h1 className="text-3xl md:text-5xl font-black uppercase tracking-[0.1em] mb-1">
+                {slide.title[0]} <span className="text-[#0066CC]">{slide.title[1]}</span>
+              </h1>
+              <h2 className="text-lg md:text-xl text-neutral-400 uppercase tracking-wider mb-8">{slide.subtitle}</h2>
+              <div className="bg-neutral-950 border-2 border-[#0066CC]/25 rounded-2xl p-8 mb-8 max-w-3xl">
+                <p className="text-neutral-200 text-lg leading-relaxed">{slide.body}</p>
+              </div>
+              {slide.cta && (
+                <a href={slide.cta.href} target="_blank" rel="noopener noreferrer"
+                  className="inline-block bg-[#0066CC] text-white font-black uppercase tracking-[0.15em] px-8 py-4 rounded-xl text-sm hover:shadow-[0_0_30px_rgba(0,102,204,0.4)] transition-all">
+                  {slide.cta.text} &rarr;
+                </a>
+              )}
+            </div>
+          )}
+
+          {/* CLOSE SLIDE */}
+          {slide.type === 'close' && (
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.3em] font-black text-[#39FF14] mb-3">{slide.label}</p>
+              <h1 className="text-3xl md:text-5xl font-black uppercase tracking-[0.1em] mb-6">
+                {slide.title[0]} <span className="text-[#39FF14]">{slide.title[1]}</span>
+              </h1>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+                {slide.triggers?.map((t, i) => (
+                  <div key={i} className="flex items-center gap-3 bg-neutral-950 border-2 border-[#39FF14]/15 rounded-2xl px-5 py-4 hover:border-[#39FF14]/40 transition-colors">
+                    <span className="text-[#39FF14] text-xl flex-shrink-0">&#x1F4AC;</span>
+                    <span className="text-neutral-200 italic">{t}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex flex-col md:flex-row gap-4 mb-6">
+                <div className="bg-[#39FF14]/10 border-2 border-[#39FF14]/50 rounded-2xl p-6 flex-1">
+                  <h3 className="text-xl font-black uppercase tracking-[0.15em] text-[#39FF14] mb-2">{slide.referral?.amount}</h3>
+                  <p className="text-neutral-300 text-sm mb-3">{slide.referral?.instruction}</p>
+                  <a href="tel:2562748530" className="text-2xl font-black text-white hover:text-[#39FF14] transition-colors">{slide.referral?.phone}</a>
+                </div>
+                <div className="bg-neutral-950 border-2 border-[#0066CC]/30 rounded-2xl p-6 flex-1">
+                  <h3 className="text-lg font-black uppercase tracking-[0.1em] text-white mb-2">{slide.partner?.title}</h3>
+                  <p className="text-neutral-400 text-sm mb-3">{slide.partner?.desc}</p>
+                  <a href="https://www.rivercityroofingsolutions.com/bni" target="_blank" rel="noopener noreferrer"
+                    className="text-[#39FF14] font-black uppercase tracking-widest text-xs hover:underline">{slide.partner?.link} &rarr;</a>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 text-neutral-600 text-[10px] font-black uppercase tracking-[0.2em]">
+                {['rcrs@rivercityroofingsolutions.com', 'IKO ROOFPRO', 'Owens Corning Preferred', 'Boral Certified', 'BBB A+'].map((s, i) => (
+                  <span key={i} className="flex items-center gap-2">{i > 0 && <span className="text-[#39FF14]">&bull;</span>}{s}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+        </div>
       </div>
 
-      {/* Click navigation zones */}
-      {currentSlide > 0 && (
-        <button
-          onClick={prevSlide}
-          className="absolute left-0 top-0 w-24 h-full z-40 cursor-w-resize group"
-          aria-label="Previous slide"
-        >
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-            <svg
-              className="w-8 h-8 text-neutral-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </div>
-        </button>
-      )}
-      {currentSlide < totalSlides - 1 && (
-        <button
-          onClick={nextSlide}
-          className="absolute right-0 top-0 w-24 h-full z-40 cursor-e-resize group"
-          aria-label="Next slide"
-        >
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-            <svg
-              className="w-8 h-8 text-neutral-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </div>
-        </button>
+      {/* Speaker notes */}
+      {showNotes && slide.note && (
+        <div className="flex-shrink-0 mx-6 mb-2 px-5 py-4 bg-neutral-950/95 backdrop-blur-sm border-2 border-[#39FF14]/20 rounded-2xl">
+          <span className="text-[#39FF14] font-black uppercase tracking-[0.2em] text-[10px] mr-3">Speaker Note</span>
+          <span className="text-neutral-400 text-sm">{slide.note}</span>
+        </div>
       )}
 
-      {/* Slide counter */}
-      <div className="absolute bottom-4 right-6 z-50 text-sm text-neutral-600 font-mono">
-        {currentSlide + 1} / {totalSlides}
+      {/* Bottom nav */}
+      <div className="flex items-center justify-between px-6 py-4 flex-shrink-0">
+        <button
+          onClick={() => go(idx - 1)}
+          disabled={idx === 0}
+          className="w-10 h-10 rounded-full border-2 border-[#39FF14]/30 flex items-center justify-center disabled:opacity-20 hover:border-[#39FF14] hover:shadow-[0_0_12px_rgba(57,255,20,0.3)] transition-all"
+        >
+          <svg className="w-4 h-4 text-[#39FF14]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+
+        <div className="flex gap-2">
+          {SLIDES.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setIdx(i)}
+              className={`h-2 rounded-full transition-all ${i === idx ? 'w-8 bg-[#39FF14] shadow-[0_0_8px_#39FF14]' : 'w-2 bg-neutral-800 hover:bg-neutral-600'}`}
+            />
+          ))}
+        </div>
+
+        <button
+          onClick={() => go(idx + 1)}
+          disabled={idx === total - 1}
+          className="w-10 h-10 rounded-full border-2 border-[#39FF14]/30 flex items-center justify-center disabled:opacity-20 hover:border-[#39FF14] hover:shadow-[0_0_12px_rgba(57,255,20,0.3)] transition-all"
+        >
+          <svg className="w-4 h-4 text-[#39FF14]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
       </div>
     </div>
   );
