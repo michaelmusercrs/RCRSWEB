@@ -803,20 +803,6 @@ function PrizesSection({ prizes }: { prizes: Prizes }) {
         <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider mb-1">$100K March Bonus</h4>
         <p className="text-sm font-semibold text-white">Sell $100K in March = auto-win the Wrangler</p>
       </div>
-
-      {/* Runner Up */}
-      <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 text-center">
-        <Medal className="w-8 h-8 text-neutral-400 mx-auto mb-2" />
-        <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-1">Runner-Up</h4>
-        <p className="text-lg font-bold text-white">{prizes.runnerUp}</p>
-      </div>
-
-      {/* MVP */}
-      <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 text-center">
-        <Star className="w-8 h-8 text-amber-400 mx-auto mb-2" />
-        <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-1">MVP Award</h4>
-        <p className="text-lg font-bold text-white">{prizes.mvp}</p>
-      </div>
     </div>
   );
 }
@@ -828,8 +814,8 @@ function RulesSection({ rules, rounds }: { rules: Rules; rounds: Round[] }) {
     `50% of your week's approved sales carry into the next round.`,
     'Effective Total = Week Sales + Carry-Forward. Highest total wins.',
     '#1 seed gets a BYE and auto-advances to Round 2.',
-    '$100K in approved March sales = automatic .22LR Wrangler Revolver winner.',
-    'Top non-champion rep also wins the Wrangler.',
+    '$100K in approved March sales = automatic .22LR Wrangler Revolver.',
+    'Top non-champion also wins a Wrangler.',
     'Results finalized every Monday at 10 AM.',
     'Sales = approved job total. Deposit received = full contract credited.',
   ];
