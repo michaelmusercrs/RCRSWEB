@@ -78,9 +78,33 @@ export async function GET(request: NextRequest) {
         visits: agent.visitCount,
       }));
 
+    // Sort visits by date descending for the visit report
+    const sortedVisits = [...visits].sort((a, b) =>
+      new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime()
+    );
+
+    // Rep visit frequency summary
+    const repVisitMap: Record<string, { name: string; visitCount: number; lastVisit: string; agents: Set<string> }> = {};
+    for (const v of visits) {
+      const repName = v.visitedByName || v.visitedBy || 'Unknown';
+      if (!repVisitMap[repName]) {
+        repVisitMap[repName] = { name: repName, visitCount: 0, lastVisit: '', agents: new Set() };
+      }
+      repVisitMap[repName].visitCount++;
+      repVisitMap[repName].agents.add(v.agentName || v.agentId);
+      if (!repVisitMap[repName].lastVisit || v.visitDate > repVisitMap[repName].lastVisit) {
+        repVisitMap[repName].lastVisit = v.visitDate;
+      }
+    }
+    const repSummary = Object.values(repVisitMap)
+      .map(r => ({ name: r.name, visitCount: r.visitCount, uniqueAgents: r.agents.size, lastVisit: r.lastVisit }))
+      .sort((a, b) => b.visitCount - a.visitCount);
+
     const response = {
       agents: agentStats,
       leaderboard,
+      visits: sortedVisits,
+      repSummary,
       totalAgents: agents.length,
       activeAgents: agents.filter(a => a.isActive === 'true').length,
     };

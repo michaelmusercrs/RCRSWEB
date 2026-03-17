@@ -21,7 +21,7 @@ import {
   Settings, Shield, Command, MessageSquare, Edit3, Megaphone,
   Target, Zap, Plus, MapPin, Box, ClipboardList, Crosshair,
   Eye, UserCircle, BookOpen, Image as ImageIcon, Phone,
-  TrendingUp, CheckCircle, FileText,
+  TrendingUp, CheckCircle, FileText, Building2,
   type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
@@ -101,6 +101,7 @@ function getPortalNav(role: TeamRole): PortalNavItem[] {
     { id: 'performance', label: 'Performance', href: '/portal/sales/performance', icon: TrendingUp },
     { id: 'new-lead', label: 'New Lead', href: '/portal/leads/new', icon: Plus },
     { id: 'schedule', label: 'Schedule', href: '/portal/schedule', icon: Calendar },
+    { id: 'insurance-agents', label: 'Insurance Agents', href: '/portal/insurance-agents', icon: Building2 },
     { id: 'phone', label: 'Phone', href: '/phone-portal.html', icon: Phone },
     { id: 'lead-settings', label: 'Lead Preferences', href: '/portal/sales/settings', icon: Settings },
     { id: 'notifications', label: 'Notifications', href: '/portal/settings/notifications', icon: Bell },
@@ -128,6 +129,7 @@ function getPortalNav(role: TeamRole): PortalNavItem[] {
   const driverItems: PortalNavItem[] = [
     ...shared,
     { id: 'driver', label: 'My Deliveries', href: '/portal/driver', icon: Truck },
+    { id: 'insurance-agents', label: 'Insurance Agents', href: '/portal/insurance-agents', icon: Building2 },
   ];
 
   const viewerItems: PortalNavItem[] = [

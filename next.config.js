@@ -111,13 +111,7 @@ const nextConfig = {
     ];
   },
   async redirects() {
-    return [
-      {
-        source: '/reviews',
-        destination: '/#reviews',
-        permanent: true,
-      },
-    ];
+    return [];
   },
   images: {
     remotePatterns: [

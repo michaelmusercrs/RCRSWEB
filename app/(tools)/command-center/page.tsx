@@ -45,6 +45,9 @@ import {
   FileText,
   Megaphone,
   Settings,
+  Eye,
+  PenTool,
+  CheckCircle,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { StatCard } from '@/components/command-center/StatCard';
@@ -136,6 +139,46 @@ interface InsightItem {
   metric?: string;
   value?: string;
   icon: string;
+}
+
+interface MeetingTeamTotals {
+  inspected: number;
+  damage: number;
+  signed: number;
+  repair: number;
+  gutter: number;
+  revenue: number;
+  approved: number;
+  referrals: number;
+  agents: number;
+  homeShow: number;
+}
+
+interface MeetingRepStat {
+  name: string;
+  revenue: number;
+  signed: number;
+  inspected: number;
+  approved: number;
+  damage: number;
+  rank: number;
+}
+
+interface MeetingStatsData {
+  periodLabel: string;
+  teamTotals: MeetingTeamTotals;
+  repStats: MeetingRepStat[];
+  change: {
+    commissionsPercent: number;
+  };
+  goals: {
+    monthlyTarget: number;
+    monthlyProgress: number;
+  };
+  topPerformer: {
+    name: string;
+    amount: number;
+  };
 }
 
 // ============================================================================
@@ -370,6 +413,8 @@ export default function CommandCenterDashboard() {
   const [trendData, setTrendData] = React.useState<TrendDataPoint[]>([]);
   const [insights, setInsights] = React.useState<InsightItem[]>([]);
   const [insightsLoading, setInsightsLoading] = React.useState(true);
+  const [meetingStats, setMeetingStats] = React.useState<MeetingStatsData | null>(null);
+  const [meetingLoading, setMeetingLoading] = React.useState(true);
 
   const isAdmin = user?.role === 'owner' || user?.role === 'admin' || user?.role === 'office';
   const isOwner = user?.role === 'owner' || user?.role === 'admin';
@@ -495,6 +540,26 @@ export default function CommandCenterDashboard() {
     fetchInsights();
   }, []);
 
+  // Fetch meeting numbers (sales leaderboard from Monday meetings)
+  React.useEffect(() => {
+    async function fetchMeetingStats() {
+      try {
+        const res = await fetch('/api/command-center/meetings/stats?period=month');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.data) {
+            setMeetingStats(data.data);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch meeting stats:', err);
+      } finally {
+        setMeetingLoading(false);
+      }
+    }
+    fetchMeetingStats();
+  }, []);
+
   // Refresh data
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -546,24 +611,25 @@ export default function CommandCenterDashboard() {
       {isAdmin && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <FinancialKPIWidget
-            title="Revenue MTD"
+            title="Est. Revenue MTD"
             value={financialLoading ? '--' : formatCurrency(financialKPIs?.revenueThisMonth || 0)}
             trend={financialKPIs && financialKPIs.monthOverMonthGrowth >= 0 ? 'up' : 'down'}
             trendValue={financialKPIs ? `${financialKPIs.monthOverMonthGrowth >= 0 ? '+' : ''}${financialKPIs.monthOverMonthGrowth.toFixed(1)}%` : undefined}
-            subtitle="vs last month"
+            subtitle="from commissions x10"
             icon={<DollarSign size={20} />}
             color="lime"
             href="/command-center/reports/financial"
           />
           <FinancialKPIWidget
-            title="Revenue YTD"
+            title="Est. Revenue YTD"
             value={financialLoading ? '--' : formatCurrency(financialKPIs?.revenueYTD || 0)}
+            subtitle="from commissions x10"
             icon={<BarChart3 size={20} />}
             color="blue"
             href="/command-center/reports/financial"
           />
           <FinancialKPIWidget
-            title="Gross Margin"
+            title="Est. Gross Margin"
             value={financialLoading ? '--' : `${(financialKPIs?.grossMargin || 0).toFixed(1)}%`}
             subtitle={financialKPIs && financialKPIs.grossMargin >= 25 ? 'Healthy' : 'Below target'}
             icon={<PieChart size={20} />}
@@ -592,19 +658,17 @@ export default function CommandCenterDashboard() {
       {/* Operational Stats (visible to all) */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Today's Sales"
-          value={stats ? formatCurrency(stats.sales.todayTotal) : '--'}
-          change={stats && stats.sales.todayTotal > 0 ? 8.2 : undefined}
+          title="Month-to-Date Sales"
+          value={stats ? formatCurrency(stats.sales.monthTotal) : '--'}
           icon={DollarSign}
-          description="vs yesterday"
+          description="estimated from commissions"
           loading={statsLoading}
         />
         <StatCard
           title="Active Jobs"
           value={stats ? stats.activeJobs.toString() : '--'}
-          change={stats && stats.activeJobs > 0 ? 3 : undefined}
           icon={Calendar}
-          description="this week"
+          description="from JobNimbus"
           loading={statsLoading}
         />
         <StatCard
@@ -630,8 +694,8 @@ export default function CommandCenterDashboard() {
         <div className="lg:col-span-2 rounded-xl border border-zinc-800 bg-zinc-900 p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-lg font-semibold text-white">Revenue Trend</h2>
-              <p className="text-sm text-zinc-500">Monthly commissions - last 12 months</p>
+              <h2 className="text-lg font-semibold text-white">Commission Trend</h2>
+              <p className="text-sm text-zinc-500">1099 payouts per month - last 12 months</p>
             </div>
             <Link
               href="/command-center/reports/financial"
@@ -698,8 +762,8 @@ export default function CommandCenterDashboard() {
       <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-lg font-semibold text-white">Team Performance - This Month</h2>
-            <p className="text-sm text-zinc-500">Revenue, deals, and avg deal size per rep</p>
+            <h2 className="text-lg font-semibold text-white">Commission Leaderboard - This Month</h2>
+            <p className="text-sm text-zinc-500">1099 payouts from QuickBooks per rep</p>
           </div>
           <Link
             href="/command-center/sales"
@@ -716,9 +780,9 @@ export default function CommandCenterDashboard() {
                 <tr className="border-b border-zinc-800 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">
                   <th className="px-3 py-2">#</th>
                   <th className="px-3 py-2">Rep</th>
-                  <th className="px-3 py-2 text-right">Revenue</th>
-                  <th className="px-3 py-2 text-right">Deals</th>
-                  <th className="px-3 py-2 text-right">Avg Deal</th>
+                  <th className="px-3 py-2 text-right">Commissions</th>
+                  <th className="px-3 py-2 text-right">Txns</th>
+                  <th className="px-3 py-2 text-right">Avg Txn</th>
                   <th className="px-3 py-2 text-right">% of Total</th>
                   <th className="px-3 py-2 text-right">Status</th>
                 </tr>
@@ -809,6 +873,152 @@ export default function CommandCenterDashboard() {
             <Loader2 className="mx-auto h-5 w-5 animate-spin text-zinc-500 mb-2" />
             Loading team data...
           </div>
+        )}
+      </div>
+
+      {/* Sales Activity - Monday Meeting Numbers */}
+      <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-lg font-semibold text-white">Sales Activity - This Month</h2>
+            <p className="text-sm text-zinc-500">Monday meeting numbers (accrual-based, not commissions)</p>
+          </div>
+          <Link
+            href="/command-center/meetings"
+            className="flex items-center gap-1 text-sm font-medium text-lime-400 hover:text-lime-300"
+          >
+            Meeting Details <ArrowRight size={14} />
+          </Link>
+        </div>
+
+        {meetingLoading ? (
+          <div className="py-8 text-center text-sm text-zinc-500">
+            <Loader2 className="mx-auto h-5 w-5 animate-spin text-zinc-500 mb-2" />
+            Loading meeting data...
+          </div>
+        ) : meetingStats ? (
+          <>
+            {/* Team KPI tiles */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 mb-4">
+              <div className="rounded-lg border border-zinc-800 bg-zinc-800/30 p-3 text-center">
+                <div className="flex items-center justify-center gap-1.5 mb-1">
+                  <DollarSign size={14} className="text-lime-400" />
+                  <span className="text-xs font-medium text-zinc-500 uppercase">Revenue</span>
+                </div>
+                <p className="text-lg font-bold text-lime-400">
+                  {formatCurrency(meetingStats.teamTotals.revenue)}
+                </p>
+                {meetingStats.change.commissionsPercent !== 0 && (
+                  <span className={cn(
+                    'text-xs font-medium',
+                    meetingStats.change.commissionsPercent > 0 ? 'text-lime-400' : 'text-red-400'
+                  )}>
+                    {meetingStats.change.commissionsPercent > 0 ? '+' : ''}
+                    {meetingStats.change.commissionsPercent.toFixed(0)}% vs last
+                  </span>
+                )}
+              </div>
+              <div className="rounded-lg border border-zinc-800 bg-zinc-800/30 p-3 text-center">
+                <div className="flex items-center justify-center gap-1.5 mb-1">
+                  <Eye size={14} className="text-blue-400" />
+                  <span className="text-xs font-medium text-zinc-500 uppercase">Inspected</span>
+                </div>
+                <p className="text-lg font-bold text-white">{meetingStats.teamTotals.inspected}</p>
+              </div>
+              <div className="rounded-lg border border-zinc-800 bg-zinc-800/30 p-3 text-center">
+                <div className="flex items-center justify-center gap-1.5 mb-1">
+                  <PenTool size={14} className="text-purple-400" />
+                  <span className="text-xs font-medium text-zinc-500 uppercase">Signed</span>
+                </div>
+                <p className="text-lg font-bold text-white">{meetingStats.teamTotals.signed}</p>
+              </div>
+              <div className="rounded-lg border border-zinc-800 bg-zinc-800/30 p-3 text-center">
+                <div className="flex items-center justify-center gap-1.5 mb-1">
+                  <CheckCircle size={14} className="text-cyan-400" />
+                  <span className="text-xs font-medium text-zinc-500 uppercase">Approved</span>
+                </div>
+                <p className="text-lg font-bold text-white">{meetingStats.teamTotals.approved}</p>
+              </div>
+              <div className="rounded-lg border border-zinc-800 bg-zinc-800/30 p-3 text-center">
+                <div className="flex items-center justify-center gap-1.5 mb-1">
+                  <AlertTriangle size={14} className="text-orange-400" />
+                  <span className="text-xs font-medium text-zinc-500 uppercase">Damage</span>
+                </div>
+                <p className="text-lg font-bold text-white">{meetingStats.teamTotals.damage}</p>
+              </div>
+              <div className="rounded-lg border border-zinc-800 bg-zinc-800/30 p-3 text-center">
+                <div className="flex items-center justify-center gap-1.5 mb-1">
+                  <Target size={14} className="text-amber-400" />
+                  <span className="text-xs font-medium text-zinc-500 uppercase">Goal %</span>
+                </div>
+                <p className={cn(
+                  'text-lg font-bold',
+                  meetingStats.goals.monthlyProgress >= 100 ? 'text-lime-400' :
+                  meetingStats.goals.monthlyProgress >= 75 ? 'text-yellow-400' :
+                  'text-orange-400'
+                )}>
+                  {meetingStats.goals.monthlyProgress.toFixed(0)}%
+                </p>
+              </div>
+            </div>
+
+            {/* Rep breakdown - compact table */}
+            {meetingStats.repStats.length > 0 && (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-zinc-800 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">
+                      <th className="px-3 py-2">#</th>
+                      <th className="px-3 py-2">Rep</th>
+                      <th className="px-3 py-2 text-right">$$$$$ (Sales)</th>
+                      <th className="px-3 py-2 text-right">Inspected</th>
+                      <th className="px-3 py-2 text-right">Signed</th>
+                      <th className="px-3 py-2 text-right">Approved</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {meetingStats.repStats.slice(0, 8).map((rep) => (
+                      <tr
+                        key={rep.name}
+                        className="border-b border-zinc-800/50 transition-colors hover:bg-zinc-800/30"
+                      >
+                        <td className="px-3 py-2">
+                          <span className={cn(
+                            'font-bold text-sm',
+                            rep.rank === 1 && 'text-amber-400',
+                            rep.rank === 2 && 'text-zinc-400',
+                            rep.rank === 3 && 'text-orange-400',
+                            rep.rank > 3 && 'text-zinc-600'
+                          )}>
+                            {rep.rank}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2">
+                          <span className="font-medium text-white text-sm">{rep.name}</span>
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          <span className="font-semibold text-lime-400 text-sm">
+                            {formatCurrency(rep.revenue)}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-right text-sm text-zinc-300">
+                          {rep.inspected}
+                        </td>
+                        <td className="px-3 py-2 text-right text-sm text-zinc-300">
+                          {rep.signed}
+                        </td>
+                        <td className="px-3 py-2 text-right text-sm text-zinc-300">
+                          {rep.approved}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
+        ) : (
+          <p className="py-4 text-center text-sm text-zinc-500">Meeting numbers not available</p>
         )}
       </div>
 
