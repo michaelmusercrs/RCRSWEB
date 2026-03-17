@@ -17,6 +17,15 @@ function loadBracketJSON() {
   return JSON.parse(raw);
 }
 
+function loadSettings() {
+  try {
+    const filePath = join(process.cwd(), 'data', 'march-madness-settings.json');
+    return JSON.parse(readFileSync(filePath, 'utf8'));
+  } catch {
+    return { showToReps: false, overrides: {}, prizes: {}, announcementEnabled: false, announcementMessage: '' };
+  }
+}
+
 function saveBracketJSON(data: Record<string, unknown>) {
   const filePath = join(process.cwd(), 'data', 'march-madness-2026.json');
   writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
@@ -146,9 +155,16 @@ export async function GET(request: Request) {
       // Google Sheets unavailable, use JSON data
     }
 
-    // If we have sheet data, rebuild bracket from it
+    // Load admin settings for overrides and visibility
+    const settings = loadSettings();
+
+    // Build salesByRep from sheet data or default to zeros
+    const salesByRep: Record<string, { week1: number; week2: number; week3: number }> = {};
+    for (const p of data.participants) {
+      salesByRep[p.name] = { week1: 0, week2: 0, week3: 0 };
+    }
+
     if (sheetData.length > 0) {
-      const salesByRep: Record<string, { week1: number; week2: number; week3: number }> = {};
       for (const row of sheetData) {
         salesByRep[row.repName] = {
           week1: row.week1Sales,
@@ -156,17 +172,48 @@ export async function GET(request: Request) {
           week3: row.week3Sales,
         };
       }
-
-      const bracket = buildBracket(
-        data.participants,
-        salesByRep,
-        data.rules.carryoverRate
-      );
-
-      data.bracket = bracket;
       data.dataSource = 'google_sheets';
     } else {
+      // Extract sales from existing bracket JSON
+      for (const roundKey of ['round1', 'round2', 'round3'] as const) {
+        const weekNum = roundKey === 'round1' ? 'week1' : roundKey === 'round2' ? 'week2' : 'week3';
+        const matches = data.bracket?.[roundKey] || [];
+        for (const m of matches) {
+          if (m.topSeed && salesByRep[m.topSeed.name]) {
+            salesByRep[m.topSeed.name][weekNum] = m.topSeed.weekSales || 0;
+          }
+          if (m.bottomSeed && salesByRep[m.bottomSeed.name]) {
+            salesByRep[m.bottomSeed.name][weekNum] = m.bottomSeed.weekSales || 0;
+          }
+        }
+      }
       data.dataSource = 'json';
+    }
+
+    // Apply admin overrides (non-null values take priority)
+    const overrides = settings.overrides || {};
+    for (const repName of Object.keys(overrides)) {
+      if (!salesByRep[repName]) continue;
+      const o = overrides[repName];
+      if (o.week1 !== null && o.week1 !== undefined) salesByRep[repName].week1 = o.week1;
+      if (o.week2 !== null && o.week2 !== undefined) salesByRep[repName].week2 = o.week2;
+      if (o.week3 !== null && o.week3 !== undefined) salesByRep[repName].week3 = o.week3;
+    }
+
+    // Rebuild bracket with merged data
+    const bracket = buildBracket(data.participants, salesByRep, data.rules.carryoverRate);
+    data.bracket = bracket;
+
+    // Attach settings info for client-side visibility checks
+    data.showToReps = settings.showToReps;
+    data.announcementEnabled = settings.announcementEnabled;
+    data.announcementMessage = settings.announcementMessage;
+    data.showOnMondayMeeting = settings.showOnMondayMeeting;
+    data.salesByRep = salesByRep;
+
+    // Use prizes from settings if available
+    if (settings.prizes && Object.keys(settings.prizes).length > 0) {
+      data.prizes = settings.prizes;
     }
 
     return NextResponse.json(data);

@@ -19,7 +19,7 @@ import {
   Menu, X, LogOut, Home, ChevronRight, Loader2, Bell,
   Truck, Package, DollarSign, Calendar, BarChart3, Users,
   Settings, Shield, Command, MessageSquare, Edit3, Megaphone,
-  Target, Zap, Plus, MapPin, Box, ClipboardList,
+  Target, Zap, Plus, MapPin, Box, ClipboardList, Crosshair,
   Eye, UserCircle, BookOpen, Image as ImageIcon, Phone,
   TrendingUp, CheckCircle, FileText,
   type LucideIcon,
@@ -96,6 +96,7 @@ function getPortalNav(role: TeamRole): PortalNavItem[] {
   const salesItems: PortalNavItem[] = [
     ...shared,
     { id: 'sales', label: 'Sales Dashboard', href: '/portal/sales', icon: Target },
+    { id: 'march-madness', label: 'March Madness', href: '/portal/march-madness', icon: Crosshair },
     { id: 'leads', label: 'My Leads', href: '/portal/sales/leads', icon: Users },
     { id: 'performance', label: 'Performance', href: '/portal/sales/performance', icon: TrendingUp },
     { id: 'new-lead', label: 'New Lead', href: '/portal/leads/new', icon: Plus },

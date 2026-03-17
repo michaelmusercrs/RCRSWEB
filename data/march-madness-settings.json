@@ -1,0 +1,26 @@
+{
+  "showToReps": false,
+  "tournamentStatus": "upcoming",
+  "marchMadnessAdmins": ["Michael Muse", "Chris Muse", "Sara Hill", "Boston Muse"],
+  "announcementEnabled": false,
+  "announcementMessage": "",
+  "showOnMondayMeeting": false,
+  "overrides": {
+    "Aaron Lussi": { "week1": null, "week2": null, "week3": null, "note": "" },
+    "Greg Muse": { "week1": null, "week2": null, "week3": null, "note": "" },
+    "Hunter Rivers": { "week1": null, "week2": null, "week3": null, "note": "" },
+    "Adam Rudell": { "week1": null, "week2": null, "week3": null, "note": "" },
+    "Travis Wages": { "week1": null, "week2": null, "week3": null, "note": "" },
+    "Brendon Muse": { "week1": null, "week2": null, "week3": null, "note": "" },
+    "Alijah": { "week1": null, "week2": null, "week3": null, "note": "" }
+  },
+  "prizes": {
+    "champion": "10/22 with Suppressor",
+    "hundredK": "Any rep hitting $100K approved sales in March also wins a 10/22 with Suppressor",
+    "runnerUp": "$250 Cash",
+    "mvp": "$100 Gift Card (highest single-week effective total)",
+    "note": "Winner completes all legal paperwork at FFL dealer"
+  },
+  "lastUpdatedBy": "",
+  "lastUpdatedAt": ""
+}

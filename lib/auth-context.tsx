@@ -53,6 +53,7 @@ const ROLE_ROUTES: Record<TeamRole, string[]> = {
     '/portal/sales/jobs',
     '/portal/sales/stats',
     '/portal/sales/profile',
+    '/portal/march-madness',
     '/portal/my-profile',
     '/portal/monday-notes',
     '/portal/chat',
