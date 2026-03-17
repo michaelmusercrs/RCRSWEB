@@ -6,10 +6,10 @@ import StructuredData from '@/components/StructuredData';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = genMeta({
-  title: 'Service Areas | Roofing Contractor Decatur, Huntsville, Madison & North Alabama',
-  description: 'River City Roofing Solutions serves Decatur, Huntsville, Madison, Athens, Hartselle, Cullman, Moulton, Florence & all of North Alabama. Free roof inspections, storm damage repair, roof replacement & insurance claims. Same-day service. Call (256) 274-8530.',
+  title: 'Service Areas | Roofing Contractor Decatur, Huntsville, Madison, Albertville & North Alabama',
+  description: 'River City Roofing Solutions serves Decatur, Huntsville, Madison, Athens, Albertville, Guntersville, Scottsboro, Fort Payne, Hartselle, Cullman & all of North Alabama. Free roof inspections, storm damage repair, roof replacement & insurance claims. Call (256) 274-8530.',
   path: '/service-areas',
-  keywords: ['roofing service areas North Alabama', 'roofing contractor Decatur AL', 'roofing contractor Huntsville AL', 'roofer Madison AL', 'roof repair Athens AL', 'Hartselle roofer', 'Cullman roofing contractor', 'Florence AL roofer', 'Moulton AL roofing', 'roofing company near me'],
+  keywords: ['roofing service areas North Alabama', 'roofing contractor Decatur AL', 'roofing contractor Huntsville AL', 'roofer Madison AL', 'roof repair Athens AL', 'Albertville AL roofing', 'Guntersville AL roofer', 'Scottsboro AL roofing', 'Fort Payne AL roofer', 'Muscle Shoals roofing', 'Hartselle roofer', 'Cullman roofing contractor', 'roofing company near me'],
 });
 
 export default function ServiceAreasPage() {

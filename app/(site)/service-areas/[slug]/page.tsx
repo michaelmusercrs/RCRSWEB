@@ -381,6 +381,13 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ sl
                     { slug: 'moulton-al', name: 'Moulton', state: 'AL' },
                     { slug: 'florence-al', name: 'Florence', state: 'AL' },
                     { slug: 'owens-crossroads-al', name: 'Owens Cross Roads', state: 'AL' },
+                    { slug: 'albertville-al', name: 'Albertville', state: 'AL' },
+                    { slug: 'guntersville-al', name: 'Guntersville', state: 'AL' },
+                    { slug: 'scottsboro-al', name: 'Scottsboro', state: 'AL' },
+                    { slug: 'fort-payne-al', name: 'Fort Payne', state: 'AL' },
+                    { slug: 'muscle-shoals-al', name: 'Muscle Shoals', state: 'AL' },
+                    { slug: 'meridianville-al', name: 'Meridianville', state: 'AL' },
+                    { slug: 'priceville-al', name: 'Priceville', state: 'AL' },
                   ].filter(a => a.slug !== slug).slice(0, 6).map(nearbyArea => (
                     <li key={nearbyArea.slug}><Link href={`/service-areas/${nearbyArea.slug}`} className="text-gray-300 hover:text-brand-green transition-colors">Roofing Contractor in {nearbyArea.name}, {nearbyArea.state}</Link></li>
                   ))}
