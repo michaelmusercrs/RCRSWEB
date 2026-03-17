@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/auth-context';
 
 export default function ChangePasswordPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, completePasswordChange } = useAuth();
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNew, setShowNew] = useState(false);
@@ -17,8 +17,10 @@ export default function ChangePasswordPage() {
 
   const isLongEnough = newPassword.length >= 8;
   const isNotDefault = newPassword !== 'ChangeMe123!';
+  const hasUppercase = /[A-Z]/.test(newPassword);
+  const hasNumber = /[0-9]/.test(newPassword);
   const passwordsMatch = newPassword === confirmPassword && confirmPassword.length > 0;
-  const isValid = isLongEnough && isNotDefault && passwordsMatch;
+  const isValid = isLongEnough && isNotDefault && hasUppercase && hasNumber && passwordsMatch;
 
   const handleSubmit = async () => {
     if (!isValid || !user) return;
@@ -27,9 +29,12 @@ export default function ChangePasswordPage() {
     setError('');
 
     try {
-      // Store the new password in localStorage
-      localStorage.setItem(`portalPassword_${user.userId}`, newPassword);
-      localStorage.setItem(`passwordChanged_${user.userId}`, 'true');
+      const success = completePasswordChange(newPassword);
+      if (!success) {
+        setError('Cannot use the default password. Please choose a different one.');
+        setIsSubmitting(false);
+        return;
+      }
 
       // Short delay for UX
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -120,7 +125,9 @@ export default function ChangePasswordPage() {
             {/* Validation */}
             <div className="space-y-2 mb-6">
               <ValidationItem valid={isLongEnough} text="At least 8 characters" />
-              <ValidationItem valid={isNotDefault || newPassword.length === 0} text="Not the default password" />
+              <ValidationItem valid={hasUppercase || newPassword.length === 0} text="At least one uppercase letter" />
+              <ValidationItem valid={hasNumber || newPassword.length === 0} text="At least one number" />
+              <ValidationItem valid={isNotDefault || newPassword.length === 0} text="Cannot be ChangeMe123!" />
               <ValidationItem valid={passwordsMatch} text="Passwords match" />
             </div>
 

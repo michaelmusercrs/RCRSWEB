@@ -11,6 +11,7 @@ export interface AuthUser {
   role: TeamRole;
   permissions: string[];
   pin?: string;
+  mustChangePassword?: boolean;
 }
 
 interface AuthContextType {
@@ -19,6 +20,7 @@ interface AuthContextType {
   login: (email: string, password?: string) => Promise<{ success: boolean; error?: string; mustChangePassword?: boolean }>;
   loginWithPin: (pin: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
+  completePasswordChange: (newPassword: string) => boolean;
   hasPermission: (permission: string) => boolean;
   canAccessRoute: (route: string) => boolean;
 }
@@ -141,7 +143,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const savedUser = sessionStorage.getItem('portalUser');
         if (savedUser) {
-          const parsed = JSON.parse(savedUser);
+          const parsed = JSON.parse(savedUser) as AuthUser;
+
+          // Re-check mustChangePassword from source of truth (localStorage flag)
+          const member = TEAM_MEMBERS.find(m => m.id === parsed.userId && m.isActive);
+          if (member) {
+            const passwordChanged = localStorage.getItem(`passwordChanged_${member.id}`) === 'true';
+            parsed.mustChangePassword = member.mustChangePassword && !passwordChanged;
+          }
+
           setUser(parsed);
           // Re-validate server session - if cookies expired, re-set them
           try {
@@ -175,15 +185,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Protect routes - redirect to login if not authenticated
+  // Force password change if mustChangePassword flag is set
   useEffect(() => {
     if (isLoading) return;
 
     const isPortalRoute = pathname?.startsWith('/portal');
     const isLoginPage = pathname === '/portal' || pathname === '/portal/login';
-    const isOnboardingPage = pathname === '/portal/change-password' || pathname === '/portal/welcome';
+    const isChangePasswordPage = pathname === '/portal/change-password';
+    const isOnboardingPage = isChangePasswordPage || pathname === '/portal/welcome';
 
+    // Not logged in → go to login
     if (isPortalRoute && !isLoginPage && !isOnboardingPage && !user) {
       router.push('/portal');
+      return;
+    }
+
+    // Logged in but must change password → force to change-password page
+    if (user?.mustChangePassword && isPortalRoute && !isChangePasswordPage && !isLoginPage) {
+      router.push('/portal/change-password');
     }
   }, [user, isLoading, pathname, router]);
 
@@ -224,6 +243,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email: member.email,
       role: member.role,
       permissions: member.permissions,
+      mustChangePassword: mustChange,
     };
 
     // Set server-side JWT cookies for API route auth
@@ -233,6 +253,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionStorage.setItem('portalUser', JSON.stringify(authUser));
 
     return { success: true, mustChangePassword: mustChange };
+  };
+
+  const completePasswordChange = (newPassword: string): boolean => {
+    if (!user) return false;
+
+    // Block reuse of the default password (case-sensitive match)
+    if (newPassword === 'ChangeMe123!') return false;
+
+    // Persist new password + flag in localStorage
+    localStorage.setItem(`portalPassword_${user.userId}`, newPassword);
+    localStorage.setItem(`passwordChanged_${user.userId}`, 'true');
+
+    // Clear the mustChangePassword flag on the active session
+    const updatedUser: AuthUser = { ...user, mustChangePassword: false };
+    setUser(updatedUser);
+    sessionStorage.setItem('portalUser', JSON.stringify(updatedUser));
+
+    return true;
   };
 
   const loginWithPin = async (pin: string): Promise<{ success: boolean; error?: string }> => {
@@ -314,6 +352,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login,
       loginWithPin,
       logout,
+      completePasswordChange,
       hasPermission,
       canAccessRoute,
     }}>

@@ -302,6 +302,7 @@ const SHEET_NAMES = {
   CUSTOMER_PORTAL_DATA: 'CustomerPortalData',
   MONDAY_NOTES: 'MondayNotes',
   REVIEWS: 'Reviews',
+  MARCH_MADNESS: 'MarchMadness',
 } as const;
 
 // =============================================================================
@@ -2474,6 +2475,129 @@ class GoogleSheetsService {
       return true;
     } catch (error) {
       console.error('Error adding reviews:', error);
+      return false;
+    }
+  }
+
+  // ===========================================================================
+  // MARCH MADNESS BRACKET
+  // ===========================================================================
+
+  private readonly marchMadnessHeaders = [
+    'repName', 'seed', 'nickname',
+    'week1Sales', 'week2Sales', 'week3Sales',
+    'marchTotal', 'status', 'updatedAt'
+  ];
+
+  async getMarchMadnessSales(): Promise<Array<{
+    repName: string;
+    seed: number;
+    nickname: string;
+    week1Sales: number;
+    week2Sales: number;
+    week3Sales: number;
+    marchTotal: number;
+    status: string;
+  }>> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.MARCH_MADNESS,
+        this.marchMadnessHeaders
+      );
+
+      const rows = await sheet.getRows();
+      return rows.map(row => ({
+        repName: row.get('repName') || '',
+        seed: parseInt(row.get('seed')) || 0,
+        nickname: row.get('nickname') || '',
+        week1Sales: parseFloat(row.get('week1Sales')) || 0,
+        week2Sales: parseFloat(row.get('week2Sales')) || 0,
+        week3Sales: parseFloat(row.get('week3Sales')) || 0,
+        marchTotal: parseFloat(row.get('marchTotal')) || 0,
+        status: row.get('status') || 'active',
+      }));
+    } catch (error) {
+      console.error('[MarchMadness] Error reading sheet:', error);
+      return [];
+    }
+  }
+
+  async updateMarchMadnessSales(
+    repName: string,
+    week: 1 | 2 | 3,
+    sales: number
+  ): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.MARCH_MADNESS,
+        this.marchMadnessHeaders
+      );
+
+      const rows = await sheet.getRows();
+      const row = rows.find(r => r.get('repName') === repName);
+
+      if (row) {
+        const weekKey = `week${week}Sales`;
+        row.set(weekKey, sales.toString());
+        const w1 = parseFloat(row.get('week1Sales')) || 0;
+        const w2 = parseFloat(row.get('week2Sales')) || 0;
+        const w3 = parseFloat(row.get('week3Sales')) || 0;
+        const totals = [w1, w2, w3];
+        totals[week - 1] = sales;
+        row.set('marchTotal', (totals[0] + totals[1] + totals[2]).toString());
+        row.set('updatedAt', new Date().toISOString());
+        await row.save();
+      }
+      return true;
+    } catch (error) {
+      console.error('[MarchMadness] Error updating sales:', error);
+      return false;
+    }
+  }
+
+  async initMarchMadnessBracket(participants: Array<{
+    repName: string;
+    seed: number;
+    nickname: string;
+  }>): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.MARCH_MADNESS,
+        this.marchMadnessHeaders
+      );
+
+      // Clear existing rows
+      const existing = await sheet.getRows();
+      for (const row of existing) {
+        await row.delete();
+      }
+
+      // Add participants
+      const rows = participants.map(p => ({
+        repName: p.repName,
+        seed: p.seed.toString(),
+        nickname: p.nickname,
+        week1Sales: '0',
+        week2Sales: '0',
+        week3Sales: '0',
+        marchTotal: '0',
+        status: 'active',
+        updatedAt: new Date().toISOString(),
+      }));
+
+      await sheet.addRows(rows);
+      return true;
+    } catch (error) {
+      console.error('[MarchMadness] Error initializing bracket:', error);
       return false;
     }
   }

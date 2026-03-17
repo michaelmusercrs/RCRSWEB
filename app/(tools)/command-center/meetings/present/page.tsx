@@ -586,6 +586,7 @@ function WeeklyNumbersDisplay({ numbers }: { numbers: WeeklyNumbersRep[] }) {
               <th className="px-4 py-4 text-center text-sm font-semibold text-neutral-500">Doors</th>
               <th className="px-4 py-4 text-center text-sm font-semibold text-neutral-500">Appts</th>
               <th className="px-4 py-4 text-center text-sm font-semibold text-neutral-500">Inspections</th>
+              <th className="px-4 py-4 text-center text-sm font-semibold text-neutral-500">Estimates</th>
               <th className="px-4 py-4 text-center text-sm font-semibold text-neutral-500">Contracts</th>
               <th className="px-6 py-4 text-right text-lg font-semibold text-neutral-500">Revenue</th>
             </tr>
@@ -603,6 +604,7 @@ function WeeklyNumbersDisplay({ numbers }: { numbers: WeeklyNumbersRep[] }) {
                 <td className="px-4 py-4 text-center text-xl text-neutral-400">{rep.doorsKnocked}</td>
                 <td className="px-4 py-4 text-center text-xl text-neutral-400">{rep.appointmentsSet}</td>
                 <td className="px-4 py-4 text-center text-xl text-neutral-400">{rep.inspectionsCompleted}</td>
+                <td className="px-4 py-4 text-center text-xl text-neutral-400">{rep.estimatesGiven}</td>
                 <td className="px-4 py-4 text-center">
                   <span className={cn(
                     'text-xl font-bold',
@@ -630,6 +632,9 @@ function WeeklyNumbersDisplay({ numbers }: { numbers: WeeklyNumbersRep[] }) {
               </td>
               <td className="px-4 py-4 text-center text-lg font-bold text-white">
                 {sorted.reduce((s, r) => s + r.inspectionsCompleted, 0)}
+              </td>
+              <td className="px-4 py-4 text-center text-lg font-bold text-white">
+                {sorted.reduce((s, r) => s + r.estimatesGiven, 0)}
               </td>
               <td className="px-4 py-4 text-center text-lg font-bold text-lime-400">
                 {sorted.reduce((s, r) => s + r.contractsSigned, 0)}
