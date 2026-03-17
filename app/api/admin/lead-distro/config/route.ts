@@ -5,12 +5,12 @@
 // and syncs response timer settings when saved.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth-service';
+import { requireAdmin } from '@/lib/auth-service';
 import { leadDistributionService, LeadDistroConfig } from '@/lib/lead-distribution-service';
 import { leadResponseTimerService } from '@/lib/lead-response-timer';
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireAdmin();
   if (!auth.authenticated) return auth.response;
 
   try {
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireAdmin();
   if (!auth.authenticated) return auth.response;
 
   try {
@@ -69,6 +69,7 @@ export async function PUT(request: NextRequest) {
     leadResponseTimerService.setConfig({
       reminderMinutes: savedConfig.responseTimers.reminderMinutes,
       warningMinutes: savedConfig.responseTimers.warningMinutes,
+      urgentWarningMinutes: savedConfig.responseTimers.urgentWarningMinutes,
       reassignMinutes: savedConfig.responseTimers.reassignMinutes,
     });
     return NextResponse.json({ success: true, config: savedConfig });

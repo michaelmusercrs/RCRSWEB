@@ -658,6 +658,7 @@ class LeadDistributionService {
     leadResponseTimerService.setConfig({
       reminderMinutes: config.responseTimers.reminderMinutes,
       warningMinutes: config.responseTimers.warningMinutes,
+      urgentWarningMinutes: config.responseTimers.urgentWarningMinutes,
       reassignMinutes: config.responseTimers.reassignMinutes,
     });
 

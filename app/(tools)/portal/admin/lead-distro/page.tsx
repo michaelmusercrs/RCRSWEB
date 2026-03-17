@@ -32,6 +32,7 @@ interface ThresholdConfig {
 interface TimerConfig {
   reminderMinutes: number;
   warningMinutes: number;
+  urgentWarningMinutes: number;
   reassignMinutes: number;
 }
 
@@ -87,24 +88,25 @@ const WEIGHT_META: Record<keyof WeightConfig, { label: string; description: stri
 
 const DEFAULT_CONFIG: LeadDistroConfig = {
   weights: {
-    installProximity: 25,
+    installProximity: 30,
     contactProximity: 15,
-    doorKnockRecency: 15,
-    referralBonus: 10,
+    doorKnockRecency: 10,
+    referralBonus: 25,
     meetingAttendance: 10,
-    closeRate: 15,
-    responseTime: 10,
+    closeRate: 5,
+    responseTime: 5,
   },
   thresholds: {
-    proximityRadiusMiles: 15,
-    recentInteractionDays: 30,
-    staleInteractionDays: 90,
+    proximityRadiusMiles: 2.0,
+    recentInteractionDays: 90,
+    staleInteractionDays: 730,
     minRepsForDistribution: 2,
   },
   timers: {
     reminderMinutes: 5,
-    warningMinutes: 15,
-    reassignMinutes: 30,
+    warningMinutes: 20,
+    urgentWarningMinutes: 45,
+    reassignMinutes: 60,
   },
 };
 
@@ -683,7 +685,8 @@ export default function LeadDistroAdmin() {
                 {([
                   { key: 'reminderMinutes' as const, label: 'Reminder', desc: 'Send reminder notification after this many minutes', icon: '1' },
                   { key: 'warningMinutes' as const, label: 'Warning', desc: 'Escalate warning to manager after this many minutes', icon: '2' },
-                  { key: 'reassignMinutes' as const, label: 'Reassign', desc: 'Automatically reassign lead after this many minutes', icon: '3' },
+                  { key: 'urgentWarningMinutes' as const, label: 'Urgent Warning', desc: 'Final "about to be reassigned" warning after this many minutes', icon: '3' },
+                  { key: 'reassignMinutes' as const, label: 'Reassign', desc: 'Automatically reassign lead after this many minutes', icon: '4' },
                 ]).map(({ key, label, desc, icon }) => (
                   <div key={key} className="flex items-start gap-3">
                     <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400 text-xs font-bold flex-shrink-0 mt-1">
@@ -711,6 +714,7 @@ export default function LeadDistroAdmin() {
                 <p className="text-xs text-amber-400/80">
                   Timeline: Lead received &rarr; <strong>{config.timers.reminderMinutes}m</strong> reminder &rarr;{' '}
                   <strong>{config.timers.warningMinutes}m</strong> warning &rarr;{' '}
+                  <strong>{config.timers.urgentWarningMinutes}m</strong> urgent warning &rarr;{' '}
                   <strong>{config.timers.reassignMinutes}m</strong> reassign to next rep
                 </p>
               </div>

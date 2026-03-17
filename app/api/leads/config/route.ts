@@ -68,6 +68,7 @@ export async function PUT(request: NextRequest) {
     leadResponseTimerService.setConfig({
       reminderMinutes: updatedConfig.responseTimers.reminderMinutes,
       warningMinutes: updatedConfig.responseTimers.warningMinutes,
+      urgentWarningMinutes: updatedConfig.responseTimers.urgentWarningMinutes,
       reassignMinutes: updatedConfig.responseTimers.reassignMinutes,
     });
     return NextResponse.json({

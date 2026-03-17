@@ -181,6 +181,7 @@ export default function SchedulePage() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [allEvents, setAllEvents] = useState<CalendarEvent[]>([]);
   const [weekEvents, setWeekEvents] = useState<CalendarEvent[]>([]);
+  const [monthEvents, setMonthEvents] = useState<CalendarEvent[]>([]);
   const [stats, setStats] = useState<ScheduleStats>({ todayJobs: 0, thisWeek: 0, unassigned: 0, completedToday: 0, conflicts: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
@@ -238,6 +239,21 @@ export default function SchedulePage() {
         );
         const weekData = await weekRes.json();
         setWeekEvents(weekData.success ? weekData.events || [] : []);
+
+        // Fetch full month events for calendar (month) view
+        const monthStart = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+        const monthEnd = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
+        // Extend to cover visible padding days
+        const calStart = new Date(monthStart);
+        calStart.setDate(calStart.getDate() - calStart.getDay());
+        const calEnd = new Date(monthEnd);
+        calEnd.setDate(calEnd.getDate() + (6 - calEnd.getDay()));
+
+        const monthRes = await fetch(
+          `/api/calendar/events?startDate=${formatDateKey(calStart)}&endDate=${formatDateKey(calEnd)}`
+        );
+        const monthData = await monthRes.json();
+        setMonthEvents(monthData.success ? monthData.events || [] : []);
 
         setStats({
           todayJobs: (todayData.events || []).length,
@@ -760,7 +776,7 @@ export default function SchedulePage() {
                       return days.map((day, idx) => {
                         const isCurrentMonth = day.getMonth() === month;
                         const isToday = formatDateKey(day) === formatDateKey(today);
-                        const dayEvts = weekEvents.filter(e => e.start.split('T')[0] === formatDateKey(day));
+                        const dayEvts = monthEvents.filter(e => e.start.split('T')[0] === formatDateKey(day));
 
                         return (
                           <div
