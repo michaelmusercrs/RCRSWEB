@@ -1,59 +1,310 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Truck, MapPin, Phone, Clock, CheckCircle2, Camera, Package,
   Navigation, ArrowLeft, Loader2, RefreshCw, User, AlertCircle,
   ClipboardCheck, ChevronRight, ChevronDown,
-  CheckSquare, Square, MessageSquare, Upload, Timer, Route as RouteIcon,
-  Bell, AlertTriangle, ChevronUp
+  CheckSquare, Square, MessageSquare, Upload, Timer,
+  Bell, AlertTriangle, ChevronUp, Shield, Warehouse, CircleDot
 } from 'lucide-react';
-import type { DeliveryTicket, TicketStatus, ChecklistItem, TicketPhoto } from '@/lib/delivery-workflow-service';
-import type { Driver } from '@/lib/delivery-portal-service';
 
-interface DeliveryETA {
-  ticketId: string;
-  stopNumber: number;
-  totalStops: number;
-  estimatedArrival: string;
-  estimatedMinutesAway: number;
-  driverName: string;
-  status: TicketStatus;
-  lastUpdated: string;
+// ============================================
+// PIPELINE TYPES
+// ============================================
+
+type PipelineStage =
+  | 'ORDER_CREATED'
+  | 'ORDER_REVIEWED'
+  | 'DRIVER_ASSIGNED'
+  | 'WAREHOUSE_NOTIFIED'
+  | 'MATERIALS_PULLED'
+  | 'LOAD_VERIFIED'
+  | 'DEPARTURE_CONFIRMED'
+  | 'EN_ROUTE'
+  | 'ARRIVED_AT_SITE'
+  | 'UNLOADING'
+  | 'DELIVERY_CONFIRMED'
+  | 'QC_PHOTOS'
+  | 'OFFICE_NOTIFIED'
+  | 'BILLING_REVIEW'
+  | 'INVOICE_SENT'
+  | 'PAYMENT_RECEIVED'
+  | 'JOB_CLOSED';
+
+interface PipelineOrderItem {
+  itemId: string;
+  productId: string;
+  productName: string;
+  sku: string;
+  category: string;
+  quantity: number;
+  unit: string;
+  pulledQty: number;
+  verifiedQty: number;
+  deliveredQty: number;
+  notes?: string;
 }
 
-const statusConfig: Record<TicketStatus, { label: string; color: string; next?: TicketStatus }> = {
-  created: { label: 'Created', color: 'bg-zinc-600', next: 'assigned' },
-  assigned: { label: 'Assigned', color: 'bg-cyan-600', next: 'materials_pulled' },
-  materials_pulled: { label: 'Materials Pulled', color: 'bg-yellow-600', next: 'load_verified' },
-  load_verified: { label: 'Load Verified', color: 'bg-brand-green/80', next: 'en_route' },
-  en_route: { label: 'En Route', color: 'bg-purple-600', next: 'arrived' },
-  arrived: { label: 'Arrived', color: 'bg-orange-600', next: 'delivered' },
-  delivered: { label: 'Delivered', color: 'bg-teal-600', next: 'proof_captured' },
-  picked_up: { label: 'Picked Up', color: 'bg-teal-600', next: 'proof_captured' },
-  proof_captured: { label: 'Proof Captured', color: 'bg-brand-green/80', next: 'qc_photos' },
-  qc_photos: { label: 'QC Photos', color: 'bg-pink-600', next: 'completed' },
-  completed: { label: 'Completed', color: 'bg-green-600' },
-  cancelled: { label: 'Cancelled', color: 'bg-red-600' },
-};
+interface PipelineOrder {
+  orderId: string;
+  currentStage: PipelineStage;
+  priority: 'normal' | 'rush' | 'urgent';
+  createdAt: string;
+  updatedAt: string;
+  jobNumber: string;
+  jobName: string;
+  customerName: string;
+  customerPhone: string;
+  deliveryAddress: string;
+  deliveryCity: string;
+  deliveryState: string;
+  deliveryZip: string;
+  requestedDeliveryDate: string;
+  scheduledDeliveryDate?: string;
+  scheduledDeliveryTime?: string;
+  assignedDriverId?: string;
+  assignedDriverName?: string;
+  items: PipelineOrderItem[];
+  specialInstructions?: string;
+  notes?: string;
+  cancelled: boolean;
+  events: Array<{
+    eventId: string;
+    stage: PipelineStage;
+    timestamp: string;
+    performedByName: string;
+    notes?: string;
+  }>;
+}
 
-const workflowSteps = [
-  { status: 'load_verified' as TicketStatus, label: 'Verify Load', icon: ClipboardCheck, action: 'verify-load' },
-  { status: 'en_route' as TicketStatus, label: 'Start Delivery', icon: Truck, action: 'start-delivery' },
-  { status: 'arrived' as TicketStatus, label: 'Mark Arrived', icon: MapPin, action: 'mark-arrived' },
-  { status: 'delivered' as TicketStatus, label: 'Complete Delivery', icon: Package, action: 'complete-delivery' },
-  { status: 'proof_captured' as TicketStatus, label: 'Take Photos', icon: Camera, action: 'capture-proof' },
-  { status: 'qc_photos' as TicketStatus, label: 'QC Photos', icon: Camera, action: 'upload-qc' },
-  { status: 'completed' as TicketStatus, label: 'Complete', icon: CheckCircle2, action: 'complete-ticket' },
+interface DriverInfo {
+  id: string;
+  name: string;
+  vehicle: string;
+  email?: string;
+  phone?: string;
+}
+
+// ============================================
+// DRIVER WORKFLOW STAGES (the 8 stages drivers care about)
+// ============================================
+
+const DRIVER_STAGES: PipelineStage[] = [
+  'MATERIALS_PULLED',
+  'LOAD_VERIFIED',
+  'DEPARTURE_CONFIRMED',
+  'EN_ROUTE',
+  'ARRIVED_AT_SITE',
+  'UNLOADING',
+  'DELIVERY_CONFIRMED',
+  'QC_PHOTOS',
 ];
 
-function formatETA(eta: DeliveryETA): string {
-  if (eta.estimatedMinutesAway <= 0) return 'Now';
-  if (eta.estimatedMinutesAway < 60) return `${eta.estimatedMinutesAway} min`;
-  const hours = Math.floor(eta.estimatedMinutesAway / 60);
-  const mins = eta.estimatedMinutesAway % 60;
-  return `${hours}h ${mins}m`;
+interface StageButton {
+  stage: PipelineStage;
+  label: string;
+  icon: typeof Truck;
+  requiresPhoto: boolean;
+  requiresGPS: boolean;
+  description: string;
+  inventoryAction?: string;
+}
+
+const STAGE_BUTTONS: StageButton[] = [
+  {
+    stage: 'MATERIALS_PULLED',
+    label: 'Materials Pulled',
+    icon: Package,
+    requiresPhoto: true,
+    requiresGPS: false,
+    description: 'Photo of staged materials at warehouse',
+  },
+  {
+    stage: 'LOAD_VERIFIED',
+    label: 'Load Verified',
+    icon: ClipboardCheck,
+    requiresPhoto: true,
+    requiresGPS: true,
+    description: 'Photo of loaded truck + GPS at warehouse',
+  },
+  {
+    stage: 'DEPARTURE_CONFIRMED',
+    label: 'Departed',
+    icon: Truck,
+    requiresPhoto: false,
+    requiresGPS: true,
+    description: 'GPS auto-captured on departure',
+  },
+  {
+    stage: 'EN_ROUTE',
+    label: 'En Route',
+    icon: Navigation,
+    requiresPhoto: false,
+    requiresGPS: true,
+    description: 'GPS tracking while driving',
+  },
+  {
+    stage: 'ARRIVED_AT_SITE',
+    label: 'Arrived',
+    icon: MapPin,
+    requiresPhoto: true,
+    requiresGPS: true,
+    description: 'Photo of job site + GPS at arrival',
+  },
+  {
+    stage: 'UNLOADING',
+    label: 'Unloading',
+    icon: Package,
+    requiresPhoto: true,
+    requiresGPS: false,
+    description: 'Photo of materials being unloaded',
+  },
+  {
+    stage: 'DELIVERY_CONFIRMED',
+    label: 'Delivery Confirmed',
+    icon: CheckCircle2,
+    requiresPhoto: true,
+    requiresGPS: true,
+    description: 'Final photo + GPS. DEDUCTS INVENTORY.',
+    inventoryAction: 'Inventory will be deducted',
+  },
+  {
+    stage: 'QC_PHOTOS',
+    label: 'QC Photos',
+    icon: Camera,
+    requiresPhoto: true,
+    requiresGPS: true,
+    description: 'Quality check photos of completed delivery',
+  },
+];
+
+const STAGE_COLOR: Record<PipelineStage, string> = {
+  ORDER_CREATED: 'bg-zinc-600',
+  ORDER_REVIEWED: 'bg-zinc-600',
+  DRIVER_ASSIGNED: 'bg-cyan-600',
+  WAREHOUSE_NOTIFIED: 'bg-cyan-600',
+  MATERIALS_PULLED: 'bg-yellow-600',
+  LOAD_VERIFIED: 'bg-brand-green/80',
+  DEPARTURE_CONFIRMED: 'bg-blue-600',
+  EN_ROUTE: 'bg-purple-600',
+  ARRIVED_AT_SITE: 'bg-orange-600',
+  UNLOADING: 'bg-amber-600',
+  DELIVERY_CONFIRMED: 'bg-teal-600',
+  QC_PHOTOS: 'bg-pink-600',
+  OFFICE_NOTIFIED: 'bg-brand-green/80',
+  BILLING_REVIEW: 'bg-brand-green/80',
+  INVOICE_SENT: 'bg-brand-green/80',
+  PAYMENT_RECEIVED: 'bg-green-600',
+  JOB_CLOSED: 'bg-green-600',
+};
+
+const STAGE_LABELS: Record<PipelineStage, string> = {
+  ORDER_CREATED: 'Order Created',
+  ORDER_REVIEWED: 'Reviewed',
+  DRIVER_ASSIGNED: 'Assigned to You',
+  WAREHOUSE_NOTIFIED: 'Warehouse Notified',
+  MATERIALS_PULLED: 'Materials Pulled',
+  LOAD_VERIFIED: 'Load Verified',
+  DEPARTURE_CONFIRMED: 'Departed',
+  EN_ROUTE: 'En Route',
+  ARRIVED_AT_SITE: 'Arrived',
+  UNLOADING: 'Unloading',
+  DELIVERY_CONFIRMED: 'Delivered',
+  QC_PHOTOS: 'QC Complete',
+  OFFICE_NOTIFIED: 'Office Notified',
+  BILLING_REVIEW: 'Billing Review',
+  INVOICE_SENT: 'Invoice Sent',
+  PAYMENT_RECEIVED: 'Paid',
+  JOB_CLOSED: 'Closed',
+};
+
+// ============================================
+// HELPER: Get GPS position as a promise
+// ============================================
+
+function getGPS(): Promise<{ lat: number; lng: number } | null> {
+  if (!navigator.geolocation) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => resolve(null),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+    );
+  });
+}
+
+// ============================================
+// HELPER: Upload photo and return URL
+// ============================================
+
+async function uploadPhoto(file: File, orderId: string, stage: string, gpsLocation?: string): Promise<string | null> {
+  try {
+    const formData = new FormData();
+    formData.append('photo', file);
+    formData.append('ticketId', orderId);
+    formData.append('stage', stage);
+    if (gpsLocation) formData.append('gpsLocation', gpsLocation);
+
+    const response = await fetch('/api/portal/delivery/photos', {
+      method: 'POST',
+      body: formData,
+    });
+    const result = await response.json();
+    if (result.success && result.photo?.url) {
+      return result.photo.url;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// ============================================
+// HELPER: Get the next driver stage from current pipeline stage
+// ============================================
+
+function getNextDriverStage(currentStage: PipelineStage): StageButton | null {
+  const ALL_STAGES: PipelineStage[] = [
+    'ORDER_CREATED', 'ORDER_REVIEWED', 'DRIVER_ASSIGNED', 'WAREHOUSE_NOTIFIED',
+    'MATERIALS_PULLED', 'LOAD_VERIFIED', 'DEPARTURE_CONFIRMED', 'EN_ROUTE',
+    'ARRIVED_AT_SITE', 'UNLOADING', 'DELIVERY_CONFIRMED', 'QC_PHOTOS',
+    'OFFICE_NOTIFIED', 'BILLING_REVIEW', 'INVOICE_SENT', 'PAYMENT_RECEIVED', 'JOB_CLOSED'
+  ];
+  const currentIdx = ALL_STAGES.indexOf(currentStage);
+  if (currentIdx === -1) return null;
+
+  // Find the next stage in the pipeline that the driver can perform
+  for (let i = currentIdx + 1; i < ALL_STAGES.length; i++) {
+    const nextStage = ALL_STAGES[i];
+    const btn = STAGE_BUTTONS.find(b => b.stage === nextStage);
+    if (btn) return btn;
+  }
+  return null;
+}
+
+// ============================================
+// HELPER: Get driver stage index for progress display
+// ============================================
+
+function getDriverStageIndex(stage: PipelineStage): number {
+  return DRIVER_STAGES.indexOf(stage);
+}
+
+function isDriverStageComplete(orderStage: PipelineStage, checkStage: PipelineStage): boolean {
+  const ALL_STAGES: PipelineStage[] = [
+    'ORDER_CREATED', 'ORDER_REVIEWED', 'DRIVER_ASSIGNED', 'WAREHOUSE_NOTIFIED',
+    'MATERIALS_PULLED', 'LOAD_VERIFIED', 'DEPARTURE_CONFIRMED', 'EN_ROUTE',
+    'ARRIVED_AT_SITE', 'UNLOADING', 'DELIVERY_CONFIRMED', 'QC_PHOTOS',
+    'OFFICE_NOTIFIED', 'BILLING_REVIEW', 'INVOICE_SENT', 'PAYMENT_RECEIVED', 'JOB_CLOSED'
+  ];
+  return ALL_STAGES.indexOf(orderStage) >= ALL_STAGES.indexOf(checkStage);
+}
+
+function isOrderComplete(stage: PipelineStage): boolean {
+  const COMPLETE_STAGES: PipelineStage[] = ['QC_PHOTOS', 'OFFICE_NOTIFIED', 'BILLING_REVIEW', 'INVOICE_SENT', 'PAYMENT_RECEIVED', 'JOB_CLOSED'];
+  return COMPLETE_STAGES.includes(stage);
 }
 
 function formatTimeFromISO(isoString: string): string {
@@ -69,22 +320,32 @@ function formatTimeFromISO(isoString: string): string {
   }
 }
 
+// ============================================
+// MAIN COMPONENT
+// ============================================
+
 export default function DriverPortal() {
   const router = useRouter();
-  const [driver, setDriver] = useState<Driver | null>(null);
-  const [tickets, setTickets] = useState<DeliveryTicket[]>([]);
-  const [etas, setEtas] = useState<DeliveryETA[]>([]);
-  const [selectedTicket, setSelectedTicket] = useState<DeliveryTicket | null>(null);
-  const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
-  const [photos, setPhotos] = useState<TicketPhoto[]>([]);
+  const [driver, setDriver] = useState<DriverInfo | null>(null);
+  const [orders, setOrders] = useState<PipelineOrder[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<PipelineOrder | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [view, setView] = useState<'list' | 'detail' | 'checklist' | 'photos'>('list');
+  const [view, setView] = useState<'list' | 'detail'>('list');
   const [deliveryNotes, setDeliveryNotes] = useState('');
   const [issueNotes, setIssueNotes] = useState('');
   const [showIssueField, setShowIssueField] = useState(false);
-  const [expandedStop, setExpandedStop] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [pendingPhotos, setPendingPhotos] = useState<string[]>([]);
+  const [gpsStatus, setGpsStatus] = useState<'idle' | 'acquiring' | 'acquired' | 'failed'>('idle');
+  const [currentGPS, setCurrentGPS] = useState<{ lat: number; lng: number } | null>(null);
+  const [showPhotoPrompt, setShowPhotoPrompt] = useState(false);
+  const [pendingStage, setPendingStage] = useState<StageButton | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Load driver info from session
   useEffect(() => {
     const storedDriver = sessionStorage.getItem('driver');
     if (!storedDriver) {
@@ -93,160 +354,277 @@ export default function DriverPortal() {
     }
     const parsed = JSON.parse(storedDriver);
     setDriver(parsed);
-    loadTickets(parsed.id);
-    loadETAs(parsed.id);
+    loadOrders(parsed.id);
   }, [router]);
 
-  // Auto-refresh ETAs every 60 seconds
+  // Auto-refresh every 60 seconds
   useEffect(() => {
     if (!driver) return;
     const interval = setInterval(() => {
-      loadETAs(driver.id);
+      loadOrders(driver.id);
     }, 60000);
     return () => clearInterval(interval);
   }, [driver]);
 
-  const loadTickets = async (driverId: string) => {
+  // Clear success/error messages after 4 seconds
+  useEffect(() => {
+    if (successMessage) {
+      const t = setTimeout(() => setSuccessMessage(null), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [successMessage]);
+  useEffect(() => {
+    if (error) {
+      const t = setTimeout(() => setError(null), 6000);
+      return () => clearTimeout(t);
+    }
+  }, [error]);
+
+  // ============================================
+  // DATA LOADING
+  // ============================================
+
+  const loadOrders = async (driverId: string) => {
     setIsLoading(true);
     try {
-      const today = new Date().toISOString().slice(0, 10);
-      const response = await fetch(`/api/portal/tickets?driverId=${driverId}&date=${today}`);
+      // Fetch pipeline orders assigned to this driver
+      const response = await fetch(`/api/portal/pipeline?action=byDriver&driverId=${driverId}`);
+      if (!response.ok) throw new Error('Failed to load orders');
       const data = await response.json();
-      const ticketList = Array.isArray(data) ? data : [];
-      ticketList.sort((a: DeliveryTicket, b: DeliveryTicket) => {
-        const aComplete = ['completed', 'cancelled'].includes(a.status) ? 1 : 0;
-        const bComplete = ['completed', 'cancelled'].includes(b.status) ? 1 : 0;
+      const orderList: PipelineOrder[] = Array.isArray(data) ? data : [];
+
+      // Sort: active first, then by priority, then by scheduled time
+      orderList.sort((a, b) => {
+        const aComplete = isOrderComplete(a.currentStage) || a.cancelled ? 1 : 0;
+        const bComplete = isOrderComplete(b.currentStage) || b.cancelled ? 1 : 0;
         if (aComplete !== bComplete) return aComplete - bComplete;
-        return (a.scheduledTime || '').localeCompare(b.scheduledTime || '');
+        const priorityOrder = { urgent: 0, rush: 1, normal: 2 };
+        const pDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
+        if (pDiff !== 0) return pDiff;
+        return (a.scheduledDeliveryTime || '').localeCompare(b.scheduledDeliveryTime || '');
       });
-      setTickets(ticketList);
-    } catch (error) {
-      console.error('Error loading tickets:', error);
-      setTickets([]);
+
+      setOrders(orderList);
+
+      // Update selected order if it exists
+      if (selectedOrder) {
+        const updated = orderList.find(o => o.orderId === selectedOrder.orderId);
+        if (updated) setSelectedOrder(updated);
+      }
+    } catch (err) {
+      console.error('Error loading pipeline orders:', err);
+      setOrders([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const loadETAs = async (driverId: string) => {
-    try {
-      const today = new Date().toISOString().slice(0, 10);
-      const response = await fetch('/api/portal/tickets/notify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'eta-update', driverId, date: today }),
-      });
-      const data = await response.json();
-      if (data.success && Array.isArray(data.etas)) {
-        setEtas(data.etas);
-      }
-    } catch (error) {
-      console.error('Error loading ETAs:', error);
-    }
-  };
+  // ============================================
+  // STAGE TRANSITION
+  // ============================================
 
-  const loadTicketDetails = useCallback(async (ticketId: string) => {
-    try {
-      const [ticketRes, checklistRes, photosRes] = await Promise.all([
-        fetch(`/api/portal/tickets?ticketId=${ticketId}`),
-        fetch(`/api/portal/tickets/checklist?ticketId=${ticketId}`),
-        fetch(`/api/portal/tickets/photos?ticketId=${ticketId}`),
-      ]);
-      const ticket = await ticketRes.json();
-      setSelectedTicket(ticket);
-      if (checklistRes.ok) {
-        const checklistData = await checklistRes.json();
-        setChecklist(Array.isArray(checklistData) ? checklistData : []);
-      }
-      if (photosRes.ok) {
-        const photosData = await photosRes.json();
-        setPhotos(Array.isArray(photosData) ? photosData : []);
-      }
-    } catch (error) {
-      console.error('Error loading ticket details:', error);
-    }
-  }, []);
+  const handleStageTransition = async (stageButton: StageButton) => {
+    if (!selectedOrder || !driver) return;
 
-  const handleWorkflowAction = async (action: string) => {
-    if (!selectedTicket || !driver) return;
+    // If photo is required and we don't have one yet, prompt for photo first
+    if (stageButton.requiresPhoto && pendingPhotos.length === 0) {
+      setPendingStage(stageButton);
+      setShowPhotoPrompt(true);
+      return;
+    }
+
+    // If GPS required, acquire it
+    let gps = currentGPS;
+    if (stageButton.requiresGPS && !gps) {
+      setGpsStatus('acquiring');
+      gps = await getGPS();
+      if (!gps) {
+        setGpsStatus('failed');
+        setError(`GPS required for ${stageButton.label}. Please enable location services and try again.`);
+        return;
+      }
+      setGpsStatus('acquired');
+      setCurrentGPS(gps);
+    }
+
     setIsUpdating(true);
+    setError(null);
     try {
-      const body: Record<string, unknown> = { action, ticketId: selectedTicket.ticketId };
+      const body: Record<string, unknown> = {
+        action: 'transitionStage',
+        orderId: selectedOrder.orderId,
+        stage: stageButton.stage,
+      };
 
-      if (action === 'verify-load') {
-        body.verifiedBy = driver.name;
-        if (navigator.geolocation) {
-          try {
-            const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-              navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
-            });
-            body.gpsLocation = `${pos.coords.latitude},${pos.coords.longitude}`;
-          } catch { /* GPS optional */ }
-        }
+      // Attach photos
+      if (pendingPhotos.length > 0) {
+        body.photoUrls = pendingPhotos;
       }
 
-      if (action === 'mark-arrived') {
-        if (navigator.geolocation) {
-          try {
-            const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-              navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
-            });
-            body.gpsLocation = `${pos.coords.latitude},${pos.coords.longitude}`;
-          } catch { /* GPS optional */ }
-        }
+      // Attach GPS
+      if (gps) {
+        body.gpsLat = gps.lat;
+        body.gpsLng = gps.lng;
       }
 
-      if (action === 'complete-delivery') {
-        body.notes = [deliveryNotes, issueNotes].filter(Boolean).join('\n---\n');
+      // Attach notes for delivery confirmation
+      if (stageButton.stage === 'DELIVERY_CONFIRMED' || stageButton.stage === 'UNLOADING') {
+        const allNotes = [deliveryNotes, issueNotes].filter(Boolean).join('\n---\n');
+        if (allNotes) body.notes = allNotes;
       }
 
-      const response = await fetch('/api/portal/tickets', {
+      const response = await fetch('/api/portal/pipeline', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
       const result = await response.json();
 
-      if (result.success && result.ticket) {
-        setSelectedTicket(result.ticket);
-        await loadTickets(driver.id);
-        await loadETAs(driver.id);
+      if (result.success && result.order) {
+        setSelectedOrder(result.order);
+        setSuccessMessage(`${stageButton.label} confirmed!`);
+        // Reset state
+        setPendingPhotos([]);
+        setCurrentGPS(null);
+        setGpsStatus('idle');
         setDeliveryNotes('');
         setIssueNotes('');
         setShowIssueField(false);
-        if (action === 'complete-ticket') {
-          setView('list');
-          setSelectedTicket(null);
+        setShowPhotoPrompt(false);
+        setPendingStage(null);
+        // Refresh order list
+        await loadOrders(driver.id);
+
+        // If this was the last driver stage (QC_PHOTOS), go back to list
+        if (stageButton.stage === 'QC_PHOTOS') {
+          setTimeout(() => {
+            setView('list');
+            setSelectedOrder(null);
+          }, 1500);
         }
+      } else {
+        setError(result.error || 'Failed to transition stage');
       }
-    } catch (error) {
-      console.error('Error updating ticket:', error);
+    } catch (err) {
+      console.error('Stage transition error:', err);
+      setError('Network error. Please try again.');
     } finally {
       setIsUpdating(false);
     }
   };
 
-  const getCurrentStepIndex = (status: TicketStatus): number => {
-    const stepStatuses = workflowSteps.map(s => s.status);
-    if (status === 'materials_pulled') return 0;
-    const idx = stepStatuses.indexOf(status);
-    return idx >= 0 ? idx : -1;
+  // ============================================
+  // PHOTO HANDLING
+  // ============================================
+
+  const handlePhotoCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !selectedOrder || !pendingStage) return;
+
+    setUploadingPhoto(true);
+    const newPhotos: string[] = [...pendingPhotos];
+
+    for (const file of Array.from(files)) {
+      const gpsStr = currentGPS ? `${currentGPS.lat},${currentGPS.lng}` : undefined;
+      const url = await uploadPhoto(file, selectedOrder.orderId, pendingStage.stage, gpsStr);
+      if (url) {
+        newPhotos.push(url);
+      }
+    }
+
+    setPendingPhotos(newPhotos);
+    setUploadingPhoto(false);
+
+    // Reset file input
+    if (fileInputRef.current) fileInputRef.current.value = '';
+
+    // If we have enough photos, auto-proceed with the transition
+    if (newPhotos.length > 0) {
+      setShowPhotoPrompt(false);
+      // Small delay to let state update, then proceed
+      setTimeout(() => {
+        handleStageTransitionWithPhotos(pendingStage, newPhotos);
+      }, 100);
+    }
   };
 
-  const getNextAction = (status: TicketStatus): typeof workflowSteps[0] | null => {
-    const currentIdx = getCurrentStepIndex(status);
-    if (currentIdx < 0) return null;
-    if (status === 'materials_pulled') return workflowSteps[0];
-    if (currentIdx < workflowSteps.length - 1) return workflowSteps[currentIdx + 1];
-    return null;
+  // Proceed with transition after photos are captured
+  const handleStageTransitionWithPhotos = async (stageButton: StageButton, photos: string[]) => {
+    if (!selectedOrder || !driver) return;
+
+    let gps = currentGPS;
+    if (stageButton.requiresGPS && !gps) {
+      setGpsStatus('acquiring');
+      gps = await getGPS();
+      if (!gps) {
+        setGpsStatus('failed');
+        setError(`GPS required for ${stageButton.label}. Please enable location services.`);
+        return;
+      }
+      setGpsStatus('acquired');
+      setCurrentGPS(gps);
+    }
+
+    setIsUpdating(true);
+    setError(null);
+    try {
+      const body: Record<string, unknown> = {
+        action: 'transitionStage',
+        orderId: selectedOrder.orderId,
+        stage: stageButton.stage,
+        photoUrls: photos,
+      };
+
+      if (gps) {
+        body.gpsLat = gps.lat;
+        body.gpsLng = gps.lng;
+      }
+
+      if (stageButton.stage === 'DELIVERY_CONFIRMED' || stageButton.stage === 'UNLOADING') {
+        const allNotes = [deliveryNotes, issueNotes].filter(Boolean).join('\n---\n');
+        if (allNotes) body.notes = allNotes;
+      }
+
+      const response = await fetch('/api/portal/pipeline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const result = await response.json();
+
+      if (result.success && result.order) {
+        setSelectedOrder(result.order);
+        setSuccessMessage(`${stageButton.label} confirmed!`);
+        setPendingPhotos([]);
+        setCurrentGPS(null);
+        setGpsStatus('idle');
+        setDeliveryNotes('');
+        setIssueNotes('');
+        setShowIssueField(false);
+        setPendingStage(null);
+        await loadOrders(driver.id);
+
+        if (stageButton.stage === 'QC_PHOTOS') {
+          setTimeout(() => {
+            setView('list');
+            setSelectedOrder(null);
+          }, 1500);
+        }
+      } else {
+        setError(result.error || 'Failed to transition stage');
+      }
+    } catch (err) {
+      console.error('Stage transition error:', err);
+      setError('Network error. Please try again.');
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
-  const openNavigation = (ticket: DeliveryTicket) => {
-    const address = `${ticket.jobAddress}, ${ticket.city}, ${ticket.state} ${ticket.zip}`;
+  const openNavigation = (order: PipelineOrder) => {
+    const address = `${order.deliveryAddress}, ${order.deliveryCity}, ${order.deliveryState} ${order.deliveryZip}`;
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`, '_blank');
   };
-
-  const getETAForTicket = (ticketId: string): DeliveryETA | undefined => etas.find(e => e.ticketId === ticketId);
 
   const handleLogout = () => {
     sessionStorage.removeItem('driver');
@@ -256,19 +634,34 @@ export default function DriverPortal() {
   if (!driver) return null;
 
   // ============================================
-  // TICKET DETAIL VIEW
+  // ORDER DETAIL VIEW
   // ============================================
-  if (view === 'detail' && selectedTicket) {
-    const nextAction = getNextAction(selectedTicket.status);
-    const config = statusConfig[selectedTicket.status];
-    const ticketETA = getETAForTicket(selectedTicket.ticketId);
+  if (view === 'detail' && selectedOrder) {
+    const nextAction = getNextDriverStage(selectedOrder.currentStage);
+    const stageColor = STAGE_COLOR[selectedOrder.currentStage] || 'bg-zinc-600';
+    const stageLabel = STAGE_LABELS[selectedOrder.currentStage] || selectedOrder.currentStage;
+
+    // Determine if order is past driver stages
+    const driverDone = isOrderComplete(selectedOrder.currentStage) ||
+      isDriverStageComplete(selectedOrder.currentStage, 'QC_PHOTOS');
 
     return (
-      <div className="min-h-screen bg-black pb-24">
+      <div className="min-h-screen bg-black pb-28">
+        {/* Hidden file input for photo capture */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          multiple
+          className="hidden"
+          onChange={handlePhotoCapture}
+        />
+
         {/* Header */}
         <div className="bg-zinc-900 border-b border-zinc-800 p-4 safe-top">
           <button
-            onClick={() => { setView('list'); setSelectedTicket(null); }}
+            onClick={() => { setView('list'); setSelectedOrder(null); setPendingPhotos([]); setPendingStage(null); setShowPhotoPrompt(false); }}
             className="flex items-center gap-2 text-zinc-400 active:text-brand-green mb-3 py-1"
           >
             <ArrowLeft size={20} />
@@ -276,26 +669,42 @@ export default function DriverPortal() {
           </button>
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">
-              <h1 className="text-lg font-bold text-white truncate">{selectedTicket.jobName}</h1>
-              <p className="text-xs text-zinc-500 font-mono">{selectedTicket.ticketId}</p>
+              <h1 className="text-lg font-bold text-white truncate">{selectedOrder.jobName}</h1>
+              <p className="text-xs text-zinc-500 font-mono">{selectedOrder.orderId}</p>
             </div>
-            <span className={`px-3 py-1 rounded-full text-xs font-bold text-white ${config.color} ml-3 flex-shrink-0`}>
-              {config.label}
+            <span className={`px-3 py-1 rounded-full text-xs font-bold text-white ${stageColor} ml-3 flex-shrink-0`}>
+              {stageLabel}
             </span>
           </div>
         </div>
 
-        {/* Progress Steps - horizontal scroll */}
+        {/* Success / Error Messages */}
+        {successMessage && (
+          <div className="mx-4 mt-3 p-3 bg-brand-green/20 border border-brand-green/40 rounded-xl flex items-center gap-2">
+            <CheckCircle2 size={18} className="text-brand-green flex-shrink-0" />
+            <span className="text-brand-green font-bold text-sm">{successMessage}</span>
+          </div>
+        )}
+        {error && (
+          <div className="mx-4 mt-3 p-3 bg-red-500/20 border border-red-500/40 rounded-xl flex items-center gap-2">
+            <AlertCircle size={18} className="text-red-400 flex-shrink-0" />
+            <span className="text-red-400 font-bold text-sm">{error}</span>
+          </div>
+        )}
+
+        {/* Pipeline Progress Steps - horizontal scroll */}
         <div className="bg-zinc-900/80 border-b border-zinc-800 p-3 overflow-x-auto">
           <div className="flex gap-1.5 min-w-max">
-            {workflowSteps.map((step, idx) => {
-              const currentIdx = getCurrentStepIndex(selectedTicket.status);
-              const isCompleted = selectedTicket.status === 'materials_pulled' ? idx < 0 : idx <= currentIdx;
-              const isCurrent = selectedTicket.status === step.status ||
-                (selectedTicket.status === 'materials_pulled' && idx === 0);
+            {STAGE_BUTTONS.map((step) => {
+              const isCompleted = isDriverStageComplete(selectedOrder.currentStage, step.stage);
+              const isCurrent = selectedOrder.currentStage === step.stage ||
+                // If between warehouse and first driver stage
+                (getDriverStageIndex(selectedOrder.currentStage) === -1 &&
+                  step.stage === 'MATERIALS_PULLED' &&
+                  getNextDriverStage(selectedOrder.currentStage)?.stage === 'MATERIALS_PULLED');
               return (
                 <div
-                  key={step.status}
+                  key={step.stage}
                   className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors ${
                     isCompleted ? 'bg-brand-green/20 text-brand-green' :
                     isCurrent ? 'bg-brand-green/10 text-brand-green ring-1 ring-brand-green/40' :
@@ -304,6 +713,12 @@ export default function DriverPortal() {
                 >
                   <step.icon size={14} />
                   <span className="text-[11px] font-semibold whitespace-nowrap">{step.label}</span>
+                  {step.requiresPhoto && (
+                    <Camera size={10} className={isCompleted ? 'text-brand-green/60' : 'text-zinc-700'} />
+                  )}
+                  {step.requiresGPS && (
+                    <MapPin size={10} className={isCompleted ? 'text-brand-green/60' : 'text-zinc-700'} />
+                  )}
                 </div>
               );
             })}
@@ -311,40 +726,23 @@ export default function DriverPortal() {
         </div>
 
         <div className="p-4 space-y-3">
-          {/* ETA Card */}
-          {ticketETA && ticketETA.estimatedMinutesAway > 0 && (
-            <div className="bg-brand-green/10 border border-brand-green/30 rounded-2xl p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-brand-green">
-                  <Timer size={18} />
-                  <span className="font-bold text-sm">ETA</span>
-                </div>
-                <div className="text-right">
-                  <p className="text-xl font-black text-brand-green">{formatETA(ticketETA)}</p>
-                  <p className="text-[11px] text-zinc-500">~{formatTimeFromISO(ticketETA.estimatedArrival)}</p>
-                </div>
-              </div>
-              <div className="mt-2 text-[11px] text-zinc-500">
-                Stop {ticketETA.stopNumber} of {ticketETA.totalStops}
-              </div>
-            </div>
-          )}
-
           {/* Customer Info */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
             <h3 className="font-bold text-white text-sm mb-3 flex items-center gap-2">
               <User size={16} className="text-brand-green" /> Customer
             </h3>
             <div className="space-y-2">
-              <p className="text-zinc-300 text-sm">{selectedTicket.customerName}</p>
-              <a
-                href={`tel:${selectedTicket.customerPhone}`}
-                className="flex items-center gap-3 bg-brand-green/10 border border-brand-green/30 rounded-xl px-4 py-3 text-brand-green active:bg-brand-green/20 transition-colors"
-              >
-                <Phone size={18} />
-                <span className="font-bold text-sm">{selectedTicket.customerPhone}</span>
-                <span className="ml-auto text-xs opacity-70">Tap to Call</span>
-              </a>
+              <p className="text-zinc-300 text-sm">{selectedOrder.customerName}</p>
+              {selectedOrder.customerPhone && (
+                <a
+                  href={`tel:${selectedOrder.customerPhone}`}
+                  className="flex items-center gap-3 bg-brand-green/10 border border-brand-green/30 rounded-xl px-4 py-3 text-brand-green active:bg-brand-green/20 transition-colors"
+                >
+                  <Phone size={18} />
+                  <span className="font-bold text-sm">{selectedOrder.customerPhone}</span>
+                  <span className="ml-auto text-xs opacity-70">Tap to Call</span>
+                </a>
+              )}
             </div>
           </div>
 
@@ -353,16 +751,16 @@ export default function DriverPortal() {
             <h3 className="font-bold text-white text-sm mb-3 flex items-center gap-2">
               <MapPin size={16} className="text-brand-green" /> Delivery Address
             </h3>
-            <p className="text-zinc-300 text-sm">{selectedTicket.jobAddress}</p>
+            <p className="text-zinc-300 text-sm">{selectedOrder.deliveryAddress}</p>
             <p className="text-zinc-500 text-xs mb-4">
-              {selectedTicket.city}, {selectedTicket.state} {selectedTicket.zip}
+              {selectedOrder.deliveryCity}, {selectedOrder.deliveryState} {selectedOrder.deliveryZip}
             </p>
             <button
-              onClick={() => openNavigation(selectedTicket)}
+              onClick={() => openNavigation(selectedOrder)}
               className="w-full bg-brand-green active:brightness-90 text-black font-black py-3.5 rounded-xl flex items-center justify-center gap-2 text-sm transition-all"
             >
               <Navigation size={18} />
-              Navigate to Stop
+              Navigate to Job Site
             </button>
           </div>
 
@@ -370,23 +768,30 @@ export default function DriverPortal() {
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
             <h3 className="font-bold text-white text-sm mb-3 flex items-center gap-2">
               <Package size={16} className="text-brand-green" />
-              Materials ({selectedTicket.materials?.length || 0})
+              Materials ({selectedOrder.items?.length || 0})
             </h3>
             <div className="space-y-1 max-h-48 overflow-y-auto">
-              {selectedTicket.materials?.map((item, idx) => (
-                <div key={idx} className="flex justify-between items-center py-2 border-b border-zinc-800/60 last:border-0">
+              {selectedOrder.items?.map((item, idx) => (
+                <div key={item.itemId || idx} className="flex justify-between items-center py-2 border-b border-zinc-800/60 last:border-0">
                   <div className="min-w-0 flex-1">
                     <p className="text-white text-sm truncate">{item.productName}</p>
                     {item.sku && <p className="text-zinc-600 text-[11px] font-mono">{item.sku}</p>}
                   </div>
-                  <p className="text-brand-green font-bold text-sm ml-3 flex-shrink-0">{item.quantity} {item.unit}</p>
+                  <div className="text-right ml-3 flex-shrink-0">
+                    <p className="text-brand-green font-bold text-sm">{item.quantity} {item.unit}</p>
+                    {item.pulledQty > 0 && item.pulledQty !== item.quantity && (
+                      <p className="text-yellow-400 text-[10px]">Pulled: {item.pulledQty}</p>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
-            {selectedTicket.specialInstructions && (
+            {selectedOrder.specialInstructions && (
               <div className="mt-3 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
-                <p className="text-yellow-400 text-xs font-bold">⚠ Special Instructions</p>
-                <p className="text-yellow-200/90 text-sm mt-1">{selectedTicket.specialInstructions}</p>
+                <p className="text-yellow-400 text-xs font-bold flex items-center gap-1">
+                  <AlertTriangle size={12} /> Special Instructions
+                </p>
+                <p className="text-yellow-200/90 text-sm mt-1">{selectedOrder.specialInstructions}</p>
               </div>
             )}
           </div>
@@ -397,39 +802,28 @@ export default function DriverPortal() {
               <Clock size={16} className="text-brand-green" /> Timeline
             </h3>
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-zinc-500">Scheduled</span>
-                <span className="text-white font-medium">{selectedTicket.scheduledTime || 'TBD'}</span>
-              </div>
-              {selectedTicket.loadVerifiedAt && (
+              {selectedOrder.scheduledDeliveryDate && (
                 <div className="flex justify-between">
-                  <span className="text-zinc-500">Load Verified</span>
-                  <span className="text-brand-green font-medium">{new Date(selectedTicket.loadVerifiedAt).toLocaleTimeString()}</span>
+                  <span className="text-zinc-500">Scheduled</span>
+                  <span className="text-white font-medium">
+                    {selectedOrder.scheduledDeliveryDate}
+                    {selectedOrder.scheduledDeliveryTime ? ` ${selectedOrder.scheduledDeliveryTime}` : ''}
+                  </span>
                 </div>
               )}
-              {selectedTicket.departedAt && (
-                <div className="flex justify-between">
-                  <span className="text-zinc-500">Departed</span>
-                  <span className="text-brand-green font-medium">{new Date(selectedTicket.departedAt).toLocaleTimeString()}</span>
-                </div>
-              )}
-              {selectedTicket.arrivedAt && (
-                <div className="flex justify-between">
-                  <span className="text-zinc-500">Arrived</span>
-                  <span className="text-brand-green font-medium">{new Date(selectedTicket.arrivedAt).toLocaleTimeString()}</span>
-                </div>
-              )}
-              {selectedTicket.deliveredAt && (
-                <div className="flex justify-between">
-                  <span className="text-zinc-500">Delivered</span>
-                  <span className="text-brand-green font-medium">{new Date(selectedTicket.deliveredAt).toLocaleTimeString()}</span>
-                </div>
-              )}
+              {selectedOrder.events
+                ?.filter(e => DRIVER_STAGES.includes(e.stage))
+                .map((event) => (
+                  <div key={event.eventId} className="flex justify-between">
+                    <span className="text-zinc-500">{STAGE_LABELS[event.stage]}</span>
+                    <span className="text-brand-green font-medium">{formatTimeFromISO(event.timestamp)}</span>
+                  </div>
+                ))}
             </div>
           </div>
 
-          {/* Delivery Notes (for complete-delivery step) */}
-          {selectedTicket.status === 'arrived' && (
+          {/* Delivery Notes (show when at ARRIVED_AT_SITE or UNLOADING) */}
+          {(selectedOrder.currentStage === 'ARRIVED_AT_SITE' || selectedOrder.currentStage === 'UNLOADING') && (
             <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-3">
               <h3 className="font-bold text-white text-sm">Delivery Notes</h3>
               <textarea
@@ -459,33 +853,143 @@ export default function DriverPortal() {
             </div>
           )}
 
-          {/* Quick Action Grid */}
-          <div className="grid grid-cols-2 gap-3">
-            <button className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-center active:bg-zinc-800 transition-colors">
-              <Camera className="mx-auto text-brand-green mb-2" size={24} />
-              <span className="text-white text-sm font-medium block">Take Photo</span>
-              <span className="text-zinc-600 text-[11px]">{selectedTicket.photoCount} uploaded</span>
-            </button>
-            <button
-              onClick={() => setView('checklist')}
-              className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-center active:bg-zinc-800 transition-colors"
-            >
-              <ClipboardCheck className="mx-auto text-blue-400 mb-2" size={24} />
-              <span className="text-white text-sm font-medium block">Checklist</span>
-              <span className="text-zinc-600 text-[11px]">View all steps</span>
-            </button>
-          </div>
+          {/* Photo Upload Section (when photo prompt is showing) */}
+          {showPhotoPrompt && pendingStage && (
+            <div className="bg-zinc-900 border-2 border-brand-green/50 rounded-2xl p-4 space-y-3">
+              <h3 className="font-bold text-white text-sm flex items-center gap-2">
+                <Camera size={16} className="text-brand-green" />
+                Photo Required: {pendingStage.label}
+              </h3>
+              <p className="text-zinc-400 text-xs">{pendingStage.description}</p>
+
+              {pendingPhotos.length > 0 && (
+                <div className="flex items-center gap-2 text-brand-green text-sm">
+                  <CheckCircle2 size={16} />
+                  <span className="font-bold">{pendingPhotos.length} photo{pendingPhotos.length > 1 ? 's' : ''} captured</span>
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingPhoto}
+                  className="flex-1 bg-brand-green active:brightness-90 text-black font-bold py-3 rounded-xl flex items-center justify-center gap-2 text-sm disabled:bg-zinc-700 disabled:text-zinc-500"
+                >
+                  {uploadingPhoto ? (
+                    <Loader2 className="animate-spin" size={18} />
+                  ) : (
+                    <Camera size={18} />
+                  )}
+                  {uploadingPhoto ? 'Uploading...' : 'Take Photo'}
+                </button>
+                {pendingPhotos.length > 0 && (
+                  <button
+                    onClick={() => handleStageTransitionWithPhotos(pendingStage, pendingPhotos)}
+                    disabled={isUpdating}
+                    className="flex-1 bg-brand-green active:brightness-90 text-black font-bold py-3 rounded-xl flex items-center justify-center gap-2 text-sm"
+                  >
+                    <CheckCircle2 size={18} />
+                    Continue
+                  </button>
+                )}
+              </div>
+
+              <button
+                onClick={() => { setShowPhotoPrompt(false); setPendingStage(null); setPendingPhotos([]); }}
+                className="w-full text-zinc-500 text-xs py-1 active:text-zinc-300"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+
+          {/* GPS Status Indicator */}
+          {gpsStatus !== 'idle' && (
+            <div className={`rounded-xl px-4 py-2 flex items-center gap-2 text-sm ${
+              gpsStatus === 'acquiring' ? 'bg-blue-500/10 border border-blue-500/30 text-blue-400' :
+              gpsStatus === 'acquired' ? 'bg-brand-green/10 border border-brand-green/30 text-brand-green' :
+              'bg-red-500/10 border border-red-500/30 text-red-400'
+            }`}>
+              {gpsStatus === 'acquiring' && <Loader2 className="animate-spin" size={16} />}
+              {gpsStatus === 'acquired' && <MapPin size={16} />}
+              {gpsStatus === 'failed' && <AlertCircle size={16} />}
+              <span className="font-medium">
+                {gpsStatus === 'acquiring' && 'Acquiring GPS...'}
+                {gpsStatus === 'acquired' && `GPS: ${currentGPS?.lat.toFixed(4)}, ${currentGPS?.lng.toFixed(4)}`}
+                {gpsStatus === 'failed' && 'GPS unavailable - enable location services'}
+              </span>
+            </div>
+          )}
+
+          {/* Quick Actions */}
+          {!showPhotoPrompt && (
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => {
+                  if (nextAction) {
+                    setPendingStage(nextAction);
+                    fileInputRef.current?.click();
+                  }
+                }}
+                className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-center active:bg-zinc-800 transition-colors"
+              >
+                <Camera className="mx-auto text-brand-green mb-2" size={24} />
+                <span className="text-white text-sm font-medium block">Take Photo</span>
+                <span className="text-zinc-600 text-[11px]">{pendingPhotos.length} staged</span>
+              </button>
+              <button
+                onClick={async () => {
+                  setGpsStatus('acquiring');
+                  const gps = await getGPS();
+                  if (gps) {
+                    setCurrentGPS(gps);
+                    setGpsStatus('acquired');
+                  } else {
+                    setGpsStatus('failed');
+                  }
+                }}
+                className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-center active:bg-zinc-800 transition-colors"
+              >
+                <MapPin className="mx-auto text-blue-400 mb-2" size={24} />
+                <span className="text-white text-sm font-medium block">Get GPS</span>
+                <span className="text-zinc-600 text-[11px]">{currentGPS ? 'Acquired' : 'Tap to get'}</span>
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Fixed Bottom Action */}
-        {nextAction && (
+        {/* Fixed Bottom Action Button */}
+        {nextAction && !showPhotoPrompt && !driverDone && (
           <div className="fixed bottom-0 left-0 right-0 p-4 bg-black/95 backdrop-blur-sm border-t border-zinc-800 safe-bottom">
+            {/* Requirements indicator */}
+            <div className="flex items-center justify-center gap-3 mb-2 text-[11px]">
+              {nextAction.requiresPhoto && (
+                <span className={`flex items-center gap-1 ${pendingPhotos.length > 0 ? 'text-brand-green' : 'text-zinc-500'}`}>
+                  <Camera size={12} />
+                  Photo {pendingPhotos.length > 0 ? '(ready)' : '(required)'}
+                </span>
+              )}
+              {nextAction.requiresGPS && (
+                <span className={`flex items-center gap-1 ${currentGPS ? 'text-brand-green' : 'text-zinc-500'}`}>
+                  <MapPin size={12} />
+                  GPS {currentGPS ? '(ready)' : '(auto)'}
+                </span>
+              )}
+              {nextAction.inventoryAction && (
+                <span className="flex items-center gap-1 text-amber-400">
+                  <Shield size={12} />
+                  {nextAction.inventoryAction}
+                </span>
+              )}
+            </div>
             <button
-              onClick={() => handleWorkflowAction(nextAction.action)}
+              onClick={() => handleStageTransition(nextAction)}
               disabled={isUpdating}
               className={`w-full font-black py-4 rounded-2xl flex items-center justify-center gap-2.5 text-base transition-all active:scale-[0.98] ${
-                nextAction.status === 'completed'
-                  ? 'bg-green-500 active:bg-green-400 text-black'
+                nextAction.stage === 'DELIVERY_CONFIRMED'
+                  ? 'bg-amber-500 active:bg-amber-400 text-black'
+                  : nextAction.stage === 'QC_PHOTOS'
+                  ? 'bg-pink-500 active:bg-pink-400 text-black'
                   : 'bg-brand-green active:brightness-90 text-black'
               } disabled:bg-zinc-800 disabled:text-zinc-600`}
             >
@@ -498,62 +1002,16 @@ export default function DriverPortal() {
             </button>
           </div>
         )}
-      </div>
-    );
-  }
 
-  // ============================================
-  // CHECKLIST VIEW
-  // ============================================
-  if (view === 'checklist' && selectedTicket) {
-    return (
-      <div className="min-h-screen bg-black">
-        <div className="bg-zinc-900 border-b border-zinc-800 p-4 safe-top">
-          <button
-            onClick={() => setView('detail')}
-            className="flex items-center gap-2 text-zinc-400 active:text-brand-green py-1"
-          >
-            <ArrowLeft size={20} />
-            <span className="text-sm font-medium">Back to Delivery</span>
-          </button>
-          <h1 className="text-lg font-bold text-white mt-3">Delivery Checklist</h1>
-        </div>
-
-        <div className="p-4 space-y-2">
-          {checklist.map(item => (
-            <div
-              key={item.checklistId}
-              className={`bg-zinc-900 border rounded-2xl p-4 flex items-start gap-3 ${
-                item.completedAt ? 'border-brand-green/40' : 'border-zinc-800'
-              }`}
-            >
-              {item.completedAt ? (
-                <CheckSquare className="text-brand-green flex-shrink-0 mt-0.5" size={20} />
-              ) : (
-                <Square className="text-zinc-600 flex-shrink-0 mt-0.5" size={20} />
-              )}
-              <div className="flex-1 min-w-0">
-                <p className={`font-medium text-sm ${item.completedAt ? 'text-brand-green' : 'text-white'}`}>
-                  {item.description}
-                </p>
-                {item.completedAt && (
-                  <p className="text-zinc-600 text-[11px] mt-1">
-                    ✓ {new Date(item.completedAt).toLocaleString()} by {item.completedBy}
-                  </p>
-                )}
-                {item.required && !item.completedAt && (
-                  <span className="text-red-400 text-[11px] font-bold">Required</span>
-                )}
-              </div>
+        {/* Completed state */}
+        {driverDone && (
+          <div className="fixed bottom-0 left-0 right-0 p-4 bg-black/95 backdrop-blur-sm border-t border-zinc-800 safe-bottom">
+            <div className="w-full bg-green-500/20 border border-green-500/40 py-4 rounded-2xl flex items-center justify-center gap-2.5 text-base text-green-400">
+              <CheckCircle2 size={20} />
+              <span className="font-bold">Delivery Complete</span>
             </div>
-          ))}
-          {checklist.length === 0 && (
-            <div className="text-center py-16">
-              <ClipboardCheck className="mx-auto text-zinc-700" size={48} />
-              <p className="text-zinc-500 mt-4 text-sm">No checklist items</p>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -561,8 +1019,8 @@ export default function DriverPortal() {
   // ============================================
   // ROUTE LIST VIEW (Main Screen)
   // ============================================
-  const activeTickets = tickets.filter(t => !['completed', 'cancelled'].includes(t.status));
-  const completedTickets = tickets.filter(t => ['completed', 'cancelled'].includes(t.status));
+  const activeOrders = orders.filter(o => !isOrderComplete(o.currentStage) && !o.cancelled);
+  const completedOrders = orders.filter(o => isOrderComplete(o.currentStage) || o.cancelled);
 
   return (
     <div className="min-h-screen bg-black">
@@ -588,24 +1046,24 @@ export default function DriverPortal() {
       <div className="bg-zinc-900 border-b border-zinc-800 px-4 py-4">
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
-            <p className="text-2xl font-black text-white">{tickets.length}</p>
+            <p className="text-2xl font-black text-white">{orders.length}</p>
             <p className="text-[11px] text-zinc-500 font-medium">Total</p>
           </div>
           <div>
-            <p className="text-2xl font-black text-brand-green">{completedTickets.length}</p>
+            <p className="text-2xl font-black text-brand-green">{completedOrders.length}</p>
             <p className="text-[11px] text-zinc-500 font-medium">Done</p>
           </div>
           <div>
-            <p className="text-2xl font-black text-orange-400">{activeTickets.length}</p>
+            <p className="text-2xl font-black text-orange-400">{activeOrders.length}</p>
             <p className="text-[11px] text-zinc-500 font-medium">Remaining</p>
           </div>
         </div>
-        {tickets.length > 0 && (
+        {orders.length > 0 && (
           <div className="mt-3">
             <div className="w-full bg-zinc-800 rounded-full h-2.5">
               <div
                 className="bg-brand-green h-2.5 rounded-full transition-all duration-500"
-                style={{ width: `${tickets.length > 0 ? (completedTickets.length / tickets.length) * 100 : 0}%` }}
+                style={{ width: `${orders.length > 0 ? (completedOrders.length / orders.length) * 100 : 0}%` }}
               />
             </div>
           </div>
@@ -615,13 +1073,13 @@ export default function DriverPortal() {
       {/* Date & Refresh */}
       <div className="p-4 flex items-center justify-between">
         <div>
-          <h2 className="text-base font-bold text-white">Today&apos;s Route</h2>
+          <h2 className="text-base font-bold text-white">Today&apos;s Deliveries</h2>
           <p className="text-xs text-zinc-500">
             {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
           </p>
         </div>
         <button
-          onClick={() => { loadTickets(driver.id); loadETAs(driver.id); }}
+          onClick={() => { if (driver) loadOrders(driver.id); }}
           disabled={isLoading}
           className="p-2.5 bg-zinc-900 rounded-xl active:bg-zinc-800 border border-zinc-800"
         >
@@ -629,7 +1087,7 @@ export default function DriverPortal() {
         </button>
       </div>
 
-      {/* Tickets List */}
+      {/* Orders List */}
       <div className="px-4 pb-8 space-y-3">
         {isLoading ? (
           <div className="flex flex-col items-center py-16 gap-4">
@@ -640,61 +1098,64 @@ export default function DriverPortal() {
               <div className="absolute inset-0 rounded-2xl border-2 border-brand-green/30 animate-ping" />
             </div>
             <div className="text-center">
-              <p className="text-white font-bold text-sm">Loading route...</p>
-              <p className="text-zinc-600 text-xs">Fetching your deliveries</p>
+              <p className="text-white font-bold text-sm">Loading deliveries...</p>
+              <p className="text-zinc-600 text-xs">Fetching from pipeline</p>
             </div>
           </div>
-        ) : tickets.length === 0 ? (
+        ) : orders.length === 0 ? (
           <div className="flex flex-col items-center py-16 gap-4">
             <div className="w-16 h-16 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center">
               <Truck className="text-zinc-600" size={32} />
             </div>
             <div className="text-center">
-              <p className="text-white font-bold text-sm">No deliveries today</p>
+              <p className="text-white font-bold text-sm">No deliveries assigned</p>
               <p className="text-zinc-600 text-xs">Check back later for new assignments</p>
             </div>
           </div>
         ) : (
           <>
-            {/* Active Stops */}
-            {activeTickets.map((ticket, idx) => {
-              const config = statusConfig[ticket.status];
-              const eta = getETAForTicket(ticket.ticketId);
-              const isEnRoute = ['en_route', 'arrived'].includes(ticket.status);
+            {/* Active Orders */}
+            {activeOrders.map((order, idx) => {
+              const stageColor = STAGE_COLOR[order.currentStage] || 'bg-zinc-600';
+              const stageLabel = STAGE_LABELS[order.currentStage] || order.currentStage;
+              const nextAction = getNextDriverStage(order.currentStage);
+              const isActive = ['EN_ROUTE', 'ARRIVED_AT_SITE', 'UNLOADING'].includes(order.currentStage);
               return (
                 <div
-                  key={ticket.ticketId}
+                  key={order.orderId}
                   className={`bg-zinc-900 border rounded-2xl overflow-hidden transition-all ${
-                    isEnRoute ? 'border-brand-green/50 ring-1 ring-brand-green/20' : 'border-zinc-800'
+                    isActive ? 'border-brand-green/50 ring-1 ring-brand-green/20' : 'border-zinc-800'
                   }`}
                 >
                   <button
                     onClick={() => {
-                      setSelectedTicket(ticket);
-                      loadTicketDetails(ticket.ticketId);
+                      setSelectedOrder(order);
                       setView('detail');
+                      setPendingPhotos([]);
+                      setCurrentGPS(null);
+                      setGpsStatus('idle');
                     }}
                     className="w-full p-4 text-left active:bg-zinc-800/50"
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                          isEnRoute ? 'bg-brand-green text-black' : 'bg-zinc-800 text-zinc-400'
+                          isActive ? 'bg-brand-green text-black' : 'bg-zinc-800 text-zinc-400'
                         }`}>
                           <span className="text-sm font-black">{idx + 1}</span>
                         </div>
                         <div className="min-w-0 flex-1">
-                          <h3 className="font-bold text-white text-sm truncate">{ticket.jobName}</h3>
-                          <p className="text-xs text-zinc-500">{ticket.customerName}</p>
+                          <h3 className="font-bold text-white text-sm truncate">{order.jobName}</h3>
+                          <p className="text-xs text-zinc-500">{order.customerName}</p>
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-1 ml-2 flex-shrink-0">
-                        <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold text-white ${config.color}`}>
-                          {config.label}
+                        <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold text-white ${stageColor}`}>
+                          {stageLabel}
                         </span>
-                        {eta && eta.estimatedMinutesAway > 0 && (
-                          <span className="text-[11px] text-brand-green font-bold">
-                            ETA: {formatETA(eta)}
+                        {nextAction && (
+                          <span className="text-[10px] text-zinc-500 font-medium">
+                            Next: {nextAction.label}
                           </span>
                         )}
                       </div>
@@ -702,49 +1163,67 @@ export default function DriverPortal() {
 
                     <div className="flex items-center gap-1.5 text-xs text-zinc-500 mb-2 ml-11">
                       <MapPin size={12} />
-                      <span className="truncate">{ticket.jobAddress}, {ticket.city}</span>
+                      <span className="truncate">{order.deliveryAddress}, {order.deliveryCity}</span>
                     </div>
 
                     <div className="flex items-center justify-between ml-11">
                       <div className="flex items-center gap-3 text-xs">
                         <span className="flex items-center gap-1 text-zinc-600">
                           <Clock size={12} />
-                          {ticket.scheduledTime || 'TBD'}
+                          {order.scheduledDeliveryTime || 'TBD'}
                         </span>
                         <span className="flex items-center gap-1 text-zinc-600">
                           <Package size={12} />
-                          {ticket.materials?.length || 0}
+                          {order.items?.length || 0} items
                         </span>
-                        {ticket.priority !== 'normal' && (
+                        {order.priority !== 'normal' && (
                           <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                            ticket.priority === 'urgent' ? 'bg-red-500/20 text-red-400' : 'bg-orange-500/20 text-orange-400'
+                            order.priority === 'urgent' ? 'bg-red-500/20 text-red-400' : 'bg-orange-500/20 text-orange-400'
                           }`}>
-                            {ticket.priority.toUpperCase()}
+                            {order.priority.toUpperCase()}
                           </span>
                         )}
                       </div>
                       <ChevronRight size={18} className="text-zinc-700" />
+                    </div>
+
+                    {/* Mini pipeline progress */}
+                    <div className="mt-3 ml-11 flex gap-0.5">
+                      {DRIVER_STAGES.map((stage) => (
+                        <div
+                          key={stage}
+                          className={`h-1.5 flex-1 rounded-full ${
+                            isDriverStageComplete(order.currentStage, stage)
+                              ? 'bg-brand-green'
+                              : order.currentStage === stage
+                              ? 'bg-brand-green/40'
+                              : 'bg-zinc-800'
+                          }`}
+                        />
+                      ))}
                     </div>
                   </button>
 
                   {/* Quick Actions Bar */}
                   <div className="border-t border-zinc-800 px-3 py-2 flex items-center gap-2">
                     <button
-                      onClick={(e) => { e.stopPropagation(); openNavigation(ticket); }}
+                      onClick={(e) => { e.stopPropagation(); openNavigation(order); }}
                       className="flex items-center gap-1 px-3 py-1.5 bg-brand-green/15 text-brand-green rounded-lg text-xs font-bold active:bg-brand-green/25"
                     >
                       <Navigation size={13} />
                       Navigate
                     </button>
-                    <a
-                      href={`tel:${ticket.customerPhone}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-brand-green/10 text-brand-green rounded-lg text-xs font-bold active:bg-brand-green/20"
-                    >
-                      <Phone size={13} />
-                      Call
-                    </a>
-                    {ticket.specialInstructions && (
+                    {order.customerPhone && (
+                      <a
+                        href={`tel:${order.customerPhone}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-brand-green/10 text-brand-green rounded-lg text-xs font-bold active:bg-brand-green/20"
+                      >
+                        <Phone size={13} />
+                        Call
+                      </a>
+                    )}
+                    {order.specialInstructions && (
                       <span className="flex items-center gap-1 px-2 py-1.5 text-yellow-400 text-[11px] font-medium">
                         <AlertCircle size={13} />
                         Notes
@@ -755,40 +1234,42 @@ export default function DriverPortal() {
               );
             })}
 
-            {/* Completed Stops */}
-            {completedTickets.length > 0 && (
+            {/* Completed Orders */}
+            {completedOrders.length > 0 && (
               <div className="mt-4">
                 <h3 className="text-xs font-bold text-zinc-500 mb-2 px-1 uppercase tracking-wider">
-                  Completed ({completedTickets.length})
+                  Completed ({completedOrders.length})
                 </h3>
-                {completedTickets.map(ticket => (
-                  <button
-                    key={ticket.ticketId}
-                    onClick={() => {
-                      setSelectedTicket(ticket);
-                      loadTicketDetails(ticket.ticketId);
-                      setView('detail');
-                    }}
-                    className="w-full bg-zinc-900/40 border border-zinc-800/40 rounded-2xl p-3 text-left mb-2 opacity-50"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-7 h-7 rounded-full bg-brand-green/20 flex items-center justify-center">
-                          <CheckCircle2 size={14} className="text-brand-green" />
+                {completedOrders.map(order => {
+                  const deliveryEvent = order.events?.find(e => e.stage === 'DELIVERY_CONFIRMED');
+                  return (
+                    <button
+                      key={order.orderId}
+                      onClick={() => {
+                        setSelectedOrder(order);
+                        setView('detail');
+                      }}
+                      className="w-full bg-zinc-900/40 border border-zinc-800/40 rounded-2xl p-3 text-left mb-2 opacity-50"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-7 h-7 rounded-full bg-brand-green/20 flex items-center justify-center">
+                            <CheckCircle2 size={14} className="text-brand-green" />
+                          </div>
+                          <div>
+                            <h3 className="font-medium text-zinc-300 text-sm">{order.jobName}</h3>
+                            <p className="text-[11px] text-zinc-600">{order.customerName}</p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-medium text-zinc-300 text-sm">{ticket.jobName}</h3>
-                          <p className="text-[11px] text-zinc-600">{ticket.customerName}</p>
-                        </div>
+                        {deliveryEvent && (
+                          <span className="text-[11px] text-zinc-600">
+                            {formatTimeFromISO(deliveryEvent.timestamp)}
+                          </span>
+                        )}
                       </div>
-                      {ticket.deliveredAt && (
-                        <span className="text-[11px] text-zinc-600">
-                          {new Date(ticket.deliveredAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </>
