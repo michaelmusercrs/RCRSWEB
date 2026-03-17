@@ -301,10 +301,28 @@ export function generateLocalBusinessSchema() {
       {
         '@type': 'EducationalOccupationalCredential',
         credentialCategory: 'Professional Certification',
-        name: 'IKO Certified Contractor',
+        name: 'IKO ROOFPRO Craftsman Premier',
         recognizedBy: {
           '@type': 'Organization',
           name: 'IKO Industries',
+        },
+      },
+      {
+        '@type': 'EducationalOccupationalCredential',
+        credentialCategory: 'Professional Certification',
+        name: 'Owens Corning Preferred Contractor',
+        recognizedBy: {
+          '@type': 'Organization',
+          name: 'Owens Corning',
+        },
+      },
+      {
+        '@type': 'EducationalOccupationalCredential',
+        credentialCategory: 'Professional Certification',
+        name: 'Boral Certified LeafX Dealer / Pro Installer',
+        recognizedBy: {
+          '@type': 'Organization',
+          name: 'Boral Roofing',
         },
       },
     ],

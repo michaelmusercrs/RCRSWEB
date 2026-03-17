@@ -7,9 +7,9 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = genMeta({
   title: 'Roofing Warranty',
-  description: 'Our 5-year workmanship warranty plus manufacturer warranties give you complete peace of mind. IKO certified contractor.',
+  description: 'Our 5-year workmanship warranty plus manufacturer warranties from IKO, Owens Corning & GAF give you complete peace of mind. IKO ROOFPRO Craftsman Premier & Owens Corning Preferred Contractor.',
   path: '/warranty',
-  keywords: ['roofing warranty', 'roof warranty', 'workmanship warranty', 'IKO warranty', 'roofing guarantee', 'North Alabama roofer warranty'],
+  keywords: ['roofing warranty', 'roof warranty', 'workmanship warranty', 'IKO warranty', 'Owens Corning warranty', 'roofing guarantee', 'North Alabama roofer warranty', 'Owens Corning Preferred Contractor'],
 });
 
 const covered = [
@@ -44,6 +44,12 @@ const manufacturerWarranties = [
     coverage: 'Limited Lifetime',
     windCoverage: 'Up to 110 mph',
     highlights: ['Lifetime limited shingle warranty', 'Dual-layer construction', 'Wind resistance warranty', 'Algae resistance protection'],
+  },
+  {
+    brand: 'Owens Corning Duration',
+    coverage: 'Limited Lifetime',
+    windCoverage: 'Up to 130 mph',
+    highlights: ['Lifetime limited shingle warranty', 'SureNail technology for wind resistance', 'TruDefinition color platform', 'Preferred Contractor enhanced warranty available'],
   },
   {
     brand: 'GAF Timberline HDZ',
@@ -86,7 +92,7 @@ export default function WarrantyPage() {
             itemOffered: {
               '@type': 'Service',
               name: 'Manufacturer Warranty',
-              description: 'Limited lifetime manufacturer warranties on shingle products from IKO and GAF.',
+              description: 'Limited lifetime manufacturer warranties on shingle products from IKO, Owens Corning, and GAF.',
             },
           },
         ],
@@ -132,17 +138,17 @@ export default function WarrantyPage() {
                 <h3 className="text-2xl font-bold text-white mb-2">Lifetime</h3>
                 <p className="text-brand-green font-semibold text-lg mb-2">Manufacturer Warranty</p>
                 <p className="text-neutral-400 text-sm">
-                  Limited lifetime warranties from IKO and GAF protect your shingles for decades to come.
+                  Limited lifetime warranties from IKO, Owens Corning, and GAF protect your shingles for decades to come.
                 </p>
               </div>
               <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-8">
                 <div className="bg-brand-green rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
                   <CheckCircle2 className="text-black" size={32} />
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-2">IKO Certified</h3>
-                <p className="text-brand-green font-semibold text-lg mb-2">Certified Contractor</p>
+                <h3 className="text-2xl font-bold text-white mb-2">Multi-Certified</h3>
+                <p className="text-brand-green font-semibold text-lg mb-2">IKO ROOFPRO &bull; Owens Corning &bull; Boral</p>
                 <p className="text-neutral-400 text-sm">
-                  As an IKO certified contractor, we meet the highest standards for installation quality.
+                  IKO ROOFPRO Craftsman Premier, Owens Corning Preferred Contractor, and Boral Certified LeafX Dealer.
                 </p>
               </div>
             </div>
@@ -216,7 +222,7 @@ export default function WarrantyPage() {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               {manufacturerWarranties.map((warranty, idx) => (
                 <div
                   key={idx}

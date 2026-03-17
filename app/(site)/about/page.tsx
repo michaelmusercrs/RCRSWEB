@@ -12,7 +12,7 @@ export const metadata: Metadata = genMeta({
   title: 'About Us | Locally Owned Roofing Company in Decatur AL',
   description: 'River City Roofing Solutions is a locally owned, family-operated roofing company in Decatur, AL. Licensed, insured & BBB A+ rated. Serving Huntsville, Madison, Athens & all of North Alabama since 2010. Meet our experienced roofing team.',
   path: '/about',
-  keywords: ['locally owned roofing company Decatur AL', 'family owned roofer Huntsville AL', 'roofing company near me', 'licensed roofing contractor North Alabama', 'about River City Roofing', 'BBB A+ roofer Decatur', 'IKO certified contractor Alabama'],
+  keywords: ['locally owned roofing company Decatur AL', 'family owned roofer Huntsville AL', 'roofing company near me', 'licensed roofing contractor North Alabama', 'about River City Roofing', 'BBB A+ roofer Decatur', 'IKO certified contractor Alabama', 'Owens Corning Preferred Contractor Alabama', 'Boral certified LeafX dealer'],
 });
 
 export default async function AboutPage() {
@@ -117,6 +117,47 @@ export default async function AboutPage() {
                 </div>
               </Link>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Certifications Section */}
+      <section className="py-12 md:py-16 bg-black/70 backdrop-blur-sm relative z-10">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-8">
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
+              Industry Certifications
+            </h2>
+            <p className="text-lg text-neutral-300 max-w-2xl mx-auto">
+              Our certifications reflect our commitment to the highest standards in the roofing industry
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+            <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6 text-center hover:border-brand-green/50 transition-all">
+              <Award className="text-brand-green mx-auto mb-3" size={40} />
+              <h3 className="text-lg font-bold text-white mb-1">IKO ROOFPRO&reg;</h3>
+              <p className="text-brand-green text-sm font-semibold mb-2">Craftsman Premier</p>
+              <p className="text-neutral-400 text-sm">The highest tier of IKO&apos;s contractor program, certifying expert installation of IKO roofing systems.</p>
+            </div>
+            <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6 text-center hover:border-brand-green/50 transition-all">
+              <Award className="text-brand-green mx-auto mb-3" size={40} />
+              <h3 className="text-lg font-bold text-white mb-1">Owens Corning</h3>
+              <p className="text-brand-green text-sm font-semibold mb-2">Preferred Contractor</p>
+              <p className="text-neutral-400 text-sm">Recognized by Owens Corning for meeting rigorous standards in roofing excellence and customer satisfaction.</p>
+            </div>
+            <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6 text-center hover:border-brand-green/50 transition-all">
+              <Award className="text-brand-green mx-auto mb-3" size={40} />
+              <h3 className="text-lg font-bold text-white mb-1">Boral Certified</h3>
+              <p className="text-brand-green text-sm font-semibold mb-2">LeafX Dealer / Pro Installer</p>
+              <p className="text-neutral-400 text-sm">Authorized dealer and certified professional installer of Boral LeafX gutter protection systems.</p>
+            </div>
+            <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-6 text-center hover:border-brand-green/50 transition-all">
+              <Shield className="text-brand-green mx-auto mb-3" size={40} />
+              <h3 className="text-lg font-bold text-white mb-1">BBB A+ Rated</h3>
+              <p className="text-brand-green text-sm font-semibold mb-2">Accredited Business</p>
+              <p className="text-neutral-400 text-sm">Better Business Bureau A+ rating with full accreditation, reflecting our commitment to trust and transparency.</p>
+            </div>
           </div>
         </div>
       </section>

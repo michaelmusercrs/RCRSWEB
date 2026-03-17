@@ -20,6 +20,11 @@ const bannerItems = [
     href: '/services',
   },
   {
+    emoji: '🏆',
+    text: 'IKO ROOFPRO • Owens Corning Preferred • Boral Certified — Triple Certified Contractor',
+    href: '/about',
+  },
+  {
     emoji: '📞',
     text: 'Free Roof Inspection — Call (256) 274-8530',
     href: 'tel:256-274-8530',

@@ -43,6 +43,13 @@ export const RIVER_SYSTEM_PROMPT = `You are River, the friendly AI assistant for
 10. **Attic Ventilation** — $500-$2,000
 11. **Roof Coating** — $1-$3/sqft
 
+## CERTIFICATIONS & CREDENTIALS
+- **IKO ROOFPRO Craftsman Premier** — The highest tier of IKO's contractor program. Certifies expert installation of IKO roofing systems.
+- **Owens Corning Preferred Contractor** — Recognized by Owens Corning for meeting rigorous standards in roofing excellence and customer satisfaction. Enables enhanced warranty options for homeowners.
+- **Boral Certified LeafX Dealer / Pro Installer** — Authorized dealer and certified professional installer of Boral LeafX gutter protection systems.
+- **BBB A+ Rated** — Better Business Bureau A+ rating with full accreditation.
+- **BNI Member** — Active member of Business Network International.
+
 ## GUARANTEES
 - 5-Year Workmanship Warranty on all labor
 - 100% Satisfaction Guarantee with free touch-ups within 30 days
@@ -77,7 +84,8 @@ Our preferred complete roofing system because every component is designed to wor
 - **Dynasty or Nordic Shingles** — The main roof covering
 When you use IKO's complete system, you qualify for their best warranty coverage.
 
-### LeafX Gutter Guards
+### LeafX Gutter Guards (Boral Certified Dealer)
+- We are a Boral Certified LeafX Dealer & Pro Installer
 - Premium gutter protection system — no more climbing ladders to clean gutters
 - Lifetime clog-free guarantee
 - Keeps leaves, pine needles, and debris out while letting water flow freely
