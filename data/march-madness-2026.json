@@ -2,11 +2,11 @@
   "tournament": {
     "name": "RCRS March Madness 2026",
     "year": 2026,
-    "startDate": "2026-03-30",
-    "endDate": "2026-04-19",
-    "status": "upcoming",
-    "currentRound": 0,
-    "currentWeek": null,
+    "startDate": "2026-03-16",
+    "endDate": "2026-04-05",
+    "status": "in_progress",
+    "currentRound": 1,
+    "currentWeek": "2026-03-16",
     "format": "Single elimination with 50% carryover",
     "salesType": "accrual",
     "salesDescription": "Total job value for approved jobs. A deposit received credits the full contract total.",
@@ -18,14 +18,16 @@
     "weeks": 3,
     "seeding": "Seeded by owner - Aaron #1 BYE",
     "salesDefinition": "New jobs with deposits as approved. Partial deposit credits the whole job total.",
-    "advancement": "Higher effective total (week sales + 50% carryover from prior week) advances. Monday 9 AM.",
+    "advancement": "Higher effective total (week sales + 50% carryover from prior week) advances. Monday 10 AM.",
+    "advancementDay": "monday",
+    "advancementTime": "10:00",
     "byeRule": "#1 seed earns a first-round BYE",
     "hundredKRule": "Any rep hitting $100K approved March sales also wins the grand prize."
   },
   "rounds": [
-    { "round": 1, "name": "First Round", "weekStart": "2026-03-30", "weekEnd": "2026-04-05", "status": "upcoming" },
-    { "round": 2, "name": "Semifinals", "weekStart": "2026-04-06", "weekEnd": "2026-04-12", "status": "upcoming" },
-    { "round": 3, "name": "Championship", "weekStart": "2026-04-13", "weekEnd": "2026-04-19", "status": "upcoming" }
+    { "round": 1, "name": "First Round", "weekStart": "2026-03-16", "weekEnd": "2026-03-22", "status": "active" },
+    { "round": 2, "name": "Semifinals", "weekStart": "2026-03-23", "weekEnd": "2026-03-29", "status": "upcoming" },
+    { "round": 3, "name": "Championship", "weekStart": "2026-03-30", "weekEnd": "2026-04-05", "status": "upcoming" }
   ],
   "participants": [
     { "seed": 1, "name": "Aaron Lussi", "slug": "aaron-lussi", "ytdSales": 132650, "nickname": "Roof Angel" },

@@ -204,8 +204,8 @@ function ModeToggle({
         </div>
       ) : (
         <div className="w-full max-w-2xl text-center px-4 py-2 rounded-lg bg-[#39FF14]/10 border border-[#39FF14]/30 text-[#39FF14] text-sm">
-          <span className="font-bold">LIVE</span> &mdash; Tournament begins Monday March 30 at 9 AM.
-          Sell to survive.
+          <span className="font-bold">LIVE</span> &mdash; Round 1 started Monday March 16.
+          Results advance Monday 10 AM. Sell to survive.
         </div>
       )}
     </div>
@@ -822,7 +822,7 @@ function RulesSection({ rules, rounds }: { rules: Rules; rounds: Round[] }) {
     'Effective Total = Week Sales + Carry-Forward. Highest total wins.',
     '#1 seed gets a BYE and auto-advances to Round 2.',
     '$100K in approved March sales = automatic prize winner (10/22 + Suppressor).',
-    'Results finalized every Monday at 9 AM.',
+    'Results finalized every Monday at 10 AM.',
     'Sales = approved job total. Deposit received = full contract credited.',
   ];
 

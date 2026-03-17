@@ -4,7 +4,7 @@
   "settings": {
     "roundDuration": "1week",
     "advancementDay": "monday",
-    "advancementTime": "09:00",
+    "advancementTime": "10:00",
     "timeframe": "3weeks",
     "salesType": "accrual",
     "salesDescription": "Total job value for approved jobs. Deposit received = full contract credited.",

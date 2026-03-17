@@ -734,7 +734,7 @@ export default function MarchMadnessRepPage() {
                 <CountdownUnit value={countdown.seconds} label="Sec" />
               </div>
               <p className="text-neutral-500 text-xs mt-3 font-medium">
-                Round ends {formatDate(activeRound.weekEnd)} — Results posted Monday 9 AM
+                Round ends {formatDate(activeRound.weekEnd)} — Results posted Monday 10 AM
               </p>
             </div>
           </div>
@@ -1090,7 +1090,7 @@ export default function MarchMadnessRepPage() {
                 { text: <>Effective Total = This Week&apos;s Sales + <span className="text-cyan-400">50% Carry</span> from Last Round</> },
                 { text: <><strong className="text-amber-400">#1 seed</strong> gets a first-round BYE.</> },
                 { text: <>Hit <strong className="text-[#39FF14]">$100K in March</strong> = automatic prize winner regardless of bracket.</> },
-                { text: 'Results posted Monday at 9 AM. No exceptions.' },
+                { text: 'Results posted Monday at 10 AM. No exceptions.' },
                 { text: <>Sales = <strong className="text-white">approved job total</strong> (deposit received = full contract value).</> },
               ].map((rule, i) => (
                 <li key={i} className="flex items-start gap-3">
@@ -1198,7 +1198,7 @@ export default function MarchMadnessRepPage() {
                 <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-950/30 border border-orange-900/20">
                   <ChevronRight className="w-4 h-4 text-orange-400 shrink-0" />
                   <p className="text-xs text-neutral-500">
-                    <span className="text-orange-400 font-bold">Advancement:</span> Results posted Monday at 9 AM sharp
+                    <span className="text-orange-400 font-bold">Advancement:</span> Results posted Monday at 10 AM sharp
                   </p>
                 </div>
               </div>

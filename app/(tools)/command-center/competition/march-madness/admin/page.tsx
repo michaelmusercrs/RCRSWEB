@@ -140,9 +140,9 @@ function timeAgo(iso: string): string {
 }
 
 const WEEKS = [
-  { key: 'week1', label: 'Week 1', dates: 'Mar 30 - Apr 5' },
-  { key: 'week2', label: 'Week 2', dates: 'Apr 6 - 12' },
-  { key: 'week3', label: 'Week 3', dates: 'Apr 13 - 19' },
+  { key: 'week1', label: 'Week 1', dates: 'Mar 16 - 22' },
+  { key: 'week2', label: 'Week 2', dates: 'Mar 23 - 29' },
+  { key: 'week3', label: 'Week 3', dates: 'Mar 30 - Apr 5' },
 ] as const;
 
 // =============================================================================
@@ -878,9 +878,9 @@ export default function MarchMadnessAdminPage() {
                   onChange={(e) => setQuickWeek(Number(e.target.value) as 1 | 2 | 3)}
                   className="bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-brand-green"
                 >
-                  <option value={1}>Week 1 (Mar 30 - Apr 5)</option>
-                  <option value={2}>Week 2 (Apr 6 - 12)</option>
-                  <option value={3}>Week 3 (Apr 13 - 19)</option>
+                  <option value={1}>Week 1 (Mar 16 - 22)</option>
+                  <option value={2}>Week 2 (Mar 23 - 29)</option>
+                  <option value={3}>Week 3 (Mar 30 - Apr 5)</option>
                 </select>
               </div>
               <div>
@@ -922,7 +922,7 @@ export default function MarchMadnessAdminPage() {
             {/* Round 1 */}
             <BracketRoundPreview
               title="Round 1 - First Round"
-              subtitle="Mar 30 - Apr 5"
+              subtitle="Mar 16 - 22"
               matches={bracketData?.bracket?.round1 || []}
               roundStatus={bracketData?.rounds?.[0]?.status || 'upcoming'}
             />
@@ -930,7 +930,7 @@ export default function MarchMadnessAdminPage() {
             {/* Semifinals */}
             <BracketRoundPreview
               title="Round 2 - Semifinals"
-              subtitle="Apr 6 - 12"
+              subtitle="Mar 23 - 29"
               matches={bracketData?.bracket?.round2 || []}
               roundStatus={bracketData?.rounds?.[1]?.status || 'upcoming'}
             />
@@ -938,7 +938,7 @@ export default function MarchMadnessAdminPage() {
             {/* Championship */}
             <BracketRoundPreview
               title="Round 3 - Championship"
-              subtitle="Apr 13 - 19"
+              subtitle="Mar 30 - Apr 5"
               matches={bracketData?.bracket?.round3 || []}
               roundStatus={bracketData?.rounds?.[2]?.status || 'upcoming'}
             />
