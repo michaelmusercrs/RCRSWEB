@@ -9,10 +9,10 @@ import StructuredData from '@/components/StructuredData';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = genMeta({
-  title: 'About Us - Meet Our Roofing Team',
-  description: 'Learn about River City Roofing Solutions, a family-owned roofing company serving North Alabama. Meet our experienced team of roofing professionals.',
+  title: 'About Us | Locally Owned Roofing Company in Decatur AL',
+  description: 'River City Roofing Solutions is a locally owned, family-operated roofing company in Decatur, AL. Licensed, insured & BBB A+ rated. Serving Huntsville, Madison, Athens & all of North Alabama since 2010. Meet our experienced roofing team.',
   path: '/about',
-  keywords: ['about us', 'roofing company', 'North Alabama roofers', 'family owned', 'roofing team'],
+  keywords: ['locally owned roofing company Decatur AL', 'family owned roofer Huntsville AL', 'roofing company near me', 'licensed roofing contractor North Alabama', 'about River City Roofing', 'BBB A+ roofer Decatur', 'IKO certified contractor Alabama'],
 });
 
 export default async function AboutPage() {
@@ -29,10 +29,10 @@ export default async function AboutPage() {
       <section className="min-h-[50vh] flex items-center justify-center">
         <div className="container mx-auto px-4 text-center text-white">
           <h1 className="text-5xl md:text-7xl font-bold mb-6 drop-shadow-lg">
-            Meet Our Team
+            About Our Locally Owned Roofing Company
           </h1>
           <p className="text-xl md:text-2xl max-w-3xl mx-auto text-white/90 drop-shadow-md">
-            The experienced professionals protecting North Alabama homes
+            Meet the experienced roofing professionals protecting Decatur, Huntsville &amp; North Alabama homes since 2010
           </p>
         </div>
       </section>

@@ -28,9 +28,9 @@ const madisonFAQs = [
 ];
 
 export const metadata: Metadata = genMeta({
-  title: 'Roof Repair & Replacement Madison AL',
-  description: 'Expert roofing contractors in Madison, AL. Roof repair, replacement, storm damage & insurance claims. Free estimates. BBB Accredited. Call (256) 274-8530',
-  keywords: ['roof repair Madison AL', 'roofing contractors Madison', 'roof replacement Madison', 'storm damage Madison', 'hail damage roof Madison'],
+  title: 'Roofing Contractor Madison AL | Roof Replacement & Gutter Guards',
+  description: 'Professional roofing contractor in Madison, AL. Roof replacement, LeafX gutter guards, storm damage repair and free inspections for Madison\'s growing neighborhoods. BBB A+ rated. Call (256) 274-8530.',
+  keywords: ['roofing contractor Madison AL', 'roof repair Madison AL', 'roof replacement Madison AL', 'best roofer Madison AL', 'gutter guards Madison AL', 'storm damage Madison', 'free roof inspection Madison AL'],
   path: '/locations/madison',
 });
 

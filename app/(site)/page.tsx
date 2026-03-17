@@ -91,7 +91,7 @@ export default async function HomePage() {
           />
 
           <h1 className="text-2xl md:text-3xl max-w-2xl mx-auto text-white leading-snug mb-6 drop-shadow-lg font-black uppercase tracking-wider">
-            North Alabama&apos;s Premier Roofing Company
+            Roofing Contractor Serving Decatur, Huntsville &amp; North Alabama
           </h1>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

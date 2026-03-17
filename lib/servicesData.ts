@@ -44,7 +44,7 @@ export const services: Service[] = [
     image: '/uploads/service-residential.png',
     title: 'Residential Roof Replacement',
     category: 'Primary',
-    description: 'Complete residential roof replacement with high-quality materials from trusted manufacturers.',
+    description: 'Complete residential roof replacement in Decatur, Huntsville & North Alabama with IKO Dynasty, Owens Corning & premium architectural shingles. 5-year workmanship warranty included.',
     icon: 'Home',
     whatsIncluded: [
       'Free comprehensive inspection',
@@ -90,7 +90,7 @@ export const services: Service[] = [
     image: '/uploads/service-repair.jpg',
     title: 'Residential Roof Repair',
     category: 'Primary',
-    description: 'Expert repairs for roofing issues ranging from minor to moderate damage.',
+    description: 'Expert roof repair in Decatur, Huntsville & North Alabama for leaks, missing shingles, flashing damage and storm damage. Same-day service available.',
     icon: 'Wrench',
     servicesIncluded: [
       'Leak detection and repair',
@@ -126,7 +126,7 @@ export const services: Service[] = [
     image: '/uploads/service-commercial.png',
     title: 'Commercial Roofing',
     category: 'Primary',
-    description: 'Comprehensive commercial roofing solutions for flat and low-slope roofs.',
+    description: 'Commercial roofing contractor in Huntsville, Decatur & North Alabama. TPO, EPDM, modified bitumen & metal roofing for flat and low-slope commercial buildings.',
     icon: 'Building2',
     servicesIncluded: [
       'New roof installation',
@@ -166,7 +166,7 @@ export const services: Service[] = [
     image: '/uploads/service-storm.jpg',
     title: 'Storm & Hail Damage Repair',
     category: 'Primary',
-    description: 'Rapid response to storm damage with insurance claim expertise.',
+    description: '24/7 storm and hail damage roof repair in North Alabama. Emergency tarping, insurance claim documentation and full restoration for Decatur, Huntsville & surrounding areas.',
     icon: 'CloudRain',
     servicesIncluded: [
       'Emergency response team (24/7)',
@@ -196,7 +196,7 @@ export const services: Service[] = [
     image: '/uploads/service-chimney.png',
     title: 'Chimney Services',
     category: 'Primary',
-    description: 'Professional chimney cap installation and replacement to protect from water and pests.',
+    description: 'Professional chimney cap installation, chimney crown repair and flashing services in Decatur, Huntsville & North Alabama. Prevent water damage and pest intrusion.',
     icon: 'Flame',
     servicesIncluded: [
       'Chimney cap installation',
@@ -223,7 +223,7 @@ export const services: Service[] = [
     image: '/uploads/service-leafx.png',
     title: 'LeafX® Gutter Protection',
     category: 'Primary',
-    description: 'Professional gutter guard installation with lifetime clog-free guarantee.',
+    description: 'LeafX gutter guard installation in Decatur, Huntsville & North Alabama. .024-gauge aluminum gutter protection with a lifetime clog-free guarantee. Stop cleaning gutters forever.',
     icon: 'Shield',
     features: [
       '.024-gauge aluminum construction',
@@ -252,7 +252,7 @@ export const services: Service[] = [
     image: '/uploads/service-inspection.jpg',
     title: 'Roof Inspections & Maintenance',
     category: 'Primary',
-    description: 'Comprehensive roof inspections and preventive maintenance programs.',
+    description: 'Free roof inspections and preventive maintenance programs in Decatur, Huntsville & North Alabama. Annual, pre-purchase, insurance and storm damage assessments.',
     icon: 'Search',
     servicesIncluded: [
       'Free initial inspection',
@@ -280,7 +280,7 @@ export const services: Service[] = [
     image: '/uploads/service-storm.jpg',
     title: 'Emergency Roof Services',
     category: 'Primary',
-    description: '24/7 emergency response for severe roof damage.',
+    description: '24/7 emergency roof repair in Decatur, Huntsville & North Alabama. Same-day tarping, water damage mitigation and rapid storm damage response when you need help now.',
     icon: 'AlertTriangle',
     servicesIncluded: [
       '24/7 availability',
@@ -308,7 +308,7 @@ export const services: Service[] = [
     image: '/uploads/service-leafx.png',
     title: 'Gutter Repair and Replacement',
     category: 'Additional',
-    description: 'Professional gutter services for proper water drainage.',
+    description: 'Professional gutter repair, seamless gutter replacement and downspout services in Decatur, Huntsville & North Alabama. Protect your foundation from water damage.',
     icon: 'Droplet',
     servicesIncluded: [
       'Gutter repair and patching',
@@ -328,7 +328,7 @@ export const services: Service[] = [
     image: '/uploads/service-ventilation.jpg',
     title: 'Attic Ventilation Solutions',
     category: 'Additional',
-    description: 'Improve attic airflow and temperature control.',
+    description: 'Attic ventilation solutions for homes in Decatur, Huntsville & North Alabama. Ridge vents, soffit vents and proper airflow to reduce energy costs and extend roof life.',
     icon: 'Wind',
     servicesIncluded: [
       'Ventilation assessment',
@@ -347,7 +347,7 @@ export const services: Service[] = [
     image: '/uploads/service-residential.png',
     title: 'Roof Coating and Treatment',
     category: 'Additional',
-    description: 'Protective coatings and treatments for roof extension.',
+    description: 'Protective roof coatings and treatments in Decatur, Huntsville & North Alabama. Algae-resistant, UV protection, waterproof sealants and reflective coatings to extend your roof\'s lifespan.',
     icon: 'Paintbrush',
     servicesIncluded: [
       'Algae-resistant coatings',

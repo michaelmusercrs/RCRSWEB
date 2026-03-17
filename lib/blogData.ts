@@ -45,8 +45,8 @@ export const blogPosts: BlogPost[] = [
     date: "March 15, 2024",
     author: "Chris Muse",
     image: "/uploads/blog-choosing-the-right-roofing-material.png",
-    keywords: ["roofing", "materials", "asphalt shingles", "metal roofing", "North Alabama"],
-    excerpt: "From classic asphalt shingles to durable metal roofing, we help you navigate the best options for our local climate.",
+    keywords: ["best roofing material North Alabama", "asphalt shingles vs metal roofing Alabama", "IKO Dynasty shingles Decatur", "roof material options Huntsville AL", "architectural shingles North Alabama"],
+    excerpt: "From classic asphalt shingles to durable metal roofing, discover the best roofing materials for North Alabama homes. Compare IKO Dynasty, Owens Corning & metal options for Decatur, Huntsville & the Tennessee Valley climate.",
     content: `When it comes to protecting your home here in North Alabama, choosing the right roofing material is one of the most important decisions you'll make as a homeowner. Your roof has to stand up to our hot, humid summers, heavy spring rains, the occasional hailstorm, and even rare winter weather events. At River City Roofing Solutions, we work with top manufacturers like Owens Corning and IKO to provide materials that offer the best blend of durability, aesthetics, and value for homes in Decatur, Huntsville, Madison, and throughout the Tennessee Valley.
 
 Understanding Your Options: Asphalt Shingles
@@ -72,8 +72,8 @@ When selecting your roofing material, consider these local factors: your home's 
     date: "April 2, 2024",
     author: "Michael Muse",
     image: "/uploads/blog-signs-you-need-a-new-roof.png",
-    keywords: ["damaged roof", "roof replacement", "roof inspection", "Alabama roofing", "shingle damage"],
-    excerpt: "Learn to spot the early warnings of roof failure, from curling shingles to granules in your gutters, before major damage occurs.",
+    keywords: ["signs you need new roof Alabama", "when to replace roof Decatur AL", "curling shingles Huntsville", "roof replacement signs North Alabama", "free roof inspection Alabama"],
+    excerpt: "Learn the 5 telltale signs your Alabama roof needs replacement, from curling shingles to granules in gutters. Decatur and Huntsville homeowners: spot problems early and save thousands with a free inspection.",
     content: `A failing roof can lead to costly water damage, mold growth, and structural issues that threaten your family's safety and your investment. The good news? Recognizing the warning signs early can save you thousands in repairs and help you plan for a replacement before an emergency strikes. As experienced local roofers serving Decatur, Huntsville, and North Alabama, we've inspected thousands of roofs and know exactly what to look for.
 
 Sign #1: Curling, Buckling, or Cupping Shingles
@@ -107,8 +107,8 @@ If you've noticed any of these signs, don't panic—but don't wait either. Conta
     date: "May 5, 2024",
     author: "Michael Muse",
     image: "/uploads/blog-navigating-spring-storm-season-in-alabama.png",
-    keywords: ["storm damage", "hail damage", "Decatur roofing", "spring storms", "roof inspection"],
-    excerpt: "Spring in North Alabama brings unpredictable weather. Learn how to prepare your roof and what to do after a storm hits.",
+    keywords: ["spring storm damage Decatur AL", "hail damage roof repair North Alabama", "storm season roof preparation", "insurance claim after storm Alabama", "storm chaser warning Decatur Huntsville"],
+    excerpt: "Spring storm season in Decatur and North Alabama means hail, wind and tornado threats. Learn how to prepare your roof, assess damage after a storm, file insurance claims, and avoid storm-chaser scams.",
     content: `April and May in Decatur, Huntsville, and across the Tennessee Valley means beautiful spring blooms—but also the looming threat of severe weather. Living in North Alabama, we're no strangers to the powerful storms that roll through during spring. From damaging hail to straight-line winds and even the occasional tornado, our roofs take a beating. Here's how to prepare your home and what to do when severe weather strikes.
 
 Before Storm Season: Prepare Your Roof
@@ -144,8 +144,8 @@ After any significant storm, out-of-state "storm chaser" roofing companies will 
     date: "June 12, 2024",
     author: "Chris Muse",
     image: "/uploads/blog-metal-roofing-for-huntsville-homes.jpg",
-    keywords: ["metal roofing", "Huntsville roofing", "energy efficient roofing", "standing seam", "Madison County"],
-    excerpt: "Metal roofing is gaining popularity in Madison and Huntsville for its durability and energy efficiency. Is it right for you?",
+    keywords: ["metal roofing Huntsville AL", "metal roof cost Madison County", "standing seam roofing Alabama", "energy efficient roof Huntsville", "metal vs shingles North Alabama"],
+    excerpt: "Metal roofing is surging in popularity in Huntsville and Madison County for its 50+ year lifespan, energy savings and storm resistance. Compare costs, styles and benefits to decide if metal roofing is right for your Alabama home.",
     content: `We're seeing more homeowners in Huntsville and Madison County ask about metal roofing, and it's easy to understand why. Metal roofing has evolved significantly from the corrugated barn roofs of the past. Today's metal roofing systems offer exceptional durability, energy efficiency, and aesthetic appeal that rivals any other roofing material. But is it the right choice for your home? Let's explore the benefits and considerations.
 
 Unmatched Longevity
@@ -183,8 +183,8 @@ Metal roofing is an excellent choice for homeowners who plan to stay in their ho
     date: "July 18, 2024",
     author: "Michael Muse",
     image: "/uploads/blog-summer-heat-roof-damage.png",
-    keywords: ["summer roof damage", "UV damage", "attic ventilation", "Alabama heat", "roof maintenance"],
-    excerpt: "The intense summer sun can silently wreak havoc on your roof. Learn what to watch for as temperatures rise.",
+    keywords: ["summer heat roof damage Alabama", "UV damage roof Huntsville", "attic ventilation Decatur AL", "hot weather roof maintenance", "heat damage shingles North Alabama"],
+    excerpt: "Alabama summers push temperatures past 95 degrees, silently damaging your shingles through UV exposure and thermal shock. Learn how Decatur, Huntsville and North Alabama homeowners can protect their roofs from summer heat damage.",
     content: `The relentless summer sun in North Alabama does more than just drive up your air conditioning bills—it can literally cook the life out of your roof. With temperatures regularly climbing into the 90s and heat indexes pushing past 100 degrees, the surface of your roof can reach temperatures of 150°F or higher. This extreme heat takes a heavy toll on roofing materials, particularly asphalt shingles. Understanding how summer heat damages your roof can help you catch problems early and extend its lifespan.
 
 How UV Rays Attack Your Shingles
@@ -218,8 +218,8 @@ At River City Roofing Solutions, we offer comprehensive roof inspections that as
     date: "August 22, 2024",
     author: "Chris Muse",
     image: "/uploads/blog-benefits-of-local-roofing-contractor.png",
-    keywords: ["local roofer", "storm chasers", "Decatur contractor", "roofing warranty", "licensed roofer"],
-    excerpt: "When storm chasers knock, remember the value of a trusted, local roofing contractor from Decatur or Huntsville.",
+    keywords: ["local roofer vs storm chaser Alabama", "trusted roofing contractor Decatur AL", "licensed roofer Huntsville AL", "roofing warranty local contractor", "best roofer near me North Alabama"],
+    excerpt: "When storm chasers knock after a hail event, choosing a local Decatur or Huntsville roofer protects your warranty, your home and your wallet. Learn why trusted local contractors outperform out-of-state storm chasers every time.",
     content: `After a significant hailstorm or severe weather event, your neighborhood will quickly be flooded with out-of-state roofing companies, commonly known as "storm chasers." They'll go door-to-door, offering free inspections and promises of a new roof at no cost to you. While some of these companies are legitimate, many are not—and choosing the wrong contractor can leave you with substandard work, voided warranties, and no recourse when problems arise. Here's why choosing a local, established roofing contractor like River City Roofing Solutions is always your safest bet.
 
 The Storm Chaser Problem
@@ -257,8 +257,8 @@ When the next storm hits and the knocks on your door begin, remember: a local ro
     date: "September 5, 2024",
     author: "Chris Muse",
     image: "/uploads/blog-iko-roofpro-difference.jpg",
-    keywords: ["IKO RoofPro", "certified contractor", "roofing warranty", "IKO shingles", "professional installation"],
-    excerpt: "Being an IKO RoofPro Certified Contractor isn't just a title. It's a commitment to quality, training, and superior warranties for our customers.",
+    keywords: ["IKO RoofPro contractor Decatur AL", "IKO certified roofer Huntsville", "IKO Dynasty shingles North Alabama", "best roofing warranty Alabama", "IKO roofing contractor near me"],
+    excerpt: "As an IKO RoofPro Certified Contractor in Decatur, River City Roofing offers enhanced warranties and professional installation of IKO Dynasty and Nordic shingles. Learn what IKO certification means for your North Alabama roof.",
     content: `When you're investing in a new roof, you want more than just quality materials—you want the assurance that your roof is installed correctly by trained professionals. That's exactly what you get when you work with an IKO RoofPro Certified Contractor like River City Roofing Solutions. This certification isn't just a badge on our website; it represents a deep commitment to excellence that directly benefits you as a homeowner.
 
 What is IKO RoofPro Certification?
@@ -296,8 +296,8 @@ When you choose River City Roofing Solutions for your roof replacement or repair
     date: "September 18, 2024",
     author: "Michael Muse",
     image: "/uploads/blog-fall-roof-maintenance-checklist.jpg",
-    keywords: ["fall maintenance", "roof inspection", "gutter cleaning", "winter preparation", "Athens roofing"],
-    excerpt: "As the leaves start to fall in Athens and across North Alabama, a little roof care can prevent big problems this winter.",
+    keywords: ["fall roof maintenance North Alabama", "roof inspection Athens AL", "gutter cleaning before winter Alabama", "winter roof preparation Decatur", "seasonal roof maintenance checklist"],
+    excerpt: "As fall arrives in Athens and across North Alabama, a seasonal roof maintenance checklist can prevent costly winter damage. Learn the essential steps Decatur, Huntsville and Athens homeowners should take before cold weather hits.",
     content: `As the leaves begin to change color and fall across Athens, Decatur, and North Alabama, it's time to think about preparing your roof for the colder, wetter months ahead. Fall roof maintenance is one of the most important things you can do to protect your home from winter weather damage. The relatively mild fall temperatures also make it an ideal time for any necessary repairs before winter sets in.
 
 Here's your comprehensive fall roof maintenance checklist:
@@ -343,8 +343,8 @@ Taking time now to maintain your roof will save you from emergency repairs and w
     date: "October 3, 2024",
     author: "Chris Muse",
     image: "/uploads/blog-commercial-roof-maintenance-cullman.png",
-    keywords: ["commercial roofing", "Cullman roofing", "flat roof maintenance", "TPO roofing", "business roofing"],
-    excerpt: "For business owners in Cullman, regular roof inspections are key to extending the life of your commercial property's roof.",
+    keywords: ["commercial roofing Cullman AL", "flat roof maintenance North Alabama", "TPO roofing Cullman", "business roof repair Alabama", "commercial roof inspection Cullman County"],
+    excerpt: "Cullman business owners: regular commercial roof inspections extend your roof's life and prevent costly emergency repairs. Learn TPO, EPDM and flat roof maintenance tips from North Alabama's trusted commercial roofer.",
     content: `For business owners in Cullman and across North Alabama, your commercial roof is one of your most significant assets. It protects your inventory, equipment, employees, and daily operations from the elements. Yet it's often overlooked until a major problem—like a leak disrupting business during a busy day—forces attention. Proactive commercial roof maintenance is far more cost-effective than emergency repairs, and it can significantly extend the lifespan of your roofing system.
 
 Why Commercial Roofs Need Special Attention
@@ -388,8 +388,8 @@ Don't wait for a leak to remind you about your roof. Contact River City Roofing 
     date: "October 15, 2024",
     author: "Michael Muse",
     image: "/uploads/blog-ice-dams-roof-warning-sign.jpg",
-    keywords: ["ice dams", "icicles", "attic insulation", "winter roof damage", "ventilation"],
-    excerpt: "While they might look pretty, icicles can signal a serious problem with your attic's insulation and ventilation, leading to ice dams.",
+    keywords: ["ice dams Alabama roof", "icicles roof warning sign", "attic insulation Decatur AL", "winter roof damage North Alabama", "ice dam prevention Huntsville"],
+    excerpt: "Icicles on your roof may signal dangerous ice dams caused by poor attic insulation and ventilation. North Alabama homeowners in Decatur, Huntsville and beyond should learn these warning signs before winter damage strikes.",
     content: `Those sparkling icicles hanging from your roofline might look like a winter wonderland scene, but for homeowners in North Alabama, they can signal a serious problem lurking above your head. While we don't get as much snow as our northern neighbors, our occasional winter weather—combined with the freeze-thaw cycles common to our region—can create the perfect conditions for ice dams.
 
 What is an Ice Dam?

@@ -9,10 +9,10 @@ import { generateMetadata as genMeta, generateCollectionPageSchema, generateBrea
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = genMeta({
-  title: 'Our Team - Meet the River City Roofing Professionals',
-  description: 'Meet the experienced roofing professionals at River City Roofing Solutions. Our team brings decades of expertise to every roofing project in North Alabama.',
+  title: 'Our Roofing Team | Meet the Experts at River City Roofing Solutions',
+  description: 'Meet the experienced roofing professionals at River City Roofing Solutions in Decatur, AL. Our team brings decades of roofing expertise to every project in Huntsville, Madison, Athens & all of North Alabama.',
   path: '/team',
-  keywords: ['roofing team', 'North Alabama roofers', 'professional roofers', 'roofing experts', 'RCRS team'],
+  keywords: ['roofing team Decatur AL', 'roofers Huntsville AL', 'professional roofing contractors North Alabama', 'roofing experts Decatur Huntsville', 'River City Roofing team'],
 });
 
 export const revalidate = 60;

@@ -6,10 +6,10 @@ import { generateMetadata as genMeta, generateCollectionPageSchema, generateBrea
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = genMeta({
-  title: 'Roofing Services - Replacement, Repair & Storm Damage',
-  description: 'Complete roofing services in Decatur, Huntsville & North Alabama. Residential & commercial roof replacement, repairs, storm damage restoration, and free inspections.',
+  title: 'Roofing Services Decatur & Huntsville AL | Roof Replacement, Repair & Storm Damage',
+  description: 'Full-service roofing in Decatur, Huntsville & North Alabama. Residential roof replacement, commercial roofing, storm & hail damage repair, gutter installation, chimney services & free inspections. Licensed, insured & IKO certified. Call (256) 274-8530.',
   path: '/services',
-  keywords: ['roofing services', 'roof replacement', 'roof repair', 'commercial roofing', 'storm damage', 'North Alabama'],
+  keywords: ['roofing services Decatur AL', 'roof replacement Huntsville AL', 'roof repair near me', 'commercial roofing Huntsville Decatur AL', 'storm damage roof repair Alabama', 'emergency roof repair North Alabama', 'gutter installation North Alabama', 'chimney repair services Alabama', 'free roof inspection', 'hail damage repair'],
 });
 
 const iconMap: { [key: string]: any } = {
@@ -49,10 +49,10 @@ export default function ServicesPage() {
       <section className="min-h-[50vh] flex items-center justify-center">
         <div className="container mx-auto px-4 text-center text-white">
           <h1 className="text-5xl md:text-7xl font-bold mb-6 drop-shadow-lg">
-            Our Services
+            Roofing Services in Decatur, Huntsville &amp; North Alabama
           </h1>
           <p className="text-xl md:text-2xl max-w-3xl mx-auto text-white/90 drop-shadow-md">
-            Comprehensive roofing solutions for residential and commercial properties
+            Roof replacement, storm damage repair, commercial roofing, gutter installation &amp; free inspections
           </p>
         </div>
       </section>
@@ -222,6 +222,43 @@ export default function ServicesPage() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Also Serving Section - Internal Links for SEO */}
+      <section className="py-12 md:py-16 bg-black/70 backdrop-blur-sm border-t border-white/10">
+        <div className="container mx-auto px-4">
+          <div className="max-w-5xl mx-auto">
+            <h2 className="text-3xl font-bold text-white mb-6 text-center">
+              Roofing Services Available Throughout North Alabama
+            </h2>
+            <p className="text-gray-300 text-center mb-8 max-w-3xl mx-auto">
+              We provide all of our roofing services across Decatur, Huntsville, Madison, Athens, and surrounding North Alabama communities. Click below to learn more about roofing in your area.
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {[
+                { slug: 'decatur-al', name: 'Decatur, AL' },
+                { slug: 'huntsville-al', name: 'Huntsville, AL' },
+                { slug: 'madison-al', name: 'Madison, AL' },
+                { slug: 'athens-al', name: 'Athens, AL' },
+                { slug: 'hartselle-al', name: 'Hartselle, AL' },
+                { slug: 'cullman-al', name: 'Cullman, AL' },
+                { slug: 'florence-al', name: 'Florence, AL' },
+                { slug: 'moulton-al', name: 'Moulton, AL' },
+                { slug: 'owens-crossroads-al', name: 'Owens Cross Roads, AL' },
+                { slug: 'north-alabama', name: 'All of North Alabama' },
+              ].map(area => (
+                <Link key={area.slug} href={`/service-areas/${area.slug}`} className="text-center py-3 px-4 bg-white/5 border border-white/10 rounded-lg text-gray-300 hover:text-brand-green hover:border-brand-green/50 transition-all text-sm font-medium">
+                  {area.name}
+                </Link>
+              ))}
+            </div>
+            <div className="mt-6 text-center">
+              <p className="text-gray-400 text-sm">
+                Not sure if we serve your area? <Link href="/contact" className="text-brand-green hover:text-lime-400">Contact us</Link> or <Link href="/check-my-address" className="text-brand-green hover:text-lime-400">check your address</Link> for a free storm report.
+              </p>
             </div>
           </div>
         </div>

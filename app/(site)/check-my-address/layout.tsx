@@ -1,21 +1,21 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Storm Check | Free Hail & Storm Damage Report | River City Roofing Solutions',
+  title: 'Check My Address for Hail & Storm Damage | Free Report | River City Roofing',
   description:
-    'Get a free hail and storm damage report for your property. See real National Weather Service data about recent storms near your address. Serving Huntsville, Birmingham, Nashville, and more.',
+    'Free instant hail and storm damage report for your property in Decatur, Huntsville & North Alabama. See real NWS data about recent storms near your address. No obligation. Call (256) 274-8530.',
   keywords: [
-    'hail damage report',
-    'storm damage check',
-    'free roof inspection',
-    'hail damage Alabama',
-    'storm damage Tennessee',
-    'Huntsville hail',
-    'Birmingham hail damage',
-    'Nashville storm damage',
-    'roof hail damage',
-    'free roof inspection near me',
+    'hail damage report my address',
+    'storm damage check Alabama',
+    'free roof inspection Decatur AL',
+    'free roof inspection Huntsville AL',
+    'hail damage Decatur AL',
+    'hail damage Huntsville AL',
+    'storm damage North Alabama',
     'check my roof for hail damage',
+    'free storm damage assessment',
+    'hail damage report near me',
+    'roof damage check free',
   ],
   openGraph: {
     title: 'Storm Check | Free Storm Damage Report | River City Roofing Solutions',

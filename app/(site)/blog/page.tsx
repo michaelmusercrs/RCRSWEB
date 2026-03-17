@@ -12,10 +12,10 @@ import type { Metadata } from 'next';
 export const revalidate = 300; // Revalidate every 5 minutes
 
 export const metadata: Metadata = genMeta({
-  title: 'Roofing Blog - Tips, Guides & Expert Advice',
-  description: 'Expert roofing tips and guides for North Alabama homeowners. Learn about roof maintenance, materials, storm prep, and when to replace your roof.',
+  title: 'Roofing Blog | Tips, Storm Prep & Expert Advice for North Alabama Homeowners',
+  description: 'Expert roofing tips for Decatur, Huntsville & North Alabama homeowners. Learn about roof replacement costs, storm damage signs, insurance claims, shingle selection, gutter maintenance & when to call a roofer. By River City Roofing Solutions.',
   path: '/blog',
-  keywords: ['roofing blog', 'roof maintenance', 'North Alabama roofing', 'roof tips', 'roofing guides'],
+  keywords: ['roofing blog North Alabama', 'roof maintenance tips', 'storm damage signs', 'roof replacement cost Alabama', 'when to replace roof', 'hail damage signs', 'roofing guides Decatur Huntsville', 'insurance claim tips roofing'],
 });
 
 export default async function BlogPage() {

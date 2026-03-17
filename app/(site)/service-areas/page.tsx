@@ -6,10 +6,10 @@ import StructuredData from '@/components/StructuredData';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = genMeta({
-  title: 'Roofing Service Areas - Decatur, Huntsville, Madison & North Alabama',
-  description: 'Professional roofing in Decatur, Huntsville, Madison, Athens, Hartselle, Cullman & all of North Alabama. Free roof inspections, storm damage repair & insurance claims. Same-day service available.',
+  title: 'Service Areas | Roofing Contractor Decatur, Huntsville, Madison & North Alabama',
+  description: 'River City Roofing Solutions serves Decatur, Huntsville, Madison, Athens, Hartselle, Cullman, Moulton, Florence & all of North Alabama. Free roof inspections, storm damage repair, roof replacement & insurance claims. Same-day service. Call (256) 274-8530.',
   path: '/service-areas',
-  keywords: ['North Alabama roofing service areas', 'Decatur AL roofer', 'Huntsville AL roofing', 'Madison AL roof repair', 'Athens AL roofing', 'Hartselle roofer', 'Cullman roofing'],
+  keywords: ['roofing service areas North Alabama', 'roofing contractor Decatur AL', 'roofing contractor Huntsville AL', 'roofer Madison AL', 'roof repair Athens AL', 'Hartselle roofer', 'Cullman roofing contractor', 'Florence AL roofer', 'Moulton AL roofing', 'roofing company near me'],
 });
 
 export default function ServiceAreasPage() {
@@ -35,10 +35,10 @@ export default function ServiceAreasPage() {
       <section className="relative w-full min-h-[40vh] flex items-center justify-center overflow-hidden">
         <div className="relative z-20 container mx-auto px-4 text-center text-white">
           <h1 className="text-5xl md:text-7xl font-bold mb-6 drop-shadow-lg">
-            Service Areas
+            Roofing Service Areas in North Alabama
           </h1>
           <p className="text-xl md:text-2xl max-w-3xl mx-auto text-white/90 drop-shadow-md">
-            Proudly serving North Alabama and expanding to new markets
+            Proudly serving Decatur, Huntsville, Madison, Athens, Hartselle, Cullman, Florence &amp; beyond
           </p>
         </div>
       </section>
@@ -298,6 +298,51 @@ export default function ServiceAreasPage() {
                   </li>
                 </ul>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Services Available in All Areas - Internal Links */}
+      <section className="py-12 md:py-16 bg-black/70 backdrop-blur-sm border-t border-white/10">
+        <div className="container mx-auto px-4">
+          <div className="max-w-5xl mx-auto">
+            <h2 className="text-3xl font-bold text-white mb-6 text-center">
+              Roofing Services Available in Every Area
+            </h2>
+            <p className="text-gray-300 text-center mb-8 max-w-3xl mx-auto">
+              No matter which North Alabama community you call home, we offer a full range of roofing services.
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Link href="/services/residential-roof-replacement" className="text-center py-3 px-4 bg-white/5 border border-white/10 rounded-lg text-gray-300 hover:text-brand-green hover:border-brand-green/50 transition-all text-sm font-medium">
+                Roof Replacement
+              </Link>
+              <Link href="/services/residential-roof-repair" className="text-center py-3 px-4 bg-white/5 border border-white/10 rounded-lg text-gray-300 hover:text-brand-green hover:border-brand-green/50 transition-all text-sm font-medium">
+                Roof Repair
+              </Link>
+              <Link href="/services/storm-hail-damage-repair" className="text-center py-3 px-4 bg-white/5 border border-white/10 rounded-lg text-gray-300 hover:text-brand-green hover:border-brand-green/50 transition-all text-sm font-medium">
+                Storm Damage Repair
+              </Link>
+              <Link href="/services/commercial-roofing" className="text-center py-3 px-4 bg-white/5 border border-white/10 rounded-lg text-gray-300 hover:text-brand-green hover:border-brand-green/50 transition-all text-sm font-medium">
+                Commercial Roofing
+              </Link>
+              <Link href="/services/emergency-roof-services" className="text-center py-3 px-4 bg-white/5 border border-white/10 rounded-lg text-gray-300 hover:text-brand-green hover:border-brand-green/50 transition-all text-sm font-medium">
+                Emergency Services
+              </Link>
+              <Link href="/services/leafx-gutter-protection" className="text-center py-3 px-4 bg-white/5 border border-white/10 rounded-lg text-gray-300 hover:text-brand-green hover:border-brand-green/50 transition-all text-sm font-medium">
+                Gutter Protection
+              </Link>
+              <Link href="/services/chimney-services" className="text-center py-3 px-4 bg-white/5 border border-white/10 rounded-lg text-gray-300 hover:text-brand-green hover:border-brand-green/50 transition-all text-sm font-medium">
+                Chimney Services
+              </Link>
+              <Link href="/services/roof-inspections-maintenance" className="text-center py-3 px-4 bg-white/5 border border-white/10 rounded-lg text-gray-300 hover:text-brand-green hover:border-brand-green/50 transition-all text-sm font-medium">
+                Free Inspections
+              </Link>
+            </div>
+            <div className="mt-6 text-center">
+              <p className="text-gray-400 text-sm">
+                <Link href="/check-my-address" className="text-brand-green hover:text-lime-400">Check your address</Link> for recent storm activity, or read our <Link href="/blog" className="text-brand-green hover:text-lime-400">roofing blog</Link> for expert tips.
+              </p>
             </div>
           </div>
         </div>
