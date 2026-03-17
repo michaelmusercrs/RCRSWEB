@@ -3,16 +3,23 @@
 /**
  * Google Sheets Backup Script
  *
- * Backs up all 25 tabs from the RCRS master Google Sheet to local JSON files.
- * Uses the google-spreadsheet and google-auth-library packages already in the project.
+ * Backs up RCRS Google Sheets to local JSON files.
  *
- * Usage: node scripts/backup-sheets.js
+ * Usage:
+ *   node scripts/backup-sheets.js           - backs up master sheet (default)
+ *   node scripts/backup-sheets.js meetings  - backs up Monday meeting numbers sheet
+ *   node scripts/backup-sheets.js all       - backs up both
  *
- * Output: backups/sheets/YYYY-MM-DD/{tab-name}.json + manifest.json
+ * Output:
+ *   Master:   backups/sheets/YYYY-MM-DD/{tab-name}.json + manifest.json
+ *   Meetings: backups/sheets/YYYY-MM-DD/meetings/{tab-name}.json + manifest.json
  */
 
 const fs = require('fs');
 const path = require('path');
+
+// Monday Meeting Numbers sheet ID (one tab per Monday, format: M.DD.YYYY)
+const MEETINGS_SHEET_ID = '1tEbMVUrvrRIkptISumvIrcgUhSWN5X2ldYro9ADTXF0';
 
 // Load .env.local from project root
 const envPath = path.join(__dirname, '..', '.env.local');
@@ -44,30 +51,36 @@ try {
   process.exit(1);
 }
 
-// Will be populated dynamically from the actual sheet
-let TAB_NAMES = [];
+// Parse command line argument
+const arg = (process.argv[2] || '').toLowerCase();
+const validArgs = ['', 'master', 'meetings', 'all'];
+if (!validArgs.includes(arg)) {
+  console.error(`[ERROR] Unknown argument: "${process.argv[2]}"`);
+  console.error('  Usage:');
+  console.error('    node scripts/backup-sheets.js           - backs up master sheet (default)');
+  console.error('    node scripts/backup-sheets.js meetings  - backs up Monday meeting numbers sheet');
+  console.error('    node scripts/backup-sheets.js all       - backs up both');
+  process.exit(1);
+}
 
-async function main() {
-  // Validate env vars
+const backupMaster = arg === '' || arg === 'master' || arg === 'all';
+const backupMeetings = arg === 'meetings' || arg === 'all';
+
+/**
+ * Initialize auth and import packages. Shared by both backup functions.
+ */
+async function initAuth() {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   const rawKey = process.env.GOOGLE_PRIVATE_KEY;
-  const sheetId = process.env.GOOGLE_SHEETS_ID;
 
-  if (!email || !rawKey || !sheetId) {
+  if (!email || !rawKey) {
     console.error('[ERROR] Missing required environment variables:');
     if (!email) console.error('  - GOOGLE_SERVICE_ACCOUNT_EMAIL');
     if (!rawKey) console.error('  - GOOGLE_PRIVATE_KEY');
-    if (!sheetId) console.error('  - GOOGLE_SHEETS_ID');
     process.exit(1);
   }
 
-  // Handle private key - works with both escaped \n and actual newlines
   const privateKey = rawKey.replace(/\\n/g, '\n').replace(/\r\n/g, '\n');
-
-  console.log(`[OK] Service account: ${email}`);
-  console.log(`[OK] Sheet ID: ${sheetId}`);
-  console.log(`[OK] Tabs to back up: ${TAB_NAMES.length}`);
-  console.log('');
 
   // Import packages (ESM-style google-spreadsheet v5 needs dynamic import)
   let GoogleSpreadsheet, JWT;
@@ -83,12 +96,24 @@ async function main() {
     process.exit(1);
   }
 
-  // Authenticate
   const auth = new JWT({
     email,
     key: privateKey,
     scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
   });
+
+  console.log(`[OK] Service account: ${email}`);
+
+  return { GoogleSpreadsheet, auth };
+}
+
+/**
+ * Back up all tabs from a Google Sheet to a target directory.
+ * Returns { successCount, errorCount, totalRecords, results, doc }.
+ */
+async function backupSheet(GoogleSpreadsheet, auth, sheetId, backupDir) {
+  console.log(`[OK] Sheet ID: ${sheetId}`);
+  console.log('');
 
   // Connect to the spreadsheet
   console.log('[...] Connecting to Google Sheets...');
@@ -106,13 +131,11 @@ async function main() {
   console.log(`[OK] Sheets found: ${doc.sheetCount}`);
 
   // Dynamically get ALL tab names from the sheet
-  TAB_NAMES = doc.sheetsByIndex.map(s => s.title);
-  console.log(`[OK] Backing up ALL ${TAB_NAMES.length} tabs`);
+  const tabNames = doc.sheetsByIndex.map(s => s.title);
+  console.log(`[OK] Backing up ALL ${tabNames.length} tabs`);
   console.log('');
 
   // Create backup directory
-  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  const backupDir = path.join(__dirname, '..', 'backups', 'sheets', today);
   fs.mkdirSync(backupDir, { recursive: true });
   console.log(`[OK] Backup directory: ${backupDir}`);
   console.log('');
@@ -125,9 +148,9 @@ async function main() {
   let errorCount = 0;
 
   // Process each tab
-  for (let i = 0; i < TAB_NAMES.length; i++) {
-    const tabName = TAB_NAMES[i];
-    const progress = `[${i + 1}/${TAB_NAMES.length}]`;
+  for (let i = 0; i < tabNames.length; i++) {
+    const tabName = tabNames[i];
+    const progress = `[${i + 1}/${tabNames.length}]`;
 
     try {
       // Find the sheet by title
@@ -194,10 +217,10 @@ async function main() {
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
   const manifest = {
     timestamp: new Date().toISOString(),
-    date: today,
+    date: new Date().toISOString().slice(0, 10),
     sheetId,
     sheetTitle: doc.title,
-    tabsRequested: TAB_NAMES.length,
+    tabsRequested: tabNames.length,
     tabsSucceeded: successCount,
     tabsFailed: errorCount,
     totalRecords,
@@ -208,14 +231,20 @@ async function main() {
   const manifestPath = path.join(backupDir, 'manifest.json');
   fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
 
-  // Summary
+  return { successCount, errorCount, totalRecords, results, doc, tabNames, elapsed };
+}
+
+/**
+ * Print a summary block for a completed backup.
+ */
+function printSummary(label, doc, tabNames, successCount, errorCount, totalRecords, elapsed, backupDir, results) {
   console.log('');
   console.log('='.repeat(60));
-  console.log('  BACKUP COMPLETE');
+  console.log(`  ${label} BACKUP COMPLETE`);
   console.log('='.repeat(60));
-  console.log(`  Date:           ${today}`);
+  console.log(`  Date:           ${new Date().toISOString().slice(0, 10)}`);
   console.log(`  Sheet:          ${doc.title}`);
-  console.log(`  Tabs backed up: ${successCount}/${TAB_NAMES.length}`);
+  console.log(`  Tabs backed up: ${successCount}/${tabNames.length}`);
   console.log(`  Tabs failed:    ${errorCount}`);
   console.log(`  Total records:  ${totalRecords.toLocaleString()}`);
   console.log(`  Time elapsed:   ${elapsed}s`);
@@ -231,8 +260,53 @@ async function main() {
       }
     }
   }
+}
 
-  process.exit(errorCount > 0 ? 1 : 0);
+async function main() {
+  const { GoogleSpreadsheet, auth } = await initAuth();
+
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  let hasErrors = false;
+
+  // ---- Master Sheet Backup ----
+  if (backupMaster) {
+    const sheetId = process.env.GOOGLE_SHEETS_ID;
+    if (!sheetId) {
+      console.error('[ERROR] Missing GOOGLE_SHEETS_ID environment variable for master sheet backup.');
+      process.exit(1);
+    }
+
+    console.log('');
+    console.log('#'.repeat(60));
+    console.log('  MASTER SHEET BACKUP');
+    console.log('#'.repeat(60));
+    console.log('');
+
+    const masterDir = path.join(__dirname, '..', 'backups', 'sheets', today);
+    const result = await backupSheet(GoogleSpreadsheet, auth, sheetId, masterDir);
+    printSummary('MASTER', result.doc, result.tabNames, result.successCount,
+      result.errorCount, result.totalRecords, result.elapsed, masterDir, result.results);
+
+    if (result.errorCount > 0) hasErrors = true;
+  }
+
+  // ---- Monday Meeting Numbers Backup ----
+  if (backupMeetings) {
+    console.log('');
+    console.log('#'.repeat(60));
+    console.log('  MONDAY MEETING NUMBERS BACKUP');
+    console.log('#'.repeat(60));
+    console.log('');
+
+    const meetingsDir = path.join(__dirname, '..', 'backups', 'sheets', today, 'meetings');
+    const result = await backupSheet(GoogleSpreadsheet, auth, MEETINGS_SHEET_ID, meetingsDir);
+    printSummary('MEETINGS', result.doc, result.tabNames, result.successCount,
+      result.errorCount, result.totalRecords, result.elapsed, meetingsDir, result.results);
+
+    if (result.errorCount > 0) hasErrors = true;
+  }
+
+  process.exit(hasErrors ? 1 : 0);
 }
 
 main().catch((err) => {

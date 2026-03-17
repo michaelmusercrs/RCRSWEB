@@ -3,7 +3,7 @@
 // NO auto-assignment. Office staff (Tia/Destin/Sara) review and manually enter into lead distribution.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createFormRateLimiter, withRateLimit } from '@/lib/rate-limiter';
+import { RateLimiter, withRateLimit } from '@/lib/rate-limiter';
 import { requireAuth } from '@/lib/auth-service';
 import { portalGenerator, LeadData } from '@/lib/portal-generator';
 import { leadPortalService } from '@/lib/lead-portal-service';
@@ -20,7 +20,12 @@ import { isJobNimbusConfigured, jobNimbusService } from '@/lib/jobnimbus-service
 import { roofReportService } from '@/lib/roof-report-service';
 import { checkForSpam } from '@/lib/spam-filter';
 
-const formRateLimiter = createFormRateLimiter();
+// Rate limit: 5 requests per minute per IP for public lead submissions
+const leadRateLimiter = new RateLimiter({
+  windowMs: 60 * 1000, // 1 minute
+  maxRequests: 5,
+  message: 'Too many lead submissions. Please wait a minute before trying again.',
+}, 'leads-new');
 
 // Office staff who receive new lead notifications
 const OFFICE_NOTIFY_EMAILS = [
@@ -70,7 +75,7 @@ function sanitizeInput(str: string | undefined): string {
 }
 
 export async function POST(request: NextRequest) {
-  return withRateLimit(request, formRateLimiter, async () => {
+  return withRateLimit(request, leadRateLimiter, async () => {
   try {
     let body: NewLeadRequest;
     try {
