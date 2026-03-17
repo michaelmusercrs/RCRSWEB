@@ -28,8 +28,10 @@ export default function LandingPageLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <meta name="robots" content="noindex, nofollow" />
-        <link rel="icon" href="/logo-nobg.png" type="image/png" />
-        <meta name="theme-color" content="#000000" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/icons/icon-192x192.png" type="image/png" sizes="192x192" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+        <meta name="theme-color" content="#1a1a2e" />
       </head>
       <body className={`${inter.className} bg-black text-white`} suppressHydrationWarning>
         {/* Google Analytics + Ads */}

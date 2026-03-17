@@ -40,6 +40,7 @@ import {
   Star,
   Zap,
   Megaphone,
+  DownloadCloud,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -788,6 +789,8 @@ export default function MeetingPresentationPage() {
   const [isAutoRotating, setIsAutoRotating] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const autoRotateRef = useRef<NodeJS.Timeout | null>(null);
@@ -865,6 +868,33 @@ export default function MeetingPresentationPage() {
       setLoading(false);
     }
   }, [period]);
+
+  // Sync meeting numbers from Google Sheet, then refresh data
+  const syncFromSheet = useCallback(async () => {
+    setIsSyncing(true);
+    setSyncMessage(null);
+    try {
+      const res = await fetch('/api/command-center/meetings/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ year: new Date().getFullYear() }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setSyncMessage(`Synced ${json.data?.recordCount || 0} records from Google Sheet`);
+        // Refresh display data after successful sync
+        fetchData();
+      } else {
+        setSyncMessage(`Sync failed: ${json.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      setSyncMessage(`Sync error: ${err instanceof Error ? err.message : 'Network error'}`);
+    } finally {
+      setIsSyncing(false);
+      // Clear message after 5 seconds
+      setTimeout(() => setSyncMessage(null), 5000);
+    }
+  }, [fetchData]);
 
   // Initial fetch and periodic refresh
   useEffect(() => {
@@ -1126,6 +1156,17 @@ export default function MeetingPresentationPage() {
               {isAutoRotating ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
             </button>
             <button
+              onClick={syncFromSheet}
+              disabled={isSyncing}
+              className={cn(
+                'p-2 rounded-lg transition',
+                isSyncing ? 'bg-lime-500/20 text-lime-400' : 'bg-zinc-800 hover:bg-zinc-700'
+              )}
+              title="Sync from Google Sheet"
+            >
+              <DownloadCloud className={cn('h-5 w-5', isSyncing && 'animate-pulse')} />
+            </button>
+            <button
               onClick={fetchData}
               className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition"
               title="Refresh data"
@@ -1141,6 +1182,18 @@ export default function MeetingPresentationPage() {
             </button>
           </div>
         </div>
+
+        {/* Sync Status Toast */}
+        {syncMessage && (
+          <div className={cn(
+            'text-center text-sm py-1 px-4 rounded-lg mx-auto max-w-lg transition-opacity',
+            syncMessage.includes('failed') || syncMessage.includes('error')
+              ? 'bg-red-500/20 text-red-400'
+              : 'bg-lime-500/20 text-lime-400'
+          )}>
+            {syncMessage}
+          </div>
+        )}
 
         {/* View Selector */}
         <div className="flex items-center justify-center gap-4 pb-4">

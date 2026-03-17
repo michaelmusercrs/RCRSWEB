@@ -207,13 +207,14 @@ export default function MarchMadnessAdminPage() {
   const [announcementMsg, setAnnouncementMsg] = useState('');
   const [announcementEnabled, setAnnouncementEnabled] = useState(false);
 
-  // Prize local state
+  // Prize local state (keys must match settings JSON: champion, topNonChampion, hundredK, note)
   const [prizes, setPrizes] = useState({
     champion: '',
-    hundredKBonus: '',
+    topNonChampion: '',
+    hundredK: '',
+    note: '',
     runnerUp: '',
     mvp: '',
-    legalNote: '',
   });
 
   // Quick Update state
@@ -253,10 +254,11 @@ export default function MarchMadnessAdminPage() {
         setAnnouncementEnabled(s.announcementEnabled || false);
         setPrizes({
           champion: s.prizes?.champion || '',
-          hundredKBonus: s.prizes?.hundredKBonus || '',
+          topNonChampion: s.prizes?.topNonChampion || '',
+          hundredK: s.prizes?.hundredK || '',
+          note: s.prizes?.note || '',
           runnerUp: s.prizes?.runnerUp || '',
           mvp: s.prizes?.mvp || '',
-          legalNote: s.prizes?.legalNote || '',
         });
 
         // Build localOverrides from settings
@@ -988,7 +990,7 @@ export default function MarchMadnessAdminPage() {
               </label>
               <input
                 type="text"
-                value={prizes.hundredK || prizes.hundredKBonus || ''}
+                value={prizes.hundredK || ''}
                 onChange={(e) => setPrizes((p) => ({ ...p, hundredK: e.target.value }))}
                 placeholder="Sell $100K = auto-win the Wrangler"
                 className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-brand-green transition-colors"
@@ -1024,8 +1026,8 @@ export default function MarchMadnessAdminPage() {
               <label className="block text-xs text-neutral-400 mb-1">Legal / Disclaimer Note</label>
               <input
                 type="text"
-                value={prizes.legalNote}
-                onChange={(e) => setPrizes((p) => ({ ...p, legalNote: e.target.value }))}
+                value={prizes.note}
+                onChange={(e) => setPrizes((p) => ({ ...p, note: e.target.value }))}
                 placeholder="FFL paperwork required. Must be eligible to own firearms."
                 className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-brand-green transition-colors"
               />

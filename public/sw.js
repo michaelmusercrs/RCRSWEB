@@ -1,7 +1,7 @@
 // River City Roofing Solutions - Service Worker
 // Version: 1.0.0
 
-const CACHE_NAME = 'rcrs-cache-v1';
+const CACHE_NAME = 'rcrs-cache-v2';
 const OFFLINE_URL = '/offline';
 
 // Static assets to pre-cache on install
@@ -10,9 +10,10 @@ const PRECACHE_ASSETS = [
   '/offline',
   '/manifest.json',
   '/manifest-portal.json',
-  '/logo-nobg.png',
-  '/logo.png',
+  '/favicon.ico',
   '/apple-touch-icon.png',
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png',
 ];
 
 // ============================================
