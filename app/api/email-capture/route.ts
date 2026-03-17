@@ -60,9 +60,6 @@ export async function POST(request: NextRequest) {
       status: 'new',
     };
 
-    // Log the submission
-    console.log('[Email Capture]', JSON.stringify(captureData));
-
     // Store to Google Sheets if configured
     if (isGoogleSheetsConfigured()) {
       try {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { googleSheetsService } from '@/lib/google-sheets-service';
+import { emailService } from '@/lib/email-service';
 
 /**
  * Team Profile API
@@ -81,7 +82,19 @@ export async function POST(request: Request) {
 
     pendingEdits.set(editId, pendingEdit);
 
-    // TODO: Send notification to Michael and Sara via email/GroupMe
+    // Notify Michael and Sara about the pending profile edit
+    const adminEmails = ['michael@rcrsal.com', 'sara@rcrsal.com'];
+    const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || 'https://rcrsal.com';
+    for (const email of adminEmails) {
+      emailService.send({
+        to: email,
+        subject: `Profile Edit Request: ${memberName}`,
+        body: `<p><strong>${submittedBy}</strong> submitted profile changes for <strong>${memberName}</strong>.</p>
+          <p>Changes: ${Object.entries(changes).map(([k, v]) => `${k}: ${v}`).join(', ')}</p>
+          <p><a href="${portalUrl}/command-center/team">Review in Command Center</a></p>`,
+        fromName: 'RCRS Team',
+      }).catch(() => { /* non-critical */ });
+    }
 
     return NextResponse.json({
       success: true,

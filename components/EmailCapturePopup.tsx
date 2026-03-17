@@ -156,10 +156,8 @@ export default function EmailCapturePopup() {
 
         // Fire conversion events if available
         if (typeof window !== 'undefined') {
-          // Google Ads conversion
-          // TODO: Replace YOUR_CONVERSION_ID and YOUR_CONVERSION_LABEL with actual values
-          // Michael needs to provide: Google Ads Conversion ID (e.g., AW-XXXXXXXXX)
-          // and Conversion Label from Google Ads dashboard
+          // Google Ads conversion (fires generic lead event; for specific conversion tracking,
+          // set NEXT_PUBLIC_GOOGLE_ADS_ID in .env — format: AW-XXXXXXXXX from Google Ads > Conversions)
           if ((window as any).gtag) {
             (window as any).gtag('event', 'generate_lead', {
               event_category: 'email_capture',
@@ -167,9 +165,7 @@ export default function EmailCapturePopup() {
             });
           }
 
-          // Facebook Pixel lead event
-          // TODO: FB Pixel ID is set in .env as NEXT_PUBLIC_FB_PIXEL_ID
-          // Michael needs to provide: Facebook Pixel ID from Facebook Events Manager
+          // Facebook Pixel lead event (requires NEXT_PUBLIC_FB_PIXEL_ID in .env)
           if ((window as any).fbq) {
             (window as any).fbq('track', 'Lead', {
               content_name: 'email_capture_popup',

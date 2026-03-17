@@ -205,7 +205,7 @@ export async function runGeocodeSync(): Promise<SyncProgress> {
         const directSave = await googleSheetsService.addGeocodedContactsBatch(directGeoRecords);
         currentSync.saved += directSave.added;
         currentSync.errors += directSave.errors;
-        console.log(`[GeocodeSync] Saved ${directSave.added} contacts with JN geo data directly`);
+        // directSave complete
       } catch (err) {
         console.warn('[GeocodeSync] Failed to save direct geo records:', err);
       }

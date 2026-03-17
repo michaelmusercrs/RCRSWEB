@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readFileSync } from 'fs';
 import path from 'path';
+import { apiError } from '@/lib/api-response';
 import { leadResponseTimerService } from '@/lib/lead-response-timer';
 import { leadPortalService } from '@/lib/lead-portal-service';
 import { leadDistributionService } from '@/lib/lead-distribution-service';
@@ -232,7 +233,7 @@ async function selectNextRep(
 
 export async function GET(request: NextRequest) {
   if (!verifyCronAuth(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return apiError('Unauthorized', 401);
   }
 
   try {

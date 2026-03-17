@@ -161,8 +161,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Still running in background
-    resultPromise.then(r => {
-      console.log('[PopulateGeocoded] Complete:', r);
+    resultPromise.then(() => {
+      // completed in background
     }).catch(err => {
       console.error('[PopulateGeocoded] Background failed:', err);
     });

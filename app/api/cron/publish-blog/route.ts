@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { apiError } from '@/lib/api-response';
 
 const DATA_FILE = path.join(process.cwd(), 'data', 'blog-posts.json');
 
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
   if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return apiError('Unauthorized', 401);
   }
 
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD

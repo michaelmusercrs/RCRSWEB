@@ -211,7 +211,6 @@ export async function POST(request: NextRequest) {
 
     // If spam, stop here — logged but no further processing
     if (spamResult.isSpam) {
-      console.log(`[NewLead] Spam filtered: ${body.name} (${body.email}) score=${spamResult.spamScore} reasons=${spamResult.reasons.join(', ')}`);
       return NextResponse.json({
         success: true,
         data: {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { apiError } from '@/lib/api-response';
 
 export const maxDuration = 60; // Vercel Hobby plan max is 60s
 export const dynamic = 'force-dynamic';
@@ -460,8 +461,8 @@ async function callGemini(prompt: string, images: string[]): Promise<AIResult> {
   // 1. Try Vertex AI first (paid service account — no free-tier limits)
   for (const model of ['gemini-2.0-flash', 'gemini-2.5-flash']) {
     const result = await callGeminiVertex(model, prompt, images);
-    if (result.status === 'success') { console.log(`Vertex AI ${model} succeeded`); return result; }
-    if (result.status !== '429' && result.status !== 'skipped') { console.log(`Vertex AI ${model}: ${result.raw?.slice(0, 100)}`); }
+    if (result.status === 'success') { return result; }
+    if (result.status !== '429' && result.status !== 'skipped') { /* non-success result */ }
   }
   
   // 2. Fall back to AI Studio API key
@@ -472,7 +473,7 @@ async function callGemini(prompt: string, images: string[]): Promise<AIResult> {
     const result = await callGeminiWithModel(model, key, prompt, images);
     if (result.status === 'success') return result;
     if (result.status !== '429') return result;
-    console.log(`AI Studio ${model} hit 429, trying next...`);
+    // AI Studio rate limited, trying next model
   }
   return { status: 'error', measurements: null, raw: 'All Gemini endpoints rate limited' };
 }
@@ -1027,7 +1028,7 @@ async function runSatelliteAnalysis(address: string) {
 
   const esriImages = await Promise.all(esriUrls.map(url => fetchImageBase64(url)));
   const validEsriImages = esriImages.filter((img): img is string => img !== null);
-  console.log(`Esri imagery: ${validEsriImages.length}/${esriUrls.length} images retrieved`);
+  // Esri imagery retrieval complete
 
   // Bing Maps aerial (different source, different capture date)
   const bingKey = process.env.BING_MAPS_KEY || '';
@@ -1056,7 +1057,7 @@ async function runSatelliteAnalysis(address: string) {
   const satImages = await Promise.all(satUrls.map(url => fetchImageBase64(url)));
   const validSatImages = satImages.filter((img): img is string => img !== null);
   const satBase64 = validSatImages[0]; // Primary for display
-  console.log(`Satellite imagery: ${validSatImages.length}/${satUrls.length} Google, ${validEsriImages.length} Esri, ${validBingImages.length} Bing, ${validMapboxImages.length} Mapbox`);
+  // Satellite imagery retrieval complete
 
   // ── MULTI-ANGLE STREET VIEW ──
   // 8 compass directions + elevated angles for maximum roof visibility
@@ -1082,7 +1083,7 @@ async function runSatelliteAnalysis(address: string) {
     })
   );
   const validSvImages = svImages.filter((img): img is string => img !== null);
-  console.log(`Street view: ${validSvImages.length}/${svConfigs.length} images retrieved`);
+  // Street view retrieval complete
   let buildingWidth = 40, buildingLength = 40;
   if (boundingBox) {
     const ne = boundingBox.ne || boundingBox.high;
@@ -1131,7 +1132,7 @@ async function runSatelliteAnalysis(address: string) {
   const imagesPass2 = [...svForPasses, ...esriCore.slice(0, 1), ...googleSatCore.slice(0, 1)];
 
   // Run both AI passes IN PARALLEL to fit within 60s
-  console.log('Running 2 Gemini passes in parallel...');
+  // Running 2 Gemini passes in parallel
   const [pass1, pass2] = await Promise.all([
     callGemini(prompt, imagesPass1),
     callGeminiVerify(prompt, imagesPass2),
@@ -1143,7 +1144,7 @@ async function runSatelliteAnalysis(address: string) {
   if (pass2.status !== 'success') qualityNotes.push(`Pass 2: ${pass2.status}`);
 
   let convergence = checkConvergence(allAiResults, 0.10);
-  console.log(`Parallel passes: ${allAiResults.length}/2 succeeded, variance ${(convergence.worstVariance * 100).toFixed(1)}%`);
+  // Parallel passes complete
 
   if (convergence.converged && allAiResults.length >= 2) {
     qualityNotes.push(`Both passes converged within 10% — high confidence`);
@@ -1158,7 +1159,7 @@ async function runSatelliteAnalysis(address: string) {
   // Don't mix geometric estimates with AI — they measure differently and create false variance.
   // Geometric is a safety net, not a voting member.
   if (allAiResults.length < 2 && solarSegments.length > 0) {
-    console.log('Less than 2 AI results — adding geometric baseline as fallback');
+    // Less than 2 AI results — adding geometric baseline as fallback
     const geoMeasurements = buildGeometricFallback(buildingWidth, buildingLength, totalAreaSqFt, solarSegments);
     allAiResults.push({ name: 'GeometricFallback-Solar', m: geoMeasurements });
   }
@@ -1347,14 +1348,14 @@ function buildResponse(
 export async function GET(request: NextRequest) {
   // Public endpoint — no auth required (customer-facing roof measurement tool)
   const address = request.nextUrl.searchParams.get('address');
-  if (!address) return NextResponse.json({ error: 'address parameter required' }, { status: 400 });
-  if (!GOOGLE_KEY) return NextResponse.json({ error: 'Google Maps API key not configured' }, { status: 500 });
+  if (!address) return apiError('address parameter required', 400);
+  if (!GOOGLE_KEY) return apiError('Google Maps API key not configured', 500);
 
   try {
     const sat = await runSatelliteAnalysis(address);
     return NextResponse.json(buildResponse(sat, null, 0));
   } catch (e: unknown) {
-    return NextResponse.json({ error: String(e) }, { status: 500 });
+    return apiError(String(e), 500);
   }
 }
 
@@ -1362,12 +1363,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   // Public endpoint — no auth required (customer-facing roof measurement tool)
-  if (!GOOGLE_KEY) return NextResponse.json({ error: 'Google Maps API key not configured' }, { status: 500 });
+  if (!GOOGLE_KEY) return apiError('Google Maps API key not configured', 500);
 
   try {
     const formData = await request.formData();
     const address = formData.get('address') as string;
-    if (!address) return NextResponse.json({ error: 'address parameter required' }, { status: 400 });
+    if (!address) return apiError('address parameter required', 400);
 
     const mode = (formData.get('mode') as string) || 'satellite';
     const photoLabelsRaw = formData.get('photoLabels') as string;
@@ -1401,6 +1402,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(buildResponse(sat, enhanced, photoImages.length));
   } catch (e: unknown) {
-    return NextResponse.json({ error: String(e) }, { status: 500 });
+    return apiError(String(e), 500);
   }
 }

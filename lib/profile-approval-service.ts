@@ -3,6 +3,7 @@
 
 import { promises as fs } from 'fs';
 import path from 'path';
+import { emailService } from './email-service';
 
 // Types
 export interface ProfileEditRequest {
@@ -307,14 +308,27 @@ export const profileApprovalService = {
       id: `NOTIF-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`.toUpperCase(),
       ...params,
       createdAt: new Date().toISOString(),
-      sent: false, // TODO: Integrate with actual email service
+      sent: false,
     };
 
     notifications.push(notification);
     await writeNotifications(notifications);
 
-    // TODO: Send actual email notification
-    // For now, log to console
+    // Send email notification (fire-and-forget)
+    if (params.recipientEmail) {
+      emailService.send({
+        to: params.recipientEmail,
+        subject: `RCRS Profile Update: ${params.type}`,
+        body: `<p>${params.message}</p>`,
+        fromName: 'RCRS Portal',
+      }).then(() => {
+        notification.sent = true;
+        readNotifications().then(all => {
+          const idx = all.findIndex(n => n.id === notification.id);
+          if (idx >= 0) { all[idx].sent = true; writeNotifications(all); }
+        });
+      }).catch(() => { /* email send is non-critical */ });
+    }
 
     return notification;
   },
