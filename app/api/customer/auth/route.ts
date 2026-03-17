@@ -22,6 +22,7 @@ import {
   AuthUser,
 } from '@/lib/auth-service';
 import { createAuthRateLimiter, withRateLimit } from '@/lib/rate-limiter';
+import { checkRequestSize } from '@/lib/request-size-limit';
 
 const JOBNIMBUS_API_KEY = process.env.JOBNIMBUS_API_KEY;
 const JOBNIMBUS_API_URL = process.env.JOBNIMBUS_API_URL || 'https://app.jobnimbus.com/api1';
@@ -67,6 +68,10 @@ function formatAddress(contact: JobNimbusContact): string {
 }
 
 export async function POST(request: NextRequest) {
+  // SECURITY: Enforce request body size limit on auth endpoint
+  const sizeError = checkRequestSize(request, '10kb');
+  if (sizeError) return sizeError;
+
   return withRateLimit(request, authRateLimiter, async () => {
     try {
       const body = await request.json();

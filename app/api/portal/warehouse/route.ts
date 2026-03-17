@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-service';
+import { checkRequestSize } from '@/lib/request-size-limit';
 
 const HA_BASE_URL = process.env.HA_BASE_URL || 'http://192.168.86.102:8123';
 const HA_TOKEN = process.env.HA_ACCESS_TOKEN || process.env.HA_TOKEN || '';
@@ -111,6 +112,10 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin();
   if (!auth.authenticated) return auth.response;
+
+  // SECURITY: Enforce request body size limit
+  const sizeError = checkRequestSize(request, '100kb');
+  if (sizeError) return sizeError;
 
   try {
     const body = await request.json();

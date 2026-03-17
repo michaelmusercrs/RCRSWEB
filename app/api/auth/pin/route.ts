@@ -11,8 +11,13 @@ import {
   generateAccessToken,
   generateRefreshToken,
 } from '@/lib/auth-service';
+import { checkRequestSize } from '@/lib/request-size-limit';
 
 export async function POST(request: NextRequest) {
+  // SECURITY: Enforce request body size limit on auth endpoint
+  const sizeError = checkRequestSize(request, '10kb');
+  if (sizeError) return sizeError;
+
   try {
     const { pin } = await request.json();
 

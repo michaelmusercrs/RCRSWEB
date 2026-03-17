@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, requireAdmin } from '@/lib/auth-service';
 import { portalAuthService, UserRole } from '@/lib/portal-auth';
+import { checkRequestSize } from '@/lib/request-size-limit';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth();
@@ -33,6 +34,10 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin();
   if (!auth.authenticated) return auth.response;
+
+  // SECURITY: Enforce request body size limit
+  const sizeError = checkRequestSize(request, '100kb');
+  if (sizeError) return sizeError;
 
   try {
     const body = await request.json();
@@ -114,8 +119,13 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const auth = await requireAuth();
+  // SECURITY: Require admin to modify user records (prevents privilege escalation)
+  const auth = await requireAdmin();
   if (!auth.authenticated) return auth.response;
+
+  // SECURITY: Enforce request body size limit
+  const sizeError = checkRequestSize(request, '100kb');
+  if (sizeError) return sizeError;
 
   try {
     const body = await request.json();
