@@ -9,6 +9,39 @@ import { jobNimbusService, isJobNimbusConfigured } from '@/lib/jobnimbus-service
 import { createCustomerTokenRateLimiter, withRateLimit } from '@/lib/rate-limiter';
 import { notificationService } from '@/lib/notification-service';
 import { googleSheetsService } from '@/lib/google-sheets-service';
+import { geocodeWithNominatim } from '@/lib/nominatim-geocoder';
+
+// Default coordinates: Hartselle, AL (RCRS home base)
+const DEFAULT_LAT = 34.4434;
+const DEFAULT_LNG = -86.9358;
+
+// Simple in-memory cache to avoid re-geocoding the same address on every request
+const geocodeCache = new Map<string, { lat: number; lng: number; ts: number }>();
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+async function getCoordinatesForAddress(address: string | undefined): Promise<{ lat: number; lng: number }> {
+  if (!address || address.trim().length < 5) {
+    return { lat: DEFAULT_LAT, lng: DEFAULT_LNG };
+  }
+
+  const key = address.trim().toLowerCase();
+  const cached = geocodeCache.get(key);
+  if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+    return { lat: cached.lat, lng: cached.lng };
+  }
+
+  try {
+    const result = await geocodeWithNominatim(address);
+    if (result) {
+      geocodeCache.set(key, { lat: result.lat, lng: result.lng, ts: Date.now() });
+      return { lat: result.lat, lng: result.lng };
+    }
+  } catch (err) {
+    console.warn('[CustomerPortal] Geocode failed for address:', address, err);
+  }
+
+  return { lat: DEFAULT_LAT, lng: DEFAULT_LNG };
+}
 
 // SECURITY: Rate limiter for customer token access.
 // Limits to 10 attempts per 15 minutes per IP to prevent token brute-force.
@@ -164,11 +197,10 @@ export async function GET(
         tagline: salesRepData?.tagline || '',
       };
 
-      // Get weather for the customer's area (default to Huntsville)
-      const latitude = 34.7304;
-      const longitude = -86.5861;
-      const weather = await customerPortalService.getWeatherForecast(latitude, longitude);
-      const hailReports = await customerPortalService.getHailReports(latitude, longitude, 30);
+      // Get weather for the customer's actual area (geocode their address)
+      const coords = await getCoordinatesForAddress(lead.customerAddress);
+      const weather = await customerPortalService.getWeatherForecast(coords.lat, coords.lng);
+      const hailReports = await customerPortalService.getHailReports(coords.lat, coords.lng, 30);
 
       // If this lead has a JobNimbus contact ID, fetch LIVE data
       if (lead.jobnimbusContactId && isJobNimbusConfigured()) {
@@ -559,16 +591,14 @@ export async function GET(
     const finalAppointments = jnAppointments.length > 0 ? jnAppointments : appointments;
     const finalDocuments = jnDocuments.length > 0 ? [...jnDocuments, ...documents] : documents;
 
-    // Geocode address for weather (simplified - using Huntsville coords as default)
-    // In production, use a geocoding API
-    const latitude = 34.7304;
-    const longitude = -86.5861;
+    // Geocode the customer's address for accurate weather data
+    const coords = await getCoordinatesForAddress(customerAddress);
 
     // Get weather forecast
-    const weather = await customerPortalService.getWeatherForecast(latitude, longitude);
+    const weather = await customerPortalService.getWeatherForecast(coords.lat, coords.lng);
 
     // Get hail reports
-    const hailReports = await customerPortalService.getHailReports(latitude, longitude, 30);
+    const hailReports = await customerPortalService.getHailReports(coords.lat, coords.lng, 30);
 
     // Get sales rep info from team sheet
     let salesRep = {
@@ -672,9 +702,63 @@ export async function POST(
       );
     }
 
+    if (!message || typeof message !== 'string' || !message.trim()) {
+      return NextResponse.json({ error: 'Message is required' }, { status: 400 });
+    }
+
+    // First check lead portal service (newer token system)
+    const lead = await leadPortalService.getLeadByToken(token);
+    if (lead) {
+      const doc = await getDoc();
+      const msgSheet = await getOrCreateSheet(doc, 'Customer_Messages', [
+        'messageId', 'customerId', 'direction', 'channel', 'subject', 'content', 'sentAt', 'readAt', 'sentBy'
+      ]);
+
+      await msgSheet.addRow({
+        messageId: `MSG-${Date.now()}`,
+        customerId: lead.customerId,
+        direction: 'inbound',
+        channel: 'portal',
+        subject: subject || 'Message from Customer Portal',
+        content: message.trim(),
+        sentAt: new Date().toISOString(),
+        readAt: '',
+        sentBy: lead.customerName,
+      });
+
+      // Notify rep
+      if (lead.salesRepSlug) {
+        notificationService.notifyCustomerSentMessage({
+          repSlug: lead.salesRepSlug,
+          customerId: lead.customerId,
+          customerName: lead.customerName,
+          messagePreview: message.trim().slice(0, 100),
+        }).catch(err => {
+          console.warn('[CustomerPortal] Failed to notify rep of message:', err);
+        });
+      }
+
+      // Send GroupMe notification
+      try {
+        const groupMeConfig = getGroupMeConfigFromEnv();
+        if (groupMeConfig.enabled && groupMeConfig.botId && groupMeConfig.notifyOn.customerPortalActivity) {
+          const notification = groupMeService.createPortalActivityNotification({
+            customerName: lead.customerName,
+            activityType: 'message',
+            details: subject || message.trim().substring(0, 50),
+          });
+          await groupMeService.sendNotification(groupMeConfig, notification);
+        }
+      } catch (notifyError) {
+        console.error('Failed to send portal activity notification:', notifyError);
+      }
+
+      return NextResponse.json({ success: true });
+    }
+
+    // Fall back to Google Sheets token lookup
     const doc = await getDoc();
 
-    // Verify access token and derive customerId from it
     const accessSheet = doc.sheetsByTitle['Customer_Portal_Access'];
     if (!accessSheet) {
       return NextResponse.json({ error: 'Portal not configured' }, { status: 500 });
@@ -717,7 +801,7 @@ export async function POST(
       direction: 'inbound',
       channel: 'portal',
       subject: subject || 'Message from Customer Portal',
-      content: message,
+      content: message.trim(),
       sentAt: new Date().toISOString(),
       readAt: '',
       sentBy: accessRow.get('customerName'),
@@ -730,7 +814,7 @@ export async function POST(
         const notification = groupMeService.createPortalActivityNotification({
           customerName: accessRow.get('customerName'),
           activityType: 'message',
-          details: subject || message.substring(0, 50),
+          details: subject || message.trim().substring(0, 50),
         });
         await groupMeService.sendNotification(groupMeConfig, notification);
       }

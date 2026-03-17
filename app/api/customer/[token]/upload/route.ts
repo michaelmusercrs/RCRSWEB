@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { put } from '@vercel/blob';
 import { GoogleSpreadsheet } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
+import { leadPortalService } from '@/lib/lead-portal-service';
 import { createCustomerTokenRateLimiter, withRateLimit } from '@/lib/rate-limiter';
 
 // SECURITY: Rate limiter for customer token upload access.
@@ -38,6 +37,55 @@ async function getOrCreateSheet(doc: GoogleSpreadsheet, sheetName: string, heade
   return sheet;
 }
 
+// Resolve token to customer info (supports both lead portal and sheet-based tokens)
+async function resolveToken(token: string): Promise<{
+  valid: boolean;
+  customerId?: string;
+  customerName?: string;
+  salesRepSlug?: string;
+}> {
+  // Try lead portal service first
+  const lead = await leadPortalService.getLeadByToken(token);
+  if (lead) {
+    return {
+      valid: true,
+      customerId: lead.customerId,
+      customerName: lead.customerName,
+      salesRepSlug: lead.salesRepSlug,
+    };
+  }
+
+  // Fall back to Google Sheets
+  try {
+    const doc = await getDoc();
+    const accessSheet = doc.sheetsByTitle['Customer_Portal_Access'];
+    if (!accessSheet) return { valid: false };
+
+    const accessRows = await accessSheet.getRows();
+    const accessRow = accessRows.find(r => r.get('accessToken') === token);
+
+    if (accessRow && accessRow.get('isActive') === 'true') {
+      const expiresAtStr = accessRow.get('expiresAt');
+      if (expiresAtStr) {
+        const expiresAt = new Date(expiresAtStr);
+        if (expiresAt < new Date()) {
+          return { valid: false };
+        }
+      }
+      return {
+        valid: true,
+        customerId: accessRow.get('customerId'),
+        customerName: accessRow.get('customerName'),
+        salesRepSlug: accessRow.get('salesRepSlug'),
+      };
+    }
+  } catch {
+    // Fall through
+  }
+
+  return { valid: false };
+}
+
 // POST - Upload file from customer
 export async function POST(
   request: NextRequest,
@@ -47,38 +95,17 @@ export async function POST(
   return withRateLimit(request, tokenRateLimiter, async () => {
   try {
     const { token } = await params;
-    const doc = await getDoc();
 
     // SECURITY: Verify access token and derive customerId from the token.
     // The customerId is NEVER taken from user input - it is always resolved
     // from the token to prevent horizontal privilege escalation.
-    const accessSheet = doc.sheetsByTitle['Customer_Portal_Access'];
-    if (!accessSheet) {
-      return NextResponse.json({ error: 'Portal not configured' }, { status: 500 });
+    const resolved = await resolveToken(token);
+    if (!resolved.valid || !resolved.customerId) {
+      return NextResponse.json({ error: 'Invalid or expired access token' }, { status: 404 });
     }
 
-    const accessRows = await accessSheet.getRows();
-    const accessRow = accessRows.find(r => r.get('accessToken') === token);
-
-    if (!accessRow || accessRow.get('isActive') !== 'true') {
-      return NextResponse.json({ error: 'Invalid access token' }, { status: 404 });
-    }
-
-    // SECURITY: Check if token has expired
-    const expiresAtStr = accessRow.get('expiresAt');
-    if (expiresAtStr) {
-      const expiresAt = new Date(expiresAtStr);
-      if (expiresAt < new Date()) {
-        return NextResponse.json(
-          { error: 'This portal link has expired. Please contact your rep for a new one.' },
-          { status: 410 }
-        );
-      }
-    }
-
-    // SECURITY: customerId derived solely from token lookup
-    const customerId = accessRow.get('customerId');
-    const customerName = accessRow.get('customerName');
+    const customerId = resolved.customerId;
+    const customerName = resolved.customerName || 'Customer';
 
     // Parse multipart form data
     const formData = await request.formData();
@@ -92,7 +119,7 @@ export async function POST(
 
     // Validate file type
     const allowedTypes = [
-      'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+      'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic',
       'application/pdf',
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -100,7 +127,7 @@ export async function POST(
 
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json({
-        error: 'Invalid file type. Please upload images (JPG, PNG, GIF) or documents (PDF, DOC).'
+        error: 'Invalid file type. Please upload images (JPG, PNG, GIF, WebP, HEIC) or documents (PDF, DOC).'
       }, { status: 400 });
     }
 
@@ -112,28 +139,21 @@ export async function POST(
       }, { status: 400 });
     }
 
-    // Generate unique filename
+    // Upload to Vercel Blob (persistent cloud storage, works on Vercel)
     const timestamp = Date.now();
     const extension = file.name.split('.').pop()?.toLowerCase() || 'bin';
-    const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_').slice(0, 50);
-    const filename = `${customerId}-${timestamp}-${sanitizedName}`;
+    const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_').slice(0, 50);
+    const blobPath = `customer-portal-uploads/${customerId}/${timestamp}-${safeName}`;
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = join(process.cwd(), 'public', 'uploads', 'customer');
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true });
-    }
+    const blob = await put(blobPath, file, {
+      access: 'public',
+      addRandomSuffix: false,
+    });
 
-    // Save file
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    const filePath = join(uploadsDir, filename);
-    await writeFile(filePath, buffer);
+    const fileUrl = blob.url;
 
-    // Generate public URL
-    const fileUrl = `/uploads/customer/${filename}`;
-
-    // Save document record
+    // Save document record to Google Sheets
+    const doc = await getDoc();
     const docSheet = await getOrCreateSheet(doc, 'Customer_Documents', [
       'documentId', 'customerId', 'type', 'title', 'description',
       'fileUrl', 'fileType', 'fileSize', 'uploadedAt', 'uploadedBy', 'isVisible',
@@ -153,32 +173,26 @@ export async function POST(
       fileSize: file.size.toString(),
       uploadedAt: new Date().toISOString(),
       uploadedBy: customerName,
-      isVisible: 'true', // Customer uploads are visible by default
+      isVisible: 'true',
       uploadSource: 'customer_portal',
     });
 
-    // Notify sales rep about the upload
-    const salesRepSlug = accessRow.get('salesRepSlug');
-    const salesRepEmail = await getSalesRepEmail(doc, salesRepSlug);
+    // Log upload as a message so the rep sees it
+    const msgSheet = await getOrCreateSheet(doc, 'Customer_Messages', [
+      'messageId', 'customerId', 'direction', 'channel', 'subject', 'content', 'sentAt', 'readAt', 'sentBy'
+    ]);
 
-    if (salesRepEmail) {
-      // Log notification for sales rep
-      const msgSheet = await getOrCreateSheet(doc, 'Customer_Messages', [
-        'messageId', 'customerId', 'direction', 'channel', 'subject', 'content', 'sentAt', 'readAt', 'sentBy'
-      ]);
-
-      await msgSheet.addRow({
-        messageId: `MSG-${timestamp}`,
-        customerId,
-        direction: 'inbound',
-        channel: 'portal',
-        subject: 'New Document Upload',
-        content: `${customerName} uploaded a new file: ${file.name}${description ? ` - ${description}` : ''}`,
-        sentAt: new Date().toISOString(),
-        readAt: '',
-        sentBy: customerName,
-      });
-    }
+    await msgSheet.addRow({
+      messageId: `MSG-${timestamp}`,
+      customerId,
+      direction: 'inbound',
+      channel: 'portal',
+      subject: 'New Document Upload',
+      content: `${customerName} uploaded a new file: ${file.name}${description ? ` - ${description}` : ''}`,
+      sentAt: new Date().toISOString(),
+      readAt: '',
+      sentBy: customerName,
+    });
 
     return NextResponse.json({
       success: true,
@@ -197,16 +211,6 @@ export async function POST(
   }); // end withRateLimit
 }
 
-// Helper to get sales rep email
-async function getSalesRepEmail(doc: GoogleSpreadsheet, slug: string): Promise<string | null> {
-  const teamSheet = doc.sheetsByTitle['team-members-import'];
-  if (!teamSheet) return null;
-
-  const rows = await teamSheet.getRows();
-  const repRow = rows.find(r => r.get('slug') === slug);
-  return repRow?.get('email') || null;
-}
-
 // GET - List customer's uploaded documents
 export async function GET(
   request: NextRequest,
@@ -216,38 +220,17 @@ export async function GET(
   return withRateLimit(request, tokenRateLimiter, async () => {
   try {
     const { token } = await params;
-    const doc = await getDoc();
 
     // SECURITY: Verify access token and derive customerId from the token.
-    // This ensures a customer can only see their own documents.
-    const accessSheet = doc.sheetsByTitle['Customer_Portal_Access'];
-    if (!accessSheet) {
-      return NextResponse.json({ error: 'Portal not configured' }, { status: 500 });
+    const resolved = await resolveToken(token);
+    if (!resolved.valid || !resolved.customerId) {
+      return NextResponse.json({ error: 'Invalid or expired access token' }, { status: 404 });
     }
 
-    const accessRows = await accessSheet.getRows();
-    const accessRow = accessRows.find(r => r.get('accessToken') === token);
-
-    if (!accessRow || accessRow.get('isActive') !== 'true') {
-      return NextResponse.json({ error: 'Invalid access token' }, { status: 404 });
-    }
-
-    // SECURITY: Check if token has expired
-    const expiresAtStr = accessRow.get('expiresAt');
-    if (expiresAtStr) {
-      const expiresAt = new Date(expiresAtStr);
-      if (expiresAt < new Date()) {
-        return NextResponse.json(
-          { error: 'This portal link has expired. Please contact your rep for a new one.' },
-          { status: 410 }
-        );
-      }
-    }
-
-    // SECURITY: customerId derived solely from token lookup
-    const customerId = accessRow.get('customerId');
+    const customerId = resolved.customerId;
 
     // Get customer's documents
+    const doc = await getDoc();
     const docSheet = doc.sheetsByTitle['Customer_Documents'];
     if (!docSheet) {
       return NextResponse.json({ documents: [] });

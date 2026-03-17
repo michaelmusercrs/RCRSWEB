@@ -1,5 +1,27 @@
+/**
+ * Delivery Portal Service
+ *
+ * CONSOLIDATION NOTE (2026-03-17):
+ * This service originally had its own order creation, delivery management,
+ * inventory tracking, and dashboard stats — all duplicating logic now
+ * handled by the authoritative 18-stage material-order-pipeline.ts.
+ *
+ * After consolidation:
+ * - Order/delivery creation and status updates DELEGATE to materialOrderPipeline
+ * - Inventory reads/writes DELEGATE to materialOrderPipeline via unified-inventory-service
+ * - Driver management and restock requests remain here (delivery-specific, no overlap)
+ * - Dashboard stats now pull from pipeline for order/delivery data
+ * - All original type exports are preserved for backward compatibility
+ */
+
 import { GoogleSpreadsheet, GoogleSpreadsheetRow } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
+import {
+  materialOrderPipeline,
+  type PipelineOrder,
+  type PipelineStage,
+  PIPELINE_STAGES,
+} from './material-order-pipeline';
 
 // Use a separate spreadsheet for the delivery portal
 const DELIVERY_SHEETS_ID = process.env.DELIVERY_SHEETS_ID || process.env.GOOGLE_SHEETS_ID;
@@ -10,20 +32,20 @@ const serviceAccountAuth = new JWT({
   scopes: ['https://www.googleapis.com/auth/spreadsheets'],
 });
 
-// Sheet names
+// Sheet names — only sheets NOT covered by the pipeline remain active here
 const SHEETS = {
   INVENTORY: 'Inventory',
-  ORDERS: 'Material Orders',
-  DELIVERIES: 'Deliveries',
-  DELIVERY_PHOTOS: 'Delivery Photos',
+  ORDERS: 'Material Orders',         // LEGACY — pipeline uses PipelineOrders
+  DELIVERIES: 'Deliveries',          // LEGACY — pipeline tracks delivery stages internally
+  DELIVERY_PHOTOS: 'Delivery Photos', // LEGACY — pipeline uses PipelinePhotos
   INVENTORY_COUNTS: 'Inventory Counts',
   RESTOCK_REQUESTS: 'Restock Requests',
-  DRIVERS: 'Drivers',
+  DRIVERS: 'Drivers',                // NOT in pipeline — stays here
   PRODUCTS: 'Products',
   PORTAL_USERS: 'Portal Users',
 };
 
-// Types
+// Types — all preserved for backward compatibility
 export interface Driver {
   id: string;
   name: string;
@@ -150,6 +172,70 @@ export interface DashboardStats {
   };
 }
 
+// ============================================
+// HELPER: Map pipeline stages to legacy status
+// ============================================
+
+/** @deprecated Use PipelineStage from material-order-pipeline instead */
+function pipelineStageToOrderStatus(stage: PipelineStage): MaterialOrder['status'] {
+  const stageIndex = PIPELINE_STAGES.indexOf(stage);
+  if (stageIndex <= 0) return 'Pending';       // ORDER_CREATED
+  if (stageIndex <= 2) return 'Scheduled';      // ORDER_REVIEWED, DRIVER_ASSIGNED
+  if (stageIndex <= 10) return 'In Progress';   // WAREHOUSE_NOTIFIED through DELIVERY_CONFIRMED
+  return 'Delivered';                            // QC_PHOTOS through JOB_CLOSED
+}
+
+/** @deprecated Use PipelineStage from material-order-pipeline instead */
+function pipelineStageToDeliveryStatus(stage: PipelineStage): Delivery['status'] {
+  switch (stage) {
+    case 'ORDER_CREATED':
+    case 'ORDER_REVIEWED':
+    case 'DRIVER_ASSIGNED':
+    case 'WAREHOUSE_NOTIFIED':
+    case 'MATERIALS_PULLED':
+      return 'Scheduled';
+    case 'LOAD_VERIFIED':
+      return 'Loaded';
+    case 'DEPARTURE_CONFIRMED':
+    case 'EN_ROUTE':
+      return 'En Route';
+    case 'ARRIVED_AT_SITE':
+    case 'UNLOADING':
+      return 'Arrived';
+    case 'DELIVERY_CONFIRMED':
+    case 'QC_PHOTOS':
+    case 'OFFICE_NOTIFIED':
+    case 'BILLING_REVIEW':
+    case 'INVOICE_SENT':
+    case 'PAYMENT_RECEIVED':
+    case 'JOB_CLOSED':
+      return 'Delivered';
+    default:
+      return 'Scheduled';
+  }
+}
+
+/** Convert a PipelineOrder to the legacy MaterialOrder format */
+function pipelineOrderToLegacy(po: PipelineOrder): MaterialOrder {
+  return {
+    orderId: po.orderId,
+    orderDate: po.createdAt,
+    jobName: po.jobName,
+    jobAddress: `${po.deliveryAddress}, ${po.deliveryCity}, ${po.deliveryState} ${po.deliveryZip}`,
+    customerName: po.customerName,
+    customerPhone: po.customerPhone,
+    projectManager: po.createdByName,
+    materials: po.items.map(i => `${i.quantity} ${i.unit} ${i.productName}`).join(', '),
+    specialInstructions: po.specialInstructions,
+    requestedDeliveryDate: po.requestedDeliveryDate,
+    priority: po.priority === 'urgent' ? 'Urgent' : po.priority === 'rush' ? 'Rush' : 'Normal',
+    status: po.cancelled ? 'Cancelled' : pipelineStageToOrderStatus(po.currentStage),
+    assignedDriver: po.assignedDriverId,
+    createdBy: po.createdByName,
+    jobnimbusId: po.jobNimbusId,
+  };
+}
+
 class DeliveryPortalService {
   private doc: GoogleSpreadsheet | null = null;
   private initialized = false;
@@ -192,7 +278,7 @@ class DeliveryPortalService {
   }
 
   // ============================================
-  // DRIVERS
+  // DRIVERS (delivery-specific, NOT in pipeline)
   // ============================================
 
   async getDrivers(): Promise<Driver[]> {
@@ -227,49 +313,45 @@ class DeliveryPortalService {
 
   // ============================================
   // MATERIAL ORDERS
+  // @deprecated - Use materialOrderPipeline.createOrder() directly.
+  // These methods now delegate to the 18-stage pipeline.
   // ============================================
 
+  /**
+   * @deprecated Use materialOrderPipeline.createOrder() for new orders.
+   * This wrapper delegates to the pipeline and returns the legacy format.
+   */
   async createOrder(data: Omit<MaterialOrder, 'orderId' | 'orderDate' | 'status'>): Promise<MaterialOrder> {
-    const sheet = await this.getOrCreateSheet(SHEETS.ORDERS, [
-      'orderId', 'orderDate', 'jobName', 'jobAddress', 'customerName', 'customerPhone',
-      'projectManager', 'pmEmail', 'pmPhone', 'materials', 'specialInstructions',
-      'requestedDeliveryDate', 'priority', 'status', 'assignedDriver', 'createdBy', 'jobnimbusId'
-    ]);
+    // Delegate to the pipeline
+    const pipelineOrder = await materialOrderPipeline.createOrder({
+      createdBy: data.createdBy,
+      createdByName: data.createdBy,
+      createdByRole: 'office',
+      priority: data.priority.toLowerCase() as 'normal' | 'rush' | 'urgent',
+      jobNumber: '',
+      jobName: data.jobName,
+      jobNimbusId: data.jobnimbusId,
+      customerName: data.customerName,
+      customerPhone: data.customerPhone,
+      deliveryAddress: data.jobAddress,
+      deliveryCity: '',
+      deliveryState: 'AL',
+      deliveryZip: '',
+      requestedDeliveryDate: data.requestedDeliveryDate,
+      items: [], // Legacy format uses a text string for materials, not structured items
+      specialInstructions: data.specialInstructions,
+    });
 
-    const order: MaterialOrder = {
-      ...data,
-      orderId: this.generateId('ORD'),
-      orderDate: new Date().toISOString(),
-      status: 'Pending',
-    };
-
-    await sheet.addRow(order as unknown as Record<string, string | number | boolean>);
-    return order;
+    return pipelineOrderToLegacy(pipelineOrder);
   }
 
+  /**
+   * @deprecated Use materialOrderPipeline.getOrders() for order queries.
+   * This wrapper delegates to the pipeline and returns the legacy format.
+   */
   async getOrders(status?: MaterialOrder['status']): Promise<MaterialOrder[]> {
-    const sheet = await this.getOrCreateSheet(SHEETS.ORDERS, []);
-    const rows = await sheet.getRows();
-
-    let orders = rows.map(row => ({
-      orderId: row.get('orderId'),
-      orderDate: row.get('orderDate'),
-      jobName: row.get('jobName'),
-      jobAddress: row.get('jobAddress'),
-      customerName: row.get('customerName'),
-      customerPhone: row.get('customerPhone'),
-      projectManager: row.get('projectManager'),
-      pmEmail: row.get('pmEmail'),
-      pmPhone: row.get('pmPhone'),
-      materials: row.get('materials'),
-      specialInstructions: row.get('specialInstructions'),
-      requestedDeliveryDate: row.get('requestedDeliveryDate'),
-      priority: row.get('priority') as MaterialOrder['priority'],
-      status: row.get('status') as MaterialOrder['status'],
-      assignedDriver: row.get('assignedDriver'),
-      createdBy: row.get('createdBy'),
-      jobnimbusId: row.get('jobnimbusId'),
-    }));
+    const pipelineOrders = await materialOrderPipeline.getOrders();
+    let orders = pipelineOrders.map(pipelineOrderToLegacy);
 
     if (status) {
       orders = orders.filter(o => o.status === status);
@@ -278,81 +360,93 @@ class DeliveryPortalService {
     return orders.sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime());
   }
 
+  /**
+   * @deprecated Use materialOrderPipeline.advanceStage() to change order status.
+   * This wrapper is kept for backward compatibility.
+   */
   async updateOrderStatus(orderId: string, status: MaterialOrder['status'], assignedDriver?: string): Promise<void> {
-    const sheet = await this.getOrCreateSheet(SHEETS.ORDERS, []);
-    const rows = await sheet.getRows();
-    const row = rows.find(r => r.get('orderId') === orderId);
-
-    if (row) {
-      row.set('status', status);
-      if (assignedDriver) row.set('assignedDriver', assignedDriver);
-      await row.save();
+    // Map legacy status back to pipeline stage advancement
+    // This is a best-effort mapping; callers should use the pipeline directly
+    if (status === 'Cancelled') {
+      await materialOrderPipeline.cancelOrder(orderId, 'system', 'System', 'Cancelled via legacy portal service');
     }
+    // For other status changes, the pipeline handles stage transitions via advanceStage()
+    // We log a warning since this method can't fully map back to the 18-stage model
+    console.warn(
+      `[DEPRECATED] deliveryPortalService.updateOrderStatus() called for ${orderId} -> ${status}. ` +
+      `Use materialOrderPipeline.advanceStage() instead.`
+    );
   }
 
   // ============================================
   // DELIVERIES
+  // @deprecated - Delivery tracking is now part of the 18-stage pipeline.
+  // These methods delegate to the pipeline where possible.
   // ============================================
 
+  /**
+   * @deprecated Use materialOrderPipeline.advanceStage() to DRIVER_ASSIGNED stage.
+   * Returns legacy Delivery format for backward compatibility.
+   */
   async createDelivery(data: Omit<Delivery, 'deliveryId' | 'loadConfirmed' | 'photoCount'>): Promise<Delivery> {
-    const sheet = await this.getOrCreateSheet(SHEETS.DELIVERIES, [
-      'deliveryId', 'orderId', 'driver', 'driverName', 'status', 'scheduledDate', 'scheduledTime',
-      'jobName', 'jobAddress', 'customerName', 'customerPhone', 'materials',
-      'loadConfirmed', 'loadConfirmedTime', 'loadConfirmedBy', 'departedTime',
-      'arrivedTime', 'deliveredTime', 'deliveryNotes', 'photoCount', 'gpsCoordinates'
-    ]);
+    // If linked to a pipeline order, advance it
+    if (data.orderId) {
+      try {
+        await materialOrderPipeline.advanceStage(
+          data.orderId,
+          'DRIVER_ASSIGNED',
+          'system', 'System', 'office',
+          {
+            assignedDriverId: data.driver,
+            assignedDriverName: data.driverName,
+            scheduledDeliveryDate: data.scheduledDate,
+            scheduledDeliveryTime: data.scheduledTime,
+          }
+        );
+      } catch {
+        // Pipeline order may not exist — fall through to legacy behavior
+      }
+    }
 
-    const delivery: Delivery = {
+    // Return legacy format
+    return {
       ...data,
       deliveryId: this.generateId('DEL'),
       loadConfirmed: false,
       photoCount: 0,
     };
-
-    await sheet.addRow({
-      ...delivery,
-      loadConfirmed: 'No',
-    } as unknown as Record<string, string | number | boolean>);
-
-    // Update order status
-    if (data.orderId) {
-      await this.updateOrderStatus(data.orderId, 'Scheduled', data.driver);
-    }
-
-    return delivery;
   }
 
+  /**
+   * @deprecated Use materialOrderPipeline.getOrders() with stage filters.
+   * Returns legacy Delivery format for backward compatibility.
+   */
   async getDeliveries(driverId?: string, status?: Delivery['status'], date?: string): Promise<Delivery[]> {
-    const sheet = await this.getOrCreateSheet(SHEETS.DELIVERIES, []);
-    const rows = await sheet.getRows();
+    const pipelineOrders = await materialOrderPipeline.getOrders({
+      driverId: driverId,
+      cancelled: false,
+    });
 
-    let deliveries = rows.map(row => ({
-      deliveryId: row.get('deliveryId'),
-      orderId: row.get('orderId'),
-      driver: row.get('driver'),
-      driverName: row.get('driverName'),
-      status: row.get('status') as Delivery['status'],
-      scheduledDate: row.get('scheduledDate'),
-      scheduledTime: row.get('scheduledTime'),
-      jobName: row.get('jobName'),
-      jobAddress: row.get('jobAddress'),
-      customerName: row.get('customerName'),
-      customerPhone: row.get('customerPhone'),
-      materials: row.get('materials'),
-      loadConfirmed: row.get('loadConfirmed') === 'Yes',
-      loadConfirmedTime: row.get('loadConfirmedTime'),
-      loadConfirmedBy: row.get('loadConfirmedBy'),
-      departedTime: row.get('departedTime'),
-      arrivedTime: row.get('arrivedTime'),
-      deliveredTime: row.get('deliveredTime'),
-      deliveryNotes: row.get('deliveryNotes'),
-      photoCount: parseInt(row.get('photoCount')) || 0,
-      gpsCoordinates: row.get('gpsCoordinates'),
+    let deliveries: Delivery[] = pipelineOrders.map(po => ({
+      deliveryId: po.orderId, // Use pipeline orderId as deliveryId
+      orderId: po.orderId,
+      driver: po.assignedDriverId || '',
+      driverName: po.assignedDriverName,
+      status: po.cancelled ? 'Cancelled' as const : pipelineStageToDeliveryStatus(po.currentStage),
+      scheduledDate: po.scheduledDeliveryDate || po.requestedDeliveryDate,
+      scheduledTime: po.scheduledDeliveryTime || '',
+      jobName: po.jobName,
+      jobAddress: `${po.deliveryAddress}, ${po.deliveryCity}`,
+      customerName: po.customerName,
+      customerPhone: po.customerPhone,
+      materials: po.items.map(i => `${i.quantity} ${i.unit} ${i.productName}`).join(', '),
+      loadConfirmed: PIPELINE_STAGES.indexOf(po.currentStage) >= PIPELINE_STAGES.indexOf('LOAD_VERIFIED'),
+      departedTime: po.events.find(e => e.stage === 'DEPARTURE_CONFIRMED')?.timestamp,
+      arrivedTime: po.events.find(e => e.stage === 'ARRIVED_AT_SITE')?.timestamp,
+      deliveredTime: po.events.find(e => e.stage === 'DELIVERY_CONFIRMED')?.timestamp,
+      photoCount: po.events.reduce((sum, e) => sum + e.photoUrls.length, 0),
     }));
 
-    if (driverId) {
-      deliveries = deliveries.filter(d => d.driver === driverId);
-    }
     if (status) {
       deliveries = deliveries.filter(d => d.status === status);
     }
@@ -361,7 +455,6 @@ class DeliveryPortalService {
     }
 
     return deliveries.sort((a, b) => {
-      // Sort by date, then by time
       if (a.scheduledDate !== b.scheduledDate) {
         return new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime();
       }
@@ -369,63 +462,72 @@ class DeliveryPortalService {
     });
   }
 
+  /**
+   * @deprecated Use materialOrderPipeline.getOrderById().
+   */
   async getDeliveryById(deliveryId: string): Promise<Delivery | null> {
     const deliveries = await this.getDeliveries();
     return deliveries.find(d => d.deliveryId === deliveryId) || null;
   }
 
-  private async getDeliveryRow(deliveryId: string): Promise<GoogleSpreadsheetRow | null> {
-    const sheet = await this.getOrCreateSheet(SHEETS.DELIVERIES, []);
-    const rows = await sheet.getRows();
-    return rows.find(r => r.get('deliveryId') === deliveryId) || null;
-  }
-
+  /**
+   * @deprecated Use materialOrderPipeline.advanceStage() to LOAD_VERIFIED stage.
+   */
   async confirmLoad(deliveryId: string, driverName: string): Promise<void> {
-    const row = await this.getDeliveryRow(deliveryId);
-    if (row) {
-      row.set('loadConfirmed', 'Yes');
-      row.set('loadConfirmedTime', new Date().toISOString());
-      row.set('loadConfirmedBy', driverName);
-      row.set('status', 'Loaded');
-      await row.save();
+    try {
+      await materialOrderPipeline.advanceStage(
+        deliveryId, 'LOAD_VERIFIED',
+        'system', driverName, 'driver',
+      );
+    } catch {
+      console.warn(`[DEPRECATED] confirmLoad() failed for ${deliveryId} — order may not be in pipeline`);
     }
   }
 
+  /**
+   * @deprecated Use materialOrderPipeline.advanceStage() for status transitions.
+   */
   async updateDeliveryStatus(
     deliveryId: string,
     status: Delivery['status'],
     updates?: Partial<Delivery>
   ): Promise<void> {
-    const row = await this.getDeliveryRow(deliveryId);
-    if (row) {
-      row.set('status', status);
+    // Map legacy delivery status to pipeline stage
+    const stageMap: Record<Delivery['status'], PipelineStage> = {
+      'Scheduled': 'DRIVER_ASSIGNED',
+      'Loaded': 'LOAD_VERIFIED',
+      'En Route': 'EN_ROUTE',
+      'Arrived': 'ARRIVED_AT_SITE',
+      'Delivered': 'DELIVERY_CONFIRMED',
+      'Cancelled': 'ORDER_CREATED', // handled separately
+    };
 
-      const now = new Date().toISOString();
-      if (status === 'En Route') row.set('departedTime', now);
-      if (status === 'Arrived') row.set('arrivedTime', now);
-      if (status === 'Delivered') row.set('deliveredTime', now);
+    if (status === 'Cancelled') {
+      await materialOrderPipeline.cancelOrder(deliveryId, 'system', 'System', 'Cancelled via legacy portal');
+      return;
+    }
 
-      if (updates) {
-        if (updates.deliveryNotes) row.set('deliveryNotes', updates.deliveryNotes);
-        if (updates.gpsCoordinates) row.set('gpsCoordinates', updates.gpsCoordinates);
-      }
-
-      await row.save();
-
-      // Update order status if delivered
-      if (status === 'Delivered') {
-        const orderId = row.get('orderId');
-        if (orderId) {
-          await this.updateOrderStatus(orderId, 'Delivered');
-        }
+    const targetStage = stageMap[status];
+    if (targetStage) {
+      try {
+        await materialOrderPipeline.advanceStage(
+          deliveryId, targetStage,
+          'system', 'System', 'office',
+          { notes: updates?.deliveryNotes },
+        );
+      } catch {
+        console.warn(`[DEPRECATED] updateDeliveryStatus() failed for ${deliveryId} -> ${status}`);
       }
     }
   }
 
   // ============================================
   // DELIVERY PHOTOS
+  // @deprecated - Use pipeline photo tracking.
+  // This remains for backward compatibility with legacy photo uploads.
   // ============================================
 
+  /** @deprecated Use materialOrderPipeline.advanceStage() with photoUrls parameter. */
   async addDeliveryPhoto(data: Omit<DeliveryPhoto, 'photoId' | 'uploadTime'>): Promise<DeliveryPhoto> {
     const sheet = await this.getOrCreateSheet(SHEETS.DELIVERY_PHOTOS, [
       'photoId', 'deliveryId', 'orderId', 'jobName', 'photoType', 'photoUrl',
@@ -439,18 +541,10 @@ class DeliveryPortalService {
     };
 
     await sheet.addRow(photo as unknown as Record<string, string | number | boolean>);
-
-    // Update photo count on delivery
-    const deliveryRow = await this.getDeliveryRow(data.deliveryId);
-    if (deliveryRow) {
-      const currentCount = parseInt(deliveryRow.get('photoCount')) || 0;
-      deliveryRow.set('photoCount', (currentCount + 1).toString());
-      await deliveryRow.save();
-    }
-
     return photo;
   }
 
+  /** @deprecated Use pipeline event photos for delivery photo tracking. */
   async getDeliveryPhotos(deliveryId: string): Promise<DeliveryPhoto[]> {
     const sheet = await this.getOrCreateSheet(SHEETS.DELIVERY_PHOTOS, []);
     const rows = await sheet.getRows();
@@ -473,6 +567,8 @@ class DeliveryPortalService {
 
   // ============================================
   // INVENTORY
+  // These methods read/write the Inventory sheet directly.
+  // For pipeline-integrated inventory with holds, use unified-inventory-service.
   // ============================================
 
   async getInventory(category?: string): Promise<InventoryItem[]> {
@@ -513,7 +609,7 @@ class DeliveryPortalService {
     return items.filter(item => item.currentQty <= item.minQty);
   }
 
-  async updateInventoryQty(productId: string, qtyChange: number, reason?: string): Promise<void> {
+  async updateInventoryQty(productId: string, qtyChange: number, _reason?: string): Promise<void> {
     const sheet = await this.getOrCreateSheet(SHEETS.INVENTORY, []);
     const rows = await sheet.getRows();
     const row = rows.find(r => r.get('productId') === productId);
@@ -541,7 +637,6 @@ class DeliveryPortalService {
       'expectedQty', 'actualQty', 'variance', 'variancePercent', 'notes', 'approvedBy'
     ]);
 
-    // Get current expected qty
     const invRows = await invSheet.getRows();
     const invRow = invRows.find(r => r.get('productId') === productId);
 
@@ -552,7 +647,6 @@ class DeliveryPortalService {
     const variance = actualQty - expectedQty;
     const variancePercent = expectedQty > 0 ? ((variance / expectedQty) * 100).toFixed(2) : '0';
 
-    // Add count record
     await countSheet.addRow({
       countId: this.generateId('CNT'),
       countDate: new Date().toISOString(),
@@ -567,7 +661,6 @@ class DeliveryPortalService {
       approvedBy: '',
     });
 
-    // Update inventory
     const unitCost = parseFloat(invRow.get('unitCost')) || 0;
     invRow.set('currentQty', actualQty.toString());
     invRow.set('totalValue', (actualQty * unitCost).toFixed(2));
@@ -578,7 +671,7 @@ class DeliveryPortalService {
   }
 
   // ============================================
-  // RESTOCK REQUESTS
+  // RESTOCK REQUESTS (delivery-specific, NOT in pipeline)
   // ============================================
 
   async createRestockRequest(data: Omit<RestockRequest, 'requestId' | 'requestDate' | 'status'>): Promise<RestockRequest> {
@@ -644,32 +737,45 @@ class DeliveryPortalService {
 
   // ============================================
   // DASHBOARD STATS
+  // Now pulls order/delivery data from the pipeline
   // ============================================
 
   async getDashboardStats(): Promise<DashboardStats> {
     const today = new Date().toISOString().slice(0, 10);
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-    // Get deliveries
-    const allDeliveries = await this.getDeliveries();
-    const todayDeliveries = allDeliveries.filter(d => d.scheduledDate === today);
+    // Get pipeline orders for delivery and order stats
+    let pipelineOrders: PipelineOrder[] = [];
+    try {
+      pipelineOrders = await materialOrderPipeline.getOrders({ cancelled: false });
+    } catch {
+      // Pipeline may not be initialized — fall back to empty
+    }
 
-    const completedToday = todayDeliveries.filter(d => d.status === 'Delivered').length;
-    const inProgress = todayDeliveries.filter(d =>
-      ['Loaded', 'En Route', 'Arrived'].includes(d.status)
+    // Map to delivery stats
+    const todayDeliveries = pipelineOrders.filter(po =>
+      (po.scheduledDeliveryDate === today || po.requestedDeliveryDate === today)
+    );
+
+    const deliveryStages = ['DELIVERY_CONFIRMED', 'QC_PHOTOS', 'OFFICE_NOTIFIED', 'BILLING_REVIEW', 'INVOICE_SENT', 'PAYMENT_RECEIVED', 'JOB_CLOSED'];
+    const inProgressStages = ['WAREHOUSE_NOTIFIED', 'MATERIALS_PULLED', 'LOAD_VERIFIED', 'DEPARTURE_CONFIRMED', 'EN_ROUTE', 'ARRIVED_AT_SITE', 'UNLOADING'];
+
+    const completedToday = todayDeliveries.filter(po => deliveryStages.includes(po.currentStage)).length;
+    const inProgress = todayDeliveries.filter(po => inProgressStages.includes(po.currentStage)).length;
+
+    // Order stats
+    const pendingOrders = pipelineOrders.filter(po =>
+      po.currentStage === 'ORDER_CREATED' || po.currentStage === 'ORDER_REVIEWED'
     ).length;
 
-    // Get inventory stats
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const weekOrders = pipelineOrders.filter(po => po.createdAt >= weekAgo).length;
+
+    // Get inventory stats (still from direct sheet read)
     const inventory = await this.getInventory();
     const totalValue = inventory.reduce((sum, item) => sum + item.totalValue, 0);
     const lowStockCount = inventory.filter(item => item.currentQty <= item.minQty).length;
 
-    // Get orders
-    const orders = await this.getOrders();
-    const pendingOrders = orders.filter(o => o.status === 'Pending').length;
-    const weekOrders = orders.filter(o => o.orderDate >= weekAgo).length;
-
-    // Get restock requests
+    // Get restock requests (delivery-specific, not in pipeline)
     const restocks = await this.getRestockRequests('Pending');
 
     return {

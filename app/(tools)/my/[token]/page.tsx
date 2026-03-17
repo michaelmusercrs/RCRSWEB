@@ -510,7 +510,45 @@ export default function CustomerPortal() {
         {/* ─── Overview Tab ──────────────────────────────────────────── */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            {/* Quick Stats */}
+            {/* Install Countdown + Quick Stats */}
+            {(() => {
+              // Calculate days until estimated completion / install
+              const estDate = jobStatus?.estimatedCompletion;
+              let daysUntil: number | null = null;
+              if (estDate) {
+                const target = new Date(estDate);
+                if (!isNaN(target.getTime())) {
+                  daysUntil = Math.ceil((target.getTime() - Date.now()) / 86400000);
+                }
+              }
+              // Also check upcoming appointments for an installation appointment
+              const installApt = upcomingAppointments.find(a =>
+                a.type === 'install_start' || a.type === 'installation' ||
+                a.title?.toLowerCase().includes('install')
+              );
+              if (!daysUntil && installApt) {
+                const aptDate = new Date(installApt.scheduledDate);
+                if (!isNaN(aptDate.getTime())) {
+                  daysUntil = Math.ceil((aptDate.getTime() - Date.now()) / 86400000);
+                }
+              }
+
+              return daysUntil !== null && daysUntil > 0 ? (
+                <div className="bg-gradient-to-r from-[#39FF14]/10 to-neutral-900 rounded-xl border border-[#39FF14]/30 p-6 text-center">
+                  <p className="text-5xl font-bold text-[#39FF14]">{daysUntil}</p>
+                  <p className="text-neutral-400 text-sm mt-1">days until {installApt ? 'installation' : 'completion'}</p>
+                  {(estDate || installApt) && (
+                    <p className="text-[#39FF14]/70 text-xs mt-2 font-medium">
+                      {installApt
+                        ? `${installApt.title} - ${new Date(installApt.scheduledDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`
+                        : `Estimated: ${estDate}`
+                      }
+                    </p>
+                  )}
+                </div>
+              ) : null;
+            })()}
+
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="bg-neutral-900 rounded-xl p-4 border border-neutral-800">
                 <Calendar className="text-blue-400 mb-2" size={24} />
@@ -1032,7 +1070,7 @@ export default function CustomerPortal() {
                 rcrs@rivercityroofingsolutions.com
               </a>
               <span className="hidden sm:inline">&bull;</span>
-              <span>Decatur, AL</span>
+              <span>Hartselle, AL</span>
             </div>
           </div>
         </div>

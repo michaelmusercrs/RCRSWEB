@@ -144,22 +144,24 @@ export interface CustomerSettingsOverride {
   updatedBy: string;
 }
 
-// Customer-facing defaults: all OFF by default (reps must explicitly enable per-customer)
-// Internal admin/rep views always show everything regardless of these settings.
+// Customer-facing defaults: core features ON so the portal is useful out of the box.
+// Reps/admins can disable specific features via the settings cascade.
+// NOTE: If you set these all to false, new portals show a blank page until
+// someone manually configures settings in Google Sheets -- that's a bad UX.
 export const DEFAULT_PORTAL_SETTINGS: PortalSettings = {
-  showWeather: false,
-  showHailReports: false,
+  showWeather: true,
+  showHailReports: true,
   showStormReport: false,
   showHailRecon: false,
   showWeatherAlerts: false,
   showRiskScore: false,
-  showAppointments: false,
-  showDocuments: false,
-  showMessages: false,
-  showJobProgress: false,
-  showDeliveryTracking: false,
-  allowFileUpload: false,
-  allowMessages: false,
+  showAppointments: true,
+  showDocuments: true,
+  showMessages: true,
+  showJobProgress: true,
+  showDeliveryTracking: true,
+  allowFileUpload: true,
+  allowMessages: true,
 };
 
 // Setting keys used in cascade logic

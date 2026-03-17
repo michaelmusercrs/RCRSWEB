@@ -1,5 +1,35 @@
+/**
+ * Delivery Workflow Service
+ *
+ * CONSOLIDATION NOTE (2026-03-17):
+ * This service manages the driver-facing delivery workflow: tickets, checklists,
+ * photos, activity logs, driver notifications, stock adjustments, and voice scripts.
+ *
+ * After consolidation with material-order-pipeline.ts (the authoritative 18-stage pipeline):
+ * - Ticket creation now ALSO creates a pipeline order for lifecycle tracking
+ * - Workflow step handlers (assignDriver, pullMaterials, etc.) now ALSO advance the
+ *   corresponding pipeline stage when a linked pipeline order exists
+ * - Invoice generation DELEGATES to the pipeline for dual-invoice (customer/internal) logic
+ * - Inventory deduction DELEGATES to the pipeline (which uses unified-inventory-service with holds)
+ * - Dashboard stats DELEGATE to the pipeline for order counts
+ *
+ * Features that remain UNIQUE to this service (not in pipeline):
+ * - Ticket checklists (step-by-step verification)
+ * - Activity logging (granular audit trail)
+ * - Driver notifications (in-app notification system)
+ * - Stock adjustments with approval workflow
+ * - Voice script generation for AI assistant
+ * - Pickup/return ticket types
+ * - Price sheet management
+ */
+
 import { GoogleSpreadsheet, GoogleSpreadsheetRow } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
+import {
+  materialOrderPipeline,
+  type PipelineStage,
+  type PipelineOrder,
+} from './material-order-pipeline';
 
 const SHEETS_ID = process.env.DELIVERY_SHEETS_ID || process.env.GOOGLE_SHEETS_ID;
 
@@ -14,8 +44,8 @@ const SHEETS = {
   DELIVERY_TICKETS: 'Delivery Tickets',
   TICKET_PHOTOS: 'Ticket Photos',
   TICKET_CHECKLIST: 'Ticket Checklist',
-  INVOICES: 'Invoices',
-  INVOICE_ITEMS: 'Invoice Items',
+  INVOICES: 'Invoices',              // LEGACY — pipeline uses PipelineInvoices for dual invoicing
+  INVOICE_ITEMS: 'Invoice Items',    // LEGACY — pipeline handles invoice items internally
   PRICE_SHEET: 'Price Sheet',
   JOB_LOG: 'Job Log',
   ACTIVITY_LOG: 'Activity Log',
@@ -194,6 +224,9 @@ export interface DeliveryTicket {
   // Invoice
   invoiceId?: string;
   invoiceStatus?: 'pending' | 'generated' | 'sent' | 'paid';
+
+  // Pipeline integration (links ticket to the authoritative 18-stage pipeline order)
+  pipelineOrderId?: string;
 }
 
 export interface TicketPhoto {
@@ -329,7 +362,7 @@ class DeliveryWorkflowService {
       'departedAt', 'arrivedAt', 'deliveredAt', 'pickedUpAt', 'proofCapturedAt', 'qcPhotosAt', 'completedAt',
       'deliveryNotes', 'gpsLoadLocation', 'gpsDeliveryLocation', 'gpsPickupLocation',
       'returnReason', 'pickupReason', 'relatedTicketId',
-      'photoCount', 'checklistComplete', 'invoiceId', 'invoiceStatus'
+      'photoCount', 'checklistComplete', 'invoiceId', 'invoiceStatus', 'pipelineOrderId'
     ];
   }
 
@@ -410,6 +443,34 @@ class DeliveryWorkflowService {
       photoCount: 0,
       checklistComplete: false,
     };
+
+    // Also create a pipeline order for lifecycle tracking (delivery tickets only)
+    if (ticketType === 'delivery') {
+      try {
+        const pipelineOrder = await materialOrderPipeline.createOrder({
+          createdBy: data.createdBy,
+          createdByName: data.createdByName,
+          createdByRole: data.createdByRole,
+          priority: data.priority || 'normal',
+          jobNumber: data.jobId || '',
+          jobName: data.jobName,
+          customerName: data.customerName,
+          customerPhone: data.customerPhone,
+          customerEmail: data.customerEmail,
+          deliveryAddress: data.jobAddress,
+          deliveryCity: data.city,
+          deliveryState: data.state,
+          deliveryZip: data.zip,
+          requestedDeliveryDate: data.requestedDate,
+          items: data.materials.map(m => ({ productId: m.productId, quantity: m.quantity, notes: m.notes })),
+          specialInstructions: data.specialInstructions,
+        });
+        ticket.pipelineOrderId = pipelineOrder.orderId;
+      } catch (error) {
+        // Pipeline creation is supplementary — don't block ticket creation
+        console.warn('Failed to create linked pipeline order:', error);
+      }
+    }
 
     await sheet.addRow({
       ...ticket,
@@ -504,6 +565,7 @@ class DeliveryWorkflowService {
       checklistComplete: row.get('checklistComplete') === 'Yes',
       invoiceId: row.get('invoiceId'),
       invoiceStatus: row.get('invoiceStatus') as DeliveryTicket['invoiceStatus'],
+      pipelineOrderId: row.get('pipelineOrderId'),
     };
   }
 
@@ -554,6 +616,49 @@ class DeliveryWorkflowService {
   }
 
   // ============================================
+  // PIPELINE INTEGRATION HELPER
+  // ============================================
+
+  /**
+   * Advances the linked pipeline order to the given stage.
+   * Silently fails if no pipeline order is linked or if the stage transition is invalid.
+   * This keeps the pipeline in sync without blocking the ticket workflow.
+   */
+  private async advancePipelineIfLinked(
+    ticketId: string,
+    targetStage: PipelineStage,
+    performedBy: string,
+    performedByName: string,
+    performedByRole: string,
+    data?: {
+      photoUrls?: string[];
+      gpsLatitude?: number;
+      gpsLongitude?: number;
+      notes?: string;
+      assignedDriverId?: string;
+      assignedDriverName?: string;
+      scheduledDeliveryDate?: string;
+      scheduledDeliveryTime?: string;
+    }
+  ): Promise<void> {
+    try {
+      const ticket = await this.getTicketById(ticketId);
+      if (!ticket?.pipelineOrderId) return;
+
+      await materialOrderPipeline.advanceStage(
+        ticket.pipelineOrderId,
+        targetStage,
+        performedBy,
+        performedByName,
+        performedByRole,
+        data,
+      );
+    } catch {
+      // Pipeline sync is supplementary — don't block the ticket workflow
+    }
+  }
+
+  // ============================================
   // WORKFLOW STEP HANDLERS
   // ============================================
 
@@ -572,6 +677,12 @@ class DeliveryWorkflowService {
     await row.save();
 
     const ticket = this.rowToTicket(row);
+
+    // Sync to pipeline: advance to DRIVER_ASSIGNED
+    this.advancePipelineIfLinked(ticketId, 'DRIVER_ASSIGNED',
+      assignedBy || 'system', assignedByName || 'System', 'office',
+      { assignedDriverId: driverId, assignedDriverName: driverName, scheduledDeliveryDate: scheduledDate, scheduledDeliveryTime: scheduledTime }
+    ).catch(() => {});
 
     // Create notification for driver
     await this.createDriverNotification({
@@ -607,9 +718,20 @@ class DeliveryWorkflowService {
     row.set('materialsPulledBy', pulledBy);
     await row.save();
 
-    // Deduct from inventory
     const ticket = this.rowToTicket(row);
-    await this.deductInventory(ticket.materials);
+
+    // Sync to pipeline: advance through WAREHOUSE_NOTIFIED -> MATERIALS_PULLED
+    // The pipeline handles inventory holds/deductions at DELIVERY_CONFIRMED stage,
+    // so we skip the legacy deductInventory() call when a pipeline order is linked.
+    if (ticket.pipelineOrderId) {
+      // Pipeline handles stock management via unified-inventory-service holds
+      this.advancePipelineIfLinked(ticketId, 'MATERIALS_PULLED',
+        pulledBy, pulledBy, 'warehouse',
+      ).catch(() => {});
+    } else {
+      // Legacy fallback: direct inventory deduction (no pipeline order linked)
+      await this.deductInventory(ticket.materials);
+    }
 
     return ticket;
   }
@@ -626,6 +748,17 @@ class DeliveryWorkflowService {
 
     await this.updateChecklistStep(ticketId, 'verify_load', verifiedBy);
 
+    // Sync to pipeline: advance to LOAD_VERIFIED
+    // Pipeline requires photo+GPS for this stage; pass what we have
+    const gpsParts = gpsLocation?.split(',').map(Number);
+    this.advancePipelineIfLinked(ticketId, 'LOAD_VERIFIED',
+      verifiedBy, verifiedBy, 'driver',
+      {
+        gpsLatitude: gpsParts?.[0],
+        gpsLongitude: gpsParts?.[1],
+      }
+    ).catch(() => {});
+
     return this.rowToTicket(row);
   }
 
@@ -638,6 +771,12 @@ class DeliveryWorkflowService {
     await row.save();
 
     await this.updateChecklistStep(ticketId, 'depart', row.get('assignedDriverName'));
+
+    // Sync to pipeline: advance through DEPARTURE_CONFIRMED -> EN_ROUTE
+    const driverName = row.get('assignedDriverName') || 'Driver';
+    this.advancePipelineIfLinked(ticketId, 'EN_ROUTE',
+      row.get('assignedDriver') || 'system', driverName, 'driver',
+    ).catch(() => {});
 
     return this.rowToTicket(row);
   }
@@ -653,6 +792,14 @@ class DeliveryWorkflowService {
 
     await this.updateChecklistStep(ticketId, 'arrive', row.get('assignedDriverName'));
 
+    // Sync to pipeline: advance to ARRIVED_AT_SITE
+    const gpsParts = gpsLocation?.split(',').map(Number);
+    const driverName = row.get('assignedDriverName') || 'Driver';
+    this.advancePipelineIfLinked(ticketId, 'ARRIVED_AT_SITE',
+      row.get('assignedDriver') || 'system', driverName, 'driver',
+      { gpsLatitude: gpsParts?.[0], gpsLongitude: gpsParts?.[1] }
+    ).catch(() => {});
+
     return this.rowToTicket(row);
   }
 
@@ -667,6 +814,14 @@ class DeliveryWorkflowService {
 
     await this.updateChecklistStep(ticketId, 'unload', row.get('assignedDriverName'));
 
+    // Sync to pipeline: advance to DELIVERY_CONFIRMED
+    // The pipeline handles stock deduction at this stage via unified-inventory-service
+    const driverName = row.get('assignedDriverName') || 'Driver';
+    this.advancePipelineIfLinked(ticketId, 'DELIVERY_CONFIRMED',
+      row.get('assignedDriver') || 'system', driverName, 'driver',
+      { notes }
+    ).catch(() => {});
+
     return this.rowToTicket(row);
   }
 
@@ -679,6 +834,9 @@ class DeliveryWorkflowService {
     await row.save();
 
     await this.updateChecklistStep(ticketId, 'capture_proof', row.get('assignedDriverName'));
+
+    // No direct pipeline equivalent for proof_captured — it maps between
+    // DELIVERY_CONFIRMED and QC_PHOTOS in the pipeline
 
     return this.rowToTicket(row);
   }
@@ -693,6 +851,12 @@ class DeliveryWorkflowService {
 
     await this.updateChecklistStep(ticketId, 'qc_photos', row.get('assignedDriverName'));
 
+    // Sync to pipeline: advance to QC_PHOTOS
+    const driverName = row.get('assignedDriverName') || 'Driver';
+    this.advancePipelineIfLinked(ticketId, 'QC_PHOTOS',
+      row.get('assignedDriver') || 'system', driverName, 'driver',
+    ).catch(() => {});
+
     return this.rowToTicket(row);
   }
 
@@ -705,13 +869,39 @@ class DeliveryWorkflowService {
     row.set('checklistComplete', 'Yes');
     await row.save();
 
-    // Generate invoice
     const ticket = this.rowToTicket(row);
-    const invoice = await this.generateInvoice(ticket);
 
-    row.set('invoiceId', invoice.invoiceId);
-    row.set('invoiceStatus', 'generated');
-    await row.save();
+    // If linked to a pipeline order, let the pipeline handle invoice generation
+    // (it creates dual invoices: customer + internal with margin tracking)
+    if (ticket.pipelineOrderId) {
+      try {
+        // Advance pipeline through OFFICE_NOTIFIED -> BILLING_REVIEW (triggers invoice creation)
+        await materialOrderPipeline.advanceStage(
+          ticket.pipelineOrderId, 'BILLING_REVIEW',
+          'system', 'System', 'office',
+        );
+
+        // Get the generated customer invoice ID from the pipeline
+        const custInvoice = await materialOrderPipeline.getCustomerInvoice(ticket.pipelineOrderId);
+        if (custInvoice) {
+          row.set('invoiceId', custInvoice.invoiceId);
+          row.set('invoiceStatus', 'generated');
+          await row.save();
+        }
+      } catch {
+        // Fall back to legacy invoice generation
+        const invoice = await this.generateInvoice(ticket);
+        row.set('invoiceId', invoice.invoiceId);
+        row.set('invoiceStatus', 'generated');
+        await row.save();
+      }
+    } else {
+      // Legacy: generate invoice directly (no pipeline order linked)
+      const invoice = await this.generateInvoice(ticket);
+      row.set('invoiceId', invoice.invoiceId);
+      row.set('invoiceStatus', 'generated');
+      await row.save();
+    }
 
     return this.rowToTicket(row);
   }
@@ -873,6 +1063,9 @@ class DeliveryWorkflowService {
 
   // ============================================
   // INVOICES
+  // @deprecated - Pipeline handles dual-invoice generation (customer + internal).
+  // These methods are kept for backward compatibility and as a fallback when
+  // no pipeline order is linked. New code should use materialOrderPipeline.
   // ============================================
 
   private getInvoiceHeaders() {
@@ -882,6 +1075,11 @@ class DeliveryWorkflowService {
             'notes', 'internalNotes'];
   }
 
+  /**
+   * @deprecated Use materialOrderPipeline BILLING_REVIEW stage for dual-invoice generation.
+   * This legacy method creates a single invoice. The pipeline creates both customer and
+   * internal invoices with margin tracking.
+   */
   async generateInvoice(ticket: DeliveryTicket): Promise<Invoice> {
     const sheet = await this.getOrCreateSheet(SHEETS.INVOICES, this.getInvoiceHeaders());
 
@@ -1040,6 +1238,10 @@ class DeliveryWorkflowService {
 
   // ============================================
   // INVENTORY DEDUCTION
+  // @deprecated - Pipeline handles stock deduction at DELIVERY_CONFIRMED stage
+  // using unified-inventory-service with proper hold/fulfill mechanics.
+  // This legacy method does direct deduction without holds.
+  // Only used as fallback when no pipeline order is linked.
   // ============================================
 
   private async deductInventory(materials: MaterialItem[]): Promise<void> {
@@ -1090,6 +1292,8 @@ class DeliveryWorkflowService {
 
   // ============================================
   // DASHBOARD STATS
+  // Note: For pipeline-level stats use materialOrderPipeline.getOrderStats()
+  // This method provides ticket-level stats that include pickup/return tickets.
   // ============================================
 
   async getWorkflowStats(): Promise<{

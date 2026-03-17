@@ -676,12 +676,12 @@ function JobProgressTimeline({ jobStatus, jobs }: { jobStatus: JobStatus | null;
                       isComplete
                         ? 'bg-[#0066CC]'
                         : isCurrent
-                        ? 'bg-white ring-2 ring-[#0066CC] ring-offset-2 ring-offset-zinc-900'
+                        ? 'bg-white ring-2 ring-[#0066CC] ring-offset-2 ring-offset-white'
                         : 'bg-gray-200'
                     }`}
                   >
                     {isComplete ? (
-                      <CheckCircle2 className="w-4 h-4 text-black" />
+                      <CheckCircle2 className="w-4 h-4 text-white" />
                     ) : isCurrent ? (
                       <div className="w-2.5 h-2.5 bg-[#0066CC] rounded-full animate-pulse" />
                     ) : (
@@ -1749,6 +1749,51 @@ function CustomerDashboard({
         </div>
       </div>
 
+      {/* Install Countdown Banner */}
+      {(() => {
+        const estDate = jobStatus?.estimatedCompletion;
+        let daysUntil: number | null = null;
+        let installLabel = 'completion';
+        if (estDate) {
+          const target = new Date(estDate);
+          if (!isNaN(target.getTime())) {
+            daysUntil = Math.ceil((target.getTime() - Date.now()) / 86400000);
+          }
+        }
+        // Check appointments for install date
+        const installApt = appointments.find(a =>
+          a.type === 'install_start' || a.type === 'installation' ||
+          a.title?.toLowerCase().includes('install')
+        );
+        if (!daysUntil && installApt) {
+          const aptDate = new Date(installApt.scheduledDate);
+          if (!isNaN(aptDate.getTime())) {
+            daysUntil = Math.ceil((aptDate.getTime() - Date.now()) / 86400000);
+            installLabel = 'installation';
+          }
+        }
+        if (installApt) installLabel = 'installation';
+
+        return daysUntil !== null && daysUntil > 0 ? (
+          <div className="bg-gradient-to-r from-[#0066CC]/10 to-transparent border-b border-gray-200">
+            <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-center gap-4">
+              <div className="text-center">
+                <span className="text-4xl font-bold text-[#0066CC]">{daysUntil}</span>
+                <span className="text-gray-500 text-sm ml-2">days until {installLabel}</span>
+              </div>
+              {(estDate || installApt) && (
+                <span className="text-gray-400 text-xs hidden sm:inline">
+                  {installApt
+                    ? `${installApt.title} - ${new Date(installApt.scheduledDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`
+                    : `Estimated: ${estDate}`
+                  }
+                </span>
+              )}
+            </div>
+          </div>
+        ) : null;
+      })()}
+
       {/* Dashboard content */}
       <main className="max-w-7xl mx-auto px-4 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1937,18 +1982,22 @@ export default function CustomerPortalPage() {
       // Save token for next visit
       localStorage.setItem('rcrs_portal_token', accessToken);
 
-      // Ensure settings has defaults
-      const effectiveSettings: PortalSettings = {
+      // Use server-provided settings (which already apply the 3-tier cascade).
+      // Only fall back to sensible defaults if the server returned no settings at all.
+      const effectiveSettings: PortalSettings = data.settings || {
         showJobProgress: true,
         showAppointments: true,
         showDocuments: true,
         showMessages: true,
         showWeather: true,
         showHailReports: true,
-        showStormReport: true,
+        showStormReport: false,
+        showHailRecon: false,
+        showWeatherAlerts: false,
+        showRiskScore: false,
+        showDeliveryTracking: true,
         allowFileUpload: true,
         allowMessages: true,
-        ...data.settings,
       };
 
       setPortalData({
