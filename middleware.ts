@@ -43,6 +43,7 @@ const PUBLIC_PREFIXES = [
   '/service-areas/',
   '/team/',
   '/p/',          // short links
+  '/lp/',         // Google Ads landing pages
 ];
 
 // Internal portal prefixes allowed on rcrsal.com

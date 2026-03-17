@@ -860,7 +860,7 @@ const NAME_ALIASES: Record<string, string> = {
   'aaron lussi': 'Aaron Lussi',
   'brendon muse': 'Brendon Muse',
   'brendon russell': 'Brendon Muse',
-  'boston muse': 'Brendon Muse',
+  'boston muse': 'Boston Muse',
   'hunter rivers': 'Hunter Rivers',
   'richard geahr': 'Richard Geahr',
   'richard  geahr': 'Richard Geahr',

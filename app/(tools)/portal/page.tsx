@@ -5,14 +5,13 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
   Loader2, ChevronRight, Shield, ArrowRight,
-  User, Mail, AlertCircle, Eye, EyeOff, Phone, Lock
+  Mail, AlertCircle, Eye, EyeOff, Phone, Lock
 } from 'lucide-react';
 import { useAuth, ROLE_DEFAULT_ROUTES } from '@/lib/auth-context';
 import { TEAM_MEMBERS, TeamRole } from '@/lib/team-roles';
 import RoleTrainingPopup from '@/components/RoleTrainingPopup';
 import FeatureUpdatesPopup from '@/components/FeatureUpdatesPopup';
 
-type LoginMode = 'select' | 'driver' | 'staff';
 type ForgotMode = 'none' | 'form' | 'sent';
 
 // ──────────────────────────────────────────────
@@ -284,7 +283,6 @@ export default function PortalLogin() {
   const router = useRouter();
   const { user, isLoading: authLoading, login } = useAuth();
   const [showSplash, setShowSplash] = useState(true);
-  const [loginMode, setLoginMode] = useState<LoginMode>('staff');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -635,85 +633,8 @@ export default function PortalLogin() {
     );
   };
 
-  // ── Role Selection Screen ────────────────────
-  if (loginMode === 'select') {
-    return (
-      <div className="min-h-screen bg-neutral-950">
-        <AmbientBackground />
-        <ForgotPasswordOverlay />
-
-        <div
-          className="relative z-10 min-h-screen flex flex-col items-center justify-center p-6"
-          style={{
-            animation: contentVisible ? 'login-pop-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both' : 'none',
-            opacity: contentVisible ? undefined : 0,
-          }}
-        >
-          <div className="w-full max-w-md">
-            {/* Logo Header */}
-            <div className="text-center mb-10">
-              <div className="relative w-20 h-20 mx-auto mb-5">
-                <div className="absolute inset-0 rounded-2xl bg-brand-green/20 blur-xl animate-glow-pulse" />
-                <div className="relative w-full h-full rounded-2xl bg-gradient-to-br from-brand-green/20 to-emerald-600/10 border border-brand-green/30 p-0.5">
-                  <div className="w-full h-full rounded-[14px] bg-neutral-950/90 flex items-center justify-center">
-                    <Image
-                      src="/logo-nobg.png"
-                      alt="RCRS"
-                      width={48}
-                      height={48}
-                      className="object-contain drop-shadow-[0_0_10px_rgba(57,255,20,0.3)]"
-                    />
-                  </div>
-                </div>
-              </div>
-              <h1 className="text-3xl font-bold tracking-tight mb-1">
-                <span className="text-brand-green" style={{ textShadow: '0 0 20px rgba(57,255,20,0.3)' }}>Roof</span>
-                <span className="text-white">Stack</span>
-              </h1>
-              <p className="text-neutral-500 text-sm tracking-wider uppercase">Everything Under One Roof</p>
-            </div>
-
-            {/* Login Options */}
-            <div className="space-y-4">
-              <button
-                onClick={() => { setLoginMode('staff'); setError(''); }}
-                className="w-full group relative overflow-hidden rounded-2xl border border-brand-green/20 bg-neutral-900/50 backdrop-blur-sm p-6 text-left transition-all duration-300 hover:border-brand-green/40 hover:bg-neutral-900/80 hover:shadow-2xl hover:shadow-brand-green/10"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-brand-green/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <div className="relative flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-brand-green/10 rounded-xl flex items-center justify-center group-hover:scale-110 group-hover:bg-brand-green/20 transition-all duration-300">
-                      <User className="text-brand-green" size={28} />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-white group-hover:text-brand-green transition-colors">
-                        Staff Login
-                      </h3>
-                      <p className="text-sm text-neutral-400">Admin, Office, or Project Manager</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="text-neutral-600 group-hover:text-brand-green group-hover:translate-x-1 transition-all" size={24} />
-                </div>
-              </button>
-
-              {/* Logistics/Driver login now uses email+password like all other roles */}
-            </div>
-
-            <div className="mt-10 text-center">
-              <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
-                <Shield size={14} />
-                <span>Secure Access &mdash; Internal Use Only</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Staff Login Screen ───────────────────────
-  if (loginMode === 'staff') {
-    return (
+  // ── Login Screen ────────────────────────────
+  return (
       <div className="min-h-screen bg-neutral-950">
         <AmbientBackground />
         <ForgotPasswordOverlay />
@@ -751,23 +672,10 @@ export default function PortalLogin() {
 
             {/* Login Card */}
             <div className="rounded-2xl border border-neutral-800 bg-neutral-900/60 backdrop-blur-xl p-8 shadow-2xl">
-              {/* Header with back button */}
-              <div className="flex items-center gap-3 mb-7">
-                <button
-                  onClick={() => {
-                    setLoginMode('select');
-                    setEmail('');
-                    setPassword('');
-                    setError('');
-                  }}
-                  className="w-9 h-9 rounded-lg bg-neutral-800 hover:bg-neutral-700 flex items-center justify-center transition-colors group"
-                >
-                  <ArrowRight className="rotate-180 text-neutral-400 group-hover:text-white transition-colors" size={16} />
-                </button>
-                <div>
-                  <h2 className="text-lg font-semibold text-white">Sign In</h2>
-                  <p className="text-xs text-neutral-500">Enter your credentials to continue</p>
-                </div>
+              {/* Header */}
+              <div className="mb-7">
+                <h2 className="text-lg font-semibold text-white">Sign In</h2>
+                <p className="text-xs text-neutral-500">Enter your credentials to continue</p>
               </div>
 
               {/* Form Fields */}
@@ -869,9 +777,4 @@ export default function PortalLogin() {
         </div>
       </div>
     );
-  }
-
-  // All login modes now use email+password (PIN removed)
-  // If somehow loginMode is 'driver', redirect to staff login
-  return null;
 }

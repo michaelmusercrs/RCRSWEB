@@ -274,9 +274,10 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
     return () => { document.body.style.overflow = ''; };
   }, [isMobileOpen]);
 
-  // Login page - no shell
+  // Login, change-password, and onboarding pages - no shell (they have their own full-screen layouts)
   const isLoginPage = pathname === '/portal' || pathname === '/portal/login';
-  if (isLoginPage) return <>{children}</>;
+  const isOnboardingPage = pathname === '/portal/change-password' || pathname === '/portal/welcome';
+  if (isLoginPage || isOnboardingPage) return <>{children}</>;
 
   // Loading
   if (isLoading) {

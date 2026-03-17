@@ -1,60 +1,207 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+/**
+ * Portal Reports & Analytics
+ *
+ * Wired to REAL data sources:
+ * - Billing: /api/command-center/financial (commissions.json + invoices)
+ * - Team: /api/command-center/sales (commissions.json leaderboard)
+ * - Inventory: /api/portal/inventory (unified-inventory-service)
+ * - Delivery & Job Flow: No tracking data yet - shows "No data available"
+ */
+
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
-  ArrowLeft, BarChart3, Truck, Package, DollarSign, Users, Calendar,
-  Download, RefreshCw, Filter, ChevronDown, TrendingUp, TrendingDown,
+  ArrowLeft, BarChart3, Truck, Package, DollarSign, Users,
+  Download, RefreshCw, Filter, TrendingUp, TrendingDown,
   AlertTriangle, CheckCircle2, Clock, ArrowRight, Loader2
 } from 'lucide-react';
 
-type ReportType = 'delivery' | 'billing' | 'inventory' | 'team' | 'jobflow';
+type ReportType = 'billing' | 'team' | 'inventory' | 'delivery' | 'jobflow';
 
-interface FilterState {
-  dateFrom: string;
-  dateTo: string;
-  status: string[];
-  ticketType: string;
-  driverId: string;
-  projectManagerId: string;
+// ---------------------------------------------------------------------------
+// Data types matching the real API responses
+// ---------------------------------------------------------------------------
+
+interface FinancialSummary {
+  totalRevenue: number;
+  revenueThisMonth: number;
+  revenueLastMonth: number;
+  revenueYTD: number;
+  monthOverMonthGrowth: number;
+  grossMargin: number;
+  accountsReceivable: number;
+  overdueInvoices: number;
+  overdueAmount: number;
+  outstandingInvoices: number;
 }
 
+interface RevenueByPeriod {
+  period: string;
+  periodLabel: string;
+  revenue: number;
+}
+
+interface LeaderboardEntry {
+  rank: number;
+  name: string;
+  totalCommissions: number;
+  transactionCount: number;
+  avgTransaction: number;
+  percentOfTotal: number;
+}
+
+interface SalesSummary {
+  totalCommissions: number;
+  transactionCount: number;
+  avgTransactionValue: number;
+  uniqueReps: number;
+}
+
+interface InventorySummary {
+  totalItems: number;
+  lowStockCount: number;
+  totalValue?: number;
+  totalCost?: number;
+}
+
+interface InventoryItem {
+  sku?: string;
+  name?: string;
+  productName?: string;
+  category?: string;
+  quantity?: number;
+  currentQty?: number;
+  unit?: string;
+  unitPrice?: number;
+  minStockLevel?: number;
+}
+
+interface CategoryBreakdown {
+  category: string;
+  label: string;
+  itemCount: number;
+  totalRetail: number;
+  lowStockCount: number;
+}
+
+// ---------------------------------------------------------------------------
+// Format helpers
+// ---------------------------------------------------------------------------
+
+function formatCurrency(amount: number): string {
+  if (amount >= 1000000) return `$${(amount / 1000000).toFixed(2)}M`;
+  if (amount >= 1000) return `$${(amount / 1000).toFixed(1)}K`;
+  return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+}
+
+// ---------------------------------------------------------------------------
+// "No Data" placeholder
+// ---------------------------------------------------------------------------
+
+function NoDataPlaceholder({ title, message }: { title: string; message: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-4">
+        <BarChart3 className="text-neutral-500" size={32} />
+      </div>
+      <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
+      <p className="text-sm text-neutral-400 max-w-md">{message}</p>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
+
 export default function ReportsPage() {
-  const [activeReport, setActiveReport] = useState<ReportType>('delivery');
-  const [isLoading, setIsLoading] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState<FilterState>({
-    dateFrom: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-    dateTo: new Date().toISOString().slice(0, 10),
-    status: [],
-    ticketType: 'all',
-    driverId: '',
-    projectManagerId: '',
-  });
+  const [activeReport, setActiveReport] = useState<ReportType>('billing');
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Billing data
+  const [financialSummary, setFinancialSummary] = useState<FinancialSummary | null>(null);
+  const [revenueByPeriod, setRevenueByPeriod] = useState<RevenueByPeriod[]>([]);
+
+  // Team data
+  const [salesSummary, setSalesSummary] = useState<SalesSummary | null>(null);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+
+  // Inventory data
+  const [inventorySummary, setInventorySummary] = useState<InventorySummary | null>(null);
+  const [categoryBreakdown, setCategoryBreakdown] = useState<CategoryBreakdown[]>([]);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
 
   const reportTypes = [
-    { id: 'delivery', label: 'Deliveries', icon: Truck, color: 'bg-brand-green' },
     { id: 'billing', label: 'Billing', icon: DollarSign, color: 'bg-green-500' },
-    { id: 'inventory', label: 'Inventory', icon: Package, color: 'bg-orange-500' },
     { id: 'team', label: 'Team', icon: Users, color: 'bg-purple-500' },
+    { id: 'inventory', label: 'Inventory', icon: Package, color: 'bg-orange-500' },
+    { id: 'delivery', label: 'Deliveries', icon: Truck, color: 'bg-brand-green' },
     { id: 'jobflow', label: 'Job Flow', icon: ArrowRight, color: 'bg-cyan-500' },
   ];
 
-  const loadReport = async () => {
+  const loadReport = useCallback(async () => {
     setIsLoading(true);
-    // In production, fetch from API with filters
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsLoading(false);
-  };
+    try {
+      if (activeReport === 'billing') {
+        const [summaryRes, periodRes] = await Promise.all([
+          fetch('/api/command-center/financial?action=summary'),
+          fetch('/api/command-center/financial?action=revenue-by-period&groupBy=month&periods=6'),
+        ]);
+        if (summaryRes.ok) {
+          const data = await summaryRes.json();
+          if (data.success) setFinancialSummary(data.data);
+        }
+        if (periodRes.ok) {
+          const data = await periodRes.json();
+          if (data.success) setRevenueByPeriod(data.data || []);
+        }
+      } else if (activeReport === 'team') {
+        const res = await fetch('/api/command-center/sales?period=all');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.data) {
+            setSalesSummary(data.data.summary || null);
+            setLeaderboard(data.data.leaderboard || []);
+          }
+        }
+      } else if (activeReport === 'inventory') {
+        const [listRes, catRes] = await Promise.all([
+          fetch('/api/portal/inventory?action=list'),
+          fetch('/api/portal/inventory?action=categories'),
+        ]);
+        if (listRes.ok) {
+          const data = await listRes.json();
+          setInventoryItems(data.items || []);
+          setInventorySummary({
+            totalItems: data.itemCount || (data.items || []).length,
+            lowStockCount: 0,
+            totalValue: data.totalRetail || 0,
+            totalCost: data.totalCost || 0,
+          });
+        }
+        if (catRes.ok) {
+          const data = await catRes.json();
+          if (Array.isArray(data)) {
+            setCategoryBreakdown(data);
+            // Update low stock count from category breakdown
+            const totalLow = data.reduce((sum: number, c: CategoryBreakdown) => sum + (c.lowStockCount || 0), 0);
+            setInventorySummary(prev => prev ? { ...prev, lowStockCount: totalLow } : prev);
+          }
+        }
+      }
+      // delivery and jobflow: no API to call, no data yet
+    } catch (err) {
+      console.error('Failed to load report:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [activeReport]);
 
   useEffect(() => {
     loadReport();
-  }, [activeReport, filters]);
-
-  const handleExport = () => {
-    // Generate CSV download
-    alert('Report exported to CSV');
-  };
+  }, [loadReport]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950">
@@ -83,21 +230,10 @@ export default function ReportsPage() {
                     <BarChart3 className="text-brand-green" size={22} />
                     Reports & Analytics
                   </h1>
-                  <p className="text-sm text-neutral-400">Comprehensive business insights</p>
+                  <p className="text-sm text-neutral-400">Real business data from commissions, inventory, and sales</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setShowFilters(!showFilters)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm transition-colors ${
-                    showFilters
-                      ? 'bg-brand-green text-black'
-                      : 'bg-white/5 hover:bg-white/10 text-neutral-400'
-                  }`}
-                >
-                  <Filter size={16} />
-                  Filters
-                </button>
                 <button
                   onClick={loadReport}
                   disabled={isLoading}
@@ -105,13 +241,6 @@ export default function ReportsPage() {
                 >
                   <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
                   Refresh
-                </button>
-                <button
-                  onClick={handleExport}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-green text-black font-medium text-sm"
-                >
-                  <Download size={16} />
-                  Export
                 </button>
               </div>
             </div>
@@ -143,473 +272,310 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        {/* Filters Panel */}
-        {showFilters && (
-          <div className="bg-white/[0.02] border-b border-white/5">
-            <div className="max-w-7xl mx-auto px-6 py-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                <div>
-                  <label className="block text-xs text-neutral-400 mb-1">Start Date</label>
-                  <input
-                    type="date"
-                    value={filters.dateFrom}
-                    onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
-                    className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-neutral-400 mb-1">End Date</label>
-                  <input
-                    type="date"
-                    value={filters.dateTo}
-                    onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
-                    className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-neutral-400 mb-1">Ticket Type</label>
-                  <select
-                    value={filters.ticketType}
-                    onChange={(e) => setFilters({ ...filters, ticketType: e.target.value })}
-                    className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white"
-                  >
-                    <option value="all">All Types</option>
-                    <option value="delivery">Delivery</option>
-                    <option value="pickup">Pickup</option>
-                    <option value="return">Return</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs text-neutral-400 mb-1">Driver</label>
-                  <select
-                    value={filters.driverId}
-                    onChange={(e) => setFilters({ ...filters, driverId: e.target.value })}
-                    className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white"
-                  >
-                    <option value="">All Drivers</option>
-                    <option value="rick">Rick</option>
-                    <option value="tae">Tae</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs text-neutral-400 mb-1">Project Manager</label>
-                  <select
-                    value={filters.projectManagerId}
-                    onChange={(e) => setFilters({ ...filters, projectManagerId: e.target.value })}
-                    className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white"
-                  >
-                    <option value="">All PMs</option>
-                    <option value="john">John</option>
-                    <option value="bart">Bart</option>
-                  </select>
-                </div>
-                <div className="flex items-end">
-                  <button
-                    onClick={() => setFilters({
-                      dateFrom: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-                      dateTo: new Date().toISOString().slice(0, 10),
-                      status: [],
-                      ticketType: 'all',
-                      driverId: '',
-                      projectManagerId: '',
-                    })}
-                    className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 text-neutral-300 text-sm rounded-lg"
-                  >
-                    Clear Filters
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
         <main className="max-w-7xl mx-auto px-6 py-8">
           {isLoading ? (
             <div className="flex items-center justify-center py-20">
               <div className="flex flex-col items-center gap-4">
                 <div className="relative">
                   <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-green/20 to-emerald-500/20 border border-brand-green/30 flex items-center justify-center">
-                    <BarChart3 className="text-brand-green" size={32} />
+                    <Loader2 className="text-brand-green animate-spin" size={32} />
                   </div>
-                  <div className="absolute inset-0 rounded-2xl border-2 border-brand-green/30 animate-ping" />
                 </div>
                 <div className="text-center">
-                  <h2 className="text-lg font-semibold text-white">Generating Report</h2>
-                  <p className="text-sm text-zinc-400 mt-1">Crunching the numbers...</p>
+                  <h2 className="text-lg font-semibold text-white">Loading Report</h2>
+                  <p className="text-sm text-zinc-400 mt-1">Fetching real data...</p>
                 </div>
               </div>
             </div>
           ) : (
             <>
-              {/* Delivery Report */}
-              {activeReport === 'delivery' && (
-                <div className="space-y-6">
-                  {/* Summary Cards */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-neutral-400 text-sm">Total Deliveries</span>
-                        <TrendingUp className="text-green-400" size={16} />
-                      </div>
-                      <p className="text-3xl font-bold text-white">156</p>
-                      <p className="text-xs text-green-400">+12% from last month</p>
-                    </div>
-                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-neutral-400 text-sm">Completed</span>
-                        <CheckCircle2 className="text-green-400" size={16} />
-                      </div>
-                      <p className="text-3xl font-bold text-white">142</p>
-                      <p className="text-xs text-neutral-400">91% completion rate</p>
-                    </div>
-                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-neutral-400 text-sm">Avg Time</span>
-                        <Clock className="text-blue-400" size={16} />
-                      </div>
-                      <p className="text-3xl font-bold text-white">45m</p>
-                      <p className="text-xs text-blue-400">-5m improvement</p>
-                    </div>
-                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-neutral-400 text-sm">Material Value</span>
-                        <DollarSign className="text-green-400" size={16} />
-                      </div>
-                      <p className="text-3xl font-bold text-white">$287K</p>
-                      <p className="text-xs text-green-400">+18% revenue</p>
-                    </div>
-                  </div>
-
-                  {/* Driver Performance */}
-                  <div className="grid lg:grid-cols-2 gap-6">
-                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6">
-                      <h3 className="text-lg font-semibold text-white mb-4">Driver Performance</h3>
-                      <div className="space-y-4">
-                        {[
-                          { name: 'Rick', deliveries: 82, completed: 78, avgTime: 42, value: 156000 },
-                          { name: 'Tae', deliveries: 74, completed: 64, avgTime: 48, value: 131450 },
-                        ].map((driver) => (
-                          <div key={driver.name} className="bg-neutral-800/50 rounded-lg p-4">
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400 font-bold">
-                                  {driver.name[0]}
-                                </div>
-                                <div>
-                                  <p className="text-white font-medium">{driver.name}</p>
-                                  <p className="text-neutral-400 text-sm">{driver.deliveries} deliveries</p>
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-white font-bold">${(driver.value / 1000).toFixed(0)}K</p>
-                                <p className="text-neutral-400 text-xs">{driver.avgTime}m avg</p>
-                              </div>
-                            </div>
-                            <div className="w-full bg-neutral-700 rounded-full h-2">
-                              <div
-                                className="bg-brand-green h-2 rounded-full"
-                                style={{ width: `${(driver.completed / driver.deliveries) * 100}%` }}
-                              />
-                            </div>
-                            <p className="text-neutral-400 text-xs mt-1">
-                              {Math.round((driver.completed / driver.deliveries) * 100)}% on-time rate
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6">
-                      <h3 className="text-lg font-semibold text-white mb-4">Status Distribution</h3>
-                      <div className="space-y-3">
-                        {[
-                          { status: 'Completed', count: 142, color: 'bg-green-500' },
-                          { status: 'In Progress', count: 10, color: 'bg-brand-green' },
-                          { status: 'Pending', count: 4, color: 'bg-yellow-500' },
-                          { status: 'Cancelled', count: 2, color: 'bg-red-500' },
-                        ].map((item) => (
-                          <div key={item.status} className="flex items-center gap-3">
-                            <div className={`w-3 h-3 rounded-full ${item.color}`} />
-                            <span className="text-neutral-300 flex-1">{item.status}</span>
-                            <span className="text-white font-medium">{item.count}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Billing Report */}
+              {/* ============================================================ */}
+              {/* BILLING REPORT - Real data from financial API + commissions  */}
+              {/* ============================================================ */}
               {activeReport === 'billing' && (
                 <div className="space-y-6">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
-                      <p className="text-neutral-400 text-sm mb-1">Total Invoiced</p>
-                      <p className="text-3xl font-bold text-white">$425K</p>
-                    </div>
-                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
-                      <p className="text-neutral-400 text-sm mb-1">Total Paid</p>
-                      <p className="text-3xl font-bold text-green-400">$389K</p>
-                    </div>
-                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
-                      <p className="text-neutral-400 text-sm mb-1">Pending</p>
-                      <p className="text-3xl font-bold text-yellow-400">$28K</p>
-                    </div>
-                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
-                      <p className="text-neutral-400 text-sm mb-1">Overdue</p>
-                      <p className="text-3xl font-bold text-red-400">$7.5K</p>
-                    </div>
-                  </div>
+                  {financialSummary ? (
+                    <>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                          <p className="text-neutral-400 text-sm mb-1">YTD Revenue</p>
+                          <p className="text-3xl font-bold text-white">{formatCurrency(financialSummary.revenueYTD)}</p>
+                          <p className="text-xs text-neutral-500 mt-1">Estimated from commissions</p>
+                        </div>
+                        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                          <p className="text-neutral-400 text-sm mb-1">This Month</p>
+                          <p className="text-3xl font-bold text-green-400">{formatCurrency(financialSummary.revenueThisMonth)}</p>
+                          {financialSummary.monthOverMonthGrowth !== 0 && (
+                            <p className={`text-xs mt-1 flex items-center gap-1 ${
+                              financialSummary.monthOverMonthGrowth >= 0 ? 'text-green-400' : 'text-red-400'
+                            }`}>
+                              {financialSummary.monthOverMonthGrowth >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                              {financialSummary.monthOverMonthGrowth >= 0 ? '+' : ''}{financialSummary.monthOverMonthGrowth.toFixed(1)}% vs last month
+                            </p>
+                          )}
+                        </div>
+                        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                          <p className="text-neutral-400 text-sm mb-1">Accounts Receivable</p>
+                          <p className="text-3xl font-bold text-yellow-400">{formatCurrency(financialSummary.accountsReceivable)}</p>
+                          <p className="text-xs text-neutral-500 mt-1">{financialSummary.outstandingInvoices} outstanding</p>
+                        </div>
+                        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                          <p className="text-neutral-400 text-sm mb-1">Overdue</p>
+                          <p className={`text-3xl font-bold ${financialSummary.overdueAmount > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                            {formatCurrency(financialSummary.overdueAmount)}
+                          </p>
+                          <p className="text-xs text-neutral-500 mt-1">{financialSummary.overdueInvoices} invoices</p>
+                        </div>
+                      </div>
 
-                  <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold text-white mb-4">Monthly Trend</h3>
-                    <div className="h-64 flex items-end gap-4">
-                      {['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month, i) => {
-                        const height = [65, 78, 72, 85, 92, 88][i];
-                        return (
-                          <div key={month} className="flex-1 flex flex-col items-center gap-2">
-                            <div
-                              className="w-full bg-brand-green/80 rounded-t-lg transition-all"
-                              style={{ height: `${height}%` }}
-                            />
-                            <span className="text-neutral-400 text-sm">{month}</span>
+                      {/* Gross Margin */}
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                          <p className="text-neutral-400 text-sm mb-1">Gross Margin</p>
+                          <p className={`text-3xl font-bold ${financialSummary.grossMargin >= 25 ? 'text-green-400' : 'text-yellow-400'}`}>
+                            {financialSummary.grossMargin.toFixed(1)}%
+                          </p>
+                          <p className="text-xs text-neutral-500 mt-1">{financialSummary.grossMargin >= 25 ? 'Healthy margin' : 'Below 25% target'}</p>
+                        </div>
+                        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                          <p className="text-neutral-400 text-sm mb-1">Last Month Revenue</p>
+                          <p className="text-3xl font-bold text-white">{formatCurrency(financialSummary.revenueLastMonth)}</p>
+                          <p className="text-xs text-neutral-500 mt-1">Previous period comparison</p>
+                        </div>
+                      </div>
+
+                      {/* Revenue Trend */}
+                      {revenueByPeriod.length > 0 && (
+                        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6">
+                          <h3 className="text-lg font-semibold text-white mb-4">Monthly Revenue Trend</h3>
+                          <div className="h-64 flex items-end gap-4">
+                            {revenueByPeriod.map((period) => {
+                              const maxRevenue = Math.max(...revenueByPeriod.map(p => p.revenue));
+                              const height = maxRevenue > 0 ? (period.revenue / maxRevenue) * 100 : 0;
+                              return (
+                                <div key={period.period} className="flex-1 flex flex-col items-center gap-2 group relative">
+                                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-zinc-800 px-2 py-1 rounded text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                                    {formatCurrency(period.revenue)}
+                                  </div>
+                                  <div
+                                    className="w-full bg-brand-green/80 rounded-t-lg transition-all group-hover:bg-brand-green"
+                                    style={{ height: `${Math.max(height, period.revenue > 0 ? 2 : 0)}%` }}
+                                  />
+                                  <span className="text-neutral-400 text-xs truncate w-full text-center">
+                                    {period.periodLabel.split(' ')[0]}
+                                  </span>
+                                </div>
+                              );
+                            })}
                           </div>
-                        );
-                      })}
-                    </div>
-                  </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <NoDataPlaceholder
+                      title="No Financial Data Available"
+                      message="Unable to load financial data. This report requires commission data to be present."
+                    />
+                  )}
                 </div>
               )}
 
-              {/* Inventory Report */}
-              {activeReport === 'inventory' && (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
-                      <p className="text-neutral-400 text-sm mb-1">Total Products</p>
-                      <p className="text-3xl font-bold text-white">124</p>
-                    </div>
-                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
-                      <p className="text-neutral-400 text-sm mb-1">Total Value</p>
-                      <p className="text-3xl font-bold text-white">$89K</p>
-                    </div>
-                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
-                      <p className="text-neutral-400 text-sm mb-1">Low Stock</p>
-                      <p className="text-3xl font-bold text-yellow-400">8</p>
-                    </div>
-                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
-                      <p className="text-neutral-400 text-sm mb-1">Out of Stock</p>
-                      <p className="text-3xl font-bold text-red-400">2</p>
-                    </div>
-                  </div>
-
-                  <div className="grid lg:grid-cols-2 gap-6">
-                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6">
-                      <h3 className="text-lg font-semibold text-white mb-4">By Category</h3>
-                      <div className="space-y-3">
-                        {[
-                          { name: 'Shingles', count: 24, value: 42500, low: 2 },
-                          { name: 'Underlayment', count: 12, value: 12800, low: 1 },
-                          { name: 'Flashing', count: 18, value: 9000, low: 0 },
-                          { name: 'Fasteners', count: 28, value: 4800, low: 3 },
-                          { name: 'Ventilation', count: 16, value: 8100, low: 1 },
-                        ].map((cat) => (
-                          <div key={cat.name} className="flex items-center justify-between py-2 border-b border-white/5">
-                            <div>
-                              <p className="text-white">{cat.name}</p>
-                              <p className="text-neutral-400 text-sm">{cat.count} products</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-white font-medium">${(cat.value / 1000).toFixed(1)}K</p>
-                              {cat.low > 0 && (
-                                <p className="text-yellow-400 text-xs">{cat.low} low</p>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6">
-                      <h3 className="text-lg font-semibold text-white mb-4">Top Moving Items</h3>
-                      <div className="space-y-3">
-                        {[
-                          { name: 'OC Duration 30yr', used: 245, revenue: 24500 },
-                          { name: '30lb Felt Paper', used: 180, revenue: 5400 },
-                          { name: 'Ice & Water Shield', used: 156, revenue: 6240 },
-                        ].map((item, i) => (
-                          <div key={item.name} className="flex items-center gap-3 py-2 border-b border-white/5">
-                            <span className="text-brand-green font-bold">#{i + 1}</span>
-                            <div className="flex-1">
-                              <p className="text-white">{item.name}</p>
-                              <p className="text-neutral-400 text-sm">{item.used} units sold</p>
-                            </div>
-                            <p className="text-green-400 font-medium">${(item.revenue / 1000).toFixed(1)}K</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Team Report */}
+              {/* ============================================================ */}
+              {/* TEAM REPORT - Real data from sales/commissions API           */}
+              {/* ============================================================ */}
               {activeReport === 'team' && (
                 <div className="space-y-6">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
-                      <p className="text-neutral-400 text-sm mb-1">Total Team</p>
-                      <p className="text-3xl font-bold text-white">9</p>
-                    </div>
-                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
-                      <p className="text-neutral-400 text-sm mb-1">Active Today</p>
-                      <p className="text-3xl font-bold text-green-400">7</p>
-                    </div>
-                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
-                      <p className="text-neutral-400 text-sm mb-1">Drivers</p>
-                      <p className="text-3xl font-bold text-orange-400">2</p>
-                    </div>
-                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
-                      <p className="text-neutral-400 text-sm mb-1">PMs</p>
-                      <p className="text-3xl font-bold text-cyan-400">2</p>
-                    </div>
-                  </div>
+                  {salesSummary ? (
+                    <>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                          <p className="text-neutral-400 text-sm mb-1">Total Commission Payouts</p>
+                          <p className="text-3xl font-bold text-brand-green">{formatCurrency(salesSummary.totalCommissions)}</p>
+                          <p className="text-xs text-neutral-500 mt-1">From 1099 records</p>
+                        </div>
+                        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                          <p className="text-neutral-400 text-sm mb-1">Total Transactions</p>
+                          <p className="text-3xl font-bold text-white">{salesSummary.transactionCount.toLocaleString()}</p>
+                        </div>
+                        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                          <p className="text-neutral-400 text-sm mb-1">Avg Transaction</p>
+                          <p className="text-3xl font-bold text-white">{formatCurrency(salesSummary.avgTransactionValue)}</p>
+                        </div>
+                        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                          <p className="text-neutral-400 text-sm mb-1">Active Reps</p>
+                          <p className="text-3xl font-bold text-white">{salesSummary.uniqueReps}</p>
+                        </div>
+                      </div>
 
-                  <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold text-white mb-4">Team Performance</h3>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {[
-                        { name: 'John (PM)', orders: 85, value: 168500, rate: 94.1 },
-                        { name: 'Bart (PM)', orders: 71, value: 118950, rate: 92.3 },
-                        { name: 'Rick (Driver)', deliveries: 82, onTime: 78, avgTime: 42 },
-                        { name: 'Tae (Driver)', deliveries: 74, onTime: 68, avgTime: 48 },
-                      ].map((person) => (
-                        <div key={person.name} className="bg-neutral-800/50 rounded-lg p-4">
-                          <p className="text-white font-medium mb-2">{person.name}</p>
-                          <div className="grid grid-cols-2 gap-2 text-sm">
-                            {'orders' in person ? (
-                              <>
-                                <div>
-                                  <p className="text-neutral-400">Orders</p>
-                                  <p className="text-white font-bold">{person.orders}</p>
+                      {/* Commission Leaderboard */}
+                      {leaderboard.length > 0 && (
+                        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6">
+                          <h3 className="text-lg font-semibold text-white mb-4">Commission Leaderboard (All Time)</h3>
+                          <div className="space-y-3">
+                            {leaderboard.map((rep) => (
+                              <div key={rep.name} className="bg-neutral-800/50 rounded-lg p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center gap-3">
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                                      rep.rank === 1 ? 'bg-yellow-500/20 text-yellow-400' :
+                                      rep.rank === 2 ? 'bg-gray-400/20 text-neutral-400' :
+                                      rep.rank === 3 ? 'bg-orange-500/20 text-orange-400' :
+                                      'bg-zinc-700 text-neutral-400'
+                                    }`}>
+                                      #{rep.rank}
+                                    </div>
+                                    <div>
+                                      <p className="text-white font-medium">{rep.name}</p>
+                                      <p className="text-neutral-400 text-xs">{rep.transactionCount} transactions</p>
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-brand-green font-bold">{formatCurrency(rep.totalCommissions)}</p>
+                                    <p className="text-neutral-400 text-xs">Avg: {formatCurrency(rep.avgTransaction)}</p>
+                                  </div>
                                 </div>
-                                <div>
-                                  <p className="text-neutral-400">Value</p>
-                                  <p className="text-white font-bold">${((person.value || 0) / 1000).toFixed(0)}K</p>
+                                <div className="w-full bg-neutral-700 rounded-full h-2">
+                                  <div
+                                    className="bg-brand-green h-2 rounded-full"
+                                    style={{ width: `${Math.min(rep.percentOfTotal, 100)}%` }}
+                                  />
                                 </div>
-                              </>
-                            ) : (
-                              <>
-                                <div>
-                                  <p className="text-neutral-400">Deliveries</p>
-                                  <p className="text-white font-bold">{person.deliveries}</p>
-                                </div>
-                                <div>
-                                  <p className="text-neutral-400">On-Time</p>
-                                  <p className="text-white font-bold">{person.onTime}</p>
-                                </div>
-                              </>
-                            )}
+                                <p className="text-neutral-400 text-xs mt-1">
+                                  {rep.percentOfTotal.toFixed(1)}% of total commissions
+                                </p>
+                              </div>
+                            ))}
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
+                      )}
+                    </>
+                  ) : (
+                    <NoDataPlaceholder
+                      title="No Team Data Available"
+                      message="Unable to load sales team data. Commission records are required."
+                    />
+                  )}
                 </div>
               )}
 
-              {/* Job Flow Report */}
-              {activeReport === 'jobflow' && (
+              {/* ============================================================ */}
+              {/* INVENTORY REPORT - Real data from inventory API              */}
+              {/* ============================================================ */}
+              {activeReport === 'inventory' && (
                 <div className="space-y-6">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
-                      <p className="text-neutral-400 text-sm mb-1">Avg Completion Time</p>
-                      <p className="text-3xl font-bold text-white">10h 15m</p>
-                    </div>
-                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
-                      <p className="text-neutral-400 text-sm mb-1">In Pipeline</p>
-                      <p className="text-3xl font-bold text-blue-400">22</p>
-                    </div>
-                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
-                      <p className="text-neutral-400 text-sm mb-1">Bottlenecks</p>
-                      <p className="text-3xl font-bold text-yellow-400">2</p>
-                    </div>
-                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
-                      <p className="text-neutral-400 text-sm mb-1">Alerts</p>
-                      <p className="text-3xl font-bold text-red-400">3</p>
-                    </div>
-                  </div>
-
-                  {/* Job Flow Visualization */}
-                  <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold text-white mb-6">Material Flow Pipeline</h3>
-                    <div className="overflow-x-auto">
-                      <div className="flex gap-2 min-w-max pb-4">
-                        {[
-                          { stage: 'Order Created', count: 3, time: 5, color: 'bg-white/50' },
-                          { stage: 'Reviewed', count: 2, time: 15, color: 'bg-cyan-500' },
-                          { stage: 'Driver Assigned', count: 2, time: 10, color: 'bg-brand-green' },
-                          { stage: 'Materials Pulled', count: 4, time: 45, color: 'bg-yellow-500', bottleneck: true },
-                          { stage: 'Load Verified', count: 2, time: 15, color: 'bg-purple-500' },
-                          { stage: 'En Route', count: 1, time: 35, color: 'bg-brand-green' },
-                          { stage: 'Delivered', count: 0, time: 20, color: 'bg-teal-500' },
-                          { stage: 'Billing', count: 8, time: 480, color: 'bg-orange-500', bottleneck: true },
-                        ].map((stage, i) => (
-                          <div key={stage.stage} className="flex flex-col items-center">
-                            <div className={`relative w-24 p-3 rounded-lg text-center ${
-                              stage.bottleneck ? 'bg-yellow-500/20 border-2 border-yellow-500' : 'bg-neutral-800'
-                            }`}>
-                              {stage.bottleneck && (
-                                <AlertTriangle className="absolute -top-2 -right-2 text-yellow-500" size={16} />
-                              )}
-                              <p className="text-white text-sm font-medium">{stage.stage}</p>
-                              <p className={`text-xl font-bold ${stage.count > 0 ? 'text-white' : 'text-neutral-500'}`}>
-                                {stage.count}
-                              </p>
-                              <p className="text-neutral-400 text-xs">{stage.time}m avg</p>
-                            </div>
-                            {i < 7 && (
-                              <ArrowRight className="my-2 text-neutral-500" size={16} />
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Alerts */}
-                  <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                      <AlertTriangle className="text-yellow-400" size={20} />
-                      Active Alerts
-                    </h3>
-                    <div className="space-y-3">
-                      {[
-                        { type: 'stuck', ticket: 'TKT-2024-0156', message: 'Stuck in materials_pulled for 2+ hours', severity: 'high' },
-                        { type: 'delay', ticket: 'TKT-2024-0148', message: 'Billing pending for 3+ days', severity: 'medium' },
-                        { type: 'overdue', ticket: 'TKT-2024-0142', message: 'Invoice overdue by 7 days', severity: 'high' },
-                      ].map((alert, i) => (
-                        <div key={i} className={`flex items-center gap-4 p-3 rounded-lg ${
-                          alert.severity === 'high' ? 'bg-red-500/10' : 'bg-yellow-500/10'
-                        }`}>
-                          <AlertTriangle className={
-                            alert.severity === 'high' ? 'text-red-400' : 'text-yellow-400'
-                          } size={20} />
-                          <div className="flex-1">
-                            <p className={alert.severity === 'high' ? 'text-red-400' : 'text-yellow-400'}>
-                              {alert.message}
-                            </p>
-                            <p className="text-neutral-400 text-sm">{alert.ticket}</p>
-                          </div>
-                          <button className="px-3 py-1 bg-white/10 rounded text-white text-sm hover:bg-white/20">
-                            View
-                          </button>
+                  {inventorySummary ? (
+                    <>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                          <p className="text-neutral-400 text-sm mb-1">Total Products</p>
+                          <p className="text-3xl font-bold text-white">{inventorySummary.totalItems}</p>
                         </div>
-                      ))}
-                    </div>
-                  </div>
+                        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                          <p className="text-neutral-400 text-sm mb-1">Total Value</p>
+                          <p className="text-3xl font-bold text-white">
+                            {inventorySummary.totalValue ? formatCurrency(inventorySummary.totalValue) : '--'}
+                          </p>
+                          <p className="text-xs text-neutral-500 mt-1">Retail value</p>
+                        </div>
+                        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                          <p className="text-neutral-400 text-sm mb-1">Low Stock</p>
+                          <p className={`text-3xl font-bold ${inventorySummary.lowStockCount > 0 ? 'text-yellow-400' : 'text-green-400'}`}>
+                            {inventorySummary.lowStockCount}
+                          </p>
+                        </div>
+                        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                          <p className="text-neutral-400 text-sm mb-1">Out of Stock</p>
+                          <p className={`text-3xl font-bold ${
+                            inventoryItems.filter(i => (i.currentQty ?? i.quantity ?? 0) === 0).length > 0 ? 'text-red-400' : 'text-green-400'
+                          }`}>
+                            {inventoryItems.filter(i => (i.currentQty ?? i.quantity ?? 0) === 0).length}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid lg:grid-cols-2 gap-6">
+                        {/* Categories from real data */}
+                        {categoryBreakdown.length > 0 && (
+                          <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6">
+                            <h3 className="text-lg font-semibold text-white mb-4">By Category</h3>
+                            <div className="space-y-3">
+                              {categoryBreakdown.map((cat) => (
+                                <div key={cat.category} className="flex items-center justify-between py-2 border-b border-white/5">
+                                  <div>
+                                    <p className="text-white">{cat.label || cat.category}</p>
+                                    <p className="text-neutral-400 text-sm">{cat.itemCount} products</p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-white font-medium">{formatCurrency(cat.totalRetail)}</p>
+                                    {cat.lowStockCount > 0 && (
+                                      <p className="text-yellow-400 text-xs">{cat.lowStockCount} low stock</p>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Top items by quantity */}
+                        {inventoryItems.length > 0 && (
+                          <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6">
+                            <h3 className="text-lg font-semibold text-white mb-4">Top Items by Stock</h3>
+                            <div className="space-y-3">
+                              {inventoryItems
+                                .sort((a, b) => (b.currentQty ?? b.quantity ?? 0) - (a.currentQty ?? a.quantity ?? 0))
+                                .slice(0, 8)
+                                .map((item, i) => {
+                                  const qty = item.currentQty ?? item.quantity ?? 0;
+                                  const name = item.productName || item.name || item.sku || 'Unknown';
+                                  return (
+                                    <div key={item.sku || i} className="flex items-center gap-3 py-2 border-b border-white/5">
+                                      <span className="text-brand-green font-bold text-sm">#{i + 1}</span>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-white truncate">{name}</p>
+                                        <p className="text-neutral-400 text-xs">{item.category || 'Uncategorized'}</p>
+                                      </div>
+                                      <div className="text-right">
+                                        <p className="text-white font-medium">{qty} {item.unit || 'units'}</p>
+                                        {item.unitPrice ? (
+                                          <p className="text-neutral-400 text-xs">{formatCurrency(item.unitPrice)} each</p>
+                                        ) : null}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <NoDataPlaceholder
+                      title="No Inventory Data Available"
+                      message="Inventory data could not be loaded. Ensure the inventory system is configured."
+                    />
+                  )}
                 </div>
+              )}
+
+              {/* ============================================================ */}
+              {/* DELIVERY REPORT - No real data source yet                    */}
+              {/* ============================================================ */}
+              {activeReport === 'delivery' && (
+                <NoDataPlaceholder
+                  title="No Delivery Data Available"
+                  message="Delivery tracking data is not yet connected. This report will show real delivery metrics once the delivery tracking system records actual deliveries."
+                />
+              )}
+
+              {/* ============================================================ */}
+              {/* JOB FLOW REPORT - No real data source yet                    */}
+              {/* ============================================================ */}
+              {activeReport === 'jobflow' && (
+                <NoDataPlaceholder
+                  title="No Job Flow Data Available"
+                  message="Job flow pipeline data is not yet connected. This report will show real workflow metrics once job tracking records actual stage transitions."
+                />
               )}
             </>
           )}

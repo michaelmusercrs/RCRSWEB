@@ -114,17 +114,22 @@ export const ROLE_DEFAULT_ROUTES: Record<TeamRole, string> = {
 // Call server-side auth API to set JWT cookies (required for API routes)
 async function setServerSession(member: TeamMember): Promise<boolean> {
   try {
+    // Use the effective password (localStorage override or default)
+    const storedPassword = typeof window !== 'undefined'
+      ? localStorage.getItem(`portalPassword_${member.id}`)
+      : null;
+    const effectivePassword = storedPassword || member.password;
+
     const res = await fetch('/api/portal/auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        action: 'login-passcode',
+        action: 'login-password',
         email: member.email,
-        passcode: member.password,
+        password: effectivePassword,
       }),
     });
     if (res.ok) return true;
-    // Fallback: try validate to see if session already exists
     console.warn('Server auth failed, API routes may return 401');
     return false;
   } catch (err) {
