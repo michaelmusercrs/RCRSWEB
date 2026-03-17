@@ -39,6 +39,7 @@ interface Lead {
   assignedTo: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';
   accessToken?: string;
+  jnContactId?: string; // JobNimbus contact ID for linking to customer detail
 }
 
 type ActiveTab = 'active' | 'history';
@@ -162,7 +163,7 @@ export default function LeadsPage() {
     }
   }, [user, isLoading, router]);
 
-  // Fetch leads from API
+  // Fetch leads from lead system API + fallback to JN jobs
   useEffect(() => {
     if (!user?.userId) return;
 
@@ -170,37 +171,107 @@ export default function LeadsPage() {
       setFetchLoading(true);
       setFetchError(null);
       try {
-        const res = await fetch(`/api/leads?salesRep=${encodeURIComponent(user!.userId)}`);
-        if (!res.ok) {
-          throw new Error(`Failed to fetch leads (${res.status})`);
+        // Fetch from both lead system and JobNimbus in parallel
+        const [leadsRes, jnJobsRes] = await Promise.all([
+          fetch(`/api/leads?salesRep=${encodeURIComponent(user!.userId)}`).catch(() => null),
+          fetch('/api/portal/jobnimbus/my-jobs').catch(() => null),
+        ]);
+
+        let allLeads: Lead[] = [];
+
+        // Process leads from the lead distribution system
+        if (leadsRes?.ok) {
+          const json = await leadsRes.json();
+          if (json.success && Array.isArray(json.data)) {
+            const mapped: Lead[] = json.data.map((r: any) => ({
+              id: r.leadId || r.id,
+              customerName: r.customerName || r.name || '',
+              customerPhone: r.customerPhone || r.phone || '',
+              customerEmail: r.customerEmail || r.email || '',
+              address: r.customerAddress || r.address || '',
+              city: r.city || '',
+              state: r.state || '',
+              zip: r.zip || '',
+              status: r.status || 'new',
+              source: r.source || '',
+              estimatedValue: r.estimatedValue || 0,
+              notes: r.message || r.notes || '',
+              createdAt: r.createdAt || new Date().toISOString(),
+              lastContact: r.lastContact || r.updatedAt,
+              scheduledDate: r.scheduledDate,
+              assignedTo: r.salesRepSlug || r.assignedTo || '',
+              priority: r.priority || r.urgency || 'medium',
+              accessToken: r.accessToken,
+              jnContactId: r.jobnimbusContactId || r.jnContactId || undefined,
+            }));
+            allLeads = mapped;
+          }
         }
-        const json = await res.json();
-        if (json.success && Array.isArray(json.data)) {
-          // Map API lead records to local Lead shape
-          const mapped: Lead[] = json.data.map((r: any) => ({
-            id: r.leadId || r.id,
-            customerName: r.customerName || r.name || '',
-            customerPhone: r.customerPhone || r.phone || '',
-            customerEmail: r.customerEmail || r.email || '',
-            address: r.customerAddress || r.address || '',
-            city: r.city || '',
-            state: r.state || '',
-            zip: r.zip || '',
-            status: r.status || 'new',
-            source: r.source || '',
-            estimatedValue: r.estimatedValue || 0,
-            notes: r.message || r.notes || '',
-            createdAt: r.createdAt || new Date().toISOString(),
-            lastContact: r.lastContact || r.updatedAt,
-            scheduledDate: r.scheduledDate,
-            assignedTo: r.salesRepSlug || r.assignedTo || '',
-            priority: r.priority || r.urgency || 'medium',
-            accessToken: r.accessToken,
-          }));
-          setLeads(mapped);
-        } else {
-          // API returned success: false or unexpected shape
-          setLeads([]);
+
+        // Supplement with JobNimbus jobs (active jobs not already in leads)
+        if (jnJobsRes?.ok) {
+          const jnData = await jnJobsRes.json();
+          if (jnData.success && Array.isArray(jnData.jobs)) {
+            // Build a set of existing addresses/names to avoid duplicates
+            const existingNames = new Set(allLeads.map(l => l.customerName.toLowerCase()));
+
+            const jnMapped: Lead[] = jnData.jobs
+              .filter((job: any) => {
+                // Skip jobs that already exist in leads (by name match)
+                const jobName = (job.name || '').toLowerCase();
+                return !existingNames.has(jobName);
+              })
+              .map((job: any) => {
+                // Map JN status to our lead status
+                const statusMap: Record<string, Lead['status']> = {
+                  'Lead': 'new', 'New': 'new',
+                  'Contacted': 'contacted',
+                  'Appointment Set': 'scheduled', 'Scheduled': 'scheduled',
+                  'Inspected': 'inspected',
+                  'Estimate Sent': 'quoted',
+                  'Contract Signed': 'closed_won',
+                  'Material Ordered': 'closed_won',
+                  'Work In Progress': 'closed_won',
+                  'Complete': 'closed_won', 'Completed': 'closed_won',
+                  'Lost': 'closed_lost', 'Cancelled': 'closed_lost',
+                };
+                const mappedStatus = statusMap[job.status] || 'new';
+
+                let priority: Lead['priority'] = 'medium';
+                if (mappedStatus === 'new') priority = 'urgent';
+                else if (mappedStatus === 'scheduled' || mappedStatus === 'quoted') priority = 'high';
+
+                return {
+                  id: job.jnid || job.number || '',
+                  customerName: job.name || 'Unknown',
+                  customerPhone: job.phone || '',
+                  customerEmail: job.email || '',
+                  address: job.address || '',
+                  city: job.city || '',
+                  state: job.state || 'AL',
+                  zip: job.zip || '',
+                  status: mappedStatus,
+                  source: 'JobNimbus',
+                  estimatedValue: job.estimateTotal || 0,
+                  notes: job.description || '',
+                  createdAt: job.createdAt || new Date().toISOString(),
+                  lastContact: job.updatedAt,
+                  scheduledDate: job.startDate || undefined,
+                  assignedTo: job.salesRep || jnData.repName || '',
+                  priority,
+                  jnContactId: job.contactJnid || job.jnid || undefined,
+                };
+              });
+
+            allLeads = [...allLeads, ...jnMapped];
+          }
+        }
+
+        setLeads(allLeads);
+
+        // If both sources failed
+        if (!leadsRes?.ok && !jnJobsRes?.ok) {
+          setFetchError('Failed to load leads from both lead system and JobNimbus');
         }
       } catch (err) {
         setFetchError(err instanceof Error ? err.message : 'Failed to load leads');
@@ -739,7 +810,7 @@ export default function LeadsPage() {
                           <span className="text-[10px] text-purple-400 mt-0.5">Status</span>
                         </button>
                         <Link
-                          href={`/portal/sales/customers/${lead.id}`}
+                          href={`/portal/sales/customers/${lead.jnContactId || lead.id}`}
                           className="flex flex-col items-center justify-center p-2.5 bg-white/5 hover:bg-white/10 rounded-xl transition-colors active:scale-95"
                         >
                           <ArrowRight size={18} className="text-neutral-400" />
@@ -855,7 +926,7 @@ export default function LeadsPage() {
                           </div>
                         </div>
                         <Link
-                          href={`/portal/sales/customers/${lead.id}`}
+                          href={`/portal/sales/customers/${lead.jnContactId || lead.id}`}
                           className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-colors"
                         >
                           <ArrowRight size={16} className="text-neutral-400" />

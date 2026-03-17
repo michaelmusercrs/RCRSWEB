@@ -165,18 +165,20 @@ export default function SalesPortal() {
     }
   }, [user, isLoading, router]);
 
-  // Load data from real APIs
+  // Load data from real APIs (commission data + JobNimbus CRM + leads)
   const loadData = useCallback(async () => {
     if (!user) return;
     setIsLoadingData(true);
     try {
-      const [salesRes, leadsRes, commissionsRes] = await Promise.all([
+      const [salesRes, leadsRes, commissionsRes, jnJobsRes, jnMetricsRes] = await Promise.all([
         fetch('/api/command-center/sales?period=month').catch(() => null),
-        fetch('/api/dashboard/leads').catch(() => null),
+        fetch(`/api/leads?salesRep=${encodeURIComponent(user.userId || '')}`).catch(() => null),
         fetch(`/api/command-center/sales?period=year&rep=${encodeURIComponent(user.name)}`).catch(() => null),
+        fetch('/api/portal/jobnimbus/my-jobs').catch(() => null),
+        fetch('/api/portal/jobnimbus/metrics?period=3').catch(() => null),
       ]);
 
-      // Process sales leaderboard data
+      // Process sales leaderboard data (commission data from QuickBooks)
       if (salesRes?.ok) {
         const salesData = await salesRes.json();
         if (salesData.success && salesData.data) {
@@ -202,7 +204,6 @@ export default function SalesPortal() {
             closedDeals: rep?.transactionCount || 0,
             avgDealSize: rep?.avgTransaction || 0,
             leaderboardPosition: rep?.rank || 0,
-            totalLeads: summary?.transactionCount || 0,
             conversionRate: rep ? ((rep.transactionCount / (summary.transactionCount || 1)) * 100) : 0,
             teamAvgRevenue,
             teamAvgDeals,
@@ -256,26 +257,158 @@ export default function SalesPortal() {
         }
       }
 
-      // Process leads
+      // Process JobNimbus jobs - map to leads format for dashboard display
+      if (jnJobsRes?.ok) {
+        const jnJobsData = await jnJobsRes.json();
+        if (jnJobsData.success && Array.isArray(jnJobsData.jobs)) {
+          // Map JN jobs into the Lead interface for dashboard cards
+          const jnLeads: Lead[] = jnJobsData.jobs.map((job: any) => {
+            // Map JN status to our status enum
+            const statusMap: Record<string, Lead['status']> = {
+              'Lead': 'new', 'New': 'new',
+              'Contacted': 'contacted',
+              'Appointment Set': 'scheduled', 'Scheduled': 'scheduled',
+              'Inspected': 'inspected',
+              'Estimate Sent': 'quoted',
+              'Contract Signed': 'closed_won',
+              'Material Ordered': 'closed_won',
+              'Work In Progress': 'closed_won',
+              'Complete': 'closed_won', 'Completed': 'closed_won',
+              'Lost': 'closed_lost', 'Cancelled': 'closed_lost',
+            };
+            const mappedStatus = statusMap[job.status] || 'new';
+
+            // Determine priority based on status recency
+            let priority: Lead['priority'] = 'medium';
+            if (mappedStatus === 'new') priority = 'urgent';
+            else if (mappedStatus === 'scheduled') priority = 'high';
+            else if (mappedStatus === 'quoted') priority = 'high';
+
+            return {
+              id: job.jnid || job.number || '',
+              customerName: job.name || 'Unknown',
+              customerPhone: job.phone || '',
+              customerEmail: job.email || '',
+              address: job.address || '',
+              city: job.city || '',
+              state: job.state || 'AL',
+              zip: job.zip || '',
+              status: mappedStatus,
+              source: job.source || 'JobNimbus',
+              estimatedValue: job.estimateTotal || 0,
+              notes: job.description || '',
+              createdAt: job.createdAt || new Date().toISOString(),
+              lastContact: job.updatedAt,
+              scheduledDate: job.startDate || undefined,
+              assignedTo: job.salesRep || jnJobsData.repName || '',
+              priority,
+            };
+          });
+
+          // Only show active (non-completed, non-lost) jobs
+          const activeJnLeads = jnLeads.filter(l =>
+            l.status !== 'closed_won' && l.status !== 'closed_lost'
+          );
+
+          if (activeJnLeads.length > 0) {
+            setLeads(activeJnLeads);
+            setStats(prev => ({
+              ...prev,
+              totalLeads: activeJnLeads.length,
+              pendingQuotes: activeJnLeads.filter(l => l.status === 'quoted').length,
+              scheduledInspections: activeJnLeads.filter(l => l.status === 'scheduled').length,
+            }));
+          }
+        }
+      }
+
+      // Fallback: Process leads from /api/leads if JN jobs were empty
       if (leadsRes?.ok) {
         const leadsData = await leadsRes.json();
-        if (leadsData.success && Array.isArray(leadsData.leads)) {
-          const myLeads = leadsData.leads.filter(
-            (lead: Lead) => lead.assignedTo?.toLowerCase().includes(user.name.split(' ')[0].toLowerCase())
-          );
-          setLeads(myLeads.length > 0 ? myLeads : leadsData.leads.slice(0, 10));
+        if (leadsData.success && Array.isArray(leadsData.data)) {
+          // Only use leads API data if we don't already have JN data
+          setLeads(prev => {
+            if (prev.length > 0) return prev; // Already have JN data
 
-          // Update stats from leads
-          const activeLeads = myLeads.length > 0 ? myLeads : leadsData.leads.slice(0, 10);
-          const pendingQuotes = activeLeads.filter((l: Lead) => l.status === 'quoted').length;
-          const scheduledInspections = activeLeads.filter((l: Lead) => l.status === 'scheduled').length;
+            const mapped: Lead[] = leadsData.data.map((r: any) => ({
+              id: r.leadId || r.id || '',
+              customerName: r.customerName || r.name || '',
+              customerPhone: r.customerPhone || r.phone || '',
+              customerEmail: r.customerEmail || r.email || '',
+              address: r.customerAddress || r.address || '',
+              city: r.city || '',
+              state: r.state || 'AL',
+              zip: r.zip || '',
+              status: r.status || 'new',
+              source: r.source || '',
+              estimatedValue: r.estimatedValue || 0,
+              notes: r.message || r.notes || '',
+              createdAt: r.createdAt || new Date().toISOString(),
+              lastContact: r.lastContact || r.updatedAt,
+              scheduledDate: r.scheduledDate,
+              assignedTo: r.salesRepSlug || r.assignedTo || '',
+              priority: r.priority || r.urgency || 'medium',
+            }));
 
+            // Update stats from leads data
+            const pendingQuotes = mapped.filter(l => l.status === 'quoted').length;
+            const scheduledInspections = mapped.filter(l => l.status === 'scheduled').length;
+            setStats(s => ({
+              ...s,
+              pendingQuotes: s.pendingQuotes || pendingQuotes,
+              scheduledInspections: s.scheduledInspections || scheduledInspections,
+              totalLeads: s.totalLeads || mapped.length,
+            }));
+
+            return mapped;
+          });
+        }
+      }
+
+      // Process JN metrics for richer stats (win rate, revenue from JN)
+      if (jnMetricsRes?.ok) {
+        const metricsData = await jnMetricsRes.json();
+        if (metricsData.success && metricsData.metrics) {
+          const m = metricsData.metrics;
+          // Only override stats that JN provides better data for
           setStats(prev => ({
             ...prev,
-            pendingQuotes,
-            scheduledInspections,
-            totalLeads: prev.totalLeads || activeLeads.length,
+            // If we don't have commission data, use JN revenue
+            monthlyRevenue: prev.monthlyRevenue || m.closedRevenue || 0,
+            avgDealSize: prev.avgDealSize || m.avgJobValue || 0,
+            totalLeads: prev.totalLeads || m.totalJobs || 0,
+            closedDeals: prev.closedDeals || m.winCount || 0,
+            conversionRate: prev.conversionRate || (m.winRate ? m.winRate * 100 : 0),
           }));
+
+          // Add JN-based activity items
+          if (m.winCount > 0 || m.totalJobs > 0) {
+            setRecentActivity(prev => {
+              const jnActivities: ActivityItem[] = [];
+              if (m.closedRevenue > 0) {
+                jnActivities.push({
+                  id: 'jn-revenue',
+                  type: 'job_closed',
+                  description: `$${m.closedRevenue.toLocaleString()} in closed job revenue (JobNimbus)`,
+                  amount: m.closedRevenue,
+                  timestamp: new Date().toISOString(),
+                });
+              }
+              if (m.pendingRevenue > 0) {
+                jnActivities.push({
+                  id: 'jn-pending',
+                  type: 'quote_sent',
+                  description: `$${m.pendingRevenue.toLocaleString()} in pending pipeline`,
+                  amount: m.pendingRevenue,
+                  timestamp: new Date().toISOString(),
+                });
+              }
+              // Merge without duplicating
+              const existingIds = new Set(prev.map(a => a.id));
+              const newItems = jnActivities.filter(a => !existingIds.has(a.id));
+              return [...prev, ...newItems].slice(0, 8);
+            });
+          }
         }
       }
     } catch (error) {
