@@ -237,8 +237,18 @@ export function middleware(request: NextRequest) {
   // ── Portal domain: rcrsal.com ──────────────────────────────────────────────
 
   if (isPortalDomain(hostname)) {
+    // rcrsal.com root ALWAYS goes to portal login — never the public site
+    if (pathname === '/' || pathname === '') {
+      return NextResponse.rewrite(new URL('/portal', request.url));
+    }
+
     // Allow portal routes
     if (isPortalRoute(pathname)) {
+      return NextResponse.next();
+    }
+
+    // Allow BNI routes on portal domain too (presentations)
+    if (pathname.startsWith('/bni')) {
       return NextResponse.next();
     }
 

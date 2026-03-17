@@ -297,11 +297,25 @@ export default function PortalLogin() {
   const [pendingRedirect, setPendingRedirect] = useState<string | null>(null);
   const [loggedInUser, setLoggedInUser] = useState<{ name: string; role: TeamRole } | null>(null);
   const [contentVisible, setContentVisible] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [showRolePicker, setShowRolePicker] = useState(false);
+  const [availableRoles, setAvailableRoles] = useState<{ role: string; label: string; route: string; icon: string }[]>([]);
 
   const handleSplashComplete = useCallback(() => {
     setShowSplash(false);
     // Let the DOM settle, then trigger the login pop-in animation
     setTimeout(() => setContentVisible(true), 150);
+  }, []);
+
+  // Load remembered email on mount
+  useEffect(() => {
+    try {
+      const savedEmail = localStorage.getItem('rcrs_remember_email');
+      if (savedEmail) {
+        setEmail(savedEmail);
+        setRememberMe(true);
+      }
+    } catch { /* ignore */ }
   }, []);
 
   // Check if splash has been seen this session
@@ -402,6 +416,15 @@ export default function PortalLogin() {
     const result = await login(email, password);
 
     if (result.success) {
+      // Save or clear remember me
+      try {
+        if (rememberMe) {
+          localStorage.setItem('rcrs_remember_email', email);
+        } else {
+          localStorage.removeItem('rcrs_remember_email');
+        }
+      } catch { /* ignore */ }
+
       if (result.mustChangePassword) {
         router.push('/portal/change-password');
         setIsLoading(false);
@@ -416,6 +439,28 @@ export default function PortalLogin() {
           setIsLoading(false);
           return;
         }
+
+        // Check if user has multiple role capabilities (e.g., Rick = sales + driver)
+        // Check admin overrides for additional roles
+        const dualRoleUsers: Record<string, { role: string; label: string; route: string; icon: string }[]> = {
+          'rick@rcrsal.com': [
+            { role: 'sales', label: 'Sales Portal', route: '/portal/sales', icon: '💰' },
+            { role: 'driver', label: 'Delivery & Inventory', route: '/portal/driver', icon: '🚛' },
+          ],
+          'richard@rcrsal.com': [
+            { role: 'driver', label: 'Delivery & Inventory', route: '/portal/driver', icon: '🚛' },
+            { role: 'sales', label: 'Sales Portal', route: '/portal/sales', icon: '💰' },
+          ],
+        };
+
+        const roles = dualRoleUsers[email.toLowerCase()];
+        if (roles && roles.length > 1) {
+          setAvailableRoles(roles);
+          setShowRolePicker(true);
+          setIsLoading(false);
+          return;
+        }
+
         router.push(ROLE_DEFAULT_ROUTES[member.role]);
       }
     } else {
@@ -432,6 +477,36 @@ export default function PortalLogin() {
   const handleBackspace = () => {
     setPin(prev => prev.slice(0, -1));
   };
+
+  // ── Role Picker (for dual-role users like Rick) ────────────────────────
+  if (showRolePicker && availableRoles.length > 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <Image src="/logo-nobg.png" alt="RCRS" width={64} height={64} className="mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-white">Where to?</h2>
+            <p className="text-neutral-400 mt-1">Choose your workspace</p>
+          </div>
+          <div className="space-y-3">
+            {availableRoles.map((r) => (
+              <button
+                key={r.role}
+                onClick={() => router.push(r.route)}
+                className="w-full flex items-center gap-4 p-5 bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 hover:border-brand-green/40 rounded-2xl transition-all group"
+              >
+                <span className="text-3xl">{r.icon}</span>
+                <div className="flex-1 text-left">
+                  <div className="font-semibold text-white group-hover:text-brand-green transition-colors">{r.label}</div>
+                </div>
+                <ChevronRight size={20} className="text-neutral-600 group-hover:text-brand-green transition-colors" />
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ── Splash Screen ────────────────────────────
   if (showSplash && !authLoading && !user) {
@@ -774,8 +849,17 @@ export default function PortalLogin() {
                 </div>
               </div>
 
-              {/* Forgot password link */}
-              <div className="flex justify-end mb-5">
+              {/* Remember me + Forgot password */}
+              <div className="flex items-center justify-between mb-5">
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded border-white/20 bg-white/5 text-brand-green focus:ring-brand-green/50 focus:ring-offset-0 cursor-pointer"
+                  />
+                  <span className="text-xs text-neutral-500 group-hover:text-neutral-300 transition-colors">Remember me</span>
+                </label>
                 <button
                   type="button"
                   onClick={() => setForgotMode('form')}
