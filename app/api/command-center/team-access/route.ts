@@ -17,7 +17,7 @@ export async function GET() {
   try {
     const cacheKey = 'cc:team-access';
     const cached = cache.get(cacheKey);
-    if (cached) return NextResponse.json(cached);
+    if (cached) return NextResponse.json(cached, { headers: { 'Cache-Control': 'private, s-maxage=30' } });
 
     const overrides = await googleSheetsService.getTeamAccessOverrides();
 
@@ -60,8 +60,8 @@ export async function GET() {
     });
 
     const response = { members, allModules: [...ALL_COMMAND_CENTER_MODULES] };
-    cache.set(cacheKey, response, CACHE_TTL.MEDIUM);
-    return NextResponse.json(response);
+    cache.set(cacheKey, response, CACHE_TTL.TEAM);
+    return NextResponse.json(response, { headers: { 'Cache-Control': 'private, s-maxage=30' } });
   } catch (error) {
     console.error('Error fetching team access:', error);
     // Fallback: return members with just role defaults

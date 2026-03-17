@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { geocodingService } from '@/lib/geocoding-service';
 import { googleSheetsService } from '@/lib/google-sheets-service';
+import { cache, CACHE_TTL } from '@/lib/cache';
 import { GeocodedContact } from '@/lib/geocoding-service';
 
 export async function POST(request: NextRequest) {
@@ -24,7 +25,12 @@ export async function POST(request: NextRequest) {
     const radius = radiusMiles || 2.0;
 
     // Get all geocoded contacts from sheets (populated from JN geo data)
-    const sheetContacts = await googleSheetsService.getGeocodedContacts();
+    const geocodedCacheKey = 'sheets:geocoded-contacts';
+    let sheetContacts = cache.get<Awaited<ReturnType<typeof googleSheetsService.getGeocodedContacts>>>(geocodedCacheKey);
+    if (!sheetContacts) {
+      sheetContacts = await googleSheetsService.getGeocodedContacts();
+      cache.set(geocodedCacheKey, sheetContacts, CACHE_TTL.TEAM);
+    }
 
     // Convert to GeocodedContact format
     const contacts: GeocodedContact[] = sheetContacts

@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 
     const cacheKey = `portal:training-sales:${userId}`;
     const cached = cache.get(cacheKey);
-    if (cached) return NextResponse.json(cached);
+    if (cached) return NextResponse.json(cached, { headers: { 'Cache-Control': 'private, s-maxage=30' } });
 
     const allRecords = await googleSheetsService.getTrainingProgress(userId);
 
@@ -61,8 +61,8 @@ export async function GET(request: NextRequest) {
       moduleScores,
       totalCompleted: new Set(completedModules).size,
     };
-    cache.set(cacheKey, response, CACHE_TTL.MEDIUM);
-    return NextResponse.json(response);
+    cache.set(cacheKey, response, CACHE_TTL.TEAM);
+    return NextResponse.json(response, { headers: { 'Cache-Control': 'private, s-maxage=30' } });
   } catch (error) {
     console.error('Error fetching sales training progress:', error);
     return NextResponse.json(

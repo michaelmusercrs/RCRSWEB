@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
     const cacheKey = `portal:rep-preferences:${repSlug || 'all'}`;
     const cached = cache.get(cacheKey);
-    if (cached) return NextResponse.json(cached);
+    if (cached) return NextResponse.json(cached, { headers: { 'Cache-Control': 'private, s-maxage=30' } });
 
     const preferences = await googleSheetsService.getRepPreferences(repSlug);
 
@@ -43,8 +43,8 @@ export async function GET(request: NextRequest) {
           updatedAt: '',
         },
       };
-      cache.set(cacheKey, response, CACHE_TTL.MEDIUM);
-      return NextResponse.json(response);
+      cache.set(cacheKey, response, CACHE_TTL.TEAM);
+      return NextResponse.json(response, { headers: { 'Cache-Control': 'private, s-maxage=30' } });
     }
 
     const response = { success: true, data: result };

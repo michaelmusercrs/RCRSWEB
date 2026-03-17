@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { googleSheetsService, CustomerPortalLogRecord } from '@/lib/google-sheets-service';
 import { requireAdmin, validateSession } from '@/lib/auth-service';
 import { leadPortalService } from '@/lib/lead-portal-service';
+import { cache, CACHE_TTL } from '@/lib/cache';
 
 /**
  * Extract client IP from request headers.
@@ -193,6 +194,14 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate') || undefined;
     const endDate = searchParams.get('endDate') || undefined;
 
+    const logsCacheKey = `sheets:portal-logs:${customerEmail || ''}:${customerId || ''}:${action || ''}:${limit}`;
+    const cachedLogs = cache.get(logsCacheKey);
+    if (cachedLogs) {
+      return NextResponse.json(cachedLogs, {
+        headers: { 'Cache-Control': 'private, s-maxage=30' },
+      });
+    }
+
     const logs = await googleSheetsService.getPortalLogs({
       customerEmail,
       customerId,
@@ -202,10 +211,14 @@ export async function GET(request: NextRequest) {
       endDate,
     });
 
-    return NextResponse.json({
+    const logsResponse = {
       success: true,
       count: logs.length,
       logs,
+    };
+    cache.set(logsCacheKey, logsResponse, CACHE_TTL.COMMISSION);
+    return NextResponse.json(logsResponse, {
+      headers: { 'Cache-Control': 'private, s-maxage=30' },
     });
   } catch (error) {
     console.error('Portal log fetch error:', error);

@@ -6,10 +6,10 @@ import StructuredData from '@/components/StructuredData';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = genMeta({
-  title: 'Roofing Service Areas - Decatur, Huntsville, Madison & North Alabama',
-  description: 'Professional roofing in Decatur, Huntsville, Madison, Athens, Hartselle, Cullman & all of North Alabama. Free roof inspections, storm damage repair & insurance claims. Same-day service available.',
+  title: 'Roofing Service Areas - Decatur, Huntsville, Madison, Albertville & North Alabama',
+  description: 'Professional roofing in Decatur, Huntsville, Madison, Athens, Albertville, Guntersville, Scottsboro, Fort Payne & all of North Alabama. Free roof inspections, storm damage repair & insurance claims.',
   path: '/service-areas',
-  keywords: ['North Alabama roofing service areas', 'Decatur AL roofer', 'Huntsville AL roofing', 'Madison AL roof repair', 'Athens AL roofing', 'Hartselle roofer', 'Cullman roofing'],
+  keywords: ['North Alabama roofing service areas', 'Decatur AL roofer', 'Huntsville AL roofing', 'Madison AL roof repair', 'Athens AL roofing', 'Albertville AL roofing', 'Guntersville AL roofer', 'Scottsboro AL roofing', 'Fort Payne AL roofer', 'Muscle Shoals roofing'],
 });
 
 export default function ServiceAreasPage() {

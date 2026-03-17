@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { GoogleSpreadsheet } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
+import { cache, CACHE_TTL } from '@/lib/cache';
 
 // POST - Log a message from a rep to a customer
 // This creates a record in the Customer_Messages sheet and optionally creates
@@ -111,6 +112,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    cache.invalidate(`sheets:customer-messages:${customerId}`);
+
     return NextResponse.json({
       success: true,
       message: {
@@ -148,6 +151,14 @@ export async function GET(request: NextRequest) {
         { error: 'customerId is required' },
         { status: 400 }
       );
+    }
+
+    const msgCacheKey = `sheets:customer-messages:${customerId}`;
+    const cachedMsgs = cache.get(msgCacheKey);
+    if (cachedMsgs) {
+      return NextResponse.json(cachedMsgs, {
+        headers: { 'Cache-Control': 'private, s-maxage=30' },
+      });
     }
 
     const messages: Array<{
@@ -258,10 +269,14 @@ export async function GET(request: NextRequest) {
     // Sort by sentAt descending
     messages.sort((a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime());
 
-    return NextResponse.json({
+    const msgResponse = {
       success: true,
       messages,
       count: messages.length,
+    };
+    cache.set(msgCacheKey, msgResponse, CACHE_TTL.COMMISSION);
+    return NextResponse.json(msgResponse, {
+      headers: { 'Cache-Control': 'private, s-maxage=30' },
     });
   } catch (error) {
     console.error('Error fetching customer messages:', error);

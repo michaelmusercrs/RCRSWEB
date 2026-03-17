@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { googleSheetsService } from '@/lib/google-sheets-service';
+import { cache, CACHE_TTL } from '@/lib/cache';
 import {
   MondayNote,
   generateNoteId,
@@ -103,6 +104,14 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category');
     const status = searchParams.get('status');
 
+    const cacheKey = `sheets:monday-notes:${meetingDate}:${userId || ''}:${category || ''}:${status || ''}`;
+    const cachedNotes = cache.get(cacheKey);
+    if (cachedNotes) {
+      return NextResponse.json(cachedNotes, {
+        headers: { 'Cache-Control': 'private, s-maxage=30' },
+      });
+    }
+
     const rows = await googleSheetsService.getMondayNotes({
       meetingDate,
       userId: userId || undefined,
@@ -120,12 +129,16 @@ export async function GET(request: NextRequest) {
       return a.userName.localeCompare(b.userName);
     });
 
-    return NextResponse.json({
+    const notesResponse = {
       success: true,
       meetingDate,
       notes,
       count: notes.length,
       submissionsOpen: areSubmissionsOpen(),
+    };
+    cache.set(cacheKey, notesResponse, CACHE_TTL.MEETING);
+    return NextResponse.json(notesResponse, {
+      headers: { 'Cache-Control': 'private, s-maxage=30' },
     });
   } catch (error) {
     console.error('Error fetching monday notes:', error);
@@ -214,6 +227,7 @@ export async function POST(request: NextRequest) {
       };
 
       await googleSheetsService.saveMondayNote(noteToRow(updated));
+      cache.invalidatePattern('^sheets:monday-');
 
       return NextResponse.json({
         success: true,
@@ -251,6 +265,7 @@ export async function POST(request: NextRequest) {
       };
 
       await googleSheetsService.saveMondayNote(noteToRow(newNote));
+      cache.invalidatePattern('^sheets:monday-');
 
       return NextResponse.json({
         success: true,
@@ -290,6 +305,8 @@ export async function DELETE(request: NextRequest) {
         { status: 404 }
       );
     }
+
+    cache.invalidatePattern('^sheets:monday-');
 
     return NextResponse.json({
       success: true,

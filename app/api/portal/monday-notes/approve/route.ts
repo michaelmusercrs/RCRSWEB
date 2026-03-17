@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { googleSheetsService } from '@/lib/google-sheets-service';
+import { cache } from '@/lib/cache';
 import { MondayNote, getNextMondayDate } from '@/lib/monday-notes-service';
 
 function safeJsonParse<T>(str: string | undefined, fallback: T): T {
@@ -132,6 +133,7 @@ export async function POST(request: NextRequest) {
     note.updatedAt = now;
 
     await googleSheetsService.saveMondayNote(noteToRow(note));
+    cache.invalidatePattern('^sheets:monday-');
 
     return NextResponse.json({
       success: true,

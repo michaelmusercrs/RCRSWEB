@@ -83,6 +83,8 @@ export async function GET(request: NextRequest): Promise<NextResponse<InventoryR
           categories,
         },
       },
+    }, {
+      headers: { 'Cache-Control': 'private, s-maxage=30' },
     });
   } catch (error) {
     console.error('GET /api/sheets/inventory error:', error);

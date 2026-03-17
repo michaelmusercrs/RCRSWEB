@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
     const cacheKey = `portal:rep-availability:${repSlug || 'all'}`;
     const cached = cache.get(cacheKey);
-    if (cached) return NextResponse.json(cached);
+    if (cached) return NextResponse.json(cached, { headers: { 'Cache-Control': 'private, s-maxage=30' } });
 
     const availability = await googleSheetsService.getRepAvailability(repSlug);
     const salesReps = getSalesReps();
@@ -44,8 +44,8 @@ export async function GET(request: NextRequest) {
     if (repSlug) {
       const single = result.find(r => r.repSlug === repSlug);
       const response = { success: true, data: single || null };
-      cache.set(cacheKey, response, CACHE_TTL.MEDIUM);
-      return NextResponse.json(response);
+      cache.set(cacheKey, response, CACHE_TTL.TEAM);
+      return NextResponse.json(response, { headers: { 'Cache-Control': 'private, s-maxage=30' } });
     }
 
     const response = { success: true, data: result };

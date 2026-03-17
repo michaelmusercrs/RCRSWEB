@@ -10,6 +10,7 @@ import { NextResponse } from 'next/server';
 import { readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { googleSheetsService } from '@/lib/google-sheets-service';
+import { cache, CACHE_TTL } from '@/lib/cache';
 
 function loadBracketJSON() {
   const filePath = join(process.cwd(), 'data', 'march-madness-2026.json');
@@ -126,9 +127,18 @@ function buildBracket(
 
 export async function GET(request: Request) {
   try {
-    const data = loadBracketJSON();
     const url = new URL(request.url);
     const mode = url.searchParams.get('mode') || 'live';
+
+    const cacheKey = `sheets:march-madness:${mode}`;
+    const cachedBracket = cache.get(cacheKey);
+    if (cachedBracket) {
+      return NextResponse.json(cachedBracket, {
+        headers: { 'Cache-Control': 'private, s-maxage=30' },
+      });
+    }
+
+    const data = loadBracketJSON();
 
     // If demo mode, return the demo data as-is
     if (mode === 'demo' && data.demo) {
@@ -216,7 +226,10 @@ export async function GET(request: Request) {
       data.prizes = settings.prizes;
     }
 
-    return NextResponse.json(data);
+    cache.set(cacheKey, data, CACHE_TTL.MEETING);
+    return NextResponse.json(data, {
+      headers: { 'Cache-Control': 'private, s-maxage=30' },
+    });
   } catch (err: any) {
     console.error('[March Madness Bracket API] Error:', err.message);
     return NextResponse.json({ error: 'Failed to load bracket data' }, { status: 500 });
@@ -283,6 +296,7 @@ export async function POST(request: Request) {
     data.tournament.status = 'in_progress';
 
     saveBracketJSON(data);
+    cache.invalidatePattern('^sheets:march-madness:');
 
     return NextResponse.json({ success: true, sheetsUpdated: success });
   } catch (err: any) {

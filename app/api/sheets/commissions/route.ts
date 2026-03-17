@@ -65,7 +65,11 @@ export async function GET(request: NextRequest): Promise<NextResponse<Commission
 
     const cacheKey = `sheets:commissions:${view}:${salesRep || ''}:${startDate || ''}:${endDate || ''}`;
     const cached = cache.get<CommissionsResponse>(cacheKey);
-    if (cached) return NextResponse.json(cached);
+    if (cached) {
+      return NextResponse.json(cached, {
+        headers: { 'Cache-Control': 'private, s-maxage=30' },
+      });
+    }
 
     if (view === 'summaries') {
       // Get summary view (grouped by sales rep)
@@ -86,8 +90,10 @@ export async function GET(request: NextRequest): Promise<NextResponse<Commission
           uniqueReps: filteredSummaries.length,
         },
       };
-      cache.set(cacheKey, response, CACHE_TTL.MEDIUM);
-      return NextResponse.json(response);
+      cache.set(cacheKey, response, CACHE_TTL.COMMISSION);
+      return NextResponse.json(response, {
+        headers: { 'Cache-Control': 'private, s-maxage=30' },
+      });
     }
 
     // Get entries view
@@ -100,7 +106,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<Commission
     const totalEarned = entries.reduce((sum, e) => sum + e.amount, 0);
     const uniqueReps = new Set(entries.map(e => e.salesRep)).size;
 
-    return NextResponse.json({
+    const entriesResponse: CommissionsResponse = {
       success: true,
       data: {
         entries,
@@ -108,6 +114,10 @@ export async function GET(request: NextRequest): Promise<NextResponse<Commission
         totalEarned,
         uniqueReps,
       },
+    };
+    cache.set(cacheKey, entriesResponse, CACHE_TTL.COMMISSION);
+    return NextResponse.json(entriesResponse, {
+      headers: { 'Cache-Control': 'private, s-maxage=30' },
     });
   } catch (error) {
     console.error('GET /api/sheets/commissions error:', error);
@@ -163,6 +173,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Commissio
     // Handle CSV import
     if (body.action === 'import' && body.csvData) {
       const result = await googleSheetsService.importCommissionsFromCsv(body.csvData);
+      cache.invalidatePattern('^sheets:commissions:');
 
       return NextResponse.json({
         success: result.success,
@@ -198,6 +209,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Commissio
     };
 
     const success = await googleSheetsService.addCommissionEntry(entry);
+    cache.invalidatePattern('^sheets:commissions:');
 
     if (!success) {
       return NextResponse.json(

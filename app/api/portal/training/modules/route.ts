@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 
     const cacheKey = `portal:training-modules:${userId}:${role || 'all'}`;
     const cached = cache.get(cacheKey);
-    if (cached) return NextResponse.json(cached);
+    if (cached) return NextResponse.json(cached, { headers: { 'Cache-Control': 'private, s-maxage=30' } });
 
     // Get modules - optionally filtered by role
     const modules: TrainingModule[] = role
@@ -80,8 +80,8 @@ export async function GET(request: NextRequest) {
       totalModules: modules.length,
       totalCompleted: progress.filter(p => p.completed).length,
     };
-    cache.set(cacheKey, response, CACHE_TTL.MEDIUM);
-    return NextResponse.json(response);
+    cache.set(cacheKey, response, CACHE_TTL.TEAM);
+    return NextResponse.json(response, { headers: { 'Cache-Control': 'private, s-maxage=30' } });
   } catch (error) {
     console.error('Error fetching training modules:', error);
     return NextResponse.json(

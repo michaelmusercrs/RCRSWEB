@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { googleSheetsService } from '@/lib/google-sheets-service';
+import { cache } from '@/lib/cache';
 import { TRAINING_MODULES } from '@/lib/training-content';
 
 /**
@@ -98,6 +99,9 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    cache.invalidatePattern('^portal:training');
+    cache.invalidatePattern('^admin:training');
 
     return NextResponse.json({
       success: true,

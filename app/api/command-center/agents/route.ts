@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     const cacheKey = `cc:agents:${agentId || 'all'}:${includeVisits}`;
     const cached = cache.get(cacheKey);
-    if (cached) return NextResponse.json(cached);
+    if (cached) return NextResponse.json(cached, { headers: { 'Cache-Control': 'private, s-maxage=30' } });
 
     if (agentId) {
       // Get single agent with visits
@@ -30,8 +30,8 @@ export async function GET(request: NextRequest) {
       }
       const visits = await googleSheetsService.getAgentVisits(agentId);
       const response = { agent, visits };
-      cache.set(cacheKey, response, CACHE_TTL.MEDIUM);
-      return NextResponse.json(response);
+      cache.set(cacheKey, response, CACHE_TTL.TEAM);
+      return NextResponse.json(response, { headers: { 'Cache-Control': 'private, s-maxage=30' } });
     }
 
     const agents = await googleSheetsService.getAgents();
@@ -84,8 +84,8 @@ export async function GET(request: NextRequest) {
       totalAgents: agents.length,
       activeAgents: agents.filter(a => a.isActive === 'true').length,
     };
-    cache.set(cacheKey, response, CACHE_TTL.MEDIUM);
-    return NextResponse.json(response);
+    cache.set(cacheKey, response, CACHE_TTL.TEAM);
+    return NextResponse.json(response, { headers: { 'Cache-Control': 'private, s-maxage=30' } });
   } catch (error) {
     console.error('Error fetching agents:', error);
     return NextResponse.json({ error: 'Failed to fetch agents' }, { status: 500 });

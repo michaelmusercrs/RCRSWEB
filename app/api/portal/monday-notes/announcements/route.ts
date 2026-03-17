@@ -14,6 +14,7 @@ import {
   isAnnouncementActive,
 } from '@/lib/monday-notes-service';
 import { googleSheetsService } from '@/lib/google-sheets-service';
+import { cache, CACHE_TTL } from '@/lib/cache';
 
 function rowToNote(row: Record<string, string>): MondayNote {
   return {
@@ -45,6 +46,14 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const meetingDate = searchParams.get('meetingDate') || getNextMondayDate();
+
+    const cacheKey = `sheets:monday-announcements:${meetingDate}`;
+    const cachedAnn = cache.get(cacheKey);
+    if (cachedAnn) {
+      return NextResponse.json(cachedAnn, {
+        headers: { 'Cache-Control': 'private, s-maxage=30' },
+      });
+    }
 
     // Fetch notes for this meeting date directly from Sheets
     const rows = await googleSheetsService.getMondayNotes({ meetingDate });
@@ -84,7 +93,7 @@ export async function GET(request: NextRequest) {
       return notes.filter(n => { if (seen.has(n.id)) return false; seen.add(n.id); return true; });
     };
 
-    return NextResponse.json({
+    const annResponse = {
       success: true,
       meetingDate,
       announcements: {
@@ -93,6 +102,10 @@ export async function GET(request: NextRequest) {
       },
       totalEarly: dedup(early).length,
       totalLate: dedup(late).length,
+    };
+    cache.set(cacheKey, annResponse, CACHE_TTL.MEETING);
+    return NextResponse.json(annResponse, {
+      headers: { 'Cache-Control': 'private, s-maxage=30' },
     });
   } catch (error) {
     console.error('Error fetching announcements:', error);

@@ -11,6 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { googleSheetsService } from '@/lib/google-sheets-service';
+import { cache, CACHE_TTL } from '@/lib/cache';
 import { promises as fs } from 'fs';
 import path from 'path';
 
@@ -44,6 +45,14 @@ export async function GET(request: NextRequest) {
   try {
     const currentWeek = getISOWeekString();
     const prevWeek = getPreviousWeek(currentWeek);
+
+    const cacheKey = `sheets:meeting-data:${currentWeek}`;
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached, {
+        headers: { 'Cache-Control': 'private, s-maxage=30' },
+      });
+    }
 
     // Fetch all reps' weekly numbers for current + previous week
     const [currentWeekNumbers, prevWeekNumbers] = await Promise.all([
@@ -175,7 +184,11 @@ export async function GET(request: NextRequest) {
       })),
     };
 
-    return NextResponse.json({ success: true, data: slideData });
+    const response = { success: true, data: slideData };
+    cache.set(cacheKey, response, CACHE_TTL.MEETING);
+    return NextResponse.json(response, {
+      headers: { 'Cache-Control': 'private, s-maxage=30' },
+    });
   } catch (error) {
     console.error('Error generating meeting data:', error);
     return NextResponse.json(

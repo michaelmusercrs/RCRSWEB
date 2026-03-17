@@ -58,6 +58,16 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ sl
     'cullman-al': { lat: 34.1748, lng: -86.8436 },
     'moulton-al': { lat: 34.4812, lng: -87.2953 },
     'florence-al': { lat: 34.7998, lng: -87.6772 },
+    'albertville-al': { lat: 34.2673, lng: -86.2088 },
+    'guntersville-al': { lat: 34.3582, lng: -86.2947 },
+    'arab-al': { lat: 34.3282, lng: -86.4961 },
+    'scottsboro-al': { lat: 34.6723, lng: -86.0341 },
+    'fort-payne-al': { lat: 34.4443, lng: -85.7197 },
+    'muscle-shoals-al': { lat: 34.7448, lng: -87.6675 },
+    'meridianville-al': { lat: 34.8512, lng: -86.5722 },
+    'hazel-green-al': { lat: 34.9312, lng: -86.5722 },
+    'priceville-al': { lat: 34.5254, lng: -86.8947 },
+    'somerville-al': { lat: 34.4715, lng: -86.7914 },
     'north-alabama': { lat: 34.6059, lng: -86.9833 },
     'birmingham-al': { lat: 33.5207, lng: -86.8025 },
     'nashville-tn': { lat: 36.1627, lng: -86.7816 },
@@ -119,8 +129,8 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ sl
     { name: area.name, url: `/service-areas/${slug}` },
   ]);
 
-  // Dynamic FAQs based on area
-  const areaFAQs = [
+  // Dynamic FAQs based on area — use customFAQs if available, otherwise generate generic ones
+  const genericFAQs = [
     {
       question: `Do you offer free roof inspections in ${area.name}?`,
       answer: `Yes! River City Roofing Solutions provides completely free, no-obligation roof inspections for homeowners in ${area.name}, ${area.state}. Our certified inspectors will assess your roof's condition, document any issues with photos, and provide honest recommendations.`,
@@ -142,6 +152,9 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ sl
       answer: `Absolutely! We have extensive experience working with insurance companies on storm and hail damage claims in ${area.name} and throughout ${area.state}. We handle all documentation, photos, and communication with your insurance adjuster to maximize your claim.`,
     },
   ];
+  const areaFAQs = area.customFAQs && area.customFAQs.length > 0
+    ? [...area.customFAQs, ...genericFAQs.slice(0, 2)]
+    : genericFAQs;
 
   const faqSchema = generateFAQSchema(areaFAQs);
 
@@ -302,8 +315,8 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ sl
               <div>
                 <h3 className="text-lg font-semibold text-brand-green mb-3">Other Service Areas</h3>
                 <ul className="space-y-2">
-                  {['decatur-al', 'huntsville-al', 'madison-al', 'athens-al', 'hartselle-al', 'cullman-al'].filter(s => s !== slug).slice(0, 5).map(areaSlug => {
-                    const areaName = areaSlug.replace('-al', '').replace('-tn', '').replace(/(^\w)/g, m => m.toUpperCase());
+                  {['decatur-al', 'huntsville-al', 'madison-al', 'athens-al', 'hartselle-al', 'cullman-al', 'albertville-al', 'guntersville-al', 'scottsboro-al', 'fort-payne-al', 'muscle-shoals-al', 'meridianville-al', 'hazel-green-al', 'priceville-al', 'arab-al', 'somerville-al'].filter(s => s !== slug).slice(0, 5).map(areaSlug => {
+                    const areaName = areaSlug.replace('-al', '').replace('-tn', '').split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
                     return (
                       <li key={areaSlug}><Link href={`/service-areas/${areaSlug}`} className="text-gray-300 hover:text-brand-green transition-colors">Roofing in {areaName}, AL</Link></li>
                     );

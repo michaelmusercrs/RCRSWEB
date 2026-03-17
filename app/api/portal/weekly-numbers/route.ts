@@ -15,6 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { googleSheetsService } from '@/lib/google-sheets-service';
+import { cache, CACHE_TTL } from '@/lib/cache';
 
 function getISOWeekString(date: Date = new Date()): string {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -91,6 +92,14 @@ export async function GET(request: NextRequest) {
     const weekEnd = searchParams.get('weekEnd') || undefined;
     const allReps = searchParams.get('allReps') === 'true';
 
+    const cacheKey = `sheets:weekly-numbers:${allReps ? 'all' : repEmail}:${weekStart || ''}:${weekEnd || ''}`;
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) {
+      return NextResponse.json(cachedData, {
+        headers: { 'Cache-Control': 'private, s-maxage=30' },
+      });
+    }
+
     const records = await googleSheetsService.getRepWeeklyNumbers({
       repEmail: allReps ? undefined : repEmail,
       weekStart,
@@ -99,11 +108,15 @@ export async function GET(request: NextRequest) {
 
     const currentWeek = getISOWeekString();
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       currentWeek,
       records,
       total: records.length,
+    };
+    cache.set(cacheKey, responseData, CACHE_TTL.MEETING);
+    return NextResponse.json(responseData, {
+      headers: { 'Cache-Control': 'private, s-maxage=30' },
     });
   } catch (error) {
     console.error('Error fetching weekly numbers:', error);
@@ -149,6 +162,9 @@ export async function POST(request: NextRequest) {
         { status: 500 },
       );
     }
+
+    cache.invalidatePattern('^sheets:weekly-numbers:');
+    cache.invalidatePattern('^sheets:meeting-data:');
 
     // TODO: Also write to the Monday meeting sheet via meetingNumbersService.submitNumbers()
 
@@ -209,6 +225,8 @@ export async function PATCH(request: NextRequest) {
     }
 
     const success = await googleSheetsService.updateRepWeeklyNumbers(week, repEmail, updates);
+    cache.invalidatePattern('^sheets:weekly-numbers:');
+    cache.invalidatePattern('^sheets:meeting-data:');
 
     if (!success) {
       // Try creating if doesn't exist

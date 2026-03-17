@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 
     const cacheKey = `customer:portal-analytics:${period}`;
     const cached = cache.get(cacheKey);
-    if (cached) return NextResponse.json(cached);
+    if (cached) return NextResponse.json(cached, { headers: { 'Cache-Control': 'private, s-maxage=30' } });
 
     // Calculate date boundaries
     const now = new Date();
@@ -212,8 +212,8 @@ export async function GET(request: NextRequest) {
       dailyActivity: dailyActivitySorted,
       recentActivity,
     };
-    cache.set(cacheKey, response, CACHE_TTL.MEDIUM);
-    return NextResponse.json(response);
+    cache.set(cacheKey, response, CACHE_TTL.COMMISSION);
+    return NextResponse.json(response, { headers: { 'Cache-Control': 'private, s-maxage=30' } });
   } catch (error) {
     console.error('Portal analytics error:', error);
     return NextResponse.json(

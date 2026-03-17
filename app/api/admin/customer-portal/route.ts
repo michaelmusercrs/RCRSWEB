@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
   try {
     const cacheKey = 'admin:customer-portals';
     const cached = cache.get(cacheKey);
-    if (cached) return NextResponse.json(cached);
+    if (cached) return NextResponse.json(cached, { headers: { 'Cache-Control': 'private, s-maxage=30' } });
 
     const doc = await getDoc();
     const accessSheet = doc.sheetsByTitle['Customer_Portal_Access'];
@@ -82,8 +82,8 @@ export async function GET(request: NextRequest) {
     });
 
     const response = { portals };
-    cache.set(cacheKey, response, CACHE_TTL.MEDIUM);
-    return NextResponse.json(response);
+    cache.set(cacheKey, response, CACHE_TTL.TEAM);
+    return NextResponse.json(response, { headers: { 'Cache-Control': 'private, s-maxage=30' } });
   } catch (error) {
     console.error('Error fetching portals:', error);
     return NextResponse.json({ error: 'Failed to fetch portals' }, { status: 500 });

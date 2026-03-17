@@ -224,6 +224,8 @@ export async function GET(request: NextRequest): Promise<NextResponse<CustomersR
           },
           source: 'jobnimbus',
         },
+      }, {
+        headers: { 'Cache-Control': 'private, s-maxage=30' },
       });
     }
 
@@ -273,6 +275,8 @@ export async function GET(request: NextRequest): Promise<NextResponse<CustomersR
         },
         source: 'sheets',
       },
+    }, {
+      headers: { 'Cache-Control': 'private, s-maxage=30' },
     });
   } catch (error) {
     console.error('GET /api/sheets/customers error:', error);

@@ -95,13 +95,17 @@ class Cache {
   }
 }
 
-// Export singleton instance
-export const cache = new Cache(100);
+// Export singleton instance (200 entries to support all cached routes)
+export const cache = new Cache(200);
 
 // Cache TTL constants
 export const CACHE_TTL = {
-  SHORT: 30 * 1000,      // 30 seconds
-  MEDIUM: 5 * 60 * 1000, // 5 minutes
-  LONG: 60 * 60 * 1000,  // 1 hour
-  DAY: 24 * 60 * 60 * 1000, // 24 hours
+  SHORT: 30 * 1000,           // 30 seconds
+  COMMISSION: 5 * 60 * 1000,  // 5 minutes - financial/commission data
+  MEDIUM: 5 * 60 * 1000,      // 5 minutes (backward compat alias)
+  MEETING: 10 * 60 * 1000,    // 10 minutes - meeting numbers
+  TEAM: 15 * 60 * 1000,       // 15 minutes - team/user data
+  CONFIG: 30 * 60 * 1000,     // 30 minutes - static config data
+  LONG: 60 * 60 * 1000,       // 1 hour - public content
+  DAY: 24 * 60 * 60 * 1000,   // 24 hours
 } as const;

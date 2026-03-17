@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { jobNimbusService, isJobNimbusConfigured } from '@/lib/jobnimbus-service';
 import { googleSheetsService, GeocodedContactRecord } from '@/lib/google-sheets-service';
+import { cache, CACHE_TTL } from '@/lib/cache';
 
 interface PopulateResult {
   totalContacts: number;
@@ -150,6 +151,8 @@ export async function POST(request: NextRequest) {
     const result = await Promise.race([resultPromise, timeoutPromise]);
 
     if (result) {
+      cache.invalidate('sheets:geocoded-stats');
+      cache.invalidate('sheets:geocoded-contacts');
       return NextResponse.json({
         success: true,
         status: 'complete',
@@ -183,6 +186,14 @@ export async function GET(request: NextRequest) {
   if (!auth.authenticated) return auth.response;
 
   try {
+    const geoCacheKey = 'sheets:geocoded-stats';
+    const cachedGeo = cache.get(geoCacheKey);
+    if (cachedGeo) {
+      return NextResponse.json(cachedGeo, {
+        headers: { 'Cache-Control': 'private, s-maxage=30' },
+      });
+    }
+
     const contacts = await googleSheetsService.getGeocodedContacts();
 
     const byType: Record<string, number> = {};
@@ -194,13 +205,17 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
+    const geoResponse = {
       success: true,
       data: {
         totalGeocoded: contacts.length,
         byType,
         byRep,
       },
+    };
+    cache.set(geoCacheKey, geoResponse, CACHE_TTL.TEAM);
+    return NextResponse.json(geoResponse, {
+      headers: { 'Cache-Control': 'private, s-maxage=30' },
     });
   } catch (error) {
     console.error('Error fetching geocoded stats:', error);
