@@ -683,8 +683,9 @@ class CallsService {
     customerName: string;
     customerEmail?: string;
   } | null> {
-    // TODO: Implement lookup from Google Sheets Customer_Portal_Access
-    // For now, return null
+    // FUTURE: Look up customer by phone number from Google Sheets Customer_Portal_Access tab.
+    // Would query googleSheetsService.getCustomers() and match on phone field.
+    // Not yet implemented because customer phone data is sparse in the current sheet.
     return null;
   }
 

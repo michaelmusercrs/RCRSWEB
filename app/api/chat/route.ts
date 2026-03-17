@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { RIVER_SYSTEM_PROMPT } from '@/lib/rcrs-knowledge';
+import { apiError } from '@/lib/api-response';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
@@ -22,11 +23,11 @@ export async function POST(request: NextRequest) {
     };
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      return NextResponse.json({ error: 'Messages are required' }, { status: 400 });
+      return apiError('Messages are required', 400);
     }
 
     if (!process.env.ANTHROPIC_API_KEY) {
-      return NextResponse.json({ error: 'AI service not configured' }, { status: 503 });
+      return apiError('AI service not configured', 503);
     }
 
     // Add mode-specific context
@@ -57,13 +58,13 @@ export async function POST(request: NextRequest) {
     
     if (error instanceof Anthropic.APIError) {
       if (error.status === 429) {
-        return NextResponse.json({ error: 'I\'m getting a lot of questions right now! Please try again in a moment.' }, { status: 429 });
+        return apiError('I\'m getting a lot of questions right now! Please try again in a moment.', 429, 'RATE_LIMITED');
       }
       if (error.status === 401) {
-        return NextResponse.json({ error: 'AI service authentication error' }, { status: 503 });
+        return apiError('AI service authentication error', 503, 'AUTH_ERROR');
       }
     }
 
-    return NextResponse.json({ error: 'Something went wrong. Please try again or call us at (256) 274-8530.' }, { status: 500 });
+    return apiError('Something went wrong. Please try again or call us at (256) 274-8530.', 500);
   }
 }

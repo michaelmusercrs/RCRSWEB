@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { apiError } from '@/lib/api-response';
 import { deliveryReminderService } from '@/lib/delivery-reminder-service';
 import { deliveryWorkflowService } from '@/lib/delivery-workflow-service';
 import { leadPortalService } from '@/lib/lead-portal-service';
@@ -60,7 +61,7 @@ export async function GET(request: NextRequest) {
     if (ticketId) {
       const result = await deliveryReminderService.getCustomerDeliveryStatus(ticketId);
       if (!result) {
-        return NextResponse.json({ error: 'Delivery not found' }, { status: 404 });
+        return apiError('Delivery not found', 404);
       }
 
       // SECURITY: For ticket lookups without admin auth, verify the token belongs to this customer
@@ -186,9 +187,9 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
+    return apiError('Invalid request', 400);
   } catch (error) {
     console.error('Customer delivery status error:', error);
-    return NextResponse.json({ error: 'Failed to fetch delivery status' }, { status: 500 });
+    return apiError('Failed to fetch delivery status', 500);
   }
 }

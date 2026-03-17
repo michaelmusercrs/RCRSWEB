@@ -317,7 +317,7 @@ async function runGemini(
           }
           if (attempt < MAX_RETRIES) {
             const wait = attempt * 15000;
-            console.log(`[${engineLabel}] Rate limited (429), retry ${attempt}/${MAX_RETRIES} in ${wait / 1000}s...`);
+            // Rate limited (429), retrying
             await new Promise((r) => setTimeout(r, wait));
             break;
           }
@@ -1062,7 +1062,7 @@ class RoofMeasureService {
       let consensus = applyConsensus(values);
 
       if (consensus.confidence !== 'HIGH' && !extraEnginesRun && initialResults.length >= 2) {
-        console.log(`[Consensus] Running 2 additional engines for tie-breaking...`);
+        // Running 2 additional engines for tie-breaking;
         const [engine4, engine5] = await Promise.all([
           hasVertex
             ? runVertexAI('gemini-2.5-flash', prompt, orderedImages, 0.1)

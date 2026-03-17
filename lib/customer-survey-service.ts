@@ -298,9 +298,6 @@ class CustomerSurveyService {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.rivercityroofingsolutions.com';
     const surveyUrl = `${baseUrl}/survey/${token}`;
 
-    // In production, this would trigger an email/SMS via the email service
-    console.log(`[SurveyService] Survey sent to ${customerEmail} via ${method}: ${surveyUrl}`);
-
     return { token, surveyUrl };
   }
 

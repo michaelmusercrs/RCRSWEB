@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
+import { apiError } from '@/lib/api-response';
 import { jobNimbusService, isJobNimbusConfigured } from '@/lib/jobnimbus-service';
 import { leadPortalService } from '@/lib/lead-portal-service';
 import { teamMembers } from '@/lib/teamData';
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!isAuthorized) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', 401);
     }
 
     const body = await request.json();
@@ -154,7 +155,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error generating customer token:', error);
-    return NextResponse.json({ error: 'Failed to generate token' }, { status: 500 });
+    return apiError('Failed to generate token', 500);
   }
 }
 
@@ -174,7 +175,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (!isAuthorized) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return apiError('Unauthorized', 401);
   }
 
   const tokens = readTokens();

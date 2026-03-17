@@ -15,6 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { googleSheetsService } from '@/lib/google-sheets-service';
+import { meetingNumbersService } from '@/lib/meeting-numbers-service';
 
 function getISOWeekString(date: Date = new Date()): string {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -23,6 +24,47 @@ function getISOWeekString(date: Date = new Date()): string {
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
   const weekNo = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
   return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+}
+
+/**
+ * Convert an ISO week string (e.g., "2026-W12") to the Monday date as YYYY-MM-DD.
+ */
+function isoWeekToMonday(weekStr: string): string {
+  const match = weekStr.match(/^(\d{4})-W(\d{2})$/);
+  if (!match) return new Date().toISOString().slice(0, 10);
+  const year = parseInt(match[1]);
+  const week = parseInt(match[2]);
+  // Jan 4 is always in week 1
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  const dayOfWeek = jan4.getUTCDay() || 7; // Monday=1
+  const monday = new Date(jan4.getTime());
+  monday.setUTCDate(jan4.getUTCDate() - dayOfWeek + 1 + (week - 1) * 7);
+  return monday.toISOString().slice(0, 10);
+}
+
+/**
+ * Fire-and-forget sync of submitted numbers to the Monday meeting sheet.
+ */
+async function syncToMeetingSheet(
+  repName: string,
+  weekStr: string,
+  body: Record<string, unknown>,
+): Promise<void> {
+  const meetingDate = isoWeekToMonday(weekStr);
+  await meetingNumbersService.submitNumbers(repName, meetingDate, {
+    inspected: parseInt(String(body.inspected)) || 0,
+    damage: parseInt(String(body.damage)) || 0,
+    signed: parseInt(String(body.signed)) || 0,
+    repair: parseInt(String(body.repair)) || 0,
+    gutter: parseInt(String(body.gutter)) || 0,
+    revenue: parseFloat(String(body.revenue)) || 0,
+    approved: parseInt(String(body.approved)) || 0,
+    goal: parseInt(String(body.goal)) || 0,
+    referrals: parseInt(String(body.referrals)) || 0,
+    agents: parseInt(String(body.agents)) || 0,
+    present: String(body.present || '1'),
+    homeShow: parseInt(String(body.homeShow)) || 0,
+  });
 }
 
 // The fields that match the Monday meeting sheet columns
@@ -150,7 +192,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: Also write to the Monday meeting sheet via meetingNumbersService.submitNumbers()
+    // Sync to Monday meeting sheet (fire-and-forget so it doesn't block the response)
+    syncToMeetingSheet(repName, week, body).catch(err => {
+      console.error('[WeeklyNumbers] Meeting sheet sync failed:', err);
+    });
 
     const record = buildResponseRecord(body, repName, week);
     return NextResponse.json({ success: true, message: 'Numbers submitted', record });
@@ -224,7 +269,10 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ success: true, message: 'Created new record', record });
     }
 
-    // TODO: Also write to the Monday meeting sheet via meetingNumbersService.submitNumbers()
+    // Sync to Monday meeting sheet (fire-and-forget)
+    syncToMeetingSheet(auth.user.name, week, body).catch(err => {
+      console.error('[WeeklyNumbers] Meeting sheet sync failed:', err);
+    });
 
     return NextResponse.json({ success: true, message: 'Numbers updated', week });
   } catch (error) {

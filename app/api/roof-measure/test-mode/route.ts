@@ -24,7 +24,6 @@ export async function POST(request: NextRequest) {
 
   for (const address of TEST_ADDRESSES) {
     try {
-      console.log(`Test mode: measuring ${address}...`);
       const res = await fetch(`${baseUrl}/api/roof-measure?address=${encodeURIComponent(address)}`, {
         signal: AbortSignal.timeout(120000),
       });

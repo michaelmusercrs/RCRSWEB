@@ -710,7 +710,7 @@ class MeetingNumbersService {
       // Invalidate in-memory cache so next read picks up fresh data
       this.invalidateCache();
 
-      console.log(`[MeetingNumbers] Synced ${allRecords.length} records for ${targetYear} -> ${outPath}`);
+      // Sync complete
 
       return { success: true, recordCount: allRecords.length };
     } catch (err: unknown) {

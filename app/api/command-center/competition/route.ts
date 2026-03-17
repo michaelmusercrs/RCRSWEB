@@ -56,14 +56,6 @@ export async function GET(request: NextRequest) {
       parsedDate: parseDate(e.date),
     }));
 
-  // Debug: count entries
-  const adamEntries = entries.filter(e => e.salesRep === 'Adam Rudell');
-  const adam2026 = adamEntries.filter(e => {
-    const d = e.parsedDate;
-    return d && d.getFullYear() === 2026;
-  });
-  console.log(`[DEBUG] Total entries: ${entries.length}, Adam total: ${adamEntries.length}, Adam 2026: ${adam2026.length}, Adam 2026 sum: ${adam2026.reduce((s, e) => s + e.amount, 0).toFixed(2)}`);
-
   // Filter to current period
   const periodEntries = entries.filter(e => e.parsedDate >= periodStart && e.parsedDate <= periodEnd);
 
