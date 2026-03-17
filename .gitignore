@@ -49,6 +49,9 @@ gen-lang-client-*.json
 tmpclaude-*
 nul
 
+# uncompressed video originals
+public/uploads/hero-video-original.mp4
+
 # drivers
 CH340_Driver/
 CP210x_Drivers/

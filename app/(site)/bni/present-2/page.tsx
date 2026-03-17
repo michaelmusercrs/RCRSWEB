@@ -303,6 +303,7 @@ export default function BNIPresentationV2Page() {
                     <img
                       src={img.url}
                       alt={`${img.label} of Athens-Limestone Visitors Center`}
+                      loading="lazy"
                       className="w-full aspect-[3/2] object-cover rounded-lg border border-neutral-700"
                       onError={() => handleImgError(img.key)}
                     />

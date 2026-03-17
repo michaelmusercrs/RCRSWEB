@@ -193,6 +193,7 @@ export default async function PublicReportPage({
               <img
                 src={report.satelliteImageUrl}
                 alt="Satellite view"
+                loading="lazy"
                 className="w-full h-full object-cover"
               />
               <div className="absolute bottom-3 left-3 bg-black/70 text-white text-xs px-2 py-1 rounded flex items-center gap-1">

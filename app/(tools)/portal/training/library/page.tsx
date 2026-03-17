@@ -1087,6 +1087,7 @@ export default function TrainingLibraryPage() {
                               ref={videoRef}
                               src={selectedModule.content.trainingVideo}
                               controls
+                              preload="metadata"
                               className="w-full rounded-xl bg-black"
                             />
                             <div className="mt-4 flex gap-3">
