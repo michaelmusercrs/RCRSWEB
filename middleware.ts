@@ -237,7 +237,7 @@ export function middleware(request: NextRequest) {
     // Everything else on rcrsal.com that's not portal → redirect to public site
     if (isPublicRoute(pathname)) {
       const redirectUrl = new URL(pathname + request.nextUrl.search, SITE_URL);
-      return NextResponse.redirect(redirectUrl, 308);
+      return NextResponse.redirect(redirectUrl, 307);
     }
 
     // Unknown routes on portal domain → login
@@ -255,7 +255,7 @@ export function middleware(request: NextRequest) {
     // Block portal/admin/dashboard routes on the public domain — redirect to rcrsal.com
     if (isPortalRoute(pathname)) {
       const redirectUrl = new URL(pathname + request.nextUrl.search, PORTAL_URL);
-      return NextResponse.redirect(redirectUrl, 308);
+      return NextResponse.redirect(redirectUrl, 307);
     }
 
     // Block known internal/debug routes

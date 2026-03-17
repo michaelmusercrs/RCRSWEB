@@ -425,6 +425,21 @@ export default function PortalLogin() {
         }
       } catch { /* ignore */ }
 
+      // Log login event to Google Sheets audit log
+      try {
+        fetch('/api/portal/audit-log', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'LOGIN',
+            userEmail: email,
+            details: `Login from ${navigator.userAgent.includes('Mobile') ? 'mobile' : 'desktop'}`,
+            timestamp: new Date().toISOString(),
+          }),
+        }).catch(() => {});
+      } catch { /* non-blocking */ }
+
+      // MUST change password on first login - no exceptions
       if (result.mustChangePassword) {
         router.push('/portal/change-password');
         setIsLoading(false);

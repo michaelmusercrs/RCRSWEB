@@ -44,6 +44,28 @@
       ]
     }
   ],
+  "rewrites": [
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "rcrsal.com"
+        }
+      ],
+      "destination": "/portal"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.rcrsal.com"
+        }
+      ],
+      "destination": "/portal"
+    }
+  ],
   "redirects": [
     {
       "source": "/:path*",

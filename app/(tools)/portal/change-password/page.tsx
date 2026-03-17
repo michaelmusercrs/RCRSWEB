@@ -36,6 +36,20 @@ export default function ChangePasswordPage() {
         return;
       }
 
+      // Log password change to audit log
+      try {
+        fetch('/api/portal/audit-log', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'PASSWORD_CHANGE',
+            userEmail: user.email,
+            details: 'First login password change completed',
+            timestamp: new Date().toISOString(),
+          }),
+        }).catch(() => {});
+      } catch { /* non-blocking */ }
+
       // Short delay for UX
       await new Promise(resolve => setTimeout(resolve, 500));
 
