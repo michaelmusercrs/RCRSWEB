@@ -210,6 +210,18 @@ export default function Footer() {
               <Link href="/service-areas/cullman-al" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
                 Cullman, AL
               </Link>
+              <Link href="/service-areas/albertville-al" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
+                Albertville, AL
+              </Link>
+              <Link href="/service-areas/guntersville-al" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
+                Guntersville, AL
+              </Link>
+              <Link href="/service-areas/scottsboro-al" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
+                Scottsboro, AL
+              </Link>
+              <Link href="/service-areas/meridianville-al" className="text-gray-400 hover:text-brand-green transition-colors text-sm">
+                Meridianville, AL
+              </Link>
               <Link href="/service-areas" className="text-gray-400 hover:text-brand-green transition-colors text-sm font-medium">
                 All Service Areas →
               </Link>

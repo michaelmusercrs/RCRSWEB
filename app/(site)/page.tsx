@@ -203,6 +203,33 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* Quick Links Bar */}
+      <section className="py-6 px-6 bg-black/75 backdrop-blur-sm border-t border-neutral-800">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-wrap justify-center gap-3 md:gap-4">
+            {[
+              { name: 'Free Inspection', href: '/contact' },
+              { name: 'Storm Check', href: '/check-my-address' },
+              { name: 'Our Services', href: '/services' },
+              { name: 'Financing', href: '/financing' },
+              { name: 'Warranty', href: '/warranty' },
+              { name: 'Gallery', href: '/gallery' },
+              { name: 'Reviews', href: '/reviews' },
+              { name: 'FAQ', href: '/faq' },
+              { name: 'Careers', href: '/careers' },
+            ].map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-full text-sm text-neutral-300 hover:text-brand-green hover:border-brand-green/50 transition-all font-medium"
+              >
+                {link.name}
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Services Section */}
       <section className="py-10 md:py-14 px-6 bg-black/80 backdrop-blur-sm border-t border-neutral-800">
         <div className="max-w-6xl mx-auto">
@@ -298,9 +325,14 @@ export default async function HomePage() {
               Rated {'\u2605\u2605\u2605\u2605\u2605'} on{' '}
               <a href="https://www.google.com/maps/place/River+City+Roofing+Solutions" target="_blank" rel="noopener noreferrer" className="text-brand-green hover:underline font-bold">Google</a>
             </p>
-            <Button asChild size="lg" className="bg-brand-green text-black hover:bg-lime-400 font-bold uppercase tracking-widest">
-              <Link href="/contact">Get Your Free Inspection</Link>
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button asChild size="lg" className="bg-brand-green text-black hover:bg-lime-400 font-bold uppercase tracking-widest">
+                <Link href="/contact">Get Your Free Inspection</Link>
+              </Button>
+              <Button asChild size="lg" className="bg-white text-black hover:bg-neutral-200 font-bold uppercase tracking-widest">
+                <Link href="/reviews">Read All Reviews</Link>
+              </Button>
+            </div>
           </div>
         </div>
       </section>
@@ -628,6 +660,12 @@ export default async function HomePage() {
                 </p>
               </details>
             ))}
+          </div>
+
+          <div className="text-center mt-8">
+            <Button asChild size="lg" className="bg-brand-green text-black hover:bg-white font-bold uppercase tracking-widest">
+              <Link href="/faq">View All FAQs</Link>
+            </Button>
           </div>
         </div>
       </section>

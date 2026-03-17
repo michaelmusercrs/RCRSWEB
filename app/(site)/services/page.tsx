@@ -248,6 +248,16 @@ export default function ServicesPage() {
                 { slug: 'florence-al', name: 'Florence, AL' },
                 { slug: 'moulton-al', name: 'Moulton, AL' },
                 { slug: 'owens-crossroads-al', name: 'Owens Cross Roads, AL' },
+                { slug: 'albertville-al', name: 'Albertville, AL' },
+                { slug: 'guntersville-al', name: 'Guntersville, AL' },
+                { slug: 'arab-al', name: 'Arab, AL' },
+                { slug: 'scottsboro-al', name: 'Scottsboro, AL' },
+                { slug: 'fort-payne-al', name: 'Fort Payne, AL' },
+                { slug: 'muscle-shoals-al', name: 'Muscle Shoals, AL' },
+                { slug: 'meridianville-al', name: 'Meridianville, AL' },
+                { slug: 'hazel-green-al', name: 'Hazel Green, AL' },
+                { slug: 'priceville-al', name: 'Priceville, AL' },
+                { slug: 'somerville-al', name: 'Somerville, AL' },
                 { slug: 'north-alabama', name: 'All of North Alabama' },
               ].map(area => (
                 <Link key={area.slug} href={`/service-areas/${area.slug}`} className="text-center py-3 px-4 bg-white/5 border border-white/10 rounded-lg text-gray-300 hover:text-brand-green hover:border-brand-green/50 transition-all text-sm font-medium">

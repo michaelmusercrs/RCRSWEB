@@ -24,6 +24,7 @@ export default function robots(): MetadataRoute.Robots {
           '/my/',
           '/_next/',
           '/private/',
+          '/lp/',               // landing pages are noindex, exclude from crawl budget
           '/*.json$',
           '/*/upload',
           '/secret-deals/',      // honeypot — bad bots see this as a target

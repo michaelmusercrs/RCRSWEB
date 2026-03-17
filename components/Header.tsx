@@ -29,6 +29,8 @@ const navigation: NavItem[] = [
     { name: 'Warranty', href: '/warranty', description: 'Our guarantees' },
     { name: 'Blog', href: '/blog', description: 'Roofing tips & news' },
     { name: 'Community', href: '/community', description: 'Local involvement' },
+    { name: 'Referral Rewards', href: '/referral-rewards', description: 'Raise the Roof for Schools' },
+    { name: 'Careers', href: '/careers', description: 'Join our team' },
   ]},
   { name: 'Contact', href: '/contact' },
 ];

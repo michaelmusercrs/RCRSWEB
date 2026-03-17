@@ -212,6 +212,36 @@ export default async function AboutPage() {
         </div>
       </section>
 
+      {/* Learn More Links */}
+      <section className="py-8 bg-black/70 backdrop-blur-sm relative z-10 border-t border-white/10">
+        <div className="container mx-auto px-4">
+          <div className="max-w-5xl mx-auto">
+            <h2 className="text-2xl font-bold text-white mb-4 text-center">Learn More About Us</h2>
+            <div className="flex flex-wrap justify-center gap-3">
+              {[
+                { name: 'Our Services', href: '/services' },
+                { name: 'Service Areas', href: '/service-areas' },
+                { name: 'Customer Reviews', href: '/reviews' },
+                { name: 'Project Gallery', href: '/gallery' },
+                { name: 'FAQ', href: '/faq' },
+                { name: 'Financing Options', href: '/financing' },
+                { name: 'Warranty Info', href: '/warranty' },
+                { name: 'Community', href: '/community' },
+                { name: 'Careers', href: '/careers' },
+              ].map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-full text-sm text-neutral-300 hover:text-brand-green hover:border-brand-green/50 transition-all font-medium"
+                >
+                  {link.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="py-12 md:py-16 bg-black/80 backdrop-blur-sm relative z-10">
         <div className="container mx-auto px-4">
