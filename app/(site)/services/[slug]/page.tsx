@@ -13,23 +13,84 @@ export async function generateStaticParams() {
   return getAllServiceSlugs().map((slug) => ({ slug }));
 }
 
+// SEO-optimized meta descriptions per service slug
+const serviceMetaMap: Record<string, { title: string; description: string; keywords: string[] }> = {
+  'residential-roof-replacement': {
+    title: 'Roof Replacement Decatur & Huntsville AL | Free Estimate',
+    description: 'Expert residential roof replacement in Decatur, Huntsville, Madison & North Alabama. IKO Dynasty & Owens Corning shingles, 5-year workmanship warranty. Insurance claims welcome. Free inspection — call (256) 274-8530.',
+    keywords: ['roof replacement Decatur AL', 'roof replacement Huntsville AL', 'new roof cost North Alabama', 'residential roofer near me', 'shingle roof replacement Alabama', 'IKO Dynasty shingles'],
+  },
+  'residential-roof-repair': {
+    title: 'Roof Repair Decatur & Huntsville AL | Same-Day Service Available',
+    description: 'Fast, affordable roof repair in Decatur, Huntsville & North Alabama. Leak repair, shingle replacement, flashing repair & emergency tarping. Licensed & insured. Free estimate — call (256) 274-8530.',
+    keywords: ['roof repair Decatur AL', 'roof repair Huntsville AL', 'roof repair near me', 'roof leak repair North Alabama', 'emergency roof repair Alabama', 'shingle repair Decatur'],
+  },
+  'commercial-roofing': {
+    title: 'Commercial Roofing Huntsville & Decatur AL | TPO, EPDM & Metal',
+    description: 'Commercial roofing contractor serving Huntsville, Decatur & North Alabama. TPO, EPDM, modified bitumen & metal roofing for flat and low-slope buildings. Maintenance programs available. Call (256) 274-8530.',
+    keywords: ['commercial roofing Huntsville AL', 'commercial roofing Decatur AL', 'commercial roof repair North Alabama', 'TPO roofing Alabama', 'flat roof contractor Huntsville', 'business roofing services'],
+  },
+  'storm-hail-damage-repair': {
+    title: 'Storm & Hail Damage Roof Repair North Alabama | Insurance Claims Expert',
+    description: 'Storm damage roof repair in Decatur, Huntsville & North Alabama. 24/7 emergency response, hail damage restoration & full insurance claim support. Free storm damage inspection — call (256) 274-8530.',
+    keywords: ['storm damage roof repair Alabama', 'hail damage roof repair Decatur AL', 'hail damage roof repair Huntsville AL', 'insurance claim roofing contractor', 'emergency roof repair North Alabama', 'wind damage roofer'],
+  },
+  'chimney-services': {
+    title: 'Chimney Repair & Cap Installation Decatur AL | North Alabama',
+    description: 'Professional chimney cap installation, chimney crown repair & flashing services in Decatur, Huntsville & North Alabama. Prevent water damage and pest intrusion. Free inspection — call (256) 274-8530.',
+    keywords: ['chimney repair services Alabama', 'chimney cap installation Decatur AL', 'chimney flashing repair Huntsville', 'chimney services North Alabama', 'chimney crown repair Alabama'],
+  },
+  'leafx-gutter-protection': {
+    title: 'Gutter Guards & LeafX Gutter Protection | Decatur & Huntsville AL',
+    description: 'LeafX gutter guard installation in Decatur, Huntsville & North Alabama. Lifetime clog-free guarantee, .024-gauge aluminum, no roof penetration. Stop cleaning gutters forever. Call (256) 274-8530.',
+    keywords: ['gutter installation North Alabama', 'gutter guards Decatur AL', 'LeafX gutter protection Huntsville', 'gutter guard installation Alabama', 'clog free gutter system', 'gutter protection near me'],
+  },
+  'roof-inspections-maintenance': {
+    title: 'Free Roof Inspection Decatur & Huntsville AL | Annual Maintenance',
+    description: 'Free roof inspections in Decatur, Huntsville, Madison & North Alabama. Annual maintenance programs, pre-purchase inspections, storm damage assessments & insurance documentation. Call (256) 274-8530.',
+    keywords: ['free roof inspection Decatur AL', 'free roof inspection Huntsville AL', 'roof inspection near me', 'roof maintenance North Alabama', 'annual roof inspection Alabama', 'pre-purchase roof inspection'],
+  },
+  'emergency-roof-services': {
+    title: 'Emergency Roof Repair North Alabama | 24/7 Service Decatur & Huntsville',
+    description: '24/7 emergency roof repair in Decatur, Huntsville & North Alabama. Same-day tarping, storm damage response & water damage mitigation. When disaster strikes, call (256) 274-8530 now.',
+    keywords: ['emergency roof repair North Alabama', 'emergency roof repair Decatur AL', 'emergency roof repair Huntsville AL', '24/7 roofer Alabama', 'emergency tarping service', 'storm damage emergency response'],
+  },
+  'gutter-repair-replacement': {
+    title: 'Gutter Repair & Replacement Decatur AL | Seamless Gutters',
+    description: 'Professional gutter repair and seamless gutter replacement in Decatur, Huntsville & North Alabama. Downspout repair, gutter cleaning & water diversion solutions. Call (256) 274-8530 for a free estimate.',
+    keywords: ['gutter repair Decatur AL', 'gutter replacement Huntsville AL', 'seamless gutters North Alabama', 'gutter installation near me', 'downspout repair Alabama', 'gutter cleaning service'],
+  },
+  'attic-ventilation': {
+    title: 'Attic Ventilation Solutions Decatur & Huntsville AL',
+    description: 'Improve your home\'s energy efficiency with attic ventilation solutions in Decatur, Huntsville & North Alabama. Ridge vents, soffit vents & proper airflow calculation. Reduce cooling costs. Call (256) 274-8530.',
+    keywords: ['attic ventilation Decatur AL', 'attic ventilation Huntsville AL', 'ridge vent installation Alabama', 'soffit vent repair North Alabama', 'energy efficient roofing Alabama', 'attic airflow solutions'],
+  },
+  'roof-coating-treatment': {
+    title: 'Roof Coating & Treatment Services | Decatur & North Alabama',
+    description: 'Extend your roof\'s life with protective coatings and treatments in Decatur, Huntsville & North Alabama. Algae-resistant, UV protection & waterproof sealants. Call (256) 274-8530 for a free assessment.',
+    keywords: ['roof coating Decatur AL', 'roof treatment North Alabama', 'roof sealant Huntsville AL', 'UV protection roof coating', 'algae resistant roof treatment', 'reflective roof coating Alabama'],
+  },
+};
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const service = getService(slug);
   if (!service) return { title: 'Service Not Found' };
 
   const path = `/services/${slug}`;
+  const meta = serviceMetaMap[slug];
 
-  // Create unique, descriptive title for each service
-  const title = `${service.title} in North Alabama | River City Roofing`;
-  const description = service.description.length > 155
+  // Use SEO-optimized meta if available, otherwise generate from service data
+  const title = meta?.title || `${service.title} Decatur & Huntsville AL | River City Roofing`;
+  const description = meta?.description || (service.description.length > 155
     ? service.description.substring(0, 155) + '...'
-    : service.description;
+    : service.description + ` in Decatur, Huntsville & North Alabama. Free inspection — call (256) 274-8530.`);
+  const keywords = meta?.keywords || [`${service.title.toLowerCase()} Decatur AL`, `${service.title.toLowerCase()} Huntsville AL`, `${service.title.toLowerCase()} North Alabama`];
 
   return {
     title,
     description,
-    // Use path - Next.js combines with metadataBase to create full canonical URL
+    keywords,
     alternates: {
       canonical: path,
     },
@@ -192,32 +253,39 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-2xl font-bold text-white mb-6 text-center">
-              Related Services & Service Areas
+              Related Roofing Services &amp; Areas We Serve
             </h2>
             <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <h3 className="text-lg font-semibold text-brand-green mb-3">More Services</h3>
+                <h3 className="text-lg font-semibold text-brand-green mb-3">More Roofing Services</h3>
                 <ul className="space-y-2">
-                  {services.filter(s => s.slug !== slug).slice(0, 5).map(s => (
+                  {services.filter(s => s.slug !== slug).slice(0, 7).map(s => (
                     <li key={s.slug}><Link href={`/services/${s.slug}`} className="text-gray-300 hover:text-brand-green transition-colors">{s.title}</Link></li>
                   ))}
                   <li><Link href="/services" className="text-brand-green font-semibold hover:text-lime-400 transition-colors">View All Services →</Link></li>
                 </ul>
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-brand-green mb-3">We Serve These Areas</h3>
+                <h3 className="text-lg font-semibold text-brand-green mb-3">{service.title} Available In</h3>
                 <ul className="space-y-2">
                   <li><Link href="/service-areas/decatur-al" className="text-gray-300 hover:text-brand-green transition-colors">{service.title} in Decatur, AL</Link></li>
                   <li><Link href="/service-areas/huntsville-al" className="text-gray-300 hover:text-brand-green transition-colors">{service.title} in Huntsville, AL</Link></li>
                   <li><Link href="/service-areas/madison-al" className="text-gray-300 hover:text-brand-green transition-colors">{service.title} in Madison, AL</Link></li>
                   <li><Link href="/service-areas/athens-al" className="text-gray-300 hover:text-brand-green transition-colors">{service.title} in Athens, AL</Link></li>
-                  <li><Link href="/service-areas" className="text-brand-green font-semibold hover:text-lime-400 transition-colors">View All Areas →</Link></li>
+                  <li><Link href="/service-areas/hartselle-al" className="text-gray-300 hover:text-brand-green transition-colors">{service.title} in Hartselle, AL</Link></li>
+                  <li><Link href="/service-areas/cullman-al" className="text-gray-300 hover:text-brand-green transition-colors">{service.title} in Cullman, AL</Link></li>
+                  <li><Link href="/service-areas/florence-al" className="text-gray-300 hover:text-brand-green transition-colors">{service.title} in Florence, AL</Link></li>
+                  <li><Link href="/service-areas/moulton-al" className="text-gray-300 hover:text-brand-green transition-colors">{service.title} in Moulton, AL</Link></li>
+                  <li><Link href="/service-areas" className="text-brand-green font-semibold hover:text-lime-400 transition-colors">View All Service Areas →</Link></li>
                 </ul>
               </div>
             </div>
-            <div className="mt-6 text-center">
+            <div className="mt-6 text-center space-y-2">
               <p className="text-gray-400 text-sm">
-                Read our <Link href="/blog" className="text-brand-green hover:text-lime-400">roofing blog</Link> for expert tips, or <Link href="/check-my-address" className="text-brand-green hover:text-lime-400">check your address</Link> for recent storm activity.
+                Read our <Link href="/blog" className="text-brand-green hover:text-lime-400">roofing blog</Link> for expert tips on {service.title.toLowerCase()} and roof maintenance in North Alabama.
+              </p>
+              <p className="text-gray-400 text-sm">
+                <Link href="/check-my-address" className="text-brand-green hover:text-lime-400">Check your address</Link> for recent storm activity, or <Link href="/contact" className="text-brand-green hover:text-lime-400">schedule a free inspection</Link> today.
               </p>
             </div>
           </div>

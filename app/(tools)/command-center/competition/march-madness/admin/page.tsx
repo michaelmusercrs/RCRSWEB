@@ -970,14 +970,27 @@ export default function MarchMadnessAdminPage() {
             </div>
             <div>
               <label className="block text-xs text-neutral-400 mb-1">
-                <DollarSign className="w-3 h-3 inline mr-1" />
-                $100K Bonus Prize
+                <Target className="w-3 h-3 inline mr-1" />
+                Top Non-Champion Prize
               </label>
               <input
                 type="text"
-                value={prizes.hundredKBonus}
-                onChange={(e) => setPrizes((p) => ({ ...p, hundredKBonus: e.target.value }))}
-                placeholder="Also wins the 10/22 (automatic)"
+                value={prizes.topNonChampion || ''}
+                onChange={(e) => setPrizes((p) => ({ ...p, topNonChampion: e.target.value }))}
+                placeholder=".22LR Wrangler Revolver"
+                className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-brand-green transition-colors"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-neutral-400 mb-1">
+                <DollarSign className="w-3 h-3 inline mr-1" />
+                $100K March Bonus
+              </label>
+              <input
+                type="text"
+                value={prizes.hundredK || prizes.hundredKBonus || ''}
+                onChange={(e) => setPrizes((p) => ({ ...p, hundredK: e.target.value }))}
+                placeholder="Sell $100K = auto-win the Wrangler"
                 className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-brand-green transition-colors"
               />
             </div>

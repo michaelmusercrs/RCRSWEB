@@ -13,27 +13,92 @@ export async function generateStaticParams() {
   return getAllServiceAreaSlugs().map((slug) => ({ slug }));
 }
 
+// SEO-optimized unique meta descriptions per service area
+const areaMetaMap: Record<string, { title: string; description: string; keywords: string[] }> = {
+  'decatur-al': {
+    title: 'Roofing Contractor Decatur AL | Roof Replacement & Repair',
+    description: 'Top-rated roofing contractor in Decatur, AL. Roof replacement, storm damage repair, free inspections & insurance claim assistance. Same-day service from our Decatur headquarters. BBB A+ rated. Call (256) 274-8530.',
+    keywords: ['roofing contractor Decatur AL', 'roof replacement Decatur AL', 'roof repair Decatur AL', 'best roofer Decatur AL', 'storm damage Decatur AL', 'free roof inspection Decatur AL', 'roofer near me Decatur'],
+  },
+  'huntsville-al': {
+    title: 'Roofing Contractor Huntsville AL | Roof Replacement & Storm Damage',
+    description: 'Trusted roofing contractor in Huntsville, AL. Expert roof replacement, hail damage repair, metal roofing & free inspections. IKO certified, serving Madison County. Call (256) 274-8530 for a free estimate.',
+    keywords: ['roofing contractor Huntsville AL', 'roof replacement Huntsville AL', 'roof repair Huntsville AL', 'best roofer Huntsville AL', 'hail damage Huntsville AL', 'free roof inspection Huntsville', 'metal roofing Huntsville AL'],
+  },
+  'madison-al': {
+    title: 'Roofing Contractor Madison AL | Roof Replacement & Gutter Guards',
+    description: 'Professional roofing services in Madison, AL. Residential roof replacement, LeafX gutter guards, storm damage repair & free inspections. Serving Madison\'s growing neighborhoods. Call (256) 274-8530.',
+    keywords: ['roofing contractor Madison AL', 'roof replacement Madison AL', 'roof repair Madison AL', 'best roofer Madison AL', 'gutter guards Madison AL', 'free roof inspection Madison AL', 'storm damage Madison'],
+  },
+  'athens-al': {
+    title: 'Roofing Contractor Athens AL | Roof Replacement & Repair',
+    description: 'Licensed roofing contractor serving Athens & Limestone County, AL. Roof replacement, storm damage repair, insurance claims & free inspections for historic and modern homes. Call (256) 274-8530.',
+    keywords: ['roofing contractor Athens AL', 'roof replacement Athens AL', 'roof repair Athens AL', 'best roofer Athens AL', 'Limestone County roofer', 'free roof inspection Athens AL', 'storm damage Athens'],
+  },
+  'owens-crossroads-al': {
+    title: 'Roofing Services Owens Cross Roads & Hampton Cove AL',
+    description: 'Expert roofing services for Owens Cross Roads & Hampton Cove, AL. Mountain and foothill homes need specialized storm protection. Roof replacement, repairs & free inspections. Call (256) 274-8530.',
+    keywords: ['roofer Owens Cross Roads AL', 'roofing Hampton Cove AL', 'roof replacement Owens Cross Roads', 'storm damage Hampton Cove', 'free roof inspection Owens Cross Roads AL'],
+  },
+  'hartselle-al': {
+    title: 'Roofing Contractor Hartselle AL | Roof Replacement & Storm Repair',
+    description: 'Trusted roofing contractor in Hartselle, AL. Same-day service for roof replacement, storm damage repair & free inspections. Serving Morgan County homeowners. Call (256) 274-8530 today.',
+    keywords: ['roofing contractor Hartselle AL', 'roof replacement Hartselle AL', 'roof repair Hartselle AL', 'best roofer Hartselle AL', 'Morgan County roofer', 'free roof inspection Hartselle AL'],
+  },
+  'cullman-al': {
+    title: 'Roofing Contractor Cullman AL | Roof Replacement & Hail Damage',
+    description: 'Professional roofing contractor in Cullman, AL. Expert roof replacement, hail & tornado damage repair, commercial roofing & free inspections for Cullman County. Call (256) 274-8530.',
+    keywords: ['roofing contractor Cullman AL', 'roof replacement Cullman AL', 'roof repair Cullman AL', 'best roofer Cullman AL', 'Cullman County roofer', 'hail damage Cullman AL', 'free roof inspection Cullman'],
+  },
+  'moulton-al': {
+    title: 'Roofing Contractor Moulton AL | Lawrence County Roof Repair',
+    description: 'Reliable roofing services in Moulton & Lawrence County, AL. Roof replacement, storm damage repair, emergency tarping & free inspections. Personalized service for rural and residential properties. Call (256) 274-8530.',
+    keywords: ['roofing contractor Moulton AL', 'roof replacement Moulton AL', 'roof repair Moulton AL', 'Lawrence County roofer', 'free roof inspection Moulton AL', 'storm damage Moulton AL'],
+  },
+  'florence-al': {
+    title: 'Roofing Contractor Florence AL | Shoals Area Roof Replacement',
+    description: 'Expert roofing contractor serving Florence, Muscle Shoals, Sheffield & Tuscumbia AL. Roof replacement, storm damage repair & insurance claims for Lauderdale County. Free inspections. Call (256) 274-8530.',
+    keywords: ['roofing contractor Florence AL', 'roof replacement Florence AL', 'roofer Muscle Shoals AL', 'Shoals area roofer', 'Lauderdale County roofing', 'free roof inspection Florence AL', 'storm damage Florence'],
+  },
+  'north-alabama': {
+    title: 'North Alabama Roofing Contractor | Serving the Entire Region',
+    description: 'River City Roofing Solutions serves all of North Alabama with expert roof replacement, storm damage repair & insurance claims. Tornado alley specialists with free inspections territory-wide. Call (256) 274-8530.',
+    keywords: ['North Alabama roofing contractor', 'roofing company North Alabama', 'best roofer North Alabama', 'storm damage North Alabama', 'hail damage repair Alabama', 'free roof inspection North Alabama'],
+  },
+  'birmingham-al': {
+    title: 'Roofing Contractor Birmingham AL | Coming Soon',
+    description: 'River City Roofing Solutions is expanding to Birmingham, AL in 2026. Bringing our trusted roof replacement, storm damage repair & insurance claim services to Alabama\'s largest metro. Call (256) 274-8530.',
+    keywords: ['roofing contractor Birmingham AL', 'roof replacement Birmingham AL', 'roofer Birmingham AL', 'storm damage Birmingham', 'new roofing company Birmingham'],
+  },
+  'nashville-tn': {
+    title: 'Roofing Contractor Nashville TN | Coming Soon',
+    description: 'River City Roofing Solutions is expanding to Nashville, TN in 2026. Commercial and residential roofing, storm damage repair & insurance claim expertise coming to Music City. Call (256) 274-8530.',
+    keywords: ['roofing contractor Nashville TN', 'roof replacement Nashville TN', 'roofer Nashville TN', 'storm damage Nashville', 'new roofing company Nashville'],
+  },
+};
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const area = getServiceArea(slug);
   if (!area) return { title: 'Area Not Found' };
 
   const path = `/service-areas/${slug}`;
-  const url = `${siteConfig.url}${path}`;
-  const title = `Roofing Services in ${area.name}, ${area.state} | River City Roofing`;
-  const description = area.description || `Professional roofing services in ${area.name}. Residential and commercial roofing, storm damage repair, and free inspections.`;
-  const truncatedDesc = description.length > 155 ? description.substring(0, 155) + '...' : description;
+  const meta = areaMetaMap[slug];
+
+  const title = meta?.title || `${area.name} AL Roofing Contractor | Roof Replacement & Repair`;
+  const description = meta?.description || `Professional roofing contractor in ${area.name}, ${area.state}. Roof replacement, storm damage repair, free inspections & insurance claims. Call (256) 274-8530.`;
+  const keywords = meta?.keywords || [`roofing contractor ${area.name} ${area.state}`, `roof replacement ${area.name} ${area.state}`, `best roofer ${area.name} ${area.state}`];
 
   return {
     title,
-    description: truncatedDesc,
-    // Use path - Next.js combines with metadataBase for full canonical URL
+    description,
+    keywords,
     alternates: {
       canonical: path,
     },
     openGraph: {
       title,
-      description: truncatedDesc,
+      description,
       url: `${siteConfig.url}${path}`,
       siteName: siteConfig.name,
       type: 'website',
@@ -58,16 +123,6 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ sl
     'cullman-al': { lat: 34.1748, lng: -86.8436 },
     'moulton-al': { lat: 34.4812, lng: -87.2953 },
     'florence-al': { lat: 34.7998, lng: -87.6772 },
-    'albertville-al': { lat: 34.2673, lng: -86.2088 },
-    'guntersville-al': { lat: 34.3582, lng: -86.2947 },
-    'arab-al': { lat: 34.3282, lng: -86.4961 },
-    'scottsboro-al': { lat: 34.6723, lng: -86.0341 },
-    'fort-payne-al': { lat: 34.4443, lng: -85.7197 },
-    'muscle-shoals-al': { lat: 34.7448, lng: -87.6675 },
-    'meridianville-al': { lat: 34.8512, lng: -86.5722 },
-    'hazel-green-al': { lat: 34.9312, lng: -86.5722 },
-    'priceville-al': { lat: 34.5254, lng: -86.8947 },
-    'somerville-al': { lat: 34.4715, lng: -86.7914 },
     'north-alabama': { lat: 34.6059, lng: -86.9833 },
     'birmingham-al': { lat: 33.5207, lng: -86.8025 },
     'nashville-tn': { lat: 36.1627, lng: -86.7816 },
@@ -129,8 +184,8 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ sl
     { name: area.name, url: `/service-areas/${slug}` },
   ]);
 
-  // Dynamic FAQs based on area — use customFAQs if available, otherwise generate generic ones
-  const genericFAQs = [
+  // Dynamic FAQs based on area
+  const areaFAQs = [
     {
       question: `Do you offer free roof inspections in ${area.name}?`,
       answer: `Yes! River City Roofing Solutions provides completely free, no-obligation roof inspections for homeowners in ${area.name}, ${area.state}. Our certified inspectors will assess your roof's condition, document any issues with photos, and provide honest recommendations.`,
@@ -152,9 +207,6 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ sl
       answer: `Absolutely! We have extensive experience working with insurance companies on storm and hail damage claims in ${area.name} and throughout ${area.state}. We handle all documentation, photos, and communication with your insurance adjuster to maximize your claim.`,
     },
   ];
-  const areaFAQs = area.customFAQs && area.customFAQs.length > 0
-    ? [...area.customFAQs, ...genericFAQs.slice(0, 2)]
-    : genericFAQs;
 
   const faqSchema = generateFAQSchema(areaFAQs);
 
@@ -303,31 +355,45 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ sl
             </h2>
             <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <h3 className="text-lg font-semibold text-brand-green mb-3">Our Services</h3>
+                <h3 className="text-lg font-semibold text-brand-green mb-3">Roofing Services in {area.name}</h3>
                 <ul className="space-y-2">
-                  <li><Link href="/services/residential-roof-replacement" className="text-gray-300 hover:text-brand-green transition-colors">Residential Roof Replacement</Link></li>
-                  <li><Link href="/services/residential-roof-repair" className="text-gray-300 hover:text-brand-green transition-colors">Roof Repair Services</Link></li>
-                  <li><Link href="/services/storm-hail-damage-repair" className="text-gray-300 hover:text-brand-green transition-colors">Storm & Hail Damage Repair</Link></li>
-                  <li><Link href="/services/leafx-gutter-protection" className="text-gray-300 hover:text-brand-green transition-colors">LeafX® Gutter Protection</Link></li>
+                  <li><Link href="/services/residential-roof-replacement" className="text-gray-300 hover:text-brand-green transition-colors">Roof Replacement in {area.name}</Link></li>
+                  <li><Link href="/services/residential-roof-repair" className="text-gray-300 hover:text-brand-green transition-colors">Roof Repair in {area.name}</Link></li>
+                  <li><Link href="/services/storm-hail-damage-repair" className="text-gray-300 hover:text-brand-green transition-colors">Storm &amp; Hail Damage Repair</Link></li>
+                  <li><Link href="/services/commercial-roofing" className="text-gray-300 hover:text-brand-green transition-colors">Commercial Roofing</Link></li>
+                  <li><Link href="/services/emergency-roof-services" className="text-gray-300 hover:text-brand-green transition-colors">Emergency Roof Services</Link></li>
+                  <li><Link href="/services/leafx-gutter-protection" className="text-gray-300 hover:text-brand-green transition-colors">LeafX Gutter Protection</Link></li>
+                  <li><Link href="/services/chimney-services" className="text-gray-300 hover:text-brand-green transition-colors">Chimney Services</Link></li>
+                  <li><Link href="/services/roof-inspections-maintenance" className="text-gray-300 hover:text-brand-green transition-colors">Free Roof Inspection</Link></li>
                   <li><Link href="/services" className="text-brand-green font-semibold hover:text-lime-400 transition-colors">View All Services →</Link></li>
                 </ul>
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-brand-green mb-3">Other Service Areas</h3>
+                <h3 className="text-lg font-semibold text-brand-green mb-3">Also Serving Nearby Areas</h3>
                 <ul className="space-y-2">
-                  {['decatur-al', 'huntsville-al', 'madison-al', 'athens-al', 'hartselle-al', 'cullman-al', 'albertville-al', 'guntersville-al', 'scottsboro-al', 'fort-payne-al', 'muscle-shoals-al', 'meridianville-al', 'hazel-green-al', 'priceville-al', 'arab-al', 'somerville-al'].filter(s => s !== slug).slice(0, 5).map(areaSlug => {
-                    const areaName = areaSlug.replace('-al', '').replace('-tn', '').split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-                    return (
-                      <li key={areaSlug}><Link href={`/service-areas/${areaSlug}`} className="text-gray-300 hover:text-brand-green transition-colors">Roofing in {areaName}, AL</Link></li>
-                    );
-                  })}
-                  <li><Link href="/service-areas" className="text-brand-green font-semibold hover:text-lime-400 transition-colors">View All Areas →</Link></li>
+                  {[
+                    { slug: 'decatur-al', name: 'Decatur', state: 'AL' },
+                    { slug: 'huntsville-al', name: 'Huntsville', state: 'AL' },
+                    { slug: 'madison-al', name: 'Madison', state: 'AL' },
+                    { slug: 'athens-al', name: 'Athens', state: 'AL' },
+                    { slug: 'hartselle-al', name: 'Hartselle', state: 'AL' },
+                    { slug: 'cullman-al', name: 'Cullman', state: 'AL' },
+                    { slug: 'moulton-al', name: 'Moulton', state: 'AL' },
+                    { slug: 'florence-al', name: 'Florence', state: 'AL' },
+                    { slug: 'owens-crossroads-al', name: 'Owens Cross Roads', state: 'AL' },
+                  ].filter(a => a.slug !== slug).slice(0, 6).map(nearbyArea => (
+                    <li key={nearbyArea.slug}><Link href={`/service-areas/${nearbyArea.slug}`} className="text-gray-300 hover:text-brand-green transition-colors">Roofing Contractor in {nearbyArea.name}, {nearbyArea.state}</Link></li>
+                  ))}
+                  <li><Link href="/service-areas" className="text-brand-green font-semibold hover:text-lime-400 transition-colors">View All Service Areas →</Link></li>
                 </ul>
               </div>
             </div>
-            <div className="mt-6 text-center">
+            <div className="mt-6 text-center space-y-2">
               <p className="text-gray-400 text-sm">
-                Read our <Link href="/blog" className="text-brand-green hover:text-lime-400">roofing blog</Link> for expert tips, or <Link href="/check-my-address" className="text-brand-green hover:text-lime-400">check your address</Link> for recent storm activity.
+                Read our <Link href="/blog" className="text-brand-green hover:text-lime-400">roofing blog</Link> for expert tips on roof maintenance, storm preparation and choosing the right materials.
+              </p>
+              <p className="text-gray-400 text-sm">
+                <Link href="/check-my-address" className="text-brand-green hover:text-lime-400">Check your address</Link> for recent hail and storm activity, or <Link href="/contact" className="text-brand-green hover:text-lime-400">contact us</Link> for a free roof inspection in {area.name}.
               </p>
             </div>
           </div>

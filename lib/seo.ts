@@ -42,19 +42,23 @@ export const siteConfig = {
   },
   priceRange: '$$$',
   defaultKeywords: [
-    'roofing contractor',
+    'roofing contractor Decatur AL',
+    'roofing contractor Huntsville AL',
     'North Alabama roofer',
-    'Decatur roofing',
-    'Huntsville roofing',
-    'Madison roofing',
-    'roof replacement',
-    'roof repair',
-    'storm damage',
-    'insurance claims',
-    'residential roofing',
-    'commercial roofing',
+    'roof replacement near me',
+    'roof repair near me',
+    'storm damage roof repair Alabama',
+    'hail damage roof repair',
+    'insurance claim roofing contractor',
     'free roof inspection',
+    'best roofer Decatur AL',
+    'best roofer Huntsville AL',
+    'residential roofing North Alabama',
+    'commercial roofing Huntsville AL',
     'roofing company near me',
+    'emergency roof repair North Alabama',
+    'metal roofing Alabama',
+    'gutter installation North Alabama',
   ],
   // Service areas for local SEO
   serviceAreas: [
@@ -108,10 +112,16 @@ export function generateMetadata(params: GenerateMetadataParams = {}): Metadata 
 
   const allKeywords = [...siteConfig.defaultKeywords, ...keywords];
 
+  // Deduplicate keywords (case-insensitive)
+  const uniqueKeywords = allKeywords.filter((kw, idx, arr) =>
+    arr.findIndex(k => k.toLowerCase() === kw.toLowerCase()) === idx
+  );
+
   const metadata: Metadata = {
     metadataBase: new URL(siteConfig.url),
     title: fullTitle,
     description,
+    keywords: uniqueKeywords,
     applicationName: siteConfig.name,
     authors: author ? [{ name: author }] : [{ name: siteConfig.name }],
     generator: 'Next.js',

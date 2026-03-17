@@ -28,9 +28,9 @@ const huntsvilleFAQs = [
 ];
 
 export const metadata: Metadata = genMeta({
-  title: 'Roof Repair & Replacement Huntsville AL',
-  description: 'Expert roofing contractors in Huntsville, AL. Roof repair, replacement, storm damage & insurance claims. Free estimates. BBB Accredited. Call (256) 274-8530',
-  keywords: ['roof repair Huntsville AL', 'roofing contractors Huntsville', 'roof replacement Huntsville', 'storm damage Huntsville', 'hail damage roof Huntsville'],
+  title: 'Roofing Contractor Huntsville AL | Roof Repair & Replacement Near Me',
+  description: 'Trusted roofing contractor in Huntsville, AL. Expert roof repair, roof replacement, metal roofing, hail damage restoration and free inspections. IKO certified, serving Madison County. Call (256) 274-8530.',
+  keywords: ['roofing contractor Huntsville AL', 'roof repair Huntsville AL', 'roof replacement Huntsville AL', 'best roofer Huntsville AL', 'storm damage Huntsville', 'hail damage roof repair Huntsville AL', 'metal roofing Huntsville AL', 'free roof inspection Huntsville'],
   path: '/locations/huntsville',
 });
 

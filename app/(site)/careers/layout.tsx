@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Careers | Join River City Roofing Solutions — Build Your Own Business',
+  title: 'Roofing Sales Jobs Decatur & Huntsville AL | Careers at River City Roofing',
   description:
-    'Build your own roofing business with River City Roofing Solutions. Unlimited earning potential, free training, flexible schedule. No experience needed. Apply today!',
+    'Join River City Roofing Solutions in Decatur & Huntsville AL. Roofing sales jobs with unlimited earning potential ($60K-$200K+), free training, flexible schedule. No experience needed. Apply today!',
   openGraph: {
     title: 'Careers — River City Roofing Solutions',
     description:

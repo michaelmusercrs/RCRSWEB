@@ -681,7 +681,7 @@ export default function MarchMadnessRepPage() {
           </h1>
 
           <p className="text-neutral-400 text-base sm:text-lg font-semibold tracking-wide">
-            Shoot Your Shot <span className="text-orange-500 mx-2">&bull;</span> 3 Weeks <span className="text-orange-500 mx-2">&bull;</span> Winner Takes the 10/22
+            Shoot Your Shot <span className="text-orange-500 mx-2">&bull;</span> 3 Weeks <span className="text-orange-500 mx-2">&bull;</span> Win the 10/22 or the Wrangler
           </p>
         </div>
       </div>
@@ -771,12 +771,12 @@ export default function MarchMadnessRepPage() {
                 </div>
               </div>
               <div className="text-center sm:text-left flex-1">
-                <p className="text-[10px] uppercase tracking-[0.3em] text-orange-400 font-black mb-1">Grand Prize</p>
+                <p className="text-[10px] uppercase tracking-[0.3em] text-orange-400 font-black mb-1">Champion Prize</p>
                 <h2 className="text-2xl sm:text-3xl font-black text-white mb-1">
                   {prizes?.champion || '10/22 with Suppressor'}
                 </h2>
                 <p className="text-neutral-500 text-sm">
-                  {prizes?.note || 'Winner completes legal paperwork at FFL dealer'}
+                  {prizes?.note || 'All firearms prizes — winner completes legal paperwork at FFL dealer'}
                 </p>
               </div>
               <div className="shrink-0">
@@ -784,15 +784,28 @@ export default function MarchMadnessRepPage() {
               </div>
             </div>
 
-            {/* $100K Bonus call-out */}
-            <div className="mt-6 px-5 py-4 rounded-xl bg-[#39FF14]/10 border border-[#39FF14]/30">
-              <div className="flex items-start gap-3">
-                <Zap className="w-5 h-5 text-[#39FF14] shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-black text-[#39FF14] text-sm">$100K BONUS</p>
-                  <p className="text-neutral-300 text-sm mt-0.5">
-                    {prizes?.hundredK || 'Hit $100K in approved March sales and you win one too!'}
-                  </p>
+            {/* Wrangler + $100K */}
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="px-5 py-4 rounded-xl bg-[#39FF14]/10 border border-[#39FF14]/30">
+                <div className="flex items-start gap-3">
+                  <Target className="w-5 h-5 text-[#39FF14] shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-black text-[#39FF14] text-sm">TOP NON-CHAMPION</p>
+                    <p className="text-neutral-300 text-sm mt-0.5">
+                      .22LR Wrangler Revolver — best performer who doesn&apos;t win the bracket
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="px-5 py-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                <div className="flex items-start gap-3">
+                  <Zap className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-black text-amber-400 text-sm">$100K MARCH BONUS</p>
+                    <p className="text-neutral-300 text-sm mt-0.5">
+                      Sell $100K in approved March sales = automatically win the Wrangler
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1008,7 +1021,7 @@ export default function MarchMadnessRepPage() {
             <h2 className="text-sm font-black uppercase tracking-wider text-neutral-300">$100K Bonus Tracker</h2>
           </div>
           <p className="text-neutral-500 text-xs mb-5">
-            Hit $100K in total March sales = you win the prize regardless of bracket outcome
+            Hit $100K in total March sales = automatically win the .22LR Wrangler Revolver
           </p>
           <div className="space-y-3">
             {participants
@@ -1089,7 +1102,7 @@ export default function MarchMadnessRepPage() {
                 { text: <>Win your matchup, carry <strong className="text-cyan-400">50% of your sales</strong> into the next round.</> },
                 { text: <>Effective Total = This Week&apos;s Sales + <span className="text-cyan-400">50% Carry</span> from Last Round</> },
                 { text: <><strong className="text-amber-400">#1 seed</strong> gets a first-round BYE.</> },
-                { text: <>Hit <strong className="text-[#39FF14]">$100K in March</strong> = automatic prize winner regardless of bracket.</> },
+                { text: <>Hit <strong className="text-[#39FF14]">$100K in March</strong> = automatically win the .22LR Wrangler. Top non-champion also wins one.</> },
                 { text: 'Results posted Monday at 10 AM. No exceptions.' },
                 { text: <>Sales = <strong className="text-white">approved job total</strong> (deposit received = full contract value).</> },
               ].map((rule, i) => (

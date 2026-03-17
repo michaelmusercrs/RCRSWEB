@@ -36,8 +36,15 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
   }
 
   const path = `/blog/${params.slug}`;
-  const description = post.excerpt.length > 155 ? post.excerpt.substring(0, 155) + '...' : post.excerpt;
-  const keywords = Array.isArray(post.keywords) ? post.keywords : (post.keywords || '').split(',').map((k: string) => k.trim());
+  // Build a more SEO-rich description that includes location context
+  const baseExcerpt = post.excerpt.replace(/\.$/, '');
+  const seoDescription = baseExcerpt.length > 130
+    ? baseExcerpt.substring(0, 130) + '... Expert advice from River City Roofing Solutions, Decatur AL.'
+    : `${baseExcerpt}. Expert advice from River City Roofing Solutions serving Decatur, Huntsville & North Alabama.`;
+  const description = seoDescription.length > 160 ? seoDescription.substring(0, 157) + '...' : seoDescription;
+  const rawKeywords = Array.isArray(post.keywords) ? post.keywords : (post.keywords || '').split(',').map((k: string) => k.trim());
+  // Add geo-targeted keywords to every blog post
+  const keywords = [...rawKeywords, 'North Alabama', 'Decatur AL', 'Huntsville AL'].filter((k, i, arr) => arr.indexOf(k) === i);
 
   return {
     title: `${post.title} | River City Roofing Blog`,
@@ -227,16 +234,20 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
           {/* Internal Links for SEO */}
           <div className="mt-12 p-6 bg-neutral-900 border border-neutral-800 rounded-lg">
-            <h3 className="text-lg font-bold text-white mb-4">Explore Our Services</h3>
+            <h3 className="text-lg font-bold text-white mb-4">Explore Our Roofing Services &amp; Areas</h3>
             <div className="grid sm:grid-cols-2 gap-3">
-              <Link href="/services/residential-roof-replacement" className="text-gray-300 hover:text-brand-green transition-colors text-sm">→ Residential Roof Replacement</Link>
-              <Link href="/services/storm-hail-damage-repair" className="text-gray-300 hover:text-brand-green transition-colors text-sm">→ Storm & Hail Damage Repair</Link>
-              <Link href="/services/residential-roof-repair" className="text-gray-300 hover:text-brand-green transition-colors text-sm">→ Roof Repair Services</Link>
-              <Link href="/services/leafx-gutter-protection" className="text-gray-300 hover:text-brand-green transition-colors text-sm">→ LeafX® Gutter Protection</Link>
-              <Link href="/service-areas/huntsville-al" className="text-gray-300 hover:text-brand-green transition-colors text-sm">→ Roofing in Huntsville, AL</Link>
-              <Link href="/service-areas/decatur-al" className="text-gray-300 hover:text-brand-green transition-colors text-sm">→ Roofing in Decatur, AL</Link>
-              <Link href="/check-my-address" className="text-gray-300 hover:text-brand-green transition-colors text-sm">→ Check Your Address for Storm Damage</Link>
-              <Link href="/contact" className="text-brand-green font-semibold hover:text-lime-400 transition-colors text-sm">→ Get a Free Inspection</Link>
+              <Link href="/services/residential-roof-replacement" className="text-gray-300 hover:text-brand-green transition-colors text-sm">Roof Replacement in North Alabama</Link>
+              <Link href="/services/storm-hail-damage-repair" className="text-gray-300 hover:text-brand-green transition-colors text-sm">Storm &amp; Hail Damage Repair</Link>
+              <Link href="/services/residential-roof-repair" className="text-gray-300 hover:text-brand-green transition-colors text-sm">Roof Repair Services</Link>
+              <Link href="/services/commercial-roofing" className="text-gray-300 hover:text-brand-green transition-colors text-sm">Commercial Roofing</Link>
+              <Link href="/services/leafx-gutter-protection" className="text-gray-300 hover:text-brand-green transition-colors text-sm">LeafX Gutter Protection</Link>
+              <Link href="/services/emergency-roof-services" className="text-gray-300 hover:text-brand-green transition-colors text-sm">Emergency Roof Services</Link>
+              <Link href="/service-areas/decatur-al" className="text-gray-300 hover:text-brand-green transition-colors text-sm">Roofing Contractor in Decatur, AL</Link>
+              <Link href="/service-areas/huntsville-al" className="text-gray-300 hover:text-brand-green transition-colors text-sm">Roofing Contractor in Huntsville, AL</Link>
+              <Link href="/service-areas/madison-al" className="text-gray-300 hover:text-brand-green transition-colors text-sm">Roofing Contractor in Madison, AL</Link>
+              <Link href="/service-areas/athens-al" className="text-gray-300 hover:text-brand-green transition-colors text-sm">Roofing Contractor in Athens, AL</Link>
+              <Link href="/check-my-address" className="text-gray-300 hover:text-brand-green transition-colors text-sm">Check Your Address for Hail &amp; Storm Damage</Link>
+              <Link href="/contact" className="text-brand-green font-semibold hover:text-lime-400 transition-colors text-sm">Schedule a Free Roof Inspection</Link>
             </div>
           </div>
         </div>

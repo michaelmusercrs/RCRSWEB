@@ -5,18 +5,18 @@ import type { Metadata } from 'next';
 import { generateMetadata as genMeta, siteConfig, getStructuredDataScript } from '@/lib/seo';
 
 export const metadata: Metadata = genMeta({
-  title: 'Raise the Roof for Schools | River City Roofing Solutions',
+  title: 'Raise the Roof for Schools | Roofing Referral Program Decatur AL',
   description:
-    'Every roof replacement means ~$250 donated to the school of your choice. River City Roofing Solutions has donated over $100K to local schools and youth sports across North Alabama.',
+    'Every roof replacement means ~$250 donated to the school of your choice. River City Roofing Solutions has donated over $100K to local schools and youth sports across Decatur, Huntsville & North Alabama. Refer a neighbor today.',
   keywords: [
-    'roofing school donation',
+    'roofing referral program Decatur AL',
     'raise the roof for schools',
-    'community roofing program',
-    'North Alabama school donations',
-    'roofing referral program',
+    'roofing school donation North Alabama',
+    'community roofing program Huntsville',
+    'roofing referral rewards Alabama',
     'Decatur roofing community',
-    'Huntsville roofing charity',
-    'roofing gives back',
+    'roof replacement school donation',
+    'roofing company gives back Alabama',
   ],
   path: '/referral-rewards',
 });

@@ -16,10 +16,11 @@
   },
   "prizes": {
     "champion": "10/22 with Suppressor",
-    "hundredK": "Any rep hitting $100K approved sales in March also wins a 10/22 with Suppressor",
+    "topNonChampion": ".22LR Wrangler Revolver — top-performing rep who does NOT win the championship",
+    "hundredK": "Sell $100K in approved March sales = automatically win a .22LR Wrangler Revolver",
     "runnerUp": "$250 Cash",
     "mvp": "$100 Gift Card (highest single-week effective total)",
-    "note": "Winner completes all legal paperwork at FFL dealer"
+    "note": "All firearms prizes — winner completes legal paperwork at FFL dealer"
   },
   "lastUpdatedBy": "",
   "lastUpdatedAt": ""

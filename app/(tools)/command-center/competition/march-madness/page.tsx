@@ -715,7 +715,7 @@ function BonusZone({ data }: { data: BracketData }) {
         $100K BONUS ZONE
       </h3>
       <p className="text-xs text-neutral-400 mb-4">
-        Hit $100K in approved March sales = win a 10/22 with Suppressor regardless of bracket result
+        Hit $100K in approved March sales = automatically win a .22LR Wrangler Revolver
       </p>
       <div className="space-y-3">
         {sorted.map((rep) => {
@@ -771,9 +771,8 @@ function BonusZone({ data }: { data: BracketData }) {
 function PrizesSection({ prizes }: { prizes: Prizes }) {
   return (
     <div className="grid sm:grid-cols-3 gap-4">
-      {/* Grand Prize */}
-      <div className="sm:col-span-3 bg-gradient-to-br from-neutral-900 via-neutral-900 to-orange-950/20 border border-orange-500/30 rounded-xl p-6 text-center relative overflow-hidden">
-        {/* Subtle crosshair pattern background */}
+      {/* Champion Prize */}
+      <div className="sm:col-span-2 bg-gradient-to-br from-neutral-900 via-neutral-900 to-orange-950/20 border border-orange-500/30 rounded-xl p-6 text-center relative overflow-hidden">
         <div className="absolute inset-0 opacity-[0.03]">
           <div className="w-full h-full" style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 36 36' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='18' cy='18' r='14' stroke='%23F97316' stroke-width='1' fill='none'/%3E%3Cline x1='18' y1='2' x2='18' y2='34' stroke='%23F97316' stroke-width='0.5'/%3E%3Cline x1='2' y1='18' x2='34' y2='18' stroke='%23F97316' stroke-width='0.5'/%3E%3C/svg%3E")`,
@@ -781,13 +780,28 @@ function PrizesSection({ prizes }: { prizes: Prizes }) {
           }} />
         </div>
         <div className="relative z-10">
-          <CrosshairIcon className="w-16 h-16 mx-auto mb-3" />
+          <CrosshairIcon className="w-14 h-14 mx-auto mb-3" />
           <h3 className="text-xs font-bold text-orange-400 uppercase tracking-widest mb-1">
-            Grand Prize
+            Champion Prize
           </h3>
-          <p className="text-2xl font-black text-white mb-2">{prizes.champion}</p>
+          <p className="text-2xl font-black text-white mb-1">{prizes.champion}</p>
           <p className="text-xs text-neutral-400">{prizes.note}</p>
         </div>
+      </div>
+
+      {/* Wrangler Prize */}
+      <div className="bg-gradient-to-br from-neutral-900 to-emerald-950/20 border border-[#39FF14]/20 rounded-xl p-6 text-center">
+        <Target className="w-10 h-10 text-[#39FF14] mx-auto mb-2" />
+        <h4 className="text-xs font-bold text-[#39FF14] uppercase tracking-wider mb-1">Top Non-Champion</h4>
+        <p className="text-lg font-bold text-white">.22LR Wrangler Revolver</p>
+        <p className="text-[10px] text-neutral-400 mt-1">Best performer who doesn&apos;t win the bracket</p>
+      </div>
+
+      {/* $100K Bonus */}
+      <div className="bg-neutral-900 border border-amber-500/20 rounded-xl p-5 text-center">
+        <Flame className="w-8 h-8 text-amber-400 mx-auto mb-2" />
+        <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider mb-1">$100K March Bonus</h4>
+        <p className="text-sm font-semibold text-white">Sell $100K in March = auto-win the Wrangler</p>
       </div>
 
       {/* Runner Up */}
@@ -803,13 +817,6 @@ function PrizesSection({ prizes }: { prizes: Prizes }) {
         <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-1">MVP Award</h4>
         <p className="text-lg font-bold text-white">{prizes.mvp}</p>
       </div>
-
-      {/* $100K Bonus */}
-      <div className="bg-neutral-900 border border-amber-500/20 rounded-xl p-5 text-center">
-        <Flame className="w-8 h-8 text-amber-400 mx-auto mb-2" />
-        <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider mb-1">$100K Bonus</h4>
-        <p className="text-sm font-semibold text-white">{prizes.hundredK}</p>
-      </div>
     </div>
   );
 }
@@ -821,7 +828,8 @@ function RulesSection({ rules, rounds }: { rules: Rules; rounds: Round[] }) {
     `50% of your week's approved sales carry into the next round.`,
     'Effective Total = Week Sales + Carry-Forward. Highest total wins.',
     '#1 seed gets a BYE and auto-advances to Round 2.',
-    '$100K in approved March sales = automatic prize winner (10/22 + Suppressor).',
+    '$100K in approved March sales = automatic .22LR Wrangler Revolver winner.',
+    'Top non-champion rep also wins the Wrangler.',
     'Results finalized every Monday at 10 AM.',
     'Sales = approved job total. Deposit received = full contract credited.',
   ];
