@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Phone, Menu, X, MessageCircle, Send, Home } from 'lucide-react';
+import { Phone, Menu, X, MessageCircle, Send, Home, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 
@@ -17,8 +17,19 @@ const navigation: NavItem[] = [
   { name: 'Storm Check', href: '/check-my-address' },
   { name: 'Services', href: '/services' },
   { name: 'Service Areas', href: '/service-areas' },
-  { name: 'About', href: '/about' },
-  { name: 'Community', href: '/community' },
+  { name: 'About', href: '/about', children: [
+    { name: 'About Us', href: '/about', description: 'Our story and values' },
+    { name: 'Our Team', href: '/team', description: 'Meet the team' },
+    { name: 'Reviews', href: '/reviews', description: 'Customer testimonials' },
+    { name: 'Gallery', href: '/gallery', description: 'Project portfolio' },
+  ]},
+  { name: 'Resources', href: '/faq', children: [
+    { name: 'FAQ', href: '/faq', description: 'Common questions' },
+    { name: 'Financing', href: '/financing', description: 'Payment options' },
+    { name: 'Warranty', href: '/warranty', description: 'Our guarantees' },
+    { name: 'Blog', href: '/blog', description: 'Roofing tips & news' },
+    { name: 'Community', href: '/community', description: 'Local involvement' },
+  ]},
   { name: 'Contact', href: '/contact' },
 ];
 
@@ -102,15 +113,43 @@ export default function Header() {
             ) : <div />}
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center gap-6">
-              {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href!}
-                  className={`font-semibold transition-colors duration-300 text-lg text-white hover:text-brand-green drop-shadow-lg ${item.name === 'Storm Check' ? 'text-brand-green' : ''}`}
-                >
-                  {item.name}
-                </Link>
-              ))}
+              {navigation.map((item) =>
+                item.children ? (
+                  <div key={item.name} className="relative group">
+                    <Link
+                      href={item.href!}
+                      className="font-semibold transition-colors duration-300 text-lg text-white hover:text-brand-green drop-shadow-lg flex items-center gap-1"
+                    >
+                      {item.name}
+                      <ChevronDown className="w-4 h-4 group-hover:rotate-180 transition-transform" />
+                    </Link>
+                    <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                      <div className="bg-black/95 backdrop-blur-md border border-white/10 rounded-lg shadow-xl py-2 min-w-[200px]">
+                        {item.children.map((child) => (
+                          <Link
+                            key={child.name}
+                            href={child.href}
+                            className="block px-4 py-2.5 text-sm text-white hover:text-brand-green hover:bg-white/5 transition-colors"
+                          >
+                            <span className="font-semibold">{child.name}</span>
+                            {child.description && (
+                              <span className="block text-xs text-gray-400 mt-0.5">{child.description}</span>
+                            )}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <Link
+                    key={item.name}
+                    href={item.href!}
+                    className={`font-semibold transition-colors duration-300 text-lg text-white hover:text-brand-green drop-shadow-lg ${item.name === 'Storm Check' ? 'text-brand-green' : ''}`}
+                  >
+                    {item.name}
+                  </Link>
+                )
+              )}
               <span className="text-gray-500">|</span>
               <a
                 href="tel:256-274-8530"
@@ -144,14 +183,29 @@ export default function Header() {
           <div className="lg:hidden absolute left-0 right-0 top-full bg-white z-[100] overflow-y-auto max-h-[80vh] max-h-[80dvh] shadow-xl overflow-x-hidden">
             <div className="px-4 py-6 space-y-6">
               {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href!}
-                  className={`block text-2xl font-semibold text-gray-800 hover:text-brand-green transition-colors duration-300 py-3 ${item.name === 'Storm Check' ? 'text-brand-green' : ''}`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {item.name}
-                </Link>
+                <div key={item.name}>
+                  <Link
+                    href={item.href!}
+                    className={`block text-2xl font-semibold text-gray-800 hover:text-brand-green transition-colors duration-300 py-3 ${item.name === 'Storm Check' ? 'text-brand-green' : ''}`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {item.name}
+                  </Link>
+                  {item.children && (
+                    <div className="pl-4 space-y-1">
+                      {item.children.map((child) => (
+                        <Link
+                          key={child.name}
+                          href={child.href}
+                          className="block text-lg text-gray-600 hover:text-brand-green transition-colors duration-300 py-1.5"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          {child.name}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ))}
 
               {/* Location Pages Submenu */}

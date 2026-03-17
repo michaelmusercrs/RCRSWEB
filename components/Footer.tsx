@@ -223,7 +223,17 @@ export default function Footer() {
             <span className="text-gray-700">•</span>
             <Link href="/team" className="text-gray-400 hover:text-brand-green transition-colors">Our Team</Link>
             <span className="text-gray-700">•</span>
+            <Link href="/reviews" className="text-gray-400 hover:text-brand-green transition-colors">Reviews</Link>
+            <span className="text-gray-700">•</span>
+            <Link href="/gallery" className="text-gray-400 hover:text-brand-green transition-colors">Gallery</Link>
+            <span className="text-gray-700">•</span>
             <Link href="/blog" className="text-gray-400 hover:text-brand-green transition-colors">Blog</Link>
+            <span className="text-gray-700">•</span>
+            <Link href="/faq" className="text-gray-400 hover:text-brand-green transition-colors">FAQ</Link>
+            <span className="text-gray-700">•</span>
+            <Link href="/financing" className="text-gray-400 hover:text-brand-green transition-colors">Financing</Link>
+            <span className="text-gray-700">•</span>
+            <Link href="/warranty" className="text-gray-400 hover:text-brand-green transition-colors">Warranty</Link>
             <span className="text-gray-700">•</span>
             <Link href="/community" className="text-gray-400 hover:text-brand-green transition-colors">Community</Link>
             <span className="text-gray-700">•</span>
