@@ -34,8 +34,8 @@ export async function GET(request: NextRequest) {
       success: true,
       userId,
       records,
-      completedModules: records.filter(r => r.passed === 'true').map(r => r.moduleId),
-      totalCompleted: records.filter(r => r.passed === 'true').length,
+      completedModules: records.filter(r => r.passed?.toLowerCase() === 'true').map(r => r.moduleId),
+      totalCompleted: records.filter(r => r.passed?.toLowerCase() === 'true').length,
     };
     cache.set(cacheKey, response, CACHE_TTL.TEAM);
     return NextResponse.json(response, { headers: { 'Cache-Control': 'private, s-maxage=30' } });

@@ -35,14 +35,14 @@ export async function GET(request: NextRequest) {
     const salesRecords = allRecords.filter(r => r.moduleId?.startsWith('sales_'));
 
     const completedModules = salesRecords
-      .filter(r => r.passed === 'true')
+      .filter(r => r.passed?.toLowerCase() === 'true')
       .map(r => r.moduleId);
 
     // Build per-module best scores
     const moduleScores: Record<string, { score: number; passed: boolean; completedAt: string }> = {};
     for (const record of salesRecords) {
       const score = parseInt(record.score || '0', 10);
-      const passed = record.passed === 'true';
+      const passed = record.passed?.toLowerCase() === 'true';
       const existing = moduleScores[record.moduleId];
       if (!existing || score > existing.score) {
         moduleScores[record.moduleId] = {

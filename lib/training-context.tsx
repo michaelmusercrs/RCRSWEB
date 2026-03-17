@@ -11,6 +11,10 @@ const MODULE_NAMES: Record<string, string> = {
   'inventory': 'Inventory Management',
   'manager': 'Manager Dashboard',
   'driver': 'Driver Portal',
+  // Onboarding quizzes (from /portal/quizzes)
+  'quiz_sales-rep': 'Sales Rep Knowledge Check',
+  'quiz_operations': 'Operations Knowledge Check',
+  'quiz_company': 'Company Knowledge Check',
 };
 
 // User roles and their required training modules

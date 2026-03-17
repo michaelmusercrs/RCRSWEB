@@ -149,7 +149,7 @@ export async function GET(request: NextRequest) {
       }
 
       const summary = userMap.get(userId)!;
-      const passed = record.passed === 'true';
+      const passed = record.passed?.toLowerCase() === 'true';
       const moduleInfo = ALL_MODULES.find(m => m.id === record.moduleId);
 
       summary.moduleDetails.push({

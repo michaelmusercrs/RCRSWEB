@@ -43,13 +43,102 @@ const quizColors: Record<string, { gradient: string; border: string; badge: stri
   },
 };
 
+// localStorage key for persisting quiz results
+const QUIZ_STORAGE_KEY = 'rcrs-quiz-results';
+
+function loadSavedQuizResults(): Record<string, { score: number; total: number; date: string }> {
+  try {
+    const raw = localStorage.getItem(QUIZ_STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch { /* ignore */ }
+  return {};
+}
+
+function saveQuizResults(results: Record<string, { score: number; total: number; date: string }>) {
+  try {
+    localStorage.setItem(QUIZ_STORAGE_KEY, JSON.stringify(results));
+  } catch { /* ignore */ }
+}
+
+async function persistQuizToServer(
+  user: { userId: string; name: string },
+  quizId: string,
+  quizTitle: string,
+  score: number,
+  total: number,
+  passingScore: number,
+) {
+  try {
+    const pct = Math.round((score / total) * 100);
+    await fetch('/api/portal/training', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: user.userId,
+        userName: user.name,
+        moduleId: `quiz_${quizId}`,
+        moduleName: quizTitle,
+        score: String(pct),
+        passed: pct >= passingScore,
+        completedAt: new Date().toISOString(),
+      }),
+    });
+  } catch (err) {
+    console.warn('Failed to persist quiz result to server:', err);
+  }
+}
+
 export default function QuizzesPage() {
   const router = useRouter();
   const { user, isLoading } = useAuth();
 
+  const [activeQuiz, setActiveQuiz] = useState<QuizData | null>(null);
+  const [completedQuizzes, setCompletedQuizzes] = useState<Record<string, { score: number; total: number }>>({});
+  const [serverProgress, setServerProgress] = useState<Record<string, { score: number; passed: boolean; date: string }>>({});
+
   useEffect(() => {
     if (!isLoading && !user) router.push('/portal');
   }, [user, isLoading, router]);
+
+  // Load saved quiz results from localStorage + server on mount
+  useEffect(() => {
+    if (!user) return;
+
+    // Load from localStorage
+    const saved = loadSavedQuizResults();
+    const mapped: Record<string, { score: number; total: number }> = {};
+    for (const [quizId, data] of Object.entries(saved)) {
+      mapped[quizId] = { score: data.score, total: data.total };
+    }
+    setCompletedQuizzes(mapped);
+
+    // Load from server (Google Sheets) for cross-session persistence
+    fetch(`/api/portal/training?userId=${encodeURIComponent(user.userId)}`)
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.success && Array.isArray(data.records)) {
+          const serverResults: Record<string, { score: number; passed: boolean; date: string }> = {};
+          for (const record of data.records) {
+            // Match quiz records (moduleId starts with quiz_)
+            if (record.moduleId?.startsWith('quiz_')) {
+              const quizId = record.moduleId.replace('quiz_', '');
+              const score = parseInt(record.score || '0', 10);
+              const existing = serverResults[quizId];
+              // Keep best score
+              if (!existing || score > existing.score) {
+                serverResults[quizId] = {
+                  score,
+                  passed: record.passed?.toLowerCase() === 'true',
+                  date: record.completedAt || '',
+                };
+              }
+            }
+          }
+          setServerProgress(serverResults);
+        }
+      })
+      .catch(() => { /* ignore network errors */ });
+  }, [user]);
 
   if (isLoading || !user) {
     return (
@@ -59,15 +148,21 @@ export default function QuizzesPage() {
     );
   }
 
-  const [activeQuiz, setActiveQuiz] = useState<QuizData | null>(null);
-  const [completedQuizzes, setCompletedQuizzes] = useState<Record<string, { score: number; total: number }>>({});
-
   const handleComplete = (score: number, total: number) => {
     if (activeQuiz) {
+      // Update React state
       setCompletedQuizzes(prev => ({
         ...prev,
         [activeQuiz.quizId]: { score, total }
       }));
+
+      // Persist to localStorage
+      const saved = loadSavedQuizResults();
+      saved[activeQuiz.quizId] = { score, total, date: new Date().toISOString() };
+      saveQuizResults(saved);
+
+      // Persist to server (Google Sheets) -- fire and forget
+      persistQuizToServer(user, activeQuiz.quizId, activeQuiz.title, score, total, activeQuiz.passingScore);
     }
   };
 
@@ -114,22 +209,53 @@ export default function QuizzesPage() {
         </div>
 
         {/* Stats bar */}
-        {Object.keys(completedQuizzes).length > 0 && (
-          <div className="mb-8 p-4 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center gap-6">
-            <Trophy className="w-5 h-5 text-yellow-500" />
-            <div className="text-sm text-zinc-400">
-              <span className="text-white font-medium">{Object.keys(completedQuizzes).length}</span> of {quizzes.length} completed
+        {(() => {
+          // Merge local + server results for unique quiz count
+          const allQuizIds = new Set([
+            ...Object.keys(completedQuizzes),
+            ...Object.keys(serverProgress),
+          ]);
+          const passedCount = Array.from(allQuizIds).filter(qid => {
+            const local = completedQuizzes[qid];
+            const server = serverProgress[qid];
+            if (local) {
+              const quiz = quizzes.find(q => q.quizId === qid);
+              return quiz && Math.round((local.score / local.total) * 100) >= quiz.passingScore;
+            }
+            return server?.passed;
+          }).length;
+
+          if (allQuizIds.size === 0) return null;
+
+          // Calculate average from local results (more accurate) + server-only results
+          const scores: number[] = [];
+          for (const qid of allQuizIds) {
+            const local = completedQuizzes[qid];
+            if (local) {
+              scores.push(Math.round((local.score / local.total) * 100));
+            } else if (serverProgress[qid]) {
+              scores.push(serverProgress[qid].score);
+            }
+          }
+          const avg = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+
+          return (
+            <div className="mb-8 p-4 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center gap-6">
+              <Trophy className="w-5 h-5 text-yellow-500" />
+              <div className="text-sm text-zinc-400">
+                <span className="text-white font-medium">{allQuizIds.size}</span> of {quizzes.length} attempted
+              </div>
+              <div className="text-sm text-zinc-400">
+                Passed: <span className={`font-medium ${passedCount > 0 ? 'text-emerald-400' : 'text-white'}`}>
+                  {passedCount}/{quizzes.length}
+                </span>
+              </div>
+              <div className="text-sm text-zinc-400">
+                Average: <span className="text-white font-medium">{avg}%</span>
+              </div>
             </div>
-            <div className="text-sm text-zinc-400">
-              Average: <span className="text-white font-medium">
-                {Math.round(
-                  Object.values(completedQuizzes).reduce((acc, { score, total }) => acc + (score / total) * 100, 0) / 
-                  Object.keys(completedQuizzes).length
-                )}%
-              </span>
-            </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Quiz cards */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -137,13 +263,29 @@ export default function QuizzesPage() {
             const colors = quizColors[quiz.quizId] || quizColors['company'];
             const Icon = iconMap[quiz.icon] || HelpCircle;
             const completed = completedQuizzes[quiz.quizId];
+            // Fall back to server progress if no local result
+            const serverResult = serverProgress[quiz.quizId];
+            const hasResult = completed || serverResult;
+            const displayScore = completed
+              ? Math.round((completed.score / completed.total) * 100)
+              : serverResult?.score || 0;
+            const displayPassed = completed
+              ? displayScore >= quiz.passingScore
+              : serverResult?.passed || false;
 
             return (
               <button
                 key={quiz.quizId}
                 onClick={() => setActiveQuiz(quiz)}
-                className={`text-left p-6 rounded-2xl border bg-gradient-to-br ${colors.gradient} ${colors.border} transition-all duration-200 hover:scale-[1.02] group`}
+                className={`text-left p-6 rounded-2xl border bg-gradient-to-br ${colors.gradient} ${colors.border} transition-all duration-200 hover:scale-[1.02] group relative`}
               >
+                {/* Pass badge */}
+                {hasResult && displayPassed && (
+                  <div className="absolute top-3 right-3 w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                    <Trophy className="w-4 h-4 text-white" />
+                  </div>
+                )}
+
                 <div className={`inline-flex p-2.5 rounded-xl ${colors.badge} mb-4`}>
                   <Icon className="w-5 h-5" />
                 </div>
@@ -166,19 +308,19 @@ export default function QuizzesPage() {
                   </span>
                 </div>
 
-                {completed && (
+                {hasResult && (
                   <div className={`mt-4 pt-3 border-t ${
-                    Math.round((completed.score / completed.total) * 100) >= quiz.passingScore
+                    displayPassed
                       ? 'border-emerald-500/20'
                       : 'border-amber-500/20'
                   }`}>
                     <div className="flex items-center justify-between">
                       <span className={`text-sm font-medium ${
-                        Math.round((completed.score / completed.total) * 100) >= quiz.passingScore
+                        displayPassed
                           ? 'text-emerald-400'
                           : 'text-amber-400'
                       }`}>
-                        {Math.round((completed.score / completed.total) * 100)}% — {completed.score}/{completed.total}
+                        {displayScore}%{completed ? ` — ${completed.score}/${completed.total}` : ''}
                       </span>
                       <span className="text-xs text-zinc-500">Retake →</span>
                     </div>

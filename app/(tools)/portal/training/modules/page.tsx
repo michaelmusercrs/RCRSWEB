@@ -123,31 +123,55 @@ function StatusBadge({ status }: { status: TrainingModuleStatus }) {
 }
 
 // ---------------------------------------------------------------------------
-// Module card
+// Module card (with completion tracking)
 // ---------------------------------------------------------------------------
 
-function ModuleCard({ module }: { module: TrainingModuleDef }) {
+interface ModuleCardProps {
+  module: TrainingModuleDef;
+  isCompleted?: boolean;
+  score?: number;
+}
+
+function ModuleCard({ module, isCompleted, score }: ModuleCardProps) {
   const Icon = ICON_MAP[module.icon || 'BookOpen'] || BookOpen;
   const isAvailable = module.status === 'ready';
 
   return (
     <div
-      className={`rounded-xl border p-4 transition-all ${
-        isAvailable
+      className={`rounded-xl border p-4 transition-all relative ${
+        isCompleted
+          ? 'border-brand-green/30 bg-brand-green/[0.03] hover:bg-brand-green/[0.06]'
+          : isAvailable
           ? 'border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/20'
           : 'border-white/5 bg-white/[0.01] opacity-60'
       }`}
     >
+      {/* Completion badge */}
+      {isCompleted && (
+        <div className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-brand-green flex items-center justify-center shadow-lg shadow-brand-green/25">
+          <CheckCircle2 size={14} className="text-black" />
+        </div>
+      )}
+
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center flex-shrink-0">
-          <Icon size={18} className="text-neutral-400" />
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+          isCompleted ? 'bg-brand-green/10' : 'bg-white/5'
+        }`}>
+          <Icon size={18} className={isCompleted ? 'text-brand-green' : 'text-neutral-400'} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <h4 className="text-sm font-semibold text-white leading-tight">
               {module.title}
             </h4>
-            <StatusBadge status={module.status} />
+            {isCompleted ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-brand-green/10 text-brand-green border border-brand-green/20">
+                <CheckCircle2 size={10} />
+                {score !== undefined ? `${score}%` : 'Done'}
+              </span>
+            ) : (
+              <StatusBadge status={module.status} />
+            )}
           </div>
           <p className="text-xs text-neutral-400 mt-1 line-clamp-2">
             {module.description}
@@ -186,17 +210,30 @@ function ModuleCard({ module }: { module: TrainingModuleDef }) {
 // Main page
 // ---------------------------------------------------------------------------
 
+// Progress data loaded from server/localStorage
+interface ModuleProgressData {
+  completedModules: Set<string>;
+  moduleScores: Record<string, number>;
+}
+
 export default function TrainingModulesPage() {
   const [activeRole, setActiveRole] = useState<TrainingRole>('sales_rep');
   const [userRole, setUserRole] = useState<string>('');
+  const [progressData, setProgressData] = useState<ModuleProgressData>({
+    completedModules: new Set(),
+    moduleScores: {},
+  });
 
-  // Try to detect the user's role from settings
+  // Try to detect the user's role from settings and load progress
   useEffect(() => {
+    let userId = '';
+
     try {
       const raw = localStorage.getItem('rcrs-user-settings');
       if (raw) {
         const settings = JSON.parse(raw);
         const role = settings.role || '';
+        userId = settings.email || settings.displayName || '';
         setUserRole(role);
         // Auto-select their role tab
         const roleMap: Record<string, TrainingRole> = {
@@ -214,6 +251,63 @@ export default function TrainingModulesPage() {
     } catch {
       // ignore
     }
+
+    // Load progress from training context localStorage
+    const completed = new Set<string>();
+    const scores: Record<string, number> = {};
+
+    try {
+      const progressRaw = localStorage.getItem('rcrs-training-progress');
+      if (progressRaw) {
+        const obj = JSON.parse(progressRaw);
+        if (Array.isArray(obj?.completedModules)) {
+          for (const id of obj.completedModules) completed.add(id);
+        }
+      }
+    } catch { /* ignore */ }
+
+    // Load quiz results from quiz storage
+    try {
+      const quizRaw = localStorage.getItem('rcrs-quiz-results');
+      if (quizRaw) {
+        const quizResults = JSON.parse(quizRaw);
+        for (const [quizId, data] of Object.entries(quizResults)) {
+          const d = data as { score: number; total: number };
+          const pct = Math.round((d.score / d.total) * 100);
+          scores[`quiz_${quizId}`] = pct;
+          if (pct >= 70) completed.add(`quiz_${quizId}`);
+        }
+      }
+    } catch { /* ignore */ }
+
+    // Load from server for cross-session persistence
+    if (userId) {
+      fetch(`/api/portal/training?userId=${encodeURIComponent(userId)}`)
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data?.success && Array.isArray(data.records)) {
+            const serverCompleted = new Set(completed);
+            const serverScores = { ...scores };
+            for (const record of data.records) {
+              if (record.passed?.toLowerCase() === 'true') {
+                serverCompleted.add(record.moduleId);
+              }
+              const s = parseInt(record.score || '0', 10);
+              const existing = serverScores[record.moduleId];
+              if (!existing || s > existing) {
+                serverScores[record.moduleId] = s;
+              }
+            }
+            setProgressData({
+              completedModules: serverCompleted,
+              moduleScores: serverScores,
+            });
+          }
+        })
+        .catch(() => { /* ignore */ });
+    }
+
+    setProgressData({ completedModules: completed, moduleScores: scores });
   }, []);
 
   const roleModules = getModulesForTrainingRole(activeRole);
@@ -221,6 +315,8 @@ export default function TrainingModulesPage() {
   const roleMeta = TRAINING_ROLES.find((r) => r.role === activeRole);
   const totalMinutes = roleModules.reduce((sum, m) => sum + m.estimatedMinutes, 0);
   const readyCount = roleModules.filter((m) => m.status === 'ready').length;
+  const completedCount = roleModules.filter((m) => progressData.completedModules.has(m.id)).length;
+  const completionPct = readyCount > 0 ? Math.round((completedCount / readyCount) * 100) : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950">
@@ -316,8 +412,10 @@ export default function TrainingModulesPage() {
                     <p className="text-[10px] text-neutral-400 uppercase tracking-wider">Modules</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-lg font-bold text-white">{readyCount}</p>
-                    <p className="text-[10px] text-neutral-400 uppercase tracking-wider">Ready</p>
+                    <p className={`text-lg font-bold ${completedCount > 0 ? 'text-brand-green' : 'text-white'}`}>
+                      {completedCount}/{readyCount}
+                    </p>
+                    <p className="text-[10px] text-neutral-400 uppercase tracking-wider">Completed</p>
                   </div>
                   <div className="text-center">
                     <p className="text-lg font-bold text-white">
@@ -329,6 +427,23 @@ export default function TrainingModulesPage() {
                   </div>
                 </div>
               </div>
+              {/* Completion progress bar */}
+              {readyCount > 0 && (
+                <div className="mt-4 pt-3 border-t border-white/10">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs text-neutral-400">Progress</span>
+                    <span className={`text-xs font-medium ${completionPct >= 100 ? 'text-brand-green' : 'text-neutral-400'}`}>
+                      {completionPct}%
+                    </span>
+                  </div>
+                  <div className="w-full h-2 rounded-full bg-black/30 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-brand-green transition-all duration-700 ease-out"
+                      style={{ width: `${completionPct}%` }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -342,7 +457,12 @@ export default function TrainingModulesPage() {
                 </h3>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {modules.map((mod) => (
-                    <ModuleCard key={mod.id} module={mod} />
+                    <ModuleCard
+                      key={mod.id}
+                      module={mod}
+                      isCompleted={progressData.completedModules.has(mod.id)}
+                      score={progressData.moduleScores[mod.id]}
+                    />
                   ))}
                 </div>
               </div>

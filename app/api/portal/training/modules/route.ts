@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     for (const record of progressRecords) {
       const moduleId = record.moduleId || '';
       const score = parseInt(record.score || '0', 10);
-      const passed = record.passed === 'true';
+      const passed = record.passed?.toLowerCase() === 'true';
       const completedAt = record.completedAt || record.createdAt || '';
 
       const existing = progressMap[moduleId];
