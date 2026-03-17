@@ -215,9 +215,17 @@ function extractMetricValue(record: MeetingRecord, metricKey: string): number {
 // ---------------------------------------------------------------------------
 
 function loadMeetingData(): MeetingRecord[] {
-  const filePath = path.join(process.cwd(), 'data', 'meeting-numbers-2026.json');
-  const raw = readFileSync(filePath, 'utf-8');
-  return JSON.parse(raw) as MeetingRecord[];
+  // Load ALL years of real meeting data (3,058 records, 2019-2026)
+  const allPath = path.join(process.cwd(), 'data', 'meeting-numbers-all.json');
+  try {
+    const raw = readFileSync(allPath, 'utf-8');
+    return JSON.parse(raw) as MeetingRecord[];
+  } catch {
+    // Fallback to 2026-only if combined file not found
+    const filePath = path.join(process.cwd(), 'data', 'meeting-numbers-2026.json');
+    const raw = readFileSync(filePath, 'utf-8');
+    return JSON.parse(raw) as MeetingRecord[];
+  }
 }
 
 // ---------------------------------------------------------------------------
