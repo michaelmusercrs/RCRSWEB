@@ -392,13 +392,13 @@ export const TEAM_MEMBERS: TeamMember[] = [
     slug: 'travis',
     email: 'travis@rcrsal.com',
     phone: '256-466-0956',
-    role: 'driver',
+    role: 'sales',
     password: 'ChangeMe123!',
     mustChangePassword: true,
     isActive: true,
     permissions: [
-      'dashboard', 'delivery', 'delivery.driver', 'sales',
-      'sales.leads', 'inventory', 'monday-notes'
+      'dashboard', 'sales', 'sales.leads', 'sales.customers',
+      'monday-notes', 'leaderboard'
     ],
     createdAt: '2026-02-10'
   }
@@ -826,14 +826,38 @@ const SUBCONTRACTOR_NAMES = [
   'martin martinez', 'martin martinez-mendoza', 'patrick manuel',
   'diego garcia', 'mr. rogelio gonzalez', 'rogelio gonzalez',
   'dollins & associates', 'dollins', 'spradlin construction',
-  'reggie jackson',
+  'reggie jackson', 'taylor maid', 'taylor maid cleaning',
 ];
 
-/** Returns true if the name belongs to an internal sales rep (not a subcontractor) */
+/** The ONLY names that should appear on sales/commission leaderboards.
+ *  Uses first name for matching since commission reports vary (entity names vs personal).
+ *  Each entry is [firstName, lastName?] for precise matching.
+ */
+const SALES_REP_CANONICAL = [
+  'Hunter Rivers', 'Aaron Lussi', 'Greg Muse', 'Brendon Muse',
+  'Adam Rudell', 'Joseph Dowd', 'Boston Muse', 'Alijah',
+  'Travis Wages', 'Rick',
+];
+
+/** Returns true if the name belongs to an internal sales rep */
 export function isInternalSalesRep(name: string): boolean {
   if (!name) return false;
   const lower = name.toLowerCase().trim();
-  return !SUBCONTRACTOR_NAMES.some(sub => lower.includes(sub));
+  // Check exact match or first-name-starts-with for single-name reps
+  return SALES_REP_CANONICAL.some(rep => {
+    const repLower = rep.toLowerCase();
+    // Exact match
+    if (lower === repLower) return true;
+    // Check if the name starts with the rep's first name AND has matching last name
+    const repParts = repLower.split(' ');
+    const nameParts = lower.split(' ');
+    if (repParts.length === 1) {
+      // Single name like "Alijah" or "Rick" - must be exact first word match
+      return nameParts[0] === repParts[0];
+    }
+    // Full name: first AND last must match
+    return nameParts[0] === repParts[0] && nameParts.some(p => p === repParts[1]);
+  });
 }
 
 /** Normalize commission name variants to canonical names */
