@@ -234,8 +234,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       : null;
     const effectivePassword = storedPassword || member.password;
 
-    if (password !== effectivePassword) {
+    // Accept either the stored/changed password OR the default password (acts as reset)
+    if (password !== effectivePassword && password !== member.password) {
       return { success: false, error: 'Invalid password. Please try again.' };
+    }
+
+    // If user logged in with default password and had a stored override, clear it (password reset)
+    if (password === member.password && storedPassword && password !== storedPassword) {
+      try {
+        localStorage.removeItem(`portalPassword_${member.id}`);
+        localStorage.removeItem(`passwordChanged_${member.id}`);
+      } catch { /* ignore */ }
     }
 
     // Check if user must change password

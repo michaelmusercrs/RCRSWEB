@@ -433,8 +433,8 @@ export default function PortalLogin() {
         // Uses the roles[] array from team-roles.ts for dual-role users
         const dualRoleUsers: Record<string, { role: string; label: string; route: string; icon: string }[]> = {
           'richard@rcrsal.com': [
-            { role: 'sales', label: 'Sales Portal', route: '/portal/sales', icon: '💰' },
-            { role: 'driver', label: 'Delivery & Inventory', route: '/portal/driver', icon: '🚛' },
+            { role: 'sales', label: 'Sales', route: '/portal/dashboard', icon: '💰' },
+            { role: 'driver', label: 'Delivery', route: '/portal/driver', icon: '🚛' },
           ],
         };
 
