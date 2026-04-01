@@ -17,6 +17,7 @@ import { requireAuth } from '@/lib/auth-service';
 import { googleSheetsService } from '@/lib/google-sheets-service';
 import { cache, CACHE_TTL } from '@/lib/cache';
 import { meetingNumbersService } from '@/lib/meeting-numbers-service';
+import { emailService } from '@/lib/email-service';
 
 function getISOWeekString(date: Date = new Date()): string {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -74,6 +75,47 @@ const MEETING_FIELDS = [
   'revenue', 'approved', 'goal', 'referrals', 'agents',
   'present', 'homeShow',
 ] as const;
+
+// Numeric fields eligible for increment mode
+const INCREMENTABLE_FIELDS = [
+  'inspected', 'damage', 'signed', 'repair', 'gutter',
+  'revenue', 'approved', 'goal', 'referrals', 'agents', 'homeShow',
+] as const;
+
+/**
+ * Parse a legacy RepWeeklyNumbers record back into new field names.
+ * The notes field contains: "Referrals:N Agents:N Present:X HomeShow:N"
+ */
+function legacyRecordToNewFields(record: Record<string, unknown>): Record<string, number | string> {
+  const result: Record<string, number | string> = {
+    inspected: parseInt(String(record.doorsKnocked)) || 0,
+    damage: parseInt(String(record.appointmentsSet)) || 0,
+    signed: parseInt(String(record.inspectionsCompleted)) || 0,
+    repair: parseInt(String(record.estimatesGiven)) || 0,
+    gutter: parseInt(String(record.contractsSigned)) || 0,
+    revenue: parseFloat(String(record.revenueClosed)) || 0,
+    approved: parseInt(String(record.leadsGenerated)) || 0,
+    goal: parseInt(String(record.followUpsMade)) || 0,
+    referrals: 0,
+    agents: 0,
+    present: '1',
+    homeShow: 0,
+  };
+
+  // Parse extra fields from the notes string
+  const notes = String(record.notes || '');
+  const referralsMatch = notes.match(/Referrals:(\d+)/);
+  const agentsMatch = notes.match(/Agents:(\d+)/);
+  const presentMatch = notes.match(/Present:(\S+)/);
+  const homeShowMatch = notes.match(/HomeShow:(\d+)/);
+
+  if (referralsMatch) result.referrals = parseInt(referralsMatch[1]) || 0;
+  if (agentsMatch) result.agents = parseInt(agentsMatch[1]) || 0;
+  if (presentMatch) result.present = presentMatch[1];
+  if (homeShowMatch) result.homeShow = parseInt(homeShowMatch[1]) || 0;
+
+  return result;
+}
 
 /**
  * Map new field names to old RepWeeklyNumbers sheet columns for backward compat.
@@ -213,7 +255,12 @@ export async function POST(request: NextRequest) {
       console.error('[WeeklyNumbers] Meeting sheet sync failed:', err);
     });
 
+    // Fire-and-forget: Email notification to Michael about the submission
     const record = buildResponseRecord(body, repName, week);
+    notifyWeeklyNumbersSubmitted(repName, week, record).catch(err => {
+      console.error('[WeeklyNumbers] Notification failed:', err);
+    });
+
     return NextResponse.json({ success: true, message: 'Numbers submitted', record });
   } catch (error) {
     console.error('Error submitting weekly numbers:', error);
@@ -233,6 +280,35 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const week = body.week || getISOWeekString();
     const repEmail = auth.user.email;
+    const incrementMode = body.increment === true;
+
+    // In increment mode, fetch the existing record and add incoming values to current values
+    let mergedBody = { ...body };
+    if (incrementMode) {
+      const existing = await googleSheetsService.getRepWeeklyNumbers({
+        repEmail,
+        weekStart: week,
+        weekEnd: week,
+      });
+
+      if (existing.length > 0) {
+        const currentValues = legacyRecordToNewFields(existing[0] as unknown as Record<string, unknown>);
+
+        // Add incoming numeric values to existing values
+        for (const field of INCREMENTABLE_FIELDS) {
+          if (mergedBody[field] !== undefined) {
+            const incomingValue = field === 'revenue'
+              ? parseFloat(String(mergedBody[field])) || 0
+              : parseInt(String(mergedBody[field])) || 0;
+            const currentValue = typeof currentValues[field] === 'number' ? currentValues[field] as number : 0;
+            mergedBody[field] = currentValue + incomingValue;
+          }
+        }
+
+        // Non-numeric fields (present) overwrite, not increment - already in mergedBody from spread
+      }
+      // If no existing record, increment mode just uses the incoming values as-is (base of 0)
+    }
 
     // Build updates using new field names mapped to legacy columns
     const updates: Record<string, string | number> = {};
@@ -248,21 +324,21 @@ export async function PATCH(request: NextRequest) {
     };
 
     for (const [newField, legacyField] of Object.entries(fieldMap)) {
-      if (body[newField] !== undefined) {
+      if (mergedBody[newField] !== undefined) {
         if (newField === 'revenue') {
-          updates[legacyField] = parseFloat(String(body[newField])) || 0;
+          updates[legacyField] = parseFloat(String(mergedBody[newField])) || 0;
         } else {
-          updates[legacyField] = parseInt(String(body[newField])) || 0;
+          updates[legacyField] = parseInt(String(mergedBody[newField])) || 0;
         }
       }
     }
 
     // Pack extra fields into notes
     const notesParts: string[] = [];
-    if (body.referrals !== undefined) notesParts.push(`Referrals:${body.referrals}`);
-    if (body.agents !== undefined) notesParts.push(`Agents:${body.agents}`);
-    if (body.present !== undefined) notesParts.push(`Present:${body.present}`);
-    if (body.homeShow !== undefined) notesParts.push(`HomeShow:${body.homeShow}`);
+    if (mergedBody.referrals !== undefined) notesParts.push(`Referrals:${mergedBody.referrals}`);
+    if (mergedBody.agents !== undefined) notesParts.push(`Agents:${mergedBody.agents}`);
+    if (mergedBody.present !== undefined) notesParts.push(`Present:${mergedBody.present}`);
+    if (mergedBody.homeShow !== undefined) notesParts.push(`HomeShow:${mergedBody.homeShow}`);
     if (notesParts.length > 0) updates.notes = notesParts.join(' ');
 
     if (Object.keys(updates).length === 0) {
@@ -275,7 +351,7 @@ export async function PATCH(request: NextRequest) {
 
     if (!success) {
       // Try creating if doesn't exist
-      const legacyRecord = mapToLegacyRecord(body, auth.user.name, repEmail, week);
+      const legacyRecord = mapToLegacyRecord(mergedBody, auth.user.name, repEmail, week);
       const created = await googleSheetsService.addRepWeeklyNumbers(legacyRecord);
       if (!created) {
         return NextResponse.json(
@@ -283,21 +359,89 @@ export async function PATCH(request: NextRequest) {
           { status: 500 },
         );
       }
-      const record = buildResponseRecord(body, auth.user.name, week);
+      const record = buildResponseRecord(mergedBody, auth.user.name, week);
       return NextResponse.json({ success: true, message: 'Created new record', record });
     }
 
-    // Sync to Monday meeting sheet (fire-and-forget)
-    syncToMeetingSheet(auth.user.name, week, body).catch(err => {
+    // Sync to Monday meeting sheet (fire-and-forget) - use merged values
+    syncToMeetingSheet(auth.user.name, week, mergedBody).catch(err => {
       console.error('[WeeklyNumbers] Meeting sheet sync failed:', err);
     });
 
-    return NextResponse.json({ success: true, message: 'Numbers updated', week });
+    // Notification on update too
+    const updatedRecord = buildResponseRecord(mergedBody, auth.user.name, week);
+    notifyWeeklyNumbersSubmitted(auth.user.name, week, updatedRecord, true).catch(err => {
+      console.error('[WeeklyNumbers] Update notification failed:', err);
+    });
+
+    return NextResponse.json({ success: true, message: incrementMode ? 'Numbers incremented' : 'Numbers updated', week });
   } catch (error) {
     console.error('Error updating weekly numbers:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to update weekly numbers' },
       { status: 500 },
     );
+  }
+}
+
+// ─── NOTIFICATION ─────────────────────────────────────────────────────────
+/** Email Michael when a rep submits or updates weekly numbers */
+async function notifyWeeklyNumbersSubmitted(
+  repName: string,
+  week: string,
+  record: Record<string, unknown>,
+  isUpdate = false,
+) {
+  const action = isUpdate ? 'Updated' : 'Submitted';
+  const revenue = record.revenue ? `$${Number(record.revenue).toLocaleString()}` : '$0';
+
+  await emailService.send({
+    to: 'michaelmuse@rcrsal.com',
+    subject: `Weekly Numbers ${action}: ${repName} (${week})`,
+    body: `
+      <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;">
+        <div style="background:#000;padding:16px;text-align:center;">
+          <h2 style="color:#39FF14;margin:0;">Weekly Numbers ${action}</h2>
+        </div>
+        <div style="padding:20px;background:#fff;">
+          <p><strong>${repName}</strong> ${action.toLowerCase()} their numbers for week <strong>${week}</strong>.</p>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Inspected</td><td style="padding:6px;border-bottom:1px solid #eee;">${record.inspected}</td></tr>
+            <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Damage</td><td style="padding:6px;border-bottom:1px solid #eee;">${record.damage}</td></tr>
+            <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Signed</td><td style="padding:6px;border-bottom:1px solid #eee;">${record.signed}</td></tr>
+            <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Repair</td><td style="padding:6px;border-bottom:1px solid #eee;">${record.repair}</td></tr>
+            <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Gutter</td><td style="padding:6px;border-bottom:1px solid #eee;">${record.gutter}</td></tr>
+            <tr style="background:#f0fff0;"><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Revenue ($$$$$)</td><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;color:#39FF14;">${revenue}</td></tr>
+            <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Approved</td><td style="padding:6px;border-bottom:1px solid #eee;">${record.approved}</td></tr>
+            <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Referrals</td><td style="padding:6px;border-bottom:1px solid #eee;">${record.referrals}</td></tr>
+            <tr><td style="padding:6px;font-weight:bold;">Agents</td><td style="padding:6px;">${record.agents}</td></tr>
+          </table>
+        </div>
+      </div>
+    `,
+    fromName: 'RCRS Portal',
+  });
+
+  // Also log to AuditLog
+  try {
+    const initialized = await googleSheetsService.init();
+    if (initialized) {
+      const doc = (googleSheetsService as any).doc;
+      if (doc) {
+        const sheet = doc.sheetsByTitle['AuditLog'];
+        if (sheet) {
+          await sheet.addRow({
+            Timestamp: new Date().toISOString(),
+            Action: `WEEKLY_NUMBERS_${isUpdate ? 'UPDATED' : 'SUBMITTED'}`,
+            UserEmail: repName,
+            Details: `${repName} ${action.toLowerCase()} week ${week}: Revenue=${revenue}, Inspected=${record.inspected}, Signed=${record.signed}`,
+            IP: '',
+            UserAgent: 'weekly-numbers-api',
+          });
+        }
+      }
+    }
+  } catch (e) {
+    console.error('[WeeklyNumbers] AuditLog failed:', e);
   }
 }

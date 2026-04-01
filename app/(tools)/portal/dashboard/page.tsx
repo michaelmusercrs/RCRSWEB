@@ -13,8 +13,10 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { TeamRole } from '@/lib/team-roles';
-import WeeklyNumbersWidget from '@/components/portal/WeeklyNumbersWidget';
 import MondayAnnouncementWidget from '@/components/portal/MondayAnnouncementWidget';
+import dynamic from 'next/dynamic';
+const QuickEntryFlow = dynamic(() => import('@/components/portal/QuickEntryFlow'), { ssr: false });
+const SalesDashboardLeaderboard = dynamic(() => import('@/components/portal/SalesDashboardLeaderboard'), { ssr: false });
 
 interface RecentActivity {
   action: string;
@@ -190,21 +192,17 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Weekly Numbers Widget - Sales/Admin - TOP OF DASHBOARD, CAN'T MISS IT */}
+      {/* Quick Entry Flow - Guided inspection logging for sales reps */}
       {['sales', 'owner', 'admin', 'manager'].includes(user.role) && (
         <div className="mb-8 -mt-2">
-          <div className="bg-gradient-to-r from-brand-green/10 via-emerald-500/5 to-brand-green/10 border-2 border-brand-green/30 rounded-2xl p-6 shadow-lg shadow-brand-green/5">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-brand-green/20 rounded-xl flex items-center justify-center animate-pulse">
-                <ClipboardList size={24} className="text-brand-green" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-white">📊 Submit Your Weekly Numbers</h3>
-                <p className="text-sm text-brand-green/80">Due before Monday meeting — required for all sales reps</p>
-              </div>
-            </div>
-            <WeeklyNumbersWidget compact={false} />
-          </div>
+          <QuickEntryFlow userEmail={user.email} userName={user.name} />
+        </div>
+      )}
+
+      {/* Sales Leaderboard - Filterable by metric and time period */}
+      {['sales', 'owner', 'admin', 'manager'].includes(user.role) && (
+        <div className="mb-8">
+          <SalesDashboardLeaderboard />
         </div>
       )}
 
