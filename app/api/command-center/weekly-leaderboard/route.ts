@@ -278,23 +278,8 @@ export async function GET(request: NextRequest) {
     // Load raw meeting data
     let records = loadMeetingData();
 
-    // VISIBILITY RULE: Sales reps can only see "thisWeek" data for THEIR OWN numbers
-    // Other reps' current week numbers are hidden until Monday meeting
-    // Owners, admins, managers can see everything
-    const isRestrictedRole = userRole === 'sales' || userRole === 'driver';
-    const isCurrentWeek = period === 'thisWeek';
-    if (isRestrictedRole && isCurrentWeek && userName) {
-      // Only show the current user's own data for this week
-      // Other reps' data hidden until it becomes "lastWeek" or later
-      const thisMonday = formatDate(getMonday(new Date()));
-      records = records.filter(r => {
-        // If it's a record from this week, only show user's own
-        if (r.meetingDate >= thisMonday) {
-          return r.repName.toLowerCase().includes(userName.split(' ')[0].toLowerCase());
-        }
-        return true; // Past weeks are visible to everyone
-      });
-    }
+    // All reps can see all data - the leaderboard is for motivation
+    // Visibility restriction removed: sales reps need to see competition
 
     // Filter by date range
     if (start && end) {
