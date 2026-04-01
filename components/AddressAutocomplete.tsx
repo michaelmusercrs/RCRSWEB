@@ -166,7 +166,20 @@ export default function AddressAutocomplete({
       const results = data.results || [];
 
       // Convert API results to NominatimResult-like format for the dropdown
-      const formatted: NominatimResult[] = results.map((r: any) => ({
+      interface AddressSuggestResult {
+        placeId?: string;
+        lat: number;
+        lng: number;
+        formattedAddress: string;
+        streetNumber?: string;
+        street?: string;
+        city?: string;
+        county?: string;
+        state?: string;
+        zip?: string;
+      }
+
+      const formatted: NominatimResult[] = results.map((r: AddressSuggestResult) => ({
         place_id: r.placeId ? parseInt(r.placeId) || Math.random() * 1000000 : Math.random() * 1000000,
         licence: '',
         osm_type: '',
@@ -190,8 +203,8 @@ export default function AddressAutocomplete({
       setSuggestions(formatted);
       setShowDropdown(formatted.length > 0);
       setHighlightedIndex(-1);
-    } catch (err: any) {
-      if (err.name === 'AbortError') return;
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') return;
       console.error('Address search error:', err);
       setError('Address lookup temporarily unavailable. You can type the address manually.');
       setSuggestions([]);

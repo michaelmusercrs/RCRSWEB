@@ -8,7 +8,7 @@ import {
   Save, Trash2, Copy, Download, BarChart3, TrendingUp, Receipt,
   ChevronDown, X, Printer, Building2, Shield, Tag, PieChart,
   Users, Calendar, Hash, Phone, Mail, MapPin, ChevronRight,
-  RefreshCw, ExternalLink, GitCompare, Loader2, DownloadCloud, Info,
+  RefreshCw, ExternalLink, GitCompare, Loader2, DownloadCloud,
 } from 'lucide-react';
 
 // ============ TYPES ============
@@ -121,235 +121,79 @@ const CATEGORY_OPTIONS: { value: LineItemCategory; label: string }[] = [
   { value: 'permit', label: 'Permit' }, { value: 'other', label: 'Other' },
 ];
 
-// ============ MOCK DATA ============
+// ============ API HELPERS ============
 
-const MOCK_INVOICES: Invoice[] = [
-  {
-    invoiceId: 'INV-2026-0001', jobId: 'JOB-2026-101', breakdownId: 'BRK-2026-101',
-    customerName: 'Johnson Residence', customerEmail: 'mjohnson@email.com', customerPhone: '(256) 555-0101',
-    billingAddress: { street: '1420 Governors Dr SW', city: 'Huntsville', state: 'AL', zip: '35801' },
-    jobAddress: { street: '1420 Governors Dr SW', city: 'Huntsville', state: 'AL', zip: '35801' },
-    type: 'final', status: 'paid',
-    lineItems: [
-      { id: 'li-1', description: 'Owens Corning Duration Shingles (Onyx Black)', category: 'materials', quantity: 42, unit: 'bundles', unitPrice: 38.50, total: 1617.00, taxable: true },
-      { id: 'li-2', description: 'Synthetic Underlayment', category: 'materials', quantity: 6, unit: 'rolls', unitPrice: 79.86, total: 479.16, taxable: true },
-      { id: 'li-3', description: 'Galvanized Roofing Nails (1.25")', category: 'materials', quantity: 4, unit: 'boxes', unitPrice: 64.90, total: 259.60, taxable: true },
-      { id: 'li-4', description: 'Tear-off and Installation Labor', category: 'labor', quantity: 1, unit: 'job', unitPrice: 4200.00, total: 4200.00, taxable: false },
-      { id: 'li-5', description: 'Debris Disposal', category: 'disposal', quantity: 1, unit: 'job', unitPrice: 350.00, total: 350.00, taxable: false },
-    ],
-    subtotal: 6905.76, taxRate: 0.055, taxAmount: 129.57, discount: 0, discountType: 'fixed',
-    total: 7035.33, amountPaid: 7035.33, balanceDue: 0,
-    payments: [
-      { paymentId: 'PAY-001', date: '2026-01-15', amount: 3517.67, method: 'check', reference: 'Check #4421', notes: 'Deposit - 50%' },
-      { paymentId: 'PAY-002', date: '2026-01-28', amount: 3517.66, method: 'check', reference: 'Check #4438', notes: 'Final payment' },
-    ],
-    dueDate: '2026-02-14', terms: 'Net 30',
-    notes: 'Complete roof replacement - 28 square.', internalNotes: 'Job went smoothly, 3-day completion.',
-    createdAt: '2026-01-12', updatedAt: '2026-01-28', sentAt: '2026-01-12', paidAt: '2026-01-28', createdBy: 'Michael',
-  },
-  {
-    invoiceId: 'INV-2026-0002', jobId: 'JOB-2026-102',
-    customerName: 'Smith Commercial Properties', customerEmail: 'rsmith@smithcommercial.com', customerPhone: '(256) 555-0202',
-    billingAddress: { street: '4925 University Dr NW', city: 'Huntsville', state: 'AL', zip: '35816' },
-    jobAddress: { street: '4925 University Dr NW', city: 'Huntsville', state: 'AL', zip: '35816' },
-    type: 'progress', status: 'overdue',
-    lineItems: [
-      { id: 'li-6', description: 'TPO Roofing Membrane (60 mil)', category: 'materials', quantity: 120, unit: 'sq ft', unitPrice: 4.25, total: 510.00, taxable: true },
-      { id: 'li-7', description: 'Insulation Board (2" Polyiso)', category: 'materials', quantity: 80, unit: 'sheets', unitPrice: 32.00, total: 2560.00, taxable: true },
-      { id: 'li-8', description: 'Commercial Installation Labor - Phase 1', category: 'labor', quantity: 1, unit: 'phase', unitPrice: 8500.00, total: 8500.00, taxable: false },
-      { id: 'li-9', description: 'Crane Rental', category: 'other', quantity: 2, unit: 'days', unitPrice: 750.00, total: 1500.00, taxable: false },
-    ],
-    subtotal: 13070.00, taxRate: 0.055, taxAmount: 168.85, discount: 500, discountType: 'fixed',
-    total: 12738.85, amountPaid: 5000.00, balanceDue: 7738.85,
-    payments: [{ paymentId: 'PAY-003', date: '2026-01-05', amount: 5000.00, method: 'check', reference: 'Check #7810', notes: 'Initial deposit' }],
-    dueDate: '2026-01-20', terms: 'Net 15',
-    notes: 'Progress billing - Phase 1 of 3.', internalNotes: 'Customer slow to pay. Follow up weekly.',
-    createdAt: '2026-01-04', updatedAt: '2026-02-10', sentAt: '2026-01-04', createdBy: 'Michael',
-  },
-  {
-    invoiceId: 'INV-2026-0003', jobId: 'JOB-2026-103', breakdownId: 'BRK-2026-103',
-    customerName: 'Williams Family', customerEmail: 'twill@gmail.com', customerPhone: '(256) 555-0303',
-    billingAddress: { street: '2812 Whitesburg Dr SE', city: 'Huntsville', state: 'AL', zip: '35802' },
-    jobAddress: { street: '2812 Whitesburg Dr SE', city: 'Huntsville', state: 'AL', zip: '35802' },
-    type: 'estimate', status: 'sent',
-    lineItems: [
-      { id: 'li-10', description: 'GAF Timberline HDZ (Weathered Wood)', category: 'materials', quantity: 35, unit: 'bundles', unitPrice: 42.00, total: 1470.00, taxable: true },
-      { id: 'li-11', description: 'Synthetic Underlayment', category: 'materials', quantity: 5, unit: 'rolls', unitPrice: 79.86, total: 399.30, taxable: true },
-      { id: 'li-12', description: 'Roof Replacement Labor', category: 'labor', quantity: 1, unit: 'job', unitPrice: 3800.00, total: 3800.00, taxable: false },
-      { id: 'li-13', description: 'Building Permit', category: 'permit', quantity: 1, unit: 'ea', unitPrice: 150.00, total: 150.00, taxable: false },
-    ],
-    subtotal: 5819.30, taxRate: 0.055, taxAmount: 102.81, discount: 5, discountType: 'percent',
-    total: 5631.15, amountPaid: 0, balanceDue: 5631.15, payments: [],
-    dueDate: '2026-03-10', terms: 'Due on Completion',
-    notes: 'Estimate valid for 30 days.', internalNotes: 'Referral from Johnson.',
-    createdAt: '2026-02-08', updatedAt: '2026-02-08', sentAt: '2026-02-08', createdBy: 'Sarah',
-  },
-  {
-    invoiceId: 'INV-2026-0004', jobId: 'JOB-2026-104',
-    customerName: 'Davis Property Management', customerEmail: 'ldavis@davisprop.com', customerPhone: '(256) 555-0404',
-    billingAddress: { street: '808 Madison St SE', city: 'Madison', state: 'AL', zip: '35758' },
-    jobAddress: { street: '312 Celtic Ct', city: 'Madison', state: 'AL', zip: '35758' },
-    type: 'final', status: 'approved',
-    lineItems: [
-      { id: 'li-14', description: 'Architectural Shingles (Charcoal)', category: 'materials', quantity: 26, unit: 'bundles', unitPrice: 36.00, total: 936.00, taxable: true },
-      { id: 'li-15', description: 'Repair & Re-roof Labor', category: 'labor', quantity: 1, unit: 'job', unitPrice: 2800.00, total: 2800.00, taxable: false },
-      { id: 'li-16', description: 'Dump Fee', category: 'disposal', quantity: 1, unit: 'load', unitPrice: 275.00, total: 275.00, taxable: false },
-    ],
-    subtotal: 4011.00, taxRate: 0.055, taxAmount: 51.48, discount: 0, discountType: 'fixed',
-    total: 4062.48, amountPaid: 0, balanceDue: 4062.48, payments: [],
-    insuranceClaim: { claimNumber: 'CLM-2026-88421', carrier: 'State Farm', adjusterName: 'Patricia Mills', adjusterPhone: '(256) 555-8800', deductible: 1000.00, approved: true, approvedAmount: 4062.48 },
-    dueDate: '2026-02-28', terms: 'Due on Approval',
-    notes: 'Insurance claim approved.', internalNotes: 'Property management - 3 units.',
-    createdAt: '2026-02-01', updatedAt: '2026-02-06', sentAt: '2026-02-01', createdBy: 'Michael',
-  },
-  {
-    invoiceId: 'INV-2026-0005', jobId: 'JOB-2026-105',
-    customerName: 'Oakwood Baptist Church', customerEmail: 'office@oakwoodbaptist.org', customerPhone: '(256) 555-0505',
-    billingAddress: { street: '1905 Oakwood Ave NW', city: 'Huntsville', state: 'AL', zip: '35810' },
-    jobAddress: { street: '1905 Oakwood Ave NW', city: 'Huntsville', state: 'AL', zip: '35810' },
-    type: 'final', status: 'sent',
-    lineItems: [
-      { id: 'li-17', description: 'Standing Seam Metal Roofing', category: 'materials', quantity: 2400, unit: 'sq ft', unitPrice: 4.50, total: 10800.00, taxable: true },
-      { id: 'li-18', description: 'Metal Trim & Flashing Package', category: 'materials', quantity: 1, unit: 'lot', unitPrice: 1850.00, total: 1850.00, taxable: true },
-      { id: 'li-19', description: 'Metal Roof Install Labor', category: 'labor', quantity: 1, unit: 'job', unitPrice: 12500.00, total: 12500.00, taxable: false },
-      { id: 'li-20', description: 'Scaffolding Rental', category: 'other', quantity: 3, unit: 'weeks', unitPrice: 450.00, total: 1350.00, taxable: false },
-    ],
-    subtotal: 26500.00, taxRate: 0.055, taxAmount: 695.75, discount: 1000, discountType: 'fixed',
-    total: 26195.75, amountPaid: 10000.00, balanceDue: 16195.75,
-    payments: [{ paymentId: 'PAY-004', date: '2026-02-03', amount: 10000.00, method: 'check', reference: 'Check #2201', notes: '35% deposit' }],
-    dueDate: '2026-03-05', terms: 'Net 30',
-    notes: 'Metal roof - main sanctuary. Nonprofit discount applied.', internalNotes: 'Large job - 2 crews needed.',
-    createdAt: '2026-02-03', updatedAt: '2026-02-03', sentAt: '2026-02-03', createdBy: 'Michael',
-  },
-  {
-    invoiceId: 'INV-2026-0006', jobId: 'JOB-2026-106',
-    customerName: 'Martinez Residence', customerEmail: 'cmartinez@hotmail.com', customerPhone: '(256) 555-0606',
-    billingAddress: { street: '614 Holmes Ave NE', city: 'Huntsville', state: 'AL', zip: '35801' },
-    jobAddress: { street: '614 Holmes Ave NE', city: 'Huntsville', state: 'AL', zip: '35801' },
-    type: 'supplement', status: 'viewed',
-    lineItems: [
-      { id: 'li-21', description: 'Additional Decking (Water Damage)', category: 'materials', quantity: 12, unit: 'sheets', unitPrice: 42.00, total: 504.00, taxable: true },
-      { id: 'li-22', description: 'Fascia Board Replacement', category: 'materials', quantity: 24, unit: 'lin ft', unitPrice: 8.50, total: 204.00, taxable: true },
-      { id: 'li-23', description: 'Additional Labor', category: 'labor', quantity: 8, unit: 'hours', unitPrice: 65.00, total: 520.00, taxable: false },
-    ],
-    subtotal: 1228.00, taxRate: 0.055, taxAmount: 38.94, discount: 0, discountType: 'fixed',
-    total: 1266.94, amountPaid: 0, balanceDue: 1266.94, payments: [],
-    insuranceClaim: { claimNumber: 'CLM-2026-77192', carrier: 'Allstate', adjusterName: 'Kevin Brooks', adjusterPhone: '(256) 555-7700', deductible: 500.00, approved: false, approvedAmount: 0 },
-    dueDate: '2026-03-01', terms: 'Due on Approval',
-    notes: 'Supplement for damage found during tear-off.', internalNotes: 'Awaiting adjuster re-inspection 2/15.',
-    createdAt: '2026-02-07', updatedAt: '2026-02-09', sentAt: '2026-02-07', createdBy: 'Sarah',
-  },
-  {
-    invoiceId: 'INV-2026-0007', jobId: 'JOB-2026-107',
-    customerName: 'Crestwood HOA', customerEmail: 'board@crestwoodhoa.org', customerPhone: '(256) 555-0707',
-    billingAddress: { street: '100 Crestwood Blvd', city: 'Huntsville', state: 'AL', zip: '35802' },
-    jobAddress: { street: '155 Crestwood Ct', city: 'Huntsville', state: 'AL', zip: '35802' },
-    type: 'estimate', status: 'draft',
-    lineItems: [
-      { id: 'li-24', description: 'Architectural Shingles (Hickory)', category: 'materials', quantity: 180, unit: 'bundles', unitPrice: 38.50, total: 6930.00, taxable: true },
-      { id: 'li-25', description: 'Nails, Flashing, Vents Package', category: 'materials', quantity: 1, unit: 'lot', unitPrice: 2200.00, total: 2200.00, taxable: true },
-      { id: 'li-26', description: 'Multi-Unit Roof (6 units)', category: 'labor', quantity: 1, unit: 'job', unitPrice: 18000.00, total: 18000.00, taxable: false },
-      { id: 'li-27', description: 'Permits (6)', category: 'permit', quantity: 6, unit: 'ea', unitPrice: 150.00, total: 900.00, taxable: false },
-    ],
-    subtotal: 28030.00, taxRate: 0.055, taxAmount: 501.65, discount: 10, discountType: 'percent',
-    total: 25728.65, amountPaid: 0, balanceDue: 25728.65, payments: [],
-    dueDate: '2026-03-15', terms: 'Net 30',
-    notes: '6-unit townhome estimate. Volume discount applied.', internalNotes: 'HOA board vote on Feb 20.',
-    createdAt: '2026-02-09', updatedAt: '2026-02-09', createdBy: 'Michael',
-  },
-  {
-    invoiceId: 'INV-2026-0008', jobId: 'JOB-2026-108',
-    customerName: 'Thompson Residence', customerEmail: 'bthompson99@gmail.com', customerPhone: '(256) 555-0808',
-    billingAddress: { street: '3401 Memorial Pkwy SW', city: 'Huntsville', state: 'AL', zip: '35801' },
-    jobAddress: { street: '3401 Memorial Pkwy SW', city: 'Huntsville', state: 'AL', zip: '35801' },
-    type: 'final', status: 'overdue',
-    lineItems: [
-      { id: 'li-28', description: 'Chimney Flashing Kit', category: 'materials', quantity: 1, unit: 'kit', unitPrice: 185.00, total: 185.00, taxable: true },
-      { id: 'li-29', description: 'Repair Labor', category: 'labor', quantity: 4, unit: 'hours', unitPrice: 75.00, total: 300.00, taxable: false },
-    ],
-    subtotal: 485.00, taxRate: 0.055, taxAmount: 10.18, discount: 0, discountType: 'fixed',
-    total: 495.18, amountPaid: 0, balanceDue: 495.18, payments: [],
-    dueDate: '2026-01-10', terms: 'Net 15',
-    notes: 'Chimney flashing repair.', internalNotes: 'Sent 2 reminders. May need to call.',
-    createdAt: '2025-12-26', updatedAt: '2026-02-10', sentAt: '2025-12-26', createdBy: 'Sarah',
-  },
-  {
-    invoiceId: 'INV-2026-0009', jobId: 'JOB-2026-109', breakdownId: 'BRK-2026-109',
-    customerName: 'Redstone Federal Credit Union', customerEmail: 'facilities@redfcu.org', customerPhone: '(256) 555-0909',
-    billingAddress: { street: '220 Wynn Dr NW', city: 'Huntsville', state: 'AL', zip: '35893' },
-    jobAddress: { street: '220 Wynn Dr NW', city: 'Huntsville', state: 'AL', zip: '35893' },
-    type: 'progress', status: 'paid',
-    lineItems: [
-      { id: 'li-30', description: 'Commercial TPO Membrane', category: 'materials', quantity: 5000, unit: 'sq ft', unitPrice: 3.80, total: 19000.00, taxable: true },
-      { id: 'li-31', description: 'Commercial Install - Phase 1', category: 'labor', quantity: 1, unit: 'phase', unitPrice: 15000.00, total: 15000.00, taxable: false },
-      { id: 'li-32', description: 'Delivery Charges', category: 'delivery', quantity: 3, unit: 'loads', unitPrice: 250.00, total: 750.00, taxable: false },
-    ],
-    subtotal: 34750.00, taxRate: 0.055, taxAmount: 1045.00, discount: 0, discountType: 'fixed',
-    total: 35795.00, amountPaid: 35795.00, balanceDue: 0,
-    payments: [
-      { paymentId: 'PAY-005', date: '2026-01-20', amount: 17897.50, method: 'check', reference: 'EFT-90211', notes: '50% deposit' },
-      { paymentId: 'PAY-006', date: '2026-02-05', amount: 17897.50, method: 'check', reference: 'EFT-90345', notes: 'Phase 1 completion' },
-    ],
-    dueDate: '2026-02-20', terms: 'Net 30',
-    notes: 'Phase 1 - South wing re-roof.', internalNotes: 'Corporate account. EFT payments.',
-    createdAt: '2026-01-18', updatedAt: '2026-02-05', sentAt: '2026-01-18', paidAt: '2026-02-05', createdBy: 'Michael',
-  },
-  {
-    invoiceId: 'INV-2026-0010', jobId: 'JOB-2026-110',
-    customerName: 'Anderson Residence', customerEmail: 'kanderson@icloud.com', customerPhone: '(256) 555-1010',
-    billingAddress: { street: '707 Franklin St SE', city: 'Huntsville', state: 'AL', zip: '35801' },
-    jobAddress: { street: '707 Franklin St SE', city: 'Huntsville', state: 'AL', zip: '35801' },
-    type: 'credit', status: 'approved',
-    lineItems: [
-      { id: 'li-33', description: 'Credit - Unused shingles (8 bundles)', category: 'materials', quantity: 8, unit: 'bundles', unitPrice: -38.50, total: -308.00, taxable: true },
-    ],
-    subtotal: -308.00, taxRate: 0.055, taxAmount: -16.94, discount: 0, discountType: 'fixed',
-    total: -324.94, amountPaid: -324.94, balanceDue: 0,
-    payments: [{ paymentId: 'PAY-007', date: '2026-02-08', amount: -324.94, method: 'check', reference: 'Check #RCRS-1104', notes: 'Refund' }],
-    dueDate: '2026-02-15', terms: 'Immediate',
-    notes: 'Credit memo for returned materials.', internalNotes: 'Materials inspected and restocked.',
-    createdAt: '2026-02-06', updatedAt: '2026-02-08', sentAt: '2026-02-06', paidAt: '2026-02-08', createdBy: 'Sarah',
-  },
-  {
-    invoiceId: 'INV-2026-0011', jobId: 'JOB-2026-111',
-    customerName: 'Heritage Hills Apartments', customerEmail: 'maintenance@heritagehillsapts.com', customerPhone: '(256) 555-1111',
-    billingAddress: { street: '5000 Heritage Hills Blvd', city: 'Huntsville', state: 'AL', zip: '35816' },
-    jobAddress: { street: '5000 Heritage Hills Blvd Bldg C', city: 'Huntsville', state: 'AL', zip: '35816' },
-    type: 'final', status: 'disputed',
-    lineItems: [
-      { id: 'li-34', description: 'Architectural Shingles (Pewter Gray)', category: 'materials', quantity: 52, unit: 'bundles', unitPrice: 38.50, total: 2002.00, taxable: true },
-      { id: 'li-35', description: 'Multi-unit Install Labor', category: 'labor', quantity: 1, unit: 'job', unitPrice: 6500.00, total: 6500.00, taxable: false },
-      { id: 'li-36', description: 'Gutter Replacement', category: 'materials', quantity: 60, unit: 'lin ft', unitPrice: 8.00, total: 480.00, taxable: true },
-    ],
-    subtotal: 8982.00, taxRate: 0.055, taxAmount: 136.51, discount: 0, discountType: 'fixed',
-    total: 9118.51, amountPaid: 5000.00, balanceDue: 4118.51,
-    payments: [{ paymentId: 'PAY-008', date: '2026-02-01', amount: 5000.00, method: 'check', reference: 'Check #HH-4410', notes: '50% deposit' }],
-    dueDate: '2026-02-25', terms: 'Net 30',
-    notes: 'Building C - 4 unit re-roof.', internalNotes: 'DISPUTE: Customer claims gutter work incomplete on east side.',
-    createdAt: '2026-01-25', updatedAt: '2026-02-09', sentAt: '2026-01-25', createdBy: 'Michael',
-  },
-  {
-    invoiceId: 'INV-2026-0012', jobId: 'JOB-2026-112',
-    customerName: 'Chen Residence', customerEmail: 'lchen@email.com', customerPhone: '(256) 555-1212',
-    billingAddress: { street: '1102 Monte Sano Blvd SE', city: 'Huntsville', state: 'AL', zip: '35801' },
-    jobAddress: { street: '1102 Monte Sano Blvd SE', city: 'Huntsville', state: 'AL', zip: '35801' },
-    type: 'final', status: 'paid',
-    lineItems: [
-      { id: 'li-37', description: 'Cedar Shake Shingles (Premium)', category: 'materials', quantity: 30, unit: 'bundles', unitPrice: 95.00, total: 2850.00, taxable: true },
-      { id: 'li-38', description: 'Cedar Shake Install (Specialty)', category: 'labor', quantity: 1, unit: 'job', unitPrice: 8500.00, total: 8500.00, taxable: false },
-      { id: 'li-39', description: 'Debris Disposal', category: 'disposal', quantity: 1, unit: 'job', unitPrice: 400.00, total: 400.00, taxable: false },
-    ],
-    subtotal: 11750.00, taxRate: 0.055, taxAmount: 156.75, discount: 0, discountType: 'fixed',
-    total: 11906.75, amountPaid: 11906.75, balanceDue: 0,
-    payments: [
-      { paymentId: 'PAY-009', date: '2026-01-10', amount: 5953.38, method: 'card', reference: 'CC-AUTH-88421', notes: '50% deposit' },
-      { paymentId: 'PAY-010', date: '2026-01-30', amount: 5953.37, method: 'card', reference: 'CC-AUTH-89102', notes: 'Final payment' },
-    ],
-    dueDate: '2026-02-10', terms: 'Net 30',
-    notes: 'Premium cedar shake. 5-year labor warranty.', internalNotes: 'Historic home on Monte Sano. Portfolio piece.',
-    createdAt: '2026-01-08', updatedAt: '2026-01-30', sentAt: '2026-01-08', paidAt: '2026-01-30', createdBy: 'Michael',
-  },
-];
+const API_URL = '/api/portal/delivery/invoices';
+
+async function apiGet(params?: Record<string, string>): Promise<any> {
+  const url = new URL(API_URL, window.location.origin);
+  if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+  const res = await fetch(url.toString(), { credentials: 'include' });
+  if (!res.ok) throw new Error(`API returned ${res.status}`);
+  return res.json();
+}
+
+async function apiPost(body: Record<string, any>): Promise<any> {
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`API returned ${res.status}`);
+  return res.json();
+}
+
+function mapApiInvoice(inv: any): Invoice {
+  return {
+    invoiceId: inv.invoiceId || inv.id || '',
+    jobId: inv.jobId || inv.job_id || '',
+    breakdownId: inv.breakdownId || undefined,
+    customerName: inv.customerName || inv.customer_name || '',
+    customerEmail: inv.customerEmail || inv.customer_email || '',
+    customerPhone: inv.customerPhone || inv.customer_phone || '',
+    billingAddress: inv.billingAddress || { street: '', city: '', state: 'AL', zip: '' },
+    jobAddress: inv.jobAddress || inv.billingAddress || { street: '', city: '', state: 'AL', zip: '' },
+    type: inv.type || 'final',
+    status: inv.status || 'draft',
+    lineItems: (inv.lineItems || inv.line_items || []).map((li: any) => ({
+      id: li.id || `li-${Math.random().toString(36).slice(2)}`,
+      description: li.description || '',
+      category: li.category || 'materials',
+      quantity: li.quantity || 0,
+      unit: li.unit || 'ea',
+      unitPrice: li.unitPrice || li.unit_price || 0,
+      total: li.total || 0,
+      taxable: li.taxable ?? true,
+    })),
+    subtotal: inv.subtotal || 0,
+    taxRate: inv.taxRate || inv.tax_rate || TAX_RATE,
+    taxAmount: inv.taxAmount || inv.tax_amount || 0,
+    discount: inv.discount || 0,
+    discountType: inv.discountType || inv.discount_type || 'fixed',
+    total: inv.total || 0,
+    amountPaid: inv.amountPaid || inv.amount_paid || 0,
+    balanceDue: inv.balanceDue || inv.balance_due || 0,
+    payments: (inv.payments || []).map((p: any) => ({
+      paymentId: p.paymentId || p.id || '',
+      date: p.date || '',
+      amount: p.amount || 0,
+      method: p.method || 'check',
+      reference: p.reference || '',
+      notes: p.notes || '',
+    })),
+    insuranceClaim: inv.insuranceClaim || undefined,
+    dueDate: inv.dueDate || inv.due_date || '',
+    terms: inv.terms || 'Net 30',
+    notes: inv.notes || '',
+    internalNotes: inv.internalNotes || inv.internal_notes || '',
+    createdAt: inv.createdAt || inv.created_at || '',
+    updatedAt: inv.updatedAt || inv.updated_at || '',
+    sentAt: inv.sentAt || inv.sent_at || undefined,
+    paidAt: inv.paidAt || inv.paid_at || undefined,
+    createdBy: inv.createdBy || inv.created_by || '',
+  };
+}
 
 // ============ HELPERS ============
 
@@ -369,9 +213,11 @@ function calcTotals(items: LineItem[], taxRate: number, discount: number, discou
 
 export default function InvoicesPage() {
   const [tab, setTab] = useState<Tab>('dashboard');
-  const [invoices, setInvoices] = useState<Invoice[]>(MOCK_INVOICES);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isPageLoading, setIsPageLoading] = useState(true);
-  const [isUsingMockData, setIsUsingMockData] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -382,75 +228,24 @@ export default function InvoicesPage() {
     setIsPageLoading(true);
     setFetchError(null);
     try {
-      const res = await fetch('/api/portal/invoices');
-      if (!res.ok) throw new Error(`API returned ${res.status}`);
-      const data = await res.json();
-      const apiInvoices = data.data?.invoices || data.invoices || [];
-
-      if (apiInvoices.length > 0) {
-        const mapped: Invoice[] = apiInvoices.map((inv: any) => ({
-          invoiceId: inv.invoiceId || inv.id || '',
-          jobId: inv.jobId || inv.job_id || '',
-          breakdownId: inv.breakdownId || undefined,
-          customerName: inv.customerName || inv.customer_name || '',
-          customerEmail: inv.customerEmail || inv.customer_email || '',
-          customerPhone: inv.customerPhone || inv.customer_phone || '',
-          billingAddress: inv.billingAddress || { street: '', city: '', state: 'AL', zip: '' },
-          jobAddress: inv.jobAddress || inv.billingAddress || { street: '', city: '', state: 'AL', zip: '' },
-          type: inv.type || 'final',
-          status: inv.status || 'draft',
-          lineItems: (inv.lineItems || inv.line_items || []).map((li: any) => ({
-            id: li.id || `li-${Math.random().toString(36).slice(2)}`,
-            description: li.description || '',
-            category: li.category || 'materials',
-            quantity: li.quantity || 0,
-            unit: li.unit || 'ea',
-            unitPrice: li.unitPrice || li.unit_price || 0,
-            total: li.total || 0,
-            taxable: li.taxable ?? true,
-          })),
-          subtotal: inv.subtotal || 0,
-          taxRate: inv.taxRate || inv.tax_rate || TAX_RATE,
-          taxAmount: inv.taxAmount || inv.tax_amount || 0,
-          discount: inv.discount || 0,
-          discountType: inv.discountType || inv.discount_type || 'fixed',
-          total: inv.total || 0,
-          amountPaid: inv.amountPaid || inv.amount_paid || 0,
-          balanceDue: inv.balanceDue || inv.balance_due || 0,
-          payments: (inv.payments || []).map((p: any) => ({
-            paymentId: p.paymentId || p.id || '',
-            date: p.date || '',
-            amount: p.amount || 0,
-            method: p.method || 'check',
-            reference: p.reference || '',
-            notes: p.notes || '',
-          })),
-          insuranceClaim: inv.insuranceClaim || undefined,
-          dueDate: inv.dueDate || inv.due_date || '',
-          terms: inv.terms || 'Net 30',
-          notes: inv.notes || '',
-          internalNotes: inv.internalNotes || inv.internal_notes || '',
-          createdAt: inv.createdAt || inv.created_at || '',
-          updatedAt: inv.updatedAt || inv.updated_at || '',
-          sentAt: inv.sentAt || inv.sent_at || undefined,
-          paidAt: inv.paidAt || inv.paid_at || undefined,
-          createdBy: inv.createdBy || inv.created_by || '',
-        }));
-        setInvoices(mapped);
-        setIsUsingMockData(false);
-      } else {
-        setInvoices(MOCK_INVOICES);
-        setIsUsingMockData(true);
-      }
+      const data = await apiGet();
+      const apiInvoices = data.invoices || [];
+      setInvoices(apiInvoices.map(mapApiInvoice));
     } catch (err) {
       console.error('Failed to fetch invoices:', err);
       setFetchError(err instanceof Error ? err.message : 'Failed to load');
-      setInvoices(MOCK_INVOICES);
-      setIsUsingMockData(true);
+      setInvoices([]);
     } finally {
       setIsPageLoading(false);
     }
   }
+
+  // Helper to show temporary success/error messages
+  function flashMessage(msg: string, isError = false) {
+    if (isError) { setSaveError(msg); setTimeout(() => setSaveError(null), 4000); }
+    else { setSaveSuccess(msg); setTimeout(() => setSaveSuccess(null), 4000); }
+  }
+
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | ''>('');
   const [typeFilter, setTypeFilter] = useState<InvoiceType | ''>('');
@@ -576,52 +371,148 @@ export default function InvoicesPage() {
   }, [allPayments]);
 
   // --- Handlers ---
-  const handleSaveDraft = () => {
+  const handleSaveDraft = async () => {
     const items = (formData.lineItems || []).map(li => ({ ...li, total: li.quantity * li.unitPrice }));
     const t = calcTotals(items, formData.taxRate || TAX_RATE, formData.discount || 0, formData.discountType || 'fixed');
-    const newInv: Invoice = {
-      invoiceId: `INV-2026-${String(invoices.length + 1).padStart(4, '0')}`,
-      jobId: formData.jobId || '', breakdownId: formData.breakdownId,
-      customerName: formData.customerName || '', customerEmail: formData.customerEmail || '',
+    const invoiceData = {
+      jobId: formData.jobId || '',
+      breakdownId: formData.breakdownId,
+      customerName: formData.customerName || '',
+      customerEmail: formData.customerEmail || '',
       customerPhone: formData.customerPhone || '',
       billingAddress: formData.billingAddress || { street: '', city: '', state: 'AL', zip: '' },
       jobAddress: formData.jobAddress || { street: '', city: '', state: 'AL', zip: '' },
-      type: formData.type || 'final', status: 'draft', lineItems: items,
-      subtotal: t.subtotal, taxRate: formData.taxRate || TAX_RATE, taxAmount: t.taxAmount,
-      discount: formData.discount || 0, discountType: formData.discountType || 'fixed',
-      total: t.total, amountPaid: 0, balanceDue: t.total, payments: [],
+      type: formData.type || 'final',
+      status: 'draft' as InvoiceStatus,
+      lineItems: items,
+      subtotal: t.subtotal,
+      taxRate: formData.taxRate || TAX_RATE,
+      taxAmount: t.taxAmount,
+      discount: formData.discount || 0,
+      discountType: formData.discountType || 'fixed',
+      total: t.total,
+      amountPaid: 0,
+      balanceDue: t.total,
+      payments: [],
       insuranceClaim: showInsurance ? insuranceForm : undefined,
       dueDate: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
-      terms: formData.terms || 'Net 30', notes: formData.notes || '', internalNotes: formData.internalNotes || '',
-      createdAt: new Date().toISOString().slice(0, 10), updatedAt: new Date().toISOString().slice(0, 10),
-      createdBy: 'Michael',
+      terms: formData.terms || 'Net 30',
+      notes: formData.notes || '',
+      internalNotes: formData.internalNotes || '',
     };
-    setInvoices(prev => [...prev, newInv]);
-    setFormData(emptyForm());
-    setShowInsurance(false);
-    setTab('list');
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      const data = await apiPost({ action: 'create', data: invoiceData });
+      if (!data.success) throw new Error(data.error || 'Failed to create invoice');
+      const created = mapApiInvoice(data.invoice);
+      setInvoices(prev => [...prev, created]);
+      setFormData(emptyForm());
+      setShowInsurance(false);
+      flashMessage(`Invoice ${created.invoiceId} created successfully`);
+      setTab('list');
+    } catch (err: any) {
+      flashMessage(err.message || 'Failed to save invoice', true);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleSendInvoice = () => { handleSaveDraft(); };
+  const handleSendInvoice = async () => {
+    const items = (formData.lineItems || []).map(li => ({ ...li, total: li.quantity * li.unitPrice }));
+    const t = calcTotals(items, formData.taxRate || TAX_RATE, formData.discount || 0, formData.discountType || 'fixed');
+    const invoiceData = {
+      jobId: formData.jobId || '',
+      breakdownId: formData.breakdownId,
+      customerName: formData.customerName || '',
+      customerEmail: formData.customerEmail || '',
+      customerPhone: formData.customerPhone || '',
+      billingAddress: formData.billingAddress || { street: '', city: '', state: 'AL', zip: '' },
+      jobAddress: formData.jobAddress || { street: '', city: '', state: 'AL', zip: '' },
+      type: formData.type || 'final',
+      status: 'draft' as InvoiceStatus,
+      lineItems: items,
+      subtotal: t.subtotal,
+      taxRate: formData.taxRate || TAX_RATE,
+      taxAmount: t.taxAmount,
+      discount: formData.discount || 0,
+      discountType: formData.discountType || 'fixed',
+      total: t.total,
+      amountPaid: 0,
+      balanceDue: t.total,
+      payments: [],
+      insuranceClaim: showInsurance ? insuranceForm : undefined,
+      dueDate: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
+      terms: formData.terms || 'Net 30',
+      notes: formData.notes || '',
+      internalNotes: formData.internalNotes || '',
+    };
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      // First create the invoice
+      const createData = await apiPost({ action: 'create', data: invoiceData });
+      if (!createData.success) throw new Error(createData.error || 'Failed to create invoice');
+      const created = mapApiInvoice(createData.invoice);
+      // Then mark it as sent
+      const sendData = await apiPost({ action: 'send', invoiceId: created.invoiceId });
+      const sent = sendData.success ? mapApiInvoice(sendData.invoice) : { ...created, status: 'sent' as InvoiceStatus };
+      setInvoices(prev => [...prev, sent]);
+      setFormData(emptyForm());
+      setShowInsurance(false);
+      flashMessage(`Invoice ${sent.invoiceId} created and sent`);
+      setTab('list');
+    } catch (err: any) {
+      flashMessage(err.message || 'Failed to save and send invoice', true);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
-  const handleRecordPayment = () => {
+  const handleRecordPayment = async () => {
     if (!paymentInvoiceId || paymentForm.amount <= 0) return;
-    setInvoices(prev => prev.map(inv => {
-      if (inv.invoiceId !== paymentInvoiceId) return inv;
-      const newPaid = inv.amountPaid + paymentForm.amount;
-      const newBalance = inv.total - newPaid;
-      return {
-        ...inv,
-        amountPaid: newPaid, balanceDue: Math.max(0, newBalance),
-        status: newBalance <= 0 ? 'paid' : inv.status,
-        paidAt: newBalance <= 0 ? new Date().toISOString().slice(0, 10) : inv.paidAt,
-        payments: [...inv.payments, { paymentId: `PAY-${Date.now()}`, ...paymentForm }],
-        updatedAt: new Date().toISOString().slice(0, 10),
-      };
-    }));
-    setPaymentForm({ amount: 0, method: 'check', reference: '', notes: '', date: new Date().toISOString().slice(0, 10) });
-    setPaymentInvoiceId('');
-    setShowPaymentForm(false);
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      const data = await apiPost({
+        action: 'record-payment',
+        invoiceId: paymentInvoiceId,
+        payment: {
+          date: paymentForm.date,
+          amount: paymentForm.amount,
+          method: paymentForm.method,
+          reference: paymentForm.reference,
+          notes: paymentForm.notes,
+        },
+      });
+      if (!data.success) throw new Error(data.error || 'Failed to record payment');
+      const updated = mapApiInvoice(data.invoice);
+      setInvoices(prev => prev.map(inv => inv.invoiceId === updated.invoiceId ? updated : inv));
+      setPaymentForm({ amount: 0, method: 'check', reference: '', notes: '', date: new Date().toISOString().slice(0, 10) });
+      setPaymentInvoiceId('');
+      setShowPaymentForm(false);
+      flashMessage(`Payment of ${fmt(paymentForm.amount)} recorded`);
+    } catch (err: any) {
+      flashMessage(err.message || 'Failed to record payment', true);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // --- Status change handler ---
+  const handleStatusChange = async (invoiceId: string, action: string) => {
+    setIsSaving(true);
+    try {
+      const data = await apiPost({ action, invoiceId });
+      if (!data.success) throw new Error(data.error || `Failed to ${action} invoice`);
+      const updated = mapApiInvoice(data.invoice);
+      setInvoices(prev => prev.map(inv => inv.invoiceId === updated.invoiceId ? updated : inv));
+      flashMessage(`Invoice ${invoiceId} updated`);
+    } catch (err: any) {
+      flashMessage(err.message || `Failed to ${action}`, true);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // --- JN Handlers ---
@@ -635,12 +526,7 @@ export default function InvoicesPage() {
     setJnImportSuccess('');
     setJnInvoices([]);
     try {
-      const res = await fetch('/api/portal/delivery/invoices', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'fetch-jn-invoices', contactJnid: jnContactId.trim() }),
-      });
-      const data = await res.json();
+      const data = await apiPost({ action: 'fetch-jn-invoices', contactJnid: jnContactId.trim() });
       if (!data.success) {
         setJnError(data.error || 'Failed to fetch JN invoices');
       } else if (data.invoices.length === 0) {
@@ -661,37 +547,22 @@ export default function InvoicesPage() {
     setJnImportSuccess('');
     try {
       // First fetch full detail
-      const detailRes = await fetch('/api/portal/delivery/invoices', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'fetch-jn-invoice-detail', contactJnid: jnContactId.trim(), invoiceJnid: jnInv.jnid }),
-      });
-      const detailData = await detailRes.json();
+      const detailData = await apiPost({ action: 'fetch-jn-invoice-detail', contactJnid: jnContactId.trim(), invoiceJnid: jnInv.jnid });
       if (!detailData.success) {
         setJnError(detailData.error || 'Failed to fetch JN invoice detail');
         return;
       }
 
       // Now import it
-      const importRes = await fetch('/api/portal/delivery/invoices', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'import-jn-invoice',
-          jnInvoice: { invoice: detailData.invoice, contact: detailData.contact, job: detailData.job },
-        }),
+      const importData = await apiPost({
+        action: 'import-jn-invoice',
+        jnInvoice: { invoice: detailData.invoice, contact: detailData.contact, job: detailData.job },
       });
-      const importData = await importRes.json();
       if (!importData.success) {
         setJnError(importData.error || 'Failed to import JN invoice');
       } else {
         setJnImportSuccess(`Imported as ${importData.invoice.invoiceId}`);
-        // Add to local state
-        setInvoices(prev => [...prev, {
-          ...importData.invoice,
-          lineItems: importData.invoice.lineItems || [],
-          payments: importData.invoice.payments || [],
-        }]);
+        setInvoices(prev => [...prev, mapApiInvoice(importData.invoice)]);
       }
     } catch (err: any) {
       setJnError(err.message || 'Network error importing JN invoice');
@@ -709,12 +580,7 @@ export default function InvoicesPage() {
     setCompareError('');
     setComparison(null);
     try {
-      const res = await fetch('/api/portal/delivery/invoices', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'compare-with-jn', invoiceId: compareInvoiceId, contactJnid: compareContactJnid.trim() }),
-      });
-      const data = await res.json();
+      const data = await apiPost({ action: 'compare-with-jn', invoiceId: compareInvoiceId, contactJnid: compareContactJnid.trim() });
       if (!data.success) {
         setCompareError(data.error || 'Failed to compare invoices');
       } else {
@@ -999,9 +865,13 @@ export default function InvoicesPage() {
 
       {/* Actions */}
       <div className="flex gap-3 justify-end">
-        <button onClick={() => { setFormData(emptyForm()); setShowInsurance(false); }} className="px-4 py-2 bg-zinc-800 text-zinc-300 rounded hover:bg-zinc-700 text-sm">Clear</button>
-        <button onClick={handleSaveDraft} className="px-4 py-2 bg-zinc-700 text-white rounded hover:bg-zinc-600 text-sm flex items-center gap-2"><Save className="w-4 h-4" /> Save Draft</button>
-        <button onClick={handleSendInvoice} className="px-4 py-2 bg-[#39FF14] text-black rounded hover:bg-[#39FF14]/90 text-sm font-medium flex items-center gap-2"><Send className="w-4 h-4" /> Save & Send</button>
+        <button onClick={() => { setFormData(emptyForm()); setShowInsurance(false); }} className="px-4 py-2 bg-zinc-800 text-zinc-300 rounded hover:bg-zinc-700 text-sm" disabled={isSaving}>Clear</button>
+        <button onClick={handleSaveDraft} disabled={isSaving} className="px-4 py-2 bg-zinc-700 text-white rounded hover:bg-zinc-600 text-sm flex items-center gap-2 disabled:opacity-50">
+          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save Draft
+        </button>
+        <button onClick={handleSendInvoice} disabled={isSaving} className="px-4 py-2 bg-[#39FF14] text-black rounded hover:bg-[#39FF14]/90 text-sm font-medium flex items-center gap-2 disabled:opacity-50">
+          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} Save & Send
+        </button>
       </div>
     </div>
   );
@@ -1059,6 +929,7 @@ export default function InvoicesPage() {
                     <div className="flex items-center justify-center gap-1">
                       <button onClick={() => setPreviewInvoice(inv)} className="p-1 text-zinc-500 hover:text-white" title="View"><Eye className="w-4 h-4" /></button>
                       <button onClick={() => { const d = { ...inv }; setFormData(d); setSelectedInvoice(inv); setTab('create'); }} className="p-1 text-zinc-500 hover:text-blue-400" title="Edit"><Edit className="w-4 h-4" /></button>
+                      {inv.status === 'draft' && <button onClick={() => handleStatusChange(inv.invoiceId, 'send')} disabled={isSaving} className="p-1 text-zinc-500 hover:text-blue-400" title="Send"><Send className="w-4 h-4" /></button>}
                       {inv.balanceDue > 0 && <button onClick={() => { setPaymentInvoiceId(inv.invoiceId); setShowPaymentForm(true); setTab('payments'); }} className="p-1 text-zinc-500 hover:text-emerald-400" title="Record Payment"><CreditCard className="w-4 h-4" /></button>}
                     </div>
                   </td>
@@ -1074,14 +945,28 @@ export default function InvoicesPage() {
   );
 
   // ---------- TAB: PAYMENTS & PRICING ----------
+  const [pricingDiscrepancies, setPricingDiscrepancies] = useState<{ lineItemId: string; description: string; invoicedPrice: number; currentPrice: number; difference: number; percentDiff: number; matchedProductId?: string }[]>([]);
+  const [pricingLoading, setPricingLoading] = useState(false);
+  const [pricingInvoiceId, setPricingInvoiceId] = useState('');
+
+  const handleVerifyPricing = async (invoiceId: string) => {
+    if (!invoiceId) return;
+    setPricingLoading(true);
+    setPricingDiscrepancies([]);
+    try {
+      const data = await apiPost({ action: 'verify-pricing', invoiceId });
+      if (data.success) {
+        setPricingDiscrepancies(data.discrepancies || []);
+      }
+    } catch (err: any) {
+      flashMessage(err.message || 'Failed to verify pricing', true);
+    } finally {
+      setPricingLoading(false);
+    }
+  };
+
   const renderPayments = () => {
     const unpaidInvoices = invoices.filter(i => i.balanceDue > 0 && i.status !== 'cancelled' && i.status !== 'draft');
-    // Mock pricing discrepancies
-    const mockDiscrepancies = [
-      { lineItemId: 'li-3', description: 'Galvanized Roofing Nails (1.25")', invoicedPrice: 64.90, currentPrice: 64.90, difference: 0, percentDiff: 0, matchedProductId: 'item-123' },
-      { lineItemId: 'li-2', description: 'Synthetic Underlayment', invoicedPrice: 79.86, currentPrice: 79.86, difference: 0, percentDiff: 0, matchedProductId: 'item-125' },
-      { lineItemId: 'li-17', description: 'Standing Seam Metal Roofing', invoicedPrice: 4.50, currentPrice: 3.95, difference: 0.55, percentDiff: 13.9, matchedProductId: undefined },
-    ];
     return (
       <div className="space-y-6">
         {/* Record Payment */}
@@ -1109,7 +994,9 @@ export default function InvoicesPage() {
             </div>
           ) : null}
           <div className="mt-4">
-            <button onClick={handleRecordPayment} disabled={!paymentInvoiceId || paymentForm.amount <= 0} className="px-4 py-2 bg-[#39FF14] text-black rounded text-sm font-medium hover:bg-[#39FF14]/90 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> Record Payment</button>
+            <button onClick={handleRecordPayment} disabled={!paymentInvoiceId || paymentForm.amount <= 0 || isSaving} className="px-4 py-2 bg-[#39FF14] text-black rounded text-sm font-medium hover:bg-[#39FF14]/90 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2">
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Record Payment
+            </button>
           </div>
         </div>
 
@@ -1166,9 +1053,23 @@ export default function InvoicesPage() {
           {/* Pricing Verification */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-5">
             <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2"><Tag className="w-4 h-4 text-[#39FF14]" /> Pricing Verification</h3>
-            <p className="text-xs text-zinc-500 mb-3">Compares invoice line items against current inventory pricing. Items with &gt;5% difference are flagged.</p>
+            <p className="text-xs text-zinc-500 mb-3">Select an invoice and verify line item prices against current inventory pricing. Items with &gt;5% difference are flagged.</p>
+            <div className="flex gap-3 mb-4">
+              <select className="flex-1 bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm text-white" value={pricingInvoiceId} onChange={e => setPricingInvoiceId(e.target.value)}>
+                <option value="">Select invoice to verify...</option>
+                {invoices.map(inv => <option key={inv.invoiceId} value={inv.invoiceId}>{inv.invoiceId} - {inv.customerName}</option>)}
+              </select>
+              <button onClick={() => handleVerifyPricing(pricingInvoiceId)} disabled={pricingLoading || !pricingInvoiceId} className="px-4 py-2 bg-[#39FF14]/10 text-[#39FF14] rounded text-sm hover:bg-[#39FF14]/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2">
+                {pricingLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} Verify
+              </button>
+            </div>
             <div className="space-y-2">
-              {mockDiscrepancies.map((d, i) => (
+              {pricingDiscrepancies.length === 0 && !pricingLoading && (
+                <div className="text-center py-4 text-zinc-500 text-sm">
+                  {pricingInvoiceId ? 'Click Verify to check pricing.' : 'Select an invoice to verify pricing.'}
+                </div>
+              )}
+              {pricingDiscrepancies.map((d, i) => (
                 <div key={i} className={`p-3 rounded border ${d.percentDiff > 5 ? 'border-amber-700 bg-amber-950/20' : 'border-zinc-800 bg-zinc-800/50'}`}>
                   <div className="flex justify-between items-start">
                     <div>
@@ -1176,7 +1077,7 @@ export default function InvoicesPage() {
                       <div className="text-xs text-zinc-500 mt-1">Invoiced: {fmt(d.invoicedPrice)} | Current: {fmt(d.currentPrice)}</div>
                     </div>
                     {d.percentDiff > 5 ? (
-                      <span className="px-2 py-0.5 bg-amber-900/40 text-amber-400 text-xs rounded">+{d.percentDiff}%</span>
+                      <span className="px-2 py-0.5 bg-amber-900/40 text-amber-400 text-xs rounded">+{d.percentDiff.toFixed(1)}%</span>
                     ) : (
                       <span className="px-2 py-0.5 bg-emerald-900/40 text-emerald-400 text-xs rounded">Match</span>
                     )}
@@ -1592,21 +1493,56 @@ export default function InvoicesPage() {
         </div>
       )}
 
-      {/* Demo Data Banner */}
-      {isUsingMockData && !isPageLoading && (
+      {/* Error Banner */}
+      {fetchError && !isPageLoading && (
         <div className="px-6 pt-4">
-          <div className="flex items-center gap-3 px-4 py-3 bg-amber-500/10 border border-amber-500/30 rounded-xl">
-            <Info className="w-5 h-5 text-amber-400 shrink-0" />
+          <div className="flex items-center gap-3 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-xl">
+            <AlertTriangle className="w-5 h-5 text-red-400 shrink-0" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-amber-400">Demo Data - Waiting for real invoices</p>
-              <p className="text-xs text-amber-400/70">{fetchError ? `API Error: ${fetchError}` : 'No invoices found from API. Showing sample data.'}</p>
+              <p className="text-sm font-medium text-red-400">Failed to load invoices</p>
+              <p className="text-xs text-red-400/70">{fetchError}</p>
             </div>
-            <button onClick={fetchInvoices} className="px-3 py-1.5 text-xs font-medium text-amber-400 border border-amber-500/30 rounded-lg hover:bg-amber-500/10 transition-colors">Retry</button>
+            <button onClick={fetchInvoices} className="px-3 py-1.5 text-xs font-medium text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/10 transition-colors">Retry</button>
           </div>
         </div>
       )}
 
-      {!isPageLoading && (
+      {/* Save success/error toast */}
+      {saveSuccess && (
+        <div className="px-6 pt-4">
+          <div className="flex items-center gap-3 px-4 py-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <p className="text-sm font-medium text-emerald-400">{saveSuccess}</p>
+          </div>
+        </div>
+      )}
+      {saveError && (
+        <div className="px-6 pt-4">
+          <div className="flex items-center gap-3 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-xl">
+            <AlertTriangle className="w-5 h-5 text-red-400 shrink-0" />
+            <p className="text-sm font-medium text-red-400">{saveError}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!isPageLoading && !fetchError && invoices.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-20 px-6">
+          <Receipt className="w-16 h-16 text-zinc-700 mb-4" />
+          <h2 className="text-xl font-semibold text-white mb-2">No Invoices Yet</h2>
+          <p className="text-sm text-zinc-500 mb-6 text-center max-w-md">
+            Create your first invoice to start tracking billing, payments, and financial reports.
+          </p>
+          <button
+            onClick={() => { setFormData(emptyForm()); setTab('create'); }}
+            className="px-6 py-3 bg-[#39FF14] text-black rounded-lg text-sm font-semibold hover:bg-[#39FF14]/90 flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" /> Create First Invoice
+          </button>
+        </div>
+      )}
+
+      {!isPageLoading && (invoices.length > 0 || fetchError) && (
       <>
       {/* Tabs */}
       <div className="border-b border-zinc-800 px-6">

@@ -177,7 +177,7 @@ export async function generateImageSizes(
   const ext = path.extname(baseFilename);
   const nameWithoutExt = path.basename(baseFilename, ext);
 
-  const results: any = {};
+  const results: Record<string, { path: string; width: number; height: number; size: number }> = {};
 
   for (const [sizeName, sizeConfig] of Object.entries(IMAGE_SIZES)) {
     const outputFilename = sizeConfig

@@ -523,7 +523,7 @@ export function generateFAQSchema(faqs: Array<{ question: string; answer: string
  * Generate script tag content for JSON-LD structured data
  * Use this in your component with dangerouslySetInnerHTML
  */
-export function getStructuredDataScript(data: any): string {
+export function getStructuredDataScript(data: Record<string, unknown> | Record<string, unknown>[]): string {
   return JSON.stringify(data);
 }
 

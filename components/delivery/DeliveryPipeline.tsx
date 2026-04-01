@@ -5,7 +5,8 @@ import {
   FilePlus, ClipboardCheck, UserCheck, Bell, Package, ShieldCheck,
   LogOut, Navigation, MapPin, PackageOpen, PackageCheck, Camera,
   BellRing, Receipt, Send, BadgeDollarSign, CheckCircle2,
-  ChevronRight, ImagePlus, MapPinned, Info
+  ChevronRight, ImagePlus, MapPinned, Info,
+  type LucideIcon,
 } from 'lucide-react';
 import {
   DeliveryStage, PIPELINE_STAGES, STAGE_GROUPS, StageConfig,
@@ -13,8 +14,7 @@ import {
 } from '@/lib/delivery-pipeline';
 
 // Icon map for dynamic rendering
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ICON_MAP: Record<string, React.ComponentType<any>> = {
+const ICON_MAP: Record<string, LucideIcon> = {
   FilePlus, ClipboardCheck, UserCheck, Bell, PackageOpen: Package, ShieldCheck,
   LogOut, Navigation, MapPin, PackageCheck, Camera, BellRing, Receipt, Send,
   BadgeDollarSign, CheckCircle2,

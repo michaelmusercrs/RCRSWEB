@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
+import { auditLog } from '@/lib/audit-logger';
 import fs from 'fs';
 import path from 'path';
 
@@ -170,6 +171,8 @@ export async function POST(request: NextRequest) {
 
   posts.push(newPost);
   writePosts(posts);
+
+  auditLog('BLOG_CREATE', auth.user.email, `Created blog post "${title}" (${newPost.id}, status: ${status})`, request);
 
   return NextResponse.json({ success: true, post: newPost }, { status: 201 });
 }

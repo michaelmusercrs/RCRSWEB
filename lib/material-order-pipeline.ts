@@ -8,7 +8,7 @@
  * Integration: Unified Inventory Service, JobNimbus, Notification Service
  */
 
-import { GoogleSpreadsheet, GoogleSpreadsheetRow } from 'google-spreadsheet';
+import { GoogleSpreadsheet, GoogleSpreadsheetRow, GoogleSpreadsheetWorksheet } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
 import { unifiedInventoryService, resolveProductId } from './unified-inventory-service';
 
@@ -242,7 +242,7 @@ export const DISTRIBUTORS = [
 // SHEETS HELPER
 // ============================================
 
-async function getOrCreateSheet(tabName: string, headerValues: string[]): Promise<{ sheet: any; doc: GoogleSpreadsheet } | null> {
+async function getOrCreateSheet(tabName: string, headerValues: string[]): Promise<{ sheet: GoogleSpreadsheetWorksheet; doc: GoogleSpreadsheet } | null> {
   if (!SHEETS_CONFIGURED) return null;
   try {
     const doc = new GoogleSpreadsheet(SHEETS_ID!, serviceAuth);
@@ -945,6 +945,17 @@ class MaterialOrderPipelineService {
 
     // Stage-specific logic
     switch (targetStage) {
+      case 'ORDER_REVIEWED':
+        // Office reviewed and approved the order
+        event.metadata = JSON.stringify({
+          ...JSON.parse(event.metadata || '{}'),
+          reviewedAt: new Date().toISOString(),
+          reviewedBy: performedByName,
+          itemCount: order.items.length,
+          totalPrice: order.totalPrice,
+        });
+        break;
+
       case 'DRIVER_ASSIGNED':
         if (data?.assignedDriverId) order.assignedDriverId = data.assignedDriverId;
         if (data?.assignedDriverName) order.assignedDriverName = data.assignedDriverName;
@@ -988,10 +999,23 @@ class MaterialOrderPipelineService {
         this._updateOrderItems(orderId, order.items).catch(() => {});
         break;
 
+      case 'DEPARTURE_CONFIRMED':
+        // Record departure timestamp and GPS
+        event.metadata = JSON.stringify({
+          ...JSON.parse(event.metadata || '{}'),
+          departedAt: new Date().toISOString(),
+          departureLat: data?.gpsLatitude,
+          departureLng: data?.gpsLongitude,
+        });
+        break;
+
+      case 'EN_ROUTE':
+        // GPS tracking data captured in event (lat/lng already stored)
+        break;
+
       case 'ARRIVED_AT_SITE':
-        // Verify GPS against job address (if we have geocoding)
+        // Verify GPS against job address
         if (data?.gpsLatitude && data?.gpsLongitude) {
-          // Store GPS verification in metadata
           event.metadata = JSON.stringify({
             ...JSON.parse(event.metadata || '{}'),
             gpsVerification: {
@@ -1001,6 +1025,15 @@ class MaterialOrderPipelineService {
             }
           });
         }
+        break;
+
+      case 'UNLOADING':
+        // Track unloading start - photos required at this stage
+        event.metadata = JSON.stringify({
+          ...JSON.parse(event.metadata || '{}'),
+          unloadingStartedAt: new Date().toISOString(),
+          photoCount: data?.photoUrls?.length || 0,
+        });
         break;
 
       case 'DELIVERY_CONFIRMED':
@@ -1033,6 +1066,15 @@ class MaterialOrderPipelineService {
         }
         // Persist updated item quantities
         this._updateOrderItems(orderId, order.items).catch(() => {});
+        break;
+
+      case 'QC_PHOTOS':
+        // Quality control photos taken - record photo count and GPS
+        event.metadata = JSON.stringify({
+          ...JSON.parse(event.metadata || '{}'),
+          qcPhotoCount: data?.photoUrls?.length || 0,
+          qcCompletedAt: new Date().toISOString(),
+        });
         break;
 
       case 'OFFICE_NOTIFIED':
@@ -1109,7 +1151,73 @@ class MaterialOrderPipelineService {
     this._persistOrder(order).catch(() => {});
     this._persistEvent(event).catch(() => {});
 
+    // Send email notifications to configured roles for this stage
+    this._notifyStageAdvance(order, targetStage, performedByName).catch(err => {
+      console.error(`[Pipeline] Stage notification failed for ${targetStage}:`, err);
+    });
+
     return { success: true, order };
+  }
+
+  /**
+   * Send email notification when a pipeline stage advances.
+   * Uses the notifyRoles from STAGE_CONFIG to determine recipients.
+   */
+  private async _notifyStageAdvance(order: PipelineOrder, stage: PipelineStage, performedByName: string): Promise<void> {
+    const config = STAGE_CONFIG[stage];
+    if (!config || config.notifyRoles.length === 0) return;
+
+    // Import email service dynamically to avoid circular deps
+    const { emailService } = await import('./email-service');
+    if (!emailService.isConfigured()) return;
+
+    // Map roles to email addresses
+    const roleEmails: Record<string, string[]> = {
+      admin: ['michaelmuse@rcrsal.com'],
+      owner: ['michaelmuse@rcrsal.com'],
+      office: ['tia@rcrsal.com', 'sara@rcrsal.com'],
+      billing: ['tia@rcrsal.com'],
+      pm: ['bart@rcrsal.com', 'john@rcrsal.com'],
+      driver: order.assignedDriverName
+        ? [`${order.assignedDriverName.toLowerCase().split(' ')[0]}@rcrsal.com`]
+        : [],
+      warehouse: ['bart@rcrsal.com'],
+    };
+
+    const recipients = new Set<string>();
+    for (const role of config.notifyRoles) {
+      const emails = roleEmails[role] || [];
+      emails.forEach(e => recipients.add(e));
+    }
+
+    if (recipients.size === 0) return;
+
+    const subject = `Delivery Update: ${config.label} — ${order.jobName || order.orderId}`;
+    const body = `
+      <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;">
+        <div style="background:#000;padding:16px;text-align:center;">
+          <h2 style="color:#39FF14;margin:0;">Delivery Pipeline Update</h2>
+        </div>
+        <div style="padding:20px;background:#fff;">
+          <p>Order <strong>${order.orderId}</strong> has advanced to:</p>
+          <div style="background:#f0fff0;padding:12px;border-radius:8px;text-align:center;margin:12px 0;">
+            <span style="font-size:18px;font-weight:bold;color:#39FF14;">Stage ${config.number}: ${config.label}</span>
+          </div>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Job</td><td style="padding:6px;border-bottom:1px solid #eee;">${order.jobName || 'N/A'}</td></tr>
+            <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Customer</td><td style="padding:6px;border-bottom:1px solid #eee;">${order.customerName || 'N/A'}</td></tr>
+            <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Address</td><td style="padding:6px;border-bottom:1px solid #eee;">${order.deliveryAddress || 'N/A'}</td></tr>
+            <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Driver</td><td style="padding:6px;border-bottom:1px solid #eee;">${order.assignedDriverName || 'Not assigned'}</td></tr>
+            <tr><td style="padding:6px;font-weight:bold;">Updated by</td><td style="padding:6px;">${performedByName}</td></tr>
+          </table>
+        </div>
+      </div>
+    `;
+
+    // Send to all recipients (fire-and-forget per recipient)
+    for (const to of recipients) {
+      emailService.send({ to, subject, body, fromName: 'RCRS Delivery' }).catch(() => {});
+    }
   }
 
   /**

@@ -19,8 +19,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { readFileSync, existsSync } from 'fs';
-import * as path from 'path';
+import { meetingNumbersService } from '@/lib/meeting-numbers-service';
 
 // ============================================================================
 // Types
@@ -164,25 +163,25 @@ function parseRecord(raw: RawMeetingRecord): ParsedRecord {
 }
 
 function loadMeetingData(): ParsedRecord[] {
-  const allPath = path.join(process.cwd(), 'data', 'meeting-numbers-all.json');
-  const yearPath = path.join(process.cwd(), 'data', 'meeting-numbers-2026.json');
-
-  let rawRecords: RawMeetingRecord[] = [];
-
-  try {
-    if (existsSync(allPath)) {
-      rawRecords = JSON.parse(readFileSync(allPath, 'utf-8'));
-    } else if (existsSync(yearPath)) {
-      rawRecords = JSON.parse(readFileSync(yearPath, 'utf-8'));
-    }
-  } catch (err) {
-    console.error('[Leaderboard] Error loading meeting data:', err);
-    return [];
-  }
-
-  return rawRecords
-    .filter(r => r.repName && r.repName.trim() !== '' && r.repName.toLowerCase() !== 'total')
-    .map(parseRecord);
+  // Use meetingNumbersService which auto-syncs from Google Sheets
+  // This ensures data is always fresh (syncs every 5 min in background)
+  const records = meetingNumbersService.loadAllData();
+  return records.map(r => ({
+    meetingDate: r.meetingDate,
+    repName: r.repName,
+    inspected: r.inspected,
+    damage: r.damage,
+    signed: r.signed,
+    repair: r.repair,
+    gutter: r.gutter,
+    revenue: r.revenue,
+    approved: r.approved,
+    goal: r.goal,
+    referrals: r.referrals,
+    agents: r.agents,
+    present: r.present,
+    homeShow: r.homeShow,
+  }));
 }
 
 function getInitials(name: string): string {
@@ -295,7 +294,22 @@ export async function GET(request: NextRequest) {
     const periodParam = searchParams.get('period') || 'thisYear';
 
     const now = new Date();
-    const allRecords = loadMeetingData();
+
+    // HARD RULE: Michael, Chris, Sara NEVER on sales/commission leaderboard
+    const EXCLUDED_FROM_LEADERBOARD = [
+      'michael', 'chris', 'sara',
+    ];
+
+    // Active sales reps only - filter out old/inactive names with $0
+    const ACTIVE_SALES_REPS = [
+      'hunter', 'aaron', 'greg', 'brendon', 'adam', 'joseph',
+      'boston', 'alijah', 'travis', 'rick', 'destin',
+    ];
+
+    const allRecords = loadMeetingData().filter(r => {
+      const name = r.repName.toLowerCase().trim();
+      return !EXCLUDED_FROM_LEADERBOARD.includes(name);
+    });
 
     if (allRecords.length === 0) {
       return NextResponse.json({
@@ -532,6 +546,22 @@ export async function GET(request: NextRequest) {
       const bVal = (b as LeaderboardRep & { _sortValue?: number })._sortValue ?? 0;
       return bVal - aVal;
     });
+
+    // Filter out inactive reps with zero activity in the period
+    // Only show reps who are active OR have any numbers in the selected period
+    const filteredLeaderboard = leaderboard.filter(rep => {
+      const name = rep.name.toLowerCase().trim();
+      const hasActivity = rep.meetingMetrics.revenue > 0 ||
+        rep.meetingMetrics.inspected > 0 ||
+        rep.meetingMetrics.signed > 0 ||
+        rep.meetingMetrics.weeksPresent > 0;
+      // Always show active reps, and show inactive ones only if they have activity
+      return ACTIVE_SALES_REPS.includes(name) || hasActivity;
+    });
+
+    // Replace leaderboard with filtered version
+    leaderboard.length = 0;
+    leaderboard.push(...filteredLeaderboard);
 
     // Assign ranks, colors, percentages
     leaderboard.forEach((rep, index) => {

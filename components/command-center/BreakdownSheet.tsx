@@ -127,7 +127,7 @@ interface BreakdownSheetProps {
   breakdown: Breakdown;
   onAddMaterial?: (productId: string, quantity: number) => Promise<void>;
   onRemoveMaterial?: (productId: string) => Promise<void>;
-  onAddLabor?: (labor: any) => Promise<void>;
+  onAddLabor?: (labor: Omit<LaborEntry, 'laborId'>) => Promise<void>;
   onRemoveLabor?: (laborId: string) => Promise<void>;
   onApplyDiscount?: (amount: number, reason: string) => Promise<void>;
   onGenerateInvoice?: () => Promise<void>;

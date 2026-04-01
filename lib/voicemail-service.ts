@@ -387,13 +387,8 @@ class VoicemailService {
   /**
    * Transcribe a voicemail using AI
    *
-   * Currently returns mock transcription. Structured for easy integration
-   * with Google Gemini, OpenAI Whisper, or other transcription APIs.
-   *
-   * To integrate real AI transcription:
-   * 1. Pass the audioUrl to your speech-to-text API
-   * 2. Replace the mock response with the actual transcription
-   * 3. Optionally add sentiment analysis or keyword extraction
+   * Uses OpenAI Whisper API for transcription when OPENAI_API_KEY is set.
+   * Falls back to a placeholder message when the API key is not configured.
    */
   async transcribeVoicemail(id: string): Promise<VoicemailMessage | null> {
     const data = this.readData();
@@ -402,36 +397,44 @@ class VoicemailService {
 
     const voicemail = data.voicemails[index];
 
-    // -------------------------------------------------------------------------
-    // PLACEHOLDER: Replace this block with real AI transcription
-    // Example with OpenAI Whisper:
-    //   const audioResponse = await fetch(voicemail.audioUrl);
-    //   const audioBuffer = await audioResponse.arrayBuffer();
-    //   const transcription = await openai.audio.transcriptions.create({
-    //     file: audioBuffer,
-    //     model: 'whisper-1',
-    //   });
-    //   voicemail.transcription = transcription.text;
-    //
-    // Example with Google Cloud Speech-to-Text:
-    //   const [response] = await speechClient.recognize({ audio, config });
-    //   voicemail.transcription = response.results.map(r => r.alternatives[0].transcript).join(' ');
-    // -------------------------------------------------------------------------
+    const openaiKey = process.env.OPENAI_API_KEY;
 
-    const mockTranscriptions = [
-      `Hi, this is a message for ${voicemail.extension ? `extension ${voicemail.extension}` : 'your office'}. I'm calling about a roofing estimate I requested last week. My name is ${voicemail.callerName !== 'Unknown Caller' ? voicemail.callerName : 'the homeowner'}. Please call me back at your earliest convenience. Thank you.`,
-      `Hey, this is ${voicemail.callerName !== 'Unknown Caller' ? voicemail.callerName : 'your customer'} calling. I wanted to follow up on the inspection that was scheduled for this week. I'm available most afternoons. Please give me a call back when you get a chance. Thanks.`,
-      `Good morning, I'm calling to report some storm damage on my roof. I noticed some missing shingles after the storm last night. I'd like to schedule an inspection as soon as possible. Please call me back. My number is ${voicemail.callerPhone || 'on your caller ID'}. Thank you.`,
-      `Hi there, I was referred to River City Roofing by my neighbor. I need a roof replacement and wanted to get a quote. I'm available this week if someone can come out to take a look. Please return my call. Thanks!`,
-      `This message is for the roofing team. I wanted to let you know that the crew did a fantastic job on my roof last week. Everything looks great. I just had a quick question about the warranty paperwork. Please call me back when you have a moment. Thanks!`,
-    ];
+    if (openaiKey && voicemail.audioUrl) {
+      try {
+        // Fetch the audio file
+        const audioResponse = await fetch(voicemail.audioUrl);
+        if (!audioResponse.ok) {
+          throw new Error(`Failed to fetch audio: HTTP ${audioResponse.status}`);
+        }
+        const audioBlob = await audioResponse.blob();
 
-    // Pick a mock transcription based on voicemail characteristics
-    const transcriptionIndex = Math.abs(
-      voicemail.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-    ) % mockTranscriptions.length;
+        // Build multipart form data for Whisper API
+        const formData = new FormData();
+        formData.append('file', audioBlob, 'voicemail.wav');
+        formData.append('model', 'whisper-1');
 
-    voicemail.transcription = mockTranscriptions[transcriptionIndex];
+        const whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openaiKey}`,
+          },
+          body: formData,
+        });
+
+        if (!whisperResponse.ok) {
+          const errorBody = await whisperResponse.text();
+          throw new Error(`Whisper API error: HTTP ${whisperResponse.status} - ${errorBody}`);
+        }
+
+        const result = await whisperResponse.json();
+        voicemail.transcription = result.text || 'Transcription returned empty result';
+      } catch (error) {
+        console.error('OpenAI Whisper transcription failed:', error);
+        voicemail.transcription = `Transcription failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      }
+    } else {
+      voicemail.transcription = 'Transcription unavailable - configure OPENAI_API_KEY';
+    }
     voicemail.updatedAt = new Date().toISOString();
 
     this.writeData(data);

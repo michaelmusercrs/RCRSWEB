@@ -173,6 +173,18 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
     homeShow: 0,
   });
 
+  // On Monday mornings, default to LAST week so reps enter last week's numbers
+  const getSmartDefaultWeek = (currentWeek: string): string => {
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon
+    const hour = now.getHours();
+    // Monday before noon: default to last week (reps entering last week's numbers)
+    if (dayOfWeek === 1 && hour < 12) {
+      return getPreviousWeek(currentWeek);
+    }
+    return currentWeek;
+  };
+
   // Load data
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -183,7 +195,7 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
       const data = await res.json();
       if (data.success) {
         setCurrentWeek(data.currentWeek);
-        if (!selectedWeek) setSelectedWeek(data.currentWeek);
+        if (!selectedWeek) setSelectedWeek(getSmartDefaultWeek(data.currentWeek));
 
         setHistory(data.records || []);
 
@@ -540,9 +552,12 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
               <div className="text-center py-6">
                 <BarChart3 size={32} className="text-neutral-600 mx-auto mb-2" />
                 <p className="text-neutral-500 text-sm mb-3">
-                  {(selectedWeek || currentWeek) === currentWeek
-                    ? "You haven't entered numbers for this week yet"
-                    : "No numbers recorded for this week"}
+                  {(() => {
+                    const sw = selectedWeek || currentWeek;
+                    if (sw === currentWeek) return "You haven't entered numbers for this week yet";
+                    if (sw === getPreviousWeek(currentWeek)) return "Enter last week's numbers for Monday meeting";
+                    return "No numbers recorded for this week";
+                  })()}
                 </p>
                 {(selectedWeek || currentWeek) <= currentWeek && (
                   <button

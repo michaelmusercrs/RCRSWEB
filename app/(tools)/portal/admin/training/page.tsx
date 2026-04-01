@@ -11,6 +11,13 @@ import {
 import AdminLayout from '@/components/AdminLayout';
 import Leaderboard from '@/components/Leaderboard';
 import { useTraining, POINTS_CONFIG } from '@/lib/training-context';
+import {
+  ALL_TRAINING_MODULES,
+  TRAINING_ROLES,
+  getModulesForTrainingRole,
+  groupModulesByCategory,
+  type TrainingRole,
+} from '@/lib/training-modules';
 
 type Section = {
   id: string;
@@ -2612,6 +2619,75 @@ export default function AdminTrainingPage() {
           )}
         </div>
       )}
+
+      {/* Role-Based Training Modules Overview */}
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center">
+            <GraduationCap className="text-purple-400" size={20} />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-white">Training Modules by Role</h3>
+            <p className="text-xs text-neutral-400">{ALL_TRAINING_MODULES.length} modules across {TRAINING_ROLES.length} roles</p>
+          </div>
+          <Link
+            href="/portal/training/modules"
+            className="ml-auto text-sm text-brand-green hover:text-lime-400 transition-colors flex items-center gap-1"
+          >
+            View Full Module List <ChevronRight size={14} />
+          </Link>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {TRAINING_ROLES.map((role) => {
+            const mods = getModulesForTrainingRole(role.role);
+            const readyCount = mods.filter(m => m.status === 'ready').length;
+            const comingSoonCount = mods.filter(m => m.status === 'coming-soon').length;
+            const totalMinutes = mods.reduce((sum, m) => sum + m.estimatedMinutes, 0);
+            const categories = groupModulesByCategory(mods);
+
+            return (
+              <div
+                key={role.role}
+                className={`bg-white/[0.02] border rounded-2xl p-5 ${role.borderColor}`}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-bold text-white">{role.label}</h4>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-neutral-400">
+                    {mods.length} modules
+                  </span>
+                </div>
+                <p className="text-xs text-neutral-400 mb-3 line-clamp-1">{role.description}</p>
+                <div className="flex items-center gap-3 text-[10px] text-neutral-500 mb-3">
+                  <span className="flex items-center gap-1">
+                    <CheckCircle2 size={10} className="text-brand-green" />
+                    {readyCount} ready
+                  </span>
+                  {comingSoonCount > 0 && (
+                    <span className="flex items-center gap-1">
+                      <Clock size={10} className="text-amber-400" />
+                      {comingSoonCount} upcoming
+                    </span>
+                  )}
+                  <span className="flex items-center gap-1">
+                    <Clock size={10} />
+                    {totalMinutes >= 60
+                      ? `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`
+                      : `${totalMinutes}m`}
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  {Object.entries(categories).map(([cat, catMods]) => (
+                    <div key={cat} className="flex items-center justify-between text-[10px]">
+                      <span className="text-neutral-500">{cat}</span>
+                      <span className="text-neutral-400">{catMods.length} modules</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Quick Start Card */}
       <div className="relative overflow-hidden bg-gradient-to-r from-brand-green/10 via-emerald-500/10 to-cyan-500/10 border border-brand-green/20 rounded-2xl p-6 mb-8">

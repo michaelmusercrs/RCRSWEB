@@ -15,11 +15,14 @@ import { TeamRole, TEAM_MEMBERS, TeamMember } from './team-roles';
 // Schedule Types (used by MondaySubmissionWidget)
 // =============================================================================
 
-export type ScheduleType = 'this-week' | 'next-week' | 'recurring' | 'one-time';
+export type ScheduleType = 'this-week' | 'next-week' | 'recurring' | 'one-time' | 'for-x-weeks' | 'custom-range';
 
 export interface NoteSchedule {
   type: ScheduleType;
   date?: string;
+  startDate?: string;
+  endDate?: string;
+  weeksCount?: number;
   recurring?: boolean;
 }
 
@@ -28,6 +31,8 @@ export const SCHEDULE_TYPE_LABELS: Record<ScheduleType, string> = {
   'next-week': 'Next Monday',
   'recurring': 'Every Week',
   'one-time': 'One Time',
+  'for-x-weeks': 'For X Weeks',
+  'custom-range': 'Custom Range',
 };
 
 // =============================================================================

@@ -529,7 +529,6 @@ export function jobCompleteReviewEmail(params: {
 }): EmailTemplate {
   const firstName = params.customerName.split(' ')[0];
   const projectType = params.projectType || 'your new roof';
-  // TODO: Replace with actual Google Business Profile short URL once available
   const reviewUrl = params.googleReviewUrl || 'https://g.page/r/rivercityroofingsolutions/review';
 
   const subject = "How was your new roof? We'd love your feedback!";

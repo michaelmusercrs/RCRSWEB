@@ -2,9 +2,16 @@
 // Manages invoices, payments, tax calculations, aging reports, and pricing verification
 // Persists to Google Sheets + syncs with JobNimbus
 
+import { GoogleSpreadsheet } from 'google-spreadsheet';
 import { inventoryProducts, InventoryProduct } from './inventoryData';
 import { jobNimbusService, isJobNimbusConfigured, JobNimbusInvoice, JobNimbusContact, JobNimbusJob } from './jobnimbus-service';
 import { googleSheetsService, isGoogleSheetsConfigured } from './google-sheets-service';
+
+/** Row accessor supporting both GoogleSpreadsheetRow.get() and plain objects */
+interface InvoiceRowLike {
+  get?: (key: string) => string;
+  [key: string]: unknown;
+}
 
 // ============ TYPE DEFINITIONS ============
 
@@ -213,11 +220,11 @@ function invoiceToRow(inv: Invoice): Record<string, string> {
   };
 }
 
-function rowToInvoice(row: any): Invoice {
+function rowToInvoice(row: InvoiceRowLike): Invoice {
   const get = (key: string): string => {
     // Support both GoogleSpreadsheetRow .get() and plain object
     if (typeof row.get === 'function') return row.get(key) || '';
-    return row[key] || '';
+    return String(row[key] || '');
   };
 
   const parseJsonSafe = <T>(val: string, fallback: T): T => {
@@ -267,7 +274,7 @@ function rowToInvoice(row: any): Invoice {
 
 class InvoiceService {
   private sheetsReady = false;
-  private doc: any = null;
+  private doc: GoogleSpreadsheet | null = null;
 
   /**
    * Initialize Sheets connection and ensure the Invoices tab exists.
@@ -364,7 +371,7 @@ class InvoiceService {
 
     try {
       const rows = await sheet.getRows();
-      return rows.map((row: any) => rowToInvoice(row)).filter((inv: Invoice) => inv.invoiceId);
+      return rows.map((row) => rowToInvoice(row as unknown as InvoiceRowLike)).filter((inv: Invoice) => inv.invoiceId);
     } catch (error) {
       console.error('[InvoiceService] Error reading invoices from Sheets:', error);
       return [];
@@ -380,7 +387,7 @@ class InvoiceService {
 
     try {
       const rows = await sheet.getRows();
-      return rows.find((row: any) => row.get('invoiceId') === invoiceId) || null;
+      return rows.find((row) => row.get('invoiceId') === invoiceId) || null;
     } catch (error) {
       console.error('[InvoiceService] Error finding row:', error);
       return null;

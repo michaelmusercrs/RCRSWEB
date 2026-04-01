@@ -86,8 +86,9 @@ export default function ReviewSubmission({ customerId, repName, token }: ReviewS
         platform: data.review.platform,
         createdAt: data.review.createdAt,
       }, ...prev]);
-    } catch (err: any) {
-      setError(err.message || 'Failed to submit review');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to submit review';
+      setError(message);
     } finally {
       setSubmitting(false);
     }

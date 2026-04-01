@@ -207,7 +207,7 @@ class PushNotificationService {
       tag?: string;
       priority?: 'normal' | 'urgent';
       actions?: Array<{ action: string; title: string }>;
-      data?: any;
+      data?: Record<string, unknown>;
     } = {}
   ): Promise<void> {
     if (!this.settings.pushEnabled) return;

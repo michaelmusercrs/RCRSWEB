@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
+import { auditLog } from '@/lib/audit-logger';
 import { teamMembers } from '@/lib/teamData';
 import { TEAM_MEMBERS } from '@/lib/team-roles';
 import { profileApprovalService, ProfileChanges } from '@/lib/profile-approval-service';
@@ -146,6 +147,8 @@ export async function PUT(req: NextRequest) {
       changes,
       originalData,
     });
+
+    auditLog('PROFILE_EDIT', auth.user.email, `Submitted profile changes: ${Object.keys(changes).join(', ')}`, req);
 
     return NextResponse.json({
       success: true,

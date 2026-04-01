@@ -63,7 +63,7 @@ interface StormReportPayload {
 const COMPANY_NAME = 'River City Roofing Solutions';
 const COMPANY_PHONE = '256-274-8530';
 const COMPANY_URL = 'https://www.rivercityroofingsolutions.com';
-const SALES_TEAM_EMAIL = process.env.SALES_TEAM_EMAIL || 'info@rcrsal.com';
+const SALES_TEAM_EMAIL = process.env.SALES_TEAM_EMAIL || 'michaelmuse@rcrsal.com';
 
 function riskColor(level: string): string {
   switch (level) {

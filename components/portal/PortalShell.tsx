@@ -39,7 +39,17 @@ interface PortalNavItem {
   children?: PortalNavItem[];
 }
 
-function getPortalNav(role: TeamRole): PortalNavItem[] {
+function getPortalNav(role: TeamRole, permissions: string[] = []): PortalNavItem[] {
+  const hasPerm = (perm: string) => {
+    if (permissions.includes('*')) return true;
+    if (permissions.includes(perm)) return true;
+    if (perm.includes('.')) {
+      const parent = perm.split('.')[0];
+      if (permissions.includes(parent)) return true;
+    }
+    return false;
+  };
+
   const shared: PortalNavItem[] = [
     { id: 'dashboard', label: 'Dashboard', href: '/portal/dashboard', icon: Home },
     { id: 'monday-notes', label: 'Monday Notes', href: '/portal/monday-notes', icon: Megaphone },
@@ -122,8 +132,19 @@ function getPortalNav(role: TeamRole): PortalNavItem[] {
   const pmItems: PortalNavItem[] = [
     ...shared,
     { id: 'pm', label: 'Create Orders', href: '/portal/pm', icon: Package },
+    { id: 'delivery', label: 'Delivery Hub', href: '/portal/delivery', icon: Truck },
+    { id: 'inventory', label: 'Materials', href: '/portal/inventory', icon: Box },
     { id: 'schedule', label: 'Schedule', href: '/portal/schedule', icon: Calendar },
+    { id: 'billing', label: 'Finance', href: '/portal/billing', icon: DollarSign },
     { id: 'new-lead', label: 'New Lead', href: '/portal/leads/new', icon: Plus },
+  ];
+
+  // Sales nav items to inject when a non-sales role has sales permission
+  const salesExtras: PortalNavItem[] = [
+    { id: 'sales', label: 'Sales Dashboard', href: '/portal/sales', icon: Target },
+    { id: 'sales-leads', label: 'My Leads', href: '/portal/sales/leads', icon: Users },
+    { id: 'performance', label: 'Performance', href: '/portal/sales/performance', icon: TrendingUp },
+    { id: 'insurance-agents', label: 'Insurance Agents', href: '/portal/insurance-agents', icon: Building2 },
   ];
 
   const driverItems: PortalNavItem[] = [
@@ -151,10 +172,33 @@ function getPortalNav(role: TeamRole): PortalNavItem[] {
       return salesItems;
     case 'office':
       return officeItems;
-    case 'project_manager':
-      return pmItems;
-    case 'driver':
-      return driverItems;
+    case 'project_manager': {
+      // PMs with sales permission (e.g., John Cordonis) get sales nav items added
+      const items = [...pmItems];
+      if (hasPerm('sales')) {
+        items.push(...salesExtras);
+      }
+      if (hasPerm('command-center')) {
+        items.unshift({ id: 'command-center', label: 'RoofStack HQ', href: '/command-center', icon: Command });
+      }
+      return items;
+    }
+    case 'driver': {
+      // Dual-role drivers with sales permission (e.g., Rick) get sales nav items added
+      const items = [...driverItems];
+      if (hasPerm('sales')) {
+        items.push(
+          { id: 'sales', label: 'Sales Dashboard', href: '/portal/sales', icon: Target },
+          { id: 'sales-leads', label: 'My Leads', href: '/portal/sales/leads', icon: Users },
+          { id: 'performance', label: 'Performance', href: '/portal/sales/performance', icon: TrendingUp },
+          { id: 'new-lead', label: 'New Lead', href: '/portal/leads/new', icon: Plus },
+          { id: 'schedule', label: 'Schedule', href: '/portal/schedule', icon: Calendar },
+          { id: 'lead-settings', label: 'Lead Preferences', href: '/portal/sales/settings', icon: Settings },
+          { id: 'notifications', label: 'Notifications', href: '/portal/settings/notifications', icon: Bell },
+        );
+      }
+      return items;
+    }
     case 'viewer':
       return viewerItems;
     default:
@@ -311,7 +355,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const navItems = getPortalNav(user.role);
+  const navItems = getPortalNav(user.role, user.permissions);
   const roleInfo = ROLE_LABELS[user.role];
   const initials = user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 

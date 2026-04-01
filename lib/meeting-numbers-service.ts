@@ -285,6 +285,9 @@ class MeetingNumbersService {
   private cacheLoaded = false;
   private lastCacheLoad = 0;
   private cacheTTL = 30_000; // 30 seconds in-memory TTL
+  private lastSyncTime = 0;
+  private syncTTL = 5 * 60_000; // Auto-sync from Google Sheets every 5 minutes
+  private syncInProgress = false;
 
   // ---------------------------------------------------------------------------
   // DATA LOADING
@@ -293,10 +296,15 @@ class MeetingNumbersService {
   /**
    * Load all meeting data from data/meeting-numbers-*.json files.
    * Parses raw records into typed MeetingRecord[]. Cached in memory.
+   * Auto-triggers a background sync from Google Sheets if data is stale (>5 min).
    */
   loadAllData(): MeetingRecord[] {
     const now = Date.now();
     if (this.cacheLoaded && now - this.lastCacheLoad < this.cacheTTL) {
+      // Trigger background sync if the sheet data is stale
+      if (now - this.lastSyncTime > this.syncTTL && !this.syncInProgress) {
+        this.backgroundSync();
+      }
       return this.cache;
     }
 
@@ -357,6 +365,41 @@ class MeetingNumbersService {
   invalidateCache(): void {
     this.cacheLoaded = false;
     this.lastCacheLoad = 0;
+  }
+
+  /**
+   * Background sync from Google Sheets. Pulls fresh data and updates local JSON.
+   * Non-blocking - fires and forgets so API responses aren't delayed.
+   */
+  private backgroundSync(): void {
+    this.syncInProgress = true;
+    this.syncFromSheet()
+      .then(result => {
+        if (result.success) {
+          this.lastSyncTime = Date.now();
+          this.invalidateCache(); // Force reload from updated JSON on next access
+          console.log(`[MeetingNumbers] Background sync complete: ${result.recordCount} records`);
+        }
+      })
+      .catch(err => {
+        console.error('[MeetingNumbers] Background sync failed:', err);
+      })
+      .finally(() => {
+        this.syncInProgress = false;
+      });
+  }
+
+  /**
+   * Force an immediate sync from Google Sheets and return fresh data.
+   * Use this when you need guaranteed up-to-date numbers.
+   */
+  async loadFreshData(): Promise<MeetingRecord[]> {
+    const result = await this.syncFromSheet();
+    if (result.success) {
+      this.lastSyncTime = Date.now();
+      this.invalidateCache();
+    }
+    return this.loadAllData();
   }
 
   // ---------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { MapPin, Filter, ArrowRight } from 'lucide-react';
+import { MapPin, Filter, ArrowRight, Wrench, Shield, HardHat } from 'lucide-react';
 import { generateMetadata as genMeta, generateBreadcrumbSchema, siteConfig } from '@/lib/seo';
 import StructuredData from '@/components/StructuredData';
 import type { Metadata } from 'next';
@@ -217,14 +217,26 @@ export default function GalleryPage() {
                   key={project.id}
                   className="bg-neutral-800 border border-neutral-700 rounded-lg overflow-hidden hover:border-brand-green/50 transition-all group"
                 >
-                  {/* Image Placeholder */}
-                  <div className="relative h-56 bg-neutral-700 overflow-hidden">
+                  {/* Project Visual */}
+                  <div className="relative h-56 bg-gradient-to-br from-neutral-800 via-neutral-750 to-neutral-800 overflow-hidden">
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="text-center">
-                        <div className="text-brand-green font-bold text-lg">Before &amp; After</div>
-                        <div className="text-neutral-500 text-sm">Photo Coming Soon</div>
+                        <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-white/5 flex items-center justify-center">
+                          {project.serviceType === 'Roof Replacement' && <HardHat size={28} className="text-neutral-500" />}
+                          {project.serviceType === 'Storm Damage Repair' && <Shield size={28} className="text-neutral-500" />}
+                          {project.serviceType === 'Commercial Roofing' && <HardHat size={28} className="text-neutral-500" />}
+                          {project.serviceType === 'Gutter Installation' && <Wrench size={28} className="text-neutral-500" />}
+                          {project.serviceType === 'Chimney Services' && <Wrench size={28} className="text-neutral-500" />}
+                        </div>
+                        <div className="text-neutral-400 text-sm font-medium">{project.city}</div>
+                        <div className="text-neutral-500 text-xs mt-0.5">{project.serviceType}</div>
                       </div>
                     </div>
+                    {/* Subtle grid pattern */}
+                    <div className="absolute inset-0 opacity-[0.03]" style={{
+                      backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
+                      backgroundSize: '24px 24px',
+                    }} />
                     {/* Service type badge */}
                     <div className={`absolute top-3 left-3 ${getServiceTypeColor(project.serviceType)} px-3 py-1 rounded-full text-xs font-semibold text-white`}>
                       {project.serviceType}
@@ -254,6 +266,26 @@ export default function GalleryPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Gallery Note */}
+      <section className="py-10 bg-black/70 backdrop-blur-sm relative z-10">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-green/10 border border-brand-green/20 text-brand-green text-sm font-medium mb-4">
+              <HardHat size={16} />
+              Gallery in Progress
+            </div>
+            <p className="text-neutral-300 text-lg leading-relaxed">
+              We are building our project gallery with before-and-after photos from our latest work across North Alabama.
+              Check back soon to see completed transformations, or{' '}
+              <Link href="/contact" className="text-brand-green hover:underline font-medium">
+                contact us
+              </Link>{' '}
+              to schedule your free inspection and become our next success story.
+            </p>
           </div>
         </div>
       </section>

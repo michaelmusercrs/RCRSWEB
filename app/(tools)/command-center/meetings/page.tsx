@@ -711,6 +711,13 @@ export default function MeetingsPage() {
           variant="outline"
         />
         <QuickActionButton
+          icon={CheckCircle2}
+          label="Monday Checklist"
+          description="Morning prep checklist for Michael & Sara"
+          href="/command-center/meetings/checklist"
+          variant="outline"
+        />
+        <QuickActionButton
           icon={Archive}
           label="View Archives"
           description="Browse past meeting records"

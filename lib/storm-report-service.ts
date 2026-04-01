@@ -710,8 +710,7 @@ class StormReportService {
   // Row conversion helper
   // -------------------------------------------------------------------------
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private rowToReport(row: any): StormReport {
+  private rowToReport(row: { get(key: string): string }): StormReport {
     return {
       reportId: row.get('reportId') || '',
       generatedAt: row.get('generatedAt') || '',
@@ -747,8 +746,7 @@ class StormReportService {
     };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private safeJsonParse(val: string, fallback: any): any {
+  private safeJsonParse<T>(val: string, fallback: T): T {
     if (!val) return fallback;
     try {
       return JSON.parse(val);

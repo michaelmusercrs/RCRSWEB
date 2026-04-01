@@ -2,7 +2,31 @@
 // Manages customer access tokens, documents, and portal data
 
 import crypto from 'crypto';
+import { GoogleSpreadsheet } from 'google-spreadsheet';
 import { googleSheetsService } from './google-sheets-service';
+
+/** GeoJSON feature from Iowa State Mesonet hail reports */
+interface HailGeoJsonFeature {
+  properties: {
+    valid?: string;
+    utc_valid?: string;
+    city?: string;
+    magnitude?: number;
+  };
+  geometry: {
+    coordinates: [number, number];
+  };
+}
+
+/** Accessor for the private doc on googleSheetsService (non-null after init() returns true) */
+type SheetsServiceWithDoc = { doc: GoogleSpreadsheet };
+
+/** Google Sheets row accessor with .get() method */
+interface SheetRow {
+  get(key: string): string;
+  set(key: string, value: string): void;
+  save(): Promise<void>;
+}
 
 export interface CustomerPortalAccess {
   accessToken: string;
@@ -429,7 +453,7 @@ class CustomerPortalService {
       const reports: HailReport[] = [];
 
       if (data.features) {
-        data.features.forEach((feature: any, index: number) => {
+        data.features.forEach((feature: HailGeoJsonFeature, index: number) => {
           const props = feature.properties;
           const coords = feature.geometry.coordinates;
 
@@ -443,12 +467,12 @@ class CustomerPortalService {
           if (distance <= 50) {
             reports.push({
               reportId: `HAIL-${index}-${Date.now()}`,
-              date: props.valid || props.utc_valid,
+              date: props.valid || props.utc_valid || '',
               location: props.city || 'Unknown',
               distance: Math.round(distance * 10) / 10,
               hailSize: props.magnitude ? `${props.magnitude} inch` : 'Unknown',
               source: 'NWS',
-              severity: this.getHailSeverity(props.magnitude),
+              severity: this.getHailSeverity(props.magnitude ?? 0),
               latitude: coords[1],
               longitude: coords[0],
             });
@@ -501,7 +525,7 @@ class CustomerPortalService {
       const ready = await googleSheetsService.init();
       if (!ready) return this.getGlobalSettings();
 
-      const doc = (googleSheetsService as any).doc;
+      const doc = (googleSheetsService as unknown as SheetsServiceWithDoc).doc;
       if (!doc) return this.getGlobalSettings();
 
       let sheet = doc.sheetsByTitle['Portal_Global_Settings'];
@@ -538,7 +562,7 @@ class CustomerPortalService {
       const ready = await googleSheetsService.init();
       if (!ready) throw new Error('Google Sheets not initialized');
 
-      const doc = (googleSheetsService as any).doc;
+      const doc = (googleSheetsService as unknown as SheetsServiceWithDoc).doc;
       if (!doc) throw new Error('Google Sheets doc not available');
 
       const headers = [
@@ -580,17 +604,17 @@ class CustomerPortalService {
       const ready = await googleSheetsService.init();
       if (!ready) return null;
 
-      const doc = (googleSheetsService as any).doc;
+      const doc = (googleSheetsService as unknown as SheetsServiceWithDoc).doc;
       if (!doc) return null;
 
       const sheet = doc.sheetsByTitle['Portal_Rep_Settings'];
       if (!sheet) return null;
 
       const rows = await sheet.getRows();
-      const row = rows.find((r: any) => r.get('repSlug') === repSlug);
+      const row = rows.find((r: SheetRow) => r.get('repSlug') === repSlug);
       if (!row) return null;
 
-      const result: Record<string, any> = {
+      const result: Record<string, string | boolean | null | undefined> = {
         repSlug: row.get('repSlug'),
         repName: row.get('repName'),
         updatedAt: row.get('updatedAt') || '',
@@ -599,7 +623,7 @@ class CustomerPortalService {
       for (const key of PORTAL_SETTING_KEYS) {
         result[key] = this.parseNullableBoolean(row.get(key));
       }
-      return result as RepPortalSettings;
+      return result as unknown as RepPortalSettings;
     } catch (error) {
       console.error('Error getting rep portal settings:', error);
       return null;
@@ -612,15 +636,15 @@ class CustomerPortalService {
       const ready = await googleSheetsService.init();
       if (!ready) return [];
 
-      const doc = (googleSheetsService as any).doc;
+      const doc = (googleSheetsService as unknown as SheetsServiceWithDoc).doc;
       if (!doc) return [];
 
       const sheet = doc.sheetsByTitle['Portal_Rep_Settings'];
       if (!sheet) return [];
 
       const rows = await sheet.getRows();
-      return rows.map((row: any) => {
-        const result: Record<string, any> = {
+      return rows.map((row: SheetRow) => {
+        const result: Record<string, string | boolean | null> = {
           repSlug: row.get('repSlug') || '',
           repName: row.get('repName') || '',
           updatedAt: row.get('updatedAt') || '',
@@ -629,7 +653,7 @@ class CustomerPortalService {
         for (const key of PORTAL_SETTING_KEYS) {
           result[key] = this.parseNullableBoolean(row.get(key));
         }
-        return result as RepPortalSettings;
+        return result as unknown as RepPortalSettings;
       });
     } catch (error) {
       console.error('Error getting all rep portal settings:', error);
@@ -643,7 +667,7 @@ class CustomerPortalService {
       const ready = await googleSheetsService.init();
       if (!ready) throw new Error('Google Sheets not initialized');
 
-      const doc = (googleSheetsService as any).doc;
+      const doc = (googleSheetsService as unknown as SheetsServiceWithDoc).doc;
       if (!doc) throw new Error('Google Sheets doc not available');
 
       const headers = [
@@ -658,7 +682,7 @@ class CustomerPortalService {
       }
 
       const rows = await sheet.getRows();
-      const existingRow = rows.find((r: any) => r.get('repSlug') === repSlug);
+      const existingRow = rows.find((r: SheetRow) => r.get('repSlug') === repSlug);
 
       const serializeNullable = (val: boolean | null | undefined): string => {
         if (val === null || val === undefined) return 'null';
@@ -672,7 +696,7 @@ class CustomerPortalService {
         updatedBy: settings.updatedBy || 'admin',
       };
       for (const key of PORTAL_SETTING_KEYS) {
-        rowData[key] = serializeNullable((settings as any)[key]);
+        rowData[key] = serializeNullable(settings[key as keyof Partial<RepPortalSettings>] as boolean | null | undefined);
       }
 
       if (existingRow) {
@@ -751,17 +775,17 @@ class CustomerPortalService {
       const ready = await googleSheetsService.init();
       if (!ready) return null;
 
-      const doc = (googleSheetsService as any).doc;
+      const doc = (googleSheetsService as unknown as SheetsServiceWithDoc).doc;
       if (!doc) return null;
 
       const sheet = doc.sheetsByTitle['Portal_Customer_Settings'];
       if (!sheet) return null;
 
       const rows = await sheet.getRows();
-      const row = rows.find((r: any) => r.get('customerId') === customerId);
+      const row = rows.find((r: SheetRow) => r.get('customerId') === customerId);
       if (!row) return null;
 
-      const result: Record<string, any> = {
+      const result: Record<string, string | boolean | null | undefined> = {
         customerId: row.get('customerId'),
         repSlug: row.get('repSlug'),
         updatedAt: row.get('updatedAt') || '',
@@ -770,7 +794,7 @@ class CustomerPortalService {
       for (const key of PORTAL_SETTING_KEYS) {
         result[key] = this.parseNullableBoolean(row.get(key));
       }
-      return result as CustomerSettingsOverride;
+      return result as unknown as CustomerSettingsOverride;
     } catch (error) {
       console.error('Error getting customer portal settings:', error);
       return null;
@@ -783,7 +807,7 @@ class CustomerPortalService {
       const ready = await googleSheetsService.init();
       if (!ready) throw new Error('Google Sheets not initialized');
 
-      const doc = (googleSheetsService as any).doc;
+      const doc = (googleSheetsService as unknown as SheetsServiceWithDoc).doc;
       if (!doc) throw new Error('Google Sheets doc not available');
 
       const headers = [
@@ -798,7 +822,7 @@ class CustomerPortalService {
       }
 
       const rows = await sheet.getRows();
-      const existingRow = rows.find((r: any) => r.get('customerId') === customerId);
+      const existingRow = rows.find((r: SheetRow) => r.get('customerId') === customerId);
 
       const serializeNullable = (val: boolean | null | undefined): string => {
         if (val === null || val === undefined) return 'null';
@@ -812,7 +836,7 @@ class CustomerPortalService {
         updatedBy: updatedBy || 'rep',
       };
       for (const key of PORTAL_SETTING_KEYS) {
-        rowData[key] = serializeNullable((settings as any)[key]);
+        rowData[key] = serializeNullable(settings[key as keyof Partial<CustomerSettingsOverride>] as boolean | null | undefined);
       }
 
       if (existingRow) {
@@ -835,7 +859,7 @@ class CustomerPortalService {
       const ready = await googleSheetsService.init();
       if (!ready) return [];
 
-      const doc = (googleSheetsService as any).doc;
+      const doc = (googleSheetsService as unknown as SheetsServiceWithDoc).doc;
       if (!doc) return [];
 
       const sheet = doc.sheetsByTitle['Portal_Customer_Settings'];
@@ -843,9 +867,9 @@ class CustomerPortalService {
 
       const rows = await sheet.getRows();
       return rows
-        .filter((r: any) => r.get('repSlug') === repSlug)
-        .map((row: any) => {
-          const result: Record<string, any> = {
+        .filter((r: SheetRow) => r.get('repSlug') === repSlug)
+        .map((row: SheetRow) => {
+          const result: Record<string, string | boolean | null | undefined> = {
             customerId: row.get('customerId'),
             repSlug: row.get('repSlug'),
             updatedAt: row.get('updatedAt') || '',
@@ -854,7 +878,7 @@ class CustomerPortalService {
           for (const key of PORTAL_SETTING_KEYS) {
             result[key] = this.parseNullableBoolean(row.get(key));
           }
-          return result as CustomerSettingsOverride;
+          return result as unknown as CustomerSettingsOverride;
         });
     } catch (error) {
       console.error('Error getting customer settings for rep:', error);

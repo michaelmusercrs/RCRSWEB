@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Shield, Upload, X, Loader2, CheckCircle, AlertTriangle, Clock, ChevronDown } from 'lucide-react';
+import { Shield, Upload, X, Loader2, CheckCircle, AlertTriangle, Clock, ChevronDown, type LucideIcon } from 'lucide-react';
 
 interface WarrantyClaimFormProps {
   customerId: string;
@@ -49,7 +49,7 @@ const URGENCY_LEVELS = [
   { value: 'emergency', label: 'Emergency', description: 'Active leak or structural concern', color: 'bg-red-100 text-red-700' },
 ];
 
-const STATUS_LABELS: Record<string, { label: string; color: string; icon: any }> = {
+const STATUS_LABELS: Record<string, { label: string; color: string; icon: LucideIcon }> = {
   submitted: { label: 'Submitted', color: 'bg-blue-100 text-blue-700', icon: Clock },
   under_review: { label: 'Under Review', color: 'bg-yellow-100 text-yellow-700', icon: Clock },
   approved: { label: 'Approved', color: 'bg-green-100 text-green-700', icon: CheckCircle },
@@ -175,8 +175,9 @@ export default function WarrantyClaimForm({ customerId, token }: WarrantyClaimFo
       setPhotos([]);
 
       setTimeout(() => setSubmitted(false), 5000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to submit warranty claim');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to submit warranty claim';
+      setError(message);
     } finally {
       setSubmitting(false);
     }

@@ -1,4 +1,4 @@
-import { GoogleSpreadsheet } from 'google-spreadsheet';
+import { GoogleSpreadsheet, GoogleSpreadsheetRow } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
 
 // Complete Job Record synced to Google Sheets
@@ -271,7 +271,7 @@ class JobSyncService {
     return jobs;
   }
 
-  private rowToJobRecord(row: any): JobRecord {
+  private rowToJobRecord(row: { get(key: string): string }): JobRecord {
     return {
       jobId: row.get('jobId'),
       jobNimbusId: row.get('jobNimbusId'),
@@ -514,7 +514,7 @@ class JobSyncService {
       if (jobsRes.ok) {
         const data = await jobsRes.json();
         // Match by name or by our portal job ID in description
-        existingJob = (data.results || []).find((j: any) =>
+        existingJob = (data.results || []).find((j: { name?: string; description?: string; jnid?: string }) =>
           j.name === job.jobName ||
           (j.description || '').includes(jobId)
         );

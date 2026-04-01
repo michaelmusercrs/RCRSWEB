@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
+import { auditLog } from '@/lib/audit-logger';
 import { leadDistributionService } from '@/lib/lead-distribution-service';
 import { leadPortalService } from '@/lib/lead-portal-service';
 
@@ -36,6 +37,13 @@ export async function POST(request: NextRequest) {
         await leadPortalService.updateLeadStatus(lead.leadId, lead.status, result.assignedRep.repSlug);
       }
     }
+
+    auditLog(
+      'LEAD_DISTRIBUTE',
+      auth.user.email,
+      `Distributed lead ${leadId || 'manual'} for ${customerName} to ${result.assignedRep?.repName || 'no rep'} (method: ${result.method})${overrideRepSlug ? ' [override]' : ''}`,
+      request
+    );
 
     return NextResponse.json({
       success: true,

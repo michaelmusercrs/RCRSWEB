@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
+import { auditLog } from '@/lib/audit-logger';
 import { orderWorkflowService } from '@/lib/order-workflow-service';
 import { deliveryWorkflowService } from '@/lib/delivery-workflow-service';
 
@@ -109,11 +110,13 @@ export async function POST(request: NextRequest) {
           vehicleId,
           orderIds,
         });
+        auditLog('DELIVERY_ROUTE_CREATE', auth.user.email, `Created route for ${driverName || driverId} on ${date} with ${orderIds?.length || 0} stops`, request);
         return NextResponse.json(route);
       }
 
       case 'start_route': {
         const { routeId } = data;
+        auditLog('DELIVERY_ROUTE_START', auth.user.email, `Started route ${routeId}`, request);
         // Update route status to in_progress
         return NextResponse.json({ success: true, status: 'in_progress' });
       }
@@ -121,18 +124,21 @@ export async function POST(request: NextRequest) {
       case 'start_delivery': {
         const { ticketId } = data;
         const ticket = await deliveryWorkflowService.startDelivery(ticketId);
+        auditLog('DELIVERY_START', auth.user.email, `Started delivery ${ticketId}`, request);
         return NextResponse.json(ticket);
       }
 
       case 'arrive': {
         const { ticketId, gpsLocation } = data;
         const ticket = await deliveryWorkflowService.markArrived(ticketId, gpsLocation);
+        auditLog('DELIVERY_ARRIVE', auth.user.email, `Arrived at delivery ${ticketId}`, request);
         return NextResponse.json(ticket);
       }
 
       case 'complete_delivery': {
         const { ticketId, notes } = data;
         await deliveryWorkflowService.completeDelivery(ticketId, notes);
+        auditLog('DELIVERY_COMPLETE', auth.user.email, `Completed delivery ${ticketId}${notes ? ': ' + notes : ''}`, request);
         return NextResponse.json({ success: true });
       }
 
@@ -213,6 +219,7 @@ export async function PATCH(request: NextRequest) {
         break;
     }
 
+    auditLog('DELIVERY_STATUS', auth.user.email, `Delivery ${ticketId} status changed to ${status}`, request);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error updating delivery:', error);

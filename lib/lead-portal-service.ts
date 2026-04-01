@@ -553,7 +553,7 @@ class LeadPortalService {
   }
 
   // Add activity to lead
-  private async addActivity(row: any, activity: LeadActivity): Promise<void> {
+  private async addActivity(row: { get(key: string): string; set(key: string, value: string): void }, activity: LeadActivity): Promise<void> {
     let activities: LeadActivity[] = [];
     try {
       activities = JSON.parse(row.get('activityLog') || '[]');
@@ -570,7 +570,7 @@ class LeadPortalService {
   }
 
   // Convert row to lead record
-  private rowToLead(row: any): LeadRecord {
+  private rowToLead(row: { get(key: string): string }): LeadRecord {
     return {
       leadId: row.get('leadId'),
       customerId: row.get('customerId'),

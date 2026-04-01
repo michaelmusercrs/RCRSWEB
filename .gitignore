@@ -83,3 +83,4 @@ Thumbs.db
 .next-old*
 .next*
 preview/
+.claude/worktrees/

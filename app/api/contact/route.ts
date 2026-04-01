@@ -5,6 +5,7 @@ import { portalGenerator } from '@/lib/portal-generator';
 import { leadPortalService } from '@/lib/lead-portal-service';
 import { apiError } from '@/lib/api-response';
 import { createFormRateLimiter, withRateLimit } from '@/lib/rate-limiter';
+import { emailService } from '@/lib/email-service';
 
 const contactRateLimiter = createFormRateLimiter();
 
@@ -176,9 +177,34 @@ export async function POST(request: NextRequest) {
           await groupMeService.sendNotification(groupMeConfig, notification);
         }
       } catch (groupMeError) {
-        // Don't fail the request if GroupMe notification fails
         console.error('Failed to send GroupMe notification:', groupMeError);
       }
+
+      // Email notification to Michael + office for every website lead
+      emailService.send({
+        to: 'michaelmuse@rcrsal.com',
+        cc: 'sara@rcrsal.com,tia@rcrsal.com',
+        subject: `Website Lead: ${name} — ${subject}`,
+        body: `
+          <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;">
+            <div style="background:#000;padding:16px;text-align:center;">
+              <h2 style="color:#39FF14;margin:0;">New Website Lead</h2>
+            </div>
+            <div style="padding:20px;background:#fff;">
+              <table style="width:100%;border-collapse:collapse;">
+                <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Name</td><td style="padding:6px;border-bottom:1px solid #eee;">${name}</td></tr>
+                <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Email</td><td style="padding:6px;border-bottom:1px solid #eee;">${email}</td></tr>
+                <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Phone</td><td style="padding:6px;border-bottom:1px solid #eee;">${phone || 'Not provided'}</td></tr>
+                <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Subject</td><td style="padding:6px;border-bottom:1px solid #eee;">${subject}</td></tr>
+                <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Source</td><td style="padding:6px;border-bottom:1px solid #eee;">${sourcePage || 'Contact Page'}</td></tr>
+                <tr><td style="padding:6px;font-weight:bold;">Message</td><td style="padding:6px;">${message}</td></tr>
+              </table>
+              ${portalData ? `<p style="margin-top:12px;"><a href="${portalData.portalUrl}">View Customer Portal</a></p>` : ''}
+            </div>
+          </div>
+        `,
+        fromName: 'RCRS Website',
+      }).catch(err => console.error('[Contact] Email notification failed:', err));
 
       return NextResponse.json(
         {

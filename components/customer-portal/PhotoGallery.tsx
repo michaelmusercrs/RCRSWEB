@@ -58,8 +58,8 @@ export default function PhotoGallery({ customerId, token, photos: propPhotos }: 
       if (response.ok) {
         const data = await response.json();
         const photoDocuments = (data.documents || [])
-          .filter((d: any) => d.type === 'photo' || d.fileType?.startsWith('image') || d.fileUrl?.match(/\.(jpg|jpeg|png|gif|webp)/i))
-          .map((d: any, index: number) => ({
+          .filter((d: { type?: string; fileType?: string; fileUrl?: string }) => d.type === 'photo' || d.fileType?.startsWith('image') || d.fileUrl?.match(/\.(jpg|jpeg|png|gif|webp)/i))
+          .map((d: { documentId?: string; fileUrl: string; description?: string; title?: string; uploadedAt?: string }, index: number) => ({
             id: d.documentId || `photo-${index}`,
             url: d.fileUrl,
             caption: d.description || d.title || 'Project Photo',

@@ -46,7 +46,7 @@ export interface Extension {
   role: PhoneRole;
   /** Whether voicemail is enabled */
   voicemailEnabled: boolean;
-  /** Current status (placeholder - would come from real-time API) */
+  /** Static default status - real-time status comes from the calls-service API */
   status: ExtensionStatus;
   /** User ID for linking to team member data */
   userId?: string;

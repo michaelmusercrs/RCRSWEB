@@ -368,7 +368,7 @@ class SchedulingService {
     return events;
   }
 
-  private rowToEvent(row: any): ScheduledEvent {
+  private rowToEvent(row: { get(key: string): string }): ScheduledEvent {
     return {
       eventId: row.get('eventId'),
       eventType: row.get('eventType') as EventType,

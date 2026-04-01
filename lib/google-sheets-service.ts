@@ -202,6 +202,7 @@ export interface LeadResponseLogRecord {
   responseMinutes: string;
   reminderSentAt: string;
   warningSentAt: string;
+  urgentWarningSentAt?: string;
   reassignedAt: string;
   reassignedTo: string;
   missedReason: string;
@@ -219,6 +220,26 @@ export interface JobBreakdownRecord {
   totals: string; // JSON
   createdAt: string;
   updatedAt: string;
+}
+
+export interface DailyActivityRecord {
+  date: string; // YYYY-MM-DD
+  week: string; // YYYY-Wnn format
+  repName: string;
+  repEmail: string;
+  inspected: number;
+  damage: number;
+  signed: number;
+  repair: number;
+  gutter: number;
+  revenue: number;
+  approved: number;
+  goal: number;
+  referrals: number;
+  agents: number;
+  present: string;
+  homeShow: number;
+  submittedAt: string;
 }
 
 export interface RepWeeklyNumbersRecord {
@@ -303,6 +324,12 @@ const SHEET_NAMES = {
   MONDAY_NOTES: 'MondayNotes',
   REVIEWS: 'Reviews',
   MARCH_MADNESS: 'MarchMadness',
+  DAILY_ACTIVITY: 'DailyActivity',
+  FINANCIAL_SUMMARY: 'Financial_Summary',
+  REVENUE_BY_REP: 'Revenue_By_Rep',
+  JOB_PROFITABILITY: 'Job_Profitability',
+  OUTSTANDING_INVOICES: 'Outstanding_Invoices',
+  MONTHLY_TRENDS: 'Monthly_Trends',
 } as const;
 
 // =============================================================================
@@ -1485,6 +1512,7 @@ class GoogleSheetsService {
         responseMinutes: row.get('responseMinutes') || '',
         reminderSentAt: row.get('reminderSentAt') || '',
         warningSentAt: row.get('warningSentAt') || '',
+        urgentWarningSentAt: row.get('urgentWarningSentAt') || '',
         reassignedAt: row.get('reassignedAt') || '',
         reassignedTo: row.get('reassignedTo') || '',
         missedReason: row.get('missedReason') || '',
@@ -2038,6 +2066,114 @@ class GoogleSheetsService {
       return false;
     }
   }
+  // ===========================================================================
+  // DAILY ACTIVITY
+  // ===========================================================================
+
+  private readonly dailyActivityHeaders = [
+    'date', 'week', 'repName', 'repEmail', 'inspected', 'damage', 'signed',
+    'repair', 'gutter', 'revenue', 'approved', 'goal', 'referrals', 'agents',
+    'present', 'homeShow', 'submittedAt'
+  ];
+
+  async getDailyActivity(options?: {
+    repEmail?: string;
+    week?: string;
+    dateStart?: string;
+    dateEnd?: string;
+  }): Promise<DailyActivityRecord[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.DAILY_ACTIVITY,
+        this.dailyActivityHeaders
+      );
+
+      const rows = await sheet.getRows();
+      let records: DailyActivityRecord[] = rows.map(row => ({
+        date: row.get('date') || '',
+        week: row.get('week') || '',
+        repName: row.get('repName') || '',
+        repEmail: row.get('repEmail') || '',
+        inspected: parseInt(row.get('inspected')) || 0,
+        damage: parseInt(row.get('damage')) || 0,
+        signed: parseInt(row.get('signed')) || 0,
+        repair: parseInt(row.get('repair')) || 0,
+        gutter: parseInt(row.get('gutter')) || 0,
+        revenue: parseFloat(row.get('revenue')) || 0,
+        approved: parseInt(row.get('approved')) || 0,
+        goal: parseInt(row.get('goal')) || 0,
+        referrals: parseInt(row.get('referrals')) || 0,
+        agents: parseInt(row.get('agents')) || 0,
+        present: row.get('present') || '',
+        homeShow: parseInt(row.get('homeShow')) || 0,
+        submittedAt: row.get('submittedAt') || '',
+      }));
+
+      if (options?.repEmail) {
+        records = records.filter(r =>
+          r.repEmail.toLowerCase() === options.repEmail!.toLowerCase()
+        );
+      }
+
+      if (options?.week) {
+        records = records.filter(r => r.week === options.week);
+      }
+
+      if (options?.dateStart) {
+        records = records.filter(r => r.date >= options.dateStart!);
+      }
+
+      if (options?.dateEnd) {
+        records = records.filter(r => r.date <= options.dateEnd!);
+      }
+
+      return records.sort((a, b) => b.date.localeCompare(a.date));
+    } catch (error) {
+      console.error('Error fetching daily activity:', error);
+      return [];
+    }
+  }
+
+  async addDailyActivity(record: DailyActivityRecord): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.DAILY_ACTIVITY,
+        this.dailyActivityHeaders
+      );
+
+      await sheet.addRow({
+        date: record.date,
+        week: record.week,
+        repName: record.repName,
+        repEmail: record.repEmail,
+        inspected: record.inspected.toString(),
+        damage: record.damage.toString(),
+        signed: record.signed.toString(),
+        repair: record.repair.toString(),
+        gutter: record.gutter.toString(),
+        revenue: record.revenue.toString(),
+        approved: record.approved.toString(),
+        goal: record.goal.toString(),
+        referrals: record.referrals.toString(),
+        agents: record.agents.toString(),
+        present: record.present,
+        homeShow: record.homeShow.toString(),
+        submittedAt: record.submittedAt,
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error adding daily activity:', error);
+      return false;
+    }
+  }
+
   // ===========================================================================
   // CUSTOMER PORTAL LOG
   // ===========================================================================
@@ -2600,6 +2736,41 @@ class GoogleSheetsService {
       console.error('[MarchMadness] Error initializing bracket:', error);
       return false;
     }
+  }
+
+  // ===========================================================================
+  // FINANCIAL SYNC
+  // ===========================================================================
+
+  private async syncSheetData(sheetName: string, data: Record<string, string | number>[]): Promise<void> {
+    const ready = await this.init();
+    if (!ready || !this.doc || data.length === 0) return;
+
+    const headers = Object.keys(data[0]);
+    const sheet = await this.getOrCreateSheet(sheetName, headers);
+    const rows = await sheet.getRows();
+    if (rows.length > 0) await sheet.clearRows();
+    await sheet.addRows(data);
+  }
+
+  async syncFinancialSummary(data: Record<string, string | number>[]): Promise<void> {
+    await this.syncSheetData(SHEET_NAMES.FINANCIAL_SUMMARY, data);
+  }
+
+  async syncRevenueByRep(data: Record<string, string | number>[]): Promise<void> {
+    await this.syncSheetData(SHEET_NAMES.REVENUE_BY_REP, data);
+  }
+
+  async syncJobProfitability(data: Record<string, string | number>[]): Promise<void> {
+    await this.syncSheetData(SHEET_NAMES.JOB_PROFITABILITY, data);
+  }
+
+  async syncOutstandingInvoices(data: Record<string, string | number>[]): Promise<void> {
+    await this.syncSheetData(SHEET_NAMES.OUTSTANDING_INVOICES, data);
+  }
+
+  async syncMonthlyTrends(data: Record<string, string | number>[]): Promise<void> {
+    await this.syncSheetData(SHEET_NAMES.MONTHLY_TRENDS, data);
   }
 }
 

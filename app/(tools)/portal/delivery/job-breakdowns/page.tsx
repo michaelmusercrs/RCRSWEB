@@ -229,6 +229,7 @@ export default function JobBreakdownsPage() {
   const [compareId1, setCompareId1] = useState('');
   const [compareId2, setCompareId2] = useState('');
   const [comparisons, setComparisons] = useState<BreakdownComparison[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // ── Filters (Active tab) ─────────────────────────────────
   const [filterStatus, setFilterStatus] = useState<string>('');
@@ -277,16 +278,26 @@ export default function JobBreakdownsPage() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const [bdRes, statsRes] = await Promise.all([
-        fetch('/api/portal/delivery/job-breakdowns'),
-        fetch('/api/portal/delivery/job-breakdowns?stats=true'),
+        fetch('/api/portal/delivery/job-breakdowns', { credentials: 'include' }),
+        fetch('/api/portal/delivery/job-breakdowns?stats=true', { credentials: 'include' }),
       ]);
+      if (!bdRes.ok || !statsRes.ok) {
+        setError('Failed to load job breakdowns. Please try again.');
+        return;
+      }
       const bdData = await bdRes.json();
       const statsData = await statsRes.json();
-      if (bdData.success) setBreakdowns(bdData.data);
+      if (bdData.success) {
+        setBreakdowns(bdData.data || []);
+      } else {
+        setError(bdData.error || 'Failed to load breakdowns.');
+      }
       if (statsData.success) setStats(statsData.data);
     } catch (err) {
       console.error('Failed to fetch breakdowns:', err);
+      setError('Could not connect to the server. Please check your connection.');
     } finally {
       setLoading(false);
     }
@@ -308,6 +319,7 @@ export default function JobBreakdownsPage() {
     try {
       const res = await fetch('/api/portal/delivery/job-breakdowns', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'generate-materials',
@@ -333,6 +345,7 @@ export default function JobBreakdownsPage() {
     try {
       const res = await fetch('/api/portal/delivery/job-breakdowns', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'create',
@@ -358,6 +371,7 @@ export default function JobBreakdownsPage() {
         if (submitForApproval) {
           await fetch('/api/portal/delivery/job-breakdowns', {
             method: 'POST',
+            credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               action: 'update-status',
@@ -389,6 +403,7 @@ export default function JobBreakdownsPage() {
     try {
       await fetch('/api/portal/delivery/job-breakdowns', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: status === 'approved' ? 'approve' : 'update-status', breakdownId: id, status, notes }),
       });
@@ -403,6 +418,7 @@ export default function JobBreakdownsPage() {
     try {
       const res = await fetch('/api/portal/delivery/job-breakdowns', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'compare', breakdownId1: compareId1, breakdownId2: compareId2 }),
       });
@@ -420,6 +436,7 @@ export default function JobBreakdownsPage() {
     try {
       const res = await fetch('/api/portal/delivery/job-breakdowns', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'fetch-jn-jobs', limit: 50 }),
       });
@@ -456,6 +473,7 @@ export default function JobBreakdownsPage() {
     try {
       const res = await fetch('/api/portal/delivery/job-breakdowns', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'fetch-jn-job-detail', jnid: job.jnid }),
       });
@@ -576,6 +594,24 @@ export default function JobBreakdownsPage() {
     );
   }
 
+  if (error && breakdowns.length === 0) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3 text-center max-w-md">
+          <AlertCircle className="w-8 h-8 text-red-400" />
+          <p className="text-zinc-300">{error}</p>
+          <button
+            onClick={fetchData}
+            className="flex items-center gap-2 px-4 py-2 bg-zinc-800 text-zinc-300 border border-zinc-700 rounded-lg text-sm hover:bg-zinc-700 transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
       {/* ── Header ──────────────────────────────────────────── */}
@@ -628,6 +664,20 @@ export default function JobBreakdownsPage() {
         {/* ════════════════════════════════════════════════════════
             TAB 1: DASHBOARD
         ════════════════════════════════════════════════════════ */}
+        {activeTab === 'dashboard' && !stats && (
+          <div className="text-center py-16 text-zinc-500">
+            <ClipboardList className="w-12 h-12 mx-auto mb-3 opacity-50" />
+            <p className="text-lg mb-2">No breakdown data available</p>
+            <p className="text-sm mb-4">Create your first job breakdown to get started.</p>
+            <button
+              onClick={() => setActiveTab('create')}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#39FF14] text-black rounded-lg font-medium text-sm hover:bg-[#39FF14]/90 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Create Breakdown
+            </button>
+          </div>
+        )}
         {activeTab === 'dashboard' && stats && (
           <div className="space-y-6">
             {/* KPI Cards */}
@@ -684,28 +734,35 @@ export default function JobBreakdownsPage() {
                 </div>
               </div>
               <div className="space-y-3">
-                {breakdowns.slice(0, 5).map(b => (
-                  <div
-                    key={b.breakdownId}
-                    onClick={() => viewDetail(b)}
-                    className="flex items-center justify-between p-4 bg-zinc-800/50 rounded-lg cursor-pointer hover:bg-zinc-800 transition-colors"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="p-2 bg-zinc-700 rounded-lg shrink-0">
-                        {PROJECT_TYPE_ICONS[b.projectType]}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-medium truncate">{b.jobName}</p>
-                        <p className="text-sm text-zinc-400 truncate">{b.customerName} - {b.breakdownId}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4 shrink-0">
-                      <StatusBadge status={b.status} />
-                      <span className="text-sm font-medium text-zinc-300 hidden sm:block">{formatCurrency(b.totalEstimate)}</span>
-                      <ChevronRight className="w-4 h-4 text-zinc-600" />
-                    </div>
+                {breakdowns.length === 0 ? (
+                  <div className="text-center py-8 text-zinc-500">
+                    <ClipboardList className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No breakdowns yet. Create one to get started.</p>
                   </div>
-                ))}
+                ) : (
+                  breakdowns.slice(0, 5).map(b => (
+                    <div
+                      key={b.breakdownId}
+                      onClick={() => viewDetail(b)}
+                      className="flex items-center justify-between p-4 bg-zinc-800/50 rounded-lg cursor-pointer hover:bg-zinc-800 transition-colors"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="p-2 bg-zinc-700 rounded-lg shrink-0">
+                          {PROJECT_TYPE_ICONS[b.projectType]}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">{b.jobName}</p>
+                          <p className="text-sm text-zinc-400 truncate">{b.customerName} - {b.breakdownId}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 shrink-0">
+                        <StatusBadge status={b.status} />
+                        <span className="text-sm font-medium text-zinc-300 hidden sm:block">{formatCurrency(b.totalEstimate)}</span>
+                        <ChevronRight className="w-4 h-4 text-zinc-600" />
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 

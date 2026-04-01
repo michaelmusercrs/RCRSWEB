@@ -63,7 +63,7 @@ const OUTCOME_LABELS: Record<string, { label: string; color: string }> = {
   referral: { label: 'Got Referral', color: 'text-cyan-400' },
 };
 
-function daysSince(dateStr: string | undefined): number | null {
+function daysSince(dateStr: string | undefined | null): number | null {
   if (!dateStr) return null;
   const d = new Date(dateStr);
   const now = new Date();

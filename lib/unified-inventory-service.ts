@@ -19,7 +19,7 @@
  * - Return ticket tracking
  */
 
-import { GoogleSpreadsheet, GoogleSpreadsheetRow } from 'google-spreadsheet';
+import { GoogleSpreadsheet, GoogleSpreadsheetRow, GoogleSpreadsheetWorksheet } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
 
 // ============================================
@@ -420,7 +420,7 @@ const UNIFIED_CATALOG: Omit<InventoryItem, 'availableQty'>[] = [
 // SHEETS HELPER
 // ============================================
 
-async function getSheet(tabName: string): Promise<{ sheet: any; doc: GoogleSpreadsheet } | null> {
+async function getSheet(tabName: string): Promise<{ sheet: GoogleSpreadsheetWorksheet; doc: GoogleSpreadsheet } | null> {
   if (!SHEETS_CONFIGURED) return null;
   try {
     const doc = new GoogleSpreadsheet(SHEETS_ID!, serviceAuth);
@@ -433,7 +433,7 @@ async function getSheet(tabName: string): Promise<{ sheet: any; doc: GoogleSprea
   }
 }
 
-async function getOrCreateSheet(tabName: string, headerValues: string[]): Promise<{ sheet: any; doc: GoogleSpreadsheet } | null> {
+async function getOrCreateSheet(tabName: string, headerValues: string[]): Promise<{ sheet: GoogleSpreadsheetWorksheet; doc: GoogleSpreadsheet } | null> {
   if (!SHEETS_CONFIGURED) return null;
   try {
     const doc = new GoogleSpreadsheet(SHEETS_ID!, serviceAuth);
@@ -563,7 +563,7 @@ class UnifiedInventoryService {
     };
   }
 
-  private async _seedCatalog(result: { sheet: any; doc: GoogleSpreadsheet }): Promise<void> {
+  private async _seedCatalog(result: { sheet: GoogleSpreadsheetWorksheet; doc: GoogleSpreadsheet }): Promise<void> {
     const headers = [
       'productId', 'legacyId', 'legacySku', 'productName', 'description', 'category',
       'sku', 'unit', 'currentQty', 'holdQty', 'minStockLevel', 'maxStockLevel',

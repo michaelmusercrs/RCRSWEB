@@ -15,6 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-service';
 import commissionsData from '@/data/commissions.json';
+import { googleSheetsService, isGoogleSheetsConfigured } from '@/lib/google-sheets-service';
 
 // ============================================================================
 // TypeScript Types
@@ -190,6 +191,15 @@ function normalizeRepName(name: string): string {
   return name.replace(/\s+/g, ' ').trim();
 }
 
+// HARD RULE: Michael, Chris, Sara NEVER on sales/commission leaderboard
+const EXCLUDED_FROM_COMMISSION_LEADERBOARD = [
+  'michael muse', 'chris muse', 'sara hill',
+];
+
+function isExcludedFromLeaderboard(name: string): boolean {
+  return EXCLUDED_FROM_COMMISSION_LEADERBOARD.includes(name.toLowerCase().trim());
+}
+
 /**
  * Get week boundaries for a given date
  */
@@ -218,7 +228,7 @@ interface RawCommissionRecord {
   balance: number;
 }
 
-function loadCommissionData(): CacheEntry {
+async function loadCommissionData(): Promise<CacheEntry> {
   // Return cached data if valid
   if (isCacheValid() && csvCache) {
     return csvCache;
@@ -226,15 +236,40 @@ function loadCommissionData(): CacheEntry {
 
   const rawData = commissionsData as RawCommissionRecord[];
 
+  // Also pull live data from Google Sheets Commissions tab (2025+ data)
+  let sheetRecords: RawCommissionRecord[] = [];
+  try {
+    if (isGoogleSheetsConfigured()) {
+      const sheetEntries = await googleSheetsService.getCommissions();
+      sheetRecords = sheetEntries.map(e => ({
+        salesRep: e.salesRep || '',
+        date: e.date || '',
+        amount: typeof e.amount === 'number' ? e.amount : parseFloat(String(e.amount)) || 0,
+        balance: typeof e.balance === 'number' ? e.balance : parseFloat(String(e.balance)) || 0,
+      }));
+    }
+  } catch (err) {
+    console.warn('[Sales API] Failed to load live commissions from Sheets, using JSON only:', err);
+  }
+
+  // Merge: JSON (historical) + Sheets (live) with deduplication by rep+date+amount
+  const seen = new Set<string>();
+  const allRaw = [...rawData, ...sheetRecords];
+
   const entries: CommissionEntry[] = [];
   const repDataMap = new Map<string, RepStats>();
   let parseErrors = 0;
 
-  for (const record of rawData) {
+  for (const record of allRaw) {
     const salesRep = normalizeRepName(record.salesRep);
     const date = parseDate(record.date);
     const amount = record.amount;
     const balance = record.balance;
+
+    // Deduplicate by rep+date+amount
+    const dedupeKey = `${salesRep}|${record.date}|${amount}`;
+    if (seen.has(dedupeKey)) continue;
+    seen.add(dedupeKey);
 
     if (!date || !salesRep) {
       parseErrors++;
@@ -392,6 +427,9 @@ function buildLeaderboard(entries: CommissionEntry[]): LeaderboardEntry[] {
   const leaderboard: LeaderboardEntry[] = [];
 
   for (const [name, stats] of repMap.entries()) {
+    // HARD RULE: Exclude owners/admin from commission leaderboard
+    if (isExcludedFromLeaderboard(name)) continue;
+
     const totalCommissions = Math.round(stats.total * 100) / 100;
     const avgTransaction = stats.count > 0 ? Math.round((stats.total / stats.count) * 100) / 100 : 0;
     const percentOfTotal = grandTotal > 0 ? Math.round((stats.total / grandTotal) * 10000) / 100 : 0;
@@ -552,9 +590,9 @@ export async function GET(request: NextRequest): Promise<NextResponse<SalesApiRe
     const month = validateMonth(searchParams.get('month'));
     const rep = searchParams.get('rep')?.trim() || null;
 
-    // Load data (from cache or bundled JSON)
+    // Load data (from cache or bundled JSON + live Google Sheets)
     const wasCached = isCacheValid();
-    const cacheEntry = loadCommissionData();
+    const cacheEntry = await loadCommissionData();
 
     // Filter entries based on query params
     const filterOptions: FilterOptions = { period, year, month, rep };

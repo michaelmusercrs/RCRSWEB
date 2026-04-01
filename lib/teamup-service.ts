@@ -7,6 +7,8 @@
  * TeamUp API Documentation: https://apidocs.teamup.com/
  */
 
+import crypto from 'crypto';
+
 // TeamUp API Configuration
 const TEAMUP_API_BASE = 'https://api.teamup.com';
 const TEAMUP_API_KEY = process.env.TEAMUP_API_KEY;
@@ -564,7 +566,7 @@ class TeamUpService {
   private createPlaceholderEvent(event: Omit<TeamUpEvent, 'id' | 'creation_dt' | 'update_dt'>): TeamUpEvent {
     return {
       ...event,
-      id: `placeholder-${Date.now()}`,
+      id: crypto.createHash('sha256').update(`${event.subcalendar_id || ''}|${event.start_dt}|${event.title}`).digest('hex').slice(0, 16),
       creation_dt: new Date().toISOString(),
       update_dt: new Date().toISOString(),
     };

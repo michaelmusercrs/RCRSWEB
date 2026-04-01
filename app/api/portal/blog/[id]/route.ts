@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
+import { auditLog } from '@/lib/audit-logger';
 import fs from 'fs';
 import path from 'path';
 
@@ -124,6 +125,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   posts[idx] = post;
   writePosts(posts);
 
+  const blogAction = status === 'approved' ? 'BLOG_APPROVE' : status === 'published' ? 'BLOG_PUBLISH' : status === 'rejected' ? 'BLOG_REJECT' : 'BLOG_EDIT';
+  auditLog(blogAction, auth.user.email, `${blogAction === 'BLOG_EDIT' ? 'Edited' : blogAction === 'BLOG_APPROVE' ? 'Approved' : blogAction === 'BLOG_PUBLISH' ? 'Published' : 'Rejected'} blog post "${post.title}" (${id})`, request);
+
   return NextResponse.json({ success: true, post });
 }
 
@@ -152,6 +156,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
   posts.splice(idx, 1);
   writePosts(posts);
+
+  auditLog('BLOG_DELETE', auth.user.email, `Deleted blog post "${post.title}" (${id})`, request);
 
   return NextResponse.json({ success: true });
 }

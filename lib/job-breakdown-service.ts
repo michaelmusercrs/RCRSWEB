@@ -189,287 +189,108 @@ const SUPPLIERS = {
   general: 'ABC Supply - Huntsville',
 };
 
+
 // ============================================
-// MOCK DATA
+// GOOGLE SHEETS PERSISTENCE
 // ============================================
 
-const MOCK_BREAKDOWNS: JobBreakdown[] = [
-  {
-    breakdownId: 'JB-2026-0001',
-    jobId: 'JN-4521',
-    jobName: 'Henderson Roof Replacement',
-    customerName: 'Mark Henderson',
-    address: { street: '1482 Oak Valley Dr', city: 'Huntsville', state: 'AL', zip: '35801' },
-    projectType: 'roof_replacement',
-    status: 'approved',
-    materials: [
-      { category: 'Shingles', productName: 'GAF Timberline HDZ (Charcoal)', quantity: 45, unit: 'bundles', unitCost: 38.50, totalCost: 1732.50, supplier: 'ABC Supply - Huntsville', leadTime: '1-2 days', inStock: true },
-      { category: 'Underlayment', productName: 'GAF FeltBuster Synthetic', quantity: 6, unit: 'rolls', unitCost: 62.00, totalCost: 372.00, supplier: 'ABC Supply - Huntsville', leadTime: '1-2 days', inStock: true },
-      { category: 'Starter Strip', productName: 'GAF Pro-Start Starter Strip', quantity: 8, unit: 'bundles', unitCost: 24.00, totalCost: 192.00, supplier: 'ABC Supply - Huntsville', leadTime: '1-2 days', inStock: true },
-      { category: 'Ridge Cap', productName: 'GAF Seal-A-Ridge (Charcoal)', quantity: 6, unit: 'bundles', unitCost: 56.00, totalCost: 336.00, supplier: 'ABC Supply - Huntsville', leadTime: '1-2 days', inStock: true },
-      { category: 'Drip Edge', productName: 'Drip Edge Flashing 10ft (White)', quantity: 30, unit: 'pieces', unitCost: 5.50, totalCost: 165.00, supplier: 'Beacon Roofing - Decatur', leadTime: '2-3 days', inStock: true },
-      { category: 'Ice & Water Shield', productName: 'GAF StormGuard Double Layer', quantity: 4, unit: 'rolls', unitCost: 78.00, totalCost: 312.00, supplier: 'ABC Supply - Huntsville', leadTime: '1-2 days', inStock: true },
-      { category: 'Nails', productName: '1.25" Galvanized Roofing Nails', quantity: 4, unit: 'boxes (5lb)', unitCost: 12.50, totalCost: 50.00, supplier: 'Home Depot Pro - Madison', leadTime: '1 day', inStock: true },
-      { category: 'Flashing', productName: 'Step Flashing 4x4x8"', quantity: 50, unit: 'pieces', unitCost: 1.80, totalCost: 90.00, supplier: 'Beacon Roofing - Decatur', leadTime: '2-3 days', inStock: true },
-      { category: 'Pipe Boots', productName: 'Master Flash 2" Pipe Boot', quantity: 3, unit: 'pieces', unitCost: 14.00, totalCost: 42.00, supplier: 'ABC Supply - Huntsville', leadTime: '1-2 days', inStock: true },
-    ],
-    labor: [
-      { role: 'Lead Installer', hours: 16, rate: 45.00, totalCost: 720.00, assignedTo: 'James Wilson' },
-      { role: 'Installer', hours: 32, rate: 35.00, totalCost: 1120.00, assignedTo: 'Team Alpha (2)' },
-      { role: 'Helper', hours: 16, rate: 22.00, totalCost: 352.00, assignedTo: 'Day Labor' },
-    ],
-    deliveries: [
-      { deliveryId: 'DL-2026-0041', scheduledDate: '2026-02-14', materials: ['GAF Timberline HDZ (Charcoal)', 'GAF FeltBuster Synthetic', 'GAF StormGuard Double Layer', '1.25" Galvanized Roofing Nails'], status: 'scheduled', driver: 'Carlos Rivera' },
-      { deliveryId: 'DL-2026-0042', scheduledDate: '2026-02-14', materials: ['GAF Pro-Start Starter Strip', 'GAF Seal-A-Ridge (Charcoal)', 'Drip Edge Flashing 10ft (White)', 'Step Flashing 4x4x8"', 'Master Flash 2" Pipe Boot'], status: 'scheduled', driver: 'Carlos Rivera' },
-    ],
-    materialTotal: 3291.50,
-    laborTotal: 2192.00,
-    deliveryFees: 175.00,
-    overhead: 848.78,
-    profit: 1301.56,
-    totalEstimate: 7808.84,
-    estimatedStartDate: '2026-02-15',
-    estimatedEndDate: '2026-02-17',
-    statusHistory: [
-      { status: 'draft', timestamp: '2026-02-06T09:00:00Z', updatedBy: 'Michael Muse', notes: 'Initial breakdown created' },
-      { status: 'pending_approval', timestamp: '2026-02-06T14:30:00Z', updatedBy: 'Michael Muse', notes: 'Submitted for review' },
-      { status: 'approved', timestamp: '2026-02-07T08:15:00Z', updatedBy: 'Sara Hill', notes: 'Approved - materials ordered' },
-    ],
-    notes: 'Customer requested charcoal color to match neighbors. Gate code #4429. Dogs in yard - keep gate closed.',
-    createdAt: '2026-02-06T09:00:00Z',
-    updatedAt: '2026-02-07T08:15:00Z',
-    createdBy: 'Michael Muse',
-    approvedBy: 'Sara Hill',
-  },
-  {
-    breakdownId: 'JB-2026-0002',
-    jobId: 'JN-4533',
-    jobName: 'Whitfield Insurance Repair',
-    customerName: 'Sarah Whitfield',
-    address: { street: '305 Monroe St SW', city: 'Decatur', state: 'AL', zip: '35601' },
-    projectType: 'insurance_claim',
-    status: 'in_progress',
-    materials: [
-      { category: 'Shingles', productName: 'Owens Corning Duration (Onyx Black)', quantity: 18, unit: 'bundles', unitCost: 42.00, totalCost: 756.00, supplier: 'ABC Supply - Huntsville', leadTime: '1-2 days', inStock: true },
-      { category: 'Underlayment', productName: 'Owens Corning ProArmor Synthetic', quantity: 3, unit: 'rolls', unitCost: 58.00, totalCost: 174.00, supplier: 'ABC Supply - Huntsville', leadTime: '1-2 days', inStock: true },
-      { category: 'Plywood', productName: '4x8 CDX Plywood 1/2"', quantity: 6, unit: 'sheets', unitCost: 32.00, totalCost: 192.00, supplier: 'Home Depot Pro - Madison', leadTime: '1 day', inStock: true },
-      { category: 'Ice & Water Shield', productName: 'Owens Corning WeatherLock G', quantity: 2, unit: 'rolls', unitCost: 72.00, totalCost: 144.00, supplier: 'ABC Supply - Huntsville', leadTime: '1-2 days', inStock: true },
-      { category: 'Flashing', productName: 'Step Flashing 4x4x8"', quantity: 24, unit: 'pieces', unitCost: 1.80, totalCost: 43.20, supplier: 'Beacon Roofing - Decatur', leadTime: '2-3 days', inStock: true },
-      { category: 'Nails', productName: '1.25" Galvanized Roofing Nails', quantity: 2, unit: 'boxes (5lb)', unitCost: 12.50, totalCost: 25.00, supplier: 'Home Depot Pro - Madison', leadTime: '1 day', inStock: true },
-    ],
-    labor: [
-      { role: 'Lead Installer', hours: 10, rate: 45.00, totalCost: 450.00, assignedTo: 'James Wilson' },
-      { role: 'Installer', hours: 20, rate: 35.00, totalCost: 700.00, assignedTo: 'Team Beta (2)' },
-    ],
-    deliveries: [
-      { deliveryId: 'DL-2026-0038', scheduledDate: '2026-02-10', materials: ['Owens Corning Duration (Onyx Black)', 'Owens Corning ProArmor Synthetic', '4x8 CDX Plywood 1/2"', 'Owens Corning WeatherLock G'], status: 'delivered', driver: 'Marcus Johnson' },
-      { deliveryId: 'DL-2026-0039', scheduledDate: '2026-02-10', materials: ['Step Flashing 4x4x8"', '1.25" Galvanized Roofing Nails'], status: 'delivered', driver: 'Marcus Johnson' },
-    ],
-    materialTotal: 1334.20,
-    laborTotal: 1150.00,
-    deliveryFees: 125.00,
-    overhead: 391.38,
-    profit: 600.12,
-    totalEstimate: 3600.70,
-    estimatedStartDate: '2026-02-10',
-    estimatedEndDate: '2026-02-11',
-    actualStartDate: '2026-02-10',
-    statusHistory: [
-      { status: 'draft', timestamp: '2026-02-04T10:00:00Z', updatedBy: 'Michael Muse', notes: 'Insurance claim breakdown - adjuster scope attached' },
-      { status: 'pending_approval', timestamp: '2026-02-04T15:00:00Z', updatedBy: 'Michael Muse', notes: 'Submitted' },
-      { status: 'approved', timestamp: '2026-02-05T09:00:00Z', updatedBy: 'Sara Hill', notes: 'Approved per adjuster scope' },
-      { status: 'in_progress', timestamp: '2026-02-10T07:30:00Z', updatedBy: 'James Wilson', notes: 'Crew on site, tear-off started' },
-    ],
-    notes: 'Insurance claim - Allstate policy. Adjuster approved 6 sq section replacement plus 6 sheets decking. Take before/after photos.',
-    createdAt: '2026-02-04T10:00:00Z',
-    updatedAt: '2026-02-10T07:30:00Z',
-    createdBy: 'Michael Muse',
-    approvedBy: 'Sara Hill',
-  },
-  {
-    breakdownId: 'JB-2026-0003',
-    jobId: 'JN-4540',
-    jobName: 'Martinez Gutter Install',
-    customerName: 'Roberto Martinez',
-    address: { street: '2210 Bailey Cove Rd', city: 'Huntsville', state: 'AL', zip: '35802' },
-    projectType: 'gutter_install',
-    status: 'pending_approval',
-    materials: [
-      { category: 'Gutters', productName: '5" K-Style Aluminum Gutter (White)', quantity: 18, unit: 'sections (10ft)', unitCost: 8.50, totalCost: 153.00, supplier: 'Gutter Supply Co - Huntsville', leadTime: '2-3 days', inStock: true },
-      { category: 'Downspouts', productName: '2x3" Aluminum Downspout (White)', quantity: 6, unit: 'sections (10ft)', unitCost: 7.00, totalCost: 42.00, supplier: 'Gutter Supply Co - Huntsville', leadTime: '2-3 days', inStock: true },
-      { category: 'Elbows', productName: '2x3" Downspout Elbow (White)', quantity: 16, unit: 'pieces', unitCost: 3.50, totalCost: 56.00, supplier: 'Gutter Supply Co - Huntsville', leadTime: '2-3 days', inStock: true },
-      { category: 'Hangers', productName: 'Hidden Hanger w/ Screw', quantity: 60, unit: 'pieces', unitCost: 1.25, totalCost: 75.00, supplier: 'Gutter Supply Co - Huntsville', leadTime: '2-3 days', inStock: true },
-      { category: 'End Caps', productName: '5" K-Style End Cap (White)', quantity: 8, unit: 'pieces', unitCost: 2.00, totalCost: 16.00, supplier: 'Gutter Supply Co - Huntsville', leadTime: '2-3 days', inStock: true },
-      { category: 'Sealant', productName: 'Gutter Sealant Caulk', quantity: 6, unit: 'tubes', unitCost: 5.50, totalCost: 33.00, supplier: 'Home Depot Pro - Madison', leadTime: '1 day', inStock: true },
-      { category: 'Splash Blocks', productName: 'Splash Block (24")', quantity: 6, unit: 'pieces', unitCost: 8.00, totalCost: 48.00, supplier: 'Home Depot Pro - Madison', leadTime: '1 day', inStock: true },
-    ],
-    labor: [
-      { role: 'Gutter Tech', hours: 12, rate: 40.00, totalCost: 480.00, assignedTo: 'Danny Reeves' },
-      { role: 'Helper', hours: 12, rate: 22.00, totalCost: 264.00, assignedTo: 'Day Labor' },
-    ],
-    deliveries: [
-      { deliveryId: 'DL-2026-0050', scheduledDate: '2026-02-18', materials: ['5" K-Style Aluminum Gutter (White)', '2x3" Aluminum Downspout (White)', '2x3" Downspout Elbow (White)', 'Hidden Hanger w/ Screw', '5" K-Style End Cap (White)', 'Gutter Sealant Caulk', 'Splash Block (24")'], status: 'scheduled', driver: 'Carlos Rivera' },
-    ],
-    materialTotal: 423.00,
-    laborTotal: 744.00,
-    deliveryFees: 85.00,
-    overhead: 187.80,
-    profit: 287.96,
-    totalEstimate: 1727.76,
-    estimatedStartDate: '2026-02-19',
-    estimatedEndDate: '2026-02-19',
-    statusHistory: [
-      { status: 'draft', timestamp: '2026-02-08T11:00:00Z', updatedBy: 'Destin', notes: 'Gutter install - full house' },
-      { status: 'pending_approval', timestamp: '2026-02-09T09:00:00Z', updatedBy: 'Destin', notes: 'Ready for review' },
-    ],
-    notes: '180 linear ft house. Remove old gutters and install new. Customer wants white to match fascia. Add leaf guards if customer approves add-on.',
-    createdAt: '2026-02-08T11:00:00Z',
-    updatedAt: '2026-02-09T09:00:00Z',
-    createdBy: 'Destin',
-  },
-  {
-    breakdownId: 'JB-2026-0004',
-    jobId: 'JN-4515',
-    jobName: 'Thompson Commercial Flat Roof',
-    customerName: 'Thompson Auto Group',
-    address: { street: '4800 University Dr NW', city: 'Huntsville', state: 'AL', zip: '35816' },
-    projectType: 'commercial',
-    status: 'draft',
-    materials: [
-      { category: 'Membrane', productName: 'GAF EverGuard TPO 60mil (White)', quantity: 48, unit: 'rolls (10x100ft)', unitCost: 285.00, totalCost: 13680.00, supplier: 'ABC Supply - Huntsville', leadTime: '5-7 days', inStock: false },
-      { category: 'Insulation', productName: 'Polyiso Insulation Board 2.5"', quantity: 120, unit: 'sheets (4x8)', unitCost: 38.00, totalCost: 4560.00, supplier: 'ABC Supply - Huntsville', leadTime: '5-7 days', inStock: false },
-      { category: 'Adhesive', productName: 'GAF HydroStik Adhesive', quantity: 36, unit: 'pails (5gal)', unitCost: 52.00, totalCost: 1872.00, supplier: 'ABC Supply - Huntsville', leadTime: '3-5 days', inStock: true },
-      { category: 'Fasteners', productName: 'OMG RhinoBond Plates', quantity: 8, unit: 'boxes (500ct)', unitCost: 145.00, totalCost: 1160.00, supplier: 'ABC Supply - Huntsville', leadTime: '3-5 days', inStock: true },
-      { category: 'Edge Metal', productName: 'Commercial Edge Metal 24ga (10ft)', quantity: 40, unit: 'pieces', unitCost: 18.00, totalCost: 720.00, supplier: 'Beacon Roofing - Decatur', leadTime: '5-7 days', inStock: false },
-      { category: 'Termination Bar', productName: 'Aluminum Termination Bar (10ft)', quantity: 30, unit: 'pieces', unitCost: 6.50, totalCost: 195.00, supplier: 'Beacon Roofing - Decatur', leadTime: '3-5 days', inStock: true },
-      { category: 'Caulk', productName: 'GAF Commercial Sealant', quantity: 24, unit: 'tubes', unitCost: 8.00, totalCost: 192.00, supplier: 'ABC Supply - Huntsville', leadTime: '1-2 days', inStock: true },
-    ],
-    labor: [
-      { role: 'Lead Installer', hours: 40, rate: 50.00, totalCost: 2000.00, assignedTo: 'James Wilson' },
-      { role: 'Commercial Installer', hours: 120, rate: 40.00, totalCost: 4800.00, assignedTo: 'Team Alpha (3)' },
-      { role: 'Helper', hours: 80, rate: 22.00, totalCost: 1760.00, assignedTo: 'Day Labor (2)' },
-    ],
-    deliveries: [],
-    materialTotal: 22379.00,
-    laborTotal: 8560.00,
-    deliveryFees: 450.00,
-    overhead: 4708.35,
-    profit: 7219.47,
-    totalEstimate: 43316.82,
-    estimatedStartDate: '2026-03-03',
-    estimatedEndDate: '2026-03-14',
-    statusHistory: [
-      { status: 'draft', timestamp: '2026-02-09T14:00:00Z', updatedBy: 'Michael Muse', notes: 'Large commercial job - needs detailed scope review' },
-    ],
-    notes: 'Commercial flat roof replacement. 4,800 sq ft TPO. Existing EPDM tear-off required. Work during business hours only (7AM-5PM). Must coordinate crane rental for insulation delivery.',
-    createdAt: '2026-02-09T14:00:00Z',
-    updatedAt: '2026-02-09T14:00:00Z',
-    createdBy: 'Michael Muse',
-  },
-  {
-    breakdownId: 'JB-2026-0005',
-    jobId: 'JN-4528',
-    jobName: 'Davis Siding Replacement',
-    customerName: 'Patricia Davis',
-    address: { street: '812 Mountainview Dr', city: 'Madison', state: 'AL', zip: '35758' },
-    projectType: 'siding',
-    status: 'completed',
-    materials: [
-      { category: 'Siding', productName: 'James Hardie HardiePlank Lap (Arctic White)', quantity: 120, unit: 'planks (12ft)', unitCost: 12.50, totalCost: 1500.00, supplier: 'Beacon Roofing - Decatur', leadTime: '7-10 days', inStock: true },
-      { category: 'Trim', productName: 'James Hardie HardieTrim 4" (Arctic White)', quantity: 40, unit: 'pieces (12ft)', unitCost: 8.00, totalCost: 320.00, supplier: 'Beacon Roofing - Decatur', leadTime: '7-10 days', inStock: true },
-      { category: 'House Wrap', productName: 'Tyvek HomeWrap', quantity: 4, unit: 'rolls (9x150ft)', unitCost: 165.00, totalCost: 660.00, supplier: 'Home Depot Pro - Madison', leadTime: '1-2 days', inStock: true },
-      { category: 'Nails', productName: 'Stainless Steel Siding Nails', quantity: 6, unit: 'boxes (5lb)', unitCost: 18.00, totalCost: 108.00, supplier: 'Home Depot Pro - Madison', leadTime: '1 day', inStock: true },
-      { category: 'Caulk', productName: 'OSI Quad Max Caulk (White)', quantity: 24, unit: 'tubes', unitCost: 7.50, totalCost: 180.00, supplier: 'Home Depot Pro - Madison', leadTime: '1 day', inStock: true },
-      { category: 'Flashing', productName: 'Window/Door Flashing Tape', quantity: 4, unit: 'rolls', unitCost: 22.00, totalCost: 88.00, supplier: 'Beacon Roofing - Decatur', leadTime: '2-3 days', inStock: true },
-    ],
-    labor: [
-      { role: 'Lead Installer', hours: 24, rate: 45.00, totalCost: 1080.00, assignedTo: 'Danny Reeves' },
-      { role: 'Siding Installer', hours: 48, rate: 38.00, totalCost: 1824.00, assignedTo: 'Team Charlie (2)' },
-      { role: 'Helper', hours: 24, rate: 22.00, totalCost: 528.00, assignedTo: 'Day Labor' },
-    ],
-    deliveries: [
-      { deliveryId: 'DL-2026-0030', scheduledDate: '2026-01-27', materials: ['James Hardie HardiePlank Lap (Arctic White)', 'James Hardie HardieTrim 4" (Arctic White)', 'Tyvek HomeWrap'], status: 'delivered', driver: 'Marcus Johnson' },
-      { deliveryId: 'DL-2026-0031', scheduledDate: '2026-01-29', materials: ['Stainless Steel Siding Nails', 'OSI Quad Max Caulk (White)', 'Window/Door Flashing Tape'], status: 'delivered', driver: 'Carlos Rivera' },
-    ],
-    materialTotal: 2856.00,
-    laborTotal: 3432.00,
-    deliveryFees: 200.00,
-    overhead: 973.20,
-    profit: 1492.24,
-    totalEstimate: 8953.44,
-    estimatedStartDate: '2026-01-28',
-    estimatedEndDate: '2026-02-03',
-    actualStartDate: '2026-01-28',
-    actualEndDate: '2026-02-02',
-    statusHistory: [
-      { status: 'draft', timestamp: '2026-01-20T10:00:00Z', updatedBy: 'Destin', notes: 'Siding replacement - full house' },
-      { status: 'pending_approval', timestamp: '2026-01-20T16:00:00Z', updatedBy: 'Destin', notes: 'Submitted' },
-      { status: 'approved', timestamp: '2026-01-21T09:00:00Z', updatedBy: 'Sara Hill', notes: 'Approved' },
-      { status: 'in_progress', timestamp: '2026-01-28T07:00:00Z', updatedBy: 'Danny Reeves', notes: 'Started tear-off' },
-      { status: 'completed', timestamp: '2026-02-02T16:00:00Z', updatedBy: 'Danny Reeves', notes: 'Job complete - final inspection passed' },
-    ],
-    notes: 'Full house re-side with James Hardie fiber cement. Customer chose Arctic White. Remove existing vinyl siding. Preserve landscape beds during tear-off.',
-    createdAt: '2026-01-20T10:00:00Z',
-    updatedAt: '2026-02-02T16:00:00Z',
-    createdBy: 'Destin',
-    approvedBy: 'Sara Hill',
-  },
-  {
-    breakdownId: 'JB-2026-0006',
-    jobId: 'JN-4545',
-    jobName: 'Cooper Roof Repair',
-    customerName: 'William Cooper',
-    address: { street: '510 Williams Ave SE', city: 'Huntsville', state: 'AL', zip: '35801' },
-    projectType: 'roof_repair',
-    status: 'revised',
-    materials: [
-      { category: 'Shingles', productName: 'GAF Timberline HDZ (Weathered Wood)', quantity: 6, unit: 'bundles', unitCost: 38.50, totalCost: 231.00, supplier: 'ABC Supply - Huntsville', leadTime: '1-2 days', inStock: true },
-      { category: 'Plywood', productName: '4x8 CDX Plywood 1/2"', quantity: 4, unit: 'sheets', unitCost: 32.00, totalCost: 128.00, supplier: 'Home Depot Pro - Madison', leadTime: '1 day', inStock: true },
-      { category: 'Cement', productName: 'Roof Cement 10.3oz', quantity: 6, unit: 'tubes', unitCost: 6.00, totalCost: 36.00, supplier: 'Home Depot Pro - Madison', leadTime: '1 day', inStock: true },
-      { category: 'Flashing', productName: 'Step Flashing 4x4x8"', quantity: 20, unit: 'pieces', unitCost: 1.80, totalCost: 36.00, supplier: 'Beacon Roofing - Decatur', leadTime: '2-3 days', inStock: true },
-      { category: 'Underlayment', productName: 'GAF FeltBuster Synthetic', quantity: 1, unit: 'rolls', unitCost: 62.00, totalCost: 62.00, supplier: 'ABC Supply - Huntsville', leadTime: '1-2 days', inStock: true },
-      { category: 'Nails', productName: '1.25" Galvanized Roofing Nails', quantity: 1, unit: 'boxes (5lb)', unitCost: 12.50, totalCost: 12.50, supplier: 'Home Depot Pro - Madison', leadTime: '1 day', inStock: true },
-    ],
-    labor: [
-      { role: 'Lead Installer', hours: 6, rate: 45.00, totalCost: 270.00, assignedTo: 'James Wilson' },
-      { role: 'Helper', hours: 6, rate: 22.00, totalCost: 132.00, assignedTo: 'Day Labor' },
-    ],
-    deliveries: [
-      { deliveryId: 'DL-2026-0055', scheduledDate: '2026-02-12', materials: ['GAF Timberline HDZ (Weathered Wood)', '4x8 CDX Plywood 1/2"', 'Roof Cement 10.3oz', 'Step Flashing 4x4x8"', 'GAF FeltBuster Synthetic', '1.25" Galvanized Roofing Nails'], status: 'scheduled', driver: 'Marcus Johnson' },
-    ],
-    materialTotal: 505.50,
-    laborTotal: 402.00,
-    deliveryFees: 75.00,
-    overhead: 147.38,
-    profit: 225.98,
-    totalEstimate: 1355.86,
-    estimatedStartDate: '2026-02-13',
-    estimatedEndDate: '2026-02-13',
-    statusHistory: [
-      { status: 'draft', timestamp: '2026-02-07T08:00:00Z', updatedBy: 'Destin', notes: 'Leak repair - valley and 2 damaged sections' },
-      { status: 'pending_approval', timestamp: '2026-02-07T11:00:00Z', updatedBy: 'Destin', notes: 'Submitted' },
-      { status: 'approved', timestamp: '2026-02-07T14:00:00Z', updatedBy: 'Sara Hill', notes: 'Approved' },
-      { status: 'revised', timestamp: '2026-02-09T10:00:00Z', updatedBy: 'Michael Muse', notes: 'Added 2 extra sheets plywood after further inspection found additional rot' },
-    ],
-    notes: 'Leak repair in valley area + 2 damaged sections from storm. Revised after on-site inspection found additional decking rot. Original was 2 sheets plywood, now 4.',
-    createdAt: '2026-02-07T08:00:00Z',
-    updatedAt: '2026-02-09T10:00:00Z',
-    createdBy: 'Destin',
-    approvedBy: 'Sara Hill',
-  },
-];
+import { googleSheetsService, type JobBreakdownRecord } from '@/lib/google-sheets-service';
+
+/**
+ * Serialize a full JobBreakdown to a flat Google Sheets record.
+ * The full breakdown JSON is stored in materialsJson for round-trip fidelity.
+ */
+function toSheetRecord(b: JobBreakdown): JobBreakdownRecord {
+  return {
+    breakdownId: b.breakdownId,
+    jobId: b.jobId,
+    customerName: b.customerName,
+    address: `${b.address.street}, ${b.address.city}, ${b.address.state} ${b.address.zip}`,
+    rNumber: b.breakdownId,
+    salesRep: b.createdBy,
+    status: b.status,
+    materialsJson: JSON.stringify(b),
+    totals: JSON.stringify({
+      materialTotal: b.materialTotal,
+      laborTotal: b.laborTotal,
+      deliveryFees: b.deliveryFees,
+      overhead: b.overhead,
+      profit: b.profit,
+      totalEstimate: b.totalEstimate,
+    }),
+    createdAt: b.createdAt,
+    updatedAt: b.updatedAt,
+  };
+}
+
+/**
+ * Deserialize a Google Sheets record back to a full JobBreakdown.
+ */
+function fromSheetRecord(record: JobBreakdownRecord): JobBreakdown | null {
+  try {
+    if (!record.materialsJson || record.materialsJson === '[]') return null;
+    const breakdown = JSON.parse(record.materialsJson) as JobBreakdown;
+    // Keep sheet columns as source of truth for mutable fields
+    breakdown.status = (record.status || breakdown.status) as BreakdownStatus;
+    breakdown.updatedAt = record.updatedAt || breakdown.updatedAt;
+    return breakdown;
+  } catch {
+    return null;
+  }
+}
 
 // ============================================
 // SERVICE CLASS
 // ============================================
 
 class JobBreakdownService {
-  private breakdowns: JobBreakdown[] = [...MOCK_BREAKDOWNS];
-  private nextId = 7;
+  private breakdowns: JobBreakdown[] = [];
+  private nextId = 1;
+  private loaded = false;
+
+  // ── Load from Google Sheets ────────────────────────────────────────────
+
+  private async ensureLoaded(): Promise<void> {
+    if (this.loaded) return;
+    this.loaded = true;
+    try {
+      const records = await googleSheetsService.getJobBreakdowns();
+      const parsed: JobBreakdown[] = [];
+      for (const record of records) {
+        const bd = fromSheetRecord(record);
+        if (bd) parsed.push(bd);
+      }
+      this.breakdowns = parsed;
+      // Set nextId based on existing breakdown IDs
+      if (parsed.length > 0) {
+        const maxNum = parsed.reduce((max, b) => {
+          const match = b.breakdownId.match(/JB-\d+-(\d+)/);
+          return match ? Math.max(max, parseInt(match[1], 10)) : max;
+        }, 0);
+        this.nextId = maxNum + 1;
+      }
+    } catch (err) {
+      console.error('Failed to load breakdowns from Google Sheets:', err);
+      // Leave breakdowns empty - user sees empty state instead of mock data
+    }
+  }
+
+  private async persistToSheet(breakdown: JobBreakdown): Promise<void> {
+    try {
+      const record = toSheetRecord(breakdown);
+      // Try update first, then add if not found
+      const updated = await googleSheetsService.updateJobBreakdown(breakdown.breakdownId, record);
+      if (!updated) {
+        await googleSheetsService.addJobBreakdown(record);
+      }
+    } catch (err) {
+      console.error('Failed to persist breakdown to Google Sheets:', err);
+    }
+  }
 
   // ── Create ──────────────────────────────────────────────────────────────
 
-  createBreakdown(jobData: {
+  async createBreakdown(jobData: {
     jobId: string;
     jobName: string;
     customerName: string;
@@ -481,9 +302,11 @@ class JobBreakdownService {
     estimatedStartDate?: string;
     estimatedEndDate?: string;
     createdBy: string;
-  }): JobBreakdown {
+  }): Promise<JobBreakdown> {
+    await this.ensureLoaded();
     const now = new Date().toISOString();
-    const breakdownId = `JB-2026-${String(this.nextId++).padStart(4, '0')}`;
+    const year = new Date().getFullYear();
+    const breakdownId = `JB-${year}-${String(this.nextId++).padStart(4, '0')}`;
 
     const breakdown: JobBreakdown = {
       breakdownId,
@@ -515,15 +338,17 @@ class JobBreakdownService {
 
     this.calculateCosts(breakdown);
     this.breakdowns.push(breakdown);
+    await this.persistToSheet(breakdown);
     return breakdown;
   }
 
   // ── Update ──────────────────────────────────────────────────────────────
 
-  updateBreakdown(
+  async updateBreakdown(
     id: string,
     updates: Partial<Pick<JobBreakdown, 'materials' | 'labor' | 'notes' | 'estimatedStartDate' | 'estimatedEndDate' | 'deliveryFees'>>
-  ): JobBreakdown | null {
+  ): Promise<JobBreakdown | null> {
+    await this.ensureLoaded();
     const breakdown = this.breakdowns.find(b => b.breakdownId === id);
     if (!breakdown) return null;
 
@@ -536,13 +361,15 @@ class JobBreakdownService {
 
     this.calculateCosts(breakdown);
     breakdown.updatedAt = new Date().toISOString();
+    await this.persistToSheet(breakdown);
 
     return breakdown;
   }
 
   // ── Approve ─────────────────────────────────────────────────────────────
 
-  approveBreakdown(id: string, approvedBy: string): JobBreakdown | null {
+  async approveBreakdown(id: string, approvedBy: string): Promise<JobBreakdown | null> {
+    await this.ensureLoaded();
     const breakdown = this.breakdowns.find(b => b.breakdownId === id);
     if (!breakdown) return null;
     if (breakdown.status !== 'pending_approval') return null;
@@ -557,12 +384,13 @@ class JobBreakdownService {
       notes: 'Breakdown approved',
     });
 
+    await this.persistToSheet(breakdown);
     return breakdown;
   }
 
   // ── Revise ──────────────────────────────────────────────────────────────
 
-  reviseBreakdown(
+  async reviseBreakdown(
     id: string,
     revisions: {
       materials?: MaterialItem[];
@@ -571,7 +399,8 @@ class JobBreakdownService {
       revisedBy: string;
       revisionNotes: string;
     }
-  ): JobBreakdown | null {
+  ): Promise<JobBreakdown | null> {
+    await this.ensureLoaded();
     const breakdown = this.breakdowns.find(b => b.breakdownId === id);
     if (!breakdown) return null;
 
@@ -589,6 +418,7 @@ class JobBreakdownService {
     });
 
     this.calculateCosts(breakdown);
+    await this.persistToSheet(breakdown);
     return breakdown;
   }
 
@@ -931,13 +761,15 @@ class JobBreakdownService {
 
   // ── Status Management ──────────────────────────────────────────────────
 
-  getBreakdownStatus(id: string): { status: BreakdownStatus; history: StatusHistoryEntry[] } | null {
+  async getBreakdownStatus(id: string): Promise<{ status: BreakdownStatus; history: StatusHistoryEntry[] } | null> {
+    await this.ensureLoaded();
     const breakdown = this.breakdowns.find(b => b.breakdownId === id);
     if (!breakdown) return null;
     return { status: breakdown.status, history: breakdown.statusHistory };
   }
 
-  updateStatus(id: string, status: BreakdownStatus, updatedBy: string, notes: string): JobBreakdown | null {
+  async updateStatus(id: string, status: BreakdownStatus, updatedBy: string, notes: string): Promise<JobBreakdown | null> {
+    await this.ensureLoaded();
     const breakdown = this.breakdowns.find(b => b.breakdownId === id);
     if (!breakdown) return null;
 
@@ -957,12 +789,14 @@ class JobBreakdownService {
       breakdown.actualEndDate = new Date().toISOString().slice(0, 10);
     }
 
+    await this.persistToSheet(breakdown);
     return breakdown;
   }
 
   // ── Compare Breakdowns ─────────────────────────────────────────────────
 
-  compareBreakdowns(id1: string, id2: string): BreakdownComparison[] | null {
+  async compareBreakdowns(id1: string, id2: string): Promise<BreakdownComparison[] | null> {
+    await this.ensureLoaded();
     const b1 = this.breakdowns.find(b => b.breakdownId === id1);
     const b2 = this.breakdowns.find(b => b.breakdownId === id2);
     if (!b1 || !b2) return null;
@@ -1043,7 +877,8 @@ class JobBreakdownService {
 
   // ── Export ──────────────────────────────────────────────────────────────
 
-  exportBreakdown(id: string): BreakdownExport | null {
+  async exportBreakdown(id: string): Promise<BreakdownExport | null> {
+    await this.ensureLoaded();
     const b = this.breakdowns.find(bd => bd.breakdownId === id);
     if (!b) return null;
 
@@ -1078,21 +913,24 @@ class JobBreakdownService {
 
   // ── Query Methods ──────────────────────────────────────────────────────
 
-  getBreakdown(id: string): JobBreakdown | null {
+  async getBreakdown(id: string): Promise<JobBreakdown | null> {
+    await this.ensureLoaded();
     return this.breakdowns.find(b => b.breakdownId === id) || null;
   }
 
-  getBreakdownsByJob(jobId: string): JobBreakdown[] {
+  async getBreakdownsByJob(jobId: string): Promise<JobBreakdown[]> {
+    await this.ensureLoaded();
     return this.breakdowns.filter(b => b.jobId === jobId);
   }
 
-  getAllBreakdowns(filters?: {
+  async getAllBreakdowns(filters?: {
     status?: BreakdownStatus;
     projectType?: ProjectType;
     dateFrom?: string;
     dateTo?: string;
     search?: string;
-  }): JobBreakdown[] {
+  }): Promise<JobBreakdown[]> {
+    await this.ensureLoaded();
     let results = [...this.breakdowns];
     if (filters?.status) results = results.filter(b => b.status === filters.status);
     if (filters?.projectType) results = results.filter(b => b.projectType === filters.projectType);
@@ -1112,7 +950,7 @@ class JobBreakdownService {
 
   // ── Statistics ─────────────────────────────────────────────────────────
 
-  getStatistics(): {
+  async getStatistics(): Promise<{
     total: number;
     pendingApproval: number;
     activeJobs: number;
@@ -1120,7 +958,8 @@ class JobBreakdownService {
     byStatus: Record<BreakdownStatus, number>;
     byType: Record<string, number>;
     monthlyValues: { month: string; value: number }[];
-  } {
+  }> {
+    await this.ensureLoaded();
     const all = this.breakdowns;
     const byStatus: Record<BreakdownStatus, number> = {
       draft: 0, pending_approval: 0, approved: 0, in_progress: 0, completed: 0, revised: 0,
@@ -1133,14 +972,20 @@ class JobBreakdownService {
       byType[label] = (byType[label] || 0) + 1;
     });
 
-    const monthlyValues = [
-      { month: 'Sep 2025', value: 28500 },
-      { month: 'Oct 2025', value: 34200 },
-      { month: 'Nov 2025', value: 22100 },
-      { month: 'Dec 2025', value: 18900 },
-      { month: 'Jan 2026', value: 41500 },
-      { month: 'Feb 2026', value: Math.round(all.reduce((s, b) => s + b.totalEstimate, 0)) },
-    ];
+    // Compute monthly values from real breakdown data grouped by creation month
+    const monthMap = new Map<string, number>();
+    all.forEach(b => {
+      const d = new Date(b.createdAt);
+      if (!isNaN(d.getTime())) {
+        const key = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        monthMap.set(key, (monthMap.get(key) || 0) + b.totalEstimate);
+      }
+    });
+    // Sort by date and take last 6 months
+    const sortedMonths = Array.from(monthMap.entries())
+      .sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime())
+      .slice(-6)
+      .map(([month, value]) => ({ month, value: Math.round(value) }));
 
     return {
       total: all.length,
@@ -1149,7 +994,7 @@ class JobBreakdownService {
       totalValue: Math.round(all.reduce((s, b) => s + b.totalEstimate, 0) * 100) / 100,
       byStatus,
       byType,
-      monthlyValues,
+      monthlyValues: sortedMonths,
     };
   }
 
@@ -1247,7 +1092,7 @@ class JobBreakdownService {
    * Create a breakdown pre-populated from JN job data.
    * Does NOT write back to JN - purely local.
    */
-  createBreakdownFromJNJob(jnData: JNBreakdownSource): JobBreakdown {
+  async createBreakdownFromJNJob(jnData: JNBreakdownSource): Promise<JobBreakdown> {
     const { job, contact, estimates, totalEstimateValue } = jnData;
 
     // Determine customer name
@@ -1298,7 +1143,7 @@ class JobBreakdownService {
       });
     }
 
-    const breakdown = this.createBreakdown({
+    const breakdown = await this.createBreakdown({
       jobId: job.jnid,
       jobName,
       customerName,
@@ -1314,10 +1159,11 @@ class JobBreakdownService {
   // ── Backward Compatibility (for /api/breakdown/search) ─────────────────
 
   async searchBreakdowns(query: string): Promise<JobBreakdown[]> {
-    return this.getAllBreakdowns({ search: query });
+    return await this.getAllBreakdowns({ search: query });
   }
 
   async getBreakdownsByRep(salesRep: string): Promise<JobBreakdown[]> {
+    await this.ensureLoaded();
     return this.breakdowns.filter(b =>
       b.createdBy.toLowerCase().includes(salesRep.toLowerCase())
     );

@@ -187,7 +187,17 @@ class RoofReportService {
    * Store a roof measurement result as a report record.
    */
   async storeReport(
-    data: any,
+    data: {
+      generatedAt?: string;
+      address?: string;
+      lat?: number;
+      lng?: number;
+      overallConfidence?: string;
+      measurements?: Record<string, unknown>;
+      solarData?: Record<string, unknown>;
+      components?: Record<string, unknown>;
+      images?: { satellite?: string };
+    },
     leadId?: string,
     customerId?: string,
   ): Promise<RoofReportRecord> {
@@ -195,8 +205,8 @@ class RoofReportService {
     const reportId = this.generateReportId();
     const shareToken = this.generateShareToken();
 
-    const measurements = data.measurements || {};
-    const solarData = data.solarData || {};
+    const measurements = (data.measurements || {}) as Record<string, Record<string, unknown> & { primary?: string; totalFt?: number }> & { roofStyle?: string; perimeterFt?: number; pitches?: { primary?: string } };
+    const solarData = (data.solarData || {}) as Record<string, number>;
     const components = data.components || {};
 
     const record: RoofReportRecord = {
@@ -290,7 +300,7 @@ class RoofReportService {
     return `${BASE_URL}/report/${shareToken}`;
   }
 
-  private rowToRecord(row: any): RoofReportRecord {
+  private rowToRecord(row: { get(key: string): string }): RoofReportRecord {
     return {
       reportId: row.get('reportId') || '',
       generatedAt: row.get('generatedAt') || '',

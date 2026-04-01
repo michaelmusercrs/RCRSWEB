@@ -48,6 +48,42 @@ export interface HailReconPropertyReport {
   generatedAt: string;
 }
 
+/** Raw API response shape from HailRecon (varies by endpoint) */
+interface HailReconApiRawEvent {
+  date?: string;
+  event_date?: string;
+  timestamp?: string;
+  hail_size?: string | number;
+  size?: string | number;
+  magnitude?: string | number;
+  hailSize?: string | number;
+  latitude?: string | number;
+  lat?: string | number;
+  longitude?: string | number;
+  lon?: string | number;
+  lng?: string | number;
+  distance?: string | number;
+  distance_miles?: string | number;
+  source?: string;
+  location?: string;
+  city?: string;
+  county?: string;
+  state?: string;
+}
+
+interface HailReconApiResponse {
+  events?: HailReconApiRawEvent[];
+  hail_events?: HailReconApiRawEvent[];
+  results?: HailReconApiRawEvent[];
+  data?: HailReconApiRawEvent[];
+  total_storms?: number;
+  totalStorms?: number;
+  data_range?: { start?: string; end?: string };
+  startDate?: string;
+  endDate?: string;
+  [key: string]: unknown;
+}
+
 // ---------------------------------------------------------------------------
 // Cache
 // ---------------------------------------------------------------------------
@@ -223,7 +259,7 @@ class HailReconService {
    * Normalize various possible API response formats into our standard type.
    */
   private normalizeResponse(
-    data: any,
+    data: HailReconApiResponse,
     address: string,
     lat: number,
     lon: number
@@ -237,14 +273,14 @@ class HailReconService {
 
       if (Array.isArray(rawEvents)) {
         for (const evt of rawEvents) {
-          const size = parseFloat(evt.hail_size || evt.size || evt.magnitude || evt.hailSize || 0);
+          const size = parseFloat(String(evt.hail_size || evt.size || evt.magnitude || evt.hailSize || 0));
           events.push({
-            date: evt.date || evt.event_date || evt.timestamp || '',
+            date: String(evt.date || evt.event_date || evt.timestamp || ''),
             hailSize: size,
             hailSizeLabel: getHailSizeLabel(size),
-            latitude: parseFloat(evt.latitude || evt.lat || 0),
-            longitude: parseFloat(evt.longitude || evt.lon || evt.lng || 0),
-            distance: parseFloat(evt.distance || evt.distance_miles || 0),
+            latitude: parseFloat(String(evt.latitude || evt.lat || 0)),
+            longitude: parseFloat(String(evt.longitude || evt.lon || evt.lng || 0)),
+            distance: parseFloat(String(evt.distance || evt.distance_miles || 0)),
             source: evt.source || 'HailRecon',
             location: evt.location || evt.city || '',
             county: evt.county || '',

@@ -1,4 +1,4 @@
-import { GoogleSpreadsheet } from 'google-spreadsheet';
+import { GoogleSpreadsheet, GoogleSpreadsheetRow } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
 
 // Billing statuses with strict workflow progression
@@ -222,6 +222,20 @@ export interface Discrepancy {
   severity: 'low' | 'medium' | 'high';
 }
 
+export interface OfficeNotification {
+  notificationId: string;
+  eventType: string;
+  billingId: string;
+  jobId: string;
+  jobName: string;
+  message: string;
+  amount: number;
+  priority: string;
+  createdAt: string;
+  readBy: string;
+  readAt: string;
+}
+
 // Billing thresholds for automatic flagging
 const BILLING_THRESHOLDS = {
   maxDaysUnbilled: 3,           // Days before delivery becomes overdue for billing
@@ -387,7 +401,7 @@ class BillingWorkflowService {
     return billingRecord;
   }
 
-  private checkApprovalRequired(data: any, totalAmount: number, markup: number): { requiresApproval: boolean; approvalReason?: string } {
+  private checkApprovalRequired(data: { materials: BillingMaterial[] }, totalAmount: number, markup: number): { requiresApproval: boolean; approvalReason?: string } {
     const reasons: string[] = [];
 
     // Check total amount threshold
@@ -533,7 +547,7 @@ class BillingWorkflowService {
     return records;
   }
 
-  private rowToBillingRecord(row: any): BillingRecord {
+  private rowToBillingRecord(row: GoogleSpreadsheetRow): BillingRecord {
     return {
       billingId: row.get('billingId'),
       ticketId: row.get('ticketId'),
@@ -1136,7 +1150,7 @@ class BillingWorkflowService {
     });
   }
 
-  async getOfficeNotifications(unreadOnly = true): Promise<any[]> {
+  async getOfficeNotifications(unreadOnly = true): Promise<OfficeNotification[]> {
     const sheet = await this.getOrCreateSheet('Office_Notifications', []);
     const rows = await sheet.getRows();
 

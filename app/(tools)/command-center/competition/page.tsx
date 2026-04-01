@@ -222,7 +222,7 @@ export default function CompetitionPage() {
                         <span className="font-semibold text-white truncate">{rep.name}</span>
                         {i === 0 && <Flame className="h-4 w-4 text-orange-400 animate-pulse shrink-0" />}
                         {rep.gasCardEligible && (
-                          <Fuel className="h-4 w-4 text-green-400 shrink-0" title="Gas card eligible" />
+                          <span title="Gas card eligible"><Fuel className="h-4 w-4 text-green-400 shrink-0" /></span>
                         )}
                       </div>
                       {/* Tier progress bar */}

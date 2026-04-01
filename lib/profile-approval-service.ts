@@ -155,14 +155,23 @@ export const profileApprovalService = {
     edits.push(newEdit);
     await writePendingEdits(edits);
 
-    // Create notification for admins
-    await this.createNotification({
-      type: 'edit_submitted',
-      profileEditId: newEdit.id,
-      recipientEmail: 'admin@rcrsal.com',
-      recipientName: 'Admin',
-      message: `${params.userName} submitted a profile edit request for review.`,
-    });
+    // Notify Michael and Sara directly for profile edit requests
+    await Promise.all([
+      this.createNotification({
+        type: 'edit_submitted',
+        profileEditId: newEdit.id,
+        recipientEmail: 'michaelmuse@rcrsal.com',
+        recipientName: 'Michael Muse',
+        message: `${params.userName} submitted a profile edit request for review.`,
+      }),
+      this.createNotification({
+        type: 'edit_submitted',
+        profileEditId: newEdit.id,
+        recipientEmail: 'sara@rcrsal.com',
+        recipientName: 'Sara Hill',
+        message: `${params.userName} submitted a profile edit request for review.`,
+      }),
+    ]);
 
     return newEdit;
   },

@@ -4,6 +4,13 @@
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
+/** Google Maps Geocoding API address component */
+interface GoogleAddressComponent {
+  long_name: string;
+  short_name: string;
+  types: string[];
+}
+
 export interface GeocodedResult {
   lat: number;
   lng: number;
@@ -76,7 +83,7 @@ class GeocodingService {
   }
 
   // Parse Google address components into structured format
-  private parseAddressComponents(components: any[]): GeocodedResult['components'] {
+  private parseAddressComponents(components: GoogleAddressComponent[]): GeocodedResult['components'] {
     const result: GeocodedResult['components'] = {};
 
     for (const comp of components) {

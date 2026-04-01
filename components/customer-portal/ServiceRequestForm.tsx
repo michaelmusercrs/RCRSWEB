@@ -162,8 +162,9 @@ export default function ServiceRequestForm({ customerId, token }: ServiceRequest
       setPhotos([]);
 
       setTimeout(() => setSubmitted(false), 5000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to submit service request');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to submit service request';
+      setError(message);
     } finally {
       setSubmitting(false);
     }

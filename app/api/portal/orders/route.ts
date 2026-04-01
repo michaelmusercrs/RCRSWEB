@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
+import { auditLog } from '@/lib/audit-logger';
 import { deliveryPortalService } from '@/lib/delivery-portal-service';
 
 export async function GET(request: NextRequest) {
@@ -25,6 +26,7 @@ export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
     const order = await deliveryPortalService.createOrder(data);
+    auditLog('ORDER_CREATE', auth.user.email, `Created order${order?.orderId ? ' ' + order.orderId : ''}: ${data.customerName || 'unknown customer'}`, request);
     return NextResponse.json(order);
   } catch (error) {
     console.error('Error creating order:', error);
@@ -41,6 +43,7 @@ export async function PATCH(request: NextRequest) {
     const { orderId, status, assignedDriver } = data;
 
     await deliveryPortalService.updateOrderStatus(orderId, status, assignedDriver);
+    auditLog('ORDER_STATUS', auth.user.email, `Order ${orderId} status changed to ${status}${assignedDriver ? ', assigned to ' + assignedDriver : ''}`, request);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error updating order:', error);

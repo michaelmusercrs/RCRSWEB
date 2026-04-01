@@ -833,6 +833,9 @@ function WeeklyNumbersLeaderboard() {
 
   useEffect(() => {
     fetchWeeklyData();
+    // Auto-refresh every 30 seconds so leaderboard stays live
+    const interval = setInterval(fetchWeeklyData, 30_000);
+    return () => clearInterval(interval);
   }, [fetchWeeklyData]);
 
   const isCurrency = ['estimatedRevenue', 'revenueClosed'].includes(metric);
@@ -1049,6 +1052,9 @@ export default function GamificationLeaderboardPage() {
 
   useEffect(() => {
     fetchData();
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(fetchData, 30_000);
+    return () => clearInterval(interval);
   }, [fetchData]);
 
   // Derive current user's entry

@@ -42,12 +42,18 @@ export interface GeoResult {
   formattedAddress: string;
 }
 
+export interface SolarRoofSegment {
+  pitchDegrees?: number;
+  stats?: { areaMeters2?: number };
+  [key: string]: unknown;
+}
+
 export interface SolarData {
   totalArea: number;
   segments: number;
   pitchDegrees: number[];
   boundingBox: { north: number; south: number; east: number; west: number };
-  rawSegments: any[];
+  rawSegments: SolarRoofSegment[];
 }
 
 export interface CollectedImage {
@@ -87,7 +93,7 @@ export interface EngineResult {
     skylights: number;
     flashing: number;
   };
-  raw?: any;
+  raw?: Record<string, unknown>;
   error?: string;
 }
 
@@ -145,7 +151,21 @@ async function fetchImageBase64(url: string, mimeOverride?: string): Promise<str
 }
 
 /** Strip markdown fences, fix Python-isms, parse JSON robustly. */
-function parseAIJson(raw: string): any {
+/** Parsed AI measurement response - loosely typed because AI outputs vary */
+interface ParsedAIMeasurement {
+  ridges?: LineDetail[];
+  rakes?: LineDetail[];
+  valleys?: LineDetail[];
+  eaves?: LineDetail[];
+  hips?: LineDetail[];
+  pitches?: string[];
+  totalRoofAreaSqFt?: number;
+  roofStyle?: string;
+  components?: EngineResult['components'];
+  [key: string]: unknown;
+}
+
+function parseAIJson(raw: string): ParsedAIMeasurement {
   let cleaned = raw.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '');
   cleaned = cleaned
     .replace(/\bTrue\b/g, 'true')
@@ -286,7 +306,7 @@ async function runGemini(
   const MAX_RETRIES = 2;
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const parts: any[] = [{ text: prompt }];
+      const parts: Array<{ text: string } | { inline_data: { mime_type: string; data: string } }> = [{ text: prompt }];
       for (const img of images) {
         parts.push({
           inline_data: {
@@ -356,9 +376,10 @@ async function runGemini(
       if (attempt >= MAX_RETRIES) {
         return emptyResult(engineLabel, lastErr || 'All API versions failed');
       }
-    } catch (err: any) {
-      console.error(`${engineLabel} error:`, err.message);
-      return emptyResult(engineLabel, err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`${engineLabel} error:`, message);
+      return emptyResult(engineLabel, message);
     }
   }
   return emptyResult(engineLabel, 'Max retries exceeded');
@@ -373,7 +394,7 @@ async function runClaude(prompt: string, images: CollectedImage[]): Promise<Engi
   try {
     if (!ANTHROPIC_KEY) throw new Error('No Anthropic API key configured');
 
-    const content: any[] = [];
+    const content: Array<{ type: 'image'; source: { type: 'base64'; media_type: string; data: string } } | { type: 'text'; text: string }> = [];
     for (const img of images) {
       content.push({
         type: 'image',
@@ -406,7 +427,7 @@ async function runClaude(prompt: string, images: CollectedImage[]): Promise<Engi
     }
 
     const data = await res.json();
-    const text = data.content?.find((c: any) => c.type === 'text')?.text ?? '';
+    const text = data.content?.find((c: { type: string; text?: string }) => c.type === 'text')?.text ?? '';
     const parsed = parseAIJson(text);
 
     return {
@@ -422,9 +443,10 @@ async function runClaude(prompt: string, images: CollectedImage[]): Promise<Engi
       components: parsed.components ?? { vents: 0, pipes: 0, chimneys: 0, skylights: 0, flashing: 0 },
       raw: parsed,
     };
-  } catch (err: any) {
-    console.error(`${engineLabel} error:`, err.message);
-    return emptyResult(engineLabel, err.message);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`${engineLabel} error:`, message);
+    return emptyResult(engineLabel, message);
   }
 }
 
@@ -488,7 +510,7 @@ async function runVertexAI(
 
     const accessToken = await getVertexAccessToken();
 
-    const parts: any[] = [{ text: prompt }];
+    const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [{ text: prompt }];
     for (const img of images) {
       parts.push({
         inlineData: {
@@ -540,9 +562,10 @@ async function runVertexAI(
       components: parsed.components ?? { vents: 0, pipes: 0, chimneys: 0, skylights: 0, flashing: 0 },
       raw: parsed,
     };
-  } catch (err: any) {
-    console.error(`${engineLabel} error:`, err.message);
-    return emptyResult(engineLabel, err.message);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`${engineLabel} error:`, message);
+    return emptyResult(engineLabel, message);
   }
 }
 
@@ -613,9 +636,10 @@ async function runOllama(
       components: parsed.components ?? { vents: 0, pipes: 0, chimneys: 0, skylights: 0, flashing: 0 },
       raw: parsed,
     };
-  } catch (err: any) {
-    console.error(`${engineLabel} error:`, err.message);
-    return emptyResult(engineLabel, err.message);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`${engineLabel} error:`, message);
+    return emptyResult(engineLabel, message);
   }
 }
 
@@ -891,8 +915,8 @@ class RoofMeasureService {
       const data = await res.json();
 
       const segments = data.solarPotential?.roofSegmentStats ?? [];
-      const totalArea = segments.reduce((sum: number, s: any) => sum + (s.stats?.areaMeters2 ?? 0), 0);
-      const pitchDegrees = segments.map((s: any) => s.pitchDegrees ?? 0);
+      const totalArea = segments.reduce((sum: number, s: SolarRoofSegment) => sum + (s.stats?.areaMeters2 ?? 0), 0);
+      const pitchDegrees = segments.map((s: SolarRoofSegment) => s.pitchDegrees ?? 0);
       const bbox = data.solarPotential?.boundingBox ?? data.boundingBox;
 
       let boundingBox = { north: lat + 0.0003, south: lat - 0.0003, east: lng + 0.0004, west: lng - 0.0004 };
@@ -1147,7 +1171,11 @@ class RoofMeasureService {
    * Save measurement result to Google Sheets via roof-report-service.
    */
   async saveMeasurement(result: MeasurementResult, leadId?: string): Promise<string> {
-    const record = await roofReportService.storeReport(result, leadId);
+    // Cast needed: MeasurementResult has typed fields while storeReport accepts loose Records
+    const record = await roofReportService.storeReport(
+      result as unknown as Parameters<typeof roofReportService.storeReport>[0],
+      leadId
+    );
     return record.reportId;
   }
 

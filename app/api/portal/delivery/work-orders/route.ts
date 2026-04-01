@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
+import { auditLog } from '@/lib/audit-logger';
 import {
   workOrderService,
   WorkOrderStatus,
@@ -99,6 +100,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: 'Validation failed', errors: result.errors }, { status: 400 });
         }
 
+        auditLog('WORK_ORDER_CREATE', auth.user.email, `Created work order ${result.workOrder?.workOrderId || 'unknown'} for ${data.customerName || 'unknown'} (type: ${data.type || 'N/A'})`, request);
         return NextResponse.json({ success: true, workOrder: result.workOrder }, { status: 201 });
       }
 
@@ -119,6 +121,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: result.error }, { status: 400 });
         }
 
+        auditLog('WORK_ORDER_STATUS', auth.user.email, `Work order ${data.workOrderId} status changed to ${data.status}${data.notes ? ': ' + data.notes : ''}`, request);
         return NextResponse.json({ success: true, workOrder: result.workOrder });
       }
 
@@ -199,6 +202,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: result.error }, { status: 400 });
         }
 
+        auditLog('WORK_ORDER_APPROVE', auth.user.email, `Approved work order ${data.workOrderId}`, request);
         return NextResponse.json({ success: true });
       }
 
@@ -223,6 +227,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: result.error }, { status: 400 });
         }
 
+        auditLog('WORK_ORDER_SCHEDULE', auth.user.email, `Scheduled work order ${data.workOrderId} for ${data.scheduledDate} ${data.scheduledTime}${data.driverName ? ', driver: ' + data.driverName : ''}`, request);
         return NextResponse.json({ success: true });
       }
 
@@ -242,6 +247,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: result.error }, { status: 400 });
         }
 
+        auditLog('WORK_ORDER_ASSIGN', auth.user.email, `Assigned driver ${data.driverName} to work order ${data.workOrderId}`, request);
         return NextResponse.json({ success: true });
       }
 

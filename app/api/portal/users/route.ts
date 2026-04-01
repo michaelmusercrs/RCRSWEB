@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, requireAdmin } from '@/lib/auth-service';
+import { auditLog } from '@/lib/audit-logger';
 import { portalAuthService, UserRole } from '@/lib/portal-auth';
 import { checkRequestSize } from '@/lib/request-size-limit';
 
@@ -53,6 +54,8 @@ export async function POST(request: NextRequest) {
           createdBy: data.createdBy || 'system',
         });
 
+        auditLog('USER_CREATE', auth.user.email, `Created user ${data.name} (${data.email}) with role ${data.role}`, request);
+
         return NextResponse.json({
           success: true,
           user: {
@@ -72,6 +75,7 @@ export async function POST(request: NextRequest) {
           data.userId,
           data.generatedBy || 'system'
         );
+        auditLog('USER_PASSCODE_RESET', auth.user.email, `Generated new temp passcode for user ${data.userId}`, request);
         return NextResponse.json({
           success: true,
           tempPasscode: passcode,
@@ -84,6 +88,7 @@ export async function POST(request: NextRequest) {
           data.userId,
           data.resetBy || 'system'
         );
+        auditLog('USER_PIN_RESET', auth.user.email, `Reset PIN for user ${data.userId}`, request);
         return NextResponse.json({
           success: true,
           pin: newPin,
@@ -97,6 +102,7 @@ export async function POST(request: NextRequest) {
           { status: data.status },
           data.updatedBy || 'system'
         );
+        auditLog('USER_STATUS', auth.user.email, `Changed user ${data.userId} status to ${data.status}`, request);
         return NextResponse.json({ success: true, message: 'User status updated' });
       }
 
@@ -106,6 +112,7 @@ export async function POST(request: NextRequest) {
           { role: data.role },
           data.updatedBy || 'system'
         );
+        auditLog('USER_ROLE', auth.user.email, `Changed user ${data.userId} role to ${data.role}`, request);
         return NextResponse.json({ success: true, message: 'User role updated' });
       }
 
@@ -141,6 +148,7 @@ export async function PATCH(request: NextRequest) {
     delete updates.tempPasscodeExpiry;
 
     await portalAuthService.updateUser(userId, updates, updatedBy || 'system');
+    auditLog('USER_UPDATE', auth.user.email, `Updated user ${userId}: ${Object.keys(updates).join(', ')}`, request);
     return NextResponse.json({ success: true, message: 'User updated' });
   } catch (error) {
     console.error('Users API PATCH error:', error);

@@ -25,40 +25,156 @@
     "hundredKRule": "Any rep hitting $100K approved March sales also wins the grand prize."
   },
   "rounds": [
-    { "round": 1, "name": "First Round", "weekStart": "2026-03-16", "weekEnd": "2026-03-22", "status": "active" },
-    { "round": 2, "name": "Semifinals", "weekStart": "2026-03-23", "weekEnd": "2026-03-29", "status": "upcoming" },
-    { "round": 3, "name": "Championship", "weekStart": "2026-03-30", "weekEnd": "2026-04-05", "status": "upcoming" }
+    {
+      "round": 1,
+      "name": "First Round",
+      "weekStart": "2026-03-16",
+      "weekEnd": "2026-03-22",
+      "status": "active"
+    },
+    {
+      "round": 2,
+      "name": "Semifinals",
+      "weekStart": "2026-03-23",
+      "weekEnd": "2026-03-29",
+      "status": "upcoming"
+    },
+    {
+      "round": 3,
+      "name": "Championship",
+      "weekStart": "2026-03-30",
+      "weekEnd": "2026-04-05",
+      "status": "upcoming"
+    }
   ],
   "participants": [
-    { "seed": 1, "name": "Aaron Lussi", "slug": "aaron-lussi", "ytdSales": 132650, "nickname": "Roof Angel" },
-    { "seed": 2, "name": "Greg Muse", "slug": "greg-muse", "ytdSales": 393000, "nickname": "Big G" },
-    { "seed": 3, "name": "Hunter Rivers", "slug": "hunter-rivers", "ytdSales": 305650, "nickname": "The Hunter" },
-    { "seed": 4, "name": "Adam Rudell", "slug": "adam-rudell", "ytdSales": 110000, "nickname": "Rudy" },
-    { "seed": 5, "name": "Travis Wages", "slug": "travis-wages", "ytdSales": 47500, "nickname": "T-Money" },
-    { "seed": 6, "name": "Brendon Muse", "slug": "brendon-muse", "ytdSales": 163400, "nickname": "BCM" },
-    { "seed": 7, "name": "Alijah", "slug": "alijah", "ytdSales": 15000, "nickname": "Alijah" }
+    {
+      "seed": 1,
+      "name": "Aaron Lussi",
+      "slug": "aaron-lussi",
+      "ytdSales": 203150,
+      "nickname": "Roof Angel"
+    },
+    {
+      "seed": 2,
+      "name": "Greg Muse",
+      "slug": "greg-muse",
+      "ytdSales": 550000,
+      "nickname": "Big G"
+    },
+    {
+      "seed": 3,
+      "name": "Hunter Rivers",
+      "slug": "hunter-rivers",
+      "ytdSales": 368150,
+      "nickname": "The Hunter"
+    },
+    {
+      "seed": 4,
+      "name": "Adam Rudell",
+      "slug": "adam-rudell",
+      "ytdSales": 0,
+      "nickname": "Rudy"
+    },
+    {
+      "seed": 5,
+      "name": "Travis Wages",
+      "slug": "travis-wages",
+      "ytdSales": 47500,
+      "nickname": "T-Money"
+    },
+    {
+      "seed": 6,
+      "name": "Brendon Muse",
+      "slug": "brendon-muse",
+      "ytdSales": 181400,
+      "nickname": "BCM"
+    },
+    {
+      "seed": 7,
+      "name": "Alijah",
+      "slug": "alijah",
+      "ytdSales": 135000,
+      "nickname": "Alijah"
+    }
   ],
   "bracket": {
     "round1": [
       {
         "matchId": "R1-M1",
-        "topSeed": { "seed": 1, "name": "Aaron Lussi", "slug": "aaron-lussi", "weekSales": 0, "carryForward": 0, "effectiveTotal": 0, "winner": false },
+        "topSeed": {
+          "seed": 1,
+          "name": "Aaron Lussi",
+          "slug": "aaron-lussi",
+          "weekSales": 0,
+          "carryForward": 0,
+          "effectiveTotal": 0,
+          "winner": false
+        },
         "bottomSeed": null
       },
       {
         "matchId": "R1-M2",
-        "topSeed": { "seed": 4, "name": "Adam Rudell", "slug": "adam-rudell", "weekSales": 0, "carryForward": 0, "effectiveTotal": 0, "winner": false },
-        "bottomSeed": { "seed": 5, "name": "Travis Wages", "slug": "travis-wages", "weekSales": 0, "carryForward": 0, "effectiveTotal": 0, "winner": false }
+        "topSeed": {
+          "seed": 4,
+          "name": "Adam Rudell",
+          "slug": "adam-rudell",
+          "weekSales": 0,
+          "carryForward": 0,
+          "effectiveTotal": 0,
+          "winner": false
+        },
+        "bottomSeed": {
+          "seed": 5,
+          "name": "Travis Wages",
+          "slug": "travis-wages",
+          "weekSales": 0,
+          "carryForward": 0,
+          "effectiveTotal": 0,
+          "winner": false
+        }
       },
       {
         "matchId": "R1-M3",
-        "topSeed": { "seed": 3, "name": "Hunter Rivers", "slug": "hunter-rivers", "weekSales": 0, "carryForward": 0, "effectiveTotal": 0, "winner": false },
-        "bottomSeed": { "seed": 6, "name": "Brendon Muse", "slug": "brendon-muse", "weekSales": 0, "carryForward": 0, "effectiveTotal": 0, "winner": false }
+        "topSeed": {
+          "seed": 3,
+          "name": "Hunter Rivers",
+          "slug": "hunter-rivers",
+          "weekSales": 0,
+          "carryForward": 0,
+          "effectiveTotal": 0,
+          "winner": false
+        },
+        "bottomSeed": {
+          "seed": 6,
+          "name": "Brendon Muse",
+          "slug": "brendon-muse",
+          "weekSales": 0,
+          "carryForward": 0,
+          "effectiveTotal": 0,
+          "winner": false
+        }
       },
       {
         "matchId": "R1-M4",
-        "topSeed": { "seed": 7, "name": "Alijah", "slug": "alijah", "weekSales": 0, "carryForward": 0, "effectiveTotal": 0, "winner": false },
-        "bottomSeed": { "seed": 2, "name": "Greg Muse", "slug": "greg-muse", "weekSales": 0, "carryForward": 0, "effectiveTotal": 0, "winner": false }
+        "topSeed": {
+          "seed": 7,
+          "name": "Alijah",
+          "slug": "alijah",
+          "weekSales": 0,
+          "carryForward": 0,
+          "effectiveTotal": 0,
+          "winner": false
+        },
+        "bottomSeed": {
+          "seed": 2,
+          "name": "Greg Muse",
+          "slug": "greg-muse",
+          "weekSales": 0,
+          "carryForward": 0,
+          "effectiveTotal": 0,
+          "winner": false
+        }
       }
     ],
     "round2": [],
@@ -66,62 +182,203 @@
   },
   "demo": {
     "enabled": true,
-    "label": "Demo: Past 3 Weeks (Mar 2-22) — Real Data",
+    "label": "Demo: Past 3 Weeks (Mar 2-22) \u2014 Real Data",
     "description": "Shows how the bracket played out using actual approved job sales from the past 3 weeks. Toggle to see the live tournament starting Mon 3/30.",
     "participants": [
-      { "seed": 1, "name": "Greg Muse", "ytdSales": 393000, "nickname": "Big G" },
-      { "seed": 2, "name": "Hunter Rivers", "ytdSales": 305650, "nickname": "The Hunter" },
-      { "seed": 3, "name": "Brendon Muse", "ytdSales": 163400, "nickname": "BCM" },
-      { "seed": 4, "name": "Aaron Lussi", "ytdSales": 132650, "nickname": "Roof Angel" },
-      { "seed": 5, "name": "Adam Rudell", "ytdSales": 110000, "nickname": "Rudy" },
-      { "seed": 6, "name": "Travis Wages", "ytdSales": 47500, "nickname": "T-Money" },
-      { "seed": 7, "name": "Joseph Dowd", "ytdSales": 18000, "nickname": "JD" }
+      {
+        "seed": 1,
+        "name": "Greg Muse",
+        "ytdSales": 550000,
+        "nickname": "Big G"
+      },
+      {
+        "seed": 2,
+        "name": "Hunter Rivers",
+        "ytdSales": 368150,
+        "nickname": "The Hunter"
+      },
+      {
+        "seed": 3,
+        "name": "Brendon Muse",
+        "ytdSales": 181400,
+        "nickname": "BCM"
+      },
+      {
+        "seed": 4,
+        "name": "Aaron Lussi",
+        "ytdSales": 203150,
+        "nickname": "Roof Angel"
+      },
+      {
+        "seed": 5,
+        "name": "Adam Rudell",
+        "ytdSales": 0,
+        "nickname": "Rudy"
+      },
+      {
+        "seed": 6,
+        "name": "Travis Wages",
+        "ytdSales": 47500,
+        "nickname": "T-Money"
+      },
+      {
+        "seed": 7,
+        "name": "Joseph Dowd",
+        "ytdSales": 36000,
+        "nickname": "JD"
+      }
     ],
     "rounds": [
-      { "round": 1, "name": "First Round", "week": "Mar 2-8", "status": "completed" },
-      { "round": 2, "name": "Semifinals", "week": "Mar 9-15", "status": "completed" },
-      { "round": 3, "name": "Championship", "week": "Mar 16-22", "status": "completed" }
+      {
+        "round": 1,
+        "name": "First Round",
+        "week": "Mar 2-8",
+        "status": "completed"
+      },
+      {
+        "round": 2,
+        "name": "Semifinals",
+        "week": "Mar 9-15",
+        "status": "completed"
+      },
+      {
+        "round": 3,
+        "name": "Championship",
+        "week": "Mar 16-22",
+        "status": "completed"
+      }
     ],
     "bracket": {
       "round1": [
         {
           "matchId": "D-R1-M1",
-          "topSeed": { "seed": 1, "name": "Greg Muse", "weekSales": 40000, "carryForward": 0, "effectiveTotal": 40000, "winner": true },
+          "topSeed": {
+            "seed": 1,
+            "name": "Greg Muse",
+            "weekSales": 40000,
+            "carryForward": 0,
+            "effectiveTotal": 40000,
+            "winner": true
+          },
           "bottomSeed": null
         },
         {
           "matchId": "D-R1-M2",
-          "topSeed": { "seed": 4, "name": "Aaron Lussi", "weekSales": 2300, "carryForward": 0, "effectiveTotal": 2300, "winner": true },
-          "bottomSeed": { "seed": 5, "name": "Adam Rudell", "weekSales": 0, "carryForward": 0, "effectiveTotal": 0, "winner": false }
+          "topSeed": {
+            "seed": 4,
+            "name": "Aaron Lussi",
+            "weekSales": 2300,
+            "carryForward": 0,
+            "effectiveTotal": 2300,
+            "winner": true
+          },
+          "bottomSeed": {
+            "seed": 5,
+            "name": "Adam Rudell",
+            "weekSales": 0,
+            "carryForward": 0,
+            "effectiveTotal": 0,
+            "winner": false
+          }
         },
         {
           "matchId": "D-R1-M3",
-          "topSeed": { "seed": 3, "name": "Brendon Muse", "weekSales": 35000, "carryForward": 0, "effectiveTotal": 35000, "winner": true },
-          "bottomSeed": { "seed": 6, "name": "Travis Wages", "weekSales": 0, "carryForward": 0, "effectiveTotal": 0, "winner": false }
+          "topSeed": {
+            "seed": 3,
+            "name": "Brendon Muse",
+            "weekSales": 35000,
+            "carryForward": 0,
+            "effectiveTotal": 35000,
+            "winner": true
+          },
+          "bottomSeed": {
+            "seed": 6,
+            "name": "Travis Wages",
+            "weekSales": 0,
+            "carryForward": 0,
+            "effectiveTotal": 0,
+            "winner": false
+          }
         },
         {
           "matchId": "D-R1-M4",
-          "topSeed": { "seed": 2, "name": "Hunter Rivers", "weekSales": 60000, "carryForward": 0, "effectiveTotal": 60000, "winner": true },
-          "bottomSeed": { "seed": 7, "name": "Joseph Dowd", "weekSales": 0, "carryForward": 0, "effectiveTotal": 0, "winner": false }
+          "topSeed": {
+            "seed": 2,
+            "name": "Hunter Rivers",
+            "weekSales": 60000,
+            "carryForward": 0,
+            "effectiveTotal": 60000,
+            "winner": true
+          },
+          "bottomSeed": {
+            "seed": 7,
+            "name": "Joseph Dowd",
+            "weekSales": 0,
+            "carryForward": 0,
+            "effectiveTotal": 0,
+            "winner": false
+          }
         }
       ],
       "round2": [
         {
           "matchId": "D-R2-M1",
-          "topSeed": { "seed": 1, "name": "Greg Muse", "weekSales": 80000, "carryForward": 20000, "effectiveTotal": 100000, "winner": true },
-          "bottomSeed": { "seed": 4, "name": "Aaron Lussi", "weekSales": 3250, "carryForward": 1150, "effectiveTotal": 4400, "winner": false }
+          "topSeed": {
+            "seed": 1,
+            "name": "Greg Muse",
+            "weekSales": 80000,
+            "carryForward": 20000,
+            "effectiveTotal": 100000,
+            "winner": true
+          },
+          "bottomSeed": {
+            "seed": 4,
+            "name": "Aaron Lussi",
+            "weekSales": 3250,
+            "carryForward": 1150,
+            "effectiveTotal": 4400,
+            "winner": false
+          }
         },
         {
           "matchId": "D-R2-M2",
-          "topSeed": { "seed": 3, "name": "Brendon Muse", "weekSales": 70000, "carryForward": 17500, "effectiveTotal": 87500, "winner": false },
-          "bottomSeed": { "seed": 2, "name": "Hunter Rivers", "weekSales": 80500, "carryForward": 30000, "effectiveTotal": 110500, "winner": true }
+          "topSeed": {
+            "seed": 3,
+            "name": "Brendon Muse",
+            "weekSales": 70000,
+            "carryForward": 17500,
+            "effectiveTotal": 87500,
+            "winner": false
+          },
+          "bottomSeed": {
+            "seed": 2,
+            "name": "Hunter Rivers",
+            "weekSales": 80500,
+            "carryForward": 30000,
+            "effectiveTotal": 110500,
+            "winner": true
+          }
         }
       ],
       "round3": [
         {
           "matchId": "D-R3-M1",
-          "topSeed": { "seed": 1, "name": "Greg Muse", "weekSales": 75000, "carryForward": 40000, "effectiveTotal": 115000, "winner": true },
-          "bottomSeed": { "seed": 2, "name": "Hunter Rivers", "weekSales": 70000, "carryForward": 40250, "effectiveTotal": 110250, "winner": false }
+          "topSeed": {
+            "seed": 1,
+            "name": "Greg Muse",
+            "weekSales": 75000,
+            "carryForward": 40000,
+            "effectiveTotal": 115000,
+            "winner": true
+          },
+          "bottomSeed": {
+            "seed": 2,
+            "name": "Hunter Rivers",
+            "weekSales": 70000,
+            "carryForward": 40250,
+            "effectiveTotal": 110250,
+            "winner": false
+          }
         }
       ]
     },
@@ -130,8 +387,8 @@
   "champion": null,
   "prizes": {
     "champion": "10/22 with Suppressor",
-    "topNonChampion": ".22LR Wrangler Revolver — top-performing rep who does NOT win the championship",
+    "topNonChampion": ".22LR Wrangler Revolver \u2014 top-performing rep who does NOT win the championship",
     "hundredK": "Sell $100K in approved March sales = automatically win a .22LR Wrangler Revolver",
-    "note": "All firearms prizes — winner completes legal paperwork at FFL dealer"
+    "note": "All firearms prizes \u2014 winner completes legal paperwork at FFL dealer"
   }
 }

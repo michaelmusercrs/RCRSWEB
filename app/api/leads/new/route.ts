@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { RateLimiter, withRateLimit } from '@/lib/rate-limiter';
 import { requireAuth } from '@/lib/auth-service';
+import { auditLog } from '@/lib/audit-logger';
 import { portalGenerator, LeadData } from '@/lib/portal-generator';
 import { leadPortalService } from '@/lib/lead-portal-service';
 import { teamMembers } from '@/lib/teamData';
@@ -27,8 +28,9 @@ const leadRateLimiter = new RateLimiter({
   message: 'Too many lead submissions. Please wait a minute before trying again.',
 }, 'leads-new');
 
-// Office staff who receive new lead notifications
+// Office staff + Michael who receive new lead notifications
 const OFFICE_NOTIFY_EMAILS = [
+  'michaelmuse@rcrsal.com',
   'sara@rcrsal.com',
   'destin@rcrsal.com',
   'tia@rcrsal.com',
@@ -484,6 +486,8 @@ export async function POST(request: NextRequest) {
 
     // Fire all office notifications without blocking response
     Promise.allSettled(officeNotifyPromises).catch(() => {});
+
+    auditLog('LEAD_CREATE', body.email, `New lead: ${body.name} (${body.source}), address: ${body.address || 'N/A'}`, request);
 
     return NextResponse.json({
       success: true,

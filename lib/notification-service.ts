@@ -14,11 +14,22 @@
  *   3. Admin defaults (company-wide baseline)
  */
 
+import { GoogleSpreadsheet } from 'google-spreadsheet';
 import { emailService } from './email-service';
 import { groupMeService, getGroupMeConfigFromEnv } from './groupme-service';
 import { smsService } from './sms-service';
 import { googleSheetsService } from './google-sheets-service';
 import { teamMembers } from './teamData';
+
+/** Accessor for the private doc on googleSheetsService (non-null after init() returns true) */
+type SheetsServiceWithDoc = { doc: GoogleSpreadsheet };
+
+/** Google Sheets row accessor with .get() method */
+interface SheetRow {
+  get(key: string): string;
+  set(key: string, value: string): void;
+  save(): Promise<void>;
+}
 
 // =============================================================================
 // TYPES
@@ -293,7 +304,7 @@ class NotificationService {
       const initialized = await googleSheetsService.init();
       if (!initialized) throw new Error('Sheets not available');
 
-      const doc = (googleSheetsService as any).doc;
+      const doc = (googleSheetsService as unknown as SheetsServiceWithDoc).doc;
       if (!doc) throw new Error('Sheets doc not available');
 
       let sheet = doc.sheetsByTitle[NOTIF_ADMIN_SHEET];
@@ -368,7 +379,7 @@ class NotificationService {
       const initialized = await googleSheetsService.init();
       if (!initialized) return { success: false, error: 'Google Sheets not available' };
 
-      const doc = (googleSheetsService as any).doc;
+      const doc = (googleSheetsService as unknown as SheetsServiceWithDoc).doc;
       let sheet = doc.sheetsByTitle[NOTIF_ADMIN_SHEET];
       if (!sheet) {
         sheet = await doc.addSheet({ title: NOTIF_ADMIN_SHEET, headerValues: ADMIN_HEADERS });
@@ -379,7 +390,7 @@ class NotificationService {
       const now = new Date().toISOString();
 
       // Update or create preferences row
-      let prefRow = rows.find((r: any) => r.get('configKey') === 'preferences');
+      let prefRow = rows.find((r: SheetRow) => r.get('configKey') === 'preferences');
       if (prefRow) {
         prefRow.set('configValue', JSON.stringify(preferences));
         prefRow.set('updatedAt', now);
@@ -395,7 +406,7 @@ class NotificationService {
       }
 
       // Update or create timing row
-      let timingRow = rows.find((r: any) => r.get('configKey') === 'reminderTiming');
+      let timingRow = rows.find((r: SheetRow) => r.get('configKey') === 'reminderTiming');
       if (timingRow) {
         timingRow.set('configValue', JSON.stringify(reminderTiming));
         timingRow.set('updatedAt', now);
@@ -433,13 +444,13 @@ class NotificationService {
       const initialized = await googleSheetsService.init();
       if (!initialized) return null;
 
-      const doc = (googleSheetsService as any).doc;
+      const doc = (googleSheetsService as unknown as SheetsServiceWithDoc).doc;
       const sheet = doc.sheetsByTitle[NOTIF_REP_SHEET];
       if (!sheet) return null;
 
       await sheet.loadHeaderRow();
       const rows = await sheet.getRows();
-      const row = rows.find((r: any) => r.get('repSlug') === repSlug);
+      const row = rows.find((r: SheetRow) => r.get('repSlug') === repSlug);
 
       if (!row) {
         setCache(cacheKey, null);
@@ -474,15 +485,15 @@ class NotificationService {
       const initialized = await googleSheetsService.init();
       if (!initialized) return [];
 
-      const doc = (googleSheetsService as any).doc;
+      const doc = (googleSheetsService as unknown as SheetsServiceWithDoc).doc;
       const sheet = doc.sheetsByTitle[NOTIF_REP_SHEET];
       if (!sheet) return [];
 
       await sheet.loadHeaderRow();
       const rows = await sheet.getRows();
-      return rows.map((row: any) => {
+      return rows.map((row: SheetRow) => {
         const override: RepNotificationOverride = {
-          repSlug: row.get('repSlug'),
+          repSlug: row.get('repSlug') || '',
           repName: row.get('repName') || '',
           overrides: JSON.parse(row.get('overridesJson') || '{}'),
           updatedAt: row.get('updatedAt') || '',
@@ -512,7 +523,7 @@ class NotificationService {
       const initialized = await googleSheetsService.init();
       if (!initialized) return { success: false, error: 'Google Sheets not available' };
 
-      const doc = (googleSheetsService as any).doc;
+      const doc = (googleSheetsService as unknown as SheetsServiceWithDoc).doc;
       let sheet = doc.sheetsByTitle[NOTIF_REP_SHEET];
       if (!sheet) {
         sheet = await doc.addSheet({ title: NOTIF_REP_SHEET, headerValues: REP_HEADERS });
@@ -520,7 +531,7 @@ class NotificationService {
 
       await sheet.loadHeaderRow();
       const rows = await sheet.getRows();
-      const existingRow = rows.find((r: any) => r.get('repSlug') === repSlug);
+      const existingRow = rows.find((r: SheetRow) => r.get('repSlug') === repSlug);
       const now = new Date().toISOString();
 
       if (existingRow) {
@@ -561,13 +572,13 @@ class NotificationService {
       const initialized = await googleSheetsService.init();
       if (!initialized) return null;
 
-      const doc = (googleSheetsService as any).doc;
+      const doc = (googleSheetsService as unknown as SheetsServiceWithDoc).doc;
       const sheet = doc.sheetsByTitle[NOTIF_CUSTOMER_SHEET];
       if (!sheet) return null;
 
       await sheet.loadHeaderRow();
       const rows = await sheet.getRows();
-      const row = rows.find((r: any) => r.get('customerId') === customerId);
+      const row = rows.find((r: SheetRow) => r.get('customerId') === customerId);
 
       if (!row) {
         setCache(cacheKey, null);
@@ -603,17 +614,17 @@ class NotificationService {
       const initialized = await googleSheetsService.init();
       if (!initialized) return [];
 
-      const doc = (googleSheetsService as any).doc;
+      const doc = (googleSheetsService as unknown as SheetsServiceWithDoc).doc;
       const sheet = doc.sheetsByTitle[NOTIF_CUSTOMER_SHEET];
       if (!sheet) return [];
 
       await sheet.loadHeaderRow();
       const rows = await sheet.getRows();
       return rows
-        .filter((r: any) => r.get('repSlug') === repSlug)
-        .map((row: any) => {
+        .filter((r: SheetRow) => r.get('repSlug') === repSlug)
+        .map((row: SheetRow) => {
           const override: CustomerNotificationOverride = {
-            customerId: row.get('customerId'),
+            customerId: row.get('customerId') || '',
             customerName: row.get('customerName') || '',
             repSlug: row.get('repSlug') || '',
             overrides: JSON.parse(row.get('overridesJson') || '{}'),
@@ -645,7 +656,7 @@ class NotificationService {
       const initialized = await googleSheetsService.init();
       if (!initialized) return { success: false, error: 'Google Sheets not available' };
 
-      const doc = (googleSheetsService as any).doc;
+      const doc = (googleSheetsService as unknown as SheetsServiceWithDoc).doc;
       let sheet = doc.sheetsByTitle[NOTIF_CUSTOMER_SHEET];
       if (!sheet) {
         sheet = await doc.addSheet({ title: NOTIF_CUSTOMER_SHEET, headerValues: CUSTOMER_HEADERS });
@@ -653,7 +664,7 @@ class NotificationService {
 
       await sheet.loadHeaderRow();
       const rows = await sheet.getRows();
-      const existingRow = rows.find((r: any) => r.get('customerId') === customerId);
+      const existingRow = rows.find((r: SheetRow) => r.get('customerId') === customerId);
       const now = new Date().toISOString();
 
       if (existingRow) {
@@ -925,7 +936,7 @@ class NotificationService {
     try {
       const initialized = await googleSheetsService.init();
       if (initialized) {
-        const doc = (googleSheetsService as any).doc;
+        const doc = (googleSheetsService as unknown as SheetsServiceWithDoc).doc;
         let sheet = doc.sheetsByTitle[NOTIF_INBOX_SHEET];
         if (!sheet) {
           sheet = await doc.addSheet({ title: NOTIF_INBOX_SHEET, headerValues: INBOX_HEADERS });
@@ -963,15 +974,15 @@ class NotificationService {
     try {
       const initialized = await googleSheetsService.init();
       if (initialized) {
-        const doc = (googleSheetsService as any).doc;
+        const doc = (googleSheetsService as unknown as SheetsServiceWithDoc).doc;
         const sheet = doc.sheetsByTitle[NOTIF_INBOX_SHEET];
         if (!sheet) return [];
 
         await sheet.loadHeaderRow();
         const rows = await sheet.getRows();
         let notifications: InAppNotification[] = rows
-          .filter((r: any) => r.get('recipientId') === recipientId)
-          .map((r: any) => ({
+          .filter((r: SheetRow) => r.get('recipientId') === recipientId)
+          .map((r: SheetRow) => ({
             id: r.get('notificationId'),
             recipientId: r.get('recipientId'),
             recipientType: r.get('recipientType') as 'rep' | 'customer',
@@ -1019,12 +1030,12 @@ class NotificationService {
     try {
       const initialized = await googleSheetsService.init();
       if (initialized) {
-        const doc = (googleSheetsService as any).doc;
+        const doc = (googleSheetsService as unknown as SheetsServiceWithDoc).doc;
         const sheet = doc.sheetsByTitle[NOTIF_INBOX_SHEET];
         if (sheet) {
           await sheet.loadHeaderRow();
           const rows = await sheet.getRows();
-          const row = rows.find((r: any) => r.get('notificationId') === notificationId);
+          const row = rows.find((r: SheetRow) => r.get('notificationId') === notificationId);
           if (row) {
             row.set('read', 'true');
             await row.save();
@@ -1054,7 +1065,7 @@ class NotificationService {
     try {
       const initialized = await googleSheetsService.init();
       if (initialized) {
-        const doc = (googleSheetsService as any).doc;
+        const doc = (googleSheetsService as unknown as SheetsServiceWithDoc).doc;
         const sheet = doc.sheetsByTitle[NOTIF_INBOX_SHEET];
         if (sheet) {
           await sheet.loadHeaderRow();

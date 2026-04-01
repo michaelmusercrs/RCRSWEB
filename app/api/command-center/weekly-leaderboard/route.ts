@@ -11,9 +11,9 @@
  *   &endDate=2026-03-15    (required for period=custom, format YYYY-MM-DD)
  */
 
-import { readFileSync } from 'fs';
-import * as path from 'path';
 import { NextRequest, NextResponse } from 'next/server';
+import { meetingNumbersService } from '@/lib/meeting-numbers-service';
+import { validateSession } from '@/lib/auth-service';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -54,7 +54,7 @@ const METRIC_LABELS: Record<string, string> = {
   signed: 'Signed',
   repair: 'Repair',
   gutter: 'Gutter',
-  revenue: '$$$$$',
+  revenue: '$$$$$ (Accrual Est.)',
   approved: 'Approved',
   goal: 'Goal',
   referrals: 'Referrals',
@@ -215,17 +215,26 @@ function extractMetricValue(record: MeetingRecord, metricKey: string): number {
 // ---------------------------------------------------------------------------
 
 function loadMeetingData(): MeetingRecord[] {
-  // Load ALL years of real meeting data (3,058 records, 2019-2026)
-  const allPath = path.join(process.cwd(), 'data', 'meeting-numbers-all.json');
-  try {
-    const raw = readFileSync(allPath, 'utf-8');
-    return JSON.parse(raw) as MeetingRecord[];
-  } catch {
-    // Fallback to 2026-only if combined file not found
-    const filePath = path.join(process.cwd(), 'data', 'meeting-numbers-2026.json');
-    const raw = readFileSync(filePath, 'utf-8');
-    return JSON.parse(raw) as MeetingRecord[];
-  }
+  // Use meetingNumbersService which auto-syncs from Google Sheets every 5 min
+  const records = meetingNumbersService.loadAllData();
+  // Map back to raw format expected by this API
+  return records.map(r => ({
+    meetingDate: r.meetingDate,
+    tabName: '',
+    repName: r.repName,
+    Inspected: String(r.inspected),
+    Damage: String(r.damage),
+    Signed: String(r.signed),
+    Repair: String(r.repair),
+    Gutter: String(r.gutter),
+    '$$$$$': String(r.revenue),
+    Approved: String(r.approved),
+    Goal: String(r.goal),
+    Referrals: String(r.referrals),
+    Agents: String(r.agents),
+    Present: r.present,
+    'Home Show': String(r.homeShow),
+  }));
 }
 
 // ---------------------------------------------------------------------------
@@ -240,6 +249,21 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate') || undefined;
     const endDate = searchParams.get('endDate') || undefined;
 
+    // Check user role for visibility rules
+    // Sales reps can only see other reps' CURRENT WEEK data after Monday meeting
+    // Owners/admins always see everything
+    let userRole = 'owner'; // default to full access if auth fails
+    let userName = '';
+    try {
+      const session = await validateSession();
+      if (session.valid && session.user) {
+        userRole = session.user.role;
+        userName = session.user.name;
+      }
+    } catch {
+      // Auth failure = allow access (might be API call from command center)
+    }
+
     // Validate metric
     if (!VALID_METRICS.includes(metric)) {
       return NextResponse.json(
@@ -253,6 +277,24 @@ export async function GET(request: NextRequest) {
 
     // Load raw meeting data
     let records = loadMeetingData();
+
+    // VISIBILITY RULE: Sales reps can only see "thisWeek" data for THEIR OWN numbers
+    // Other reps' current week numbers are hidden until Monday meeting
+    // Owners, admins, managers can see everything
+    const isRestrictedRole = userRole === 'sales' || userRole === 'driver';
+    const isCurrentWeek = period === 'thisWeek';
+    if (isRestrictedRole && isCurrentWeek && userName) {
+      // Only show the current user's own data for this week
+      // Other reps' data hidden until it becomes "lastWeek" or later
+      const thisMonday = formatDate(getMonday(new Date()));
+      records = records.filter(r => {
+        // If it's a record from this week, only show user's own
+        if (r.meetingDate >= thisMonday) {
+          return r.repName.toLowerCase().includes(userName.split(' ')[0].toLowerCase());
+        }
+        return true; // Past weeks are visible to everyone
+      });
+    }
 
     // Filter by date range
     if (start && end) {
@@ -313,11 +355,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       dataSource: 'monday-meeting',
-      dataSourceLabel: 'Monday Meeting Numbers',
+      dataSourceLabel: 'Monday Meeting Numbers (Accrual Estimates — NOT actual commissions)',
       metric,
       metricLabel: METRIC_LABELS[metric] || metric,
       period,
       ...(periodNote ? { periodNote } : {}),
+      ...(isRestrictedRole && isCurrentWeek ? { visibilityNote: 'Current week shows your numbers only. Full team visible after Monday meeting.' } : {}),
       dateRange: { start: start || null, end: end || null },
       leaderboard,
       totalReps: leaderboard.length,

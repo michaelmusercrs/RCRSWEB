@@ -36,7 +36,7 @@ interface TrainingPathDef {
   subtitle: string;
   description: string;
   href: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
+  icon: React.ComponentType<{ size?: number | string; className?: string }>;
   color: string;
   borderColor: string;
   iconColor: string;

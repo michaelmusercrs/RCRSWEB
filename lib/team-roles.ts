@@ -197,7 +197,8 @@ export const TEAM_MEMBERS: TeamMember[] = [
     isActive: true,
     permissions: [
       'dashboard', 'delivery', 'inventory', 'inventory.manage',
-      'schedule', 'billing', 'monday-notes'
+      'schedule', 'billing', 'monday-notes',
+      'sales', 'sales.leads', 'sales.customers', 'command-center'
     ],
     createdAt: '2024-02-15'
   },
@@ -411,7 +412,7 @@ export const ROLE_PORTAL_ACCESS: Record<TeamRole, string[]> = {
   manager: ['/portal/dashboard', '/portal/manager', '/portal/office', '/portal/billing', '/portal/inventory', '/portal/schedule', '/portal/reports', '/portal/chat', '/command-center'],
   sales: ['/portal/dashboard', '/portal/sales', '/portal/inventory', '/portal/schedule', '/portal/chat', '/command-center/sales'],
   office: ['/portal/dashboard', '/portal/office', '/portal/billing', '/portal/inventory', '/portal/schedule', '/portal/chat', '/command-center'],
-  project_manager: ['/portal/dashboard', '/portal/pm', '/portal/inventory', '/portal/schedule', '/portal/chat', '/command-center'],
+  project_manager: ['/portal/dashboard', '/portal/pm', '/portal/inventory', '/portal/schedule', '/portal/chat', '/command-center', '/portal/sales'],
   driver: ['/portal/dashboard', '/portal/driver', '/portal/inventory', '/portal/chat'],
   viewer: ['/portal/dashboard', '/portal/office', '/portal/reports', '/portal/chat'] // Read-only view
 };
@@ -423,7 +424,7 @@ export const COMMAND_CENTER_ACCESS: Record<TeamRole, string[]> = {
   manager: ['dashboard', 'sales', 'inventory', 'phone', 'meetings', 'team', 'reports', 'schedule', 'leads'],
   sales: ['dashboard', 'sales', 'phone', 'meetings', 'schedule', 'leads'],
   office: ['dashboard', 'inventory', 'phone', 'meetings', 'billing', 'schedule', 'leads'],
-  project_manager: ['dashboard', 'inventory', 'meetings', 'schedule'],
+  project_manager: ['dashboard', 'inventory', 'meetings', 'schedule', 'sales', 'leads'],
   driver: ['dashboard'],
   viewer: ['dashboard', 'reports']
 };

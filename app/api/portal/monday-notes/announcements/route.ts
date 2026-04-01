@@ -10,9 +10,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
   MondayNote,
+  NoteCategory,
   getNextMondayDate,
   isAnnouncementActive,
 } from '@/lib/monday-notes-service';
+import { TeamRole } from '@/lib/team-roles';
 import { googleSheetsService } from '@/lib/google-sheets-service';
 import { cache, CACHE_TTL } from '@/lib/cache';
 
@@ -22,8 +24,8 @@ function rowToNote(row: Record<string, string>): MondayNote {
     meetingDate: row.meetingDate || '',
     userId: row.userId || '',
     userName: row.userName || '',
-    userRole: row.userRole || '',
-    category: row.category || 'general',
+    userRole: (row.userRole || '') as TeamRole,
+    category: (row.category || 'general') as NoteCategory,
     title: row.title || '',
     content: row.content || '',
     highlights: row.highlightsJson ? (() => { try { return JSON.parse(row.highlightsJson); } catch { return []; } })() : [],

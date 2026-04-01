@@ -778,14 +778,14 @@ class OrderWorkflowService {
       items = JSON.parse(row.get('items') || '[]');
     } catch {}
 
-    const itemIndex = items.findIndex((i: any) => i.productId === productId);
+    const itemIndex = items.findIndex((i: { productId?: string; pulled?: boolean; pulledBy?: string; pulledAt?: string }) => i.productId === productId);
     if (itemIndex >= 0) {
       items[itemIndex].pulled = true;
       items[itemIndex].pulledBy = pulledBy;
       items[itemIndex].pulledAt = new Date().toISOString();
     }
 
-    const itemsPulled = items.filter((i: any) => i.pulled).length;
+    const itemsPulled = items.filter((i: { pulled?: boolean }) => i.pulled).length;
     const complete = itemsPulled === items.length;
 
     row.set('items', JSON.stringify(items));

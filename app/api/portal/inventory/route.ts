@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
+import { auditLog } from '@/lib/audit-logger';
 import {
   unifiedInventoryService,
   resolveProductId,
@@ -198,17 +199,20 @@ export async function POST(request: NextRequest) {
     switch (action) {
       case 'addItem': {
         const item = await unifiedInventoryService.addItem(body.item);
+        auditLog('INVENTORY_ADD', auth.user.email, `Added item: ${body.item?.name || 'unknown'} (${body.item?.sku || 'no-sku'})`, request);
         return NextResponse.json(item, { status: 201 });
       }
 
       case 'updateItem': {
         const item = await unifiedInventoryService.updateItem(body.productId, body.updates);
         if (!item) return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+        auditLog('INVENTORY_UPDATE', auth.user.email, `Updated item ${body.productId}: ${Object.keys(body.updates || {}).join(', ')}`, request);
         return NextResponse.json(item);
       }
 
       case 'deactivateItem': {
         const success = await unifiedInventoryService.deactivateItem(body.productId);
+        auditLog('INVENTORY_DEACTIVATE', auth.user.email, `Deactivated item ${body.productId}`, request);
         return NextResponse.json({ success });
       }
 
@@ -218,6 +222,7 @@ export async function POST(request: NextRequest) {
           auth.user.userId, auth.user.name, body.notes || ''
         );
         if (!txn) return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+        auditLog('INVENTORY_DEDUCT', auth.user.email, `Deducted ${body.quantity} from ${body.productId} (ref: ${body.referenceId || 'manual'})`, request);
         return NextResponse.json(txn);
       }
 
@@ -228,6 +233,7 @@ export async function POST(request: NextRequest) {
           auth.user.userId, auth.user.name, body.notes || ''
         );
         if (!txn) return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+        auditLog('INVENTORY_ADD_STOCK', auth.user.email, `Added ${body.quantity} to ${body.productId} (type: ${body.type || 'adjustment'})`, request);
         return NextResponse.json(txn);
       }
 
@@ -236,6 +242,7 @@ export async function POST(request: NextRequest) {
           body.productId, body.newCost, body.newPrice, auth.user.name, body.reason
         );
         if (!item) return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+        auditLog('INVENTORY_PRICING', auth.user.email, `Updated pricing for ${body.productId}: cost=${body.newCost}, price=${body.newPrice}, reason: ${body.reason || 'none'}`, request);
         return NextResponse.json(item);
       }
 

@@ -8,9 +8,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
-import commissionsData from '@/data/commissions.json';
 import competitionConfig from '@/data/competition-config.json';
 import { isInternalSalesRep, resolveCommissionName } from '@/lib/team-roles';
+import { readFileSync } from 'fs';
+import * as path from 'path';
 
 interface CommissionRaw {
   salesRep: string;
@@ -47,6 +48,10 @@ export async function GET(request: NextRequest) {
   const now = new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
+
+  // Read commissions.json dynamically (not import - import bundles at build time)
+  const commissionsPath = path.join(process.cwd(), 'data', 'commissions.json');
+  const commissionsData: CommissionRaw[] = JSON.parse(readFileSync(commissionsPath, 'utf-8'));
 
   const entries = (commissionsData)
     .filter(e => isInternalSalesRep(e.salesRep))

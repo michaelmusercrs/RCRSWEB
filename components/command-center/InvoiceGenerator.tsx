@@ -26,6 +26,7 @@ import {
   Copy,
   Mail,
   X,
+  type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -139,7 +140,7 @@ export default function InvoiceGenerator({
   };
 
   const getStatusConfig = (status: string) => {
-    const configs: Record<string, { color: string; icon: any; label: string }> = {
+    const configs: Record<string, { color: string; icon: LucideIcon; label: string }> = {
       draft: { color: 'bg-zinc-500/20 text-zinc-400', icon: FileText, label: 'Draft' },
       sent: { color: 'bg-blue-500/20 text-blue-400', icon: Send, label: 'Sent' },
       viewed: { color: 'bg-purple-500/20 text-purple-400', icon: Eye, label: 'Viewed' },

@@ -16,7 +16,7 @@ export interface LeadData {
   zip?: string;
 
   // Source tracking
-  source: 'contact_form' | 'jobnimbus' | 'phone_call' | 'referral' | 'walk_in' | 'other';
+  source: 'contact_form' | 'jobnimbus' | 'phone_call' | 'referral' | 'walk_in' | 'email_capture' | 'other';
   sourceDetails?: string;
 
   // Sales rep assignment

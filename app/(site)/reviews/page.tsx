@@ -240,15 +240,15 @@ export default function ReviewsPage() {
         </div>
       </section>
 
-      {/* Before & After Results */}
+      {/* Our Work Highlights */}
       <section className="py-12 md:py-16 bg-black/80 backdrop-blur-sm relative z-10">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              Before &amp; After Results
+              Our Work Across North Alabama
             </h2>
             <p className="text-lg text-neutral-300 mb-8 max-w-2xl mx-auto">
-              See the transformation our team delivers on every project. From storm damage to beautiful new roofs.
+              From storm damage repairs to complete roof replacements, we deliver quality results on every project.
             </p>
             <div className="grid md:grid-cols-3 gap-6">
               {[
@@ -256,19 +256,16 @@ export default function ReviewsPage() {
                 { city: 'Huntsville, AL', type: 'Full Roof Replacement', desc: 'Aging 20-year roof replaced with architectural shingles. New ridge vents and flashing.' },
                 { city: 'Madison, AL', type: 'Insurance Claim Project', desc: 'Wind damage claim handled start to finish. New drip edge, underlayment, and shingles.' },
               ].map((project, idx) => (
-                <div key={idx} className="bg-neutral-800 border border-neutral-700 rounded-lg overflow-hidden">
-                  <div className="h-48 bg-neutral-700 flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="text-brand-green font-bold text-lg">Project Photo</div>
-                      <div className="text-neutral-500 text-sm">Coming Soon</div>
-                    </div>
-                  </div>
-                  <div className="p-4">
-                    <div className="flex items-center gap-2 mb-2">
+                <div key={idx} className="bg-neutral-800 border border-neutral-700 rounded-lg overflow-hidden hover:border-brand-green/50 transition-all">
+                  <div className="p-5">
+                    <div className="flex items-center gap-2 mb-3">
                       <span className="text-brand-green text-xs font-semibold uppercase tracking-wide">{project.type}</span>
                     </div>
-                    <h3 className="text-white font-bold mb-1">{project.city}</h3>
-                    <p className="text-neutral-400 text-sm">{project.desc}</p>
+                    <h3 className="text-white font-bold text-lg mb-1 flex items-center gap-2">
+                      <CheckCircle2 size={16} className="text-brand-green flex-shrink-0" />
+                      {project.city}
+                    </h3>
+                    <p className="text-neutral-400 text-sm leading-relaxed">{project.desc}</p>
                   </div>
                 </div>
               ))}

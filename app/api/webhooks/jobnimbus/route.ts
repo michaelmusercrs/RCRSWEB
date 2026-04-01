@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { geocodeAndSaveContact } from '@/lib/geocode-sync';
 import { matchRepToTeamMember, JN_TO_PORTAL_STATUS } from '@/lib/jn-sync-engine';
+import { breakdownService } from '@/lib/breakdown-service';
+import { emailService } from '@/lib/email-service';
+import { auditLog } from '@/lib/audit-logger';
 import crypto from 'crypto';
+
+// Statuses that should trigger auto-creation of a job breakdown sheet
+const BREAKDOWN_TRIGGER_STATUSES = ['approved', 'Approved', 'contract signed', 'Contract Signed', 'in progress', 'In Progress'];
 
 // SECURITY: Webhook secret for HMAC-SHA256 signature verification.
 // Set JOBNIMBUS_WEBHOOK_SECRET in environment variables to enable validation.
@@ -166,11 +172,54 @@ export async function POST(request: NextRequest) {
       case 'job.created':
       case 'job.updated': {
         const portalStatus = data?.status ? JN_TO_PORTAL_STATUS[data.status] || data.status : 'unknown';
+        const jobStatus = data?.status || '';
+        const jobId = data?.jnid || '';
+        const jobName = data?.name || data?.display_name || '';
+        const customerName = data?.display_name || `${data?.first_name || ''} ${data?.last_name || ''}`.trim() || 'Unknown';
+
         // Match sales rep
-        if (data?.sales_rep_name) {
-          const teamMember = matchRepToTeamMember(data.sales_rep_name);
-          if (teamMember) {
-          }
+        const teamMember = data?.sales_rep_name ? matchRepToTeamMember(data.sales_rep_name) : null;
+        const repSlug = teamMember?.slug || data?.sales_rep_name?.toLowerCase().replace(/\s+/g, '-') || '';
+
+        // AUTO-CREATE JOB BREAKDOWN when job hits approved/contract signed/in progress
+        if (BREAKDOWN_TRIGGER_STATUSES.some(s => jobStatus.toLowerCase() === s.toLowerCase())) {
+          autoCreateBreakdown(data, customerName, jobId, jobName, repSlug).catch(err => {
+            console.error(`[JN Webhook] Auto-breakdown creation failed for ${jobId}:`, err);
+          });
+        }
+
+        // Log to audit
+        auditLog(
+          `JN_JOB_${event === 'job.created' ? 'CREATED' : 'UPDATED'}`,
+          repSlug || 'jobnimbus-webhook',
+          `Job ${jobId}: ${jobName} — Status: ${jobStatus} (${portalStatus})`,
+        );
+
+        // Email Michael on job status changes to key statuses
+        if (['approved', 'Approved', 'contract signed', 'Contract Signed'].some(s => jobStatus.toLowerCase() === s.toLowerCase())) {
+          emailService.send({
+            to: 'michaelmuse@rcrsal.com',
+            subject: `Job ${jobStatus}: ${customerName} — ${jobName || jobId}`,
+            body: `
+              <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;">
+                <div style="background:#000;padding:16px;text-align:center;">
+                  <h2 style="color:#39FF14;margin:0;">Job Status Update</h2>
+                </div>
+                <div style="padding:20px;background:#fff;">
+                  <p>A JobNimbus job has been <strong>${jobStatus}</strong>.</p>
+                  <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+                    <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Customer</td><td style="padding:6px;border-bottom:1px solid #eee;">${customerName}</td></tr>
+                    <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Job</td><td style="padding:6px;border-bottom:1px solid #eee;">${jobName || jobId}</td></tr>
+                    <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Status</td><td style="padding:6px;border-bottom:1px solid #eee;">${jobStatus}</td></tr>
+                    <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Rep</td><td style="padding:6px;border-bottom:1px solid #eee;">${data?.sales_rep_name || 'Unassigned'}</td></tr>
+                    <tr><td style="padding:6px;font-weight:bold;">Address</td><td style="padding:6px;">${data?.address_line1 || ''}, ${data?.city || ''}</td></tr>
+                  </table>
+                  <p style="color:#666;font-size:12px;">A job breakdown sheet has been auto-created.</p>
+                </div>
+              </div>
+            `,
+            fromName: 'RCRS JobNimbus',
+          }).catch(() => {});
         }
         break;
       }
@@ -193,11 +242,62 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ received: true });
   } catch (error) {
     console.error('JN webhook error:', error);
-    // Return 500 so JobNimbus knows the webhook failed and can retry.
-    // Returning 200 on error silently swallows failures.
     return NextResponse.json(
       { success: false, error: 'Webhook processing error' },
       { status: 500 }
     );
   }
+}
+
+/**
+ * Auto-create a job breakdown sheet when a JN job hits an approved/signed status.
+ * Checks if breakdown already exists for this jobId to prevent duplicates.
+ */
+async function autoCreateBreakdown(
+  data: Record<string, any>,
+  customerName: string,
+  jobId: string,
+  jobName: string,
+  repSlug: string,
+) {
+  // Check if breakdown already exists for this job
+  try {
+    const existing = await breakdownService.getAllBreakdowns({ customerId: jobId });
+    if (existing && existing.length > 0) {
+      console.log(`[JN Webhook] Breakdown already exists for job ${jobId}, skipping auto-creation`);
+      return;
+    }
+  } catch {
+    // If check fails, proceed with creation (worst case: duplicate, not data loss)
+  }
+
+  const address = [data?.address_line1, data?.city, data?.state_text, data?.zip].filter(Boolean).join(', ');
+
+  await breakdownService.createBreakdown({
+    customerId: jobId,
+    customerName,
+    customerEmail: data?.email || '',
+    customerPhone: data?.mobile_phone || data?.home_phone || '',
+    customerAddress: data?.address_line1 || '',
+    customerCity: data?.city || '',
+    customerState: data?.state_text || 'AL',
+    customerZip: data?.zip || '',
+    jobId,
+    jobNimbusId: data?.jnid || jobId,
+    jobName: jobName || `${customerName} — ${address}`,
+    jobAddress: address,
+    jobDescription: `Auto-created from JobNimbus. Status: ${data?.status || 'approved'}. Rep: ${data?.sales_rep_name || 'unassigned'}`,
+    projectManager: 'system',
+    projectManagerName: 'Auto-Generated',
+    createdBy: 'jobnimbus-webhook',
+    createdByName: 'JobNimbus Webhook',
+  });
+
+  console.log(`[JN Webhook] Auto-created breakdown for job ${jobId}: ${jobName}`);
+
+  auditLog(
+    'BREAKDOWN_AUTO_CREATED',
+    'jobnimbus-webhook',
+    `Auto-created breakdown for ${customerName} — Job: ${jobName || jobId} — Status: ${data?.status}`,
+  );
 }

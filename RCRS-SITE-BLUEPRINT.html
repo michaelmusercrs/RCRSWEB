@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RCRS Portal Blueprint — rcrsal.com Complete Site Map</title>
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --card: #141414;
+    --border: #2a2a2a;
+    --green: #39FF14;
+    --blue: #0066CC;
+    --red: #ff4444;
+    --yellow: #ffaa00;
+    --purple: #aa44ff;
+    --cyan: #00cccc;
+    --orange: #ff8800;
+    --text: #e0e0e0;
+    --muted: #888;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; padding:20px; }
+  h1 { color:var(--green); text-align:center; margin-bottom:8px; font-size:28px; }
+  .subtitle { text-align:center; color:var(--muted); margin-bottom:24px; font-size:14px; }
+
+  /* Stats Bar */
+  .stats-bar { display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin-bottom:24px; }
+  .stat { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:12px 20px; text-align:center; min-width:120px; }
+  .stat-num { font-size:28px; font-weight:700; color:var(--green); }
+  .stat-label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
+
+  /* Controls */
+  .controls { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:24px; }
+  .controls button { background:var(--card); border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:6px; cursor:pointer; font-size:13px; transition:all 0.2s; }
+  .controls button:hover, .controls button.active { background:var(--green); color:#000; border-color:var(--green); }
+
+  /* Search */
+  .search-bar { display:flex; justify-content:center; margin-bottom:24px; }
+  .search-bar input { background:var(--card); border:1px solid var(--border); color:var(--text); padding:10px 20px; border-radius:8px; width:400px; font-size:14px; outline:none; }
+  .search-bar input:focus { border-color:var(--green); }
+
+  /* Legend */
+  .legend { display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin-bottom:24px; font-size:12px; }
+  .legend-item { display:flex; align-items:center; gap:6px; }
+  .legend-dot { width:12px; height:12px; border-radius:50%; }
+
+  /* Tree */
+  .tree { max-width:1400px; margin:0 auto; }
+  .level { margin-bottom:16px; }
+  .level-header {
+    padding:12px 20px; border-radius:8px; cursor:pointer; display:flex; align-items:center; gap:12px;
+    font-weight:600; font-size:16px; transition:all 0.2s; user-select:none;
+  }
+  .level-header:hover { opacity:0.8; }
+  .level-header .arrow { transition:transform 0.2s; font-size:12px; }
+  .level-header .arrow.open { transform:rotate(90deg); }
+  .level-badge { background:rgba(0,0,0,0.3); padding:2px 8px; border-radius:10px; font-size:11px; font-weight:400; }
+
+  .level-content { padding-left:24px; margin-top:8px; display:none; }
+  .level-content.open { display:block; }
+
+  /* Nodes */
+  .node {
+    background:var(--card); border:1px solid var(--border); border-radius:6px; padding:10px 16px; margin:4px 0;
+    display:flex; align-items:center; gap:10px; font-size:13px; transition:all 0.15s;
+  }
+  .node:hover { border-color:var(--green); transform:translateX(4px); }
+  .node.hidden { display:none; }
+  .node-status { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .node-status.working { background:var(--green); }
+  .node-status.partial { background:var(--yellow); }
+  .node-status.missing { background:var(--red); }
+  .node-status.needs-work { background:var(--orange); }
+  .node-path { color:var(--muted); font-size:11px; margin-left:auto; font-family:monospace; }
+  .node-role { font-size:10px; padding:2px 6px; border-radius:4px; font-weight:600; }
+  .role-owner { background:rgba(170,68,255,0.2); color:var(--purple); }
+  .role-admin { background:rgba(255,68,68,0.2); color:var(--red); }
+  .role-sales { background:rgba(57,255,20,0.2); color:var(--green); }
+  .role-driver { background:rgba(255,136,0,0.2); color:var(--orange); }
+  .role-office { background:rgba(0,204,204,0.2); color:var(--cyan); }
+  .role-pm { background:rgba(0,102,204,0.2); color:var(--blue); }
+  .role-all { background:rgba(255,255,255,0.1); color:var(--text); }
+  .role-public { background:rgba(255,255,255,0.05); color:var(--muted); }
+
+  /* Data Flow Section */
+  .flow-section { max-width:1400px; margin:40px auto 0; }
+  .flow-section h2 { color:var(--green); margin-bottom:16px; font-size:22px; }
+  .flow-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(350px, 1fr)); gap:16px; }
+  .flow-card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:16px; }
+  .flow-card h3 { color:var(--green); font-size:15px; margin-bottom:8px; }
+  .flow-card .step { display:flex; align-items:center; gap:8px; padding:4px 0; font-size:13px; }
+  .flow-card .step .arrow-right { color:var(--green); font-weight:700; }
+  .flow-card .status-tag { font-size:10px; padding:2px 6px; border-radius:4px; font-weight:600; }
+  .flow-card .status-tag.done { background:rgba(57,255,20,0.2); color:var(--green); }
+  .flow-card .status-tag.partial { background:rgba(255,170,0,0.2); color:var(--yellow); }
+  .flow-card .status-tag.todo { background:rgba(255,68,68,0.2); color:var(--red); }
+
+  /* Sheets Tab Section */
+  .sheets-section { max-width:1400px; margin:40px auto 0; }
+  .sheets-section h2 { color:var(--green); margin-bottom:16px; font-size:22px; }
+  .sheets-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:12px; }
+  .sheet-card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:12px 16px; }
+  .sheet-card h4 { color:var(--cyan); font-size:14px; margin-bottom:4px; }
+  .sheet-card .rw { font-size:11px; margin-bottom:4px; }
+  .sheet-card .rw .r { color:var(--green); }
+  .sheet-card .rw .w { color:var(--yellow); }
+  .sheet-card p { font-size:12px; color:var(--muted); }
+
+  /* Question Portal */
+  .questions-section { max-width:1400px; margin:40px auto 0; }
+  .questions-section h2 { color:var(--green); margin-bottom:16px; font-size:22px; }
+  .q-list { list-style:none; }
+  .q-item { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:12px 16px; margin-bottom:8px; display:flex; align-items:center; gap:12px; }
+  .q-priority { font-size:10px; padding:2px 8px; border-radius:4px; font-weight:700; }
+  .q-priority.high { background:rgba(255,68,68,0.2); color:var(--red); }
+  .q-priority.med { background:rgba(255,170,0,0.2); color:var(--yellow); }
+  .q-priority.low { background:rgba(57,255,20,0.2); color:var(--green); }
+  .q-text { font-size:13px; flex:1; }
+  .q-default { font-size:11px; color:var(--muted); font-style:italic; }
+
+  @media (max-width:768px) {
+    body { padding:10px; }
+    .stat { min-width:80px; padding:8px 12px; }
+    .stat-num { font-size:20px; }
+    .search-bar input { width:100%; }
+    .flow-grid { grid-template-columns:1fr; }
+    .sheets-grid { grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<h1>RCRS Portal Blueprint</h1>
+<p class="subtitle">rcrsal.com — Complete Site Architecture &amp; Data Flow Map | Generated 2026-03-30</p>
+
+<!-- Stats -->
+<div class="stats-bar">
+  <div class="stat"><div class="stat-num">219</div><div class="stat-label">Pages</div></div>
+  <div class="stat"><div class="stat-num">323</div><div class="stat-label">API Routes</div></div>
+  <div class="stat"><div class="stat-num">25</div><div class="stat-label">Sheet Tabs</div></div>
+  <div class="stat"><div class="stat-num">8</div><div class="stat-label">Roles</div></div>
+  <div class="stat"><div class="stat-num">20</div><div class="stat-label">Active Users</div></div>
+  <div class="stat"><div class="stat-num">4</div><div class="stat-label">Domains</div></div>
+</div>
+
+<!-- Controls -->
+<div class="controls">
+  <button class="active" onclick="filterAll()">All</button>
+  <button onclick="filterStatus('working')">Working</button>
+  <button onclick="filterStatus('partial')">Partial</button>
+  <button onclick="filterStatus('missing')">Needs Work</button>
+  <button onclick="filterRole('owner')">Owner</button>
+  <button onclick="filterRole('sales')">Sales</button>
+  <button onclick="filterRole('driver')">Driver</button>
+  <button onclick="filterRole('office')">Office</button>
+  <button onclick="filterRole('pm')">PM</button>
+  <button onclick="filterRole('public')">Public</button>
+</div>
+
+<div class="search-bar">
+  <input type="text" id="search" placeholder="Search pages, routes, features..." oninput="searchNodes(this.value)">
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div> Working</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div> Partial / Needs Testing</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div> Needs Work</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div> Missing / Broken</div>
+</div>
+
+<!-- SITE MAP TREE -->
+<div class="tree" id="tree">
+
+<!-- LEVEL 1: Entry Points -->
+<div class="level">
+  <div class="level-header" style="background:rgba(57,255,20,0.15); border:1px solid var(--green);" onclick="toggleLevel(this)">
+    <span class="arrow open">&#9654;</span>
+    LEVEL 1 — ENTRY POINTS (Domains &amp; Login)
+    <span class="level-badge">4 entry points</span>
+  </div>
+  <div class="level-content open">
+    <div class="node" data-status="working" data-role="public"><span class="node-status working"></span> rivercityroofingsolutions.com — Public Website <span class="node-role role-public">PUBLIC</span><span class="node-path">/</span></div>
+    <div class="node" data-status="working" data-role="all"><span class="node-status working"></span> rcrsal.com — Portal Login Page (rewrite to /portal) <span class="node-role role-all">ALL STAFF</span><span class="node-path">/portal</span></div>
+    <div class="node" data-status="working" data-role="public"><span class="node-status working"></span> /my/[token] — Customer Portal (both domains) <span class="node-role role-public">CUSTOMER</span><span class="node-path">/my/[token]</span></div>
+    <div class="node" data-status="working" data-role="all"><span class="node-status working"></span> API Routes — /api/* (both domains, CORS enforced) <span class="node-role role-all">SYSTEM</span><span class="node-path">/api/*</span></div>
+  </div>
+</div>
+
+<!-- LEVEL 2: Authentication -->
+<div class="level">
+  <div class="level-header" style="background:rgba(255,68,68,0.15); border:1px solid var(--red);" onclick="toggleLevel(this)">
+    <span class="arrow open">&#9654;</span>
+    LEVEL 2 — AUTHENTICATION
+    <span class="level-badge">Login → JWT → Role Check</span>
+  </div>
+  <div class="level-content open">
+    <div class="node" data-status="working" data-role="all"><span class="node-status working"></span> POST /api/auth/login — Email + Password auth, returns JWT cookies <span class="node-role role-all">ALL</span><span class="node-path">/api/auth/login</span></div>
+    <div class="node" data-status="working" data-role="all"><span class="node-status working"></span> JWT: access_token (8hr) + refresh_token (7d) HTTP-only cookies <span class="node-role role-all">ALL</span><span class="node-path">lib/auth-service.ts</span></div>
+    <div class="node" data-status="working" data-role="all"><span class="node-status working"></span> Password Change — /portal/change-password (mustChangePassword flag) <span class="node-role role-all">ALL</span><span class="node-path">/portal/change-password</span></div>
+    <div class="node" data-status="partial" data-role="all"><span class="node-status partial"></span> Login Audit Logging — Logs to AuditLog sheet tab <span class="node-role role-all">SYSTEM</span><span class="node-path">/api/portal/audit-log</span></div>
+    <div class="node" data-status="missing" data-role="owner"><span class="node-status missing"></span> Login Email Notification — NOT sending email to Michael on login <span class="node-role role-owner">NEEDS BUILD</span><span class="node-path">MISSING</span></div>
+    <div class="node" data-status="working" data-role="all"><span class="node-status working"></span> Dual-Role Picker — Rick (driver+sales) gets role selector <span class="node-role role-all">MULTI-ROLE</span><span class="node-path">/portal</span></div>
+  </div>
+</div>
+
+<!-- LEVEL 3: Roles -->
+<div class="level">
+  <div class="level-header" style="background:rgba(170,68,255,0.15); border:1px solid var(--purple);" onclick="toggleLevel(this)">
+    <span class="arrow open">&#9654;</span>
+    LEVEL 3 — USER ROLES &amp; TEAM
+    <span class="level-badge">8 roles, 20 active users</span>
+  </div>
+  <div class="level-content open">
+    <div class="node" data-status="working" data-role="owner"><span class="node-status working"></span> OWNER: Michael Muse, Chris Muse — Full access (*) <span class="node-role role-owner">OWNER</span><span class="node-path">lib/team-roles.ts</span></div>
+    <div class="node" data-status="working" data-role="admin"><span class="node-status working"></span> ADMIN: Sara Hill — Full access except settings <span class="node-role role-admin">ADMIN</span></div>
+    <div class="node" data-status="working" data-role="all"><span class="node-status working"></span> MANAGER: Destin Mccary — Operations oversight <span class="node-role role-all">MANAGER</span></div>
+    <div class="node" data-status="working" data-role="office"><span class="node-status working"></span> OFFICE: Tia Muse Morris — Billing, inventory, scheduling <span class="node-role role-office">OFFICE</span></div>
+    <div class="node" data-status="working" data-role="pm"><span class="node-status working"></span> PM: Bart Roberts, John Cordonis — Job scheduling, inventory <span class="node-role role-pm">PM</span></div>
+    <div class="node" data-status="working" data-role="sales"><span class="node-status working"></span> SALES: Hunter, Aaron, Greg, Brendon, Adam, Joseph, Boston, Alijah, Travis <span class="node-role role-sales">SALES</span></div>
+    <div class="node" data-status="working" data-role="driver"><span class="node-status working"></span> DRIVER: Richard "Rick" Geahr (dual: driver+sales), Tae Orr (inactive) <span class="node-role role-driver">DRIVER</span></div>
+    <div class="node" data-status="working" data-role="public"><span class="node-status working"></span> CUSTOMER: External portal via /my/[token] <span class="node-role role-public">CUSTOMER</span></div>
+  </div>
+</div>
+
+<!-- LEVEL 4: Portal Hub Pages -->
+<div class="level">
+  <div class="level-header" style="background:rgba(0,102,204,0.15); border:1px solid var(--blue);" onclick="toggleLevel(this)">
+    <span class="arrow">&#9654;</span>
+    LEVEL 4 — PORTAL DASHBOARDS (Post-Login Hub)
+    <span class="level-badge">12 portal sections</span>
+  </div>
+  <div class="level-content">
+    <div class="node" data-status="working" data-role="all"><span class="node-status working"></span> /portal/dashboard — Main dashboard (role-filtered cards) <span class="node-role role-all">ALL ROLES</span><span class="node-path">/portal/dashboard</span></div>
+    <div class="node" data-status="working" data-role="owner"><span class="node-status working"></span> /portal/admin — Admin hub (users, settings, training, lead-distro) <span class="node-role role-owner">OWNER/ADMIN</span><span class="node-path">/portal/admin</span></div>
+    <div class="node" data-status="working" data-role="sales"><span class="node-status working"></span> /portal/sales — Sales hub (leads, customers, performance) <span class="node-role role-sales">SALES</span><span class="node-path">/portal/sales</span></div>
+    <div class="node" data-status="partial" data-role="driver"><span class="node-status partial"></span> /portal/delivery — Delivery hub (pipeline, routes, work orders) <span class="node-role role-driver">DRIVER/PM</span><span class="node-path">/portal/delivery</span></div>
+    <div class="node" data-status="partial" data-role="office"><span class="node-status partial"></span> /portal/office — Office hub (new leads, billing) <span class="node-role role-office">OFFICE</span><span class="node-path">/portal/office</span></div>
+    <div class="node" data-status="partial" data-role="pm"><span class="node-status partial"></span> /portal/pm — PM hub (jobs, scheduling) <span class="node-role role-pm">PM</span><span class="node-path">/portal/pm</span></div>
+    <div class="node" data-status="working" data-role="all"><span class="node-status working"></span> /portal/inventory — Inventory (count, management, warehouse, reconciliation) <span class="node-role role-all">MULTI-ROLE</span><span class="node-path">/portal/inventory</span></div>
+    <div class="node" data-status="working" data-role="all"><span class="node-status working"></span> /portal/training — Training (library, modules, onboarding, quizzes) <span class="node-role role-all">ALL</span><span class="node-path">/portal/training</span></div>
+    <div class="node" data-status="working" data-role="all"><span class="node-status working"></span> /portal/billing — Billing portal <span class="node-role role-office">OFFICE/ADMIN</span><span class="node-path">/portal/billing</span></div>
+    <div class="node" data-status="working" data-role="owner"><span class="node-status working"></span> /command-center — Command center (owner/admin overview) <span class="node-role role-owner">OWNER/ADMIN</span><span class="node-path">/command-center</span></div>
+    <div class="node" data-status="working" data-role="all"><span class="node-status working"></span> /portal/chat — Team chat <span class="node-role role-all">ALL</span><span class="node-path">/portal/chat</span></div>
+    <div class="node" data-status="working" data-role="all"><span class="node-status working"></span> /portal/my-profile — Profile editing + approval workflow <span class="node-role role-all">ALL</span><span class="node-path">/portal/my-profile</span></div>
+  </div>
+</div>
+
+<!-- LEVEL 5: Sales Features -->
+<div class="level">
+  <div class="level-header" style="background:rgba(57,255,20,0.15); border:1px solid var(--green);" onclick="toggleLevel(this)">
+    <span class="arrow">&#9654;</span>
+    LEVEL 5 — SALES &amp; LEADERBOARDS
+    <span class="level-badge">3 leaderboards, weekly numbers, meeting data</span>
+  </div>
+  <div class="level-content">
+    <div class="node" data-status="working" data-role="sales"><span class="node-status working"></span> Weekly Numbers Submission — POST /api/portal/weekly-numbers <span class="node-role role-sales">SALES</span><span class="node-path">/api/portal/weekly-numbers</span></div>
+    <div class="node" data-status="working" data-role="owner"><span class="node-status working"></span> Weekly Leaderboard API — GET /api/command-center/weekly-leaderboard <span class="node-role role-owner">OWNER/ADMIN</span><span class="node-path">/api/command-center/weekly-leaderboard</span></div>
+    <div class="node" data-status="working" data-role="owner"><span class="node-status working"></span> Sales Leaderboard Page — /command-center/sales/leaderboard <span class="node-role role-owner">OWNER/ADMIN</span><span class="node-path">/command-center/sales/leaderboard</span></div>
+    <div class="node" data-status="working" data-role="owner"><span class="node-status working"></span> Commission Leaderboard — from commissions.json (1099 data) <span class="node-role role-owner">OWNER</span><span class="node-path">/api/sheets/commissions</span></div>
+    <div class="node" data-status="working" data-role="sales"><span class="node-status working"></span> Sales Performance — /portal/sales/performance (personal stats) <span class="node-role role-sales">SALES</span><span class="node-path">/portal/sales/performance</span></div>
+    <div class="node" data-status="partial" data-role="sales"><span class="node-status partial"></span> Monday Meeting Numbers — meeting-numbers-service.ts syncs from sheet <span class="node-role role-sales">ALL</span><span class="node-path">lib/meeting-numbers-service.ts</span></div>
+    <div class="node" data-status="working" data-role="owner"><span class="node-status working"></span> Meeting Presentation — /command-center/meetings/present (9 slides) <span class="node-role role-owner">OWNER</span><span class="node-path">/command-center/meetings/present</span></div>
+    <div class="node" data-status="working" data-role="owner"><span class="node-status working"></span> Competition — March Madness bracket + monthly bonuses <span class="node-role role-owner">OWNER</span><span class="node-path">/command-center/competition</span></div>
+    <div class="node" data-status="missing" data-role="sales"><span class="node-status missing"></span> Notification on Weekly Number Submit — NOT sending alerts <span class="node-role role-sales">NEEDS BUILD</span><span class="node-path">MISSING</span></div>
+    <div class="node" data-status="needs-work" data-role="owner"><span class="node-status needs-work"></span> Live Leaderboard Auto-Update — Needs real-time push after submit <span class="node-role role-owner">NEEDS WORK</span><span class="node-path">NEEDS WIRING</span></div>
+  </div>
+</div>
+
+<!-- LEVEL 6: Lead Distribution -->
+<div class="level">
+  <div class="level-header" style="background:rgba(0,204,204,0.15); border:1px solid var(--cyan);" onclick="toggleLevel(this)">
+    <span class="arrow">&#9654;</span>
+    LEVEL 6 — LEAD DISTRIBUTION &amp; CRM
+    <span class="level-badge">Lead intake → assignment → tracking</span>
+  </div>
+  <div class="level-content">
+    <div class="node" data-status="working" data-role="public"><span class="node-status working"></span> Website Contact Form — POST /api/forms/contact <span class="node-role role-public">PUBLIC</span><span class="node-path">/api/forms/contact</span></div>
+    <div class="node" data-status="working" data-role="office"><span class="node-status working"></span> Office New Lead Entry — /portal/office/new-lead <span class="node-role role-office">OFFICE</span><span class="node-path">/portal/office/new-lead</span></div>
+    <div class="node" data-status="working" data-role="owner"><span class="node-status working"></span> Lead Distribution Config — /portal/admin/lead-distro <span class="node-role role-owner">OWNER/ADMIN</span><span class="node-path">/portal/admin/lead-distro</span></div>
+    <div class="node" data-status="working" data-role="owner"><span class="node-status working"></span> Lead Distro Settings — Proximity, door knocks, close %, weights <span class="node-role role-owner">OWNER/ADMIN</span><span class="node-path">/portal/admin/lead-distro/settings</span></div>
+    <div class="node" data-status="working" data-role="owner"><span class="node-status working"></span> Lead Distribution API — POST /api/leads/distribute <span class="node-role role-owner">SYSTEM</span><span class="node-path">/api/leads/distribute</span></div>
+    <div class="node" data-status="working" data-role="sales"><span class="node-status working"></span> Rep Leads View — /portal/leads + /portal/sales/leads <span class="node-role role-sales">SALES</span><span class="node-path">/portal/leads</span></div>
+    <div class="node" data-status="partial" data-role="sales"><span class="node-status partial"></span> Lead Response Timer — Tracks time from assign to first contact <span class="node-role role-sales">SYSTEM</span><span class="node-path">/api/leads/response-timer</span></div>
+    <div class="node" data-status="partial" data-role="owner"><span class="node-status partial"></span> Rep Availability Toggle — /api/portal/rep-availability <span class="node-role role-owner">OWNER/ADMIN</span><span class="node-path">/api/portal/rep-availability</span></div>
+    <div class="node" data-status="needs-work" data-role="owner"><span class="node-status needs-work"></span> Lead Email Notification — Needs to email rep + Michael on new lead <span class="node-role role-owner">NEEDS WIRING</span><span class="node-path">/api/leads/new</span></div>
+    <div class="node" data-status="working" data-role="owner"><span class="node-status working"></span> Lead Distro History — /api/admin/lead-distro/history <span class="node-role role-owner">OWNER</span><span class="node-path">/api/admin/lead-distro/history</span></div>
+  </div>
+</div>
+
+<!-- LEVEL 7: Inventory & Delivery -->
+<div class="level">
+  <div class="level-header" style="background:rgba(255,136,0,0.15); border:1px solid var(--orange);" onclick="toggleLevel(this)">
+    <span class="arrow">&#9654;</span>
+    LEVEL 7 — INVENTORY &amp; DELIVERY (18-Stage Pipeline)
+    <span class="level-badge">16 delivery pages, 12 API routes</span>
+  </div>
+  <div class="level-content">
+    <div class="node" data-status="working" data-role="all"><span class="node-status working"></span> Inventory Management — /portal/inventory/management <span class="node-role role-all">MULTI-ROLE</span><span class="node-path">/portal/inventory/management</span></div>
+    <div class="node" data-status="working" data-role="all"><span class="node-status working"></span> Inventory Count — /portal/inventory/count <span class="node-role role-all">PM/OFFICE</span><span class="node-path">/portal/inventory/count</span></div>
+    <div class="node" data-status="working" data-role="all"><span class="node-status working"></span> Warehouse View — /portal/inventory/warehouse <span class="node-role role-all">DRIVER/PM</span><span class="node-path">/portal/inventory/warehouse</span></div>
+    <div class="node" data-status="working" data-role="all"><span class="node-status working"></span> Reconciliation — /portal/inventory/reconciliation <span class="node-role role-all">OFFICE</span><span class="node-path">/portal/inventory/reconciliation</span></div>
+    <div class="node" data-status="partial" data-role="driver"><span class="node-status partial"></span> Delivery Pipeline — /portal/delivery/pipeline (18-stage workflow) <span class="node-role role-driver">DRIVER</span><span class="node-path">/portal/delivery/pipeline</span></div>
+    <div class="node" data-status="partial" data-role="driver"><span class="node-status partial"></span> Route Tracker — /portal/delivery/route-tracker (GPS) <span class="node-role role-driver">DRIVER</span><span class="node-path">/portal/delivery/route-tracker</span></div>
+    <div class="node" data-status="partial" data-role="driver"><span class="node-status partial"></span> Loading Checklist — /portal/delivery/loading-checklist <span class="node-role role-driver">DRIVER</span><span class="node-path">/portal/delivery/loading-checklist</span></div>
+    <div class="node" data-status="partial" data-role="driver"><span class="node-status partial"></span> Work Orders — /portal/delivery/work-orders <span class="node-role role-driver">DRIVER/PM</span><span class="node-path">/portal/delivery/work-orders</span></div>
+    <div class="node" data-status="partial" data-role="driver"><span class="node-status partial"></span> Loading Assist — /portal/delivery/loading-assist <span class="node-role role-driver">DRIVER</span><span class="node-path">/portal/delivery/loading-assist</span></div>
+    <div class="node" data-status="partial" data-role="office"><span class="node-status partial"></span> Job Breakdowns — /portal/delivery/job-breakdowns <span class="node-role role-office">OFFICE/PM</span><span class="node-path">/portal/delivery/job-breakdowns</span></div>
+    <div class="node" data-status="partial" data-role="office"><span class="node-status partial"></span> Invoices — /portal/delivery/invoices <span class="node-role role-office">OFFICE</span><span class="node-path">/portal/delivery/invoices</span></div>
+    <div class="node" data-status="partial" data-role="driver"><span class="node-status partial"></span> Returns — /portal/delivery/returns <span class="node-role role-driver">DRIVER/PM</span><span class="node-path">/portal/delivery/returns</span></div>
+    <div class="node" data-status="partial" data-role="driver"><span class="node-status partial"></span> Warehouse Display — /portal/delivery/warehouse-display (TV) <span class="node-role role-driver">WAREHOUSE</span><span class="node-path">/portal/delivery/warehouse-display</span></div>
+    <div class="node" data-status="partial" data-role="driver"><span class="node-status partial"></span> Driver Portal — /portal/driver (simplified driver view) <span class="node-role role-driver">DRIVER</span><span class="node-path">/portal/driver</span></div>
+    <div class="node" data-status="needs-work" data-role="all"><span class="node-status needs-work"></span> Delivery Notifications — Need email/SMS on status changes <span class="node-role role-all">NEEDS WIRING</span><span class="node-path">MISSING</span></div>
+    <div class="node" data-status="needs-work" data-role="driver"><span class="node-status needs-work"></span> Photo Upload + GPS Verification — Required at multiple stages <span class="node-role role-driver">NEEDS TESTING</span><span class="node-path">/api/portal/delivery/photos</span></div>
+  </div>
+</div>
+
+<!-- LEVEL 8: Command Center -->
+<div class="level">
+  <div class="level-header" style="background:rgba(170,68,255,0.15); border:1px solid var(--purple);" onclick="toggleLevel(this)">
+    <span class="arrow">&#9654;</span>
+    LEVEL 8 — COMMAND CENTER (Owner/Admin Overview)
+    <span class="level-badge">18 command center pages</span>
+  </div>
+  <div class="level-content">
+    <div class="node" data-status="working" data-role="owner"><span class="node-status working"></span> Main Dashboard — /command-center <span class="node-role role-owner">OWNER</span><span class="node-path">/command-center</span></div>
+    <div class="node" data-status="working" data-role="owner"><span class="node-status working"></span> Sales Overview — /command-center/sales <span class="node-role role-owner">OWNER</span><span class="node-path">/command-center/sales</span></div>
+    <div class="node" data-status="working" data-role="owner"><span class="node-status working"></span> Sales Leaderboard — /command-center/sales/leaderboard <span class="node-role role-owner">OWNER</span><span class="node-path">/command-center/sales/leaderboard</span></div>
+    <div class="node" data-status="working" data-role="owner"><span class="node-status working"></span> Rep Detail — /command-center/sales/[rep] <span class="node-role role-owner">OWNER</span><span class="node-path">/command-center/sales/[rep]</span></div>
+    <div class="node" data-status="working" data-role="owner"><span class="node-status working"></span> Achievements — /command-center/sales/achievements <span class="node-role role-owner">OWNER</span><span class="node-path">/command-center/sales/achievements</span></div>
+    <div class="node" data-status="working" data-role="owner"><span class="node-status working"></span> Meetings Hub — /command-center/meetings (prep, present, archives) <span class="node-role role-owner">OWNER</span><span class="node-path">/command-center/meetings</span></div>
+    <div class="node" data-status="working" data-role="owner"><span class="node-status working"></span> Inventory — /command-center/inventory <span class="node-role role-owner">OWNER</span><span class="node-path">/command-center/inventory</span></div>
+    <div class="node" data-status="working" data-role="owner"><span class="node-status working"></span> Leads — /command-center/leads <span class="node-role role-owner">OWNER</span><span class="node-path">/command-center/leads</span></div>
+    <div class="node" data-status="working" data-role="owner"><span class="node-status working"></span> Reports — /command-center/reports (dashboard, financial, team, generator) <span class="node-role role-owner">OWNER</span><span class="node-path">/command-center/reports</span></div>
+    <div class="node" data-status="working" data-role="owner"><span class="node-status working"></span> Phone System — /command-center/phone (dashboard, calls, voicemail) <span class="node-role role-owner">OWNER</span><span class="node-path">/command-center/phone</span></div>
+    <div class="node" data-status="working" data-role="owner"><span class="node-status working"></span> Marketing — /command-center/marketing (ads, calendar, emails) <span class="node-role role-owner">OWNER</span><span class="node-path">/command-center/marketing</span></div>
+    <div class="node" data-status="working" data-role="owner"><span class="node-status working"></span> Billing — /command-center/billing (invoices, breakdowns) <span class="node-role role-owner">OWNER</span><span class="node-path">/command-center/billing</span></div>
+    <div class="node" data-status="working" data-role="owner"><span class="node-status working"></span> Team — /command-center/team <span class="node-role role-owner">OWNER</span><span class="node-path">/command-center/team</span></div>
+    <div class="node" data-status="working" data-role="owner"><span class="node-status working"></span> Profitability — /command-center/profitability <span class="node-role role-owner">OWNER</span><span class="node-path">/command-center/profitability</span></div>
+    <div class="node" data-status="working" data-role="owner"><span class="node-status working"></span> Weather — /command-center/weather (storm tracking) <span class="node-role role-owner">OWNER</span><span class="node-path">/command-center/weather</span></div>
+    <div class="node" data-status="working" data-role="owner"><span class="node-status working"></span> Schedule — /command-center/schedule <span class="node-role role-owner">OWNER</span><span class="node-path">/command-center/schedule</span></div>
+    <div class="node" data-status="working" data-role="owner"><span class="node-status working"></span> Competition — March Madness + Monthly Bonuses <span class="node-role role-owner">OWNER</span><span class="node-path">/command-center/competition</span></div>
+    <div class="node" data-status="working" data-role="owner"><span class="node-status working"></span> Documents — /command-center/documents <span class="node-role role-owner">OWNER</span><span class="node-path">/command-center/documents</span></div>
+  </div>
+</div>
+
+<!-- LEVEL 9: Public Site -->
+<div class="level">
+  <div class="level-header" style="background:rgba(255,255,255,0.05); border:1px solid var(--muted);" onclick="toggleLevel(this)">
+    <span class="arrow">&#9654;</span>
+    LEVEL 9 — PUBLIC WEBSITE (rivercityroofingsolutions.com)
+    <span class="level-badge">45+ public pages + 30 city pages</span>
+  </div>
+  <div class="level-content">
+    <div class="node" data-status="working" data-role="public"><span class="node-status working"></span> Homepage — / <span class="node-role role-public">PUBLIC</span><span class="node-path">/</span></div>
+    <div class="node" data-status="working" data-role="public"><span class="node-status working"></span> Services — /services + /services/[slug] <span class="node-role role-public">PUBLIC</span><span class="node-path">/services</span></div>
+    <div class="node" data-status="working" data-role="public"><span class="node-status working"></span> Service Areas — /service-areas + /service-areas/[slug] (30+ cities) <span class="node-role role-public">PUBLIC</span><span class="node-path">/service-areas</span></div>
+    <div class="node" data-status="working" data-role="public"><span class="node-status working"></span> Locations — /locations/decatur, /huntsville, /madison <span class="node-role role-public">PUBLIC</span><span class="node-path">/locations</span></div>
+    <div class="node" data-status="working" data-role="public"><span class="node-status working"></span> About / Team — /about, /team, /team/[slug] <span class="node-role role-public">PUBLIC</span><span class="node-path">/about</span></div>
+    <div class="node" data-status="working" data-role="public"><span class="node-status working"></span> Blog — /blog + /blog/[slug] <span class="node-role role-public">PUBLIC</span><span class="node-path">/blog</span></div>
+    <div class="node" data-status="working" data-role="public"><span class="node-status working"></span> Contact — /contact + /contact/thank-you <span class="node-role role-public">PUBLIC</span><span class="node-path">/contact</span></div>
+    <div class="node" data-status="working" data-role="public"><span class="node-status working"></span> Check My Address — /check-my-address (hail/storm tool) <span class="node-role role-public">PUBLIC</span><span class="node-path">/check-my-address</span></div>
+    <div class="node" data-status="working" data-role="public"><span class="node-status working"></span> Reviews / Gallery / FAQ / Financing / Warranty <span class="node-role role-public">PUBLIC</span><span class="node-path">various</span></div>
+    <div class="node" data-status="working" data-role="public"><span class="node-status working"></span> Landing Pages — /lp/roof-repair, /storm-damage, /gutter-guards, /roof-replacement <span class="node-role role-public">PUBLIC</span><span class="node-path">/lp/*</span></div>
+    <div class="node" data-status="working" data-role="public"><span class="node-status working"></span> BNI — Partner directory, 3 presentations, portal demo, reports <span class="node-role role-public">PUBLIC</span><span class="node-path">/bni</span></div>
+    <div class="node" data-status="working" data-role="public"><span class="node-status working"></span> Referral Rewards — /referral-rewards <span class="node-role role-public">PUBLIC</span><span class="node-path">/referral-rewards</span></div>
+    <div class="node" data-status="working" data-role="public"><span class="node-status working"></span> Careers — /careers <span class="node-role role-public">PUBLIC</span><span class="node-path">/careers</span></div>
+  </div>
+</div>
+
+<!-- LEVEL 10: Notifications & Integrations -->
+<div class="level">
+  <div class="level-header" style="background:rgba(255,68,68,0.15); border:1px solid var(--red);" onclick="toggleLevel(this)">
+    <span class="arrow">&#9654;</span>
+    LEVEL 10 — NOTIFICATIONS &amp; INTEGRATIONS
+    <span class="level-badge">Email, SMS, GroupMe, Google Sheets, JobNimbus</span>
+  </div>
+  <div class="level-content">
+    <div class="node" data-status="working" data-role="all"><span class="node-status working"></span> Email Service — Google Apps Script endpoint (lib/email-service.ts) <span class="node-role role-all">SYSTEM</span><span class="node-path">lib/email-service.ts</span></div>
+    <div class="node" data-status="working" data-role="all"><span class="node-status working"></span> GroupMe Integration — lib/groupme-service.ts <span class="node-role role-all">SYSTEM</span><span class="node-path">lib/groupme-service.ts</span></div>
+    <div class="node" data-status="working" data-role="all"><span class="node-status working"></span> SMS Service — lib/sms-service.ts <span class="node-role role-all">SYSTEM</span><span class="node-path">lib/sms-service.ts</span></div>
+    <div class="node" data-status="working" data-role="all"><span class="node-status working"></span> Notification Service — 4 channels, 8 triggers, 3-tier preferences <span class="node-role role-all">SYSTEM</span><span class="node-path">lib/notification-service.ts</span></div>
+    <div class="node" data-status="working" data-role="all"><span class="node-status working"></span> Google Sheets Service — Full CRUD, 25 tabs on master sheet <span class="node-role role-all">SYSTEM</span><span class="node-path">lib/google-sheets-service.ts</span></div>
+    <div class="node" data-status="working" data-role="all"><span class="node-status working"></span> JobNimbus CRM — Search, jobs, contacts, sync <span class="node-role role-all">SYSTEM</span><span class="node-path">/api/jobnimbus/*</span></div>
+    <div class="node" data-status="working" data-role="all"><span class="node-status working"></span> Google Maps / Geocoding — Address autocomplete, proximity <span class="node-role role-all">SYSTEM</span><span class="node-path">/api/address-suggest</span></div>
+    <div class="node" data-status="working" data-role="all"><span class="node-status working"></span> Vercel Blob — File storage for uploads, photos <span class="node-role role-all">SYSTEM</span><span class="node-path">@vercel/blob</span></div>
+    <div class="node" data-status="missing" data-role="owner"><span class="node-status missing"></span> Login Notification to Michael — NOT IMPLEMENTED <span class="node-role role-owner">NEEDS BUILD</span><span class="node-path">MISSING</span></div>
+    <div class="node" data-status="missing" data-role="sales"><span class="node-status missing"></span> Weekly Submit Notification — NOT triggering on form submit <span class="node-role role-sales">NEEDS BUILD</span><span class="node-path">MISSING</span></div>
+    <div class="node" data-status="needs-work" data-role="public"><span class="node-status needs-work"></span> Website Lead → Email Notification — Partially wired <span class="node-role role-public">NEEDS WIRING</span><span class="node-path">/api/leads/new</span></div>
+  </div>
+</div>
+
+</div><!-- end tree -->
+
+<!-- DATA FLOW DIAGRAMS -->
+<div class="flow-section">
+  <h2>Data Flow Pipelines</h2>
+  <div class="flow-grid">
+
+    <div class="flow-card">
+      <h3>Weekly Numbers → Leaderboard</h3>
+      <div class="step">1. Rep opens /portal/sales/performance <span class="status-tag done">EXISTS</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">2. Fills weekly form (inspected, damage, signed, etc.) <span class="status-tag done">EXISTS</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">3. POST /api/portal/weekly-numbers <span class="status-tag done">EXISTS</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">4. Saves to RepWeeklyNumbers sheet tab <span class="status-tag done">EXISTS</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">5. Fire-and-forget sync to Monday meeting sheet <span class="status-tag done">EXISTS</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">6. Cache invalidation → leaderboard updates <span class="status-tag done">EXISTS</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">7. EMAIL NOTIFICATION to Michael <span class="status-tag todo">MISSING</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">8. Leaderboard auto-refresh on /command-center <span class="status-tag partial">NEEDS POLLING</span></div>
+    </div>
+
+    <div class="flow-card">
+      <h3>Website Lead → Rep Assignment</h3>
+      <div class="step">1. Visitor fills contact form <span class="status-tag done">EXISTS</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">2. POST /api/forms/contact <span class="status-tag done">EXISTS</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">3. Lead saved to Google Sheets <span class="status-tag done">EXISTS</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">4. Lead distribution algorithm assigns to rep <span class="status-tag done">EXISTS</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">5. Email notification to assigned rep <span class="status-tag partial">NEEDS VERIFY</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">6. Email notification to Michael <span class="status-tag todo">NEEDS WIRING</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">7. Response timer starts <span class="status-tag done">EXISTS</span></div>
+    </div>
+
+    <div class="flow-card">
+      <h3>Login → Audit → Notification</h3>
+      <div class="step">1. User enters email + password <span class="status-tag done">EXISTS</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">2. POST /api/auth/login validates credentials <span class="status-tag done">EXISTS</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">3. JWT cookies set (access + refresh) <span class="status-tag done">EXISTS</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">4. Check mustChangePassword flag <span class="status-tag done">EXISTS</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">5. Log to AuditLog sheet tab <span class="status-tag todo">NEEDS WIRING</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">6. EMAIL to Michael: "[Name] just logged in" <span class="status-tag todo">MISSING</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">7. Redirect to dashboard / role picker <span class="status-tag done">EXISTS</span></div>
+    </div>
+
+    <div class="flow-card">
+      <h3>Delivery Pipeline (18 Stages)</h3>
+      <div class="step">1. PM creates order → ORDER_CREATED <span class="status-tag partial">PAGE EXISTS</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">2. Office reviews → ORDER_REVIEWED <span class="status-tag partial">PAGE EXISTS</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">3. Driver assigned → DRIVER_ASSIGNED <span class="status-tag partial">PAGE EXISTS</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">4-11. Loading → GPS → Delivery chain <span class="status-tag partial">PAGES EXIST</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">12-18. QC → Billing → Invoice → Payment → Close <span class="status-tag partial">PAGES EXIST</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">STATUS NOTIFICATIONS at each stage <span class="status-tag todo">NEEDS WIRING</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">PHOTO/GPS validation at required stages <span class="status-tag partial">NEEDS TESTING</span></div>
+    </div>
+
+    <div class="flow-card">
+      <h3>Monday Meeting → Presentation</h3>
+      <div class="step">1. Meeting data synced from Google Sheet <span class="status-tag done">EXISTS</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">2. Cached in data/meeting-numbers-2026.json <span class="status-tag done">EXISTS</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">3. leaderboard API aggregates by rep/period <span class="status-tag done">EXISTS</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">4. Meeting prep page (/command-center/meetings/prep) <span class="status-tag done">EXISTS</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">5. Presentation with 9 auto-rotating slides <span class="status-tag done">EXISTS</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">6. Monday notes from reps (MondayNotes tab) <span class="status-tag done">EXISTS</span></div>
+    </div>
+
+    <div class="flow-card">
+      <h3>Commission Data (1099)</h3>
+      <div class="step">1. QuickBooks 1099 export → commissions.json <span class="status-tag done">EXISTS</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">2. Name resolution (entity → person) <span class="status-tag done">EXISTS</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">3. Commission leaderboard API <span class="status-tag done">EXISTS</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">4. Sales leaderboard page <span class="status-tag done">EXISTS</span></div>
+      <div class="step"><span class="arrow-right">→</span></div>
+      <div class="step">5. Michael/Chris/Sara EXCLUDED from leaderboard <span class="status-tag done">ENFORCED</span></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- GOOGLE SHEETS TABS -->
+<div class="sheets-section">
+  <h2>Google Sheets Tabs (25 on Master Sheet)</h2>
+  <p style="color:var(--muted);margin-bottom:16px;font-size:13px;">Sheet ID: 1uMEdtHo3xMu2gs21p7dYAgYiPWuCZ3s4a8YU-gJZ31s</p>
+  <div class="sheets-grid">
+    <div class="sheet-card"><h4>team-members-import</h4><div class="rw"><span class="r">READ</span> | <span class="w">WRITE</span></div><p>Team member data synced with lib/team-roles.ts</p></div>
+    <div class="sheet-card"><h4>Inventory</h4><div class="rw"><span class="r">READ</span> | <span class="w">WRITE</span></div><p>SKU, name, qty, min/max stock, cost, price</p></div>
+    <div class="sheet-card"><h4>InventoryLogs</h4><div class="rw"><span class="r">READ</span> | <span class="w">WRITE</span></div><p>Stock change history, who/what/when</p></div>
+    <div class="sheet-card"><h4>Commissions</h4><div class="rw"><span class="r">READ</span></div><p>1099 payouts from QuickBooks — commission leaderboard source</p></div>
+    <div class="sheet-card"><h4>Customers</h4><div class="rw"><span class="r">READ</span> | <span class="w">WRITE</span></div><p>Customer records, geocoded contacts</p></div>
+    <div class="sheet-card"><h4>Orders</h4><div class="rw"><span class="r">READ</span> | <span class="w">WRITE</span></div><p>Material orders for delivery pipeline</p></div>
+    <div class="sheet-card"><h4>Deliveries</h4><div class="rw"><span class="r">READ</span> | <span class="w">WRITE</span></div><p>Delivery records, status tracking</p></div>
+    <div class="sheet-card"><h4>Geocoded_Contacts</h4><div class="rw"><span class="r">READ</span></div><p>Customer addresses with lat/lng for proximity</p></div>
+    <div class="sheet-card"><h4>Lead_Distribution_Log</h4><div class="rw"><span class="r">READ</span> | <span class="w">WRITE</span></div><p>Who got what lead, when, why</p></div>
+    <div class="sheet-card"><h4>Rep_Availability</h4><div class="rw"><span class="r">READ</span> | <span class="w">WRITE</span></div><p>Toggle reps on/off for lead distribution</p></div>
+    <div class="sheet-card"><h4>Rep_Preferences</h4><div class="rw"><span class="r">READ</span> | <span class="w">WRITE</span></div><p>Rep notification preferences, area preferences</p></div>
+    <div class="sheet-card"><h4>Lead_Response_Log</h4><div class="rw"><span class="r">READ</span> | <span class="w">WRITE</span></div><p>Response time tracking for office leads</p></div>
+    <div class="sheet-card"><h4>Job_Breakdowns</h4><div class="rw"><span class="r">READ</span> | <span class="w">WRITE</span></div><p>Material/cost breakdown per job</p></div>
+    <div class="sheet-card"><h4>Team_Access_Overrides</h4><div class="rw"><span class="r">READ</span> | <span class="w">WRITE</span></div><p>Per-user permission overrides</p></div>
+    <div class="sheet-card"><h4>Agent_Directory</h4><div class="rw"><span class="r">READ</span> | <span class="w">WRITE</span></div><p>Insurance agent database for Rick's visits</p></div>
+    <div class="sheet-card"><h4>Agent_Visits</h4><div class="rw"><span class="r">READ</span> | <span class="w">WRITE</span></div><p>Insurance agent visit tracking</p></div>
+    <div class="sheet-card"><h4>Training_Progress</h4><div class="rw"><span class="r">READ</span> | <span class="w">WRITE</span></div><p>Quiz scores, module completion</p></div>
+    <div class="sheet-card"><h4>Invoices</h4><div class="rw"><span class="r">READ</span> | <span class="w">WRITE</span></div><p>Invoice records for billing</p></div>
+    <div class="sheet-card"><h4>RepWeeklyNumbers</h4><div class="rw"><span class="r">READ</span> | <span class="w">WRITE</span></div><p>Weekly activity numbers from reps → weekly leaderboard</p></div>
+    <div class="sheet-card"><h4>CustomerPortalLog</h4><div class="rw"><span class="r">READ</span> | <span class="w">WRITE</span></div><p>Customer portal access logs</p></div>
+    <div class="sheet-card"><h4>CustomerPortalData</h4><div class="rw"><span class="r">READ</span> | <span class="w">WRITE</span></div><p>Customer-specific portal data</p></div>
+    <div class="sheet-card"><h4>MondayNotes</h4><div class="rw"><span class="r">READ</span> | <span class="w">WRITE</span></div><p>Monday meeting notes from reps</p></div>
+    <div class="sheet-card"><h4>Reviews</h4><div class="rw"><span class="r">READ</span> | <span class="w">WRITE</span></div><p>Customer reviews for profiles</p></div>
+    <div class="sheet-card"><h4>AuditLog</h4><div class="rw"><span class="r">READ</span> | <span class="w">WRITE</span></div><p>Login events, setting changes, audit trail</p></div>
+    <div class="sheet-card"><h4>MarchMadness</h4><div class="rw"><span class="r">READ</span> | <span class="w">WRITE</span></div><p>March Madness bracket, scores, results</p></div>
+  </div>
+</div>
+
+<!-- QUESTIONS / DECISIONS -->
+<div class="questions-section">
+  <h2>Questions for Michael (Before/During Build)</h2>
+  <p style="color:var(--muted);margin-bottom:16px;font-size:13px;">These are the decisions I need input on. For now, I'll use the default guess and keep building. Change anything below and I'll adjust.</p>
+  <ul class="q-list">
+    <li class="q-item">
+      <span class="q-priority high">HIGH</span>
+      <span class="q-text">Login notification: Email only, or also GroupMe/SMS?</span>
+      <span class="q-default">Default: Email to michaelmuse@rcrsal.com</span>
+    </li>
+    <li class="q-item">
+      <span class="q-priority high">HIGH</span>
+      <span class="q-text">Weekly number submissions: Notify Michael only, or also Chris?</span>
+      <span class="q-default">Default: Email to Michael only</span>
+    </li>
+    <li class="q-item">
+      <span class="q-priority high">HIGH</span>
+      <span class="q-text">Website leads: Which email should get the notification?</span>
+      <span class="q-default">Default: michaelmuse@rcrsal.com + assigned rep</span>
+    </li>
+    <li class="q-item">
+      <span class="q-priority med">MED</span>
+      <span class="q-text">Delivery pipeline: All 18 stages active, or start with core 5?</span>
+      <span class="q-default">Default: Build all 18, activate core 5 first</span>
+    </li>
+    <li class="q-item">
+      <span class="q-priority med">MED</span>
+      <span class="q-text">Inventory: Should weekly count reminder go to Rick, Bart, or both?</span>
+      <span class="q-default">Default: Both Bart and Rick</span>
+    </li>
+    <li class="q-item">
+      <span class="q-priority med">MED</span>
+      <span class="q-text">Leaderboard real-time: Polling every 30s, or manual refresh?</span>
+      <span class="q-default">Default: Auto-poll every 30 seconds</span>
+    </li>
+    <li class="q-item">
+      <span class="q-priority low">LOW</span>
+      <span class="q-text">Meeting sheet: Auto-sync interval? Currently 5 min.</span>
+      <span class="q-default">Default: Keep 5 min sync</span>
+    </li>
+    <li class="q-item">
+      <span class="q-priority low">LOW</span>
+      <span class="q-text">Backup sheet: Create a separate Google Sheet as backup, or second tab?</span>
+      <span class="q-default">Default: Separate backup sheet, sync daily</span>
+    </li>
+  </ul>
+</div>
+
+<script>
+function toggleLevel(header) {
+  const content = header.nextElementSibling;
+  const arrow = header.querySelector('.arrow');
+  content.classList.toggle('open');
+  arrow.classList.toggle('open');
+}
+
+function searchNodes(query) {
+  const nodes = document.querySelectorAll('.node');
+  const q = query.toLowerCase();
+  nodes.forEach(n => {
+    if (!q) { n.classList.remove('hidden'); return; }
+    n.classList.toggle('hidden', !n.textContent.toLowerCase().includes(q));
+  });
+  // Auto-open levels that have visible nodes
+  document.querySelectorAll('.level-content').forEach(c => {
+    const hasVisible = c.querySelector('.node:not(.hidden)');
+    if (q && hasVisible) { c.classList.add('open'); c.previousElementSibling.querySelector('.arrow').classList.add('open'); }
+  });
+}
+
+function filterAll() {
+  document.querySelectorAll('.node').forEach(n => n.classList.remove('hidden'));
+  updateButtons(null);
+}
+
+function filterStatus(status) {
+  document.querySelectorAll('.node').forEach(n => {
+    n.classList.toggle('hidden', n.dataset.status !== status && !(status === 'missing' && n.dataset.status === 'needs-work'));
+  });
+  updateButtons(status);
+}
+
+function filterRole(role) {
+  document.querySelectorAll('.node').forEach(n => {
+    n.classList.toggle('hidden', n.dataset.role !== role && n.dataset.role !== 'all');
+  });
+  updateButtons(role);
+}
+
+function updateButtons(active) {
+  document.querySelectorAll('.controls button').forEach(b => b.classList.remove('active'));
+  if (!active) document.querySelector('.controls button').classList.add('active');
+}
+</script>
+
+</body>
+</html>

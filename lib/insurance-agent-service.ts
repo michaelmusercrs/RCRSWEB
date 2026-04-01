@@ -7,7 +7,7 @@
  * Persistence: Google Sheets
  */
 
-import { GoogleSpreadsheet, GoogleSpreadsheetRow } from 'google-spreadsheet';
+import { GoogleSpreadsheet, GoogleSpreadsheetRow, GoogleSpreadsheetWorksheet } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
 
 const SHEETS_ID = process.env.DELIVERY_SHEETS_ID || process.env.GOOGLE_SHEETS_ID;
@@ -112,7 +112,7 @@ const SEED_AGENTS: Omit<InsuranceAgent, 'agentId'>[] = [
 // SERVICE
 // ============================================
 
-async function getOrCreateSheet(tabName: string, headerValues: string[]): Promise<{ sheet: any; doc: GoogleSpreadsheet } | null> {
+async function getOrCreateSheet(tabName: string, headerValues: string[]): Promise<{ sheet: GoogleSpreadsheetWorksheet; doc: GoogleSpreadsheet } | null> {
   if (!SHEETS_CONFIGURED) return null;
   try {
     const doc = new GoogleSpreadsheet(SHEETS_ID!, serviceAuth);
@@ -203,7 +203,7 @@ class InsuranceAgentService {
     }
   }
 
-  private async _seed(result: { sheet: any }): Promise<void> {
+  private async _seed(result: { sheet: GoogleSpreadsheetWorksheet }): Promise<void> {
     const rows = SEED_AGENTS.map((a, idx) => {
       const agentId = `AGT-${String(idx + 1).padStart(4, '0')}`;
       return {

@@ -641,8 +641,23 @@ class CallsService {
       .map(([hour, count]) => ({ hour, count }))
       .sort((a, b) => b.count - a.count);
 
-    // Average response time (placeholder - would need ring time data)
-    const avgResponseTime = 0;
+    // Average response time in seconds for answered inbound calls.
+    // Calculated as the time between call start and when it was answered (startTime to endTime minus duration).
+    // For calls where we only have startTime, endTime, and duration, the ring/wait time is:
+    //   totalElapsed - talkDuration = time spent ringing/waiting.
+    // This is an approximation; precise ring-time would require PBX ring-time integration.
+    const answeredInbound = recentCalls.filter(
+      c => c.direction === 'inbound' && c.status === 'completed' && c.startTime && c.endTime && c.duration > 0
+    );
+    let avgResponseTime = 0;
+    if (answeredInbound.length > 0) {
+      const totalWaitTime = answeredInbound.reduce((sum, call) => {
+        const totalElapsed = (new Date(call.endTime).getTime() - new Date(call.startTime).getTime()) / 1000;
+        const ringTime = Math.max(0, totalElapsed - call.duration);
+        return sum + ringTime;
+      }, 0);
+      avgResponseTime = Math.round(totalWaitTime / answeredInbound.length);
+    }
 
     return {
       dailyVolume,

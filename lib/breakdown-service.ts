@@ -1,7 +1,7 @@
 // Customer Breakdown Sheet & Invoice Service
 // Manages job breakdowns, invoices, and material tracking with Google Sheets integration
 
-import { GoogleSpreadsheet } from 'google-spreadsheet';
+import { GoogleSpreadsheet, GoogleSpreadsheetRow } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
 import { getProductById } from './inventoryData';
 
@@ -467,7 +467,7 @@ class BreakdownService {
     }));
   }
 
-  private rowToBreakdown(row: any): CustomerBreakdown {
+  private rowToBreakdown(row: GoogleSpreadsheetRow): CustomerBreakdown {
     const rawApprovalStatus = row.get('approvalStatus');
     const approvalStatus: ApprovalStatus = rawApprovalStatus === 'pending' || rawApprovalStatus === 'approved' || rawApprovalStatus === 'rejected'
       ? rawApprovalStatus
@@ -579,7 +579,7 @@ class BreakdownService {
   /**
    * Persists lock, changelog, and approval fields to the sheet row.
    */
-  private saveExtendedFields(row: any, breakdown: CustomerBreakdown): void {
+  private saveExtendedFields(row: GoogleSpreadsheetRow, breakdown: CustomerBreakdown): void {
     row.set('lockedBy', breakdown.lockedBy || '');
     row.set('lockedByName', breakdown.lockedByName || '');
     row.set('lockedAt', breakdown.lockedAt || '');
@@ -1262,9 +1262,8 @@ class BreakdownService {
     // Subtotal (before tax and discount)
     breakdown.subtotal = breakdown.materialsPrice + breakdown.laborCost;
 
-    // Tax is paid at material purchase, not charged to customer
-    // const taxableAmount = breakdown.subtotal - breakdown.discountAmount;
-    // breakdown.taxAmount = (taxableAmount * breakdown.taxRate) / 100;
+    // Tax is absorbed at material purchase, not passed through to the customer.
+    // taxRate is stored on the breakdown for reference but taxAmount stays 0.
     breakdown.taxAmount = 0;
 
     // Total cost (our cost)
@@ -1475,7 +1474,7 @@ class BreakdownService {
     return invoices.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
-  private rowToInvoice(row: any): Invoice {
+  private rowToInvoice(row: GoogleSpreadsheetRow): Invoice {
     return {
       invoiceId: row.get('invoiceId'),
       invoiceNumber: row.get('invoiceNumber'),
@@ -1619,8 +1618,9 @@ class BreakdownService {
         material.inventoryDeducted = true;
         material.inventoryDeductedAt = new Date().toISOString();
         deducted.push(`${material.quantity} ${material.unit} of ${material.productName}`);
-      } catch (err: any) {
-        errors.push(`Failed to deduct ${material.productName}: ${err.message}`);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        errors.push(`Failed to deduct ${material.productName}: ${message}`);
       }
     }
 

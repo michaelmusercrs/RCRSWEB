@@ -249,10 +249,10 @@ class InventoryReconciliationService {
 
   async reconcileJob(jobId: string): Promise<JobReconciliation | null> {
     // 1. Get all breakdowns for this job
-    const breakdowns = jobBreakdownService.getBreakdownsByJob(jobId);
+    const breakdowns = await jobBreakdownService.getBreakdownsByJob(jobId);
     if (breakdowns.length === 0) {
       // Also try by breakdown.jobId matching
-      const allBreakdowns = jobBreakdownService.getAllBreakdowns();
+      const allBreakdowns = await jobBreakdownService.getAllBreakdowns();
       const match = allBreakdowns.find(b => b.jobId === jobId);
       if (match) breakdowns.push(match);
     }
@@ -443,7 +443,7 @@ class InventoryReconciliationService {
 
   async getReconciliationReport(): Promise<ReconciliationReport> {
     // Get all active breakdowns (not completed, or recently completed)
-    const allBreakdowns = jobBreakdownService.getAllBreakdowns();
+    const allBreakdowns = await jobBreakdownService.getAllBreakdowns();
     const activeStatuses = ['draft', 'pending_approval', 'approved', 'in_progress', 'revised', 'completed'];
     const activeBreakdowns = allBreakdowns.filter(b => activeStatuses.includes(b.status));
 

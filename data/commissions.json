@@ -104,22 +104,6 @@
     "customer": "Shannon Miller 522 12th Ave NW Decatur AL 35601"
   },
   {
-    "salesRep": "Dustin Shariett",
-    "date": "11/26/2018",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Megan Mccahey 101 white apple dr Harvest AL"
-  },
-  {
-    "salesRep": "Dustin Shariett",
-    "date": "11/26/2018",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Steven Bray 3541 Chula Vista Ridge Dr. SW Deactur,  AL 35603"
-  },
-  {
     "salesRep": "Hunter Rivers",
     "date": "11/27/2018",
     "amount": 0.0,
@@ -696,54 +680,6 @@
     "customer": "Mary Pruitt 1626 Sherman St Decatur AL 35601"
   },
   {
-    "salesRep": "Dustin Shariett",
-    "date": "02/26/2019",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Nancy Dodd 320 Shadow Point Dr. SW Decatur AL 35601"
-  },
-  {
-    "salesRep": "Hunter Rivers",
-    "date": "02/26/2019",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Jeff Moor 1126 london place Decatur AL 35603"
-  },
-  {
-    "salesRep": "Ryan Butcher",
-    "date": "02/26/2019",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Andrew Padgatt 6424 Dunnavant place Huntsville AL 35806"
-  },
-  {
-    "salesRep": "Sean Newberry",
-    "date": "02/26/2019",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "1317  Deans Dr Huntsville AL 35802"
-  },
-  {
-    "salesRep": "Wess Cozelos",
-    "date": "02/26/2019",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "1090 Nobleton Lane Huntsville AL 35806"
-  },
-  {
-    "salesRep": "Wess Cozelos",
-    "date": "02/26/2019",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "David McAlister 2433 Halifax Place SW Decatur AL 35601"
-  },
-  {
     "salesRep": "Hunter Rivers",
     "date": "02/27/2019",
     "amount": 0.0,
@@ -1070,30 +1006,6 @@
     "balance": 0,
     "jobNumber": "",
     "customer": "Jason Williams 1208 Timberland DR Decatur AL 35603"
-  },
-  {
-    "salesRep": "Brandon Smith",
-    "date": "03/26/2019",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "15 Little Creek Crossing Decatur AL 35603"
-  },
-  {
-    "salesRep": "Sean Newberry",
-    "date": "03/26/2019",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Mark Yarbrough 128 Co Rd 249 Moulton AL 35650"
-  },
-  {
-    "salesRep": "Sean Newberry",
-    "date": "03/26/2019",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Cheri Laney 905 Ditto Cir Laceys Spring AL 35754"
   },
   {
     "salesRep": "Hunter Rivers",
@@ -1560,38 +1472,6 @@
     "customer": "Aaron Dahl 2034 rosebury lane sw Huntsville AL 35803"
   },
   {
-    "salesRep": "Dustin Shariett",
-    "date": "04/26/2019",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "1750 main st Moulton AL 35650"
-  },
-  {
-    "salesRep": "Ryan Butcher",
-    "date": "04/26/2019",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Don Monk 136 Paul Revere Drive Madison AL 35758"
-  },
-  {
-    "salesRep": "Wess Cozelos",
-    "date": "04/26/2019",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Leroy Walters 1661 Co Rd 345 Decatur AL 35603"
-  },
-  {
-    "salesRep": "Wess Cozelos",
-    "date": "04/26/2019",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "904 Line St Decatur AL 35601"
-  },
-  {
     "salesRep": "Brandon Smith",
     "date": "04/29/2019",
     "amount": 0.0,
@@ -1966,14 +1846,6 @@
     "balance": 0,
     "jobNumber": "",
     "customer": "389 Cherry Street NW Hartselle AL 35640"
-  },
-  {
-    "salesRep": "Hunter Rivers",
-    "date": "06/26/2019",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Denise Buchli 2321 Springdale Rd SE Decatur AL 35601"
   },
   {
     "salesRep": "Hunter Rivers",
@@ -2518,22 +2390,6 @@
     "balance": 0,
     "jobNumber": "",
     "customer": "2353 Cameron St Sw Decatur AL 35603"
-  },
-  {
-    "salesRep": "Hunter Rivers",
-    "date": "09/26/2019",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Mark Daniel 2022 Park Terrace Decatur AL 35601"
-  },
-  {
-    "salesRep": "Wess Cozelos",
-    "date": "09/26/2019",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Corey Holladay 3921 Ryan Dr Sw Decatur AL 35603"
   },
   {
     "salesRep": "Brandon Smith",
@@ -3102,14 +2958,6 @@
     "balance": 0,
     "jobNumber": "",
     "customer": "174 Browning Dr Toney AL 35773"
-  },
-  {
-    "salesRep": "Ryan Butcher",
-    "date": "11/26/2019",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Kim Anderson 2201 Mount Brook Dr Decatur AL 35601"
   },
   {
     "salesRep": "John Cordonis",
@@ -3801,14 +3649,6 @@
   },
   {
     "salesRep": "Hunter Rivers",
-    "date": "02/26/2020",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "3599 Highway 36 E Somerville AL 35670"
-  },
-  {
-    "salesRep": "Hunter Rivers",
     "date": "02/27/2020",
     "amount": 0.0,
     "balance": 0,
@@ -4022,14 +3862,6 @@
     "balance": 0,
     "jobNumber": "",
     "customer": "2422 Jarvis St. SW Decatur AL 35603"
-  },
-  {
-    "salesRep": "Wess Cozelos",
-    "date": "03/26/2020",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "2319 Magna Carta Place Huntsville AL 35803"
   },
   {
     "salesRep": "Wess Cozelos",
@@ -4929,14 +4761,6 @@
   },
   {
     "salesRep": "Gary Lindsey",
-    "date": "05/26/2020",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "2595 Gurley Pike Gurley AL 35748"
-  },
-  {
-    "salesRep": "Gary Lindsey",
     "date": "05/27/2020",
     "amount": 0.0,
     "balance": 0,
@@ -5350,30 +5174,6 @@
     "balance": 0,
     "jobNumber": "",
     "customer": "102 Bellingrath Dr Madison AL 35758"
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "06/26/2020",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "1006 MCCUNG Huntsville AL 35801"
-  },
-  {
-    "salesRep": "Adam Rudell",
-    "date": "06/26/2020",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "1224 Brandywine Lane Decatur AL 35601"
-  },
-  {
-    "salesRep": "Hunter Rivers",
-    "date": "06/26/2020",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "1005 Hillside Circle Decatur AL 35601"
   },
   {
     "salesRep": "Adam Rudell",
@@ -5886,22 +5686,6 @@
     "balance": 0,
     "jobNumber": "",
     "customer": "123 Corrine Dr Madison AL 35758"
-  },
-  {
-    "salesRep": "Gary Lindsey",
-    "date": "08/26/2020",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "207 Knotting Place Madison AL 35758"
-  },
-  {
-    "salesRep": "Hunter Rivers",
-    "date": "08/26/2020",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "1822 Lillian Dr Athens AL 35611"
   },
   {
     "salesRep": "Aaron Lussi",
@@ -6510,38 +6294,6 @@
     "balance": 0,
     "jobNumber": "",
     "customer": "2415 Old Creek Trail Decatur AL 35603"
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "10/26/2020",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "39 Road 934 Mentone AL 35984"
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "10/26/2020",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "87 Oak Terrace Somerville AL 35670"
-  },
-  {
-    "salesRep": "Adam Rudell",
-    "date": "10/26/2020",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "17656 Coffman Rd Elkmont AL 35620"
-  },
-  {
-    "salesRep": "Richard Geahr",
-    "date": "10/26/2020",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "403 Audubon Street SW Hartselle AL 35640"
   },
   {
     "salesRep": "Adam Rudell",
@@ -7280,14 +7032,6 @@
     "customer": "29954 Brentshire Dr Harvest AL 35749"
   },
   {
-    "salesRep": "Aaron Lussi",
-    "date": "01/26/2021",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "119 Merge Ave Harvest AL"
-  },
-  {
     "salesRep": "Wess Cozelos",
     "date": "01/28/2021",
     "amount": 0.0,
@@ -7526,22 +7270,6 @@
     "balance": 0,
     "jobNumber": "",
     "customer": "1708 Edgewood St. Decatur AL 35601"
-  },
-  {
-    "salesRep": "Hunter Rivers",
-    "date": "02/26/2021",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "934 Cotaco-Florette Rd Somerville AL 35670"
-  },
-  {
-    "salesRep": "Wess Cozelos",
-    "date": "02/26/2021",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "3685 Co Rd 317 Moulton AL 35650"
   },
   {
     "salesRep": "Wess Cozelos",
@@ -7902,38 +7630,6 @@
     "balance": 0,
     "jobNumber": "",
     "customer": "2600 MG Sivley Way Hartselle AL 35640"
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "03/26/2021",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "131 Kensington Dr Madison AL 35758"
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "03/26/2021",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "27001 Capshaw Rd Athens AL 35613"
-  },
-  {
-    "salesRep": "Wess Cozelos",
-    "date": "03/26/2021",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "807 Tammy St SW Decatur AL 35603"
-  },
-  {
-    "salesRep": "Wess Cozelos",
-    "date": "03/26/2021",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "3403 Tanglewood Dr SW Decatur AL 35603"
   },
   {
     "salesRep": "Aaron Lussi",
@@ -8512,46 +8208,6 @@
     "customer": "2123 Stanford Drive Athens AL 35611"
   },
   {
-    "salesRep": "Adam Rudell",
-    "date": "04/26/2021",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "2309 Fairway Cir SE Decatur AL 35601"
-  },
-  {
-    "salesRep": "Wess Cozelos",
-    "date": "04/26/2021",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "1359 Old Winchester Rd New Market AL 35761"
-  },
-  {
-    "salesRep": "Wess Cozelos",
-    "date": "04/26/2021",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "3403 Tanglewood Dr SW Decatur AL 35603"
-  },
-  {
-    "salesRep": "Wess Cozelos",
-    "date": "04/26/2021",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "12525 MEMORIAL PARKWAY S Huntsville AL 35803"
-  },
-  {
-    "salesRep": "Wess Cozelos",
-    "date": "04/26/2021",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "615 14th Ave SW Decatur AL 35601"
-  },
-  {
     "salesRep": "Hunter Rivers",
     "date": "04/27/2021",
     "amount": 0.0,
@@ -9126,22 +8782,6 @@
     "balance": 0,
     "jobNumber": "",
     "customer": "170 Farmington Dr Harvest AL 35749"
-  },
-  {
-    "salesRep": "Hunter Rivers",
-    "date": "05/26/2021",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "1206 8th St SW Decatur AL 35601"
-  },
-  {
-    "salesRep": "Wess Cozelos",
-    "date": "05/26/2021",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "233 meadow wood dr Madison AL 35758"
   },
   {
     "salesRep": "Hunter Rivers",
@@ -10096,70 +9736,6 @@
     "customer": "100 Downing Ridge Madison AL 35758"
   },
   {
-    "salesRep": "Adam Rudell",
-    "date": "07/26/2021",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "122 Brass Oak Madison AL 35758"
-  },
-  {
-    "salesRep": "Adam Rudell",
-    "date": "07/26/2021",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "1533 Center Springs Rd. Somerville AL 35670"
-  },
-  {
-    "salesRep": "Adam Rudell",
-    "date": "07/26/2021",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "1533 Center Springs Rd. Somerville AL 35670"
-  },
-  {
-    "salesRep": "Taylor Jones",
-    "date": "07/26/2021",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "429 Deaton Road Lacy Springs AL 35754"
-  },
-  {
-    "salesRep": "Taylor Jones",
-    "date": "07/26/2021",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "125 kilpatrick drive Huntville AL 35811"
-  },
-  {
-    "salesRep": "Wess Cozelos",
-    "date": "07/26/2021",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "68 Lyle Dr Decatur AL 35603"
-  },
-  {
-    "salesRep": "Wess Cozelos",
-    "date": "07/26/2021",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "210 meadow wood dr Madison AL 35756"
-  },
-  {
-    "salesRep": "Wess Cozelos",
-    "date": "07/26/2021",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "153 Arbor Wood Dr Madison AL 35756"
-  },
-  {
     "salesRep": "Aaron Lussi",
     "date": "07/27/2021",
     "amount": 0.0,
@@ -10718,14 +10294,6 @@
     "balance": 0,
     "jobNumber": "",
     "customer": "2420 Crestview Dr SE Decatur AL 35601"
-  },
-  {
-    "salesRep": "Hunter Rivers",
-    "date": "08/26/2021",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "3321 Spring Ave Decatur AL 35603"
   },
   {
     "salesRep": "Aaron Lussi",
@@ -11816,22 +11384,6 @@
     "customer": "2223 Westbury Court Decatur AL 35603"
   },
   {
-    "salesRep": "Richard Geahr",
-    "date": "10/26/2021",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "122 Millsford dr Madison AL 35758"
-  },
-  {
-    "salesRep": "Ryan Butcher",
-    "date": "10/26/2021",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "2703 Cambridge Court SE Decatur AL 35601"
-  },
-  {
     "salesRep": "Hunter Rivers",
     "date": "10/27/2021",
     "amount": 0.0,
@@ -12838,30 +12390,6 @@
     "balance": 0,
     "jobNumber": "",
     "customer": "602 Mohawk Street NW Hartselle AL 35640"
-  },
-  {
-    "salesRep": "Richard Geahr",
-    "date": "01/26/2022",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "2223 Westbury Court Decatur AL 35603"
-  },
-  {
-    "salesRep": "Ryan Butcher",
-    "date": "01/26/2022",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "1825 Vestavia Dr Decatur AL 35603"
-  },
-  {
-    "salesRep": "Wess Cozelos",
-    "date": "01/26/2022",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "1403 Sweetbriar Pl SW Decatur AL 35603"
   },
   {
     "salesRep": "Adam Rudell",
@@ -14184,78 +13712,6 @@
     "customer": "2506 Gladstone Dr. N.E. Huntsville AL 35811"
   },
   {
-    "salesRep": "Adam Rudell",
-    "date": "04/26/2022",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "253 East Main Street Falkville AL 35622"
-  },
-  {
-    "salesRep": "Adam Rudell",
-    "date": "04/26/2022",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "253 East Main Street Falkville AL 35622"
-  },
-  {
-    "salesRep": "Adam Rudell",
-    "date": "04/26/2022",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "1205 Autumn Lane SW Hartselle AL 35640"
-  },
-  {
-    "salesRep": "Brendon Muse",
-    "date": "04/26/2022",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "410 Byrd Rd SE Hartselle AL 35640"
-  },
-  {
-    "salesRep": "Hunter Rivers",
-    "date": "04/26/2022",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "17342 Morgan Dr Harvest AL 35749"
-  },
-  {
-    "salesRep": "Hunter Rivers",
-    "date": "04/26/2022",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "2221 Lancelot Drive SW Decatur AL 35603"
-  },
-  {
-    "salesRep": "Richard Geahr",
-    "date": "04/26/2022",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "244 Dejan Rd Madison AL"
-  },
-  {
-    "salesRep": "Ryan Butcher",
-    "date": "04/26/2022",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "181 Henderson Rd Decatur AL 35603"
-  },
-  {
-    "salesRep": "Ryan Butcher",
-    "date": "04/26/2022",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "1704 robin hood court sw Decatur AL 35603"
-  },
-  {
     "salesRep": "Brendon Muse",
     "date": "04/27/2022",
     "amount": 0.0,
@@ -14750,14 +14206,6 @@
     "balance": 0,
     "jobNumber": "",
     "customer": "214 Rodman Dr Madison AL 35758"
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "05/26/2022",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "1614 River Bend Place Decatur AL 35601"
   },
   {
     "salesRep": "Aaron Lussi",
@@ -15736,46 +15184,6 @@
     "customer": "111 Morland Pointe Huntsville AL 35824"
   },
   {
-    "salesRep": "Hunter Rivers",
-    "date": "07/26/2022",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "2608 Little Cove Rd Owens Cross Roads AL 35763"
-  },
-  {
-    "salesRep": "Ryan Butcher",
-    "date": "07/26/2022",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "630 Grant Street Decatur AL 35601"
-  },
-  {
-    "salesRep": "Tim Hall",
-    "date": "07/26/2022",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "1829 Somerville Rd SE Decatur AL 35601"
-  },
-  {
-    "salesRep": "Tim Hall",
-    "date": "07/26/2022",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "2007 Katie Dr SW Decatur AL 35603"
-  },
-  {
-    "salesRep": "Wess Cozelos",
-    "date": "07/26/2022",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "29048 Capshaw Rd Harvest AL 35749"
-  },
-  {
     "salesRep": "Adam Rudell",
     "date": "07/27/2022",
     "amount": 0.0,
@@ -16264,14 +15672,6 @@
     "customer": "2819 Hester Ln NW Huntsville AL 35810"
   },
   {
-    "salesRep": "Richard Geahr",
-    "date": "08/26/2022",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "2603 Sandalhaven Dr SE Owens Cross Roads AL 35763"
-  },
-  {
     "salesRep": "Aaron Lussi",
     "date": "08/29/2022",
     "amount": 0.0,
@@ -16712,22 +16112,6 @@
     "customer": "3128 Cove Lake Rd Owens Cross Roads AL 35763"
   },
   {
-    "salesRep": "Hunter Rivers",
-    "date": "09/26/2022",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "2310 Woodland St SE Decatur AL 35601"
-  },
-  {
-    "salesRep": "Wess Cozelos",
-    "date": "09/26/2022",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "10827 Stewart Rd Tanner AL 35671"
-  },
-  {
     "salesRep": "Brendon Muse",
     "date": "09/27/2022",
     "amount": 0.0,
@@ -17158,14 +16542,6 @@
     "balance": 0,
     "jobNumber": "",
     "customer": "2702 Arbor Oak dr Owens Cross Roads AL 35763"
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "10/26/2022",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "2895 Hampton Cove Way Owens Cross Roads AL 35763"
   },
   {
     "salesRep": "Brendon Muse",
@@ -18302,38 +17678,6 @@
     "balance": 0,
     "jobNumber": "",
     "customer": "1807 Smith Ave Decatur AL 35603"
-  },
-  {
-    "salesRep": "Brendon Muse",
-    "date": "01/26/2023",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "227 8th St Apt 22 Decatur AL 35601"
-  },
-  {
-    "salesRep": "Brendon Muse",
-    "date": "01/26/2023",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "2317 Woodcliff Rd SE Huntsville AL 35801"
-  },
-  {
-    "salesRep": "Hunter Rivers",
-    "date": "01/26/2023",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "367 North Mountain Dr Trinity AL 35673"
-  },
-  {
-    "salesRep": "Wess Cozelos",
-    "date": "01/26/2023",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "11011 Everest Circle Huntsville AL 35803"
   },
   {
     "salesRep": "Adam Rudell",
@@ -19905,62 +19249,6 @@
   },
   {
     "salesRep": "Aaron Lussi",
-    "date": "04/26/2023",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "113 White Apple Dr Harvest AL 35749"
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "04/26/2023",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "612 Red Hat Rd Decatur AL 35601"
-  },
-  {
-    "salesRep": "Brandon Bradford",
-    "date": "04/26/2023",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "662 Old Hwy 24 Trinity AL 35673"
-  },
-  {
-    "salesRep": "David Thomas",
-    "date": "04/26/2023",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "999 Higdon Rd SW Hartselle AL 35640"
-  },
-  {
-    "salesRep": "Hunter Rivers",
-    "date": "04/26/2023",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "229 Blackwater Dr Harvest AL 35749"
-  },
-  {
-    "salesRep": "John Cordonis",
-    "date": "04/26/2023",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "2005 Katie Dr. S.W. Decatur AL 35603"
-  },
-  {
-    "salesRep": "John Cordonis",
-    "date": "04/26/2023",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "2005 Katie Dr. S.W. Decatur AL 35603"
-  },
-  {
-    "salesRep": "Aaron Lussi",
     "date": "04/27/2023",
     "amount": 0.0,
     "balance": 0,
@@ -20454,30 +19742,6 @@
     "balance": 0,
     "jobNumber": "",
     "customer": "19275 AL HWY 24 Moulton AL 35650"
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "05/26/2023",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "3301 Greymont Dr SW Huntsville AL 35801"
-  },
-  {
-    "salesRep": "Wess Cozelos",
-    "date": "05/26/2023",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "2413 Celestial DR SW Hartselle AL 35640"
-  },
-  {
-    "salesRep": "Wess Cozelos",
-    "date": "05/26/2023",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "1609 Woodview Dr SW Hartselle AL 35640"
   },
   {
     "salesRep": "Brendon Muse",
@@ -20977,30 +20241,6 @@
   },
   {
     "salesRep": "Adam Rudell",
-    "date": "06/26/2023",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "26905 6th Street Ardmore AL 35739"
-  },
-  {
-    "salesRep": "Adam Rudell",
-    "date": "06/26/2023",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "26905 6th Street Ardmore AL 35739"
-  },
-  {
-    "salesRep": "Tim Hall",
-    "date": "06/26/2023",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "646 Double S Mountain Rd Baileyton AL 35019"
-  },
-  {
-    "salesRep": "Adam Rudell",
     "date": "06/27/2023",
     "amount": 0.0,
     "balance": 0,
@@ -21494,46 +20734,6 @@
     "balance": 0,
     "jobNumber": "",
     "customer": "2003 Meadow Creek Cir Owens Cross Roads AL 35763"
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "07/26/2023",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "828 Rhodes St NW Hartselle AL 35640"
-  },
-  {
-    "salesRep": "Adam Rudell",
-    "date": "07/26/2023",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "1409 12th St SE Decatur AL 35601"
-  },
-  {
-    "salesRep": "Brendon Muse",
-    "date": "07/26/2023",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "2909 Saddletree Blvd NE Huntsville AL 35811"
-  },
-  {
-    "salesRep": "John Cordonis",
-    "date": "07/26/2023",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "580 Cahaba Manor Rd. Pelham AL 35124"
-  },
-  {
-    "salesRep": "Tim Hall",
-    "date": "07/26/2023",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "4309 Autumn Leaves Trail SE Decatur AL 35603"
   },
   {
     "salesRep": "Aaron Lussi",
@@ -22728,14 +21928,6 @@
     "customer": "116 Wickerberry Ln Madison AL 35756"
   },
   {
-    "salesRep": "Hunter Rivers",
-    "date": "09/26/2023",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "5655 Hunter Lane Tanner AL 35671"
-  },
-  {
     "salesRep": "Adam Rudell",
     "date": "09/27/2023",
     "amount": 0.0,
@@ -23342,30 +22534,6 @@
     "balance": 0,
     "jobNumber": "",
     "customer": ""
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "10/26/2023",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "1105 Cardinal Ave Madison AL 35758"
-  },
-  {
-    "salesRep": "David Thomas",
-    "date": "10/26/2023",
-    "amount": 525.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "37 Compton Curry Rd Somerville AL 35670"
-  },
-  {
-    "salesRep": "MJ Muse",
-    "date": "10/26/2023",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "17304 Drake Dr Athens AL 35611"
   },
   {
     "salesRep": "Aaron Boykin",
@@ -24640,14 +23808,6 @@
     "customer": "2312 Dogwood Ln SE Decatur AL 35601"
   },
   {
-    "salesRep": "John Cordonis",
-    "date": "01/26/2024",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "233 Sims Rd. S.W. Decatur AL 35603"
-  },
-  {
     "salesRep": "Adam Rudell",
     "date": "01/29/2024",
     "amount": 0.0,
@@ -24950,38 +24110,6 @@
     "balance": 0,
     "jobNumber": "",
     "customer": "300 Co Rd 440 Killen AL 35645"
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "02/26/2024",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "1805 College Street SE Decatur AL 35601"
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "02/26/2024",
-    "amount": 1625.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "3571 Avalon Lake Dr Madison AL 35756"
-  },
-  {
-    "salesRep": "Adam Rudell",
-    "date": "02/26/2024",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Tina Parker - Decatur Tina Parker - Decatur 1036 Sherman Street SE Decatur, AL  "
-  },
-  {
-    "salesRep": "Ethan Frith",
-    "date": "02/26/2024",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "2317 Diamond Pointe Dr Decatur AL 35603"
   },
   {
     "salesRep": "Braden Speegle",
@@ -25318,14 +24446,6 @@
     "balance": 0,
     "jobNumber": "",
     "customer": "48 Bradford Cir Priceville AL 35603"
-  },
-  {
-    "salesRep": "Richard Geahr",
-    "date": "03/26/2024",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "131 Castlehill Dr Meridianville AL 35759"
   },
   {
     "salesRep": "Ethan Frith",
@@ -25718,30 +24838,6 @@
     "balance": 0,
     "jobNumber": "",
     "customer": "140 Stardust Cir Toney AL 35773"
-  },
-  {
-    "salesRep": "Daniel Ganas",
-    "date": "04/26/2024",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "4709 Pineridge Cir SE Decatur AL 35603"
-  },
-  {
-    "salesRep": "Daniel Ganas",
-    "date": "04/26/2024",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "102 Cavendish Cir Madison AL 35758"
-  },
-  {
-    "salesRep": "MJ Muse",
-    "date": "04/26/2024",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "21874 Rochelle Rd Athens AL 35614"
   },
   {
     "salesRep": "Aaron Lussi",
@@ -26656,22 +25752,6 @@
     "customer": "7432 Danville Rd Hartselle AL 35640"
   },
   {
-    "salesRep": "Brendon Muse",
-    "date": "06/26/2024",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "17462 Maree Dr Athens AL 35613"
-  },
-  {
-    "salesRep": "Ethan Frith",
-    "date": "06/26/2024",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "2617 Summerwind Dr Decatur AL 35603"
-  },
-  {
     "salesRep": "Aaron Lussi",
     "date": "06/27/2024",
     "amount": 0.0,
@@ -27094,14 +26174,6 @@
     "balance": 0,
     "jobNumber": "",
     "customer": "23695 W Clearmont Dr Elkmont AL 35620"
-  },
-  {
-    "salesRep": "Richard Geahr",
-    "date": "07/26/2024",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "215 Water Tower Road Somerville AL 35670"
   },
   {
     "salesRep": "Aaron Lussi",
@@ -27553,14 +26625,6 @@
   },
   {
     "salesRep": "Brendon Muse",
-    "date": "08/26/2024",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Chrisa Haywood AL"
-  },
-  {
-    "salesRep": "Brendon Muse",
     "date": "08/27/2024",
     "amount": 0.0,
     "balance": 0,
@@ -27918,30 +26982,6 @@
     "balance": 0,
     "jobNumber": "",
     "customer": "Jeff Sellers Austinville United Methodist Church 908 Lamar St SW Decatur, AL  35"
-  },
-  {
-    "salesRep": "Adam Rudell",
-    "date": "09/26/2024",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Jim Derrickson 8017 Goose Ridge Drive Owens Cross Roads, AL  35763"
-  },
-  {
-    "salesRep": "Ethan Frith",
-    "date": "09/26/2024",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Shannon Bailey 2109 Dundee Dr Sw Decatur, AL  35603"
-  },
-  {
-    "salesRep": "Ethan Frith",
-    "date": "09/26/2024",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Nikki Minton 349 Draper Road Somerville, AL  35670"
   },
   {
     "salesRep": "Greg Muse",
@@ -28342,14 +27382,6 @@
     "balance": 0,
     "jobNumber": "",
     "customer": "Jeremy Felker 1819 Scobee Ave SW Decatur, AL  35603"
-  },
-  {
-    "salesRep": "David Thomas",
-    "date": "11/26/2024",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Dena Vandiver 528 Katina Ln SW Hartselle, AL  35640"
   },
   {
     "salesRep": "Aaron Lussi",
@@ -29262,62 +28294,6 @@
     "balance": 0,
     "jobNumber": "",
     "customer": "Gary McConnell 1310 Runnymead Ave SW Decatur, AL  35601"
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "03/26/2025",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Laura Arnold 1607 Wellman Ave Huntsville, AL  35801"
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "03/26/2025",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Chris Carr 98 Thompson Road Decatur, AL  35603"
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "03/26/2025",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Chris Carr 98 Thompson Road Decatur, AL  35603"
-  },
-  {
-    "salesRep": "Adam Rudell",
-    "date": "03/26/2025",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Eric Brennaman 2607 Jarvis St SW Decatur, AL  35603"
-  },
-  {
-    "salesRep": "Brendon Muse",
-    "date": "03/26/2025",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Don Dimond 541 E Lakeshore Dr Double Springs, AL  35553"
-  },
-  {
-    "salesRep": "Brendon Muse",
-    "date": "03/26/2025",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Don Dimond 541 E Lakeshore Dr Double Springs, AL  35553"
-  },
-  {
-    "salesRep": "Greg Muse",
-    "date": "03/26/2025",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Lloyd Dillard 1807 Hermitage Ave SW Decatur, AL  35603"
   },
   {
     "salesRep": "Adam Rudell",
@@ -30944,62 +29920,6 @@
     "customer": "Zachary Mardis 1909 Chippendale Drive Southeast Huntsville, AL 35801"
   },
   {
-    "salesRep": "Aaron Boykin",
-    "date": "06/26/2025",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Jerry & Betty Cunningham 1400 Governors Drive Southeast Huntsville, AL 35801"
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "06/26/2025",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Stephan Puryear 2008 Park Terrace SE Decatur, AL  35601"
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "06/26/2025",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Jim Bolte Madison 119 Windy Way Drive Madison, AL 35758"
-  },
-  {
-    "salesRep": "Adam Rudell",
-    "date": "06/26/2025",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Dennis McMahan Nationwide 2300 Old Wagon Rd Huntsville, AL  35801"
-  },
-  {
-    "salesRep": "Adam Rudell",
-    "date": "06/26/2025",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Crystal McPike 4013 Seawall Drive Huntsville, AL  35805"
-  },
-  {
-    "salesRep": "Hunter Rivers",
-    "date": "06/26/2025",
-    "amount": 19405.91,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Robert Coates 1509 Southeast Mountainbrook Dr Huntsville, AL 35801"
-  },
-  {
-    "salesRep": "Richard Geahr",
-    "date": "06/26/2025",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Dan Moreno 2709 Old Vineyard Rd SW Decatur, AL 35603"
-  },
-  {
     "salesRep": "Aaron Lussi",
     "date": "06/27/2025",
     "amount": 0.0,
@@ -32368,30 +31288,6 @@
     "customer": "Ken Shelton 5296 CR-434 Trinity, AL  35673"
   },
   {
-    "salesRep": "Brendon Muse",
-    "date": "09/26/2025",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Lisa Mole 4076 Old Moulton Rd Decatur, AL 35603"
-  },
-  {
-    "salesRep": "Hunter Rivers",
-    "date": "09/26/2025",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Paul Butler 108 Coatbridge Lane Madison, AL 35758"
-  },
-  {
-    "salesRep": "Hunter Rivers",
-    "date": "09/26/2025",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Scott Flynn 3671 Wood Tr Rd SW Decatur, AL 35603"
-  },
-  {
     "salesRep": "Greg Muse",
     "date": "09/29/2025",
     "amount": 0.0,
@@ -33120,22 +32016,6 @@
     "customer": "Debbie Acanfrio 613 Auburn Avenue Southwest Huntsville, AL  35801"
   },
   {
-    "salesRep": "Aaron Lussi",
-    "date": "11/26/2025",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Marsha Walker. 6167 Wall Triana Highway Madison, AL 35757"
-  },
-  {
-    "salesRep": "Brendon Muse",
-    "date": "11/26/2025",
-    "amount": 0.0,
-    "balance": 0,
-    "jobNumber": "",
-    "customer": "Ashton Somoskey 2300 Ready Section Rd Toney, AL 35773"
-  },
-  {
     "salesRep": "Brendon Muse",
     "date": "12/02/2025",
     "amount": 0.0,
@@ -33376,300 +32256,284 @@
     "customer": "Gloria Reed 4435 County Road 217 Trinity, AL 35673"
   },
   {
+    "salesRep": "Bart Roberts",
+    "date": "03/27/2026",
+    "amount": 1077.11,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Antony Barton Roberts"
+  },
+  {
     "salesRep": "Brendon Muse",
     "date": "01/02/2026",
     "amount": 338.48,
     "balance": 0,
-    "jobNumber": "6140.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Joseph Dowd",
-    "date": "01/02/2026",
-    "amount": 39.59,
-    "balance": 0,
-    "jobNumber": "6137.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "01/02/2026",
-    "amount": 1180.49,
-    "balance": 0,
-    "jobNumber": "6138.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Adam Rudell",
-    "date": "01/02/2026",
-    "amount": -900.0,
-    "balance": 0,
-    "jobNumber": "6139.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Adam Rudell",
-    "date": "01/02/2026",
-    "amount": 3485.35,
-    "balance": 0,
-    "jobNumber": "6139.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Adam Rudell",
-    "date": "01/02/2026",
-    "amount": 340.38,
-    "balance": 0,
-    "jobNumber": "6139.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Hunter Rivers",
-    "date": "01/06/2026",
-    "amount": 1195.89,
-    "balance": 0,
-    "jobNumber": "6157.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Hunter Rivers",
-    "date": "01/06/2026",
-    "amount": 1164.71,
-    "balance": 0,
-    "jobNumber": "6157.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Hunter Rivers",
-    "date": "01/06/2026",
-    "amount": 887.93,
-    "balance": 0,
-    "jobNumber": "6157.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Greg Muse",
-    "date": "01/08/2026",
-    "amount": 2998.44,
-    "balance": 0,
-    "jobNumber": "6163.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Greg Muse",
-    "date": "01/08/2026",
-    "amount": 1016.68,
-    "balance": 0,
-    "jobNumber": "6163.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Greg Muse",
-    "date": "01/08/2026",
-    "amount": 381.97,
-    "balance": 0,
-    "jobNumber": "6163.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Greg Muse",
-    "date": "01/08/2026",
-    "amount": -87.2,
-    "balance": 0,
-    "jobNumber": "6163.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "John Cordonis",
-    "date": "01/08/2026",
-    "amount": 2126.38,
-    "balance": 0,
-    "jobNumber": "6169.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Brendon Muse",
-    "date": "01/09/2026",
-    "amount": 2239.46,
-    "balance": 0,
-    "jobNumber": "6172.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - BCM Contracting LLC"
   },
   {
     "salesRep": "Brendon Muse",
     "date": "01/09/2026",
     "amount": 700.0,
     "balance": 0,
-    "jobNumber": "6172.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - BCM Contracting LLC"
+  },
+  {
+    "salesRep": "Brendon Muse",
+    "date": "01/09/2026",
+    "amount": 2239.46,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - BCM Contracting LLC"
   },
   {
     "salesRep": "Brendon Muse",
     "date": "01/09/2026",
     "amount": 20.9,
     "balance": 0,
-    "jobNumber": "6172.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - BCM Contracting LLC"
   },
   {
     "salesRep": "Brendon Muse",
     "date": "01/09/2026",
     "amount": -6.2,
     "balance": 0,
-    "jobNumber": "6172.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - BCM Contracting LLC"
   },
   {
     "salesRep": "Brendon Muse",
     "date": "01/09/2026",
     "amount": -5.3,
     "balance": 0,
-    "jobNumber": "6172.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - BCM Contracting LLC"
+  },
+  {
+    "salesRep": "Brendon Muse",
+    "date": "02/06/2026",
+    "amount": 775.61,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - BCM Contracting LLC"
+  },
+  {
+    "salesRep": "Brendon Muse",
+    "date": "02/09/2026",
+    "amount": 238.16,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - BCM Contracting LLC"
+  },
+  {
+    "salesRep": "Brendon Muse",
+    "date": "02/09/2026",
+    "amount": -200.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - BCM Contracting LLC"
+  },
+  {
+    "salesRep": "Brendon Muse",
+    "date": "02/09/2026",
+    "amount": -5.3,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - BCM Contracting LLC"
+  },
+  {
+    "salesRep": "Brendon Muse",
+    "date": "02/09/2026",
+    "amount": 1085.16,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - BCM Contracting LLC"
+  },
+  {
+    "salesRep": "Brendon Muse",
+    "date": "02/20/2026",
+    "amount": 431.65,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - BCM Contracting LLC"
+  },
+  {
+    "salesRep": "Brendon Muse",
+    "date": "02/20/2026",
+    "amount": 135.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - BCM Contracting LLC"
+  },
+  {
+    "salesRep": "Brendon Muse",
+    "date": "02/25/2026",
+    "amount": 1691.79,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - BCM Contracting LLC"
+  },
+  {
+    "salesRep": "Brendon Muse",
+    "date": "03/13/2026",
+    "amount": 1571.79,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - BCM Contracting LLC"
+  },
+  {
+    "salesRep": "Brendon Muse",
+    "date": "03/20/2026",
+    "amount": 1140.81,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - BCM Contracting LLC"
+  },
+  {
+    "salesRep": "Brendon Muse",
+    "date": "03/20/2026",
+    "amount": 125.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - BCM Contracting LLC"
+  },
+  {
+    "salesRep": "Brendon Muse",
+    "date": "03/27/2026",
+    "amount": 250.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - BCM Contracting LLC"
+  },
+  {
+    "salesRep": "Brendon Muse",
+    "date": "03/27/2026",
+    "amount": 670.7,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - BCM Contracting LLC"
   },
   {
     "salesRep": "Diego Garcia",
     "date": "01/09/2026",
     "amount": 1112.0,
     "balance": 0,
-    "jobNumber": "6168.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Jesus M Lara J.",
-    "date": "01/09/2026",
-    "amount": 500.0,
-    "balance": 0,
-    "jobNumber": "6167.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Jesus M Lara J.",
-    "date": "01/09/2026",
-    "amount": 450.0,
-    "balance": 0,
-    "jobNumber": "6167.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Jesus M Lara J.",
-    "date": "01/09/2026",
-    "amount": 500.0,
-    "balance": 0,
-    "jobNumber": "6167.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Pablo Compuzano-Cruz",
-    "date": "01/09/2026",
-    "amount": 1257.9,
-    "balance": 0,
-    "jobNumber": "6166.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "01/09/2026",
-    "amount": 546.21,
-    "balance": 0,
-    "jobNumber": "6170.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Adam Rudell",
-    "date": "01/09/2026",
-    "amount": -216.83,
-    "balance": 0,
-    "jobNumber": "6171.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Adam Rudell",
-    "date": "01/09/2026",
-    "amount": 1000.0,
-    "balance": 0,
-    "jobNumber": "6171.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Diego Garcia"
   },
   {
     "salesRep": "Diego Garcia",
     "date": "01/16/2026",
     "amount": 1410.0,
     "balance": 0,
-    "jobNumber": "6177.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Diego Garcia"
   },
   {
-    "salesRep": "Greg Muse",
-    "date": "01/16/2026",
-    "amount": 584.81,
+    "salesRep": "Diego Garcia",
+    "date": "02/06/2026",
+    "amount": 885.0,
     "balance": 0,
-    "jobNumber": "6182.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Diego Garcia"
   },
   {
-    "salesRep": "Greg Muse",
-    "date": "01/16/2026",
-    "amount": 317.01,
+    "salesRep": "Diego Garcia",
+    "date": "02/06/2026",
+    "amount": 205.0,
     "balance": 0,
-    "jobNumber": "6182.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Diego Garcia"
   },
   {
-    "salesRep": "Travis Wages",
-    "date": "01/16/2026",
-    "amount": 290.06,
+    "salesRep": "Diego Garcia",
+    "date": "02/06/2026",
+    "amount": 774.0,
     "balance": 0,
-    "jobNumber": "6181.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Diego Garcia"
   },
   {
-    "salesRep": "Joseph Dowd",
-    "date": "01/16/2026",
-    "amount": 448.96,
+    "salesRep": "Diego Garcia",
+    "date": "02/20/2026",
+    "amount": 1249.0,
     "balance": 0,
-    "jobNumber": "6185.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Diego Garcia"
   },
   {
-    "salesRep": "Joseph Dowd",
-    "date": "01/16/2026",
-    "amount": 404.57,
+    "salesRep": "Diego Garcia",
+    "date": "02/20/2026",
+    "amount": 350.0,
     "balance": 0,
-    "jobNumber": "6185.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Diego Garcia"
   },
   {
-    "salesRep": "Richard Geahr",
-    "date": "01/16/2026",
-    "amount": 2689.57,
+    "salesRep": "Diego Garcia",
+    "date": "02/20/2026",
+    "amount": 205.0,
     "balance": 0,
-    "jobNumber": "6183.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Diego Garcia"
   },
   {
-    "salesRep": "Aaron Lussi",
-    "date": "01/16/2026",
-    "amount": 294.84,
+    "salesRep": "Diego Garcia",
+    "date": "02/27/2026",
+    "amount": 350.0,
     "balance": 0,
-    "jobNumber": "6184.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Diego Garcia"
   },
   {
-    "salesRep": "Aaron Lussi",
-    "date": "01/16/2026",
-    "amount": 106.51,
+    "salesRep": "Diego Garcia",
+    "date": "03/06/2026",
+    "amount": 828.11,
     "balance": 0,
-    "jobNumber": "6184.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Diego Garcia"
   },
   {
-    "salesRep": "Adam Rudell",
-    "date": "01/16/2026",
-    "amount": 986.16,
+    "salesRep": "Diego Garcia",
+    "date": "03/13/2026",
+    "amount": 2791.0,
     "balance": 0,
-    "jobNumber": "6180.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Diego Garcia"
+  },
+  {
+    "salesRep": "Diego Garcia",
+    "date": "03/13/2026",
+    "amount": 200.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Diego Garcia"
+  },
+  {
+    "salesRep": "Diego Garcia",
+    "date": "03/20/2026",
+    "amount": 983.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Diego Garcia"
+  },
+  {
+    "salesRep": "Diego Garcia",
+    "date": "03/20/2026",
+    "amount": 3719.5,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Diego Garcia"
+  },
+  {
+    "salesRep": "Diego Garcia",
+    "date": "03/27/2026",
+    "amount": 192.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Diego Garcia"
   },
   {
     "salesRep": "Dollins & Associates",
@@ -33677,7 +32541,7 @@
     "amount": 1512.5,
     "balance": 0,
     "jobNumber": "",
-    "customer": ""
+    "customer": "QuickBooks 1099 - Dollins & Associates"
   },
   {
     "salesRep": "Dollins & Associates",
@@ -33685,854 +32549,1270 @@
     "amount": 1980.0,
     "balance": 0,
     "jobNumber": "",
-    "customer": ""
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "01/21/2026",
-    "amount": 654.86,
-    "balance": 0,
-    "jobNumber": "6193.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "01/21/2026",
-    "amount": 1097.63,
-    "balance": 0,
-    "jobNumber": "6193.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Jesus M Lara J.",
-    "date": "01/23/2026",
-    "amount": 4737.9,
-    "balance": 0,
-    "jobNumber": "6189.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Pablo Compuzano-Cruz",
-    "date": "01/23/2026",
-    "amount": 250.0,
-    "balance": 0,
-    "jobNumber": "6188.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Pablo Compuzano-Cruz",
-    "date": "01/23/2026",
-    "amount": 4805.0,
-    "balance": 0,
-    "jobNumber": "6188.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Pablo Compuzano-Cruz",
-    "date": "01/23/2026",
-    "amount": 300.0,
-    "balance": 0,
-    "jobNumber": "6188.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "01/23/2026",
-    "amount": 275.0,
-    "balance": 0,
-    "jobNumber": "6190.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Hunter Rivers",
-    "date": "01/30/2026",
-    "amount": 395.25,
-    "balance": 0,
-    "jobNumber": "6202.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Hunter Rivers",
-    "date": "01/30/2026",
-    "amount": 92.82,
-    "balance": 0,
-    "jobNumber": "6202.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Hunter Rivers",
-    "date": "01/30/2026",
-    "amount": 1694.1,
-    "balance": 0,
-    "jobNumber": "6202.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Hunter Rivers",
-    "date": "01/30/2026",
-    "amount": 439.56,
-    "balance": 0,
-    "jobNumber": "6202.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "01/30/2026",
-    "amount": 17.33,
-    "balance": 0,
-    "jobNumber": "6203.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "01/30/2026",
-    "amount": 200.0,
-    "balance": 0,
-    "jobNumber": "6203.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "01/30/2026",
-    "amount": 77.5,
-    "balance": 0,
-    "jobNumber": "6203.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "01/30/2026",
-    "amount": 350.0,
-    "balance": 0,
-    "jobNumber": "6203.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "01/30/2026",
-    "amount": 896.26,
-    "balance": 0,
-    "jobNumber": "6203.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Adam Rudell",
-    "date": "01/30/2026",
-    "amount": 1127.47,
-    "balance": 0,
-    "jobNumber": "6201.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Mr. Rogelio Gonzalez-Flores",
-    "date": "02/02/2026",
-    "amount": 2043.04,
-    "balance": 0,
-    "jobNumber": "6207.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Reggie Jackson",
-    "date": "02/02/2026",
-    "amount": 375.0,
-    "balance": 0,
-    "jobNumber": "6196.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "John Cordonis",
-    "date": "02/04/2026",
-    "amount": 3520.14,
-    "balance": 0,
-    "jobNumber": "6216.0",
-    "customer": ""
+    "customer": "QuickBooks 1099 - Dollins & Associates"
   },
   {
     "salesRep": "Greg Muse",
-    "date": "02/05/2026",
-    "amount": -205.08,
+    "date": "01/08/2026",
+    "amount": 1016.68,
     "balance": 0,
-    "jobNumber": "6218.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
+  },
+  {
+    "salesRep": "Greg Muse",
+    "date": "01/08/2026",
+    "amount": 2998.44,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
+  },
+  {
+    "salesRep": "Greg Muse",
+    "date": "01/08/2026",
+    "amount": -87.2,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
+  },
+  {
+    "salesRep": "Greg Muse",
+    "date": "01/08/2026",
+    "amount": 381.97,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
+  },
+  {
+    "salesRep": "Greg Muse",
+    "date": "01/16/2026",
+    "amount": 584.81,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
+  },
+  {
+    "salesRep": "Greg Muse",
+    "date": "01/16/2026",
+    "amount": 317.01,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
   },
   {
     "salesRep": "Greg Muse",
     "date": "02/05/2026",
     "amount": 25.0,
     "balance": 0,
-    "jobNumber": "6218.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
   },
   {
     "salesRep": "Greg Muse",
     "date": "02/05/2026",
     "amount": 2297.07,
     "balance": 0,
-    "jobNumber": "6218.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
   },
   {
-    "salesRep": "Adam Rudell",
+    "salesRep": "Greg Muse",
     "date": "02/05/2026",
-    "amount": 750.88,
+    "amount": -205.08,
     "balance": 0,
-    "jobNumber": "6224.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Brendon Muse",
-    "date": "02/06/2026",
-    "amount": 775.61,
-    "balance": 0,
-    "jobNumber": "6223.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Diego Garcia",
-    "date": "02/06/2026",
-    "amount": 774.0,
-    "balance": 0,
-    "jobNumber": "6222.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Diego Garcia",
-    "date": "02/06/2026",
-    "amount": 205.0,
-    "balance": 0,
-    "jobNumber": "6222.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Diego Garcia",
-    "date": "02/06/2026",
-    "amount": 885.0,
-    "balance": 0,
-    "jobNumber": "6222.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Jesus M Lara J.",
-    "date": "02/06/2026",
-    "amount": 2894.0,
-    "balance": 0,
-    "jobNumber": "6219.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Mr. Rogelio Gonzalez-Flores",
-    "date": "02/06/2026",
-    "amount": 250.0,
-    "balance": 0,
-    "jobNumber": "6221.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Brendon Muse",
-    "date": "02/09/2026",
-    "amount": -200.0,
-    "balance": 0,
-    "jobNumber": "6229.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Brendon Muse",
-    "date": "02/09/2026",
-    "amount": -5.3,
-    "balance": 0,
-    "jobNumber": "6229.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Brendon Muse",
-    "date": "02/09/2026",
-    "amount": 1085.16,
-    "balance": 0,
-    "jobNumber": "6229.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Brendon Muse",
-    "date": "02/09/2026",
-    "amount": 238.16,
-    "balance": 0,
-    "jobNumber": "6229.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
   },
   {
     "salesRep": "Greg Muse",
     "date": "02/11/2026",
     "amount": 1500.0,
     "balance": 0,
-    "jobNumber": "6232.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Mr. Rogelio Gonzalez-Flores",
-    "date": "02/12/2026",
-    "amount": 5025.0,
-    "balance": 0,
-    "jobNumber": "6233.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Mr. Rogelio Gonzalez-Flores",
-    "date": "02/12/2026",
-    "amount": 2805.4,
-    "balance": 0,
-    "jobNumber": "6233.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Jesus M Lara J.",
-    "date": "02/13/2026",
-    "amount": 4411.0,
-    "balance": 0,
-    "jobNumber": "6234.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Jesus M Lara J.",
-    "date": "02/13/2026",
-    "amount": 250.0,
-    "balance": 0,
-    "jobNumber": "6234.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Jesus M Lara J.",
-    "date": "02/13/2026",
-    "amount": 250.0,
-    "balance": 0,
-    "jobNumber": "6234.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Adam Rudell",
-    "date": "02/13/2026",
-    "amount": 3767.36,
-    "balance": 0,
-    "jobNumber": "6236.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Adam Rudell",
-    "date": "02/13/2026",
-    "amount": 175.0,
-    "balance": 0,
-    "jobNumber": "6236.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Adam Rudell",
-    "date": "02/13/2026",
-    "amount": 1808.81,
-    "balance": 0,
-    "jobNumber": "6236.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
   },
   {
     "salesRep": "Greg Muse",
     "date": "02/17/2026",
     "amount": 5048.87,
     "balance": 0,
-    "jobNumber": "6239.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Brendon Muse",
-    "date": "02/20/2026",
-    "amount": 135.0,
-    "balance": 0,
-    "jobNumber": "6252.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Brendon Muse",
-    "date": "02/20/2026",
-    "amount": 431.65,
-    "balance": 0,
-    "jobNumber": "6252.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Diego Garcia",
-    "date": "02/20/2026",
-    "amount": 1249.0,
-    "balance": 0,
-    "jobNumber": "6246.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Diego Garcia",
-    "date": "02/20/2026",
-    "amount": 205.0,
-    "balance": 0,
-    "jobNumber": "6246.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Diego Garcia",
-    "date": "02/20/2026",
-    "amount": 350.0,
-    "balance": 0,
-    "jobNumber": "6246.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Hunter Rivers",
-    "date": "02/20/2026",
-    "amount": 950.0,
-    "balance": 0,
-    "jobNumber": "6249.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Hunter Rivers",
-    "date": "02/20/2026",
-    "amount": 150.0,
-    "balance": 0,
-    "jobNumber": "6249.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Hunter Rivers",
-    "date": "02/20/2026",
-    "amount": 208.75,
-    "balance": 0,
-    "jobNumber": "6249.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Jesus M Lara J.",
-    "date": "02/20/2026",
-    "amount": 300.0,
-    "balance": 0,
-    "jobNumber": "6245.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Jesus M Lara J.",
-    "date": "02/20/2026",
-    "amount": 3865.0,
-    "balance": 0,
-    "jobNumber": "6245.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Mr. Rogelio Gonzalez-Flores",
-    "date": "02/20/2026",
-    "amount": 2709.45,
-    "balance": 0,
-    "jobNumber": "6244.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Mr. Rogelio Gonzalez-Flores",
-    "date": "02/20/2026",
-    "amount": 3700.45,
-    "balance": 0,
-    "jobNumber": "6244.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Mr. Rogelio Gonzalez-Flores",
-    "date": "02/20/2026",
-    "amount": -150.0,
-    "balance": 0,
-    "jobNumber": "6244.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "02/20/2026",
-    "amount": 170.28,
-    "balance": 0,
-    "jobNumber": "6250.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "02/20/2026",
-    "amount": 167.43,
-    "balance": 0,
-    "jobNumber": "6250.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "02/20/2026",
-    "amount": 1249.86,
-    "balance": 0,
-    "jobNumber": "6250.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Adam Rudell",
-    "date": "02/20/2026",
-    "amount": 1312.5,
-    "balance": 0,
-    "jobNumber": "6251.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Adam Rudell",
-    "date": "02/20/2026",
-    "amount": 200.0,
-    "balance": 0,
-    "jobNumber": "6251.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Brendon Muse",
-    "date": "02/25/2026",
-    "amount": 1691.79,
-    "balance": 0,
-    "jobNumber": "6260.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Diego Garcia",
-    "date": "02/27/2026",
-    "amount": 350.0,
-    "balance": 0,
-    "jobNumber": "6267.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Hunter Rivers",
-    "date": "02/27/2026",
-    "amount": 600.0,
-    "balance": 0,
-    "jobNumber": "6269.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Hunter Rivers",
-    "date": "02/27/2026",
-    "amount": 5181.2,
-    "balance": 0,
-    "jobNumber": "6269.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Hunter Rivers",
-    "date": "02/27/2026",
-    "amount": 924.14,
-    "balance": 0,
-    "jobNumber": "6269.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Travis Wages",
-    "date": "02/27/2026",
-    "amount": 1613.64,
-    "balance": 0,
-    "jobNumber": "6268.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Jesus M Lara J.",
-    "date": "02/27/2026",
-    "amount": 1122.9,
-    "balance": 0,
-    "jobNumber": "6266.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Jesus M Lara J.",
-    "date": "02/27/2026",
-    "amount": 1250.1,
-    "balance": 0,
-    "jobNumber": "6266.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Mr. Rogelio Gonzalez-Flores",
-    "date": "02/27/2026",
-    "amount": 250.0,
-    "balance": 0,
-    "jobNumber": "6265.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Mr. Rogelio Gonzalez-Flores",
-    "date": "02/27/2026",
-    "amount": 100.0,
-    "balance": 0,
-    "jobNumber": "6265.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "02/27/2026",
-    "amount": 961.16,
-    "balance": 0,
-    "jobNumber": "6270.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "02/27/2026",
-    "amount": 273.1,
-    "balance": 0,
-    "jobNumber": "6270.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "02/27/2026",
-    "amount": 950.0,
-    "balance": 0,
-    "jobNumber": "6270.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Adam Rudell",
-    "date": "02/27/2026",
-    "amount": 6365.42,
-    "balance": 0,
-    "jobNumber": "6271.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Reggie Jackson",
-    "date": "03/02/2026",
-    "amount": 500.0,
-    "balance": 0,
-    "jobNumber": "6275.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Greg Muse",
-    "date": "03/05/2026",
-    "amount": 43.97,
-    "balance": 0,
-    "jobNumber": "6289.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
   },
   {
     "salesRep": "Greg Muse",
     "date": "03/05/2026",
     "amount": -200.0,
     "balance": 0,
-    "jobNumber": "6289.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
   },
   {
     "salesRep": "Greg Muse",
     "date": "03/05/2026",
-    "amount": 87.17,
+    "amount": 43.97,
     "balance": 0,
-    "jobNumber": "6289.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
   },
   {
     "salesRep": "Greg Muse",
     "date": "03/05/2026",
     "amount": 800.0,
     "balance": 0,
-    "jobNumber": "6289.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
   },
   {
     "salesRep": "Greg Muse",
     "date": "03/05/2026",
     "amount": 673.05,
     "balance": 0,
-    "jobNumber": "6289.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
   },
   {
-    "salesRep": "John Cordonis",
+    "salesRep": "Greg Muse",
     "date": "03/05/2026",
-    "amount": 3184.98,
+    "amount": 87.17,
     "balance": 0,
-    "jobNumber": "6288.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Diego Garcia",
-    "date": "03/06/2026",
-    "amount": 828.11,
-    "balance": 0,
-    "jobNumber": "6286.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Jesus M Lara J.",
-    "date": "03/06/2026",
-    "amount": 4400.0,
-    "balance": 0,
-    "jobNumber": "6284.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Jesus M Lara J.",
-    "date": "03/06/2026",
-    "amount": 350.0,
-    "balance": 0,
-    "jobNumber": "6284.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Mr. Rogelio Gonzalez-Flores",
-    "date": "03/06/2026",
-    "amount": 8286.09,
-    "balance": 0,
-    "jobNumber": "6283.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "03/06/2026",
-    "amount": 80.0,
-    "balance": 0,
-    "jobNumber": "6292.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Aaron Lussi",
-    "date": "03/06/2026",
-    "amount": 1751.6,
-    "balance": 0,
-    "jobNumber": "6292.0",
-    "customer": ""
-  },
-  {
-    "salesRep": "Adam Rudell",
-    "date": "03/06/2026",
-    "amount": 485.71,
-    "balance": 0,
-    "jobNumber": "6291.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
   },
   {
     "salesRep": "Greg Muse",
     "date": "03/12/2026",
     "amount": -250.0,
     "balance": 0,
-    "jobNumber": "6306.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
   },
   {
     "salesRep": "Greg Muse",
     "date": "03/12/2026",
     "amount": 2175.22,
     "balance": 0,
-    "jobNumber": "6306.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
   },
   {
-    "salesRep": "Brendon Muse",
-    "date": "03/13/2026",
-    "amount": 1571.79,
+    "salesRep": "Greg Muse",
+    "date": "03/18/2026",
+    "amount": -200.0,
     "balance": 0,
-    "jobNumber": "6309.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
   },
   {
-    "salesRep": "Diego Garcia",
-    "date": "03/13/2026",
-    "amount": 200.0,
+    "salesRep": "Greg Muse",
+    "date": "03/18/2026",
+    "amount": 1500.0,
     "balance": 0,
-    "jobNumber": "6303.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
   },
   {
-    "salesRep": "Diego Garcia",
-    "date": "03/13/2026",
-    "amount": 2791.0,
+    "salesRep": "Greg Muse",
+    "date": "03/18/2026",
+    "amount": 375.0,
     "balance": 0,
-    "jobNumber": "6303.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
+  },
+  {
+    "salesRep": "Greg Muse",
+    "date": "03/18/2026",
+    "amount": 275.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
+  },
+  {
+    "salesRep": "Greg Muse",
+    "date": "03/20/2026",
+    "amount": 456.68,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
+  },
+  {
+    "salesRep": "Greg Muse",
+    "date": "03/20/2026",
+    "amount": -150.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
+  },
+  {
+    "salesRep": "Greg Muse",
+    "date": "03/20/2026",
+    "amount": 350.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
+  },
+  {
+    "salesRep": "Greg Muse",
+    "date": "03/20/2026",
+    "amount": 221.23,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
+  },
+  {
+    "salesRep": "Greg Muse",
+    "date": "03/27/2026",
+    "amount": -561.02,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
+  },
+  {
+    "salesRep": "Greg Muse",
+    "date": "03/27/2026",
+    "amount": 20.17,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
+  },
+  {
+    "salesRep": "Greg Muse",
+    "date": "03/27/2026",
+    "amount": 1040.52,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
+  },
+  {
+    "salesRep": "Greg Muse",
+    "date": "03/27/2026",
+    "amount": 1283.44,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
+  },
+  {
+    "salesRep": "Greg Muse",
+    "date": "03/27/2026",
+    "amount": 711.92,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
+  },
+  {
+    "salesRep": "Greg Muse",
+    "date": "03/27/2026",
+    "amount": 507.41,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Gregory Ray Muse"
   },
   {
     "salesRep": "Hunter Rivers",
-    "date": "03/13/2026",
-    "amount": 85.92,
+    "date": "01/06/2026",
+    "amount": 1164.71,
     "balance": 0,
-    "jobNumber": "6311.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Hunter Rivers"
+  },
+  {
+    "salesRep": "Hunter Rivers",
+    "date": "01/06/2026",
+    "amount": 1195.89,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Hunter Rivers"
+  },
+  {
+    "salesRep": "Hunter Rivers",
+    "date": "01/06/2026",
+    "amount": 887.93,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Hunter Rivers"
+  },
+  {
+    "salesRep": "Hunter Rivers",
+    "date": "01/30/2026",
+    "amount": 439.56,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Hunter Rivers"
+  },
+  {
+    "salesRep": "Hunter Rivers",
+    "date": "01/30/2026",
+    "amount": 1694.1,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Hunter Rivers"
+  },
+  {
+    "salesRep": "Hunter Rivers",
+    "date": "01/30/2026",
+    "amount": 92.82,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Hunter Rivers"
+  },
+  {
+    "salesRep": "Hunter Rivers",
+    "date": "01/30/2026",
+    "amount": 395.25,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Hunter Rivers"
+  },
+  {
+    "salesRep": "Hunter Rivers",
+    "date": "02/20/2026",
+    "amount": 208.75,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Hunter Rivers"
+  },
+  {
+    "salesRep": "Hunter Rivers",
+    "date": "02/20/2026",
+    "amount": 150.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Hunter Rivers"
+  },
+  {
+    "salesRep": "Hunter Rivers",
+    "date": "02/20/2026",
+    "amount": 950.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Hunter Rivers"
+  },
+  {
+    "salesRep": "Hunter Rivers",
+    "date": "02/27/2026",
+    "amount": 600.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Hunter Rivers"
+  },
+  {
+    "salesRep": "Hunter Rivers",
+    "date": "02/27/2026",
+    "amount": 5181.2,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Hunter Rivers"
+  },
+  {
+    "salesRep": "Hunter Rivers",
+    "date": "02/27/2026",
+    "amount": 924.14,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Hunter Rivers"
   },
   {
     "salesRep": "Hunter Rivers",
     "date": "03/13/2026",
     "amount": 100.0,
     "balance": 0,
-    "jobNumber": "6311.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Hunter Rivers"
+  },
+  {
+    "salesRep": "Hunter Rivers",
+    "date": "03/13/2026",
+    "amount": 85.92,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Hunter Rivers"
   },
   {
     "salesRep": "Hunter Rivers",
     "date": "03/13/2026",
     "amount": 1800.0,
     "balance": 0,
-    "jobNumber": "6311.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Hunter Rivers"
+  },
+  {
+    "salesRep": "Hunter Rivers",
+    "date": "03/20/2026",
+    "amount": 1653.28,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Hunter Rivers"
+  },
+  {
+    "salesRep": "Hunter Rivers",
+    "date": "03/20/2026",
+    "amount": 1032.44,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Hunter Rivers"
+  },
+  {
+    "salesRep": "Hunter Rivers",
+    "date": "03/20/2026",
+    "amount": 300.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Hunter Rivers"
+  },
+  {
+    "salesRep": "Hunter Rivers",
+    "date": "03/20/2026",
+    "amount": 40.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Hunter Rivers"
+  },
+  {
+    "salesRep": "Hunter Rivers",
+    "date": "03/27/2026",
+    "amount": 1077.12,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Hunter Rivers"
+  },
+  {
+    "salesRep": "Hunter Rivers",
+    "date": "03/27/2026",
+    "amount": 278.9,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Hunter Rivers"
+  },
+  {
+    "salesRep": "Hunter Rivers",
+    "date": "03/27/2026",
+    "amount": 1370.74,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Hunter Rivers"
+  },
+  {
+    "salesRep": "Travis Wages",
+    "date": "01/16/2026",
+    "amount": 290.06,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Jeremy T. Wages"
+  },
+  {
+    "salesRep": "Travis Wages",
+    "date": "02/27/2026",
+    "amount": 1613.64,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Jeremy T. Wages"
   },
   {
     "salesRep": "Travis Wages",
     "date": "03/13/2026",
     "amount": 500.0,
     "balance": 0,
-    "jobNumber": "6310.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Jeremy T. Wages"
+  },
+  {
+    "salesRep": "Travis Wages",
+    "date": "03/20/2026",
+    "amount": 500.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Jeremy T. Wages"
+  },
+  {
+    "salesRep": "Jesus M Lara J.",
+    "date": "01/09/2026",
+    "amount": 500.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Jesus M Lara J."
+  },
+  {
+    "salesRep": "Jesus M Lara J.",
+    "date": "01/09/2026",
+    "amount": 500.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Jesus M Lara J."
+  },
+  {
+    "salesRep": "Jesus M Lara J.",
+    "date": "01/09/2026",
+    "amount": 450.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Jesus M Lara J."
+  },
+  {
+    "salesRep": "Jesus M Lara J.",
+    "date": "01/23/2026",
+    "amount": 4737.9,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Jesus M Lara J."
+  },
+  {
+    "salesRep": "Jesus M Lara J.",
+    "date": "02/06/2026",
+    "amount": 2894.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Jesus M Lara J."
+  },
+  {
+    "salesRep": "Jesus M Lara J.",
+    "date": "02/13/2026",
+    "amount": 4411.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Jesus M Lara J."
+  },
+  {
+    "salesRep": "Jesus M Lara J.",
+    "date": "02/13/2026",
+    "amount": 250.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Jesus M Lara J."
+  },
+  {
+    "salesRep": "Jesus M Lara J.",
+    "date": "02/13/2026",
+    "amount": 250.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Jesus M Lara J."
+  },
+  {
+    "salesRep": "Jesus M Lara J.",
+    "date": "02/20/2026",
+    "amount": 300.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Jesus M Lara J."
+  },
+  {
+    "salesRep": "Jesus M Lara J.",
+    "date": "02/20/2026",
+    "amount": 3865.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Jesus M Lara J."
+  },
+  {
+    "salesRep": "Jesus M Lara J.",
+    "date": "02/27/2026",
+    "amount": 1122.9,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Jesus M Lara J."
+  },
+  {
+    "salesRep": "Jesus M Lara J.",
+    "date": "02/27/2026",
+    "amount": 1250.1,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Jesus M Lara J."
+  },
+  {
+    "salesRep": "Jesus M Lara J.",
+    "date": "03/06/2026",
+    "amount": 350.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Jesus M Lara J."
+  },
+  {
+    "salesRep": "Jesus M Lara J.",
+    "date": "03/06/2026",
+    "amount": 4400.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Jesus M Lara J."
   },
   {
     "salesRep": "Jesus M Lara J.",
     "date": "03/13/2026",
     "amount": 1947.9,
     "balance": 0,
-    "jobNumber": "6302.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Jesus M Lara J."
+  },
+  {
+    "salesRep": "Jesus M Lara J.",
+    "date": "03/20/2026",
+    "amount": 3949.4,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Jesus M Lara J."
+  },
+  {
+    "salesRep": "Jesus M Lara J.",
+    "date": "03/20/2026",
+    "amount": 800.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Jesus M Lara J."
+  },
+  {
+    "salesRep": "Jesus M Lara J.",
+    "date": "03/20/2026",
+    "amount": 850.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Jesus M Lara J."
+  },
+  {
+    "salesRep": "Jesus M Lara J.",
+    "date": "03/27/2026",
+    "amount": 4127.73,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Jesus M Lara J."
+  },
+  {
+    "salesRep": "Jesus M Lara J.",
+    "date": "03/27/2026",
+    "amount": 2502.45,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Jesus M Lara J."
+  },
+  {
+    "salesRep": "John Cordonis",
+    "date": "01/08/2026",
+    "amount": 2126.38,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - John Cordonis"
+  },
+  {
+    "salesRep": "John Cordonis",
+    "date": "02/04/2026",
+    "amount": 3520.14,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - John Cordonis"
+  },
+  {
+    "salesRep": "John Cordonis",
+    "date": "03/05/2026",
+    "amount": 3184.98,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - John Cordonis"
+  },
+  {
+    "salesRep": "Joseph Dowd",
+    "date": "01/02/2026",
+    "amount": 39.59,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Joseph Dowd"
+  },
+  {
+    "salesRep": "Joseph Dowd",
+    "date": "01/16/2026",
+    "amount": 448.96,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Joseph Dowd"
+  },
+  {
+    "salesRep": "Joseph Dowd",
+    "date": "01/16/2026",
+    "amount": 404.57,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Joseph Dowd"
   },
   {
     "salesRep": "Mr. Rogelio Gonzalez-Flores",
-    "date": "03/13/2026",
-    "amount": 4050.9,
+    "date": "02/02/2026",
+    "amount": 2043.04,
     "balance": 0,
-    "jobNumber": "6301.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Mr. Rogelio Gonzalez-Flores"
+  },
+  {
+    "salesRep": "Mr. Rogelio Gonzalez-Flores",
+    "date": "02/06/2026",
+    "amount": 250.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Mr. Rogelio Gonzalez-Flores"
+  },
+  {
+    "salesRep": "Mr. Rogelio Gonzalez-Flores",
+    "date": "02/12/2026",
+    "amount": 5025.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Mr. Rogelio Gonzalez-Flores"
+  },
+  {
+    "salesRep": "Mr. Rogelio Gonzalez-Flores",
+    "date": "02/12/2026",
+    "amount": 2805.4,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Mr. Rogelio Gonzalez-Flores"
+  },
+  {
+    "salesRep": "Mr. Rogelio Gonzalez-Flores",
+    "date": "02/20/2026",
+    "amount": -150.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Mr. Rogelio Gonzalez-Flores"
+  },
+  {
+    "salesRep": "Mr. Rogelio Gonzalez-Flores",
+    "date": "02/20/2026",
+    "amount": 2709.45,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Mr. Rogelio Gonzalez-Flores"
+  },
+  {
+    "salesRep": "Mr. Rogelio Gonzalez-Flores",
+    "date": "02/20/2026",
+    "amount": 3700.45,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Mr. Rogelio Gonzalez-Flores"
+  },
+  {
+    "salesRep": "Mr. Rogelio Gonzalez-Flores",
+    "date": "02/27/2026",
+    "amount": 100.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Mr. Rogelio Gonzalez-Flores"
+  },
+  {
+    "salesRep": "Mr. Rogelio Gonzalez-Flores",
+    "date": "02/27/2026",
+    "amount": 250.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Mr. Rogelio Gonzalez-Flores"
+  },
+  {
+    "salesRep": "Mr. Rogelio Gonzalez-Flores",
+    "date": "03/06/2026",
+    "amount": 8286.09,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Mr. Rogelio Gonzalez-Flores"
   },
   {
     "salesRep": "Mr. Rogelio Gonzalez-Flores",
     "date": "03/13/2026",
     "amount": 6153.4,
     "balance": 0,
-    "jobNumber": "6301.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Mr. Rogelio Gonzalez-Flores"
+  },
+  {
+    "salesRep": "Mr. Rogelio Gonzalez-Flores",
+    "date": "03/13/2026",
+    "amount": 4050.9,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Mr. Rogelio Gonzalez-Flores"
+  },
+  {
+    "salesRep": "Mr. Rogelio Gonzalez-Flores",
+    "date": "03/20/2026",
+    "amount": 750.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Mr. Rogelio Gonzalez-Flores"
+  },
+  {
+    "salesRep": "Mr. Rogelio Gonzalez-Flores",
+    "date": "03/20/2026",
+    "amount": 250.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Mr. Rogelio Gonzalez-Flores"
+  },
+  {
+    "salesRep": "Mr. Rogelio Gonzalez-Flores",
+    "date": "03/20/2026",
+    "amount": 2827.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Mr. Rogelio Gonzalez-Flores"
+  },
+  {
+    "salesRep": "Mr. Rogelio Gonzalez-Flores",
+    "date": "03/20/2026",
+    "amount": 200.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Mr. Rogelio Gonzalez-Flores"
+  },
+  {
+    "salesRep": "Mr. Rogelio Gonzalez-Flores",
+    "date": "03/20/2026",
+    "amount": 1120.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Mr. Rogelio Gonzalez-Flores"
+  },
+  {
+    "salesRep": "Mr. Rogelio Gonzalez-Flores",
+    "date": "03/27/2026",
+    "amount": 3287.9,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Mr. Rogelio Gonzalez-Flores"
+  },
+  {
+    "salesRep": "Mr. Rogelio Gonzalez-Flores",
+    "date": "03/27/2026",
+    "amount": 2728.5,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Mr. Rogelio Gonzalez-Flores"
+  },
+  {
+    "salesRep": "Pablo Compuzano-Cruz",
+    "date": "01/09/2026",
+    "amount": 1257.9,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Pablo Compuzano-Cruz"
+  },
+  {
+    "salesRep": "Pablo Compuzano-Cruz",
+    "date": "01/23/2026",
+    "amount": 300.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Pablo Compuzano-Cruz"
+  },
+  {
+    "salesRep": "Pablo Compuzano-Cruz",
+    "date": "01/23/2026",
+    "amount": 4805.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Pablo Compuzano-Cruz"
+  },
+  {
+    "salesRep": "Pablo Compuzano-Cruz",
+    "date": "01/23/2026",
+    "amount": 250.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Pablo Compuzano-Cruz"
   },
   {
     "salesRep": "Patrick Manuel",
     "date": "03/13/2026",
     "amount": 1725.0,
     "balance": 0,
-    "jobNumber": "6304.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Patrick Manuel"
+  },
+  {
+    "salesRep": "Reggie Jackson",
+    "date": "02/02/2026",
+    "amount": 375.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Reggie Jackson"
+  },
+  {
+    "salesRep": "Reggie Jackson",
+    "date": "03/02/2026",
+    "amount": 500.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Reggie Jackson"
+  },
+  {
+    "salesRep": "Richard Geahr",
+    "date": "01/16/2026",
+    "amount": 2689.57,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Richard  Geahr"
   },
   {
     "salesRep": "Aaron Lussi",
-    "date": "03/13/2026",
-    "amount": 330.39,
+    "date": "01/02/2026",
+    "amount": 1180.49,
     "balance": 0,
-    "jobNumber": "6308.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Roof Angel, LLC"
+  },
+  {
+    "salesRep": "Aaron Lussi",
+    "date": "01/09/2026",
+    "amount": 546.21,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Roof Angel, LLC"
+  },
+  {
+    "salesRep": "Aaron Lussi",
+    "date": "01/16/2026",
+    "amount": 294.84,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Roof Angel, LLC"
+  },
+  {
+    "salesRep": "Aaron Lussi",
+    "date": "01/16/2026",
+    "amount": 106.51,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Roof Angel, LLC"
+  },
+  {
+    "salesRep": "Aaron Lussi",
+    "date": "01/21/2026",
+    "amount": 1097.63,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Roof Angel, LLC"
+  },
+  {
+    "salesRep": "Aaron Lussi",
+    "date": "01/21/2026",
+    "amount": 654.86,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Roof Angel, LLC"
+  },
+  {
+    "salesRep": "Aaron Lussi",
+    "date": "01/23/2026",
+    "amount": 275.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Roof Angel, LLC"
+  },
+  {
+    "salesRep": "Aaron Lussi",
+    "date": "01/30/2026",
+    "amount": 77.5,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Roof Angel, LLC"
+  },
+  {
+    "salesRep": "Aaron Lussi",
+    "date": "01/30/2026",
+    "amount": 350.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Roof Angel, LLC"
+  },
+  {
+    "salesRep": "Aaron Lussi",
+    "date": "01/30/2026",
+    "amount": 896.26,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Roof Angel, LLC"
+  },
+  {
+    "salesRep": "Aaron Lussi",
+    "date": "01/30/2026",
+    "amount": 200.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Roof Angel, LLC"
+  },
+  {
+    "salesRep": "Aaron Lussi",
+    "date": "01/30/2026",
+    "amount": 17.33,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Roof Angel, LLC"
+  },
+  {
+    "salesRep": "Aaron Lussi",
+    "date": "02/20/2026",
+    "amount": 167.43,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Roof Angel, LLC"
+  },
+  {
+    "salesRep": "Aaron Lussi",
+    "date": "02/20/2026",
+    "amount": 170.28,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Roof Angel, LLC"
+  },
+  {
+    "salesRep": "Aaron Lussi",
+    "date": "02/20/2026",
+    "amount": 1249.86,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Roof Angel, LLC"
+  },
+  {
+    "salesRep": "Aaron Lussi",
+    "date": "02/27/2026",
+    "amount": 950.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Roof Angel, LLC"
+  },
+  {
+    "salesRep": "Aaron Lussi",
+    "date": "02/27/2026",
+    "amount": 273.1,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Roof Angel, LLC"
+  },
+  {
+    "salesRep": "Aaron Lussi",
+    "date": "02/27/2026",
+    "amount": 961.16,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Roof Angel, LLC"
+  },
+  {
+    "salesRep": "Aaron Lussi",
+    "date": "03/06/2026",
+    "amount": 1751.6,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Roof Angel, LLC"
+  },
+  {
+    "salesRep": "Aaron Lussi",
+    "date": "03/06/2026",
+    "amount": 80.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Roof Angel, LLC"
   },
   {
     "salesRep": "Aaron Lussi",
     "date": "03/13/2026",
     "amount": 81.25,
     "balance": 0,
-    "jobNumber": "6308.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Roof Angel, LLC"
+  },
+  {
+    "salesRep": "Aaron Lussi",
+    "date": "03/13/2026",
+    "amount": 330.39,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Roof Angel, LLC"
+  },
+  {
+    "salesRep": "Aaron Lussi",
+    "date": "03/20/2026",
+    "amount": 150.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Roof Angel, LLC"
+  },
+  {
+    "salesRep": "Aaron Lussi",
+    "date": "03/20/2026",
+    "amount": 447.25,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Roof Angel, LLC"
+  },
+  {
+    "salesRep": "Aaron Lussi",
+    "date": "03/27/2026",
+    "amount": 2681.13,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Roof Angel, LLC"
+  },
+  {
+    "salesRep": "Aaron Lussi",
+    "date": "03/27/2026",
+    "amount": 79.64,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Roof Angel, LLC"
+  },
+  {
+    "salesRep": "Aaron Lussi",
+    "date": "03/27/2026",
+    "amount": -39.07,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Roof Angel, LLC"
+  },
+  {
+    "salesRep": "Adam Rudell",
+    "date": "01/02/2026",
+    "amount": 3485.35,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Rudys Roofing Insights LLC"
+  },
+  {
+    "salesRep": "Adam Rudell",
+    "date": "01/02/2026",
+    "amount": -900.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Rudys Roofing Insights LLC"
+  },
+  {
+    "salesRep": "Adam Rudell",
+    "date": "01/02/2026",
+    "amount": 340.38,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Rudys Roofing Insights LLC"
+  },
+  {
+    "salesRep": "Adam Rudell",
+    "date": "01/09/2026",
+    "amount": -216.83,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Rudys Roofing Insights LLC"
+  },
+  {
+    "salesRep": "Adam Rudell",
+    "date": "01/09/2026",
+    "amount": 1000.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Rudys Roofing Insights LLC"
+  },
+  {
+    "salesRep": "Adam Rudell",
+    "date": "01/16/2026",
+    "amount": 986.16,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Rudys Roofing Insights LLC"
+  },
+  {
+    "salesRep": "Adam Rudell",
+    "date": "01/30/2026",
+    "amount": 1127.47,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Rudys Roofing Insights LLC"
+  },
+  {
+    "salesRep": "Adam Rudell",
+    "date": "02/05/2026",
+    "amount": 750.88,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Rudys Roofing Insights LLC"
+  },
+  {
+    "salesRep": "Adam Rudell",
+    "date": "02/13/2026",
+    "amount": 3767.36,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Rudys Roofing Insights LLC"
+  },
+  {
+    "salesRep": "Adam Rudell",
+    "date": "02/13/2026",
+    "amount": 175.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Rudys Roofing Insights LLC"
+  },
+  {
+    "salesRep": "Adam Rudell",
+    "date": "02/13/2026",
+    "amount": 1808.81,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Rudys Roofing Insights LLC"
+  },
+  {
+    "salesRep": "Adam Rudell",
+    "date": "02/20/2026",
+    "amount": 1312.5,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Rudys Roofing Insights LLC"
+  },
+  {
+    "salesRep": "Adam Rudell",
+    "date": "02/20/2026",
+    "amount": 200.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Rudys Roofing Insights LLC"
+  },
+  {
+    "salesRep": "Adam Rudell",
+    "date": "02/27/2026",
+    "amount": 6365.42,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Rudys Roofing Insights LLC"
+  },
+  {
+    "salesRep": "Adam Rudell",
+    "date": "03/06/2026",
+    "amount": 485.71,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Rudys Roofing Insights LLC"
   },
   {
     "salesRep": "Spradlin Construction, Inc.",
     "date": "03/13/2026",
     "amount": 900.0,
     "balance": 0,
-    "jobNumber": "6305.0",
-    "customer": ""
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Spradlin Construction, Inc."
+  },
+  {
+    "salesRep": "Taylor Maid Cleaning Services",
+    "date": "02/02/2026",
+    "amount": 240.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Taylor Maid Cleaning Services"
+  },
+  {
+    "salesRep": "Taylor Maid Cleaning Services",
+    "date": "03/02/2026",
+    "amount": 240.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Taylor Maid Cleaning Services"
+  },
+  {
+    "salesRep": "Taylor Maid Cleaning Services",
+    "date": "03/23/2026",
+    "amount": 300.0,
+    "balance": 0,
+    "jobNumber": "",
+    "customer": "QuickBooks 1099 - Taylor Maid Cleaning Services"
   }
 ]

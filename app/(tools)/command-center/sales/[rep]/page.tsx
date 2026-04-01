@@ -36,6 +36,7 @@ interface LeaderboardEntry {
   transactionCount: number;
   avgTransaction: number;
   percentOfTotal: number;
+  recentTransactions?: Array<{ date: string; amount: number }>;
 }
 
 interface SalesSummary {

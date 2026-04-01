@@ -3,6 +3,7 @@ import { formService } from '@/lib/form-service';
 import { groupMeService, getGroupMeConfigFromEnv } from '@/lib/groupme-service';
 import { createFormRateLimiter, withRateLimit } from '@/lib/rate-limiter';
 import { checkRequestSize } from '@/lib/request-size-limit';
+import { emailService } from '@/lib/email-service';
 
 const formRateLimiter = createFormRateLimiter();
 
@@ -62,6 +63,30 @@ export async function POST(request: NextRequest) {
     } catch (gmErr) {
       console.warn('GroupMe notification failed for career app:', gmErr);
     }
+
+    // 3. Email Michael about career application
+    emailService.send({
+      to: 'michaelmuse@rcrsal.com',
+      subject: `Career Application: ${name} — ${city}`,
+      body: `
+        <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;">
+          <div style="background:#000;padding:16px;text-align:center;">
+            <h2 style="color:#39FF14;margin:0;">New Career Application</h2>
+          </div>
+          <div style="padding:20px;background:#fff;">
+            <table style="width:100%;border-collapse:collapse;">
+              <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Name</td><td style="padding:6px;border-bottom:1px solid #eee;">${name}</td></tr>
+              <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Email</td><td style="padding:6px;border-bottom:1px solid #eee;">${email}</td></tr>
+              <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Phone</td><td style="padding:6px;border-bottom:1px solid #eee;">${phone}</td></tr>
+              <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">City</td><td style="padding:6px;border-bottom:1px solid #eee;">${city}</td></tr>
+              <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Experience</td><td style="padding:6px;border-bottom:1px solid #eee;">${experience}</td></tr>
+              <tr><td style="padding:6px;font-weight:bold;">Why Join</td><td style="padding:6px;">${whyJoin}</td></tr>
+            </table>
+          </div>
+        </div>
+      `,
+      fromName: 'RCRS Careers',
+    }).catch(err => console.error('[Careers] Email failed:', err));
 
     return NextResponse.json(
       {

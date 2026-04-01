@@ -132,20 +132,21 @@ interface ModuleCardProps {
   score?: number;
 }
 
+function getModuleHref(module: TrainingModuleDef): string | null {
+  if (module.status !== 'ready') return null;
+  if (module.contentType === 'quiz') return '/portal/quizzes';
+  if (module.contentUrl) return module.contentUrl;
+  // Link to the training library which houses deep-dive content
+  return '/portal/training/library';
+}
+
 function ModuleCard({ module, isCompleted, score }: ModuleCardProps) {
   const Icon = ICON_MAP[module.icon || 'BookOpen'] || BookOpen;
   const isAvailable = module.status === 'ready';
+  const href = getModuleHref(module);
 
-  return (
-    <div
-      className={`rounded-xl border p-4 transition-all relative ${
-        isCompleted
-          ? 'border-brand-green/30 bg-brand-green/[0.03] hover:bg-brand-green/[0.06]'
-          : isAvailable
-          ? 'border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/20'
-          : 'border-white/5 bg-white/[0.01] opacity-60'
-      }`}
-    >
+  const cardContent = (
+    <>
       {/* Completion badge */}
       {isCompleted && (
         <div className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-brand-green flex items-center justify-center shadow-lg shadow-brand-green/25">
@@ -176,32 +177,59 @@ function ModuleCard({ module, isCompleted, score }: ModuleCardProps) {
           <p className="text-xs text-neutral-400 mt-1 line-clamp-2">
             {module.description}
           </p>
-          <div className="flex items-center gap-3 mt-2 text-[10px] text-neutral-500">
-            <span className="flex items-center gap-1">
-              <Clock size={10} />
-              {module.estimatedMinutes} min
-            </span>
-            {module.contentType === 'quiz' && module.itemCount && (
+          <div className="flex items-center justify-between mt-2">
+            <div className="flex items-center gap-3 text-[10px] text-neutral-500">
               <span className="flex items-center gap-1">
-                <Brain size={10} />
-                {module.itemCount} questions
+                <Clock size={10} />
+                {module.estimatedMinutes} min
               </span>
-            )}
-            {module.contentType === 'flashcards' && module.itemCount && (
-              <span className="flex items-center gap-1">
-                <CreditCard size={10} />
-                {module.itemCount} terms
-              </span>
-            )}
-            {module.contentType === 'lesson' && (
-              <span className="flex items-center gap-1">
-                <BookOpen size={10} />
-                Lesson
-              </span>
+              {module.contentType === 'quiz' && module.itemCount && (
+                <span className="flex items-center gap-1">
+                  <Brain size={10} />
+                  {module.itemCount} questions
+                </span>
+              )}
+              {module.contentType === 'flashcards' && module.itemCount && (
+                <span className="flex items-center gap-1">
+                  <CreditCard size={10} />
+                  {module.itemCount} terms
+                </span>
+              )}
+              {module.contentType === 'lesson' && (
+                <span className="flex items-center gap-1">
+                  <BookOpen size={10} />
+                  Lesson
+                </span>
+              )}
+            </div>
+            {isAvailable && !isCompleted && (
+              <ChevronRight size={14} className="text-neutral-500 flex-shrink-0" />
             )}
           </div>
         </div>
       </div>
+    </>
+  );
+
+  const cardClasses = `rounded-xl border p-4 transition-all relative ${
+    isCompleted
+      ? 'border-brand-green/30 bg-brand-green/[0.03] hover:bg-brand-green/[0.06]'
+      : isAvailable
+      ? 'border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/20 cursor-pointer'
+      : 'border-white/5 bg-white/[0.01] opacity-60'
+  }`;
+
+  if (href && isAvailable) {
+    return (
+      <Link href={href} className={`block ${cardClasses}`}>
+        {cardContent}
+      </Link>
+    );
+  }
+
+  return (
+    <div className={cardClasses}>
+      {cardContent}
     </div>
   );
 }

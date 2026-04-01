@@ -10,6 +10,12 @@
  * - Zip code support
  */
 
+interface GeoJSONFeature {
+  properties: Record<string, string>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  geometry: { type: string; coordinates: any[] };
+}
+
 // Zip code to coordinates mapping for common Alabama zip codes
 const ZIP_CODES: Record<string, { lat: number; lon: number; city: string; state: string }> = {
   // Hartselle area
@@ -662,7 +668,7 @@ class WeatherService {
       const reports: HailReport[] = [];
 
       if (data.features) {
-        data.features.forEach((feature: any, index: number) => {
+        data.features.forEach((feature: GeoJSONFeature, index: number) => {
           const props = feature.properties;
           const coords = feature.geometry.coordinates;
 
@@ -678,9 +684,9 @@ class WeatherService {
               county: props.county || '',
               distance: Math.round(distance * 10) / 10,
               hailSize: props.magnitude ? `${props.magnitude}"` : 'Unknown',
-              hailSizeNum: props.magnitude || 0,
+              hailSizeNum: parseFloat(props.magnitude) || 0,
               source: 'NWS',
-              severity: this.getHailSeverity(props.magnitude),
+              severity: this.getHailSeverity(parseFloat(props.magnitude) || 0),
               latitude: coords[1],
               longitude: coords[0],
               remarks: props.remark || '',
@@ -786,8 +792,7 @@ class WeatherService {
       const reports: { date: string; event: string; speed: number; location: string; distance: number }[] = [];
 
       if (data.features) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        data.features.forEach((feature: any) => {
+        data.features.forEach((feature: GeoJSONFeature) => {
           const props = feature.properties;
           const coords = feature.geometry.coordinates;
           const distance = this.calculateDistance(lat, lon, coords[1], coords[0]);
@@ -796,7 +801,7 @@ class WeatherService {
             reports.push({
               date: props.valid || props.utc_valid,
               event: 'Wind Gust',
-              speed: props.magnitude || 0,
+              speed: parseFloat(props.magnitude) || 0,
               location: props.city || 'Unknown Location',
               distance: Math.round(distance * 10) / 10,
             });
@@ -856,8 +861,7 @@ class WeatherService {
   }
 
   // Simple point-in-polygon test for GeoJSON features
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private pointInFeature(lat: number, lon: number, feature: any): boolean {
+  private pointInFeature(lat: number, lon: number, feature: GeoJSONFeature): boolean {
     try {
       const geometry = feature.geometry;
       if (!geometry) return false;

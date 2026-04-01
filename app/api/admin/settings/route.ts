@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-service';
+import { auditLog } from '@/lib/audit-logger';
 
 /**
  * Admin Settings API
@@ -83,6 +84,7 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
     const existing = await readSettings();
+    const changedKeys = Object.keys(body).filter(k => JSON.stringify(body[k]) !== JSON.stringify(existing[k]));
     const updated = {
       ...existing,
       ...body,
@@ -90,6 +92,8 @@ export async function PUT(request: NextRequest) {
       updatedBy: auth.user.email,
     };
     await writeSettings(updated);
+
+    auditLog('SETTINGS_UPDATE', auth.user.email, `Updated settings: ${changedKeys.join(', ') || 'no changes'}`, request);
 
     return NextResponse.json({
       success: true,

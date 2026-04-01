@@ -173,7 +173,7 @@ export function getRecommendedAction(lead: Lead): string {
 /**
  * Suggest best inspector based on lead details and team availability
  */
-export function suggestInspector(lead: Partial<Lead>, teamMembers: any[]): string {
+export function suggestInspector(lead: Partial<Lead>, teamMembers: { slug: string; position: string }[]): string {
   // If lead has preference, honor it
   if (lead.preferredInspector && lead.preferredInspector !== 'first-available') {
     return lead.preferredInspector;

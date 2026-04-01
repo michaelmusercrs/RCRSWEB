@@ -662,7 +662,7 @@ class PortalAuthService {
     return this.rowToWorkflow(row);
   }
 
-  private rowToWorkflow(row: any): WorkflowStep {
+  private rowToWorkflow(row: { get(key: string): string }): WorkflowStep {
     let data = {};
     try {
       data = JSON.parse(row.get('data') || '{}');

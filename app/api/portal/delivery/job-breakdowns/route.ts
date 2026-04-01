@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     // Get single breakdown by ID
     if (id) {
-      const breakdown = jobBreakdownService.getBreakdown(id);
+      const breakdown = await jobBreakdownService.getBreakdown(id);
       if (!breakdown) {
         return NextResponse.json({ success: false, error: 'Breakdown not found' }, { status: 404 });
       }
@@ -33,18 +33,18 @@ export async function GET(request: NextRequest) {
 
     // Get breakdowns for a specific job
     if (jobId) {
-      const breakdowns = jobBreakdownService.getBreakdownsByJob(jobId);
+      const breakdowns = await jobBreakdownService.getBreakdownsByJob(jobId);
       return NextResponse.json({ success: true, count: breakdowns.length, data: breakdowns });
     }
 
     // Get statistics
     if (searchParams.get('stats') === 'true') {
-      const stats = jobBreakdownService.getStatistics();
+      const stats = await jobBreakdownService.getStatistics();
       return NextResponse.json({ success: true, data: stats });
     }
 
     // List with filters
-    const breakdowns = jobBreakdownService.getAllBreakdowns({
+    const breakdowns = await jobBreakdownService.getAllBreakdowns({
       status: status || undefined,
       projectType: projectType || undefined,
       dateFrom: dateFrom || undefined,
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        const breakdown = jobBreakdownService.createBreakdown({
+        const breakdown = await jobBreakdownService.createBreakdown({
           jobId,
           jobName,
           customerName,
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        const updated = jobBreakdownService.updateBreakdown(breakdownId, updates);
+        const updated = await jobBreakdownService.updateBreakdown(breakdownId, updates);
         if (!updated) {
           return NextResponse.json(
             { success: false, error: 'Breakdown not found' },
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        const approved = jobBreakdownService.approveBreakdown(approveId, auth.user.name || 'System');
+        const approved = await jobBreakdownService.approveBreakdown(approveId, auth.user.name || 'System');
         if (!approved) {
           return NextResponse.json(
             { success: false, error: 'Breakdown not found or not in pending_approval status' },
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        const revised = jobBreakdownService.reviseBreakdown(reviseId, {
+        const revised = await jobBreakdownService.reviseBreakdown(reviseId, {
           materials: revisedMaterials,
           labor: revisedLabor,
           notes: revisedNotes,
@@ -197,7 +197,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        const breakdown = jobBreakdownService.getBreakdown(deliveryBdId);
+        const breakdown = await jobBreakdownService.getBreakdown(deliveryBdId);
         if (!breakdown) {
           return NextResponse.json(
             { success: false, error: 'Breakdown not found' },
@@ -219,7 +219,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        const bd = jobBreakdownService.getBreakdown(calcId);
+        const bd = await jobBreakdownService.getBreakdown(calcId);
         if (!bd) {
           return NextResponse.json(
             { success: false, error: 'Breakdown not found' },
@@ -251,7 +251,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        const updated = jobBreakdownService.updateStatus(
+        const updated = await jobBreakdownService.updateStatus(
           statusBdId,
           status,
           auth.user.name || 'System',
@@ -277,7 +277,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        const comparisons = jobBreakdownService.compareBreakdowns(breakdownId1, breakdownId2);
+        const comparisons = await jobBreakdownService.compareBreakdowns(breakdownId1, breakdownId2);
         if (!comparisons) {
           return NextResponse.json(
             { success: false, error: 'One or both breakdowns not found' },
@@ -317,7 +317,7 @@ export async function POST(request: NextRequest) {
             { status: 400 }
           );
         }
-        const breakdown = jobBreakdownService.createBreakdownFromJNJob(jnData);
+        const breakdown = await jobBreakdownService.createBreakdownFromJNJob(jnData);
         return NextResponse.json({ success: true, data: breakdown });
       }
 
