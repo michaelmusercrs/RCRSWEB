@@ -346,14 +346,32 @@ class MeetingNumbersService {
       console.error('[MeetingNumbers] Error loading data:', err);
     }
 
+    // Deduplicate: if same date+rep exists in multiple files, keep the one with more data
+    const seen = new Map<string, MeetingRecord>();
+    for (const rec of allRecords) {
+      const key = `${rec.meetingDate}|${rec.repName}`;
+      const existing = seen.get(key);
+      if (!existing) {
+        seen.set(key, rec);
+      } else {
+        // Keep whichever has more non-zero fields
+        const existingScore = [existing.inspected, existing.damage, existing.signed, existing.revenue, existing.goal].filter(v => v > 0).length;
+        const newScore = [rec.inspected, rec.damage, rec.signed, rec.revenue, rec.goal].filter(v => v > 0).length;
+        if (newScore > existingScore) {
+          seen.set(key, rec);
+        }
+      }
+    }
+    const dedupedRecords = Array.from(seen.values());
+
     // Sort by date then rep name
-    allRecords.sort((a, b) => {
+    dedupedRecords.sort((a, b) => {
       const dateCmp = a.meetingDate.localeCompare(b.meetingDate);
       if (dateCmp !== 0) return dateCmp;
       return a.repName.localeCompare(b.repName);
     });
 
-    this.cache = allRecords;
+    this.cache = dedupedRecords;
     this.cacheLoaded = true;
     this.lastCacheLoad = now;
     return allRecords;
