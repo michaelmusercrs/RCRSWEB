@@ -14,6 +14,14 @@
     {
       "path": "/api/cron/publish-blog",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/weekly-numbers-reminder?type=midweek",
+      "schedule": "0 15 * * 3"
+    },
+    {
+      "path": "/api/cron/weekly-numbers-reminder?type=final",
+      "schedule": "0 0 * * 1"
     }
   ],
   "headers": [
