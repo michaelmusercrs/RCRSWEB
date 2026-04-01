@@ -9,8 +9,7 @@ import {
 } from 'lucide-react';
 import { useAuth, ROLE_DEFAULT_ROUTES } from '@/lib/auth-context';
 import { TEAM_MEMBERS, TeamRole } from '@/lib/team-roles';
-import RoleTrainingPopup from '@/components/RoleTrainingPopup';
-import FeatureUpdatesPopup from '@/components/FeatureUpdatesPopup';
+// Training/Feature popups removed — login goes straight to dashboard
 
 type ForgotMode = 'none' | 'form' | 'sent';
 
@@ -289,10 +288,7 @@ export default function PortalLogin() {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [forgotMode, setForgotMode] = useState<ForgotMode>('none');
-  const [showTraining, setShowTraining] = useState(false);
-  const [showFeatureUpdates, setShowFeatureUpdates] = useState(false);
-  const [pendingRedirect, setPendingRedirect] = useState<string | null>(null);
-  const [loggedInUser, setLoggedInUser] = useState<{ name: string; role: TeamRole } | null>(null);
+  // Training/feature popups removed — login goes straight to role-based dashboard
   const [contentVisible, setContentVisible] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [showRolePicker, setShowRolePicker] = useState(false);

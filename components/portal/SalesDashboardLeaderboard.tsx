@@ -494,7 +494,10 @@ export default function SalesDashboardLeaderboard({
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Trophy className="h-5 w-5 text-[#39FF14]" />
-            <h2 className="text-lg font-bold text-white">Leaderboard</h2>
+            <h2 className="text-lg font-bold text-white">Sales Leaderboard</h2>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 ml-2">
+              Estimated Accrual
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-neutral-500 hidden sm:inline">

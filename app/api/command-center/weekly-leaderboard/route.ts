@@ -345,7 +345,6 @@ export async function GET(request: NextRequest) {
       metricLabel: METRIC_LABELS[metric] || metric,
       period,
       ...(periodNote ? { periodNote } : {}),
-      ...(isRestrictedRole && isCurrentWeek ? { visibilityNote: 'Current week shows your numbers only. Full team visible after Monday meeting.' } : {}),
       dateRange: { start: start || null, end: end || null },
       leaderboard,
       totalReps: leaderboard.length,
