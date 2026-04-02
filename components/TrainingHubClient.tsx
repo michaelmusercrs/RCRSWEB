@@ -26,6 +26,8 @@ import {
 } from 'lucide-react';
 import SettingsMenu from '@/components/SettingsMenu';
 import Leaderboard from '@/components/Leaderboard';
+import { useAuth } from '@/lib/auth-context';
+import type { TeamRole } from '@/lib/team-roles';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -43,6 +45,8 @@ interface TrainingPathDef {
   modules: number;
   estimatedTime: string;
   audience: string;
+  /** Which roles should see this training path. Empty array = visible to all roles. */
+  visibleToRoles: TeamRole[];
   /** localStorage key that stores completion data for this path */
   storageKey: string;
   /** How to read the completed count from the stored value */
@@ -74,6 +78,7 @@ const trainingPaths: TrainingPathDef[] = [
     modules: 7,
     estimatedTime: '10+ hours',
     audience: 'All Roles',
+    visibleToRoles: [], // all roles
     storageKey: 'rcrs-training-completed',
     parseCompleted: (raw) => {
       if (!raw) return 0;
@@ -94,6 +99,7 @@ const trainingPaths: TrainingPathDef[] = [
     modules: 8,
     estimatedTime: '1-2 hours',
     audience: 'All Team Members',
+    visibleToRoles: [], // all roles
     storageKey: 'rcrs-nlm-progress',
     parseCompleted: (raw) => {
       if (!raw) return 0;
@@ -114,6 +120,7 @@ const trainingPaths: TrainingPathDef[] = [
     modules: 7,
     estimatedTime: '4-6 hours',
     audience: 'New Sales Hires',
+    visibleToRoles: ['owner', 'admin', 'manager', 'sales'], // sales-focused roles
     storageKey: 'rcrs-sales-training-progress',
     parseCompleted: (raw) => {
       if (!raw) return 0;
@@ -138,6 +145,7 @@ const trainingPaths: TrainingPathDef[] = [
     modules: 8,
     estimatedTime: '2-3 hours',
     audience: 'All Team Members',
+    visibleToRoles: [], // all roles
     storageKey: 'rcrs-onboarding-progress',
     parseCompleted: (raw) => {
       if (!raw) return 0;
@@ -158,6 +166,7 @@ const trainingPaths: TrainingPathDef[] = [
     modules: 45,
     estimatedTime: '20+ hours',
     audience: 'All Roles',
+    visibleToRoles: [], // all roles
     storageKey: 'rcrs-training-progress',
     parseCompleted: (raw) => {
       if (!raw) return 0;
@@ -182,6 +191,7 @@ const trainingPaths: TrainingPathDef[] = [
     modules: 8,
     estimatedTime: '30-60 min',
     audience: 'By Name',
+    visibleToRoles: [], // all roles
     storageKey: '__walkthrough_aggregate__',
     parseCompleted: () => 0, // handled specially below
     progressBarColor: 'bg-teal-400',
@@ -354,7 +364,21 @@ function ProgressRing({ percentage, size = 80, strokeWidth = 6 }: {
 // Main Client Component
 // ---------------------------------------------------------------------------
 
+/**
+ * Filter training paths by user role.
+ * Paths with an empty visibleToRoles array are visible to everyone.
+ * Owners/admins always see all paths regardless of filter.
+ */
+function getVisiblePaths(role: TeamRole | undefined): TrainingPathDef[] {
+  if (!role) return trainingPaths; // not logged in yet, show all
+  if (role === 'owner' || role === 'admin') return trainingPaths; // owners/admins see everything
+  return trainingPaths.filter(
+    (path) => path.visibleToRoles.length === 0 || path.visibleToRoles.includes(role)
+  );
+}
+
 export default function TrainingHubClient() {
+  const { user } = useAuth();
   const [progressMap, setProgressMap] = useState<Record<string, PathProgress>>({});
   const [stats, setStats] = useState<UnifiedStats>({
     totalCompleted: 0,
@@ -366,6 +390,9 @@ export default function TrainingHubClient() {
   });
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  // Filter training paths based on user role
+  const visiblePaths = getVisiblePaths(user?.role as TeamRole | undefined);
 
   useEffect(() => {
     const map = loadAllProgress();
@@ -441,6 +468,9 @@ export default function TrainingHubClient() {
               RoofStack Academy
             </h2>
             <p className="text-neutral-400 max-w-2xl mx-auto">
+              {user?.role && visiblePaths.length < trainingPaths.length
+                ? `Showing ${visiblePaths.length} training programs relevant to your role. `
+                : ''}
               Whether you are a new sales hire learning the ropes, a team member getting
               familiar with the platform, or looking to level up with RoofStack Academy
               -- we have a program for you.
@@ -525,7 +555,7 @@ export default function TrainingHubClient() {
                   Progress by Program
                 </h4>
                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {trainingPaths.map((path) => {
+                  {visiblePaths.map((path) => {
                     const p = progressMap[path.href] || { completed: 0, total: path.modules, percentage: 0 };
                     return (
                       <div key={path.href} className="flex items-center gap-3">
@@ -628,7 +658,7 @@ export default function TrainingHubClient() {
           {/* TRAINING PATH CARDS (with progress bars)                         */}
           {/* ================================================================ */}
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {trainingPaths.map((path) => {
+            {visiblePaths.map((path) => {
               const Icon = path.icon;
               const p = progressMap[path.href] || { completed: 0, total: path.modules, percentage: 0 };
               const isComplete = p.percentage >= 100;

@@ -13,13 +13,12 @@ export default function RotatingText({
   interval = 4000,
   className = ''
 }: RotatingTextProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isVisible, setIsVisible] = useState(false);
+  const [state, setState] = useState({ index: 0, visible: false });
 
   // Initial slide in
   useEffect(() => {
     const initialDelay = setTimeout(() => {
-      setIsVisible(true);
+      setState(s => ({ ...s, visible: true }));
     }, 300);
     return () => clearTimeout(initialDelay);
   }, []);
@@ -27,12 +26,11 @@ export default function RotatingText({
   useEffect(() => {
     const timer = setInterval(() => {
       // Slide out
-      setIsVisible(false);
+      setState(s => ({ ...s, visible: false }));
 
       // After slide out, change text and slide in
       setTimeout(() => {
-        setCurrentIndex((prev) => (prev + 1) % phrases.length);
-        setIsVisible(true);
+        setState(s => ({ index: (s.index + 1) % phrases.length, visible: true }));
       }, 800);
     }, interval);
 
@@ -43,12 +41,12 @@ export default function RotatingText({
     <div className={`overflow-hidden ${className}`}>
       <p
         className={`transition-all duration-700 ease-out transform ${
-          isVisible
+          state.visible
             ? 'opacity-100 translate-x-0'
             : 'opacity-0 -translate-x-full'
         }`}
       >
-        {phrases[currentIndex]}
+        {phrases[state.index]}
       </p>
     </div>
   );

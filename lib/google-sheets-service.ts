@@ -323,6 +323,7 @@ const SHEET_NAMES = {
   CUSTOMER_PORTAL_DATA: 'CustomerPortalData',
   MONDAY_NOTES: 'MondayNotes',
   REVIEWS: 'Reviews',
+  AUDIT_LOG: 'AuditLog',
   MARCH_MADNESS: 'MarchMadness',
   DAILY_ACTIVITY: 'DailyActivity',
   FINANCIAL_SUMMARY: 'Financial_Summary',
@@ -330,6 +331,7 @@ const SHEET_NAMES = {
   JOB_PROFITABILITY: 'Job_Profitability',
   OUTSTANDING_INVOICES: 'Outstanding_Invoices',
   MONTHLY_TRENDS: 'Monthly_Trends',
+  MEETING_PREP: 'MeetingPrep',
 } as const;
 
 // =============================================================================
@@ -2771,6 +2773,398 @@ class GoogleSheetsService {
 
   async syncMonthlyTrends(data: Record<string, string | number>[]): Promise<void> {
     await this.syncSheetData(SHEET_NAMES.MONTHLY_TRENDS, data);
+  }
+
+  // ===========================================================================
+  // INVENTORY - addInventoryItem (explicit add, delegates to updateInventoryItem upsert)
+  // ===========================================================================
+
+  async addInventoryItem(item: InventoryItem): Promise<boolean> {
+    return this.updateInventoryItem({
+      ...item,
+      lastUpdated: new Date().toISOString(),
+    });
+  }
+
+  // ===========================================================================
+  // INVOICES
+  // ===========================================================================
+
+  private readonly invoiceHeaders = [
+    'invoiceId', 'jobId', 'breakdownId', 'customerName', 'customerEmail', 'customerPhone',
+    'billingAddressJson', 'jobAddressJson',
+    'type', 'status',
+    'lineItemsJson',
+    'subtotal', 'taxRate', 'taxAmount', 'discount', 'discountType', 'total', 'amountPaid', 'balanceDue',
+    'paymentsJson',
+    'insuranceClaimJson',
+    'dueDate', 'terms', 'notes', 'internalNotes',
+    'createdAt', 'updatedAt', 'sentAt', 'paidAt', 'createdBy',
+  ];
+
+  async getInvoices(options?: {
+    status?: string;
+    jobId?: string;
+    customerName?: string;
+  }): Promise<Record<string, string>[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.INVOICES, this.invoiceHeaders);
+      const rows = await sheet.getRows();
+
+      let records = rows.map(row => {
+        const record: Record<string, string> = {};
+        for (const h of this.invoiceHeaders) {
+          record[h] = row.get(h) || '';
+        }
+        return record;
+      }).filter(r => r.invoiceId); // Filter out empty rows
+
+      if (options?.status) {
+        records = records.filter(r => r.status === options.status);
+      }
+      if (options?.jobId) {
+        records = records.filter(r => r.jobId === options.jobId);
+      }
+      if (options?.customerName) {
+        const search = options.customerName.toLowerCase();
+        records = records.filter(r => r.customerName.toLowerCase().includes(search));
+      }
+
+      return records.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+    } catch (error) {
+      console.error('Error fetching invoices:', error);
+      return [];
+    }
+  }
+
+  async addInvoice(invoice: Record<string, string>): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.INVOICES, this.invoiceHeaders);
+      await sheet.addRow(invoice);
+      return true;
+    } catch (error) {
+      console.error('Error adding invoice:', error);
+      return false;
+    }
+  }
+
+  async updateInvoice(invoiceId: string, updates: Record<string, string>): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.INVOICES, this.invoiceHeaders);
+      const rows = await sheet.getRows();
+      const existing = rows.find(r => r.get('invoiceId') === invoiceId);
+
+      if (!existing) return false;
+
+      for (const [key, value] of Object.entries(updates)) {
+        if (value !== undefined) {
+          existing.set(key, value);
+        }
+      }
+      existing.set('updatedAt', new Date().toISOString());
+      await existing.save();
+
+      return true;
+    } catch (error) {
+      console.error('Error updating invoice:', error);
+      return false;
+    }
+  }
+
+  // ===========================================================================
+  // AUDIT LOG
+  // ===========================================================================
+
+  private readonly auditLogHeaders = [
+    'Timestamp', 'Action', 'UserEmail', 'Details', 'IP', 'UserAgent',
+  ];
+
+  /**
+   * Append a single audit log entry to the AuditLog Google Sheet tab.
+   * This is the canonical method -- callers no longer need to access doc directly.
+   */
+  async appendToAuditLog(entry: {
+    action: string;
+    userEmail: string;
+    details: string;
+    ip?: string;
+    userAgent?: string;
+    timestamp?: string;
+  }): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.AUDIT_LOG, this.auditLogHeaders);
+
+      await sheet.addRow({
+        Timestamp: entry.timestamp || new Date().toISOString(),
+        Action: entry.action,
+        UserEmail: entry.userEmail,
+        Details: entry.details,
+        IP: entry.ip || 'unknown',
+        UserAgent: entry.userAgent || '',
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error appending to audit log:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Read audit log entries from the AuditLog Google Sheet tab.
+   */
+  async getAuditLog(options?: {
+    action?: string;
+    userEmail?: string;
+    limit?: number;
+  }): Promise<Record<string, string>[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.AUDIT_LOG, this.auditLogHeaders);
+      const rows = await sheet.getRows();
+
+      let records = rows.map(row => {
+        const record: Record<string, string> = {};
+        for (const h of this.auditLogHeaders) {
+          record[h] = row.get(h) || '';
+        }
+        return record;
+      });
+
+      if (options?.action) {
+        records = records.filter(r => r.Action === options.action);
+      }
+      if (options?.userEmail) {
+        records = records.filter(r => r.UserEmail === options.userEmail);
+      }
+
+      // Sort by timestamp descending
+      records.sort((a, b) => (b.Timestamp || '').localeCompare(a.Timestamp || ''));
+
+      if (options?.limit) {
+        records = records.slice(0, options.limit);
+      }
+
+      return records;
+    } catch (error) {
+      console.error('Error reading audit log:', error);
+      return [];
+    }
+  }
+  // ==========================================================================
+  // MEETING NUMBERS (Master Database Copy)
+  // ==========================================================================
+
+  /**
+   * Upsert a rep's meeting numbers to the MeetingNumbers_{year} tab.
+   * This keeps the master RoofStack sheet in sync with the Monday meeting sheet.
+   */
+  async upsertMeetingNumber(record: {
+    meetingDate: string;
+    repName: string;
+    inspected: number | string;
+    damage: number | string;
+    signed: number | string;
+    repair: number | string;
+    gutter: number | string;
+    revenue: number | string;
+    approved: number | string;
+    goal: number | string;
+    referrals: number | string;
+    agents: number | string;
+    present: string;
+    homeShow: number | string;
+    tabName?: string;
+  }): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const year = record.meetingDate.split('-')[0];
+      const tabName = `MeetingNumbers_${year}`;
+      const HEADERS = [
+        'meetingDate', 'repName', 'Inspected', 'Damage', 'Signed', 'Repair',
+        'Gutter', 'Revenue_Estimated', 'Approved', 'Goal', 'Referrals',
+        'Agents', 'Present', 'HomeShow', 'tabName', 'lastUpdated',
+      ];
+
+      const sheet = await this.getOrCreateSheet(tabName, HEADERS);
+      const rows = await sheet.getRows();
+      const existing = rows.find(
+        (r: any) => r.get('repName') === record.repName && r.get('meetingDate') === record.meetingDate
+      );
+
+      const now = new Date().toISOString();
+
+      if (existing) {
+        existing.set('Inspected', String(record.inspected || ''));
+        existing.set('Damage', String(record.damage || ''));
+        existing.set('Signed', String(record.signed || ''));
+        existing.set('Repair', String(record.repair || ''));
+        existing.set('Gutter', String(record.gutter || ''));
+        existing.set('Revenue_Estimated', String(record.revenue || ''));
+        existing.set('Approved', String(record.approved || ''));
+        existing.set('Goal', String(record.goal || ''));
+        existing.set('Referrals', String(record.referrals || ''));
+        existing.set('Agents', String(record.agents || ''));
+        existing.set('Present', String(record.present || ''));
+        existing.set('HomeShow', String(record.homeShow || ''));
+        existing.set('lastUpdated', now);
+        await existing.save();
+      } else {
+        await sheet.addRow({
+          meetingDate: record.meetingDate,
+          repName: record.repName,
+          Inspected: String(record.inspected || ''),
+          Damage: String(record.damage || ''),
+          Signed: String(record.signed || ''),
+          Repair: String(record.repair || ''),
+          Gutter: String(record.gutter || ''),
+          Revenue_Estimated: String(record.revenue || ''),
+          Approved: String(record.approved || ''),
+          Goal: String(record.goal || ''),
+          Referrals: String(record.referrals || ''),
+          Agents: String(record.agents || ''),
+          Present: String(record.present || ''),
+          HomeShow: String(record.homeShow || ''),
+          tabName: record.tabName || '',
+          lastUpdated: now,
+        });
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error upserting meeting number:', error);
+      return false;
+    }
+  }
+
+  // =========================================================================
+  // MEETING PREP
+  // =========================================================================
+
+  private readonly meetingPrepHeaders = [
+    'meetingDate', 'id', 'bibleVerseRef', 'bibleVerseText', 'bibleVerseTheme', 'useRandomVerse',
+    'announcementsPart1', 'announcementsPart2', 'employeeName', 'employeeDept', 'employeeReason',
+    'trainingTopic', 'salesNotes', 'operationsNotes', 'officeNotes', 'driversNotes',
+    'specialNotes', 'preparedBy', 'status', 'weatherData', 'createdAt', 'updatedAt',
+  ];
+
+  async getMeetingPrep(meetingDate: string): Promise<Record<string, string> | null> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return null;
+
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.MEETING_PREP,
+        this.meetingPrepHeaders
+      );
+
+      const rows = await sheet.getRows();
+      const row = rows.find(r => r.get('meetingDate') === meetingDate);
+
+      if (!row) return null;
+
+      const record: Record<string, string> = {};
+      for (const h of this.meetingPrepHeaders) {
+        record[h] = row.get(h) || '';
+      }
+      return record;
+    } catch (error) {
+      console.error('Error fetching meeting prep:', error);
+      return null;
+    }
+  }
+
+  async saveMeetingPrep(data: Record<string, string>): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.MEETING_PREP,
+        this.meetingPrepHeaders
+      );
+
+      const rows = await sheet.getRows();
+      const existing = rows.find(r => r.get('meetingDate') === data.meetingDate);
+
+      if (existing) {
+        for (const key of this.meetingPrepHeaders) {
+          if (data[key] !== undefined) {
+            existing.set(key, data[key]);
+          }
+        }
+        existing.set('updatedAt', new Date().toISOString());
+        await existing.save();
+      } else {
+        const now = new Date().toISOString();
+        await sheet.addRow({
+          ...data,
+          createdAt: data.createdAt || now,
+          updatedAt: now,
+        } as unknown as Record<string, string | number | boolean>);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error saving meeting prep:', error);
+      return false;
+    }
+  }
+
+  async listMeetingPreps(options?: { year?: number; limit?: number }): Promise<Record<string, string>[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.MEETING_PREP,
+        this.meetingPrepHeaders
+      );
+
+      const rows = await sheet.getRows();
+      let records = rows.map(row => {
+        const record: Record<string, string> = {};
+        for (const h of this.meetingPrepHeaders) {
+          record[h] = row.get(h) || '';
+        }
+        return record;
+      });
+
+      // Filter by year if specified
+      if (options?.year) {
+        const yearStr = String(options.year);
+        records = records.filter(r => r.meetingDate && r.meetingDate.startsWith(yearStr));
+      }
+
+      // Sort by meetingDate descending
+      records.sort((a, b) => (b.meetingDate || '').localeCompare(a.meetingDate || ''));
+
+      // Apply limit
+      if (options?.limit && options.limit > 0) {
+        records = records.slice(0, options.limit);
+      }
+
+      return records;
+    } catch (error) {
+      console.error('Error listing meeting preps:', error);
+      return [];
+    }
   }
 }
 

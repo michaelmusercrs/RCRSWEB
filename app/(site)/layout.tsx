@@ -11,10 +11,11 @@ import FloatingContactButton from '@/components/FloatingContactButton';
 // import ChatBot from '@/components/ChatBot';
 import GlobalVideoBackground from '@/components/GlobalVideoBackground';
 import PromoBanner from '@/components/PromoBanner';
-import CookieConsent from '@/components/CookieConsent';
-import EmailCapturePopup from '@/components/EmailCapturePopup';
+import dynamic from 'next/dynamic';
+const CookieConsent = dynamic(() => import('@/components/CookieConsent'), { ssr: false });
+const EmailCapturePopup = dynamic(() => import('@/components/EmailCapturePopup'), { ssr: false });
 import TrackingProvider from '@/components/TrackingProvider';
-import AnalyticsTracker from '@/components/AnalyticsTracker';
+const AnalyticsTracker = dynamic(() => import('@/components/AnalyticsTracker'), { ssr: false });
 import { generateMetadata, generateLocalBusinessSchema, generateWebSiteSchema, getStructuredDataScript, siteConfig } from '@/lib/seo';
 
 // Tracking IDs from environment variables
@@ -27,7 +28,7 @@ const FB_PIXEL_ID = process.env.NEXT_PUBLIC_FB_PIXEL_ID || '';
 // Get it from: Google Ads → Tools → Conversions → Tag setup (format: AW-XXXXXXXXX)
 const GOOGLE_ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID || '';
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ subsets: ['latin'], display: 'swap' });
 
 export const metadata: Metadata = generateMetadata({
   title: 'Roofing Contractor Decatur & Huntsville AL | Roof Replacement & Storm Damage Repair',
@@ -101,14 +102,17 @@ export default function RootLayout({
         <meta name="msapplication-TileImage" content="/icons/icon-144x144.png" />
         <meta name="msapplication-tap-highlight" content="no" />
         <meta name="format-detection" content="telephone=no" />
+        {/* Preload critical assets for LCP */}
+        <link rel="preload" href="/logo-nobg.png" as="image" />
+        <link rel="preload" href="/uploads/hero-video-poster.jpg" as="image" />
       </head>
       <body className={inter.className} suppressHydrationWarning>
         {/* Google Tag Manager / Analytics with Consent Mode */}
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
-          strategy="afterInteractive"
+          strategy="lazyOnload"
         />
-        <Script id="google-analytics" strategy="afterInteractive">
+        <Script id="google-analytics" strategy="lazyOnload">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
@@ -133,7 +137,7 @@ export default function RootLayout({
 
         {/* Facebook Pixel - Loads conditionally based on consent in tracking-service.ts */}
         {FB_PIXEL_ID && (
-          <Script id="facebook-pixel-noscript" strategy="afterInteractive">
+          <Script id="facebook-pixel-noscript" strategy="lazyOnload">
             {`
               // Facebook Pixel will be initialized by tracking-service.ts after consent
               window.FB_PIXEL_ID = '${FB_PIXEL_ID}';
@@ -145,7 +149,7 @@ export default function RootLayout({
         {GOOGLE_ADS_ID && (
           <Script
             src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ADS_ID}`}
-            strategy="afterInteractive"
+            strategy="lazyOnload"
           />
         )}
 

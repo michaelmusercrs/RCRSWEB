@@ -18,6 +18,7 @@ import { cookies } from 'next/headers';
 const JWT_SECRET = process.env.JWT_SECRET || process.env.AUTH_SECRET;
 const JWT_EXPIRES_IN = 60 * 60 * 8; // 8 hours in seconds
 const REFRESH_TOKEN_EXPIRES_IN = 60 * 60 * 24 * 7; // 7 days in seconds
+const STAY_SIGNED_IN_EXPIRES = 60 * 60 * 24 * 30; // 30 days in seconds
 
 // Rate limiting configuration
 const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
@@ -135,11 +136,12 @@ export function generateAccessToken(user: AuthUser): string {
   return `${header}.${payloadStr}.${signature}`;
 }
 
-export function generateRefreshToken(user: AuthUser): string {
+export function generateRefreshToken(user: AuthUser, staySignedIn?: boolean): string {
   if (!JWT_SECRET) {
     throw new Error('JWT_SECRET environment variable is not set');
   }
 
+  const expiresIn = staySignedIn ? STAY_SIGNED_IN_EXPIRES : REFRESH_TOKEN_EXPIRES_IN;
   const now = Math.floor(Date.now() / 1000);
   const payload: JWTPayload = {
     sub: user.userId,
@@ -148,7 +150,7 @@ export function generateRefreshToken(user: AuthUser): string {
     role: user.role,
     permissions: user.permissions,
     iat: now,
-    exp: now + REFRESH_TOKEN_EXPIRES_IN,
+    exp: now + expiresIn,
     type: 'refresh',
   };
 
@@ -249,8 +251,9 @@ export function clearRateLimit(identifier: string): void {
 // COOKIE MANAGEMENT
 // ============================================
 
-export async function setAuthCookies(accessToken: string, refreshToken: string): Promise<void> {
+export async function setAuthCookies(accessToken: string, refreshToken: string, staySignedIn?: boolean): Promise<void> {
   const cookieStore = await cookies();
+  const refreshMaxAge = staySignedIn ? STAY_SIGNED_IN_EXPIRES : REFRESH_TOKEN_EXPIRES_IN;
 
   // Access token cookie - httpOnly, secure, same-site strict
   cookieStore.set('access_token', accessToken, {
@@ -266,7 +269,7 @@ export async function setAuthCookies(accessToken: string, refreshToken: string):
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
-    maxAge: REFRESH_TOKEN_EXPIRES_IN,
+    maxAge: refreshMaxAge,
     path: '/',
   });
 }

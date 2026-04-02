@@ -293,7 +293,7 @@ export function generateLocalBusinessSchema() {
     aggregateRating: {
       '@type': 'AggregateRating',
       ratingValue: '5.0',
-      reviewCount: '47',
+      reviewCount: '270',
       bestRating: '5',
       worstRating: '1',
     },
@@ -325,6 +325,10 @@ export function generateLocalBusinessSchema() {
           name: 'Boral Roofing',
         },
       },
+    ],
+    award: [
+      'BBB A+ Rating',
+      'IKO ROOFPRO Craftsman Premier Contractor',
     ],
     knowsAbout: [
       'Roof Replacement',
@@ -461,7 +465,7 @@ export function generateServiceSchema(params: {
       aggregateRating: {
         '@type': 'AggregateRating',
         ratingValue: '5.0',
-        reviewCount: '47',
+        reviewCount: '270',
         bestRating: '5',
         worstRating: '1',
       },

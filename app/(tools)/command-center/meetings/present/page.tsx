@@ -41,6 +41,7 @@ import {
   Zap,
   Megaphone,
   DownloadCloud,
+  BookOpen,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -85,6 +86,22 @@ interface RepStats {
     name: string;
     tier: 'legendary' | 'epic' | 'rare' | 'common';
   }>;
+  meetingMetrics?: {
+    inspected: number;
+    damage: number;
+    signed: number;
+    repair: number;
+    gutter: number;
+    revenue: number;
+    approved: number;
+    goal: number;
+    referrals: number;
+    agents: number;
+    homeShow: number;
+    weeksPresent: number;
+    totalWeeks: number;
+    attendanceRate: number;
+  };
 }
 
 interface LeaderboardData {
@@ -169,7 +186,7 @@ interface WeeklyNumbersRep {
   followUpsMade: number;
 }
 
-type ViewMode = 'date-header' | 'training' | 'weather' | 'attendance' | 'early-announcements' | 'podium' | 'leaderboard' | 'competition' | 'weekly-numbers' | 'stats' | 'goals' | 'milestones' | 'office-bonus' | 'late-announcements';
+type ViewMode = 'date-header' | 'bible-verse' | 'training' | 'weather' | 'attendance' | 'early-announcements' | 'podium' | 'leaderboard' | 'competition' | 'weekly-numbers' | 'stats' | 'goals' | 'milestones' | 'office-bonus' | 'late-announcements';
 
 // =============================================================================
 // Utility Functions
@@ -235,7 +252,7 @@ function Confetti({ active }: { active: boolean }) {
 // Podium Display Component
 // =============================================================================
 
-function PodiumDisplay({ leaderboard }: { leaderboard: RepStats[] }) {
+function PodiumDisplay({ leaderboard, period }: { leaderboard: RepStats[]; period: 'week' | 'month' | 'ytd' }) {
   const top3 = leaderboard.slice(0, 3);
   if (top3.length < 3) return null;
 
@@ -253,6 +270,20 @@ function PodiumDisplay({ leaderboard }: { leaderboard: RepStats[] }) {
     <Award key="bronze" className="h-10 w-10 text-orange-400" />,
   ];
 
+  // Show the period-specific revenue (meetingMetrics.revenue is the period-filtered value)
+  const getPeriodRevenue = (rep: RepStats) => {
+    if (rep.meetingMetrics) return rep.meetingMetrics.revenue;
+    // Fallback to backward-compat fields
+    switch (period) {
+      case 'week': return rep.weeklyCommissions;
+      case 'month': return rep.monthlyCommissions;
+      case 'ytd': return rep.ytdCommissions;
+      default: return rep.totalCommissions;
+    }
+  };
+
+  const periodLabel = period === 'week' ? 'This Week' : period === 'month' ? 'This Month' : 'YTD';
+
   return (
     <div className="flex items-end justify-center gap-8 pt-16">
       {podiumOrder.map((rep, index) => (
@@ -269,8 +300,8 @@ function PodiumDisplay({ leaderboard }: { leaderboard: RepStats[] }) {
               {rep.initials}
             </div>
             <h3 className="text-2xl font-bold text-white mt-4">{rep.name}</h3>
-            <p className="text-4xl font-bold text-lime-400 mt-2">{formatCurrency(rep.totalCommissions)}</p>
-            <p className="text-lg text-neutral-500">{rep.totalTransactions.toLocaleString()} transactions</p>
+            <p className="text-4xl font-bold text-lime-400 mt-2">{formatCurrency(getPeriodRevenue(rep))}</p>
+            <p className="text-lg text-neutral-500">{periodLabel} Revenue</p>
             {rep.streak === 'hot' && (
               <span className="inline-flex items-center gap-1 text-orange-400 mt-2">
                 <Flame className="h-5 w-5 animate-pulse" />
@@ -304,15 +335,15 @@ function StatsDisplay({ stats, leaderboard }: { stats: MeetingStats | null; lead
 
   const statCards = [
     {
-      label: 'Total Team Commissions',
-      value: formatLargeCurrency(leaderboard.summary.totalTeamCommissions),
-      subValue: `${leaderboard.summary.totalTransactions.toLocaleString()} transactions`,
+      label: 'YTD Team Sales Revenue',
+      value: formatLargeCurrency(leaderboard.summary.ytdTotal),
+      subValue: `${leaderboard.summary.totalTransactions.toLocaleString()} meeting weeks tracked`,
       icon: DollarSign,
       color: 'text-lime-400',
       bgColor: 'bg-lime-500/20',
     },
     {
-      label: `${stats.periodLabel} Total`,
+      label: `${stats.periodLabel} Revenue`,
       value: formatCurrency(stats.totalCommissions),
       subValue: `${stats.change.commissionsPercent >= 0 ? '+' : ''}${stats.change.commissionsPercent}% vs last period`,
       icon: stats.change.commissionsPercent >= 0 ? TrendingUp : TrendingDown,
@@ -320,7 +351,7 @@ function StatsDisplay({ stats, leaderboard }: { stats: MeetingStats | null; lead
       bgColor: stats.change.commissionsPercent >= 0 ? 'bg-green-500/20' : 'bg-red-500/20',
     },
     {
-      label: 'Average Transaction',
+      label: 'Avg Weekly Revenue',
       value: formatCurrency(stats.avgTransaction),
       subValue: `Team avg: ${formatCurrency(leaderboard.summary.avgTeamTransaction)}`,
       icon: Target,
@@ -784,6 +815,10 @@ export default function MeetingPresentationPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [trainingTopic, setTrainingTopic] = useState<{ title: string; presenter: string; content: string; videoUrl?: string }>({ title: '', presenter: '', content: '' });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [weatherData, setWeatherData] = useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [prepData, setPrepData] = useState<any>(null);
   const [period, setPeriod] = useState<'week' | 'month' | 'ytd'>('week');
   const [viewMode, setViewMode] = useState<ViewMode>('date-header');
   const [isAutoRotating, setIsAutoRotating] = useState(true);
@@ -795,13 +830,15 @@ export default function MeetingPresentationPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const autoRotateRef = useRef<NodeJS.Timeout | null>(null);
 
-  const views: ViewMode[] = ['date-header', 'training', 'weather', 'attendance', 'early-announcements', 'podium', 'leaderboard', 'competition', 'weekly-numbers', 'stats', 'goals', 'milestones', 'office-bonus', 'late-announcements'];
+  const views: ViewMode[] = ['date-header', 'bible-verse', 'training', 'weather', 'attendance', 'early-announcements', 'podium', 'leaderboard', 'competition', 'weekly-numbers', 'stats', 'goals', 'milestones', 'office-bonus', 'late-announcements'];
 
   // Fetch data
   const fetchData = useCallback(async () => {
     try {
+      // Map presentation period names to leaderboard API period names
+      const leaderboardPeriod = period === 'week' ? 'thisWeek' : period === 'month' ? 'thisMonth' : 'thisYear';
       const [leaderboardRes, statsRes, announcementsRes, weeklyRes] = await Promise.all([
-        fetch('/api/command-center/meetings/leaderboard?animate=true'),
+        fetch(`/api/command-center/meetings/leaderboard?animate=true&period=${leaderboardPeriod}`),
         fetch(`/api/command-center/meetings/stats?period=${period}`),
         fetch('/api/portal/monday-notes/announcements').catch(() => null),
         fetch('/api/portal/weekly-numbers?allReps=true').catch(() => null),
@@ -846,17 +883,31 @@ export default function MeetingPresentationPage() {
         }
       }
 
-      // Fetch meeting prep data for training topic
+      // Fetch meeting prep data for training topic and bible verse
       try {
         const prepRes = await fetch('/api/command-center/meetings/prep');
         if (prepRes.ok) {
           const prepJson = await prepRes.json();
-          if (prepJson.data?.trainingTopic) {
-            setTrainingTopic({
-              title: prepJson.data.trainingTopic || '',
-              presenter: prepJson.data.preparedBy || '',
-              content: prepJson.data.specialNotes || '',
-            });
+          if (prepJson.data) {
+            setPrepData(prepJson.data);
+            if (prepJson.data.trainingTopic) {
+              setTrainingTopic({
+                title: prepJson.data.trainingTopic || '',
+                presenter: prepJson.data.preparedBy || '',
+                content: prepJson.data.specialNotes || '',
+              });
+            }
+          }
+        }
+      } catch { /* optional */ }
+
+      // Fetch weather data for weather slide
+      try {
+        const weatherRes = await fetch('/api/command-center/meetings/weather');
+        if (weatherRes.ok) {
+          const weatherJson = await weatherRes.json();
+          if (weatherJson.success && weatherJson.data) {
+            setWeatherData(weatherJson.data);
           }
         }
       } catch { /* optional */ }
@@ -993,6 +1044,22 @@ export default function MeetingPresentationPage() {
             <p className="text-2xl text-neutral-500 mt-4 animate-slideUp" style={{ animationDelay: '0.4s' }}>River City Roofing & Solar</p>
           </div>
         );
+      case 'bible-verse':
+        return (
+          <div className="flex flex-col items-center justify-center h-[60vh] space-y-8 p-8">
+            <BookOpen className="h-16 w-16 text-lime-400" />
+            <blockquote className="text-4xl text-white italic text-center max-w-4xl leading-relaxed">
+              &ldquo;{prepData?.bibleVerse?.text || 'Loading...'}&rdquo;
+            </blockquote>
+            <p className="text-2xl text-lime-400">{prepData?.bibleVerse?.reference}</p>
+            {prepData?.bibleVerse?.theme && (
+              <span className="px-4 py-2 rounded-full bg-zinc-800 text-zinc-400">{prepData.bibleVerse.theme}</span>
+            )}
+            {!prepData?.bibleVerse && (
+              <p className="text-lg text-zinc-500">Set the Bible verse in Meeting Prep</p>
+            )}
+          </div>
+        );
       case 'training':
         return (
           <div className="flex flex-col items-center justify-center h-[60vh] space-y-8 p-8">
@@ -1017,15 +1084,63 @@ export default function MeetingPresentationPage() {
         );
       case 'weather':
         return (
-          <div className="flex flex-col items-center justify-center h-[60vh] space-y-6">
-            <h2 className="text-5xl font-bold text-white">🌤️ This Week&apos;s Weather</h2>
-            <p className="text-2xl text-neutral-400">Decatur / North Alabama Forecast</p>
-            <div className="bg-zinc-800/80 rounded-2xl p-8 border border-zinc-700 max-w-2xl w-full text-center">
-              <p className="text-lg text-neutral-500">Check weather.gov or your preferred weather source for this week&apos;s forecast before the meeting.</p>
-              <a href="https://forecast.weather.gov/MapClick.php?lat=34.6059&lon=-86.9833" target="_blank" rel="noopener noreferrer" className="inline-block mt-4 px-6 py-3 bg-blue-500/20 text-blue-400 rounded-xl hover:bg-blue-500/30 transition">
-                Open NWS Forecast for Decatur, AL
-              </a>
+          <div className="space-y-6 p-8">
+            <h2 className="text-4xl font-bold text-center text-white">This Week&apos;s Weather</h2>
+            <p className="text-xl text-center text-zinc-400">{weatherData?.location || 'Decatur, AL'}</p>
+
+            {/* Current conditions */}
+            {weatherData?.current && (
+              <div className="flex items-center justify-center gap-8 bg-zinc-800/80 rounded-2xl p-6 border border-zinc-700 max-w-2xl mx-auto">
+                <div className="text-6xl font-bold text-white">{weatherData.current.temperature}°F</div>
+                <div>
+                  <p className="text-2xl text-zinc-300">{weatherData.current.condition}</p>
+                  <p className="text-zinc-500">Feels like {weatherData.current.feelsLike}°F</p>
+                  <p className="text-zinc-500">Humidity: {weatherData.current.humidity}% | Wind: {weatherData.current.windSpeed} mph</p>
+                </div>
+              </div>
+            )}
+
+            {/* 7-day forecast grid */}
+            {weatherData?.weekForecast && weatherData.weekForecast.length > 0 && (
+              <div className="grid grid-cols-7 gap-3 max-w-5xl mx-auto">
+                {weatherData.weekForecast.map((day: { date: string; dayName: string; high: number; low: number; description: string; precipChance: number; isWorkDay: boolean }) => (
+                  <div key={day.date} className={cn(
+                    'rounded-xl p-4 text-center border',
+                    day.isWorkDay ? 'bg-lime-500/10 border-lime-500/30' : 'bg-red-500/10 border-red-500/30'
+                  )}>
+                    <p className="text-sm font-bold text-zinc-300">{day.dayName}</p>
+                    <p className="text-2xl font-bold text-white mt-1">{day.high}°</p>
+                    <p className="text-sm text-zinc-500">{day.low}°</p>
+                    <p className="text-xs text-zinc-400 mt-1">{day.description}</p>
+                    {day.precipChance > 0 && (
+                      <p className="text-xs text-blue-400 mt-1">{day.precipChance}% rain</p>
+                    )}
+                    <p className={cn('text-xs font-bold mt-2', day.isWorkDay ? 'text-lime-400' : 'text-red-400')}>
+                      {day.isWorkDay ? '\u2713 Work' : '\u2717 No-Go'}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Workable days summary */}
+            <div className="text-center">
+              <span className="text-xl text-lime-400 font-bold">{weatherData?.workableDays || 0} workable days</span>
+              <span className="text-zinc-500 text-xl"> this week for installations</span>
             </div>
+
+            {/* Alerts if any */}
+            {weatherData?.alerts && weatherData.alerts.length > 0 && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 max-w-3xl mx-auto">
+                {weatherData.alerts.map((alert: { event?: string; headline?: string; description?: string }, i: number) => (
+                  <p key={i} className="text-red-400 font-medium">{alert.event || alert.headline}: {alert.description}</p>
+                ))}
+              </div>
+            )}
+
+            {!weatherData && (
+              <div className="text-center text-zinc-500 text-xl">Loading weather data...</div>
+            )}
           </div>
         );
       case 'attendance':
@@ -1046,7 +1161,7 @@ export default function MeetingPresentationPage() {
       case 'early-announcements':
         return <AnnouncementsDisplay announcements={announcementsData?.early || []} type="early" />;
       case 'podium':
-        return filteredLeaderboard && <PodiumDisplay leaderboard={filteredLeaderboard.leaderboard} />;
+        return filteredLeaderboard && <PodiumDisplay leaderboard={filteredLeaderboard.leaderboard} period={period} />;
       case 'leaderboard':
         return filteredLeaderboard && <LeaderboardTable leaderboard={filteredLeaderboard.leaderboard} period={period} />;
       case 'competition':
@@ -1207,6 +1322,7 @@ export default function MeetingPresentationPage() {
             {views.map((v) => {
               const viewLabels: Record<ViewMode, string> = {
                 'date-header': '📅 Date',
+                'bible-verse': '📖 Verse',
                 'training': '🎓 Training',
                 'weather': '🌤️ Weather',
                 'attendance': '⚠️ Attendance',
@@ -1254,33 +1370,27 @@ export default function MeetingPresentationPage() {
         <div className="fixed bottom-0 left-0 right-0 bg-zinc-900/90 backdrop-blur-sm border-t border-zinc-800 py-3 px-6">
           <div className="flex items-center justify-around text-center">
             <div>
-              <p className="text-sm text-neutral-500">Total Team Commissions</p>
-              <p className="text-xl font-bold text-lime-400">
-                {formatLargeCurrency(leaderboardData.summary.totalTeamCommissions)}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-neutral-500">Total Transactions</p>
-              <p className="text-xl font-bold text-white">
-                {leaderboardData.summary.totalTransactions.toLocaleString()}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-neutral-500">Weekly</p>
+              <p className="text-sm text-neutral-500">Weekly Revenue</p>
               <p className="text-xl font-bold text-blue-400">
                 {formatCurrency(leaderboardData.summary.weeklyTotal)}
               </p>
             </div>
             <div>
-              <p className="text-sm text-neutral-500">Monthly</p>
+              <p className="text-sm text-neutral-500">Monthly Revenue</p>
               <p className="text-xl font-bold text-purple-400">
                 {formatCurrency(leaderboardData.summary.monthlyTotal)}
               </p>
             </div>
             <div>
-              <p className="text-sm text-neutral-500">YTD</p>
+              <p className="text-sm text-neutral-500">YTD Revenue</p>
               <p className="text-xl font-bold text-yellow-400">
                 {formatCurrency(leaderboardData.summary.ytdTotal)}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-neutral-500">All-Time Revenue</p>
+              <p className="text-xl font-bold text-lime-400">
+                {formatLargeCurrency(leaderboardData.summary.totalTeamCommissions)}
               </p>
             </div>
           </div>

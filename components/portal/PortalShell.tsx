@@ -110,6 +110,7 @@ function getPortalNav(role: TeamRole, permissions: string[] = []): PortalNavItem
     { id: 'leads', label: 'My Leads', href: '/portal/sales/leads', icon: Users },
     { id: 'performance', label: 'Performance', href: '/portal/sales/performance', icon: TrendingUp },
     { id: 'new-lead', label: 'New Lead', href: '/portal/leads/new', icon: Plus },
+    { id: 'inventory', label: 'Materials', href: '/portal/inventory', icon: Box },
     { id: 'schedule', label: 'Schedule', href: '/portal/schedule', icon: Calendar },
     { id: 'insurance-agents', label: 'Insurance Agents', href: '/portal/insurance-agents', icon: Building2 },
     { id: 'phone', label: 'Phone', href: '/phone-portal.html', icon: Phone },
@@ -118,6 +119,7 @@ function getPortalNav(role: TeamRole, permissions: string[] = []): PortalNavItem
   ];
 
   const officeItems: PortalNavItem[] = [
+    { id: 'command-center', label: 'RoofStack HQ', href: '/command-center', icon: Command },
     ...shared,
     { id: 'new-lead-wizard', label: 'New Lead Wizard', href: '/portal/office/new-lead', icon: Zap },
     { id: 'office', label: 'Operations', href: '/portal/office', icon: ClipboardList },
@@ -150,6 +152,7 @@ function getPortalNav(role: TeamRole, permissions: string[] = []): PortalNavItem
   const driverItems: PortalNavItem[] = [
     ...shared,
     { id: 'driver', label: 'My Deliveries', href: '/portal/driver', icon: Truck },
+    { id: 'inventory', label: 'Materials', href: '/portal/inventory', icon: Box },
     { id: 'insurance-agents', label: 'Insurance Agents', href: '/portal/insurance-agents', icon: Building2 },
   ];
 

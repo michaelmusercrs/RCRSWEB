@@ -169,7 +169,7 @@ export default async function AboutPage() {
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
               Our Values
             </h2>
-            <p className="text-xl text-blue-100 max-w-2xl mx-auto">
+            <p className="text-xl text-blue-50 max-w-2xl mx-auto">
               The principles that guide everything we do
             </p>
           </div>
@@ -204,7 +204,7 @@ export default async function AboutPage() {
                     <Icon className="text-white" size={32} />
                   </div>
                   <h3 className="text-xl font-bold text-white mb-2">{value.title}</h3>
-                  <p className="text-blue-100">{value.desc}</p>
+                  <p className="text-blue-50">{value.desc}</p>
                 </div>
               );
             })}

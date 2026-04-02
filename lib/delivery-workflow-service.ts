@@ -835,8 +835,11 @@ class DeliveryWorkflowService {
 
     await this.updateChecklistStep(ticketId, 'capture_proof', row.get('assignedDriverName'));
 
-    // No direct pipeline equivalent for proof_captured — it maps between
-    // DELIVERY_CONFIRMED and QC_PHOTOS in the pipeline
+    // Sync to pipeline: advance to SIGNATURE_CAPTURED (stage 12)
+    const driverName = row.get('assignedDriverName') || 'Driver';
+    this.advancePipelineIfLinked(ticketId, 'SIGNATURE_CAPTURED',
+      row.get('assignedDriver') || 'system', driverName, 'driver',
+    ).catch(() => {});
 
     return this.rowToTicket(row);
   }

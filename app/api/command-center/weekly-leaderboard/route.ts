@@ -278,6 +278,18 @@ export async function GET(request: NextRequest) {
     // Load raw meeting data
     let records = loadMeetingData();
 
+    // HARD RULE: Michael, Chris, Sara NEVER on sales/commission leaderboard
+    // Also exclude: PMs (John, Bart), inactive (Rudy, Tae), drivers-only (Richard),
+    // Boston (marketing), office staff (Destin, Tia)
+    const EXCLUDED_FROM_LEADERBOARD = [
+      'michael', 'chris', 'sara', 'john', 'bart', 'rudy', 'tae',
+      'richard', 'destin', 'tia', 'boston',
+    ];
+    records = records.filter(r => {
+      const name = r.repName?.trim().toLowerCase() || '';
+      return !EXCLUDED_FROM_LEADERBOARD.includes(name);
+    });
+
     // All reps can see all data - the leaderboard is for motivation
     // Visibility restriction removed: sales reps need to see competition
 

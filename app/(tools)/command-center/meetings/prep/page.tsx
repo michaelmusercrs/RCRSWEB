@@ -39,6 +39,7 @@ import {
   X,
   Plus,
   Trash2,
+  DownloadCloud,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LoadingSpinner, PermissionGate } from '@/components/command-center';
@@ -450,6 +451,48 @@ export default function MeetingPrepPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              onClick={async () => {
+                try {
+                  setLoading(true);
+                  setError(null);
+                  const res = await fetch('/api/command-center/meetings/auto-generate');
+                  const json = await res.json();
+                  if (json.success && json.data) {
+                    const d = json.data;
+                    // Auto-fill verse
+                    if (d.suggestedVerse) {
+                      updateForm('bibleVerse', d.suggestedVerse);
+                      updateForm('useRandomVerse', false);
+                    }
+                    // Auto-fill weather summary into special notes
+                    if (d.weather?.current) {
+                      const weatherSummary = `Weather: ${d.weather.current.temperature}\u00B0F, ${d.weather.current.condition}. ${d.weather.workableDays || 0} workable days this week.`;
+                      updateForm('specialNotes', weatherSummary);
+                    }
+                    // Auto-fill sales summary into department notes
+                    if (d.thisWeek?.teamTotals) {
+                      const t = d.thisWeek.teamTotals;
+                      const salesNote = `This week: ${t.inspected} inspected, ${t.signed} signed, $${(t.revenue / 1000).toFixed(1)}K revenue. ${d.comparison?.trend === 'up' ? 'Trending UP' : d.comparison?.trend === 'down' ? 'Trending down' : 'Steady'} vs last week.`;
+                      updateForm('departmentNotes', { ...form.departmentNotes, sales: salesNote });
+                    }
+                    setSuccess('Auto-populated from latest data!');
+                    setTimeout(() => setSuccess(null), 3000);
+                  } else {
+                    setError(json.error || 'Failed to auto-populate');
+                  }
+                } catch {
+                  setError('Failed to auto-populate');
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              disabled={loading}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500/20 text-blue-400 font-medium hover:bg-blue-500/30 disabled:opacity-50 transition-colors"
+            >
+              {loading ? <Loader2 size={18} className="animate-spin" /> : <DownloadCloud size={18} />}
+              Auto-Populate
+            </button>
             <button
               onClick={saveDraft}
               className="px-4 py-2 rounded-lg bg-zinc-800 text-zinc-300 font-medium hover:bg-zinc-700 transition-colors"

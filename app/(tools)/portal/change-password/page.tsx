@@ -1,13 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Shield, Lock, Eye, EyeOff, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 
 export default function ChangePasswordPage() {
   const router = useRouter();
-  const { user, completePasswordChange } = useAuth();
+  const { user, isLoading, completePasswordChange } = useAuth();
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push('/portal');
+    }
+  }, [user, isLoading, router]);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNew, setShowNew] = useState(false);
@@ -16,7 +23,7 @@ export default function ChangePasswordPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isLongEnough = newPassword.length >= 8;
-  const isNotDefault = newPassword !== 'ChangeMe123!';
+  const isNotDefault = newPassword.length > 0 && newPassword !== 'ChangeMe123!';
   const hasUppercase = /[A-Z]/.test(newPassword);
   const hasNumber = /[0-9]/.test(newPassword);
   const passwordsMatch = newPassword === confirmPassword && confirmPassword.length > 0;
@@ -29,7 +36,7 @@ export default function ChangePasswordPage() {
     setError('');
 
     try {
-      const success = completePasswordChange(newPassword);
+      const success = await completePasswordChange(newPassword);
       if (!success) {
         setError('Cannot use the default password. Please choose a different one.');
         setIsSubmitting(false);
@@ -61,7 +68,7 @@ export default function ChangePasswordPage() {
     }
   };
 
-  if (!user) {
+  if (isLoading || !user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 flex items-center justify-center">
         <Loader2 className="animate-spin text-brand-green" size={48} />
@@ -139,9 +146,9 @@ export default function ChangePasswordPage() {
             {/* Validation */}
             <div className="space-y-2 mb-6">
               <ValidationItem valid={isLongEnough} text="At least 8 characters" />
-              <ValidationItem valid={hasUppercase || newPassword.length === 0} text="At least one uppercase letter" />
-              <ValidationItem valid={hasNumber || newPassword.length === 0} text="At least one number" />
-              <ValidationItem valid={isNotDefault || newPassword.length === 0} text="Cannot be ChangeMe123!" />
+              <ValidationItem valid={hasUppercase} text="At least one uppercase letter" />
+              <ValidationItem valid={hasNumber} text="At least one number" />
+              <ValidationItem valid={isNotDefault} text="Cannot be ChangeMe123!" />
               <ValidationItem valid={passwordsMatch} text="Passwords match" />
             </div>
 

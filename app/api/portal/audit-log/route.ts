@@ -23,32 +23,17 @@ export async function POST(request: NextRequest) {
 
     // Try to log to Google Sheets
     try {
-      const initialized = await googleSheetsService.init();
-      if (initialized) {
-        // getOrCreateSheet will create the AuditLog tab if it doesn't exist
-        const doc = (googleSheetsService as any).doc;
-        if (doc) {
-          let sheet = doc.sheetsByTitle['AuditLog'];
-          if (!sheet) {
-            sheet = await doc.addSheet({
-              title: 'AuditLog',
-              headerValues: ['Timestamp', 'Action', 'UserEmail', 'Details', 'IP', 'UserAgent'],
-            });
-          }
+      const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+      const ua = request.headers.get('user-agent') || 'unknown';
 
-          const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-          const ua = request.headers.get('user-agent') || 'unknown';
-
-          await sheet.addRow({
-            Timestamp: timestamp || new Date().toISOString(),
-            Action: action,
-            UserEmail: userEmail,
-            Details: details || '',
-            IP: typeof ip === 'string' ? ip.split(',')[0].trim() : 'unknown',
-            UserAgent: ua.substring(0, 200),
-          });
-        }
-      }
+      await googleSheetsService.appendToAuditLog({
+        action,
+        userEmail,
+        details: details || '',
+        ip: typeof ip === 'string' ? ip.split(',')[0].trim() : 'unknown',
+        userAgent: ua.substring(0, 200),
+        timestamp: timestamp || undefined,
+      });
     } catch (sheetError) {
       // Log to console if Sheets fails - don't block the user
       console.error('[AuditLog] Failed to write to Sheets:', sheetError);

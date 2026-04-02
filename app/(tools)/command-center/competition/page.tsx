@@ -151,7 +151,12 @@ export default function CompetitionPage() {
               <Trophy className="h-8 w-8 text-amber-400" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold">Sales Competition</h1>
+              <h1 className="text-3xl font-bold flex items-center gap-3 flex-wrap">
+                Sales Competition
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
+                  Based on Actual Commission Payouts (1099)
+                </span>
+              </h1>
               <p className="text-zinc-400 text-lg">{period.name} &middot; {period.start} to {period.end}</p>
             </div>
           </div>
@@ -300,7 +305,7 @@ export default function CompetitionPage() {
                   <span className="text-white font-semibold">{leaderboard.length}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-zinc-500">Combined Revenue</span>
+                  <span className="text-zinc-500">Combined Commission Payouts</span>
                   <span className="text-lime-400 font-semibold">
                     {formatCurrency(leaderboard.reduce((s, r) => s + r.periodTotal, 0))}
                   </span>

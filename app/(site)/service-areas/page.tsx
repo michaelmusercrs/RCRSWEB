@@ -355,7 +355,7 @@ export default function ServiceAreasPage() {
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
               Serving Your Community
             </h2>
-            <p className="text-xl text-blue-100 mb-8">
+            <p className="text-xl text-blue-50 mb-8">
               Contact us today to schedule your free inspection and see why your neighbors trust River City Roofing Solutions.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">

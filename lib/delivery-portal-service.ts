@@ -203,6 +203,7 @@ function pipelineStageToDeliveryStatus(stage: PipelineStage): Delivery['status']
     case 'UNLOADING':
       return 'Arrived';
     case 'DELIVERY_CONFIRMED':
+    case 'SIGNATURE_CAPTURED':
     case 'QC_PHOTOS':
     case 'OFFICE_NOTIFIED':
     case 'BILLING_REVIEW':
@@ -756,7 +757,7 @@ class DeliveryPortalService {
       (po.scheduledDeliveryDate === today || po.requestedDeliveryDate === today)
     );
 
-    const deliveryStages = ['DELIVERY_CONFIRMED', 'QC_PHOTOS', 'OFFICE_NOTIFIED', 'BILLING_REVIEW', 'INVOICE_SENT', 'PAYMENT_RECEIVED', 'JOB_CLOSED'];
+    const deliveryStages = ['DELIVERY_CONFIRMED', 'SIGNATURE_CAPTURED', 'QC_PHOTOS', 'OFFICE_NOTIFIED', 'BILLING_REVIEW', 'INVOICE_SENT', 'PAYMENT_RECEIVED', 'JOB_CLOSED'];
     const inProgressStages = ['WAREHOUSE_NOTIFIED', 'MATERIALS_PULLED', 'LOAD_VERIFIED', 'DEPARTURE_CONFIRMED', 'EN_ROUTE', 'ARRIVED_AT_SITE', 'UNLOADING'];
 
     const completedToday = todayDeliveries.filter(po => deliveryStages.includes(po.currentStage)).length;

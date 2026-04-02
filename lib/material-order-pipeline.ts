@@ -54,6 +54,7 @@ export type PipelineStage =
   | 'ARRIVED_AT_SITE'        // Stage 9
   | 'UNLOADING'              // Stage 10
   | 'DELIVERY_CONFIRMED'     // Stage 11
+  | 'SIGNATURE_CAPTURED'     // Stage 12
   | 'QC_PHOTOS'              // Stage 13
   | 'OFFICE_NOTIFIED'        // Stage 14
   | 'BILLING_REVIEW'         // Stage 15
@@ -64,8 +65,9 @@ export type PipelineStage =
 export const PIPELINE_STAGES: PipelineStage[] = [
   'ORDER_CREATED', 'ORDER_REVIEWED', 'DRIVER_ASSIGNED', 'WAREHOUSE_NOTIFIED',
   'MATERIALS_PULLED', 'LOAD_VERIFIED', 'DEPARTURE_CONFIRMED', 'EN_ROUTE',
-  'ARRIVED_AT_SITE', 'UNLOADING', 'DELIVERY_CONFIRMED', 'QC_PHOTOS',
-  'OFFICE_NOTIFIED', 'BILLING_REVIEW', 'INVOICE_SENT', 'PAYMENT_RECEIVED', 'JOB_CLOSED'
+  'ARRIVED_AT_SITE', 'UNLOADING', 'DELIVERY_CONFIRMED', 'SIGNATURE_CAPTURED',
+  'QC_PHOTOS', 'OFFICE_NOTIFIED', 'BILLING_REVIEW', 'INVOICE_SENT',
+  'PAYMENT_RECEIVED', 'JOB_CLOSED'
 ];
 
 export const STAGE_CONFIG: Record<PipelineStage, {
@@ -90,6 +92,7 @@ export const STAGE_CONFIG: Record<PipelineStage, {
   ARRIVED_AT_SITE: { label: 'Arrived at Site', number: 9, requiresPhoto: true, requiresGPS: true, performedBy: 'driver', estimatedMinutes: 2, maxMinutes: 10, notifyRoles: ['pm'], autoTransition: false },
   UNLOADING: { label: 'Unloading', number: 10, requiresPhoto: true, requiresGPS: false, performedBy: 'driver', estimatedMinutes: 20, maxMinutes: 60, notifyRoles: [], autoTransition: false },
   DELIVERY_CONFIRMED: { label: 'Delivery Confirmed', number: 11, requiresPhoto: true, requiresGPS: true, performedBy: 'driver', estimatedMinutes: 5, maxMinutes: 15, notifyRoles: ['pm', 'office'], autoTransition: false },
+  SIGNATURE_CAPTURED: { label: 'Signature Captured', number: 12, requiresPhoto: false, requiresGPS: true, performedBy: 'driver', estimatedMinutes: 5, maxMinutes: 15, notifyRoles: ['office'], autoTransition: false },
   QC_PHOTOS: { label: 'QC Photos', number: 13, requiresPhoto: true, requiresGPS: true, performedBy: 'driver', estimatedMinutes: 5, maxMinutes: 20, notifyRoles: ['office'], autoTransition: false },
   OFFICE_NOTIFIED: { label: 'Office Notified', number: 14, requiresPhoto: false, requiresGPS: false, performedBy: 'system', estimatedMinutes: 1, maxMinutes: 5, notifyRoles: ['office', 'billing'], autoTransition: true },
   BILLING_REVIEW: { label: 'Billing Review', number: 15, requiresPhoto: false, requiresGPS: false, performedBy: 'office', estimatedMinutes: 15, maxMinutes: 4320, notifyRoles: ['admin'], autoTransition: false },
@@ -1066,6 +1069,15 @@ class MaterialOrderPipelineService {
         }
         // Persist updated item quantities
         this._updateOrderItems(orderId, order.items).catch(() => {});
+        break;
+
+      case 'SIGNATURE_CAPTURED':
+        // Customer/site rep signature captured
+        event.metadata = JSON.stringify({
+          ...JSON.parse(event.metadata || '{}'),
+          signatureCapturedAt: new Date().toISOString(),
+          signerName: data?.metadata?.signerName || '',
+        });
         break;
 
       case 'QC_PHOTOS':

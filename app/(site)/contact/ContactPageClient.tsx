@@ -48,7 +48,7 @@ export default function ContactPageClient() {
                   <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-brand-green/20 mb-4">
                     <Icon className="h-8 w-8 text-brand-green" />
                   </div>
-                  <h3 className="font-semibold text-lg mb-2 text-white">{stat.label}</h3>
+                  <h2 className="font-semibold text-lg mb-2 text-white">{stat.label}</h2>
                   <p className="text-gray-300">{stat.description}</p>
                 </div>
               );

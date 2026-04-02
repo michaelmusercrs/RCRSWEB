@@ -108,7 +108,7 @@ export default function Header() {
           <div className="flex items-center justify-between">
             {/* Home Button - Only on non-home pages */}
             {!isHomePage ? (
-              <Link href="/" className="flex items-center gap-2 text-white hover:text-brand-green transition-colors">
+              <Link href="/" className="flex items-center gap-2 text-white hover:text-brand-green transition-colors" aria-label="River City Roofing Solutions Home">
                 <Home className="w-6 h-6" />
                 <span className="hidden sm:inline font-semibold">Home</span>
               </Link>
@@ -182,7 +182,7 @@ export default function Header() {
 
         {/* Mobile Menu Overlay */}
         {mobileMenuOpen && (
-          <div className="lg:hidden absolute left-0 right-0 top-full bg-white z-[100] overflow-y-auto max-h-[80vh] max-h-[80dvh] shadow-xl overflow-x-hidden">
+          <div className="lg:hidden fixed left-0 right-0 top-0 mt-[56px] bg-white z-[100] overflow-y-auto max-h-[80vh] max-h-[80dvh] shadow-xl overflow-x-hidden">
             <div className="px-4 py-6 space-y-6">
               {navigation.map((item) => (
                 <div key={item.name}>

@@ -1,14 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { X, Gift, Trophy } from 'lucide-react';
+import { X, Trophy } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 export default function PromoBanner() {
+  // Start visible (matches SSR output) — no layout shift on first paint
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
-    // Check if banner was dismissed in this session
     const dismissed = sessionStorage.getItem('promoBannerDismissed');
     if (dismissed) {
       setIsVisible(false);
@@ -23,7 +23,7 @@ export default function PromoBanner() {
   if (!isVisible) return null;
 
   return (
-    <div className="bg-gradient-to-r from-brand-green via-emerald-600 to-brand-green text-white text-outline-black relative">
+    <div className="bg-gradient-to-r from-brand-green via-emerald-600 to-brand-green text-white text-outline-black relative min-h-[40px]">
       <div className="container mx-auto px-4 py-2">
         <Link href="/contact" className="flex items-center justify-center gap-2 text-sm md:text-base font-bold hover:opacity-90 transition-opacity">
           <Trophy className="w-5 h-5 animate-pulse" />

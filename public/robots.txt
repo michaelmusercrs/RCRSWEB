@@ -1,0 +1,49 @@
+User-Agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /portal/
+Disallow: /command-center/
+Disallow: /customer/
+Disallow: /dashboard/
+Disallow: /my/
+Disallow: /_next/
+Disallow: /private/
+Disallow: /lp/
+Disallow: /*.json$
+Disallow: /*/upload
+Disallow: /secret-deals/
+Disallow: /internal-pricing/
+
+User-Agent: Googlebot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /portal/
+Disallow: /command-center/
+Disallow: /customer/
+Disallow: /dashboard/
+Disallow: /my/
+
+User-Agent: Googlebot-Image
+Allow: /
+
+User-Agent: Bingbot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /portal/
+Disallow: /command-center/
+Disallow: /customer/
+Disallow: /dashboard/
+Disallow: /my/
+
+User-Agent: AhrefsBot
+Allow: /
+Crawl-delay: 10
+
+User-Agent: SemrushBot
+Allow: /
+Crawl-delay: 10
+
+Sitemap: https://www.rivercityroofingsolutions.com/sitemap.xml

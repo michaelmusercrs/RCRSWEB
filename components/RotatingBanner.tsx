@@ -36,20 +36,20 @@ export default function RotatingBanner() {
   const [fade, setFade] = useState(true);
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    const timer = setInterval(() => {
       setFade(false);
       setTimeout(() => {
         setCurrent((prev) => (prev + 1) % bannerItems.length);
-        setFade(true);
+        requestAnimationFrame(() => setFade(true));
       }, 300);
     }, 5000);
-    return () => clearInterval(interval);
+    return () => clearInterval(timer);
   }, []);
 
   const item = bannerItems[current];
 
   return (
-    <div className="bg-brand-green text-black py-2.5 px-4 text-center text-sm font-bold relative z-50">
+    <div className="bg-brand-green text-black py-2.5 px-4 text-center text-sm font-bold relative z-50 min-h-[40px] flex items-center">
       <div className="container mx-auto">
         <Link
           href={item.href}

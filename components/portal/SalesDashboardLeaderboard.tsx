@@ -67,7 +67,7 @@ interface MetricConfig {
 const METRICS: MetricConfig[] = [
   {
     key: 'revenue',
-    label: 'Revenue',
+    label: 'Est. Revenue ($$$$$)',
     icon: <DollarSign className="h-3.5 w-3.5" />,
     format: (val: number) => {
       if (val >= 1_000_000) return `$${(val / 1_000_000).toFixed(2)}M`;
@@ -492,11 +492,11 @@ export default function SalesDashboardLeaderboard({
       {/* Header */}
       <div className="p-4 pb-3 border-b border-zinc-800">
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Trophy className="h-5 w-5 text-[#39FF14]" />
             <h2 className="text-lg font-bold text-white">Sales Leaderboard</h2>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 ml-2">
-              Estimated Accrual
+            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20">
+              Estimated Sales (Accrual from Monday Meetings)
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -598,7 +598,7 @@ export default function SalesDashboardLeaderboard({
                   <th className="px-3 py-2.5 text-left">Rep</th>
                   <th className="px-3 py-2.5 text-right">{activeMetric.label}</th>
                   {metric !== 'revenue' && (
-                    <th className="px-3 py-2.5 text-right hidden sm:table-cell">Revenue</th>
+                    <th className="px-3 py-2.5 text-right hidden sm:table-cell">Est. Revenue</th>
                   )}
                 </tr>
               </thead>

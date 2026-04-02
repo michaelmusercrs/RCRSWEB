@@ -26,6 +26,7 @@ type PipelineStage =
   | 'ARRIVED_AT_SITE'
   | 'UNLOADING'
   | 'DELIVERY_CONFIRMED'
+  | 'SIGNATURE_CAPTURED'
   | 'QC_PHOTOS'
   | 'OFFICE_NOTIFIED'
   | 'BILLING_REVIEW'
@@ -99,6 +100,7 @@ const DRIVER_STAGES: PipelineStage[] = [
   'ARRIVED_AT_SITE',
   'UNLOADING',
   'DELIVERY_CONFIRMED',
+  'SIGNATURE_CAPTURED',
   'QC_PHOTOS',
 ];
 
@@ -171,6 +173,14 @@ const STAGE_BUTTONS: StageButton[] = [
     inventoryAction: 'Inventory will be deducted',
   },
   {
+    stage: 'SIGNATURE_CAPTURED',
+    label: 'Signature',
+    icon: ClipboardCheck,
+    requiresPhoto: false,
+    requiresGPS: true,
+    description: 'Get customer or site rep signature',
+  },
+  {
     stage: 'QC_PHOTOS',
     label: 'QC Photos',
     icon: Camera,
@@ -192,6 +202,7 @@ const STAGE_COLOR: Record<PipelineStage, string> = {
   ARRIVED_AT_SITE: 'bg-orange-600',
   UNLOADING: 'bg-amber-600',
   DELIVERY_CONFIRMED: 'bg-teal-600',
+  SIGNATURE_CAPTURED: 'bg-indigo-600',
   QC_PHOTOS: 'bg-pink-600',
   OFFICE_NOTIFIED: 'bg-brand-green/80',
   BILLING_REVIEW: 'bg-brand-green/80',
@@ -212,6 +223,7 @@ const STAGE_LABELS: Record<PipelineStage, string> = {
   ARRIVED_AT_SITE: 'Arrived',
   UNLOADING: 'Unloading',
   DELIVERY_CONFIRMED: 'Delivered',
+  SIGNATURE_CAPTURED: 'Signed',
   QC_PHOTOS: 'QC Complete',
   OFFICE_NOTIFIED: 'Office Notified',
   BILLING_REVIEW: 'Billing Review',
@@ -269,8 +281,9 @@ function getNextDriverStage(currentStage: PipelineStage): StageButton | null {
   const ALL_STAGES: PipelineStage[] = [
     'ORDER_CREATED', 'ORDER_REVIEWED', 'DRIVER_ASSIGNED', 'WAREHOUSE_NOTIFIED',
     'MATERIALS_PULLED', 'LOAD_VERIFIED', 'DEPARTURE_CONFIRMED', 'EN_ROUTE',
-    'ARRIVED_AT_SITE', 'UNLOADING', 'DELIVERY_CONFIRMED', 'QC_PHOTOS',
-    'OFFICE_NOTIFIED', 'BILLING_REVIEW', 'INVOICE_SENT', 'PAYMENT_RECEIVED', 'JOB_CLOSED'
+    'ARRIVED_AT_SITE', 'UNLOADING', 'DELIVERY_CONFIRMED', 'SIGNATURE_CAPTURED',
+    'QC_PHOTOS', 'OFFICE_NOTIFIED', 'BILLING_REVIEW', 'INVOICE_SENT',
+    'PAYMENT_RECEIVED', 'JOB_CLOSED'
   ];
   const currentIdx = ALL_STAGES.indexOf(currentStage);
   if (currentIdx === -1) return null;
@@ -296,8 +309,9 @@ function isDriverStageComplete(orderStage: PipelineStage, checkStage: PipelineSt
   const ALL_STAGES: PipelineStage[] = [
     'ORDER_CREATED', 'ORDER_REVIEWED', 'DRIVER_ASSIGNED', 'WAREHOUSE_NOTIFIED',
     'MATERIALS_PULLED', 'LOAD_VERIFIED', 'DEPARTURE_CONFIRMED', 'EN_ROUTE',
-    'ARRIVED_AT_SITE', 'UNLOADING', 'DELIVERY_CONFIRMED', 'QC_PHOTOS',
-    'OFFICE_NOTIFIED', 'BILLING_REVIEW', 'INVOICE_SENT', 'PAYMENT_RECEIVED', 'JOB_CLOSED'
+    'ARRIVED_AT_SITE', 'UNLOADING', 'DELIVERY_CONFIRMED', 'SIGNATURE_CAPTURED',
+    'QC_PHOTOS', 'OFFICE_NOTIFIED', 'BILLING_REVIEW', 'INVOICE_SENT',
+    'PAYMENT_RECEIVED', 'JOB_CLOSED'
   ];
   return ALL_STAGES.indexOf(orderStage) >= ALL_STAGES.indexOf(checkStage);
 }

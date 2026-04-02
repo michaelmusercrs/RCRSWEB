@@ -211,8 +211,23 @@ function loadMeetingData(): ParsedRecord[] {
     .map(parseRecord);
 }
 
+/**
+ * Get the current date in US Central Time (America/Chicago).
+ * The server runs in UTC, but RCRS is in Alabama (Central Time).
+ * Without this, "this month" on March 31 CDT would return April
+ * because UTC is already April 1.
+ */
+function getCentralDate(): Date {
+  const now = new Date();
+  const central = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+  return central;
+}
+
 function formatDateISO(date: Date): string {
-  return date.toISOString().split('T')[0];
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 function getWeekBoundaries(date: Date): { start: string; end: string } {
@@ -274,8 +289,17 @@ export async function GET(request: NextRequest) {
       ? periodParam
       : 'week') as 'week' | 'month' | 'ytd';
 
-    const now = new Date();
-    const allRecords = loadMeetingData();
+    // Use Central Time so "this month" and "this week" match Alabama local dates
+    const now = getCentralDate();
+    // HARD RULE: Michael, Chris, Sara, Boston NEVER on leaderboards
+    const EXCLUDED_FROM_STATS = [
+      'michael', 'chris', 'sara', 'john', 'bart', 'rudy', 'tae',
+      'richard', 'destin', 'tia', 'boston',
+    ];
+    const allRecords = loadMeetingData().filter(r => {
+      const name = r.repName.toLowerCase().trim();
+      return !EXCLUDED_FROM_STATS.includes(name);
+    });
 
     if (allRecords.length === 0) {
       return NextResponse.json({

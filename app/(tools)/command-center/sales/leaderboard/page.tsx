@@ -858,11 +858,11 @@ function WeeklyNumbersLeaderboard() {
               <ClipboardList className="h-5 w-5 text-[#39FF14]" />
               Monday Meeting Numbers
               <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20">
-                Self-Reported
+                Estimated Sales (Accrual from Monday Meetings)
               </span>
             </h2>
             <p className="text-sm text-neutral-500">
-              From Monday meeting sheets &middot; {currentWeek && `Week ${currentWeek}`}
+              Self-reported accrual numbers from Monday meeting sheets &mdash; not actual payouts &middot; {currentWeek && `Week ${currentWeek}`}
             </p>
           </div>
 
@@ -1112,13 +1112,13 @@ export default function GamificationLeaderboardPage() {
           </Link>
           <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-3 flex-wrap">
             <Trophy className="h-7 w-7 sm:h-8 sm:w-8 text-[#39FF14]" />
-            Sales Leaderboard
+            Commission Leaderboard
             <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
-              Actual Commissions
+              Actual Commission Payouts (1099 from QuickBooks)
             </span>
           </h1>
           <p className="text-neutral-500 mt-1 text-sm">
-            Compete, earn achievements, and climb the ranks &mdash; based on actual commission records
+            Compete, earn achievements, and climb the ranks &mdash; based on actual 1099 commission payouts from QuickBooks
           </p>
         </div>
 
@@ -1146,7 +1146,7 @@ export default function GamificationLeaderboardPage() {
       {/* Monday Meeting Numbers Leaderboard - Self-reported via RepWeeklyNumbers sheet */}
       <WeeklyNumbersLeaderboard />
 
-      {/* Top Banner - Current Leader (Commission-based) */}
+      {/* Top Banner - Current Leader (Actual Commission Payouts from QuickBooks) */}
       {leader && <TopBanner leader={leader} />}
 
       {/* Main Content Layout */}

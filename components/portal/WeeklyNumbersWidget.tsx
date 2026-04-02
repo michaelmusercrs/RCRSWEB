@@ -117,7 +117,7 @@ const metricFields: MetricField[] = [
   { key: 'signed', label: 'Signed', icon: FileSignature, type: 'number', color: 'text-green-400' },
   { key: 'repair', label: 'Repair', icon: Wrench, type: 'number', color: 'text-orange-400' },
   { key: 'gutter', label: 'Gutter', icon: Columns3, type: 'number', color: 'text-cyan-400' },
-  { key: 'revenue', label: '$$$$$', icon: DollarSign, type: 'currency', color: 'text-emerald-400' },
+  { key: 'revenue', label: '$$$$$ (Est.)', icon: DollarSign, type: 'currency', color: 'text-emerald-400' },
   { key: 'approved', label: 'Approved', icon: CheckCircle, type: 'number', color: 'text-purple-400' },
   { key: 'goal', label: 'Goal', icon: Target, type: 'number', color: 'text-amber-400' },
   { key: 'referrals', label: 'Referrals', icon: Users, type: 'number', color: 'text-yellow-400' },
@@ -391,7 +391,7 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
             </div>
             <div className="text-center">
               <p className="text-lg font-bold text-emerald-400">{formatCurrency(currentEntry.revenue)}</p>
-              <p className="text-[10px] text-neutral-500">$$$$$</p>
+              <p className="text-[10px] text-neutral-500">$$$$$ (Est.)</p>
             </div>
             <div className="text-center">
               <p className="text-lg font-bold text-white">
@@ -742,7 +742,7 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
                       <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Signed</th>
                       <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Repair</th>
                       <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Gutter</th>
-                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">$$$$$</th>
+                      <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">$$$$$ (Est.)</th>
                       <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Approved</th>
                       <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Goal</th>
                       <th className="text-right py-2 px-3 text-xs text-neutral-500 font-medium">Referrals</th>

@@ -45,7 +45,9 @@ function isoWeekToMonday(weekStr: string): string {
 }
 
 /**
- * Fire-and-forget sync of submitted numbers to the Monday meeting sheet.
+ * Fire-and-forget sync of submitted numbers to:
+ * 1. The Monday meeting sheet (original source)
+ * 2. The MeetingNumbers_2026 tab on the master RoofStack sheet
  */
 async function syncToMeetingSheet(
   repName: string,
@@ -53,7 +55,7 @@ async function syncToMeetingSheet(
   body: Record<string, unknown>,
 ): Promise<void> {
   const meetingDate = isoWeekToMonday(weekStr);
-  await meetingNumbersService.submitNumbers(repName, meetingDate, {
+  const parsed = {
     inspected: parseInt(String(body.inspected)) || 0,
     damage: parseInt(String(body.damage)) || 0,
     signed: parseInt(String(body.signed)) || 0,
@@ -66,6 +68,42 @@ async function syncToMeetingSheet(
     agents: parseInt(String(body.agents)) || 0,
     present: String(body.present || '1'),
     homeShow: parseInt(String(body.homeShow)) || 0,
+  };
+
+  // 1. Write to Monday meeting sheet + local JSON cache
+  await meetingNumbersService.submitNumbers(repName, meetingDate, parsed);
+
+  // 2. Write to master RoofStack sheet (MeetingNumbers_2026 tab)
+  syncToMasterSheet(repName, meetingDate, weekStr, parsed).catch(err => {
+    console.error('[WeeklyNumbers] Master sheet sync failed:', err);
+  });
+}
+
+/**
+ * Sync a single rep's numbers to the MeetingNumbers_{year} tab on the master sheet.
+ */
+async function syncToMasterSheet(
+  repName: string,
+  meetingDate: string,
+  tabName: string,
+  data: Record<string, number | string>,
+): Promise<void> {
+  await googleSheetsService.upsertMeetingNumber({
+    meetingDate,
+    repName,
+    inspected: data.inspected,
+    damage: data.damage,
+    signed: data.signed,
+    repair: data.repair,
+    gutter: data.gutter,
+    revenue: data.revenue,
+    approved: data.approved,
+    goal: data.goal,
+    referrals: data.referrals,
+    agents: data.agents,
+    present: String(data.present || ''),
+    homeShow: data.homeShow,
+    tabName,
   });
 }
 
@@ -424,23 +462,12 @@ async function notifyWeeklyNumbersSubmitted(
 
   // Also log to AuditLog
   try {
-    const initialized = await googleSheetsService.init();
-    if (initialized) {
-      const doc = (googleSheetsService as any).doc;
-      if (doc) {
-        const sheet = doc.sheetsByTitle['AuditLog'];
-        if (sheet) {
-          await sheet.addRow({
-            Timestamp: new Date().toISOString(),
-            Action: `WEEKLY_NUMBERS_${isUpdate ? 'UPDATED' : 'SUBMITTED'}`,
-            UserEmail: repName,
-            Details: `${repName} ${action.toLowerCase()} week ${week}: Revenue=${revenue}, Inspected=${record.inspected}, Signed=${record.signed}`,
-            IP: '',
-            UserAgent: 'weekly-numbers-api',
-          });
-        }
-      }
-    }
+    await googleSheetsService.appendToAuditLog({
+      action: `WEEKLY_NUMBERS_${isUpdate ? 'UPDATED' : 'SUBMITTED'}`,
+      userEmail: repName,
+      details: `${repName} ${action.toLowerCase()} week ${week}: Revenue=${revenue}, Inspected=${record.inspected}, Signed=${record.signed}`,
+      userAgent: 'weekly-numbers-api',
+    });
   } catch (e) {
     console.error('[WeeklyNumbers] AuditLog failed:', e);
   }

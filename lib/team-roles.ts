@@ -7,7 +7,8 @@
 // - MANAGER (Destin Mccary): Operations oversight, view all, limited edit
 // - OFFICE (Tia Muse Morris): Billing, inventory, scheduling
 // - PROJECT_MANAGER (Bart Roberts, John Cordonis): Job scheduling, inventory coordination
-// - SALES (Aaron Lussi, Adam Rudell, Boston Muse, Brendon Muse, Greg Muse, Hunter Rivers, Joseph Dowd, Alijah): Own leads/jobs, personal stats
+// - SALES (Aaron Lussi, Adam Rudell, Brendon Muse, Greg Muse, Hunter Rivers, Joseph Dowd, Alijah): Own leads/jobs, personal stats
+// - MARKETING (Boston Muse): Marketing role - excluded from sales/commission leaderboards
 // - DRIVER (Travis Wages - also sells, Tae Orr - inactive): Delivery queue, route navigation, photo upload
 // - DUAL ROLE: Richard Geahr "Rick" (driver + sales) - gets role picker on login
 // - INACTIVE: Tae Orr, Rudy (not in Google Workspace)
@@ -344,13 +345,12 @@ export const TEAM_MEMBERS: TeamMember[] = [
     slug: 'boston',
     email: 'boston@rcrsal.com',
     phone: '',
-    role: 'sales',
+    role: 'viewer', // Marketing - NOT sales, excluded from sales/commission leaderboards
     password: 'ChangeMe123!',
     mustChangePassword: true,
     isActive: true,
     permissions: [
-      'dashboard', 'sales', 'sales.leads', 'sales.customers',
-      'monday-notes', 'training', 'blog'
+      'dashboard', 'monday-notes', 'training', 'blog'
     ],
     createdAt: '2026-02-10'
   },
@@ -692,6 +692,23 @@ export const ROLE_HIERARCHY: Record<TeamRole, number> = {
   viewer: 10,
 };
 
+// Credential reset hierarchy — who can reset whose credentials
+// Michael/Chris > Sara > Destin > Tia, each level resets levels below
+export const CREDENTIAL_RESET_HIERARCHY: Record<TeamRole, TeamRole[]> = {
+  owner: ['admin', 'manager', 'sales', 'office', 'project_manager', 'driver', 'viewer'],
+  admin: ['manager', 'sales', 'office', 'project_manager', 'driver', 'viewer'],
+  manager: ['sales', 'office', 'project_manager', 'driver', 'viewer'],
+  office: ['sales', 'driver', 'viewer'],
+  project_manager: [],
+  sales: [],
+  driver: [],
+  viewer: [],
+};
+
+export function canResetCredentials(actorRole: TeamRole, targetRole: TeamRole): boolean {
+  return CREDENTIAL_RESET_HIERARCHY[actorRole]?.includes(targetRole) ?? false;
+}
+
 // Check if role1 is higher than or equal to role2
 export function isRoleAtLeast(userRole: TeamRole, requiredRole: TeamRole): boolean {
   return ROLE_HIERARCHY[userRole] >= ROLE_HIERARCHY[requiredRole];
@@ -836,7 +853,7 @@ const SUBCONTRACTOR_NAMES = [
  */
 const SALES_REP_CANONICAL = [
   'Hunter Rivers', 'Aaron Lussi', 'Greg Muse', 'Brendon Muse',
-  'Adam Rudell', 'Joseph Dowd', 'Boston Muse', 'Alijah',
+  'Adam Rudell', 'Joseph Dowd', 'Alijah',
   'Travis Wages', 'Rick',
 ];
 
@@ -885,7 +902,6 @@ const NAME_ALIASES: Record<string, string> = {
   'aaron lussi': 'Aaron Lussi',
   'brendon muse': 'Brendon Muse',
   'brendon russell': 'Brendon Muse',
-  'boston muse': 'Boston Muse',
   'hunter rivers': 'Hunter Rivers',
   'richard geahr': 'Richard Geahr',
   'richard  geahr': 'Richard Geahr',
@@ -893,6 +909,7 @@ const NAME_ALIASES: Record<string, string> = {
   'travis wages': 'Travis Wages',
   'john cordonis': 'John Cordonis',
   // === Non-sales (for reference, NOT on sales leaderboard) ===
+  'boston muse': 'Boston Muse',
   'michael muse': 'Michael Muse',
   'chris muse': 'Chris Muse',
   'sara hill': 'Sara Hill',

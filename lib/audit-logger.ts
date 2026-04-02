@@ -48,26 +48,12 @@ async function writeToSheet(
   ip: string,
   userAgent: string
 ): Promise<void> {
-  const initialized = await googleSheetsService.init();
-  if (!initialized) return;
-
-  const doc = (googleSheetsService as any).doc;
-  if (!doc) return;
-
-  let sheet = doc.sheetsByTitle['AuditLog'];
-  if (!sheet) {
-    sheet = await doc.addSheet({
-      title: 'AuditLog',
-      headerValues: ['Timestamp', 'Action', 'UserEmail', 'Details', 'IP', 'UserAgent'],
-    });
-  }
-
-  await sheet.addRow({
-    Timestamp: timestamp,
-    Action: action,
-    UserEmail: userEmail,
-    Details: details,
-    IP: ip,
-    UserAgent: userAgent,
+  await googleSheetsService.appendToAuditLog({
+    action,
+    userEmail,
+    details,
+    ip,
+    userAgent,
+    timestamp,
   });
 }

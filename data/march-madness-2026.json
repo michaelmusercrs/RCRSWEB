@@ -5,8 +5,8 @@
     "startDate": "2026-03-16",
     "endDate": "2026-04-05",
     "status": "in_progress",
-    "currentRound": 1,
-    "currentWeek": "2026-03-16",
+    "currentRound": 3,
+    "currentWeek": "2026-03-30",
     "format": "Single elimination with 50% carryover",
     "salesType": "accrual",
     "salesDescription": "Total job value for approved jobs. A deposit received credits the full contract total.",
@@ -30,21 +30,21 @@
       "name": "First Round",
       "weekStart": "2026-03-16",
       "weekEnd": "2026-03-22",
-      "status": "active"
+      "status": "completed"
     },
     {
       "round": 2,
       "name": "Semifinals",
       "weekStart": "2026-03-23",
       "weekEnd": "2026-03-29",
-      "status": "upcoming"
+      "status": "completed"
     },
     {
       "round": 3,
       "name": "Championship",
       "weekStart": "2026-03-30",
       "weekEnd": "2026-04-05",
-      "status": "upcoming"
+      "status": "active"
     }
   ],
   "participants": [
@@ -106,10 +106,10 @@
           "seed": 1,
           "name": "Aaron Lussi",
           "slug": "aaron-lussi",
-          "weekSales": 0,
+          "weekSales": 17000,
           "carryForward": 0,
-          "effectiveTotal": 0,
-          "winner": false
+          "effectiveTotal": 17000,
+          "winner": true
         },
         "bottomSeed": null
       },
@@ -128,10 +128,10 @@
           "seed": 5,
           "name": "Travis Wages",
           "slug": "travis-wages",
-          "weekSales": 0,
+          "weekSales": 16000,
           "carryForward": 0,
-          "effectiveTotal": 0,
-          "winner": false
+          "effectiveTotal": 16000,
+          "winner": true
         }
       },
       {
@@ -140,18 +140,18 @@
           "seed": 3,
           "name": "Hunter Rivers",
           "slug": "hunter-rivers",
-          "weekSales": 0,
+          "weekSales": 70000,
           "carryForward": 0,
-          "effectiveTotal": 0,
-          "winner": false
+          "effectiveTotal": 70000,
+          "winner": true
         },
         "bottomSeed": {
           "seed": 6,
           "name": "Brendon Muse",
           "slug": "brendon-muse",
-          "weekSales": 0,
+          "weekSales": 35000,
           "carryForward": 0,
-          "effectiveTotal": 0,
+          "effectiveTotal": 35000,
           "winner": false
         }
       },
@@ -161,9 +161,76 @@
           "seed": 7,
           "name": "Alijah",
           "slug": "alijah",
-          "weekSales": 0,
+          "weekSales": 60000,
           "carryForward": 0,
-          "effectiveTotal": 0,
+          "effectiveTotal": 60000,
+          "winner": false
+        },
+        "bottomSeed": {
+          "seed": 2,
+          "name": "Greg Muse",
+          "slug": "greg-muse",
+          "weekSales": 75000,
+          "carryForward": 0,
+          "effectiveTotal": 75000,
+          "winner": true
+        }
+      }
+    ],
+    "round2": [
+      {
+        "matchId": "R2-M1",
+        "topSeed": {
+          "seed": 1,
+          "name": "Aaron Lussi",
+          "slug": "aaron-lussi",
+          "weekSales": 1650,
+          "carryForward": 8500,
+          "effectiveTotal": 10150,
+          "winner": true
+        },
+        "bottomSeed": {
+          "seed": 5,
+          "name": "Travis Wages",
+          "slug": "travis-wages",
+          "weekSales": 0,
+          "carryForward": 8000,
+          "effectiveTotal": 8000,
+          "winner": false
+        }
+      },
+      {
+        "matchId": "R2-M2",
+        "topSeed": {
+          "seed": 3,
+          "name": "Hunter Rivers",
+          "slug": "hunter-rivers",
+          "weekSales": 50000,
+          "carryForward": 35000,
+          "effectiveTotal": 85000,
+          "winner": false
+        },
+        "bottomSeed": {
+          "seed": 2,
+          "name": "Greg Muse",
+          "slug": "greg-muse",
+          "weekSales": 75000,
+          "carryForward": 37500,
+          "effectiveTotal": 112500,
+          "winner": true
+        }
+      }
+    ],
+    "round3": [
+      {
+        "matchId": "R3-M1",
+        "topSeed": {
+          "seed": 1,
+          "name": "Aaron Lussi",
+          "slug": "aaron-lussi",
+          "weekSales": 0,
+          "carryForward": 825,
+          "effectiveTotal": 825,
           "winner": false
         },
         "bottomSeed": {
@@ -171,14 +238,12 @@
           "name": "Greg Muse",
           "slug": "greg-muse",
           "weekSales": 0,
-          "carryForward": 0,
-          "effectiveTotal": 0,
+          "carryForward": 37500,
+          "effectiveTotal": 37500,
           "winner": false
         }
       }
-    ],
-    "round2": [],
-    "round3": []
+    ]
   },
   "demo": {
     "enabled": true,

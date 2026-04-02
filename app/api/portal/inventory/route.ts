@@ -324,3 +324,85 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+export async function PATCH(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
+  try {
+    const body = await request.json();
+    const { action, productId } = body;
+
+    if (!productId) {
+      return NextResponse.json({ error: 'productId required' }, { status: 400 });
+    }
+
+    switch (action) {
+      case 'updateQty': {
+        const { qtyChange, reason } = body;
+        if (typeof qtyChange !== 'number' || qtyChange === 0) {
+          return NextResponse.json({ error: 'Non-zero qtyChange required' }, { status: 400 });
+        }
+
+        if (qtyChange > 0) {
+          const txn = await unifiedInventoryService.addStock(
+            productId, qtyChange, 'adjustment',
+            'manual', 'manual',
+            auth.user.userId, auth.user.name, reason || 'Manual adjustment'
+          );
+          if (!txn) return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+          auditLog('INVENTORY_ADJUST', auth.user.email, `Added ${qtyChange} to ${productId}: ${reason || 'Manual adjustment'}`, request);
+          return NextResponse.json(txn);
+        } else {
+          const txn = await unifiedInventoryService.deductStock(
+            productId, Math.abs(qtyChange),
+            'manual', 'manual',
+            auth.user.userId, auth.user.name, reason || 'Manual adjustment'
+          );
+          if (!txn) return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+          auditLog('INVENTORY_ADJUST', auth.user.email, `Deducted ${Math.abs(qtyChange)} from ${productId}: ${reason || 'Manual adjustment'}`, request);
+          return NextResponse.json(txn);
+        }
+      }
+
+      case 'updateItem': {
+        const { productId: pid, action: _, ...updates } = body;
+        const item = await unifiedInventoryService.updateItem(pid, updates);
+        if (!item) return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+        auditLog('INVENTORY_UPDATE', auth.user.email, `Updated item ${pid}: ${Object.keys(updates).join(', ')}`, request);
+        return NextResponse.json(item);
+      }
+
+      default:
+        return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+    }
+  } catch (error) {
+    console.error('Inventory PATCH error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const productId = searchParams.get('productId');
+
+    if (!productId) {
+      return NextResponse.json({ error: 'productId required' }, { status: 400 });
+    }
+
+    const success = await unifiedInventoryService.deactivateItem(productId);
+    if (!success) {
+      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+    }
+
+    auditLog('INVENTORY_DELETE', auth.user.email, `Deactivated item ${productId}`, request);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Inventory DELETE error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}

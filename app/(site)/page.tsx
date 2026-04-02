@@ -67,14 +67,16 @@ export default async function HomePage() {
       {/* Hero Section - Compact, punchy */}
       <div className="-mt-20 min-h-[75vh] flex items-center justify-center px-6 pt-20">
         <div className="max-w-5xl mx-auto text-center">
-          <Link href="/" className="block mb-4">
+          <Link href="/" className="block mb-4" aria-label="River City Roofing Solutions Home">
             <Image
               src="/logo-nobg.png"
               alt="River City Roofing Solutions"
               width={500}
               height={340}
+              sizes="(max-width: 768px) 288px, (max-width: 1024px) 380px, 500px"
               className="mx-auto w-72 h-auto md:w-[380px] lg:w-[500px] object-contain drop-shadow-2xl"
               priority
+              fetchPriority="high"
             />
           </Link>
 
@@ -87,7 +89,7 @@ export default async function HomePage() {
               "Storm Damage Experts"
             ]}
             interval={5000}
-            className="text-xl md:text-2xl lg:text-3xl font-black uppercase tracking-wider text-brand-blue mb-3 min-h-[2.5rem] drop-shadow-lg"
+            className="text-xl md:text-2xl lg:text-3xl font-black uppercase tracking-wider text-[#3B9DFF] mb-3 min-h-[2.5rem] drop-shadow-lg"
           />
 
           <h1 className="text-2xl md:text-3xl max-w-2xl mx-auto text-white leading-snug mb-6 drop-shadow-lg font-black uppercase tracking-wider">

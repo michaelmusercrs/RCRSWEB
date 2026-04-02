@@ -2,16 +2,18 @@
  * RCRS Command Center - Meetings API Route
  *
  * Handles meeting configuration, preparation data, and status management.
+ * Persists meeting prep data to Google Sheets (MeetingPrep tab).
  *
  * GET: Returns meeting config, next meeting date, prep status
  * POST: Saves meeting prep data
  *
  * @author RCRS Development Team
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
+import { googleSheetsService } from '@/lib/google-sheets-service';
 import {
   getMeetingConfig,
   calculateNextMeetingDate,
@@ -26,16 +28,6 @@ import {
 } from '@/lib/meeting-data';
 
 // =============================================================================
-// In-Memory Storage (Replace with database in production)
-// =============================================================================
-
-// Store meeting prep data by meeting date
-const meetingPrepStorage: Map<string, MeetingPrepData> = new Map();
-
-// Track last presented meeting
-let lastPresentedMeeting: string | null = null;
-
-// =============================================================================
 // Helper Functions
 // =============================================================================
 
@@ -43,10 +35,81 @@ function generateMeetingId(date: string): string {
   return `meeting-${date}`;
 }
 
-function getMeetingPrepStatus(meetingDate: string): 'not-started' | 'in-progress' | 'ready' {
-  const prep = meetingPrepStorage.get(meetingDate);
-  if (!prep) return 'not-started';
-  return prep.status === 'ready' ? 'ready' : 'in-progress';
+/**
+ * Deserialize a flat Google Sheets row into a MeetingPrepData object.
+ */
+function rowToPrepData(row: Record<string, string>, meetingDate: string): MeetingPrepData {
+  return {
+    id: row.id || generateMeetingId(meetingDate),
+    meetingDate,
+    bibleVerse: row.bibleVerseRef
+      ? {
+          reference: row.bibleVerseRef,
+          text: row.bibleVerseText || '',
+          theme: row.bibleVerseTheme || '',
+        }
+      : null,
+    useRandomVerse: row.useRandomVerse === 'true',
+    announcements: {
+      part1: row.announcementsPart1 ? JSON.parse(row.announcementsPart1) : [],
+      part2: row.announcementsPart2 ? JSON.parse(row.announcementsPart2) : [],
+    },
+    employeeOfMonth: row.employeeName
+      ? {
+          name: row.employeeName,
+          department: row.employeeDept || '',
+          reason: row.employeeReason || '',
+        }
+      : null,
+    trainingTopic: row.trainingTopic || '',
+    departmentNotes: {
+      sales: row.salesNotes || '',
+      operations: row.operationsNotes || '',
+      office: row.officeNotes || '',
+      drivers: row.driversNotes || '',
+    },
+    specialNotes: row.specialNotes || '',
+    preparedBy: row.preparedBy || '',
+    preparedAt: row.updatedAt || row.createdAt || '',
+    status: (row.status as 'draft' | 'ready' | 'presented') || 'draft',
+  };
+}
+
+/**
+ * Serialize a MeetingPrepData object into a flat record for Google Sheets.
+ */
+function prepDataToRow(prep: MeetingPrepData): Record<string, string> {
+  return {
+    meetingDate: prep.meetingDate,
+    id: prep.id,
+    bibleVerseRef: prep.bibleVerse?.reference || '',
+    bibleVerseText: prep.bibleVerse?.text || '',
+    bibleVerseTheme: prep.bibleVerse?.theme || '',
+    useRandomVerse: String(prep.useRandomVerse),
+    announcementsPart1: JSON.stringify(prep.announcements.part1),
+    announcementsPart2: JSON.stringify(prep.announcements.part2),
+    employeeName: prep.employeeOfMonth?.name || '',
+    employeeDept: prep.employeeOfMonth?.department || '',
+    employeeReason: prep.employeeOfMonth?.reason || '',
+    trainingTopic: prep.trainingTopic,
+    salesNotes: prep.departmentNotes.sales,
+    operationsNotes: prep.departmentNotes.operations,
+    officeNotes: prep.departmentNotes.office,
+    driversNotes: prep.departmentNotes.drivers,
+    specialNotes: prep.specialNotes,
+    preparedBy: prep.preparedBy,
+    status: prep.status,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Load prep status for a meeting date from Google Sheets.
+ */
+async function getMeetingPrepStatus(meetingDate: string): Promise<'not-started' | 'in-progress' | 'ready'> {
+  const row = await googleSheetsService.getMeetingPrep(meetingDate);
+  if (!row) return 'not-started';
+  return row.status === 'ready' ? 'ready' : 'in-progress';
 }
 
 // =============================================================================
@@ -67,9 +130,9 @@ export async function GET(request: NextRequest) {
       const nextMeeting = calculateNextMeetingDate();
       const meetingDate = dateParam || getISODate(nextMeeting);
 
-      const prepData = meetingPrepStorage.get(meetingDate);
+      const row = await googleSheetsService.getMeetingPrep(meetingDate);
 
-      if (!prepData) {
+      if (!row || !row.meetingDate) {
         // Return default template with pre-filled values
         const weekNum = getWeekNumber(new Date(meetingDate));
         const verse = getBibleVerseByWeek(weekNum);
@@ -89,6 +152,8 @@ export async function GET(request: NextRequest) {
           timestamp: new Date().toISOString(),
         });
       }
+
+      const prepData = rowToPrepData(row, meetingDate);
 
       return NextResponse.json({
         success: true,
@@ -121,13 +186,45 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // List archived meeting preps
+    if (action === 'list') {
+      const yearParam = searchParams.get('year');
+      const limitParam = searchParams.get('limit');
+      const preps = await googleSheetsService.listMeetingPreps({
+        year: yearParam ? parseInt(yearParam, 10) : undefined,
+        limit: limitParam ? parseInt(limitParam, 10) : undefined,
+      });
+
+      const prepDataList = preps
+        .filter(r => r.meetingDate)
+        .map(r => rowToPrepData(r, r.meetingDate));
+
+      return NextResponse.json({
+        success: true,
+        data: prepDataList,
+        count: prepDataList.length,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     // Default: Return full meeting configuration
     const config = getMeetingConfig();
     const nextMeeting = calculateNextMeetingDate();
     const meetingDate = getISODate(nextMeeting);
 
-    // Override prep status with actual stored value
-    const prepStatus = getMeetingPrepStatus(meetingDate);
+    // Get prep status from sheets
+    const prepStatus = await getMeetingPrepStatus(meetingDate);
+
+    // Load existing prep data from sheets
+    const existingRow = await googleSheetsService.getMeetingPrep(meetingDate);
+    const existingPrep = existingRow && existingRow.meetingDate
+      ? rowToPrepData(existingRow, meetingDate)
+      : null;
+
+    // Find last presented meeting from sheets
+    const recentPreps = await googleSheetsService.listMeetingPreps({ limit: 10 });
+    const lastPresented = recentPreps.find(r => r.status === 'presented');
+
     const enhancedConfig: MeetingConfig & {
       slides: typeof SLIDES;
       totalSlides: number;
@@ -136,11 +233,11 @@ export async function GET(request: NextRequest) {
     } = {
       ...config,
       currentPrepStatus: prepStatus,
-      lastMeetingDate: lastPresentedMeeting || config.lastMeetingDate,
+      lastMeetingDate: lastPresented?.meetingDate || config.lastMeetingDate,
       slides: SLIDES,
       totalSlides: SLIDES.length,
       estimatedDuration: Math.round(SLIDES.reduce((sum, s) => sum + s.duration, 0) / 60),
-      prepData: meetingPrepStorage.get(meetingDate) || null,
+      prepData: existingPrep,
     };
 
     return NextResponse.json({
@@ -187,8 +284,12 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Get existing or create new
-      const existing = meetingPrepStorage.get(prepData.meetingDate);
+      // Load existing from sheets or start fresh
+      const existingRow = await googleSheetsService.getMeetingPrep(prepData.meetingDate);
+      const existing = existingRow && existingRow.meetingDate
+        ? rowToPrepData(existingRow, prepData.meetingDate)
+        : null;
+
       const meetingId = existing?.id || generateMeetingId(prepData.meetingDate);
 
       const updatedPrep: MeetingPrepData = {
@@ -204,8 +305,19 @@ export async function POST(request: NextRequest) {
         updatedPrep.bibleVerse = getRandomBibleVerse();
       }
 
-      // Save to storage
-      meetingPrepStorage.set(prepData.meetingDate, updatedPrep);
+      // Serialize and save to Google Sheets
+      const sheetRecord = prepDataToRow(updatedPrep);
+      const saved = await googleSheetsService.saveMeetingPrep(sheetRecord);
+
+      if (!saved) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Failed to persist meeting prep to Google Sheets',
+          },
+          { status: 500 }
+        );
+      }
 
       return NextResponse.json({
         success: true,
@@ -229,8 +341,8 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const prep = meetingPrepStorage.get(meetingDate);
-      if (!prep) {
+      const existingRow = await googleSheetsService.getMeetingPrep(meetingDate);
+      if (!existingRow || !existingRow.meetingDate) {
         return NextResponse.json(
           {
             success: false,
@@ -240,8 +352,11 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      const prep = rowToPrepData(existingRow, meetingDate);
       prep.status = 'ready';
-      meetingPrepStorage.set(meetingDate, prep);
+
+      const sheetRecord = prepDataToRow(prep);
+      await googleSheetsService.saveMeetingPrep(sheetRecord);
 
       return NextResponse.json({
         success: true,
@@ -265,13 +380,14 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const prep = meetingPrepStorage.get(meetingDate);
-      if (prep) {
+      const existingRow = await googleSheetsService.getMeetingPrep(meetingDate);
+      if (existingRow && existingRow.meetingDate) {
+        const prep = rowToPrepData(existingRow, meetingDate);
         prep.status = 'presented';
-        meetingPrepStorage.set(meetingDate, prep);
-      }
 
-      lastPresentedMeeting = meetingDate;
+        const sheetRecord = prepDataToRow(prep);
+        await googleSheetsService.saveMeetingPrep(sheetRecord);
+      }
 
       return NextResponse.json({
         success: true,

@@ -132,26 +132,12 @@ export async function POST(request: NextRequest) {
 
 /** Write login event to AuditLog sheet tab */
 async function logLoginToSheet(email: string, name: string, role: string, ip: string, timestamp: string) {
-  const initialized = await googleSheetsService.init();
-  if (!initialized) return;
-
-  const doc = (googleSheetsService as any).doc;
-  if (!doc) return;
-
-  let sheet = doc.sheetsByTitle['AuditLog'];
-  if (!sheet) {
-    sheet = await doc.addSheet({
-      title: 'AuditLog',
-      headerValues: ['Timestamp', 'Action', 'UserEmail', 'Details', 'IP', 'UserAgent'],
-    });
-  }
-
-  await sheet.addRow({
-    Timestamp: timestamp,
-    Action: 'LOGIN',
-    UserEmail: email,
-    Details: `${name} (${role}) logged in`,
-    IP: ip,
-    UserAgent: 'portal-login',
+  await googleSheetsService.appendToAuditLog({
+    action: 'LOGIN',
+    userEmail: email,
+    details: `${name} (${role}) logged in`,
+    ip,
+    userAgent: 'portal-login',
+    timestamp,
   });
 }

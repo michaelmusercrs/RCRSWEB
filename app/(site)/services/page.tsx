@@ -281,7 +281,7 @@ export default function ServicesPage() {
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
               Ready to Get Started?
             </h2>
-            <p className="text-xl text-blue-100 mb-8">
+            <p className="text-xl text-blue-50 mb-8">
               Schedule your free inspection today and discover why North Alabama trusts River City Roofing Solutions.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">

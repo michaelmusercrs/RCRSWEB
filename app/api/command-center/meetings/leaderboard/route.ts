@@ -4,8 +4,9 @@
  * Provides leaderboard data from the REAL Monday meeting numbers
  * (data/meeting-numbers-2026.json and data/meeting-numbers-all.json).
  *
- * Shows actual meeting sheet columns: Inspected, Damage, Signed, $$$$$,
- * Approved, Referrals, Agents, etc. Default sort by $$$$$ (revenue).
+ * Shows ESTIMATED meeting sheet columns: Inspected, Damage, Signed, $$$$$,
+ * Approved, Referrals, Agents, etc. Default sort by $$$$$ (estimated revenue).
+ * ALL numbers are self-reported estimates from Monday meetings, NOT actual commissions.
  *
  * GET /api/command-center/meetings/leaderboard
  * Query params:
@@ -193,8 +194,24 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
+/**
+ * Get the current date in US Central Time (America/Chicago).
+ * The server runs in UTC, but RCRS is in Alabama (Central Time).
+ * Without this, "this month" on March 31 CDT would return April
+ * because UTC is already April 1.
+ */
+function getCentralDate(): Date {
+  const now = new Date();
+  // Convert UTC to Central Time by formatting in that timezone
+  const central = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+  return central;
+}
+
 function formatDateISO(date: Date): string {
-  return date.toISOString().split('T')[0];
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 function getWeekBoundaries(date: Date): { start: string; end: string } {
@@ -293,17 +310,21 @@ export async function GET(request: NextRequest) {
     const sortMetric = searchParams.get('metric') || 'revenue';
     const periodParam = searchParams.get('period') || 'thisYear';
 
-    const now = new Date();
+    // Use Central Time so "this month" and "this week" match Alabama local dates
+    const now = getCentralDate();
 
     // HARD RULE: Michael, Chris, Sara NEVER on sales/commission leaderboard
+    // Also exclude: PMs (John, Bart), inactive (Rudy, Tae), drivers-only (Richard),
+    // Boston (marketing), office staff (Destin, Tia)
     const EXCLUDED_FROM_LEADERBOARD = [
-      'michael', 'chris', 'sara',
+      'michael', 'chris', 'sara', 'john', 'bart', 'rudy', 'tae',
+      'richard', 'destin', 'tia', 'boston',
     ];
 
-    // Active sales reps only - filter out old/inactive names with $0
+    // Active sales reps only
     const ACTIVE_SALES_REPS = [
       'hunter', 'aaron', 'greg', 'brendon', 'adam', 'joseph',
-      'boston', 'alijah', 'travis', 'rick', 'destin',
+      'alijah', 'travis', 'rick',
     ];
 
     const allRecords = loadMeetingData().filter(r => {
@@ -635,11 +656,13 @@ export async function GET(request: NextRequest) {
           avgTeamTransaction: totalTransactions > 0
             ? Math.round((grandTotal / totalTransactions) * 100) / 100
             : 0,
-          dateGenerated: now.toISOString(),
+          dateGenerated: new Date().toISOString(),
         },
         celebrationTriggers,
       },
       dataSource: 'meeting-numbers',
+      dataLabel: 'Estimated (Self-Reported from Monday Meetings)',
+      revenueLabel: '$$$$$ = Estimated Sales (Accrual) — NOT actual commission',
       timestamp,
     };
 

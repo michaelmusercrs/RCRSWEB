@@ -105,8 +105,9 @@ interface PMUser {
 const PIPELINE_STAGES = [
   'ORDER_CREATED', 'ORDER_REVIEWED', 'DRIVER_ASSIGNED', 'WAREHOUSE_NOTIFIED',
   'MATERIALS_PULLED', 'LOAD_VERIFIED', 'DEPARTURE_CONFIRMED', 'EN_ROUTE',
-  'ARRIVED_AT_SITE', 'UNLOADING', 'DELIVERY_CONFIRMED', 'QC_PHOTOS',
-  'OFFICE_NOTIFIED', 'BILLING_REVIEW', 'INVOICE_SENT', 'PAYMENT_RECEIVED', 'JOB_CLOSED'
+  'ARRIVED_AT_SITE', 'UNLOADING', 'DELIVERY_CONFIRMED', 'SIGNATURE_CAPTURED',
+  'QC_PHOTOS', 'OFFICE_NOTIFIED', 'BILLING_REVIEW', 'INVOICE_SENT',
+  'PAYMENT_RECEIVED', 'JOB_CLOSED'
 ];
 
 const STAGE_LABELS: Record<string, string> = {
@@ -121,6 +122,7 @@ const STAGE_LABELS: Record<string, string> = {
   ARRIVED_AT_SITE: 'Arrived',
   UNLOADING: 'Unloading',
   DELIVERY_CONFIRMED: 'Delivered',
+  SIGNATURE_CAPTURED: 'Signed',
   QC_PHOTOS: 'QC Photos',
   OFFICE_NOTIFIED: 'Office Notified',
   BILLING_REVIEW: 'Billing',
@@ -137,7 +139,7 @@ const PM_STAGE_GROUPS = [
   { label: 'Pulling', stages: ['MATERIALS_PULLED', 'LOAD_VERIFIED'], color: 'bg-yellow-500' },
   { label: 'In Transit', stages: ['DEPARTURE_CONFIRMED', 'EN_ROUTE'], color: 'bg-orange-500' },
   { label: 'On Site', stages: ['ARRIVED_AT_SITE', 'UNLOADING'], color: 'bg-purple-500' },
-  { label: 'Delivered', stages: ['DELIVERY_CONFIRMED', 'QC_PHOTOS'], color: 'bg-brand-green' },
+  { label: 'Delivered', stages: ['DELIVERY_CONFIRMED', 'SIGNATURE_CAPTURED', 'QC_PHOTOS'], color: 'bg-brand-green' },
   { label: 'Billing', stages: ['OFFICE_NOTIFIED', 'BILLING_REVIEW', 'INVOICE_SENT', 'PAYMENT_RECEIVED'], color: 'bg-emerald-500' },
   { label: 'Closed', stages: ['JOB_CLOSED'], color: 'bg-green-600' },
 ];

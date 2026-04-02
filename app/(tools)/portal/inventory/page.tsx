@@ -27,38 +27,61 @@ import {
   Trash2,
 } from 'lucide-react';
 
+// Matches the unified-inventory-service InventoryItem shape
 interface InventoryItem {
   productId: string;
   productName: string;
+  description: string;
   category: string;
   sku: string;
   unit: string;
   currentQty: number;
-  minQty: number;
-  maxQty: number;
+  holdQty: number;
+  availableQty: number;
+  minStockLevel: number;
+  maxStockLevel: number;
+  reorderQty: number;
   unitCost: number;
-  totalValue: number;
+  unitPrice: number;
   location: string;
   supplier: string;
   lastCountDate: string;
   lastRestockDate: string;
   notes: string;
+  active: boolean;
 }
 
+// Matches the unified-inventory-service InventoryTransaction shape
 interface InventoryTransaction {
-  inventoryId: string;
-  itemId: string;
-  dateTime: string;
-  amount: number;
-  referenceNumber: string;
-  price: number;
-  cost: number;
-  status: string;
+  transactionId: string;
+  productId: string;
+  productName: string;
   type: string;
-  notes?: string;
-  productName?: string;
-  productCategory?: string;
+  quantity: number;
+  referenceId: string;
+  referenceType: string;
+  performedBy: string;
+  performedByName: string;
+  timestamp: string;
+  notes: string;
+  previousQty: number;
+  newQty: number;
+  unitCost?: number;
+  unitPrice?: number;
 }
+
+const CATEGORY_LABELS: Record<string, string> = {
+  shingles: 'Shingles',
+  underlayment: 'Underlayment',
+  flashing: 'Flashing',
+  gutters: 'Gutters',
+  nails_fasteners: 'Nails & Fasteners',
+  sealants: 'Sealants',
+  lumber: 'Lumber',
+  ventilation: 'Ventilation',
+  accessories: 'Accessories',
+  safety_equipment: 'Safety Equipment',
+};
 
 type ViewTab = 'inventory' | 'history' | 'lowStock';
 
@@ -83,16 +106,26 @@ export default function InventoryPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newItem, setNewItem] = useState({
     productName: '',
-    category: '',
+    description: '',
+    category: 'accessories',
     sku: '',
     unit: 'each',
     currentQty: 0,
-    minQty: 10,
-    maxQty: 100,
+    holdQty: 0,
+    minStockLevel: 10,
+    maxStockLevel: 100,
+    reorderQty: 10,
     unitCost: 0,
+    unitPrice: 0,
     location: '',
     supplier: '',
+    supplierPartNumber: '',
+    weight: 0,
     notes: '',
+    active: true,
+    lastCountDate: '',
+    lastCountBy: '',
+    lastRestockDate: '',
   });
 
   // Quick adjust
@@ -103,15 +136,18 @@ export default function InventoryPage() {
   const fetchInventory = useCallback(async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams();
+      const params = new URLSearchParams({ action: 'list' });
       if (searchTerm) params.set('search', searchTerm);
       if (categoryFilter !== 'all') params.set('category', categoryFilter);
       if (activeTab === 'lowStock') params.set('lowStock', 'true');
 
-      const response = await fetch(`/api/portal/inventory?${params}`);
+      const response = await fetch(`/api/portal/inventory?${params}`, {
+        credentials: 'include',
+      });
       if (response.ok) {
         const data = await response.json();
-        setItems(Array.isArray(data) ? data : []);
+        // API returns { items: [...], totalCost, totalRetail, itemCount, holdValue }
+        setItems(Array.isArray(data.items) ? data.items : []);
       }
     } catch (error) {
       console.error('Error fetching inventory:', error);
@@ -123,10 +159,12 @@ export default function InventoryPage() {
   const fetchHistory = useCallback(async () => {
     try {
       setLoadingHistory(true);
-      const response = await fetch('/api/portal/inventory/history?limit=100');
+      const response = await fetch('/api/portal/inventory?action=transactions&limit=100', {
+        credentials: 'include',
+      });
       if (response.ok) {
         const data = await response.json();
-        setTransactions(data.transactions || []);
+        setTransactions(Array.isArray(data) ? data : []);
       }
     } catch (error) {
       console.error('Error fetching history:', error);
@@ -135,13 +173,15 @@ export default function InventoryPage() {
     }
   }, []);
 
-  const fetchItemHistory = useCallback(async (itemId: string) => {
+  const fetchItemHistory = useCallback(async (productId: string) => {
     try {
       setLoadingItemHistory(true);
-      const response = await fetch(`/api/portal/inventory/history?itemId=${itemId}&limit=50`);
+      const response = await fetch(`/api/portal/inventory?action=transactions&productId=${encodeURIComponent(productId)}&limit=50`, {
+        credentials: 'include',
+      });
       if (response.ok) {
         const data = await response.json();
-        setItemHistory(data.transactions || []);
+        setItemHistory(Array.isArray(data) ? data : []);
       }
     } catch (error) {
       console.error('Error fetching item history:', error);
@@ -160,7 +200,7 @@ export default function InventoryPage() {
     }
   }, [activeTab, fetchHistory]);
 
-  const categories = ['all', ...new Set(items.map(i => i.category).filter(Boolean))];
+  const categories = ['all', ...new Set(items.map(i => i.category).filter(Boolean))].sort();
 
   const handleQuickAdjust = async (productId: string) => {
     if (adjustQty === 0) return;
@@ -168,6 +208,7 @@ export default function InventoryPage() {
     try {
       const response = await fetch('/api/portal/inventory', {
         method: 'PATCH',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'updateQty',
@@ -178,25 +219,17 @@ export default function InventoryPage() {
       });
 
       if (response.ok) {
-        // Log the transaction
-        await fetch('/api/portal/inventory/history', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            itemId: productId,
-            amount: adjustQty,
-            type: 'adjustment',
-            notes: adjustReason || 'Manual adjustment',
-          }),
-        });
-
         setAdjustingItem(null);
         setAdjustQty(0);
         setAdjustReason('');
         fetchInventory();
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to adjust stock');
       }
     } catch (error) {
       console.error('Error adjusting stock:', error);
+      alert('Failed to adjust stock. Please try again.');
     }
   };
 
@@ -206,12 +239,13 @@ export default function InventoryPage() {
 
     try {
       const response = await fetch('/api/portal/inventory', {
-        method: 'PATCH',
+        method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'updateItem',
           productId: editingItem.productId,
-          ...editForm,
+          updates: editForm,
         }),
       });
 
@@ -219,9 +253,13 @@ export default function InventoryPage() {
         setEditingItem(null);
         setEditForm({});
         fetchInventory();
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to save changes');
       }
     } catch (error) {
       console.error('Error saving item:', error);
+      alert('Failed to save changes. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -234,29 +272,47 @@ export default function InventoryPage() {
     try {
       const response = await fetch('/api/portal/inventory', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newItem),
+        body: JSON.stringify({
+          action: 'addItem',
+          item: newItem,
+        }),
       });
 
       if (response.ok) {
         setShowAddModal(false);
         setNewItem({
           productName: '',
-          category: '',
+          description: '',
+          category: 'accessories',
           sku: '',
           unit: 'each',
           currentQty: 0,
-          minQty: 10,
-          maxQty: 100,
+          holdQty: 0,
+          minStockLevel: 10,
+          maxStockLevel: 100,
+          reorderQty: 10,
           unitCost: 0,
+          unitPrice: 0,
           location: '',
           supplier: '',
+          supplierPartNumber: '',
+          weight: 0,
           notes: '',
+          active: true,
+          lastCountDate: '',
+          lastCountBy: '',
+          lastRestockDate: '',
         });
         fetchInventory();
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to add item');
       }
     } catch (error) {
       console.error('Error adding item:', error);
+      alert('Failed to add item. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -273,6 +329,7 @@ export default function InventoryPage() {
     try {
       const response = await fetch(`/api/portal/inventory?productId=${encodeURIComponent(productId)}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -322,12 +379,15 @@ export default function InventoryPage() {
 
   const getStockStatus = (item: InventoryItem) => {
     if (item.currentQty <= 0) return { label: 'Out of Stock', color: 'text-red-400 bg-red-500/10 border-red-500/30' };
-    if (item.currentQty <= item.minQty) return { label: 'Low Stock', color: 'text-amber-400 bg-amber-500/10 border-amber-500/30' };
-    if (item.currentQty >= item.maxQty) return { label: 'Overstocked', color: 'text-blue-400 bg-brand-green/10 border-blue-500/30' };
+    if (item.currentQty <= item.minStockLevel) return { label: 'Low Stock', color: 'text-amber-400 bg-amber-500/10 border-amber-500/30' };
+    if (item.currentQty >= item.maxStockLevel) return { label: 'Overstocked', color: 'text-blue-400 bg-blue-500/10 border-blue-500/30' };
     return { label: 'In Stock', color: 'text-[#39FF14] bg-[#39FF14]/10 border-[#39FF14]/30' };
   };
 
-  const lowStockCount = items.filter(i => i.currentQty <= i.minQty).length;
+  const getCategoryLabel = (cat: string) => CATEGORY_LABELS[cat] || cat;
+
+  const lowStockCount = items.filter(i => i.currentQty <= i.minStockLevel).length;
+  const outOfStockCount = items.filter(i => i.currentQty <= 0).length;
   const totalValue = items.reduce((sum, i) => sum + (i.currentQty * i.unitCost), 0);
 
   return (
@@ -481,7 +541,7 @@ export default function InventoryPage() {
               >
                 {categories.map(cat => (
                   <option key={cat} value={cat}>
-                    {cat === 'all' ? 'All Categories' : cat}
+                    {cat === 'all' ? 'All Categories' : getCategoryLabel(cat)}
                   </option>
                 ))}
               </select>
@@ -520,28 +580,30 @@ export default function InventoryPage() {
                         <th className="text-left px-4 py-3 text-zinc-400 font-medium">Type</th>
                         <th className="text-right px-4 py-3 text-zinc-400 font-medium">Qty Change</th>
                         <th className="text-left px-4 py-3 text-zinc-400 font-medium">Reference</th>
-                        <th className="text-right px-4 py-3 text-zinc-400 font-medium">Value</th>
-                        <th className="text-left px-4 py-3 text-zinc-400 font-medium">Status</th>
+                        <th className="text-right px-4 py-3 text-zinc-400 font-medium">Prev / New Qty</th>
+                        <th className="text-left px-4 py-3 text-zinc-400 font-medium">By</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-800">
                       {transactions.map(tx => (
-                        <tr key={tx.inventoryId} className="hover:bg-zinc-800/50">
+                        <tr key={tx.transactionId} className="hover:bg-zinc-800/50">
                           <td className="px-4 py-3 text-zinc-300 whitespace-nowrap">
-                            {formatDateTime(tx.dateTime)}
+                            {formatDateTime(tx.timestamp)}
                           </td>
                           <td className="px-4 py-3 text-white font-medium">
-                            {tx.productName || tx.itemId}
+                            {tx.productName || tx.productId}
                           </td>
                           <td className="px-4 py-3">
                             <span
                               className={`px-2 py-0.5 text-xs font-medium rounded border ${
                                 tx.type === 'delivery'
-                                  ? 'bg-brand-green/10 text-blue-400 border-blue-500/30'
+                                  ? 'bg-blue-500/10 text-blue-400 border-blue-500/30'
                                   : tx.type === 'restock'
                                   ? 'bg-[#39FF14]/10 text-[#39FF14] border-[#39FF14]/30'
                                   : tx.type === 'return'
                                   ? 'bg-purple-500/10 text-purple-400 border-purple-500/30'
+                                  : tx.type === 'adjustment'
+                                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
                                   : 'bg-zinc-700 text-zinc-300 border-zinc-600'
                               }`}
                             >
@@ -551,31 +613,21 @@ export default function InventoryPage() {
                           <td className="px-4 py-3 text-right font-mono">
                             <span
                               className={
-                                tx.amount > 0 ? 'text-[#39FF14]' : 'text-red-400'
+                                tx.quantity > 0 ? 'text-[#39FF14]' : 'text-red-400'
                               }
                             >
-                              {tx.amount > 0 ? '+' : ''}
-                              {tx.amount}
+                              {tx.quantity > 0 ? '+' : ''}
+                              {tx.quantity}
                             </span>
                           </td>
                           <td className="px-4 py-3 text-zinc-400 font-mono text-xs">
-                            {tx.referenceNumber || '-'}
+                            {tx.referenceId || '-'}
                           </td>
-                          <td className="px-4 py-3 text-right text-zinc-300">
-                            {formatCurrency(Math.abs(tx.amount) * tx.cost)}
+                          <td className="px-4 py-3 text-right text-zinc-300 font-mono text-xs">
+                            {tx.previousQty} &rarr; {tx.newQty}
                           </td>
-                          <td className="px-4 py-3">
-                            <span
-                              className={`px-2 py-0.5 text-xs rounded ${
-                                tx.status === 'completed'
-                                  ? 'bg-[#39FF14]/10 text-[#39FF14]'
-                                  : tx.status === 'pending'
-                                  ? 'bg-amber-500/10 text-amber-400'
-                                  : 'bg-red-500/10 text-red-400'
-                              }`}
-                            >
-                              {tx.status}
-                            </span>
+                          <td className="px-4 py-3 text-zinc-400 text-xs">
+                            {tx.performedByName || tx.performedBy || '-'}
                           </td>
                         </tr>
                       ))}
@@ -602,8 +654,8 @@ export default function InventoryPage() {
           <div className="space-y-3">
             {items.map(item => {
               const stockStatus = getStockStatus(item);
-              const stockPercent = item.maxQty > 0
-                ? Math.min(100, (item.currentQty / item.maxQty) * 100)
+              const stockPercent = item.maxStockLevel > 0
+                ? Math.min(100, (item.currentQty / item.maxStockLevel) * 100)
                 : 0;
               const isExpanded = expandedItem === item.productId;
 
@@ -622,9 +674,9 @@ export default function InventoryPage() {
                       <div className="w-full bg-zinc-800 rounded-full h-2">
                         <div
                           className={`h-2 rounded-full ${
-                            item.currentQty <= item.minQty
+                            item.currentQty <= 0
                               ? 'bg-red-500'
-                              : item.currentQty <= item.minQty * 1.5
+                              : item.currentQty <= item.minStockLevel
                               ? 'bg-amber-500'
                               : 'bg-[#39FF14]'
                           }`}
@@ -648,7 +700,7 @@ export default function InventoryPage() {
                       </div>
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500">
                         {item.sku && <span>SKU: {item.sku}</span>}
-                        {item.category && <span>{item.category}</span>}
+                        {item.category && <span>{getCategoryLabel(item.category)}</span>}
                         {item.location && <span>{item.location}</span>}
                         {item.supplier && <span>{item.supplier}</span>}
                       </div>
@@ -660,7 +712,7 @@ export default function InventoryPage() {
                         {item.currentQty}
                       </div>
                       <div className="text-xs text-zinc-500">
-                        {item.unit} (min: {item.minQty})
+                        {item.unit} (min: {item.minStockLevel})
                       </div>
                     </div>
 
@@ -773,7 +825,7 @@ export default function InventoryPage() {
                           <span className="text-zinc-400">New quantity: </span>
                           <span
                             className={
-                              item.currentQty + adjustQty <= item.minQty
+                              item.currentQty + adjustQty <= item.minStockLevel
                                 ? 'text-amber-400'
                                 : 'text-[#39FF14]'
                             }
@@ -805,11 +857,11 @@ export default function InventoryPage() {
                         <div className="space-y-2 max-h-64 overflow-y-auto">
                           {itemHistory.map(tx => (
                             <div
-                              key={tx.inventoryId}
+                              key={tx.transactionId}
                               className="flex items-center justify-between py-2 px-3 bg-zinc-900/50 rounded text-sm"
                             >
                               <div className="flex items-center gap-3">
-                                {tx.amount > 0 ? (
+                                {tx.quantity > 0 ? (
                                   <TrendingUp className="w-4 h-4 text-[#39FF14] shrink-0" />
                                 ) : (
                                   <TrendingDown className="w-4 h-4 text-red-400 shrink-0" />
@@ -826,24 +878,24 @@ export default function InventoryPage() {
                                       ? 'Adjustment'
                                       : tx.type}
                                   </span>
-                                  {tx.referenceNumber && (
+                                  {tx.referenceId && tx.referenceId !== 'manual' && (
                                     <span className="text-zinc-500 ml-2 font-mono text-xs">
-                                      #{tx.referenceNumber}
+                                      #{tx.referenceId}
                                     </span>
                                   )}
                                 </div>
                               </div>
                               <div className="flex items-center gap-4">
                                 <span className="text-zinc-500 text-xs">
-                                  {formatDateTime(tx.dateTime)}
+                                  {formatDateTime(tx.timestamp)}
                                 </span>
                                 <span
                                   className={`font-mono font-semibold ${
-                                    tx.amount > 0 ? 'text-[#39FF14]' : 'text-red-400'
+                                    tx.quantity > 0 ? 'text-[#39FF14]' : 'text-red-400'
                                   }`}
                                 >
-                                  {tx.amount > 0 ? '+' : ''}
-                                  {tx.amount}
+                                  {tx.quantity > 0 ? '+' : ''}
+                                  {tx.quantity}
                                 </span>
                               </div>
                             </div>
@@ -866,7 +918,7 @@ export default function InventoryPage() {
                         <div className="bg-zinc-900 rounded-lg p-3">
                           <div className="text-xs text-zinc-500">Min/Max</div>
                           <div className="text-sm font-semibold text-white">
-                            {item.minQty} / {item.maxQty}
+                            {item.minStockLevel} / {item.maxStockLevel}
                           </div>
                         </div>
                         <div className="bg-zinc-900 rounded-lg p-3">
@@ -911,12 +963,15 @@ export default function InventoryPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs text-zinc-400 mb-1">Category</label>
-                  <input
-                    type="text"
+                  <select
                     value={editForm.category || ''}
                     onChange={e => setEditForm({ ...editForm, category: e.target.value })}
                     className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
-                  />
+                  >
+                    {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs text-zinc-400 mb-1">SKU</label>
@@ -939,20 +994,20 @@ export default function InventoryPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1">Min Qty</label>
+                  <label className="block text-xs text-zinc-400 mb-1">Min Stock Level</label>
                   <input
                     type="number"
-                    value={editForm.minQty || 0}
-                    onChange={e => setEditForm({ ...editForm, minQty: parseInt(e.target.value) || 0 })}
+                    value={editForm.minStockLevel || 0}
+                    onChange={e => setEditForm({ ...editForm, minStockLevel: parseInt(e.target.value) || 0 })}
                     className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1">Max Qty</label>
+                  <label className="block text-xs text-zinc-400 mb-1">Max Stock Level</label>
                   <input
                     type="number"
-                    value={editForm.maxQty || 0}
-                    onChange={e => setEditForm({ ...editForm, maxQty: parseInt(e.target.value) || 0 })}
+                    value={editForm.maxStockLevel || 0}
+                    onChange={e => setEditForm({ ...editForm, maxStockLevel: parseInt(e.target.value) || 0 })}
                     className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
                   />
                 </div>
@@ -1055,13 +1110,15 @@ export default function InventoryPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs text-zinc-400 mb-1">Category</label>
-                  <input
-                    type="text"
+                  <select
                     value={newItem.category}
                     onChange={e => setNewItem({ ...newItem, category: e.target.value })}
                     className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
-                    placeholder="e.g., Fasteners"
-                  />
+                  >
+                    {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs text-zinc-400 mb-1">SKU</label>
@@ -1084,20 +1141,20 @@ export default function InventoryPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1">Min Qty</label>
+                  <label className="block text-xs text-zinc-400 mb-1">Min Stock</label>
                   <input
                     type="number"
-                    value={newItem.minQty}
-                    onChange={e => setNewItem({ ...newItem, minQty: parseInt(e.target.value) || 0 })}
+                    value={newItem.minStockLevel}
+                    onChange={e => setNewItem({ ...newItem, minStockLevel: parseInt(e.target.value) || 0 })}
                     className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1">Max Qty</label>
+                  <label className="block text-xs text-zinc-400 mb-1">Max Stock</label>
                   <input
                     type="number"
-                    value={newItem.maxQty}
-                    onChange={e => setNewItem({ ...newItem, maxQty: parseInt(e.target.value) || 0 })}
+                    value={newItem.maxStockLevel}
+                    onChange={e => setNewItem({ ...newItem, maxStockLevel: parseInt(e.target.value) || 0 })}
                     className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
                   />
                 </div>

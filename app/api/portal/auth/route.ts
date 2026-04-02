@@ -2,10 +2,14 @@
  * Portal Authentication API
  *
  * Secure authentication endpoint for team portal with:
- * - Email + password authentication (PIN system removed 2026-03-16)
+ * - Email + password authentication
+ * - PIN login (4-8 digit)
+ * - Picture password login (3 tap points)
+ * - Login method preferences
  * - Rate limiting & failed attempt tracking
  * - JWT token generation
  * - httpOnly cookie sessions
+ * - Stay-signed-in (30-day persistent sessions)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -25,8 +29,40 @@ import {
 } from '@/lib/auth-service';
 import { createAuthRateLimiter, withRateLimit } from '@/lib/rate-limiter';
 import { TEAM_MEMBERS } from '@/lib/team-roles';
+import { credentialService } from '@/lib/credential-service';
+import type { PicturePoint } from '@/lib/credential-service';
 
 const authRateLimiter = createAuthRateLimiter();
+
+/** Helper: build AuthUser from team member and generate tokens */
+async function loginSuccess(
+  member: (typeof TEAM_MEMBERS)[number],
+  staySignedIn?: boolean
+): Promise<{ user: AuthUser; accessToken: string; refreshToken: string }> {
+  const user: AuthUser = {
+    userId: member.id,
+    name: member.name,
+    email: member.email,
+    role: member.role,
+    permissions: member.permissions,
+  };
+
+  const accessToken = generateAccessToken(user);
+  const refreshToken = generateRefreshToken(user, staySignedIn);
+  await setAuthCookies(accessToken, refreshToken, staySignedIn);
+
+  // Record login timestamp (non-blocking)
+  credentialService.recordLogin(member.id).catch(() => {});
+
+  return { user, accessToken, refreshToken };
+}
+
+/** Helper: rate-limit check + member lookup */
+function lookupMember(email: string) {
+  return TEAM_MEMBERS.find(
+    m => m.email.toLowerCase() === (email || '').toLowerCase() && m.isActive
+  );
+}
 
 export async function POST(request: NextRequest) {
   return withRateLimit(request, authRateLimiter, async () => {
@@ -36,25 +72,32 @@ export async function POST(request: NextRequest) {
       const clientIP = getClientIP(request);
 
       switch (action) {
-        case 'login-pin': {
-          // PIN login deprecated - use email+password instead
+        // ── Get Login Method (no auth required) ──────────────
+        case 'get-login-method': {
+          const member = lookupMember(data.email);
+          if (!member) {
+            return NextResponse.json(
+              { success: false, error: 'Email not found.' },
+              { status: 404, headers: getSecurityHeaders() }
+            );
+          }
+
+          const creds = await credentialService.getUserCredentials(data.email);
           return NextResponse.json(
             {
-              success: false,
-              error: 'PIN login has been removed. Please use email and password.',
+              success: true,
+              loginMethod: creds?.loginMethod || 'password',
+              loginSetupComplete: creds?.loginSetupComplete === 'true',
             },
-            {
-              status: 410, // Gone
-              headers: getSecurityHeaders(),
-            }
+            { headers: getSecurityHeaders() }
           );
         }
 
+        // ── Password Login ───────────────────────────────────
         case 'login-passcode':
         case 'login-password': {
           const identifier = `portal-login:${clientIP}:${data.email}`;
 
-          // Check rate limit
           const rateLimitCheck = checkRateLimit(identifier);
           if (!rateLimitCheck.allowed) {
             return NextResponse.json(
@@ -63,90 +106,273 @@ export async function POST(request: NextRequest) {
                 error: `Too many login attempts. Please try again in ${rateLimitCheck.lockoutMinutes} minutes.`,
                 remainingAttempts: 0,
               },
-              {
-                status: 429,
-                headers: getSecurityHeaders(),
-              }
+              { status: 429, headers: getSecurityHeaders() }
             );
           }
 
-          // Validate against team-roles.ts (source of truth for team members)
-          const member = TEAM_MEMBERS.find(
-            m => m.email.toLowerCase() === (data.email || '').toLowerCase() && m.isActive
-          );
-
+          const member = lookupMember(data.email);
           if (!member) {
             recordLoginAttempt(identifier, false);
             const newCheck = checkRateLimit(identifier);
             return NextResponse.json(
-              {
-                success: false,
-                error: 'Email not found.',
-                remainingAttempts: newCheck.remainingAttempts,
-              },
+              { success: false, error: 'Email not found.', remainingAttempts: newCheck.remainingAttempts },
               { status: 401, headers: getSecurityHeaders() }
             );
           }
 
-          // Validate password against team-roles.ts default password.
-          // For users who changed their password (stored in client localStorage),
-          // the client-side auth context validates the password before calling this
-          // endpoint, so we trust the client-provided password for session creation.
           const password = data.passcode || data.password || '';
-          if (password !== member.password) {
-            // Password doesn't match the default -- could be a changed password.
-            // Allow if client is re-establishing an existing session (action is login-password
-            // from setServerSession, which only fires after client-side password verification).
-            if (action !== 'login-password' || !password) {
-              recordLoginAttempt(identifier, false);
-              const newCheck = checkRateLimit(identifier);
-              return NextResponse.json(
-                {
-                  success: false,
-                  error: 'Invalid password.',
-                  remainingAttempts: newCheck.remainingAttempts,
-                },
-                { status: 401, headers: getSecurityHeaders() }
-              );
-            }
-            // For login-password action with a non-empty password that doesn't match default:
-            // This is a changed password scenario. The client already verified it against
-            // localStorage. Allow session creation. Rate limiting still protects against abuse.
+          const verified = await credentialService.verifyPassword(data.email, password);
+
+          if (!verified) {
+            recordLoginAttempt(identifier, false);
+            const newCheck = checkRateLimit(identifier);
+            return NextResponse.json(
+              { success: false, error: 'Invalid password.', remainingAttempts: newCheck.remainingAttempts },
+              { status: 401, headers: getSecurityHeaders() }
+            );
           }
 
-          // Successful login
           recordLoginAttempt(identifier, true);
+          const { user } = await loginSuccess(member, data.staySignedIn);
 
-          // Generate JWT tokens
-          const user: AuthUser = {
-            userId: member.id,
-            name: member.name,
-            email: member.email,
-            role: member.role,
-            permissions: member.permissions,
-          };
-
-          const accessToken = generateAccessToken(user);
-          const refreshToken = generateRefreshToken(user);
-
-          // Set secure cookies
-          await setAuthCookies(accessToken, refreshToken);
+          // Include loginSetupComplete so client knows whether to show setup
+          const creds = await credentialService.getUserCredentials(data.email);
 
           return NextResponse.json(
             {
               success: true,
-              user: {
-                userId: member.id,
-                name: member.name,
-                email: member.email,
-                role: member.role,
-                permissions: member.permissions,
-              },
+              user: { ...user, loginSetupComplete: creds?.loginSetupComplete === 'true' },
             },
             { headers: getSecurityHeaders() }
           );
         }
 
+        // ── PIN Login ────────────────────────────────────────
+        case 'login-pin': {
+          const identifier = `portal-login:${clientIP}:${data.email}`;
+
+          const rateLimitCheck = checkRateLimit(identifier);
+          if (!rateLimitCheck.allowed) {
+            return NextResponse.json(
+              {
+                success: false,
+                error: `Too many login attempts. Please try again in ${rateLimitCheck.lockoutMinutes} minutes.`,
+                remainingAttempts: 0,
+              },
+              { status: 429, headers: getSecurityHeaders() }
+            );
+          }
+
+          const member = lookupMember(data.email);
+          if (!member) {
+            recordLoginAttempt(identifier, false);
+            return NextResponse.json(
+              { success: false, error: 'Email not found.' },
+              { status: 401, headers: getSecurityHeaders() }
+            );
+          }
+
+          const pinValid = await credentialService.verifyPin(data.email, data.pin || '');
+          if (!pinValid) {
+            recordLoginAttempt(identifier, false);
+            const newCheck = checkRateLimit(identifier);
+            return NextResponse.json(
+              { success: false, error: 'Invalid PIN.', remainingAttempts: newCheck.remainingAttempts },
+              { status: 401, headers: getSecurityHeaders() }
+            );
+          }
+
+          recordLoginAttempt(identifier, true);
+          const { user } = await loginSuccess(member, data.staySignedIn);
+
+          return NextResponse.json(
+            { success: true, user },
+            { headers: getSecurityHeaders() }
+          );
+        }
+
+        // ── Picture Password Login ───────────────────────────
+        case 'login-picture': {
+          const identifier = `portal-login:${clientIP}:${data.email}`;
+
+          const rateLimitCheck = checkRateLimit(identifier);
+          if (!rateLimitCheck.allowed) {
+            return NextResponse.json(
+              {
+                success: false,
+                error: `Too many login attempts. Please try again in ${rateLimitCheck.lockoutMinutes} minutes.`,
+                remainingAttempts: 0,
+              },
+              { status: 429, headers: getSecurityHeaders() }
+            );
+          }
+
+          const member = lookupMember(data.email);
+          if (!member) {
+            recordLoginAttempt(identifier, false);
+            return NextResponse.json(
+              { success: false, error: 'Email not found.' },
+              { status: 401, headers: getSecurityHeaders() }
+            );
+          }
+
+          const points: PicturePoint[] = data.points || [];
+          const pictureValid = await credentialService.verifyPicturePoints(data.email, points);
+          if (!pictureValid) {
+            recordLoginAttempt(identifier, false);
+            const newCheck = checkRateLimit(identifier);
+            return NextResponse.json(
+              { success: false, error: 'Incorrect tap points. Try again.', remainingAttempts: newCheck.remainingAttempts },
+              { status: 401, headers: getSecurityHeaders() }
+            );
+          }
+
+          recordLoginAttempt(identifier, true);
+          const { user } = await loginSuccess(member, data.staySignedIn);
+
+          return NextResponse.json(
+            { success: true, user },
+            { headers: getSecurityHeaders() }
+          );
+        }
+
+        // ── Setup PIN (requires auth) ────────────────────────
+        case 'setup-pin': {
+          const session = await validateSession();
+          if (!session.valid || !session.user) {
+            return NextResponse.json(
+              { success: false, error: 'Authentication required' },
+              { status: 401, headers: getSecurityHeaders() }
+            );
+          }
+
+          const pin = data.pin || '';
+          if (pin.length < 4 || pin.length > 8 || !/^\d+$/.test(pin)) {
+            return NextResponse.json(
+              { success: false, error: 'PIN must be 4-8 digits.' },
+              { status: 400, headers: getSecurityHeaders() }
+            );
+          }
+
+          const ok = await credentialService.setPin(session.user.userId, pin);
+          return NextResponse.json(
+            { success: ok, error: ok ? undefined : 'Failed to save PIN.' },
+            { status: ok ? 200 : 500, headers: getSecurityHeaders() }
+          );
+        }
+
+        // ── Setup Picture Password (requires auth) ───────────
+        case 'setup-picture': {
+          const session = await validateSession();
+          if (!session.valid || !session.user) {
+            return NextResponse.json(
+              { success: false, error: 'Authentication required' },
+              { status: 401, headers: getSecurityHeaders() }
+            );
+          }
+
+          const points: PicturePoint[] = data.points || [];
+          if (points.length !== 3) {
+            return NextResponse.json(
+              { success: false, error: 'Exactly 3 points required.' },
+              { status: 400, headers: getSecurityHeaders() }
+            );
+          }
+
+          for (const p of points) {
+            if (typeof p.x !== 'number' || typeof p.y !== 'number' ||
+                p.x < 0 || p.x > 100 || p.y < 0 || p.y > 100) {
+              return NextResponse.json(
+                { success: false, error: 'Invalid point coordinates.' },
+                { status: 400, headers: getSecurityHeaders() }
+              );
+            }
+          }
+
+          const ok = await credentialService.setPicturePoints(session.user.userId, points);
+          return NextResponse.json(
+            { success: ok, error: ok ? undefined : 'Failed to save picture password.' },
+            { status: ok ? 200 : 500, headers: getSecurityHeaders() }
+          );
+        }
+
+        // ── Set Login Method (requires auth) ─────────────────
+        case 'set-login-method': {
+          const session = await validateSession();
+          if (!session.valid || !session.user) {
+            return NextResponse.json(
+              { success: false, error: 'Authentication required' },
+              { status: 401, headers: getSecurityHeaders() }
+            );
+          }
+
+          const method = data.method;
+          if (!['password', 'pin', 'picture'].includes(method)) {
+            return NextResponse.json(
+              { success: false, error: 'Invalid login method.' },
+              { status: 400, headers: getSecurityHeaders() }
+            );
+          }
+
+          // Verify the credential exists before switching to it
+          if (method === 'pin' || method === 'picture') {
+            const creds = await credentialService.getUserCredentialsById(session.user.userId);
+            if (method === 'pin' && !creds?.pinHash) {
+              return NextResponse.json(
+                { success: false, error: 'Set up a PIN first.' },
+                { status: 400, headers: getSecurityHeaders() }
+              );
+            }
+            if (method === 'picture' && !creds?.picturePointsJson) {
+              return NextResponse.json(
+                { success: false, error: 'Set up a picture password first.' },
+                { status: 400, headers: getSecurityHeaders() }
+              );
+            }
+          }
+
+          const ok = await credentialService.setLoginMethod(session.user.userId, method);
+          return NextResponse.json(
+            { success: ok },
+            { status: ok ? 200 : 500, headers: getSecurityHeaders() }
+          );
+        }
+
+        // ── Complete Login Setup (requires auth) ─────────────
+        case 'complete-login-setup': {
+          const session = await validateSession();
+          if (!session.valid || !session.user) {
+            return NextResponse.json(
+              { success: false, error: 'Authentication required' },
+              { status: 401, headers: getSecurityHeaders() }
+            );
+          }
+
+          const ok = await credentialService.completeLoginSetup(session.user.userId);
+          return NextResponse.json(
+            { success: ok },
+            { status: ok ? 200 : 500, headers: getSecurityHeaders() }
+          );
+        }
+
+        // ── Set Stay Signed In (requires auth) ───────────────
+        case 'set-stay-signed-in': {
+          const session = await validateSession();
+          if (!session.valid || !session.user) {
+            return NextResponse.json(
+              { success: false, error: 'Authentication required' },
+              { status: 401, headers: getSecurityHeaders() }
+            );
+          }
+
+          const ok = await credentialService.setStaySignedIn(session.user.userId, !!data.value);
+          return NextResponse.json(
+            { success: ok },
+            { status: ok ? 200 : 500, headers: getSecurityHeaders() }
+          );
+        }
+
+        // ── Logout ───────────────────────────────────────────
         case 'logout': {
           await clearAuthCookies();
           return NextResponse.json(
@@ -155,6 +381,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        // ── Validate Session ─────────────────────────────────
         case 'validate': {
           const sessionResult = await validateSession();
 
@@ -166,14 +393,12 @@ export async function POST(request: NextRequest) {
           }
 
           return NextResponse.json(
-            {
-              success: true,
-              user: sessionResult.user,
-            },
+            { success: true, user: sessionResult.user },
             { headers: getSecurityHeaders() }
           );
         }
 
+        // ── Refresh Tokens ───────────────────────────────────
         case 'refresh': {
           const result = await refreshSession();
 
@@ -185,16 +410,13 @@ export async function POST(request: NextRequest) {
           }
 
           return NextResponse.json(
-            {
-              success: true,
-              user: result.user,
-            },
+            { success: true, user: result.user },
             { headers: getSecurityHeaders() }
           );
         }
 
+        // ── Check Permission ─────────────────────────────────
         case 'check-permission': {
-          // Validate session first
           const sessionResult = await validateSession();
           if (!sessionResult.valid) {
             return NextResponse.json(

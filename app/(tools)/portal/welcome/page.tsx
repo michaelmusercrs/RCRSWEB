@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Rocket, Layout, GraduationCap, Zap, PartyPopper,
@@ -56,10 +56,17 @@ const TRAINING_PATHS = [
 
 export default function WelcomePage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const [step, setStep] = useState(0);
 
-  if (!user) {
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push('/portal');
+    }
+  }, [user, isLoading, router]);
+
+  if (isLoading || !user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 flex items-center justify-center">
         <Loader2 className="animate-spin text-brand-green" size={48} />
@@ -72,7 +79,8 @@ export default function WelcomePage() {
 
   const handleComplete = () => {
     localStorage.setItem(`onboarding_complete_${user.userId}`, 'true');
-    router.push(ROLE_DEFAULT_ROUTES[role]);
+    // Send to login-setup page to choose PIN, picture password, or keep password
+    router.push('/portal/login-setup');
   };
 
   const steps = [
@@ -177,7 +185,8 @@ export default function WelcomePage() {
         <button
           onClick={() => {
             localStorage.setItem(`onboarding_complete_${user.userId}`, 'true');
-            router.push('/portal/training');
+            localStorage.setItem('rcrs_post_setup_redirect', '/portal/training');
+            router.push('/portal/login-setup');
           }}
           className="flex-1 bg-neutral-800 text-white font-bold py-4 rounded-xl border border-neutral-700 hover:bg-neutral-700 transition-all"
         >

@@ -410,7 +410,7 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ sl
       <section className="py-12 md:py-16 bg-brand-blue">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">Get a Free Inspection in {area.name}</h2>
-          <p className="text-xl text-blue-100 mb-8">Contact us today for a free roof inspection and quote.</p>
+          <p className="text-xl text-blue-50 mb-8">Contact us today for a free roof inspection and quote.</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/contact" className="inline-flex items-center justify-center gap-2 bg-brand-green text-black font-bold px-8 py-4 rounded-full hover:bg-lime-400 transition-colors">
               Schedule Inspection <ArrowRight size={20} />

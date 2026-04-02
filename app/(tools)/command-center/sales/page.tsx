@@ -293,6 +293,94 @@ function PeriodToggle({ selected, onChange }: PeriodToggleProps) {
 }
 
 // =============================================================================
+// Projections Panel
+// =============================================================================
+
+function ProjectionsPanel() {
+  const [data, setData] = useState<{ projections: Array<{
+    repName: string;
+    monthlyProjection: { projected: number; lastMonth: number; pace: string; pacePercent: number };
+    yearlyProjection: { projected: number };
+    trend: string;
+    suggestions: string[];
+    commissionProjection: { monthlyPace: number; yearlyPace: number };
+  }>; teamSummary: Record<string, number> } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/command-center/sales/projections')
+      .then(r => r.json())
+      .then(d => { if (d.success) setData({ projections: d.projections, teamSummary: d.teamSummary }); })
+      .catch(() => {});
+  }, []);
+
+  if (!data || data.projections.length === 0) return null;
+
+  const trendIcon = (t: string) => t === 'improving' ? '📈' : t === 'declining' ? '📉' : '➡️';
+  const paceColor = (p: string) => p === 'ahead' ? 'text-green-400' : p === 'behind' ? 'text-red-400' : 'text-yellow-400';
+
+  return (
+    <div className="bg-zinc-900 rounded-xl border border-gray-800 overflow-hidden">
+      <div className="p-4 border-b border-gray-800">
+        <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+          <TrendingUp className="h-5 w-5 text-brand-green" />
+          Projections & Suggestions
+          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/20">
+            Based on Current Pace
+          </span>
+        </h2>
+        <p className="text-sm text-neutral-500 mt-1">
+          Team monthly projection: {formatCurrency(data.teamSummary?.teamMonthlyProjected || 0)} •
+          Team yearly projection: {formatCurrency(data.teamSummary?.teamYearlyProjected || 0)}
+        </p>
+      </div>
+      <div className="divide-y divide-gray-800">
+        {data.projections.filter(p => p.monthlyProjection.projected > 0).map(p => (
+          <div key={p.repName} className="p-4 hover:bg-white/[0.02] transition-colors">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-white font-medium">{p.repName}</span>
+                <span title={p.trend}>{trendIcon(p.trend)}</span>
+              </div>
+              <span className={`text-sm font-medium ${paceColor(p.monthlyProjection.pace)}`}>
+                {p.monthlyProjection.pace === 'ahead' ? '↑' : p.monthlyProjection.pace === 'behind' ? '↓' : '→'}{' '}
+                {Math.abs(p.monthlyProjection.pacePercent)}% vs last month
+              </span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm mb-2">
+              <div>
+                <span className="text-neutral-500 text-xs">Month Projection</span>
+                <p className="text-white font-medium">{formatCurrency(p.monthlyProjection.projected)}</p>
+              </div>
+              <div>
+                <span className="text-neutral-500 text-xs">Year Projection</span>
+                <p className="text-white font-medium">{formatCurrency(p.yearlyProjection.projected)}</p>
+              </div>
+              <div>
+                <span className="text-neutral-500 text-xs">Commission Pace/Mo</span>
+                <p className="text-emerald-400 font-medium">{formatCurrency(p.commissionProjection.monthlyPace)}</p>
+              </div>
+              <div>
+                <span className="text-neutral-500 text-xs">Commission Pace/Yr</span>
+                <p className="text-emerald-400 font-medium">{formatCurrency(p.commissionProjection.yearlyPace)}</p>
+              </div>
+            </div>
+            {p.suggestions.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {p.suggestions.slice(0, 2).map((s, i) => (
+                  <span key={i} className="text-xs px-2 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                    {s}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
 // Main Page Component
 // =============================================================================
 
@@ -521,13 +609,13 @@ export default function SalesLeaderboardPage() {
         <div className="min-w-0">
           <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-3 flex-wrap">
             <Trophy className="h-7 w-7 sm:h-8 sm:w-8 text-brand-green flex-shrink-0" />
-            <span>Sales Leaderboard</span>
+            <span>Commission Leaderboard</span>
             <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 whitespace-nowrap">
-              Actual Commissions
+              Actual Commission Payouts (1099 from QuickBooks)
             </span>
           </h1>
           <p className="text-neutral-500 mt-1 text-sm sm:text-base">
-            Based on actual commission records &mdash; not self-reported
+            Actual 1099 commission payouts from QuickBooks &mdash; not estimates or self-reported numbers
           </p>
         </div>
 
@@ -547,7 +635,7 @@ export default function SalesLeaderboardPage() {
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
-            title="Total Team Sales"
+            title="Total Commission Payouts"
             value={formatCurrency(stats.totalTeamSales)}
             icon={DollarSign}
             variant="success"
@@ -618,6 +706,9 @@ export default function SalesLeaderboardPage() {
           />
         </div>
       )}
+
+      {/* Projections & Suggestions */}
+      <ProjectionsPanel />
 
       {/* Response Time Analytics */}
       <ResponseTimeDashboard variant="card" />
