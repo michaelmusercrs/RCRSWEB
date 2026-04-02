@@ -643,7 +643,68 @@ class JobNimbusService {
   }
 }
 
-export const jobNimbusService = new JobNimbusService();
+// =============================================================================
+// SANDBOX MODE WRAPPER
+// =============================================================================
+
+import { isSandboxMode, sandboxLog } from './sandbox-config';
+import { getSandboxJNContacts, getSandboxJNJobs } from './sandbox-data';
+
+const _realJNService = new JobNimbusService();
+
+const jnSandboxProxy = new Proxy(_realJNService, {
+  get(target, prop: string) {
+    const original = (target as unknown as Record<string, unknown>)[prop];
+    if (typeof original !== 'function') return original;
+    if (!isSandboxMode()) return original.bind(target);
+
+    const mocks: Record<string, (...args: unknown[]) => unknown> = {
+      getContacts: async () => { sandboxLog('JobNimbus', 'getContacts'); return { results: getSandboxJNContacts(), count: getSandboxJNContacts().length }; },
+      getContact: async (jnid: unknown) => { sandboxLog('JobNimbus', 'getContact', jnid); return getSandboxJNContacts().find(c => c.jnid === jnid) || null; },
+      getJobs: async () => { sandboxLog('JobNimbus', 'getJobs'); return { results: getSandboxJNJobs(), count: getSandboxJNJobs().length }; },
+      getJob: async (jnid: unknown) => { sandboxLog('JobNimbus', 'getJob', jnid); return getSandboxJNJobs().find(j => j.jnid === jnid) || null; },
+      getJobsForContact: async () => { sandboxLog('JobNimbus', 'getJobsForContact'); return { results: getSandboxJNJobs().slice(0, 1), count: 1 }; },
+      getEstimates: async () => { sandboxLog('JobNimbus', 'getEstimates'); return { results: [], count: 0 }; },
+      getEstimate: async () => { sandboxLog('JobNimbus', 'getEstimate'); return null; },
+      getEstimatesForContact: async () => { sandboxLog('JobNimbus', 'getEstimatesForContact'); return { results: [], count: 0 }; },
+      getTasks: async () => { sandboxLog('JobNimbus', 'getTasks'); return { results: [], count: 0 }; },
+      getTasksForContact: async () => { sandboxLog('JobNimbus', 'getTasksForContact'); return { results: [], count: 0 }; },
+      getNotesForContact: async () => { sandboxLog('JobNimbus', 'getNotesForContact'); return { results: [], count: 0 }; },
+      getNotes: async () => { sandboxLog('JobNimbus', 'getNotes'); return { results: [], count: 0 }; },
+      getAttachmentsForContact: async () => { sandboxLog('JobNimbus', 'getAttachmentsForContact'); return { results: [], count: 0 }; },
+      getFilesForJob: async () => { sandboxLog('JobNimbus', 'getFilesForJob'); return { results: [], count: 0 }; },
+      getFiles: async () => { sandboxLog('JobNimbus', 'getFiles'); return { results: [], count: 0 }; },
+      getInvoicesForContact: async () => { sandboxLog('JobNimbus', 'getInvoicesForContact'); return { results: [], count: 0 }; },
+      searchContactByEmail: async () => { sandboxLog('JobNimbus', 'searchContactByEmail'); return null; },
+      searchContactByPhone: async () => { sandboxLog('JobNimbus', 'searchContactByPhone'); return null; },
+      getCustomerPortalData: async () => {
+        sandboxLog('JobNimbus', 'getCustomerPortalData');
+        const contact = getSandboxJNContacts()[0];
+        return { contact, jobs: { results: getSandboxJNJobs().slice(0, 1), count: 1 }, estimates: { results: [], count: 0 }, tasks: { results: [], count: 0 }, notes: { results: [], count: 0 }, attachments: { results: [], count: 0 }, invoices: { results: [], count: 0 } };
+      },
+      // Write operations — intercept
+      createContact: async (...args: unknown[]) => { sandboxLog('JobNimbus', 'createContact', args[0]); return { jnid: `jn-sandbox-${Date.now()}`, ...args[0] as object }; },
+      updateContact: async (...args: unknown[]) => { sandboxLog('JobNimbus', 'updateContact', args[0]); return args[0]; },
+      createJob: async (...args: unknown[]) => { sandboxLog('JobNimbus', 'createJob', args[0]); return { jnid: `jn-job-sandbox-${Date.now()}`, ...args[0] as object }; },
+      updateJobStatus: async (...args: unknown[]) => { sandboxLog('JobNimbus', 'updateJobStatus', args); return true; },
+      createNote: async (...args: unknown[]) => { sandboxLog('JobNimbus', 'createNote', args[0]); return { jnid: `jn-note-sandbox-${Date.now()}` }; },
+      createNoteOnJob: async (...args: unknown[]) => { sandboxLog('JobNimbus', 'createNoteOnJob', args); return { jnid: `jn-note-sandbox-${Date.now()}` }; },
+      createPortalMessage: async (...args: unknown[]) => { sandboxLog('JobNimbus', 'createPortalMessage', args[0]); return { jnid: `jn-msg-sandbox-${Date.now()}` }; },
+      syncContacts: async () => { sandboxLog('JobNimbus', 'syncContacts'); return { added: 0, updated: 0, errors: 0 }; },
+      getApiStats: async () => { sandboxLog('JobNimbus', 'getApiStats'); return { contacts: 6, jobs: 3, estimates: 0, tasks: 0 }; },
+    };
+
+    if (mocks[prop]) return mocks[prop];
+
+    // Fallback — log and return empty
+    return async (...args: unknown[]) => {
+      sandboxLog('JobNimbus', prop, '(unmocked)', args);
+      return null;
+    };
+  },
+});
+
+export const jobNimbusService = jnSandboxProxy;
 
 // Export types for use elsewhere
 export type { JobNimbusContact, JobNimbusJob, JobNimbusEstimate, JobNimbusTask, JobNimbusNote, JobNimbusAttachment, JobNimbusInvoice };

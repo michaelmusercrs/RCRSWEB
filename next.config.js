@@ -48,7 +48,11 @@ const nextConfig = {
       },
       {
         key: 'Cross-Origin-Resource-Policy',
-        value: 'same-origin',
+        value: 'cross-origin',
+      },
+      {
+        key: 'Cross-Origin-Embedder-Policy',
+        value: 'unsafe-none',
       },
     ];
 
@@ -163,6 +167,11 @@ const nextConfig = {
   },
   eslint: {
     ignoreDuringBuilds: false,
+  },
+  env: {
+    // Auto-detect sandbox branch and expose to client
+    NEXT_PUBLIC_SANDBOX_MODE: process.env.SANDBOX_MODE || (process.env.VERCEL_GIT_COMMIT_REF === 'sandbox' ? 'true' : ''),
+    SANDBOX_MODE: process.env.SANDBOX_MODE || (process.env.VERCEL_GIT_COMMIT_REF === 'sandbox' ? 'true' : ''),
   },
 }
 

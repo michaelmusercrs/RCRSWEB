@@ -11,6 +11,7 @@ import FloatingContactButton from '@/components/FloatingContactButton';
 // import ChatBot from '@/components/ChatBot';
 import GlobalVideoBackground from '@/components/GlobalVideoBackground';
 import PromoBanner from '@/components/PromoBanner';
+import SandboxBanner from '@/components/SandboxBanner';
 import dynamic from 'next/dynamic';
 const CookieConsent = dynamic(() => import('@/components/CookieConsent'), { ssr: false });
 const EmailCapturePopup = dynamic(() => import('@/components/EmailCapturePopup'), { ssr: false });
@@ -104,7 +105,7 @@ export default function RootLayout({
         <meta name="format-detection" content="telephone=no" />
         {/* Preload critical assets for LCP */}
         <link rel="preload" href="/logo-nobg.png" as="image" />
-        <link rel="preload" href="/uploads/hero-video-poster.jpg" as="image" />
+        <link rel="preload" href="/uploads/hero-video-poster.webp" as="image" type="image/webp" />
       </head>
       <body className={inter.className} suppressHydrationWarning>
         {/* Google Tag Manager / Analytics with Consent Mode */}
@@ -153,6 +154,7 @@ export default function RootLayout({
           />
         )}
 
+        <SandboxBanner />
         <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:bg-brand-green focus:text-black focus:px-4 focus:py-2 focus:rounded focus:font-bold focus:text-lg">
           Skip to main content
         </a>

@@ -62,10 +62,10 @@ export default function ReviewsPage() {
     },
     aggregateRating: {
       '@type': 'AggregateRating',
-      ratingValue: '5.0',
-      reviewCount: String(Math.max(47, allReviews.length)),
-      bestRating: '5',
-      worstRating: '1',
+      ratingValue: siteConfig.reviewStats.ratingValue,
+      reviewCount: String(Math.max(Number(siteConfig.reviewStats.reviewCount), allReviews.length)),
+      bestRating: siteConfig.reviewStats.bestRating,
+      worstRating: siteConfig.reviewStats.worstRating,
     },
     review: allReviews.slice(0, 10).map((r) => ({
       '@type': 'Review',

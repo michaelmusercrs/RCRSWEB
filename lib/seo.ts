@@ -60,6 +60,13 @@ export const siteConfig = {
     'metal roofing Alabama',
     'gutter installation North Alabama',
   ],
+  // Review stats - single source of truth for aggregateRating across all schemas
+  reviewStats: {
+    ratingValue: '5.0',
+    reviewCount: '270',
+    bestRating: '5',
+    worstRating: '1',
+  },
   // Service areas for local SEO
   serviceAreas: [
     'Decatur, AL',
@@ -286,16 +293,21 @@ export function generateLocalBusinessSchema() {
     currenciesAccepted: 'USD',
     paymentAccepted: 'Cash, Credit Card, Check, Financing',
     openingHours: 'Mo-Fr 08:00-17:00',
+    openingHoursSpecification: [
+      {
+        '@type': 'OpeningHoursSpecification',
+        dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+        opens: '08:00',
+        closes: '17:00',
+      },
+    ],
     sameAs: [
       siteConfig.social.facebook,
       siteConfig.social.instagram,
     ],
     aggregateRating: {
       '@type': 'AggregateRating',
-      ratingValue: '5.0',
-      reviewCount: '270',
-      bestRating: '5',
-      worstRating: '1',
+      ...siteConfig.reviewStats,
     },
     hasCredential: [
       {
@@ -420,7 +432,7 @@ export function generateArticleSchema(params: {
 }) {
   return {
     '@context': 'https://schema.org',
-    '@type': 'Article',
+    '@type': 'BlogPosting',
     headline: params.title,
     description: params.description,
     image: params.image.startsWith('http') ? params.image : `${siteConfig.url}${params.image}`,
@@ -464,10 +476,7 @@ export function generateServiceSchema(params: {
       },
       aggregateRating: {
         '@type': 'AggregateRating',
-        ratingValue: '5.0',
-        reviewCount: '270',
-        bestRating: '5',
-        worstRating: '1',
+        ...siteConfig.reviewStats,
       },
     },
     areaServed: [

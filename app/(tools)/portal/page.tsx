@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useAuth, ROLE_DEFAULT_ROUTES } from '@/lib/auth-context';
 import { TEAM_MEMBERS } from '@/lib/team-roles';
+import SandboxBanner from '@/components/SandboxBanner';
 
 type ForgotMode = 'none' | 'form' | 'sent';
 type LoginStep = 'email' | 'password' | 'pin' | 'picture';
@@ -717,6 +718,7 @@ export default function PortalLogin() {
   // ── Login Screen ─────────────────────────────────
   return (
     <div className="min-h-screen bg-neutral-950">
+      <SandboxBanner />
       <FrozenSplashBackground />
       <ForgotPasswordOverlay />
 

@@ -84,8 +84,7 @@ export default function MadisonPage() {
     ],
     "aggregateRating": {
       "@type": "AggregateRating",
-      "ratingValue": "5",
-      "reviewCount": "47"
+      ...siteConfig.reviewStats,
     }
   };
 

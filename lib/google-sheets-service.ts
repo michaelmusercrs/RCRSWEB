@@ -3168,4 +3168,110 @@ class GoogleSheetsService {
   }
 }
 
-export const googleSheetsService = new GoogleSheetsService();
+// =============================================================================
+// SANDBOX MODE WRAPPER
+// =============================================================================
+
+import { isSandboxMode, sandboxLog } from './sandbox-config';
+import {
+  getSandboxInventory,
+  getSandboxCommissions,
+  getSandboxCustomers,
+  getSandboxOrders,
+  getSandboxWeeklyNumbers,
+  getSandboxReviews,
+  getSandboxAuditLog,
+  addSandboxAuditEntry,
+  getSandboxMeetingPrep,
+  getSandboxTrainingProgress,
+} from './sandbox-data';
+
+const _realService = new GoogleSheetsService();
+
+/** Sandbox-aware proxy: returns mock data when SANDBOX_MODE is active */
+const sandboxProxy = new Proxy(_realService, {
+  get(target, prop: string) {
+    const original = (target as unknown as Record<string, unknown>)[prop];
+
+    // Always pass through non-functions and sandbox-irrelevant methods
+    if (typeof original !== 'function') return original;
+
+    // In production mode, use real service
+    if (!isSandboxMode()) return original.bind(target);
+
+    // Sandbox interceptors for READ operations
+    const mockHandlers: Record<string, (...args: unknown[]) => unknown> = {
+      init: async () => { sandboxLog('GoogleSheets', 'init', '(sandbox skip)'); return true; },
+      getInventory: async () => { sandboxLog('GoogleSheets', 'getInventory'); return getSandboxInventory(); },
+      getCommissions: async () => { sandboxLog('GoogleSheets', 'getCommissions'); return getSandboxCommissions(); },
+      getCommissionSummaries: async () => { sandboxLog('GoogleSheets', 'getCommissionSummaries'); return getSandboxCommissions(); },
+      getCustomers: async () => { sandboxLog('GoogleSheets', 'getCustomers'); return getSandboxCustomers(); },
+      getOrders: async () => { sandboxLog('GoogleSheets', 'getOrders'); return getSandboxOrders(); },
+      getRepWeeklyNumbers: async () => { sandboxLog('GoogleSheets', 'getRepWeeklyNumbers'); return getSandboxWeeklyNumbers(); },
+      getReviews: async () => { sandboxLog('GoogleSheets', 'getReviews'); return getSandboxReviews(); },
+      getAuditLog: async () => { sandboxLog('GoogleSheets', 'getAuditLog'); return getSandboxAuditLog(); },
+      getMeetingPreps: async () => { sandboxLog('GoogleSheets', 'getMeetingPreps'); return [getSandboxMeetingPrep()]; },
+      getTrainingProgress: async () => { sandboxLog('GoogleSheets', 'getTrainingProgress'); return getSandboxTrainingProgress(); },
+      getTeamMembers: async () => { sandboxLog('GoogleSheets', 'getTeamMembers'); return []; },
+      getTeamAccessOverrides: async () => { sandboxLog('GoogleSheets', 'getTeamAccessOverrides'); return []; },
+      getAgents: async () => { sandboxLog('GoogleSheets', 'getAgents'); return []; },
+      getAgentVisits: async () => { sandboxLog('GoogleSheets', 'getAgentVisits'); return []; },
+      getGeocodedContacts: async () => { sandboxLog('GoogleSheets', 'getGeocodedContacts'); return []; },
+      getDistributionLogs: async () => { sandboxLog('GoogleSheets', 'getDistributionLogs'); return []; },
+      getRepAvailability: async () => { sandboxLog('GoogleSheets', 'getRepAvailability'); return []; },
+      getRepPreferences: async () => { sandboxLog('GoogleSheets', 'getRepPreferences'); return []; },
+      getLeadResponseLogs: async () => { sandboxLog('GoogleSheets', 'getLeadResponseLogs'); return []; },
+      getJobBreakdowns: async () => { sandboxLog('GoogleSheets', 'getJobBreakdowns'); return []; },
+    };
+
+    if (mockHandlers[prop]) return mockHandlers[prop];
+
+    // Sandbox interceptors for WRITE operations — log but don't execute
+    const writeOps = [
+      'updateTeamMember', 'deleteTeamMember',
+      'updateInventoryItem', 'deleteInventoryItem', 'syncInventoryFromJson',
+      'addCommissionEntry', 'importCommissionsFromCsv',
+      'updateCustomer', 'deleteCustomer',
+      'updateOrder',
+      'addRepWeeklyNumbers', 'updateRepWeeklyNumbers',
+      'addGeocodedContact', 'addGeocodedContactsBatch',
+      'addDistributionLog',
+      'updateRepAvailability', 'updateRepPreferences',
+      'addLeadResponseLog', 'updateLeadResponseLog',
+      'addJobBreakdown', 'updateJobBreakdown',
+      'saveTeamAccessOverride', 'deleteTeamAccessOverride',
+      'saveAgent', 'logAgentVisit',
+      'logTrainingProgress',
+      'triggerFullSync',
+      'saveMeetingPrep', 'updateMeetingPrep',
+    ];
+
+    if (writeOps.includes(prop)) {
+      return async (...args: unknown[]) => {
+        sandboxLog('GoogleSheets', prop, '(write intercepted)', args[0]);
+        // For audit log, store in memory
+        if (prop === 'appendToAuditLog' || prop === 'logAuditEntry') {
+          addSandboxAuditEntry(args[0] as Record<string, string>);
+        }
+        return { success: true, added: 1, updated: 0, errors: 0 };
+      };
+    }
+
+    // Catch-all for audit log
+    if (prop === 'appendToAuditLog') {
+      return async (...args: unknown[]) => {
+        sandboxLog('GoogleSheets', 'appendToAuditLog', args[0]);
+        addSandboxAuditEntry(args[0] as Record<string, string>);
+        return true;
+      };
+    }
+
+    // Anything else — pass through but log
+    return (...args: unknown[]) => {
+      sandboxLog('GoogleSheets', prop, '(passthrough)');
+      return (original as Function).apply(target, args);
+    };
+  },
+});
+
+export const googleSheetsService = sandboxProxy;

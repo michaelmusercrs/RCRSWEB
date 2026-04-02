@@ -28,6 +28,12 @@ class EmailService {
 
   // Send email via Google Apps Script
   async send(options: EmailOptions): Promise<{ success: boolean; error?: string }> {
+    // Sandbox mode: log instead of sending
+    if (process.env.SANDBOX_MODE === 'true' || process.env.VERCEL_GIT_COMMIT_REF === 'sandbox') {
+      console.log('[SANDBOX] Email intercepted:', { to: options.to, subject: options.subject });
+      return { success: true };
+    }
+
     if (!this.endpoint) {
       console.error('Email: Google Apps Script endpoint not configured');
       return { success: false, error: 'Email endpoint not configured' };
