@@ -13,15 +13,8 @@ export default function RotatingText({
   interval = 4000,
   className = ''
 }: RotatingTextProps) {
-  const [state, setState] = useState({ index: 0, visible: false });
-
-  // Initial slide in
-  useEffect(() => {
-    const initialDelay = setTimeout(() => {
-      setState(s => ({ ...s, visible: true }));
-    }, 300);
-    return () => clearTimeout(initialDelay);
-  }, []);
+  // Start visible immediately — no delay that blocks LCP
+  const [state, setState] = useState({ index: 0, visible: true });
 
   useEffect(() => {
     const timer = setInterval(() => {

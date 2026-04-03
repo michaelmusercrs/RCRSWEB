@@ -12,17 +12,17 @@ export default function GlobalVideoBackground({
   videoSrc,
   fallbackImage = '/uploads/hero-background.webp',
 }: GlobalVideoBackgroundProps) {
-  const [useVideo, setUseVideo] = useState(false);
-  const [videoLoaded, setVideoLoaded] = useState(false);
+  // Start with video ON — render it in initial HTML for fast LCP.
+  // Disable after mount only on mobile or slow connections.
+  const [disableVideo, setDisableVideo] = useState(false);
   const [animationKey, setAnimationKey] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const pathname = usePathname();
 
-  // Check connection speed and screen size on mount
+  // After hydration, check if we should disable video (mobile/slow)
   useEffect(() => {
-    // Skip video on mobile devices (< 768px) to save bandwidth
     if (window.innerWidth < 768) {
-      setUseVideo(false);
+      setDisableVideo(true);
       return;
     }
 
@@ -31,48 +31,24 @@ export default function GlobalVideoBackground({
                        (navigator as any).webkitConnection;
 
     if (connection) {
-      const dominated = connection.saveData ||
-                       connection.effectiveType === 'slow-2g' ||
-                       connection.effectiveType === '2g';
-
-      if (!dominated) {
-        setUseVideo(true);
-      }
-    } else {
-      setUseVideo(true);
+      const slow = connection.saveData ||
+                   connection.effectiveType === 'slow-2g' ||
+                   connection.effectiveType === '2g';
+      if (slow) setDisableVideo(true);
     }
   }, []);
 
   // Refresh animation on route change
   useEffect(() => {
     setAnimationKey(prev => prev + 1);
-
-    // Restart video from beginning on route change
     if (videoRef.current) {
       videoRef.current.currentTime = 0;
       videoRef.current.play().catch(() => {});
     }
   }, [pathname]);
 
-  // Video load timeout fallback
-  useEffect(() => {
-    if (useVideo && videoRef.current) {
-      const timeout = setTimeout(() => {
-        if (!videoLoaded) {
-          setUseVideo(false);
-        }
-      }, 5000);
-
-      return () => clearTimeout(timeout);
-    }
-  }, [useVideo, videoLoaded]);
-
-  const handleVideoLoaded = () => {
-    setVideoLoaded(true);
-  };
-
   const handleVideoError = () => {
-    setUseVideo(false);
+    setDisableVideo(true);
   };
 
   return (
@@ -81,8 +57,8 @@ export default function GlobalVideoBackground({
       style={{ zIndex: -1 }}
       aria-hidden="true"
     >
-      {/* Video Background */}
-      {useVideo && (
+      {/* Video Background — rendered in initial HTML for fast LCP */}
+      {!disableVideo && (
         <video
           ref={videoRef}
           key={`video-${animationKey}`}
@@ -90,9 +66,8 @@ export default function GlobalVideoBackground({
           loop
           muted
           playsInline
-          preload="metadata"
-          poster="/uploads/hero-video-poster.jpg"
-          onLoadedData={handleVideoLoaded}
+          preload="auto"
+          poster="/uploads/hero-video-poster.webp"
           onError={handleVideoError}
           className="absolute inset-0 w-full h-full object-cover"
         >
@@ -101,7 +76,7 @@ export default function GlobalVideoBackground({
         </video>
       )}
 
-      {/* Background Image - always present as base layer with subtle ken-burns zoom */}
+      {/* Background Image - always present as base layer */}
       <div
         key={`image-${animationKey}`}
         className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat animate-ken-burns"
@@ -111,7 +86,7 @@ export default function GlobalVideoBackground({
       {/* Dark Overlay for readability */}
       <div className="absolute inset-0 bg-black/50" />
 
-      {/* Animated gradient overlay that refreshes on page change */}
+      {/* Animated gradient overlay */}
       <div
         key={`gradient-${animationKey}`}
         className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/70 animate-fade-in"

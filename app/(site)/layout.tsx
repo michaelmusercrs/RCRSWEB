@@ -106,6 +106,9 @@ export default function RootLayout({
         {/* Preload critical assets for LCP */}
         <link rel="preload" href="/logo-nobg.png" as="image" />
         <link rel="preload" href="/uploads/hero-video-poster.webp" as="image" type="image/webp" />
+        {/* Preload hero video for faster LCP */}
+        <link rel="preload" href="/uploads/hero-video.webm" as="video" type="video/webm" />
+        <link rel="preload" href="/uploads/hero-video.mp4" as="video" type="video/mp4" />
       </head>
       <body className={inter.className} suppressHydrationWarning>
         {/* Google Tag Manager / Analytics with Consent Mode */}
