@@ -10,21 +10,18 @@ interface GlobalVideoBackgroundProps {
 
 export default function GlobalVideoBackground({
   videoSrc,
-  fallbackImage = '/uploads/hero-background.webp',
+  fallbackImage = '/uploads/hero-video-poster.webp',
 }: GlobalVideoBackgroundProps) {
-  // Start with video ON — render it in initial HTML for fast LCP.
-  // Disable after mount only on mobile or slow connections.
-  const [disableVideo, setDisableVideo] = useState(false);
+  // Start with video OFF on initial render to avoid loading video resources
+  // that compete with the LCP image. Enable after hydration on capable devices.
+  const [showVideo, setShowVideo] = useState(false);
   const [animationKey, setAnimationKey] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const pathname = usePathname();
 
-  // After hydration, check if we should disable video (mobile/slow)
+  // After hydration, check if we should enable video (desktop + fast connection)
   useEffect(() => {
-    if (window.innerWidth < 768) {
-      setDisableVideo(true);
-      return;
-    }
+    if (window.innerWidth < 768) return;
 
     const connection = (navigator as any).connection ||
                        (navigator as any).mozConnection ||
@@ -34,8 +31,12 @@ export default function GlobalVideoBackground({
       const slow = connection.saveData ||
                    connection.effectiveType === 'slow-2g' ||
                    connection.effectiveType === '2g';
-      if (slow) setDisableVideo(true);
+      if (slow) return;
     }
+
+    // Delay video load to avoid competing with LCP resources
+    const timer = setTimeout(() => setShowVideo(true), 100);
+    return () => clearTimeout(timer);
   }, []);
 
   // Refresh animation on route change
@@ -48,7 +49,7 @@ export default function GlobalVideoBackground({
   }, [pathname]);
 
   const handleVideoError = () => {
-    setDisableVideo(true);
+    setShowVideo(false);
   };
 
   return (
@@ -57,8 +58,8 @@ export default function GlobalVideoBackground({
       style={{ zIndex: -1 }}
       aria-hidden="true"
     >
-      {/* Video Background — rendered in initial HTML for fast LCP */}
-      {!disableVideo && (
+      {/* Video Background — loaded after hydration on desktop only */}
+      {showVideo && (
         <video
           ref={videoRef}
           key={`video-${animationKey}`}
@@ -67,7 +68,7 @@ export default function GlobalVideoBackground({
           muted
           playsInline
           preload="auto"
-          poster="/uploads/hero-video-poster.webp"
+          poster={fallbackImage}
           onError={handleVideoError}
           className="absolute inset-0 w-full h-full object-cover"
         >

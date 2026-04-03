@@ -43,7 +43,7 @@ export default async function BlogPage() {
             <span className="text-xs uppercase tracking-widest font-bold text-brand-green">Expert Insights</span>
           </div>
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter mb-6 leading-tight drop-shadow-lg">
-            Roofing Blog & Resources
+            North Alabama Roofing Blog | Expert Tips &amp; Guides
           </h1>
           <p className="text-lg md:text-xl max-w-2xl mx-auto text-white/90 leading-relaxed drop-shadow-md">
             Expert tips and insights from North Alabama's trusted roofing professionals

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { MapPin, Shield, Award, Users, CheckCircle2, ArrowRight, CloudLightning, Eye } from 'lucide-react';
+import { MapPin, Shield, Award, Users, CheckCircle2, ArrowRight, CloudLightning, Eye, Smartphone, DollarSign, FileText, MessageSquare, BarChart3 } from 'lucide-react';
 
 import RotatingText from '@/components/RotatingText';
 import RotatingBanner from '@/components/RotatingBanner';
@@ -71,8 +71,8 @@ export default async function HomePage() {
             <Image
               src="/logo-nobg.png"
               alt="River City Roofing Solutions"
-              width={500}
-              height={340}
+              width={864}
+              height={312}
               sizes="(max-width: 768px) 288px, (max-width: 1024px) 380px, 500px"
               className="mx-auto w-72 h-auto md:w-[380px] lg:w-[500px] object-contain drop-shadow-2xl"
               priority
@@ -383,6 +383,73 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* Customer Portal Promotion */}
+      <section className="py-10 md:py-14 px-6 bg-gradient-to-b from-black/90 to-neutral-950 border-t border-neutral-800">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-8 items-center">
+            <div>
+              <span className="text-xs uppercase tracking-widest font-bold text-brand-green">Customer Portal</span>
+              <h2 className="text-3xl md:text-4xl font-black uppercase tracking-wider mt-3 mb-4">
+                Track Your Project 24/7
+              </h2>
+              <p className="text-neutral-300 mb-6 leading-relaxed">
+                Our customers get their own secure online portal — something most roofing companies
+                don&apos;t offer. Log in anytime to see exactly where your project stands.
+              </p>
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                {[
+                  { icon: BarChart3, text: 'Live job progress' },
+                  { icon: FileText, text: 'Documents & invoices' },
+                  { icon: MessageSquare, text: 'Message your rep' },
+                  { icon: CloudLightning, text: 'Weather & hail reports' },
+                ].map((feature, i) => {
+                  const Icon = feature.icon;
+                  return (
+                    <div key={i} className="flex items-center gap-2">
+                      <Icon size={16} className="text-brand-green flex-shrink-0" />
+                      <span className="text-sm text-neutral-300">{feature.text}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <Button asChild size="lg" className="bg-brand-green text-black hover:bg-white font-bold uppercase tracking-widest">
+                <Link href="/contact">Get Started</Link>
+              </Button>
+            </div>
+            <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-8 text-center">
+              <Smartphone className="mx-auto text-brand-green mb-4" size={48} />
+              <p className="text-white font-bold text-lg mb-2">No App Download Needed</p>
+              <p className="text-neutral-400 text-sm">
+                Works on any phone, tablet, or computer. Just log in and see your project status,
+                upcoming appointments, weather forecasts, and more.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Financing Callout */}
+      <section className="py-8 px-6 bg-brand-green border-t border-brand-green/50">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <DollarSign size={32} className="text-black flex-shrink-0" />
+              <div>
+                <h3 className="text-xl font-black uppercase tracking-wider text-black">
+                  Affordable Financing Available
+                </h3>
+                <p className="text-black/70 text-sm">
+                  $0 down &bull; Low monthly payments &bull; Quick approval &bull; Terms from 12 to 144 months
+                </p>
+              </div>
+            </div>
+            <Button asChild size="lg" className="bg-black text-brand-green hover:bg-neutral-900 font-bold uppercase tracking-widest whitespace-nowrap">
+              <Link href="/financing">See Payment Options</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
       {/* Service Areas Section */}
       <section className="py-10 md:py-14 px-6 bg-black/85 backdrop-blur-sm border-t border-neutral-800">
         <div className="max-w-6xl mx-auto">
@@ -408,7 +475,7 @@ export default async function HomePage() {
                       <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-all" />
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
                         <h3 className="font-black uppercase tracking-wider text-lg text-white drop-shadow-lg">
-                          {area.name}
+                          {area.name} Roofing
                         </h3>
                       </div>
                     </div>

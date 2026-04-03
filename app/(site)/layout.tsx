@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import Script from 'next/script';
 import { Suspense } from 'react';
-import { SpeedInsights } from '@vercel/speed-insights/next';
+// SpeedInsights loaded dynamically to avoid blocking LCP
+
 import '../globals.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -17,6 +18,10 @@ const CookieConsent = dynamic(() => import('@/components/CookieConsent'), { ssr:
 const EmailCapturePopup = dynamic(() => import('@/components/EmailCapturePopup'), { ssr: false });
 import TrackingProvider from '@/components/TrackingProvider';
 const AnalyticsTracker = dynamic(() => import('@/components/AnalyticsTracker'), { ssr: false });
+const SpeedInsights = dynamic(
+  () => import('@vercel/speed-insights/next').then(mod => ({ default: mod.SpeedInsights })),
+  { ssr: false }
+);
 import { generateMetadata, generateLocalBusinessSchema, generateWebSiteSchema, getStructuredDataScript, siteConfig } from '@/lib/seo';
 
 // Tracking IDs from environment variables
@@ -85,8 +90,6 @@ export default function RootLayout({
         <meta name="ICBM" content={`${siteConfig.geo.latitude}, ${siteConfig.geo.longitude}`} />
         {/* Favicon */}
         <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" href="/icons/icon-192x192.png" type="image/png" sizes="192x192" />
-        <link rel="icon" href="/icons/icon-512x512.png" type="image/png" sizes="512x512" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
         {/* PWA Manifest */}
         <link rel="manifest" href="/manifest.json" />
@@ -100,15 +103,18 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="RCRS" />
         <meta name="application-name" content="River City Roofing Solutions" />
         <meta name="msapplication-TileColor" content="#1a1a2e" />
-        <meta name="msapplication-TileImage" content="/icons/icon-144x144.png" />
         <meta name="msapplication-tap-highlight" content="no" />
         <meta name="format-detection" content="telephone=no" />
-        {/* Preload critical assets for LCP */}
-        <link rel="preload" href="/logo-nobg.png" as="image" />
-        <link rel="preload" href="/uploads/hero-video-poster.webp" as="image" type="image/webp" />
-        {/* Preload hero video for faster LCP */}
-        <link rel="preload" href="/uploads/hero-video.webm" as="video" type="video/webm" />
-        <link rel="preload" href="/uploads/hero-video.mp4" as="video" type="video/mp4" />
+        {/* Preload the LCP image — must match the actual URL the browser requests via <Image> */}
+        <link
+          rel="preload"
+          href="/_next/image?url=%2Flogo-nobg.png&w=640&q=75"
+          as="image"
+          type="image/webp"
+          fetchPriority="high"
+        />
+        {/* Video poster is only needed on desktop — do NOT preload video files
+            since Lighthouse tests as mobile where video is disabled */}
       </head>
       <body className={inter.className} suppressHydrationWarning>
         {/* Google Tag Manager / Analytics with Consent Mode */}
@@ -170,7 +176,7 @@ export default function RootLayout({
             </div>
             <GlobalVideoBackground
               videoSrc="/uploads/hero-video.mp4"
-              fallbackImage="/uploads/hero-video-poster.jpg"
+              fallbackImage="/uploads/hero-video-poster.webp"
             />
             <main id="main-content">{children}</main>
             <Footer />

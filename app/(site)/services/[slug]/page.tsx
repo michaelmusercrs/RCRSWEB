@@ -169,7 +169,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
               {Icon && <div className="w-20 h-20 bg-brand-green/20 backdrop-blur-sm rounded-full flex items-center justify-center"><Icon className="text-brand-green" size={40} /></div>}
               <span className="px-4 py-2 bg-brand-green/20 backdrop-blur-sm rounded-full text-brand-green font-semibold">{service.category} Service</span>
             </div>
-            <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 drop-shadow-lg">{service.title}</h1>
+            <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 drop-shadow-lg">{service.title} in Decatur, Huntsville &amp; North Alabama</h1>
             <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-3xl drop-shadow-md">{service.description}</p>
           </div>
         </div>
@@ -223,6 +223,28 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
           </div>
         </div>
       </section>
+
+      {/* Insurance Carriers - Storm Damage only */}
+      {slug === 'storm-hail-damage-repair' && (
+        <section className="py-10 px-4 bg-black/70 backdrop-blur-sm border-t border-white/10">
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-2xl font-bold text-white mb-3">We Work With All Major Insurance Carriers</h2>
+            <p className="text-gray-400 mb-8 max-w-2xl mx-auto">
+              Our team handles the documentation, adjuster meetings, and claim process so you get the coverage you deserve — at $0 beyond your deductible.
+            </p>
+            <div className="flex flex-wrap justify-center gap-6 md:gap-10 text-neutral-400">
+              {['State Farm', 'Allstate', 'Farmers', 'USAA', 'Liberty Mutual', 'Nationwide', 'Progressive', 'Alfa Insurance', 'Erie', 'Travelers'].map((carrier) => (
+                <div key={carrier} className="bg-white/5 border border-white/10 rounded-xl px-5 py-3 text-sm font-medium text-neutral-300 hover:border-brand-green/50 transition-colors">
+                  {carrier}
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-neutral-500 mt-6">
+              We work with virtually all insurance companies. Don&apos;t see yours listed? Call us — we&apos;ve probably worked with them.
+            </p>
+          </div>
+        </section>
+      )}
 
       {/* FAQ Section */}
       <section className="py-12 md:py-16 bg-black/70 backdrop-blur-sm">

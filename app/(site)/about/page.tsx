@@ -29,7 +29,7 @@ export default async function AboutPage() {
       <section className="min-h-[50vh] flex items-center justify-center">
         <div className="container mx-auto px-4 text-center text-white">
           <h1 className="text-5xl md:text-7xl font-bold mb-6 drop-shadow-lg">
-            About Our Locally Owned Roofing Company
+            About River City Roofing Solutions | Decatur &amp; Huntsville&apos;s Trusted Roofer
           </h1>
           <p className="text-xl md:text-2xl max-w-3xl mx-auto text-white/90 drop-shadow-md">
             Meet the experienced roofing professionals protecting Decatur, Huntsville &amp; North Alabama homes since 2010
