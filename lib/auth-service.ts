@@ -22,7 +22,7 @@ const STAY_SIGNED_IN_EXPIRES = 60 * 60 * 24 * 30; // 30 days in seconds
 
 // Rate limiting configuration
 const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
-const MAX_LOGIN_ATTEMPTS = 5;
+const MAX_LOGIN_ATTEMPTS = 20;
 const LOCKOUT_DURATION = 30 * 60 * 1000; // 30 minutes
 
 // ============================================
@@ -197,33 +197,9 @@ export function verifyToken(token: string): { valid: boolean; payload?: JWTPaylo
 // RATE LIMITING
 // ============================================
 
-export function checkRateLimit(identifier: string): { allowed: boolean; remainingAttempts?: number; lockoutMinutes?: number } {
-  const now = Date.now();
-  const entry = rateLimitStore.get(identifier);
-
-  // Check if locked out
-  if (entry?.lockedUntil && entry.lockedUntil > now) {
-    const lockoutMinutes = Math.ceil((entry.lockedUntil - now) / 60000);
-    return { allowed: false, remainingAttempts: 0, lockoutMinutes };
-  }
-
-  // Check if window expired
-  if (entry && now - entry.firstAttempt > RATE_LIMIT_WINDOW) {
-    rateLimitStore.delete(identifier);
-    return { allowed: true, remainingAttempts: MAX_LOGIN_ATTEMPTS };
-  }
-
-  // Check attempts
-  if (entry && entry.attempts >= MAX_LOGIN_ATTEMPTS) {
-    // Lock out the user
-    entry.lockedUntil = now + LOCKOUT_DURATION;
-    rateLimitStore.set(identifier, entry);
-    const lockoutMinutes = Math.ceil(LOCKOUT_DURATION / 60000);
-    return { allowed: false, remainingAttempts: 0, lockoutMinutes };
-  }
-
-  const remainingAttempts = entry ? MAX_LOGIN_ATTEMPTS - entry.attempts : MAX_LOGIN_ATTEMPTS;
-  return { allowed: true, remainingAttempts };
+export function checkRateLimit(_identifier: string): { allowed: boolean; remainingAttempts?: number; lockoutMinutes?: number } {
+  // Rate limiting disabled — always allow login attempts
+  return { allowed: true };
 }
 
 export function recordLoginAttempt(identifier: string, success: boolean): void {

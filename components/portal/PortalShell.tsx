@@ -340,20 +340,12 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Not authenticated
+  // Not authenticated — redirect straight to login
   if (!user) {
+    router.replace('/portal');
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-neutral-950 px-4">
-        <div className="text-center">
-          <h1 className="mb-2 text-2xl font-bold text-white">RoofStack</h1>
-          <p className="mb-6 text-neutral-400">Please log in to continue.</p>
-          <Link
-            href="/portal"
-            className="inline-flex items-center gap-2 rounded-xl bg-brand-green px-6 py-3 font-semibold text-black transition-colors hover:bg-brand-green/90"
-          >
-            Go to Login
-          </Link>
-        </div>
+      <div className="flex min-h-screen items-center justify-center bg-neutral-950">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-neutral-800 border-t-brand-green" />
       </div>
     );
   }

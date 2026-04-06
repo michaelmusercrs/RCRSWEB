@@ -1,11 +1,22 @@
 'use client';
 
-import { AuthProvider } from '@/lib/auth-context';
+import { AuthProvider, useAuth } from '@/lib/auth-context';
 import { TrainingProvider } from '@/lib/training-context';
 import TrainingPopup from '@/components/TrainingPopup';
 import ChatWidget from '@/components/portal/ChatWidget';
 import ImpersonationBanner from '@/components/portal/ImpersonationBanner';
 import { PortalShell } from '@/components/portal/PortalShell';
+
+function AuthGatedExtras() {
+  const { user } = useAuth();
+  if (!user) return null;
+  return (
+    <>
+      <TrainingPopup />
+      <ChatWidget />
+    </>
+  );
+}
 
 export default function PortalLayout({
   children,
@@ -19,8 +30,7 @@ export default function PortalLayout({
         <PortalShell>
           {children}
         </PortalShell>
-        <TrainingPopup />
-        <ChatWidget />
+        <AuthGatedExtras />
       </TrainingProvider>
     </AuthProvider>
   );
