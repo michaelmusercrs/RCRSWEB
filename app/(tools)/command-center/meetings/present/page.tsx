@@ -1483,6 +1483,8 @@ export default function MeetingPresentationPage() {
                 'goals': '🎯 Goals',
                 'milestones': '⚡ Milestones',
                 'office-bonus': '💵 Office Bonus',
+                'enter-numbers': '✏️ Enter Numbers',
+                'projections': '🔮 Projections',
                 'late-announcements': '📣 Late Announcements',
               };
               return (
