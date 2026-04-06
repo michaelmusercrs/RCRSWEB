@@ -188,7 +188,7 @@ interface WeeklyNumbersRep {
   followUpsMade: number;
 }
 
-type ViewMode = 'date-header' | 'bible-verse' | 'training' | 'weather' | 'attendance' | 'early-announcements' | 'podium' | 'leaderboard' | 'competition' | 'weekly-numbers' | 'stats' | 'sales-charts' | 'commission-charts' | 'goals' | 'milestones' | 'office-bonus' | 'late-announcements';
+type ViewMode = 'date-header' | 'bible-verse' | 'training' | 'weather' | 'attendance' | 'early-announcements' | 'enter-numbers' | 'weekly-numbers' | 'projections' | 'podium' | 'leaderboard' | 'competition' | 'stats' | 'sales-charts' | 'commission-charts' | 'goals' | 'milestones' | 'office-bonus' | 'late-announcements';
 
 // =============================================================================
 // Utility Functions
@@ -822,6 +822,8 @@ export default function MeetingPresentationPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [prepData, setPrepData] = useState<any>(null);
   const [period, setPeriod] = useState<'week' | 'month' | 'ytd'>('week');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [projectionsData, setProjectionsData] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('date-header');
   const [isAutoRotating, setIsAutoRotating] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -834,7 +836,7 @@ export default function MeetingPresentationPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const autoRotateRef = useRef<NodeJS.Timeout | null>(null);
 
-  const views: ViewMode[] = ['date-header', 'bible-verse', 'training', 'weather', 'attendance', 'early-announcements', 'podium', 'leaderboard', 'competition', 'weekly-numbers', 'stats', 'sales-charts', 'commission-charts', 'goals', 'milestones', 'office-bonus', 'late-announcements'];
+  const views: ViewMode[] = ['date-header', 'bible-verse', 'training', 'weather', 'attendance', 'early-announcements', 'enter-numbers', 'weekly-numbers', 'projections', 'podium', 'leaderboard', 'competition', 'stats', 'sales-charts', 'commission-charts', 'goals', 'milestones', 'office-bonus', 'late-announcements'];
 
   // Fetch data
   const fetchData = useCallback(async () => {
@@ -925,6 +927,23 @@ export default function MeetingPresentationPage() {
             setChartData(chartJson.data);
           }
         }
+      } catch { /* optional */ }
+
+      // Fetch projections for each active sales rep
+      try {
+        const activeReps = ['Aaron', 'Brendon', 'Greg', 'Hunter', 'Adam', 'Joseph', 'Alijah', 'Travis', 'Rick'];
+        const projResults = await Promise.allSettled(
+          activeReps.map(rep =>
+            fetch(`/api/command-center/meetings/predictions?rep=${rep}&goal=5`)
+              .then(r => r.json())
+              .then(j => j.success ? { rep, ...j.data } : null)
+          )
+        );
+        const projections = projResults
+          .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled' && r.value !== null)
+          .map(r => r.value)
+          .filter(Boolean);
+        setProjectionsData(projections);
       } catch { /* optional */ }
 
       setError(null);
@@ -1175,6 +1194,80 @@ export default function MeetingPresentationPage() {
         );
       case 'early-announcements':
         return <AnnouncementsDisplay announcements={announcementsData?.early || []} type="early" />;
+      case 'enter-numbers':
+        return (
+          <div className="flex flex-col items-center justify-center h-[60vh] space-y-8 p-8">
+            <div className="w-24 h-24 bg-lime-500/20 rounded-full flex items-center justify-center animate-pulse">
+              <Target className="h-14 w-14 text-lime-400" />
+            </div>
+            <h2 className="text-5xl font-bold text-white text-center">Enter Your Numbers NOW</h2>
+            <p className="text-3xl text-neutral-300">Open <span className="text-lime-400 font-bold">rcrsal.com</span> on your phone</p>
+            <div className="bg-zinc-800/80 rounded-2xl p-8 border border-zinc-700 max-w-3xl">
+              <div className="space-y-4 text-xl text-neutral-300">
+                <p className="flex items-center gap-3"><span className="w-10 h-10 bg-lime-500 text-black rounded-full flex items-center justify-center font-bold text-lg">1</span> Log in with your @rcrsal.com email</p>
+                <p className="flex items-center gap-3"><span className="w-10 h-10 bg-lime-500 text-black rounded-full flex items-center justify-center font-bold text-lg">2</span> Tap <span className="text-lime-400 font-semibold">&quot;Enter Weekly Numbers&quot;</span> on your dashboard</p>
+                <p className="flex items-center gap-3"><span className="w-10 h-10 bg-lime-500 text-black rounded-full flex items-center justify-center font-bold text-lg">3</span> Fill in: Inspected, Damage, Signed, Repair, Gutter, $$$$$</p>
+                <p className="flex items-center gap-3"><span className="w-10 h-10 bg-lime-500 text-black rounded-full flex items-center justify-center font-bold text-lg">4</span> Hit <span className="text-lime-400 font-semibold">Save</span> — leaderboard updates instantly</p>
+              </div>
+            </div>
+            <p className="text-2xl text-yellow-400 font-semibold animate-pulse">Numbers reset at 11 AM — enter them NOW!</p>
+          </div>
+        );
+      case 'projections':
+        return (
+          <div className="space-y-6 p-8">
+            <h2 className="text-4xl font-bold text-center text-white flex items-center justify-center gap-4">
+              <TrendingUp className="h-10 w-10 text-lime-400" />
+              Estimated Weekly Projections
+            </h2>
+            <p className="text-center text-neutral-400 text-lg">Based on your actual historical inspection-to-commission ratio</p>
+            {projectionsData.length > 0 ? (
+              <div className="bg-zinc-800/80 rounded-2xl border border-zinc-700 overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-zinc-900/50">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-lg font-semibold text-neutral-500">Rep</th>
+                      <th className="px-4 py-4 text-center text-sm font-semibold text-neutral-500">Avg Inspected</th>
+                      <th className="px-4 py-4 text-center text-sm font-semibold text-neutral-500">Goal</th>
+                      <th className="px-4 py-4 text-center text-sm font-semibold text-neutral-500">Est. Signed</th>
+                      <th className="px-6 py-4 text-right text-lg font-semibold text-neutral-500">Est. Revenue</th>
+                      <th className="px-6 py-4 text-right text-sm font-semibold text-neutral-500">Monthly Proj.</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {projectionsData
+                      .sort((a, b) => (b.prediction?.predicted?.revenue || 0) - (a.prediction?.predicted?.revenue || 0))
+                      .map((proj, index) => {
+                        const stats = proj.repStats;
+                        const pred = proj.prediction;
+                        const actualAvgInspected = stats?.averages?.inspected || 0;
+                        const goalAvg = stats?.averages?.goal || 5;
+                        const useRealistic = Math.min(actualAvgInspected, goalAvg);
+                        return (
+                          <tr key={proj.rep} className="border-t border-zinc-700/50 animate-slideUp" style={{ animationDelay: `${index * 0.06}s` }}>
+                            <td className="px-6 py-4"><span className="text-xl font-semibold text-white">{proj.rep}</span></td>
+                            <td className="px-4 py-4 text-center">
+                              <span className="text-xl text-neutral-400">{actualAvgInspected.toFixed(1)}</span>
+                              {actualAvgInspected < goalAvg && <span className="text-xs text-yellow-400 block">vs {goalAvg.toFixed(0)} goal</span>}
+                            </td>
+                            <td className="px-4 py-4 text-center text-xl text-neutral-400">{goalAvg.toFixed(0)}</td>
+                            <td className="px-4 py-4 text-center text-xl text-lime-400 font-bold">{pred?.predicted?.signed?.toFixed(1) || '—'}</td>
+                            <td className="px-6 py-4 text-right"><span className="text-2xl font-bold text-lime-400">{pred?.predicted?.revenue ? formatCurrency(pred.predicted.revenue) : '—'}</span></td>
+                            <td className="px-6 py-4 text-right"><span className="text-lg text-neutral-400">{pred?.monthlyProjection?.revenue ? formatCurrency(pred.monthlyProjection.revenue) : '—'}</span></td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-12 text-neutral-500">
+                <TrendingUp className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                <p className="text-2xl">Loading projections from historical data...</p>
+              </div>
+            )}
+          </div>
+        );
       case 'podium':
         return filteredLeaderboard && <PodiumDisplay leaderboard={filteredLeaderboard.leaderboard} period={period} />;
       case 'leaderboard':
