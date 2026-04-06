@@ -41,6 +41,7 @@ const getRoleQuickLinks = (role: TeamRole) => {
     case 'owner':
     case 'admin':
       return [
+        { label: 'Finalize Meeting', href: '/command-center/meetings/finalize', icon: CheckCircle, color: 'bg-lime-500/30 text-lime-400' },
         { label: 'RoofStack HQ', href: '/command-center', icon: Command, color: 'bg-gradient-to-r from-lime-500/30 to-emerald-500/30 text-lime-400' },
         { label: 'New Lead Wizard', href: '/portal/office/new-lead', icon: Zap, color: 'bg-brand-green/20 text-brand-green' },
         { label: 'Operations', href: '/portal/office', icon: ClipboardList, color: 'bg-emerald-500/20 text-emerald-400' },

@@ -17,24 +17,40 @@ export async function GET(request: NextRequest) {
 
     // Get specific route
     if (routeId) {
-      const route = await orderWorkflowService.getRoute(routeId);
-      if (!route) {
+      try {
+        const route = await orderWorkflowService.getRoute(routeId);
+        if (!route) {
+          return NextResponse.json({ error: 'Route not found' }, { status: 404 });
+        }
+        return NextResponse.json(route);
+      } catch (routeError) {
+        console.error('Error fetching route:', routeError);
         return NextResponse.json({ error: 'Route not found' }, { status: 404 });
       }
-      return NextResponse.json(route);
     }
 
     // Get routes for a driver
     if (driverId) {
-      const routes = await orderWorkflowService.getDriverRoutes(driverId, date);
-      return NextResponse.json({ routes });
+      try {
+        const routes = await orderWorkflowService.getDriverRoutes(driverId, date);
+        return NextResponse.json({ routes });
+      } catch (driverError) {
+        console.error('Error fetching driver routes:', driverError);
+        return NextResponse.json({ routes: [] });
+      }
     }
 
     // Get all deliveries for the date
-    const tickets = await deliveryWorkflowService.getTickets({
-      date,
-      ticketType: 'delivery',
-    });
+    let tickets: any[] = [];
+    try {
+      tickets = await deliveryWorkflowService.getTickets({
+        date,
+        ticketType: 'delivery',
+      });
+    } catch (ticketError) {
+      console.error('Error fetching delivery tickets:', ticketError);
+      return NextResponse.json({ routes: [] });
+    }
 
     // Group by driver for route view
     const driverRoutes = new Map<string, any[]>();
@@ -48,7 +64,7 @@ export async function GET(request: NextRequest) {
 
     const routes = Array.from(driverRoutes.entries()).map(([driverId, deliveries]) => {
       const driver = deliveries[0]?.assignedDriverName || 'Unassigned';
-      const completedCount = deliveries.filter(d =>
+      const completedCount = deliveries.filter((d: any) =>
         ['delivered', 'completed'].includes(d.status)
       ).length;
 
@@ -62,7 +78,7 @@ export async function GET(request: NextRequest) {
                 completedCount > 0 ? 'in_progress' : 'planned',
         totalStops: deliveries.length,
         completedStops: completedCount,
-        stops: deliveries.map((d, idx) => ({
+        stops: deliveries.map((d: any, idx: number) => ({
           sequence: idx + 1,
           orderId: d.ticketId,
           jobName: d.jobName,

@@ -1,15 +1,21 @@
 /**
  * RCRS Review Request API
  *
- * GET  /api/reviews/request - List review requests
+ * GET  /api/reviews/request - List review requests with status
  * POST /api/reviews/request - Send a review request to customer
  *
+ * Rate limit: max 1 request per customer email per 30 days
+ *
  * @author RCRS Development Team
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { reviewManagementService, RequestStatus } from '@/lib/review-management-service';
+import {
+  reviewManagementService,
+  RequestStatus,
+  GOOGLE_REVIEW_URL,
+} from '@/lib/review-management-service';
 
 /**
  * GET /api/reviews/request
@@ -48,6 +54,7 @@ export async function GET(request: NextRequest) {
       success: true,
       requests,
       total: requests.length,
+      googleReviewUrl: GOOGLE_REVIEW_URL,
     });
   } catch (error) {
     console.error('[ReviewRequest API] GET error:', error);
@@ -65,9 +72,12 @@ export async function GET(request: NextRequest) {
  * - customerName: string (required)
  * - customerPhone: string (required)
  * - customerEmail: string (required)
- * - jobId: string (required)
+ * - jobType: string (required) - e.g., "Roof Replacement", "Roof Repair"
+ * - completionDate: string (optional) - ISO date of job completion
  * - repSlug: string (required)
+ * - repName: string (optional) - display name of the rep
  * - method: "sms" | "email" | "both" (required)
+ * - jobId: string (optional)
  * - customerId: string (optional)
  *
  * Additional actions:
@@ -106,7 +116,10 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      const updated = reviewManagementService.updateRequestStatus(body.requestId, body.status);
+      const updated = reviewManagementService.updateRequestStatus(
+        body.requestId,
+        body.status
+      );
       if (!updated) {
         return NextResponse.json(
           { error: 'Review request not found' },
@@ -117,11 +130,27 @@ export async function POST(request: NextRequest) {
     }
 
     // Create new review request
-    const required = ['customerName', 'customerPhone', 'customerEmail', 'jobId', 'repSlug', 'method'];
-    const missing = required.filter(f => !body[f]);
+    const requiredFields = [
+      'customerName',
+      'customerPhone',
+      'customerEmail',
+      'jobType',
+      'repSlug',
+      'method',
+    ];
+    const missing = requiredFields.filter(f => !body[f]);
     if (missing.length > 0) {
       return NextResponse.json(
         { error: `Missing required fields: ${missing.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(body.customerEmail)) {
+      return NextResponse.json(
+        { error: 'Invalid email address' },
         { status: 400 }
       );
     }
@@ -130,25 +159,58 @@ export async function POST(request: NextRequest) {
     const validMethods = ['sms', 'email', 'both'];
     if (!validMethods.includes(body.method)) {
       return NextResponse.json(
-        { error: `Invalid method. Must be one of: ${validMethods.join(', ')}` },
+        {
+          error: `Invalid method. Must be one of: ${validMethods.join(', ')}`,
+        },
         { status: 400 }
       );
     }
 
-    const reviewRequest = reviewManagementService.sendReviewRequest({
+    // Rate limit check: max 1 request per customer email per 30 days
+    const existingRequest = reviewManagementService.checkRateLimit(
+      body.customerEmail
+    );
+    if (existingRequest) {
+      const sentDate = new Date(existingRequest.createdAt);
+      const formattedDate = sentDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+      return NextResponse.json(
+        {
+          error: `A review request was already sent to this email on ${formattedDate}. Please wait 30 days between requests.`,
+          existingRequest: {
+            id: existingRequest.id,
+            sentAt: existingRequest.sentAt,
+            status: existingRequest.status,
+          },
+        },
+        { status: 429 }
+      );
+    }
+
+    const reviewRequest = await reviewManagementService.sendReviewRequest({
       customerId: body.customerId,
       customerName: body.customerName,
       customerPhone: body.customerPhone,
       customerEmail: body.customerEmail,
-      jobId: body.jobId,
+      jobId: body.jobId || `JOB-${Date.now()}`,
+      jobType: body.jobType,
+      completionDate: body.completionDate,
       repSlug: body.repSlug,
+      repName: body.repName,
       method: body.method,
     });
 
-    return NextResponse.json({
-      success: true,
-      request: reviewRequest,
-    }, { status: 201 });
+    return NextResponse.json(
+      {
+        success: true,
+        request: reviewRequest,
+        googleReviewUrl: GOOGLE_REVIEW_URL,
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error('[ReviewRequest API] POST error:', error);
     return NextResponse.json(

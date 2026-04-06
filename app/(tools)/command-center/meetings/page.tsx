@@ -689,6 +689,13 @@ export default function MeetingsPage() {
       {/* Quick Actions */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <QuickActionButton
+          icon={CheckCircle2}
+          label="Finalize Meeting Data"
+          description="Verse, weather, numbers - one click finalize"
+          href="/command-center/meetings/finalize"
+          variant="primary"
+        />
+        <QuickActionButton
           icon={Monitor}
           label="Presentation Mode"
           description="Full-screen meeting dashboard"

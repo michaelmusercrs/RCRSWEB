@@ -17,6 +17,8 @@
 import * as React from 'react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { SalesChartsSlide, CommissionChartsSlide } from '@/components/command-center/MeetingCharts';
+import type { ChartData } from '@/components/command-center/MeetingCharts';
 import {
   Trophy,
   TrendingUp,
@@ -186,7 +188,7 @@ interface WeeklyNumbersRep {
   followUpsMade: number;
 }
 
-type ViewMode = 'date-header' | 'bible-verse' | 'training' | 'weather' | 'attendance' | 'early-announcements' | 'podium' | 'leaderboard' | 'competition' | 'weekly-numbers' | 'stats' | 'goals' | 'milestones' | 'office-bonus' | 'late-announcements';
+type ViewMode = 'date-header' | 'bible-verse' | 'training' | 'weather' | 'attendance' | 'early-announcements' | 'podium' | 'leaderboard' | 'competition' | 'weekly-numbers' | 'stats' | 'sales-charts' | 'commission-charts' | 'goals' | 'milestones' | 'office-bonus' | 'late-announcements';
 
 // =============================================================================
 // Utility Functions
@@ -826,11 +828,13 @@ export default function MeetingPresentationPage() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [chartData, setChartData] = useState<ChartData | null>(null);
+  const [chartPeriod, setChartPeriod] = useState<'week' | 'month' | 'quarter' | 'year'>('year');
 
   const containerRef = useRef<HTMLDivElement>(null);
   const autoRotateRef = useRef<NodeJS.Timeout | null>(null);
 
-  const views: ViewMode[] = ['date-header', 'bible-verse', 'training', 'weather', 'attendance', 'early-announcements', 'podium', 'leaderboard', 'competition', 'weekly-numbers', 'stats', 'goals', 'milestones', 'office-bonus', 'late-announcements'];
+  const views: ViewMode[] = ['date-header', 'bible-verse', 'training', 'weather', 'attendance', 'early-announcements', 'podium', 'leaderboard', 'competition', 'weekly-numbers', 'stats', 'sales-charts', 'commission-charts', 'goals', 'milestones', 'office-bonus', 'late-announcements'];
 
   // Fetch data
   const fetchData = useCallback(async () => {
@@ -912,13 +916,24 @@ export default function MeetingPresentationPage() {
         }
       } catch { /* optional */ }
 
+      // Fetch chart data for sales/commission chart slides
+      try {
+        const chartRes = await fetch(`/api/command-center/meetings/charts?period=${chartPeriod}`);
+        if (chartRes.ok) {
+          const chartJson = await chartRes.json();
+          if (chartJson.success && chartJson.data) {
+            setChartData(chartJson.data);
+          }
+        }
+      } catch { /* optional */ }
+
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load data');
     } finally {
       setLoading(false);
     }
-  }, [period]);
+  }, [period, chartPeriod]);
 
   // Sync meeting numbers from Google Sheet, then refresh data
   const syncFromSheet = useCallback(async () => {
@@ -1184,6 +1199,44 @@ export default function MeetingPresentationPage() {
         return <WeeklyNumbersDisplay numbers={weeklyNumbers} />;
       case 'stats':
         return <StatsDisplay stats={statsData} leaderboard={filteredLeaderboard} />;
+      case 'sales-charts':
+        return (
+          <div>
+            <div className="flex justify-center gap-2 mb-4">
+              {(['week', 'month', 'quarter', 'year'] as const).map(p => (
+                <button
+                  key={p}
+                  onClick={() => setChartPeriod(p)}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition ${
+                    chartPeriod === p ? 'bg-lime-500 text-black' : 'bg-zinc-800 text-neutral-500 hover:text-white'
+                  }`}
+                >
+                  {p === 'week' ? 'Weekly' : p === 'month' ? 'Monthly' : p === 'quarter' ? 'Quarterly' : 'Yearly'}
+                </button>
+              ))}
+            </div>
+            <SalesChartsSlide data={chartData} />
+          </div>
+        );
+      case 'commission-charts':
+        return (
+          <div>
+            <div className="flex justify-center gap-2 mb-4">
+              {(['week', 'month', 'quarter', 'year'] as const).map(p => (
+                <button
+                  key={p}
+                  onClick={() => setChartPeriod(p)}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition ${
+                    chartPeriod === p ? 'bg-lime-500 text-black' : 'bg-zinc-800 text-neutral-500 hover:text-white'
+                  }`}
+                >
+                  {p === 'week' ? 'Weekly' : p === 'month' ? 'Monthly' : p === 'quarter' ? 'Quarterly' : 'Yearly'}
+                </button>
+              ))}
+            </div>
+            <CommissionChartsSlide data={chartData} />
+          </div>
+        );
       case 'goals':
         return <GoalsDisplay stats={statsData} />;
       case 'milestones':
@@ -1332,6 +1385,8 @@ export default function MeetingPresentationPage() {
                 'competition': '🏅 Competition',
                 'weekly-numbers': '📈 Weekly Numbers',
                 'stats': '💰 Stats',
+                'sales-charts': '📊 Sales Charts',
+                'commission-charts': '💵 Commission Charts',
                 'goals': '🎯 Goals',
                 'milestones': '⚡ Milestones',
                 'office-bonus': '💵 Office Bonus',

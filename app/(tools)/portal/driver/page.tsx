@@ -9,6 +9,7 @@ import {
   CheckSquare, Square, MessageSquare, Upload, Timer,
   Bell, AlertTriangle, ChevronUp, Shield, Warehouse, CircleDot
 } from 'lucide-react';
+import DeptNotesWidget from '@/components/portal/DeptNotesWidget';
 
 // ============================================
 // PIPELINE TYPES
@@ -1082,6 +1083,11 @@ export default function DriverPortal() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Monday Notes */}
+      <div className="px-4 pt-3">
+        <DeptNotesWidget category="delivery" compact />
       </div>
 
       {/* Date & Refresh */}

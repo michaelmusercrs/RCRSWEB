@@ -835,19 +835,35 @@ class MeetingNumbersService {
       let lastDataRow = 0; // track last row with data
       let totalRow = -1;
 
-      // Scan column A for the rep name and the Total row
+      // Scan column A for the rep name and the Total row.
+      // Match by full name first, then fall back to first-name match.
+      // The meeting sheet often uses first names only (e.g., "Travis")
+      // while the portal auth uses full names (e.g., "Travis Wages").
+      const repNameLower = repName.toLowerCase();
+      const repFirstName = repNameLower.split(' ')[0];
+      let firstNameRow = -1; // fallback if exact match not found
+
       for (let row = 0; row < rowCount; row++) {
         const cell = sheet.getCell(row, 0);
         const val = String(cell.value || '').trim();
-        if (val.toLowerCase() === repName.toLowerCase()) {
+        const valLower = val.toLowerCase();
+        if (valLower === repNameLower) {
           repRow = row;
+        } else if (firstNameRow === -1 && valLower === repFirstName) {
+          // First-name-only match (e.g., "Travis" matches "Travis Wages")
+          firstNameRow = row;
         }
-        if (val.toLowerCase() === 'total') {
+        if (valLower === 'total') {
           totalRow = row;
         }
-        if (val && val.toLowerCase() !== 'total') {
+        if (val && valLower !== 'total') {
           lastDataRow = row;
         }
+      }
+
+      // Use first-name match as fallback when exact full-name match not found
+      if (repRow === -1 && firstNameRow !== -1) {
+        repRow = firstNameRow;
       }
 
       // If rep not found, add a new row
@@ -950,11 +966,21 @@ class MeetingNumbersService {
         records = JSON.parse(raw);
       }
 
-      // Find existing record for this rep + date
+      // Find existing record for this rep + date.
+      // Try full name first, then first-name match (sheet may use "Travis"
+      // while portal auth provides "Travis Wages").
+      const repLower = repName.toLowerCase();
+      const repFirst = repLower.split(' ')[0];
       let existing = records.find(
-        r => r.repName.toLowerCase() === repName.toLowerCase() &&
+        r => r.repName.toLowerCase() === repLower &&
              r.meetingDate === meetingDate
       );
+      if (!existing) {
+        existing = records.find(
+          r => r.repName.toLowerCase() === repFirst &&
+               r.meetingDate === meetingDate
+        );
+      }
 
       if (!existing) {
         existing = {

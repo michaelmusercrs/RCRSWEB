@@ -12,12 +12,23 @@ export interface AuthUser {
   permissions: string[];
   mustChangePassword?: boolean;
   loginSetupComplete?: boolean;
+  /** When impersonating, this holds the real admin's info */
+  impersonatedBy?: {
+    userId: string;
+    name: string;
+    email: string;
+    role: TeamRole;
+  };
 }
 
 type LoginMethod = 'password' | 'pin' | 'picture';
 
 interface AuthContextType {
   user: AuthUser | null;
+  /** The real admin user when impersonating, otherwise null */
+  realUser: AuthUser | null;
+  /** Whether we are currently in impersonation mode */
+  isImpersonating: boolean;
   isLoading: boolean;
   login: (email: string, password?: string, staySignedIn?: boolean) => Promise<{ success: boolean; error?: string; mustChangePassword?: boolean }>;
   loginWithPin: (email: string, pin: string, staySignedIn?: boolean) => Promise<{ success: boolean; error?: string }>;
@@ -27,6 +38,8 @@ interface AuthContextType {
   hasPermission: (permission: string) => boolean;
   canAccessRoute: (route: string) => boolean;
   getLoginMethod: (email: string) => Promise<{ loginMethod: LoginMethod; loginSetupComplete: boolean } | null>;
+  /** Stop impersonating and return to admin view */
+  stopImpersonating: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -104,9 +117,70 @@ const PERSISTENT_USER_KEY = 'rcrs_persistent_user';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [realUser, setRealUser] = useState<AuthUser | null>(null);
+  const [isImpersonating, setIsImpersonating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
+
+  // Helper: read a cookie value by name (client-side)
+  const getCookie = (name: string): string | null => {
+    if (typeof document === 'undefined') return null;
+    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+    return match ? decodeURIComponent(match[2]) : null;
+  };
+
+  // Check impersonation status and swap user context if needed
+  const checkImpersonation = async (baseUser: AuthUser): Promise<AuthUser> => {
+    const impersonatingEmail = getCookie('impersonating');
+    if (!impersonatingEmail) {
+      // Not impersonating — clear impersonation state
+      setRealUser(null);
+      setIsImpersonating(false);
+      return baseUser;
+    }
+
+    // Only owner/admin can impersonate
+    if (baseUser.role !== 'owner' && baseUser.role !== 'admin') {
+      // Non-admin has an impersonating cookie — clear it
+      setRealUser(null);
+      setIsImpersonating(false);
+      return baseUser;
+    }
+
+    // Find the target member
+    const targetMember = TEAM_MEMBERS.find(
+      (m) => m.email.toLowerCase() === impersonatingEmail.toLowerCase() && m.isActive
+    );
+
+    if (!targetMember) {
+      // Target not found — clear impersonation
+      setRealUser(null);
+      setIsImpersonating(false);
+      return baseUser;
+    }
+
+    // Store the real admin user
+    setRealUser(baseUser);
+    setIsImpersonating(true);
+
+    // Return the impersonated user context
+    return {
+      userId: targetMember.id,
+      name: targetMember.name,
+      email: targetMember.email,
+      role: targetMember.role,
+      permissions: targetMember.permissions,
+      mustChangePassword: false, // Admin viewing — skip password change
+      loginSetupComplete: true,
+      impersonatedBy: {
+        userId: baseUser.userId,
+        name: baseUser.name,
+        email: baseUser.email,
+        role: baseUser.role as TeamRole,
+      },
+    };
+  };
 
   // Load user from session on mount — check persistent session first
   useEffect(() => {
@@ -134,7 +208,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const passwordChanged = localStorage.getItem(`passwordChanged_${member.id}`) === 'true';
           parsed.mustChangePassword = member.mustChangePassword && !passwordChanged;
 
-          setUser(parsed);
+          // Check for impersonation before setting user
+          const effectiveUser = await checkImpersonation(parsed);
+          setUser(effectiveUser);
 
           // Re-validate server session (JWT cookies)
           try {
@@ -155,6 +231,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 localStorage.removeItem(PERSISTENT_USER_KEY);
                 sessionStorage.removeItem('portalUser');
                 setUser(null);
+                setRealUser(null);
+                setIsImpersonating(false);
               }
             }
           } catch {
@@ -378,9 +456,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return true;
   };
 
+  // ── Stop Impersonating ──────────────────────────────
+
+  const stopImpersonating = async () => {
+    try {
+      await fetch('/api/portal/admin/impersonate', { method: 'DELETE' });
+    } catch { /* continue */ }
+
+    // Restore the real admin user
+    if (realUser) {
+      setUser(realUser);
+      setRealUser(null);
+      setIsImpersonating(false);
+    }
+
+    // Force reload to ensure all components re-render with the correct user
+    window.location.href = '/portal/admin/user-profiles';
+  };
+
   // ── Logout ─────────────────────────────────────────
 
   const logout = async () => {
+    // If impersonating, also clear that cookie
+    if (isImpersonating) {
+      try {
+        await fetch('/api/portal/admin/impersonate', { method: 'DELETE' });
+      } catch { /* continue */ }
+    }
+
     try {
       await fetch('/api/portal/auth', {
         method: 'POST',
@@ -390,6 +493,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch { /* continue */ }
 
     setUser(null);
+    setRealUser(null);
+    setIsImpersonating(false);
     sessionStorage.removeItem('portalUser');
     sessionStorage.removeItem('driver');
     sessionStorage.removeItem('userRole');
@@ -419,10 +524,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{
-      user, isLoading,
+      user, realUser, isImpersonating, isLoading,
       login, loginWithPin, loginWithPicture,
       logout, completePasswordChange,
       hasPermission, canAccessRoute, getLoginMethod,
+      stopImpersonating,
     }}>
       {children}
     </AuthContext.Provider>

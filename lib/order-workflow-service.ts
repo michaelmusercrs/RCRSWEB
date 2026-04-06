@@ -1145,6 +1145,14 @@ class OrderWorkflowService {
   // DELIVERY ROUTES
   // ============================================
 
+  private getRouteHeaders(): string[] {
+    return [
+      'routeId', 'date', 'driverId', 'driverName', 'vehicleId',
+      'startTime', 'endTime', 'status', 'stops', 'totalStops', 'completedStops',
+      'totalDistance', 'estimatedDuration', 'optimized', 'navigationUrl'
+    ];
+  }
+
   async createRoute(data: {
     date: string;
     driverId: string;
@@ -1152,11 +1160,7 @@ class OrderWorkflowService {
     vehicleId?: string;
     orderIds: string[];
   }): Promise<DeliveryRoute> {
-    const sheet = await this.getOrCreateSheet(SHEETS.DELIVERY_ROUTES, [
-      'routeId', 'date', 'driverId', 'driverName', 'vehicleId',
-      'startTime', 'endTime', 'status', 'stops', 'totalStops', 'completedStops',
-      'totalDistance', 'estimatedDuration', 'optimized', 'navigationUrl'
-    ]);
+    const sheet = await this.getOrCreateSheet(SHEETS.DELIVERY_ROUTES, this.getRouteHeaders());
 
     // Get orders for stops
     const stops = [];
@@ -1208,7 +1212,7 @@ class OrderWorkflowService {
   }
 
   async getRoute(routeId: string): Promise<DeliveryRoute | null> {
-    const sheet = await this.getOrCreateSheet(SHEETS.DELIVERY_ROUTES, []);
+    const sheet = await this.getOrCreateSheet(SHEETS.DELIVERY_ROUTES, this.getRouteHeaders());
     const rows = await sheet.getRows();
     const row = rows.find(r => r.get('routeId') === routeId);
     if (!row) return null;
@@ -1238,7 +1242,7 @@ class OrderWorkflowService {
   }
 
   async getDriverRoutes(driverId: string, date?: string): Promise<DeliveryRoute[]> {
-    const sheet = await this.getOrCreateSheet(SHEETS.DELIVERY_ROUTES, []);
+    const sheet = await this.getOrCreateSheet(SHEETS.DELIVERY_ROUTES, this.getRouteHeaders());
     const rows = await sheet.getRows();
 
     let routes = rows

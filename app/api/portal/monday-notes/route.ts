@@ -18,6 +18,8 @@ import {
   getNextMondayDate,
   validateNote,
   areSubmissionsOpen,
+  isPastMondayDeadline,
+  getDeadlineStatus,
   calculateDisplayEndDate,
   AnnouncementType,
   DisplayDuration,
@@ -129,12 +131,14 @@ export async function GET(request: NextRequest) {
       return a.userName.localeCompare(b.userName);
     });
 
+    const deadlineStatus = getDeadlineStatus();
     const notesResponse = {
       success: true,
       meetingDate,
       notes,
       count: notes.length,
       submissionsOpen: areSubmissionsOpen(),
+      deadlineStatus,
     };
     cache.set(cacheKey, notesResponse, CACHE_TTL.MEETING);
     return NextResponse.json(notesResponse, {
@@ -154,6 +158,21 @@ export async function POST(request: NextRequest) {
   if (!auth.authenticated) return auth.response;
 
   try {
+    // Check Monday 9 AM CT deadline
+    const pastDeadline = isPastMondayDeadline();
+    const isAdminOrOwner = auth.user.role === 'owner' || auth.user.role === 'admin';
+
+    if (pastDeadline && !isAdminOrOwner) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Submission deadline has passed (Monday 9:00 AM CT). Contact Sara or Michael for late submissions.',
+          deadline: true,
+        },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const {
       id,
@@ -232,7 +251,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         note: updated,
-        message: 'Note updated successfully',
+        lateSubmission: pastDeadline,
+        message: pastDeadline ? 'Note updated (admin override - past deadline)' : 'Note updated successfully',
       });
     } else {
       // Create new note
@@ -270,7 +290,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         note: newNote,
-        message: 'Note created successfully',
+        lateSubmission: pastDeadline,
+        message: pastDeadline ? 'Note created (admin override - past deadline)' : 'Note created successfully',
       });
     }
   } catch (error) {

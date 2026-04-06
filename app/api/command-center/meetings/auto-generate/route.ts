@@ -215,6 +215,7 @@ function rowToPrepData(row: Record<string, string>, meetingDate: string): Meetin
     preparedBy: row.preparedBy || '',
     preparedAt: row.updatedAt || row.createdAt || '',
     status: (row.status as 'draft' | 'ready' | 'presented') || 'draft',
+    approvedCharts: row.approvedCharts ? JSON.parse(row.approvedCharts) : [],
   };
 }
 

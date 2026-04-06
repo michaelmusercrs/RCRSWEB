@@ -302,18 +302,78 @@ export function getDaysUntilMonday(): number {
 }
 
 /**
- * Check if submissions are still open (before Monday 9 AM)
+ * Get the current time in Central Time (America/Chicago)
  */
-export function areSubmissionsOpen(): boolean {
+export function getCentralTime(): Date {
   const now = new Date();
-  const dayOfWeek = now.getDay();
+  return new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+}
 
-  // Submissions close Monday at 9 AM
-  if (dayOfWeek === 1 && now.getHours() >= 9) {
-    return false;
+/**
+ * Check if current time is within the Monday deadline lockout window (9:00 AM - 11:00 AM CT).
+ * - Before Monday 9:00 AM CT: open (submissions allowed)
+ * - Monday 9:00 AM - 10:59 AM CT: locked (deadline passed, meeting happening)
+ * - Monday 11:00 AM+ CT: open (reset for next week)
+ * - Tuesday-Sunday: open (for next week's submissions)
+ */
+export function isPastMondayDeadline(): boolean {
+  const ct = getCentralTime();
+  const day = ct.getDay(); // 0=Sun, 1=Mon
+
+  if (day === 1) { // Monday
+    const minutesSinceMidnight = ct.getHours() * 60 + ct.getMinutes();
+    // Locked from 9:00 AM (540 min) to 10:59 AM (659 min) CT
+    return minutesSinceMidnight >= 540 && minutesSinceMidnight < 660;
   }
 
-  return true;
+  return false; // Other days: open for next week's submissions
+}
+
+/**
+ * Check if submissions are still open (before Monday 9 AM CT)
+ */
+export function areSubmissionsOpen(): boolean {
+  return !isPastMondayDeadline();
+}
+
+/**
+ * Get the deadline status for UI display
+ */
+export function getDeadlineStatus(): {
+  open: boolean;
+  message: string;
+  severity: 'ok' | 'warning' | 'locked';
+} {
+  const ct = getCentralTime();
+  const day = ct.getDay();
+
+  if (day === 1) {
+    const minutesSinceMidnight = ct.getHours() * 60 + ct.getMinutes();
+
+    if (minutesSinceMidnight >= 540 && minutesSinceMidnight < 660) {
+      return {
+        open: false,
+        message: 'Deadline passed - submissions locked',
+        severity: 'locked',
+      };
+    }
+
+    if (minutesSinceMidnight < 540) {
+      const hoursLeft = Math.floor((540 - minutesSinceMidnight) / 60);
+      const minsLeft = (540 - minutesSinceMidnight) % 60;
+      return {
+        open: true,
+        message: `Submit by Monday 9:00 AM CT (${hoursLeft}h ${minsLeft}m remaining)`,
+        severity: hoursLeft < 2 ? 'warning' : 'ok',
+      };
+    }
+  }
+
+  return {
+    open: true,
+    message: 'Submit by Monday 9:00 AM CT',
+    severity: 'ok',
+  };
 }
 
 /**

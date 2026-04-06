@@ -7,6 +7,7 @@ import {
   Loader2, CheckCircle, AlertCircle, X, TrendingUp,
   ChevronLeft, ChevronRight, Wrench, Columns3,
   Target, Briefcase, UserCheck, Home,
+  Clock, Trash2,
 } from 'lucide-react';
 
 // =============================================================================
@@ -37,6 +38,28 @@ interface MetricField {
   icon: React.ElementType;
   type: 'number' | 'currency' | 'text';
   color: string;
+}
+
+interface NumberSession {
+  id: string;
+  week: string;
+  repName: string;
+  repEmail: string;
+  sessionTimestamp: string;
+  inspected: string;
+  damage: string;
+  signed: string;
+  repair: string;
+  gutter: string;
+  revenue: string;
+  approved: string;
+  goal: string;
+  referrals: string;
+  agents: string;
+  present: string;
+  homeShow: string;
+  action: string;
+  previousValues: string;
 }
 
 // =============================================================================
@@ -144,9 +167,11 @@ const presentOptions = [
 
 interface WeeklyNumbersWidgetProps {
   compact?: boolean; // Compact mode for dashboard embedding
+  isAdmin?: boolean; // Admin can delete sessions and see all reps
+  userEmail?: string; // Current user's email for session filtering
 }
 
-export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWidgetProps) {
+export default function WeeklyNumbersWidget({ compact = false, isAdmin = false, userEmail }: WeeklyNumbersWidgetProps) {
   const [currentWeek, setCurrentWeek] = useState<string>('');
   const [selectedWeek, setSelectedWeek] = useState<string>('');
   const [currentEntry, setCurrentEntry] = useState<WeeklyNumbers | null>(null);
@@ -156,6 +181,10 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [sessions, setSessions] = useState<NumberSession[]>([]);
+  const [showSessions, setShowSessions] = useState(false);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -301,6 +330,70 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
         ? value
         : (field === 'revenue' ? parseFloat(value) || 0 : parseInt(value) || 0),
     }));
+  };
+
+  // Load session history for the selected week
+  const loadSessions = useCallback(async () => {
+    if (!showSessions) return;
+    setSessionsLoading(true);
+    try {
+      const weekParam = selectedWeek || currentWeek;
+      const params = new URLSearchParams({ week: weekParam });
+      if (userEmail) params.set('repEmail', userEmail);
+      const res = await fetch(`/api/portal/weekly-numbers/sessions?${params}`);
+      if (!res.ok) throw new Error('Failed to fetch sessions');
+      const data = await res.json();
+      if (data.success) {
+        setSessions(data.sessions || []);
+      }
+    } catch (error) {
+      console.error('Error loading sessions:', error);
+    } finally {
+      setSessionsLoading(false);
+    }
+  }, [showSessions, selectedWeek, currentWeek, userEmail]);
+
+  useEffect(() => {
+    loadSessions();
+  }, [loadSessions]);
+
+  const handleDeleteSession = async (sessionId: string) => {
+    if (!confirm('Delete this session entry? This cannot be undone.')) return;
+    setDeletingSessionId(sessionId);
+    try {
+      const res = await fetch('/api/portal/weekly-numbers/sessions', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: sessionId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSessions(prev => prev.filter(s => s.id !== sessionId));
+      }
+    } catch (error) {
+      console.error('Error deleting session:', error);
+    } finally {
+      setDeletingSessionId(null);
+    }
+  };
+
+  // Compute delta between session values and previous values
+  const getSessionDeltas = (session: NumberSession): Record<string, { from: number; to: number; delta: number }> => {
+    const deltas: Record<string, { from: number; to: number; delta: number }> = {};
+    let prev: Record<string, unknown> = {};
+    try {
+      prev = JSON.parse(session.previousValues || '{}');
+    } catch { /* ignore */ }
+
+    const numericFields = ['inspected', 'damage', 'signed', 'repair', 'gutter', 'revenue', 'approved', 'goal', 'referrals', 'agents', 'homeShow'];
+    for (const field of numericFields) {
+      const to = parseFloat(session[field as keyof NumberSession] as string) || 0;
+      const from = parseFloat(String(prev[field] ?? 0)) || 0;
+      if (to !== from || session.action === 'create') {
+        deltas[field] = { from, to, delta: to - from };
+      }
+    }
+    return deltas;
   };
 
   // Get previous week data for comparison
@@ -789,6 +882,112 @@ export default function WeeklyNumbersWidget({ compact = false }: WeeklyNumbersWi
               <div className="p-6 text-center">
                 <BarChart3 size={24} className="text-neutral-600 mx-auto mb-2" />
                 <p className="text-sm text-neutral-500">No history yet. Submit your first week!</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Session History */}
+      <div className="bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden">
+        <button
+          onClick={() => setShowSessions(!showSessions)}
+          className="w-full flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Clock size={16} className="text-neutral-400" />
+            <span className="text-sm font-medium text-neutral-300">Session History</span>
+            {sessions.length > 0 && showSessions && (
+              <span className="text-xs px-1.5 py-0.5 rounded-full bg-white/5 text-neutral-500">
+                {sessions.length}
+              </span>
+            )}
+          </div>
+          {showSessions ? <ChevronUp size={16} className="text-neutral-400" /> : <ChevronDown size={16} className="text-neutral-400" />}
+        </button>
+
+        {showSessions && (
+          <div className="border-t border-white/5">
+            {sessionsLoading ? (
+              <div className="p-6 text-center">
+                <Loader2 size={20} className="text-neutral-500 mx-auto animate-spin mb-2" />
+                <p className="text-sm text-neutral-500">Loading sessions...</p>
+              </div>
+            ) : sessions.length > 0 ? (
+              <div className="divide-y divide-white/5">
+                {sessions.map(session => {
+                  const deltas = getSessionDeltas(session);
+                  const deltaKeys = Object.keys(deltas);
+                  const actionLabel = session.action === 'create' ? 'Created' : session.action === 'increment' ? 'Incremented' : 'Updated';
+                  const actionColor = session.action === 'create' ? 'text-green-400 bg-green-500/10 border-green-500/20' : session.action === 'increment' ? 'text-blue-400 bg-blue-500/10 border-blue-500/20' : 'text-amber-400 bg-amber-500/10 border-amber-500/20';
+                  const isDeleting = deletingSessionId === session.id;
+
+                  return (
+                    <div key={session.id} className="p-3 hover:bg-white/[0.02] transition-colors">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full border font-medium ${actionColor}`}>
+                            {actionLabel}
+                          </span>
+                          <span className="text-xs text-neutral-500">
+                            {new Date(session.sessionTimestamp).toLocaleString('en-US', {
+                              month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit',
+                            })}
+                          </span>
+                          <span className="text-[10px] text-neutral-600">{session.repName}</span>
+                        </div>
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleDeleteSession(session.id)}
+                            disabled={isDeleting}
+                            className="p-1 rounded hover:bg-red-500/10 text-neutral-600 hover:text-red-400 transition-colors disabled:opacity-50"
+                            title="Delete session"
+                          >
+                            {isDeleting ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                              <Trash2 size={14} />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                      {deltaKeys.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {deltaKeys.map(field => {
+                            const d = deltas[field];
+                            const label = metricFields.find(f => f.key === field)?.label || field;
+                            const isCurrency = field === 'revenue';
+                            const fmtVal = (v: number) => isCurrency ? `$${v.toLocaleString()}` : String(v);
+
+                            if (session.action === 'create') {
+                              return d.to !== 0 ? (
+                                <span key={field} className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-neutral-400">
+                                  {label}: {fmtVal(d.to)}
+                                </span>
+                              ) : null;
+                            }
+
+                            return (
+                              <span key={field} className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-neutral-400">
+                                {label}: {fmtVal(d.from)} {'→'} {fmtVal(d.to)}
+                                <span className={`ml-1 font-medium ${d.delta > 0 ? 'text-green-400' : d.delta < 0 ? 'text-red-400' : 'text-neutral-500'}`}>
+                                  ({d.delta > 0 ? '+' : ''}{isCurrency ? `$${d.delta.toLocaleString()}` : d.delta})
+                                </span>
+                              </span>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-[10px] text-neutral-600">No field changes recorded</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="p-6 text-center">
+                <Clock size={24} className="text-neutral-600 mx-auto mb-2" />
+                <p className="text-sm text-neutral-500">No save sessions recorded for this week</p>
               </div>
             )}
           </div>

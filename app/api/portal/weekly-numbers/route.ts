@@ -121,6 +121,53 @@ const INCREMENTABLE_FIELDS = [
 ] as const;
 
 /**
+ * Generate a session ID in the format sess-{timestamp}-{random}
+ */
+function generateSessionId(): string {
+  const ts = Date.now();
+  const rand = Math.random().toString(36).substring(2, 8);
+  return `sess-${ts}-${rand}`;
+}
+
+/**
+ * Fire-and-forget: log a number session to the NumberSessions sheet.
+ */
+function logNumberSession(
+  week: string,
+  repName: string,
+  repEmail: string,
+  values: Record<string, unknown>,
+  action: 'create' | 'update' | 'increment',
+  previousValues: Record<string, unknown> | null,
+): void {
+  const session = {
+    id: generateSessionId(),
+    week,
+    repName,
+    repEmail,
+    sessionTimestamp: new Date().toISOString(),
+    inspected: parseInt(String(values.inspected)) || 0,
+    damage: parseInt(String(values.damage)) || 0,
+    signed: parseInt(String(values.signed)) || 0,
+    repair: parseInt(String(values.repair)) || 0,
+    gutter: parseInt(String(values.gutter)) || 0,
+    revenue: parseFloat(String(values.revenue)) || 0,
+    approved: parseInt(String(values.approved)) || 0,
+    goal: parseInt(String(values.goal)) || 0,
+    referrals: parseInt(String(values.referrals)) || 0,
+    agents: parseInt(String(values.agents)) || 0,
+    present: String(values.present || '1'),
+    homeShow: parseInt(String(values.homeShow)) || 0,
+    action,
+    previousValues: previousValues ? JSON.stringify(previousValues) : '{}',
+  };
+
+  googleSheetsService.appendNumberSession(session).catch(err => {
+    console.error('[WeeklyNumbers] Session log failed:', err);
+  });
+}
+
+/**
  * Parse a legacy RepWeeklyNumbers record back into new field names.
  * The notes field contains: "Referrals:N Agents:N Present:X HomeShow:N"
  */
@@ -276,9 +323,18 @@ export async function POST(request: NextRequest) {
 
     // Save to master RCRS sheet (legacy format)
     const legacyRecord = mapToLegacyRecord(body, repName, repEmail, week);
-    const success = await googleSheetsService.addRepWeeklyNumbers(legacyRecord);
+    let success = await googleSheetsService.addRepWeeklyNumbers(legacyRecord);
+
+    // Retry once on failure — transient Google Sheets errors (rate limits,
+    // concurrent access to the shared doc) can cause a single attempt to fail.
+    if (!success) {
+      console.warn(`[WeeklyNumbers] First addRepWeeklyNumbers attempt failed for ${repName}, retrying...`);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      success = await googleSheetsService.addRepWeeklyNumbers(legacyRecord);
+    }
 
     if (!success) {
+      console.error(`[WeeklyNumbers] addRepWeeklyNumbers failed for ${repName} (${repEmail}), week=${week}`);
       return NextResponse.json(
         { success: false, error: 'Failed to save weekly numbers' },
         { status: 500 },
@@ -292,6 +348,9 @@ export async function POST(request: NextRequest) {
     syncToMeetingSheet(repName, week, body).catch(err => {
       console.error('[WeeklyNumbers] Meeting sheet sync failed:', err);
     });
+
+    // Fire-and-forget: Log session (no previous values on create)
+    logNumberSession(week, repName, repEmail, body, 'create', null);
 
     // Fire-and-forget: Email notification to Michael about the submission
     const record = buildResponseRecord(body, repName, week);
@@ -320,33 +379,35 @@ export async function PATCH(request: NextRequest) {
     const repEmail = auth.user.email;
     const incrementMode = body.increment === true;
 
-    // In increment mode, fetch the existing record and add incoming values to current values
+    // Fetch existing record for session tracking (previous values) and increment mode
+    const existingRecords = await googleSheetsService.getRepWeeklyNumbers({
+      repEmail,
+      weekStart: week,
+      weekEnd: week,
+    });
+    const previousValues = existingRecords.length > 0
+      ? legacyRecordToNewFields(existingRecords[0] as unknown as Record<string, unknown>)
+      : null;
+
+    // In increment mode, add incoming values to existing values
     let mergedBody = { ...body };
-    if (incrementMode) {
-      const existing = await googleSheetsService.getRepWeeklyNumbers({
-        repEmail,
-        weekStart: week,
-        weekEnd: week,
-      });
+    if (incrementMode && previousValues) {
+      const currentValues = previousValues;
 
-      if (existing.length > 0) {
-        const currentValues = legacyRecordToNewFields(existing[0] as unknown as Record<string, unknown>);
-
-        // Add incoming numeric values to existing values
-        for (const field of INCREMENTABLE_FIELDS) {
-          if (mergedBody[field] !== undefined) {
-            const incomingValue = field === 'revenue'
-              ? parseFloat(String(mergedBody[field])) || 0
-              : parseInt(String(mergedBody[field])) || 0;
-            const currentValue = typeof currentValues[field] === 'number' ? currentValues[field] as number : 0;
-            mergedBody[field] = currentValue + incomingValue;
-          }
+      // Add incoming numeric values to existing values
+      for (const field of INCREMENTABLE_FIELDS) {
+        if (mergedBody[field] !== undefined) {
+          const incomingValue = field === 'revenue'
+            ? parseFloat(String(mergedBody[field])) || 0
+            : parseInt(String(mergedBody[field])) || 0;
+          const currentValue = typeof currentValues[field] === 'number' ? currentValues[field] as number : 0;
+          mergedBody[field] = currentValue + incomingValue;
         }
-
-        // Non-numeric fields (present) overwrite, not increment - already in mergedBody from spread
       }
-      // If no existing record, increment mode just uses the incoming values as-is (base of 0)
+
+      // Non-numeric fields (present) overwrite, not increment - already in mergedBody from spread
     }
+    // If no existing record, increment mode just uses the incoming values as-is (base of 0)
 
     // Build updates using new field names mapped to legacy columns
     const updates: Record<string, string | number> = {};
@@ -397,6 +458,9 @@ export async function PATCH(request: NextRequest) {
           { status: 500 },
         );
       }
+      // Fire-and-forget: Log session (fallback create from PATCH)
+      logNumberSession(week, auth.user.name, repEmail, mergedBody, 'create', null);
+
       const record = buildResponseRecord(mergedBody, auth.user.name, week);
       return NextResponse.json({ success: true, message: 'Created new record', record });
     }
@@ -405,6 +469,10 @@ export async function PATCH(request: NextRequest) {
     syncToMeetingSheet(auth.user.name, week, mergedBody).catch(err => {
       console.error('[WeeklyNumbers] Meeting sheet sync failed:', err);
     });
+
+    // Fire-and-forget: Log session with previous values
+    const sessionAction = incrementMode ? 'increment' as const : 'update' as const;
+    logNumberSession(week, auth.user.name, repEmail, mergedBody, sessionAction, previousValues);
 
     // Notification on update too
     const updatedRecord = buildResponseRecord(mergedBody, auth.user.name, week);

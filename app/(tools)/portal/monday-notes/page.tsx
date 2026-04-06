@@ -23,6 +23,7 @@ import {
   getDaysUntilMonday,
   areSubmissionsOpen,
   getSubmissionDeadline,
+  getDeadlineStatus,
   CATEGORY_INFO,
   formatTimingInfo,
   validateNote,
@@ -81,6 +82,8 @@ export default function MondayNotesPage() {
   const daysUntilMeeting = getDaysUntilMonday();
   const submissionsOpen = areSubmissionsOpen();
   const deadline = getSubmissionDeadline();
+  const deadlineStatus = getDeadlineStatus();
+  const isAdminOrOwner = user?.role === 'owner' || user?.role === 'admin';
 
   // Redirect if not logged in
   useEffect(() => {
@@ -340,15 +343,42 @@ export default function MondayNotesPage() {
         </header>
 
         <main className="max-w-4xl mx-auto px-6 py-8">
-          {/* Status Banner */}
-          {!submissionsOpen && (
-            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-4 mb-6 flex items-center gap-3">
-              <AlertCircle className="text-yellow-500 flex-shrink-0" size={20} />
+          {/* Deadline Status Banner */}
+          {deadlineStatus.severity === 'locked' && !isAdminOrOwner && (
+            <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 mb-6 flex items-center gap-3">
+              <AlertCircle className="text-red-500 flex-shrink-0" size={20} />
               <div>
-                <p className="text-yellow-400 font-medium">Submissions are closed</p>
-                <p className="text-sm text-yellow-400/70">
-                  The deadline was {deadline.toLocaleString()}. Notes submitted now may not be included in today's meeting.
+                <p className="text-red-400 font-medium">Deadline passed - submissions locked</p>
+                <p className="text-sm text-red-400/70">
+                  The Monday 9:00 AM CT deadline has passed. Contact Sara or Michael for late submissions.
                 </p>
+              </div>
+            </div>
+          )}
+          {deadlineStatus.severity === 'locked' && isAdminOrOwner && (
+            <div className="bg-orange-500/10 border border-orange-500/20 rounded-2xl p-4 mb-6 flex items-center gap-3">
+              <AlertCircle className="text-orange-500 flex-shrink-0" size={20} />
+              <div>
+                <p className="text-orange-400 font-medium">Deadline passed - admin override active</p>
+                <p className="text-sm text-orange-400/70">
+                  The Monday 9:00 AM CT deadline has passed, but you can still submit as an admin.
+                </p>
+              </div>
+            </div>
+          )}
+          {deadlineStatus.severity === 'warning' && (
+            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-4 mb-6 flex items-center gap-3">
+              <Clock className="text-yellow-500 flex-shrink-0" size={20} />
+              <div>
+                <p className="text-yellow-400 font-medium">{deadlineStatus.message}</p>
+              </div>
+            </div>
+          )}
+          {deadlineStatus.severity === 'ok' && (
+            <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-4 mb-6 flex items-center gap-3">
+              <Clock className="text-green-500 flex-shrink-0" size={20} />
+              <div>
+                <p className="text-green-400 font-medium">{deadlineStatus.message}</p>
               </div>
             </div>
           )}
@@ -716,7 +746,7 @@ export default function MondayNotesPage() {
 
             <button
               onClick={() => saveNote('submitted')}
-              disabled={isSaving || !note.title || !note.content}
+              disabled={isSaving || !note.title || !note.content || (deadlineStatus.severity === 'locked' && !isAdminOrOwner)}
               className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-brand-green to-emerald-500 hover:from-brand-green/90 hover:to-emerald-500/90 disabled:from-neutral-700 disabled:to-neutral-700 text-black disabled:text-neutral-500 font-semibold rounded-xl transition-all shadow-lg shadow-brand-green/25 disabled:shadow-none disabled:cursor-not-allowed"
             >
               {isSaving ? <Loader2 className="animate-spin" size={20} /> : <Send size={20} />}

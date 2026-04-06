@@ -308,7 +308,7 @@ function NavItemComponent({
 // =============================================================================
 
 export function PortalShell({ children }: { children: React.ReactNode }) {
-  const { user, logout, isLoading } = useAuth();
+  const { user, logout, isLoading, isImpersonating } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
   const [isCollapsed, setIsCollapsed] = React.useState(false);
@@ -363,10 +363,10 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
   const initials = user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
   return (
-    <div className="flex min-h-screen bg-neutral-950">
+    <div className={`flex min-h-screen bg-neutral-950 ${isImpersonating ? 'pt-10' : ''}`}>
       {/* Desktop Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-white/5 bg-neutral-900 transition-all duration-300 lg:flex ${
+        className={`fixed ${isImpersonating ? 'top-10' : 'top-0'} bottom-0 left-0 z-40 hidden flex-col border-r border-white/5 bg-neutral-900 transition-all duration-300 lg:flex ${
           isCollapsed ? 'w-16' : 'w-64'
         }`}
       >

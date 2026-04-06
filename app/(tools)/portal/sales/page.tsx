@@ -16,6 +16,7 @@ import {
 import { useAuth } from '@/lib/auth-context';
 import { TeamRole } from '@/lib/team-roles';
 import WeeklyNumbersWidget from '@/components/portal/WeeklyNumbersWidget';
+import DeptNotesWidget from '@/components/portal/DeptNotesWidget';
 import dynamic from 'next/dynamic';
 const SmartTipsWidget = dynamic(() => import('@/components/portal/SmartTipsWidget'), { ssr: false });
 
@@ -725,6 +726,11 @@ export default function SalesPortal() {
           <div className="mb-6">
             <h3 className="text-sm font-medium text-neutral-400 mb-3">Rep Weekly Numbers</h3>
             <WeeklyNumbersWidget />
+          </div>
+
+          {/* Monday Notes */}
+          <div className="mb-6">
+            <DeptNotesWidget category="sales" />
           </div>
 
           {/* Quick Actions */}

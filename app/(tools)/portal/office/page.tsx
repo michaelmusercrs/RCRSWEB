@@ -8,6 +8,7 @@ import {
   ChevronRight, Users, Calendar, MapPin, Phone, Mail, Eye, CreditCard, Command,
   AlertTriangle, TrendingUp, Send, X, ArrowUpRight, ArrowDownRight, ClipboardList
 } from 'lucide-react';
+import DeptNotesWidget from '@/components/portal/DeptNotesWidget';
 import type { DeliveryTicket, Invoice, TicketStatus } from '@/lib/delivery-workflow-service';
 import type { Driver } from '@/lib/delivery-portal-service';
 import type { InventoryItem } from '@/lib/delivery-portal-service';
@@ -732,6 +733,9 @@ export default function OfficePage() {
                 </div>
               </div>
             </div>
+
+            {/* Monday Notes */}
+            <DeptNotesWidget category="office" />
 
             {/* Quick Actions */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

@@ -1,8 +1,739 @@
 {
-  "repAchievements": [],
+  "repAchievements": [
+    {
+      "id": "1c639263b2f4",
+      "repSlug": "hunter",
+      "repName": "Hunter Rivers",
+      "achievementId": "first_sale",
+      "awardedAt": "2026-04-03T04:40:07.167Z",
+      "metadata": {
+        "sales": "34",
+        "revenue": "74384.12",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "5ab547d8d883",
+      "repSlug": "hunter",
+      "repName": "Hunter Rivers",
+      "achievementId": "five_calls",
+      "awardedAt": "2026-04-03T04:40:07.167Z",
+      "metadata": {
+        "sales": "34",
+        "revenue": "74384.12",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "23eebe58ab7a",
+      "repSlug": "hunter",
+      "repName": "Hunter Rivers",
+      "achievementId": "quick_response",
+      "awardedAt": "2026-04-03T04:40:07.167Z",
+      "metadata": {
+        "sales": "34",
+        "revenue": "74384.12",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "0e8820206a4d",
+      "repSlug": "hunter",
+      "repName": "Hunter Rivers",
+      "achievementId": "first_inspection",
+      "awardedAt": "2026-04-03T04:40:07.167Z",
+      "metadata": {
+        "sales": "34",
+        "revenue": "74384.12",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "2daacbb79bbb",
+      "repSlug": "hunter",
+      "repName": "Hunter Rivers",
+      "achievementId": "ten_sales",
+      "awardedAt": "2026-04-03T04:40:07.167Z",
+      "metadata": {
+        "sales": "34",
+        "revenue": "74384.12",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "6957856cf647",
+      "repSlug": "hunter",
+      "repName": "Hunter Rivers",
+      "achievementId": "revenue_10k",
+      "awardedAt": "2026-04-03T04:40:07.167Z",
+      "metadata": {
+        "sales": "34",
+        "revenue": "74384.12",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "4fb6b55c635c",
+      "repSlug": "hunter",
+      "repName": "Hunter Rivers",
+      "achievementId": "perfect_response",
+      "awardedAt": "2026-04-03T04:40:07.167Z",
+      "metadata": {
+        "sales": "34",
+        "revenue": "74384.12",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "8f78ac41f26e",
+      "repSlug": "hunter",
+      "repName": "Hunter Rivers",
+      "achievementId": "twenty_five_sales",
+      "awardedAt": "2026-04-03T04:40:07.167Z",
+      "metadata": {
+        "sales": "34",
+        "revenue": "74384.12",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "8e4291c85615",
+      "repSlug": "hunter",
+      "repName": "Hunter Rivers",
+      "achievementId": "revenue_25k",
+      "awardedAt": "2026-04-03T04:40:07.167Z",
+      "metadata": {
+        "sales": "34",
+        "revenue": "74384.12",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "f4f59df252a5",
+      "repSlug": "hunter",
+      "repName": "Hunter Rivers",
+      "achievementId": "five_star",
+      "awardedAt": "2026-04-03T04:40:07.167Z",
+      "metadata": {
+        "sales": "34",
+        "revenue": "74384.12",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "dbb5a4434134",
+      "repSlug": "hunter",
+      "repName": "Hunter Rivers",
+      "achievementId": "top_closer",
+      "awardedAt": "2026-04-03T04:40:07.181Z",
+      "metadata": {
+        "sales": "34",
+        "revenue": "74384.12",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "479511a310b3",
+      "repSlug": "hunter",
+      "repName": "Hunter Rivers",
+      "achievementId": "revenue_50k",
+      "awardedAt": "2026-04-03T04:40:07.181Z",
+      "metadata": {
+        "sales": "34",
+        "revenue": "74384.12",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "eef83946003b",
+      "repSlug": "hunter",
+      "repName": "Hunter Rivers",
+      "achievementId": "team_player",
+      "awardedAt": "2026-04-03T04:40:07.194Z",
+      "metadata": {
+        "sales": "34",
+        "revenue": "74384.12",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "4f13579ef7fa",
+      "repSlug": "hunter",
+      "repName": "Hunter Rivers",
+      "achievementId": "top_annual",
+      "awardedAt": "2026-04-03T04:40:07.199Z",
+      "metadata": {
+        "sales": "34",
+        "revenue": "74384.12",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "232910f4390f",
+      "repSlug": "aaron",
+      "repName": "Aaron Lussi",
+      "achievementId": "first_sale",
+      "awardedAt": "2026-04-03T04:40:07.200Z",
+      "metadata": {
+        "sales": "32",
+        "revenue": "100507.20",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "eae2ddf5f85a",
+      "repSlug": "aaron",
+      "repName": "Aaron Lussi",
+      "achievementId": "five_calls",
+      "awardedAt": "2026-04-03T04:40:07.200Z",
+      "metadata": {
+        "sales": "32",
+        "revenue": "100507.20",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "d41988e21bf3",
+      "repSlug": "aaron",
+      "repName": "Aaron Lussi",
+      "achievementId": "quick_response",
+      "awardedAt": "2026-04-03T04:40:07.200Z",
+      "metadata": {
+        "sales": "32",
+        "revenue": "100507.20",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "12ddad9f9e90",
+      "repSlug": "aaron",
+      "repName": "Aaron Lussi",
+      "achievementId": "first_inspection",
+      "awardedAt": "2026-04-03T04:40:07.200Z",
+      "metadata": {
+        "sales": "32",
+        "revenue": "100507.20",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "098f2b8507dd",
+      "repSlug": "aaron",
+      "repName": "Aaron Lussi",
+      "achievementId": "ten_sales",
+      "awardedAt": "2026-04-03T04:40:07.200Z",
+      "metadata": {
+        "sales": "32",
+        "revenue": "100507.20",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "f70f59422c9c",
+      "repSlug": "aaron",
+      "repName": "Aaron Lussi",
+      "achievementId": "revenue_10k",
+      "awardedAt": "2026-04-03T04:40:07.200Z",
+      "metadata": {
+        "sales": "32",
+        "revenue": "100507.20",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "b923a27589d2",
+      "repSlug": "aaron",
+      "repName": "Aaron Lussi",
+      "achievementId": "perfect_response",
+      "awardedAt": "2026-04-03T04:40:07.200Z",
+      "metadata": {
+        "sales": "32",
+        "revenue": "100507.20",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "b6131e3a9623",
+      "repSlug": "aaron",
+      "repName": "Aaron Lussi",
+      "achievementId": "twenty_five_sales",
+      "awardedAt": "2026-04-03T04:40:07.200Z",
+      "metadata": {
+        "sales": "32",
+        "revenue": "100507.20",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "48681c79cdaa",
+      "repSlug": "aaron",
+      "repName": "Aaron Lussi",
+      "achievementId": "revenue_25k",
+      "awardedAt": "2026-04-03T04:40:07.200Z",
+      "metadata": {
+        "sales": "32",
+        "revenue": "100507.20",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "dffe78a4f656",
+      "repSlug": "aaron",
+      "repName": "Aaron Lussi",
+      "achievementId": "five_star",
+      "awardedAt": "2026-04-03T04:40:07.200Z",
+      "metadata": {
+        "sales": "32",
+        "revenue": "100507.20",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "710ffafddeb5",
+      "repSlug": "aaron",
+      "repName": "Aaron Lussi",
+      "achievementId": "revenue_50k",
+      "awardedAt": "2026-04-03T04:40:07.210Z",
+      "metadata": {
+        "sales": "32",
+        "revenue": "100507.20",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "425cd8924313",
+      "repSlug": "aaron",
+      "repName": "Aaron Lussi",
+      "achievementId": "revenue_100k",
+      "awardedAt": "2026-04-03T04:40:07.220Z",
+      "metadata": {
+        "sales": "32",
+        "revenue": "100507.20",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "368ffeedc781",
+      "repSlug": "greg",
+      "repName": "Greg Muse",
+      "achievementId": "first_sale",
+      "awardedAt": "2026-04-03T04:40:07.227Z",
+      "metadata": {
+        "sales": "31",
+        "revenue": "49349.24",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "2f73865433b7",
+      "repSlug": "greg",
+      "repName": "Greg Muse",
+      "achievementId": "five_calls",
+      "awardedAt": "2026-04-03T04:40:07.227Z",
+      "metadata": {
+        "sales": "31",
+        "revenue": "49349.24",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "26f6c9623a3d",
+      "repSlug": "greg",
+      "repName": "Greg Muse",
+      "achievementId": "quick_response",
+      "awardedAt": "2026-04-03T04:40:07.227Z",
+      "metadata": {
+        "sales": "31",
+        "revenue": "49349.24",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "5045f5d03139",
+      "repSlug": "greg",
+      "repName": "Greg Muse",
+      "achievementId": "first_inspection",
+      "awardedAt": "2026-04-03T04:40:07.227Z",
+      "metadata": {
+        "sales": "31",
+        "revenue": "49349.24",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "87a703908abd",
+      "repSlug": "greg",
+      "repName": "Greg Muse",
+      "achievementId": "ten_sales",
+      "awardedAt": "2026-04-03T04:40:07.227Z",
+      "metadata": {
+        "sales": "31",
+        "revenue": "49349.24",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "c6416ab7ce26",
+      "repSlug": "greg",
+      "repName": "Greg Muse",
+      "achievementId": "revenue_10k",
+      "awardedAt": "2026-04-03T04:40:07.227Z",
+      "metadata": {
+        "sales": "31",
+        "revenue": "49349.24",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "887f718c54ab",
+      "repSlug": "greg",
+      "repName": "Greg Muse",
+      "achievementId": "perfect_response",
+      "awardedAt": "2026-04-03T04:40:07.227Z",
+      "metadata": {
+        "sales": "31",
+        "revenue": "49349.24",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "5a741c21b7e9",
+      "repSlug": "greg",
+      "repName": "Greg Muse",
+      "achievementId": "twenty_five_sales",
+      "awardedAt": "2026-04-03T04:40:07.227Z",
+      "metadata": {
+        "sales": "31",
+        "revenue": "49349.24",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "4023e419937f",
+      "repSlug": "greg",
+      "repName": "Greg Muse",
+      "achievementId": "revenue_25k",
+      "awardedAt": "2026-04-03T04:40:07.227Z",
+      "metadata": {
+        "sales": "31",
+        "revenue": "49349.24",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "38b2fcfd7056",
+      "repSlug": "greg",
+      "repName": "Greg Muse",
+      "achievementId": "five_star",
+      "awardedAt": "2026-04-03T04:40:07.227Z",
+      "metadata": {
+        "sales": "31",
+        "revenue": "49349.24",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "b58c50e51974",
+      "repSlug": "brendon",
+      "repName": "Brendon Muse",
+      "achievementId": "first_sale",
+      "awardedAt": "2026-04-03T04:40:07.251Z",
+      "metadata": {
+        "sales": "25",
+        "revenue": "30813.80",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "c125b52cece5",
+      "repSlug": "brendon",
+      "repName": "Brendon Muse",
+      "achievementId": "five_calls",
+      "awardedAt": "2026-04-03T04:40:07.251Z",
+      "metadata": {
+        "sales": "25",
+        "revenue": "30813.80",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "3939215540d8",
+      "repSlug": "brendon",
+      "repName": "Brendon Muse",
+      "achievementId": "quick_response",
+      "awardedAt": "2026-04-03T04:40:07.251Z",
+      "metadata": {
+        "sales": "25",
+        "revenue": "30813.80",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "b1430fefa770",
+      "repSlug": "brendon",
+      "repName": "Brendon Muse",
+      "achievementId": "first_inspection",
+      "awardedAt": "2026-04-03T04:40:07.251Z",
+      "metadata": {
+        "sales": "25",
+        "revenue": "30813.80",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "069774e60569",
+      "repSlug": "brendon",
+      "repName": "Brendon Muse",
+      "achievementId": "ten_sales",
+      "awardedAt": "2026-04-03T04:40:07.251Z",
+      "metadata": {
+        "sales": "25",
+        "revenue": "30813.80",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "d415ec94baa2",
+      "repSlug": "brendon",
+      "repName": "Brendon Muse",
+      "achievementId": "revenue_10k",
+      "awardedAt": "2026-04-03T04:40:07.251Z",
+      "metadata": {
+        "sales": "25",
+        "revenue": "30813.80",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "966940d10fbb",
+      "repSlug": "brendon",
+      "repName": "Brendon Muse",
+      "achievementId": "perfect_response",
+      "awardedAt": "2026-04-03T04:40:07.251Z",
+      "metadata": {
+        "sales": "25",
+        "revenue": "30813.80",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "5ed09030fb99",
+      "repSlug": "brendon",
+      "repName": "Brendon Muse",
+      "achievementId": "twenty_five_sales",
+      "awardedAt": "2026-04-03T04:40:07.251Z",
+      "metadata": {
+        "sales": "25",
+        "revenue": "30813.80",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "8a395490956b",
+      "repSlug": "brendon",
+      "repName": "Brendon Muse",
+      "achievementId": "revenue_25k",
+      "awardedAt": "2026-04-03T04:40:07.251Z",
+      "metadata": {
+        "sales": "25",
+        "revenue": "30813.80",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "646fe85dd0f9",
+      "repSlug": "adam",
+      "repName": "Adam Rudell",
+      "achievementId": "first_sale",
+      "awardedAt": "2026-04-03T04:40:07.277Z",
+      "metadata": {
+        "sales": "30",
+        "revenue": "84351.12",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "16791b264870",
+      "repSlug": "adam",
+      "repName": "Adam Rudell",
+      "achievementId": "five_calls",
+      "awardedAt": "2026-04-03T04:40:07.277Z",
+      "metadata": {
+        "sales": "30",
+        "revenue": "84351.12",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "e12d7d989795",
+      "repSlug": "adam",
+      "repName": "Adam Rudell",
+      "achievementId": "quick_response",
+      "awardedAt": "2026-04-03T04:40:07.277Z",
+      "metadata": {
+        "sales": "30",
+        "revenue": "84351.12",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "b677b5ca598d",
+      "repSlug": "adam",
+      "repName": "Adam Rudell",
+      "achievementId": "first_inspection",
+      "awardedAt": "2026-04-03T04:40:07.277Z",
+      "metadata": {
+        "sales": "30",
+        "revenue": "84351.12",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "8476eafd64ef",
+      "repSlug": "adam",
+      "repName": "Adam Rudell",
+      "achievementId": "ten_sales",
+      "awardedAt": "2026-04-03T04:40:07.277Z",
+      "metadata": {
+        "sales": "30",
+        "revenue": "84351.12",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "66580c64fe8c",
+      "repSlug": "adam",
+      "repName": "Adam Rudell",
+      "achievementId": "revenue_10k",
+      "awardedAt": "2026-04-03T04:40:07.277Z",
+      "metadata": {
+        "sales": "30",
+        "revenue": "84351.12",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "bdaa46e2e591",
+      "repSlug": "adam",
+      "repName": "Adam Rudell",
+      "achievementId": "perfect_response",
+      "awardedAt": "2026-04-03T04:40:07.277Z",
+      "metadata": {
+        "sales": "30",
+        "revenue": "84351.12",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "2e64316feb0e",
+      "repSlug": "adam",
+      "repName": "Adam Rudell",
+      "achievementId": "twenty_five_sales",
+      "awardedAt": "2026-04-03T04:40:07.277Z",
+      "metadata": {
+        "sales": "30",
+        "revenue": "84351.12",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "9ae46c4326b3",
+      "repSlug": "adam",
+      "repName": "Adam Rudell",
+      "achievementId": "revenue_25k",
+      "awardedAt": "2026-04-03T04:40:07.277Z",
+      "metadata": {
+        "sales": "30",
+        "revenue": "84351.12",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "ca24a7c8a179",
+      "repSlug": "adam",
+      "repName": "Adam Rudell",
+      "achievementId": "five_star",
+      "awardedAt": "2026-04-03T04:40:07.277Z",
+      "metadata": {
+        "sales": "30",
+        "revenue": "84351.12",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "790ddeca6ddf",
+      "repSlug": "adam",
+      "repName": "Adam Rudell",
+      "achievementId": "revenue_50k",
+      "awardedAt": "2026-04-03T04:40:07.287Z",
+      "metadata": {
+        "sales": "30",
+        "revenue": "84351.12",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "29644395c053",
+      "repSlug": "joseph",
+      "repName": "Joseph Dowd",
+      "achievementId": "first_sale",
+      "awardedAt": "2026-04-03T04:40:07.302Z",
+      "metadata": {
+        "sales": "3",
+        "revenue": "893.12",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "dc96ffaff19f",
+      "repSlug": "joseph",
+      "repName": "Joseph Dowd",
+      "achievementId": "five_calls",
+      "awardedAt": "2026-04-03T04:40:07.302Z",
+      "metadata": {
+        "sales": "3",
+        "revenue": "893.12",
+        "streak": "1"
+      }
+    },
+    {
+      "id": "9a8cb6258990",
+      "repSlug": "joseph",
+      "repName": "Joseph Dowd",
+      "achievementId": "first_inspection",
+      "awardedAt": "2026-04-03T04:40:07.302Z",
+      "metadata": {
+        "sales": "3",
+        "revenue": "893.12",
+        "streak": "1"
+      }
+    }
+  ],
   "contests": [],
-  "dailyChallenges": [],
-  "previousRanks": {},
+  "dailyChallenges": [
+    {
+      "id": "2833e8bf0b1b",
+      "date": "2026-04-03",
+      "title": "Review Collector",
+      "description": "Get 2 customer reviews",
+      "metric": "reviews_received",
+      "target": 2,
+      "bonusPoints": 20,
+      "completedBy": []
+    }
+  ],
+  "previousRanks": {
+    "hunter": 1,
+    "aaron": 2,
+    "adam": 3,
+    "greg": 4,
+    "brendon": 5,
+    "joseph": 6,
+    "alijah": 7,
+    "travis": 8,
+    "michael-muse": 9,
+    "chris-muse": 10
+  },
   "responseTimeCache": [],
-  "lastUpdated": ""
+  "lastUpdated": "2026-04-03T05:13:33.140Z"
 }

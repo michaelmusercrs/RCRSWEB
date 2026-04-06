@@ -29,6 +29,8 @@ import {
   getNextMondayDate,
   getDaysUntilMonday,
   getCategoriesForRole,
+  getDeadlineStatus,
+  isPastMondayDeadline,
 } from '@/lib/monday-notes-service';
 import { TeamRole } from '@/lib/team-roles';
 
@@ -69,6 +71,8 @@ export default function MondaySubmissionWidget() {
   });
 
   const availableCategories = user ? getCategoriesForRole(user.role as TeamRole) : ['general'];
+  const deadlineStatus = getDeadlineStatus();
+  const isAdminOrOwner = user?.role === 'owner' || user?.role === 'admin';
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -213,6 +217,32 @@ export default function MondaySubmissionWidget() {
               <button onClick={() => setError(null)} className="ml-auto">
                 <X size={14} className="text-red-400" />
               </button>
+            </div>
+          )}
+
+          {/* Deadline status banner */}
+          {deadlineStatus.severity === 'locked' && !isAdminOrOwner && (
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+              <Clock size={16} className="text-red-400" />
+              <span className="text-sm text-red-400">{deadlineStatus.message}</span>
+            </div>
+          )}
+          {deadlineStatus.severity === 'locked' && isAdminOrOwner && (
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-orange-500/10 border border-orange-500/20">
+              <Clock size={16} className="text-orange-400" />
+              <span className="text-sm text-orange-400">Deadline passed - admin override active</span>
+            </div>
+          )}
+          {deadlineStatus.severity === 'warning' && (
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
+              <Clock size={16} className="text-yellow-400" />
+              <span className="text-sm text-yellow-400">{deadlineStatus.message}</span>
+            </div>
+          )}
+          {deadlineStatus.severity === 'ok' && (
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-green-500/10 border border-green-500/20">
+              <Clock size={16} className="text-green-400" />
+              <span className="text-sm text-green-400">{deadlineStatus.message}</span>
             </div>
           )}
 
@@ -429,7 +459,7 @@ export default function MondaySubmissionWidget() {
           <div className="flex gap-2 pt-1">
             <button
               onClick={handleSubmit}
-              disabled={isSubmitting || !title.trim() || !content.trim()}
+              disabled={isSubmitting || !title.trim() || !content.trim() || (deadlineStatus.severity === 'locked' && !isAdminOrOwner)}
               className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 disabled:from-neutral-700 disabled:to-neutral-700 text-black disabled:text-neutral-500 font-semibold rounded-xl transition-all text-sm disabled:cursor-not-allowed"
             >
               {isSubmitting ? (

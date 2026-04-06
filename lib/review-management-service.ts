@@ -7,12 +7,23 @@
  * Data stored in data/reviews.json and data/review-requests.json
  *
  * @author RCRS Development Team
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import emailService from './email-service';
+
+// =============================================================================
+// CONSTANTS
+// =============================================================================
+
+/** Direct link for customers to leave a Google review for RCRS */
+export const GOOGLE_REVIEW_URL = 'https://g.page/r/CdVKlmRIhPZ-EBM/review';
+
+/** Rate limit: max 1 review request per customer email per this many days */
+const RATE_LIMIT_DAYS = 30;
 
 // =============================================================================
 // TYPES
@@ -59,7 +70,10 @@ export interface ReviewRequest {
   customerPhone: string;
   customerEmail: string;
   jobId: string;
+  jobType?: string;
+  completionDate?: string;
   repSlug: string;
+  repName?: string;
 
   method: RequestMethod;
   sentAt: string;
@@ -69,6 +83,9 @@ export interface ReviewRequest {
   lastReminderAt?: string;
 
   reviewId?: string;
+  emailSent?: boolean;
+  emailError?: string;
+  sheetLogged?: boolean;
 
   createdAt: string;
 }
@@ -85,7 +102,7 @@ export interface ReviewStats {
 }
 
 // =============================================================================
-// CONSTANTS
+// PLATFORM LABELS & COLORS
 // =============================================================================
 
 export const PLATFORM_LABELS: Record<ReviewPlatform, string> = {
@@ -400,17 +417,92 @@ class ReviewManagementService {
   }
 
   /**
-   * Send a review request to a customer.
+   * Check if a customer email has been sent a review request within the rate limit window.
+   * Returns the existing request if rate-limited, null otherwise.
    */
-  sendReviewRequest(data: {
+  checkRateLimit(customerEmail: string): ReviewRequest | null {
+    const requestsData = readRequests();
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - RATE_LIMIT_DAYS);
+
+    const recentRequest = requestsData.requests.find(
+      r => r.customerEmail.toLowerCase() === customerEmail.toLowerCase()
+        && new Date(r.createdAt) >= cutoff
+    );
+
+    return recentRequest || null;
+  }
+
+  /**
+   * Build the branded review request email HTML.
+   */
+  buildReviewEmailBody(data: {
+    customerName: string;
+    jobType?: string;
+    repName?: string;
+  }): string {
+    const firstName = data.customerName.split(' ')[0];
+    const jobMention = data.jobType
+      ? ` on your ${data.jobType.toLowerCase()}`
+      : '';
+    const repMention = data.repName
+      ? `<p style="color: #555; font-size: 14px;">Your project was handled by <strong>${data.repName}</strong>. If you had a great experience with them, please mention it in your review!</p>`
+      : '';
+
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
+        <div style="background: #000000; padding: 24px; text-align: center;">
+          <h1 style="color: #39FF14; margin: 0; font-size: 22px;">River City Roofing Solutions</h1>
+        </div>
+        <div style="padding: 32px 28px;">
+          <p style="color: #333; font-size: 16px; line-height: 1.6; margin-top: 0;">
+            Hi ${firstName},
+          </p>
+          <p style="color: #333; font-size: 16px; line-height: 1.6;">
+            Thank you for choosing River City Roofing Solutions${jobMention}! We truly appreciate your business and hope the finished result exceeded your expectations.
+          </p>
+          <p style="color: #333; font-size: 16px; line-height: 1.6;">
+            Would you take a moment to share your experience with a Google review? It only takes about 60 seconds, and your feedback helps other homeowners make informed decisions.
+          </p>
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${GOOGLE_REVIEW_URL}" style="display: inline-block; background: #39FF14; color: #000000; padding: 16px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 18px; letter-spacing: 0.5px;">
+              Leave a Google Review
+            </a>
+          </div>
+          ${repMention}
+          <p style="color: #555; font-size: 14px; line-height: 1.6;">
+            If there is anything about your experience that did not meet your expectations, please call us first at <a href="tel:+12562748530" style="color: #0066CC; text-decoration: none;">(256) 274-8530</a>. We want to make it right before you leave a review.
+          </p>
+        </div>
+        <div style="background: #f5f5f5; padding: 20px; text-align: center;">
+          <p style="margin: 0; color: #888; font-size: 12px;">
+            River City Roofing Solutions | (256) 274-8530 | rivercityroofingsolutions.com
+          </p>
+          <p style="margin: 8px 0 0 0; color: #aaa; font-size: 11px;">
+            You received this email because you are a valued customer of River City Roofing Solutions.
+            If you do not wish to receive future emails, please reply with "unsubscribe".
+          </p>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Send a review request to a customer.
+   * Sends a personalized email and logs to Google Sheets.
+   */
+  async sendReviewRequest(data: {
     customerId?: string;
     customerName: string;
     customerPhone: string;
     customerEmail: string;
     jobId: string;
+    jobType?: string;
+    completionDate?: string;
     repSlug: string;
+    repName?: string;
     method: RequestMethod;
-  }): ReviewRequest {
+  }): Promise<ReviewRequest> {
     const requestsData = readRequests();
     const now = new Date().toISOString();
 
@@ -421,13 +513,63 @@ class ReviewManagementService {
       customerPhone: data.customerPhone,
       customerEmail: data.customerEmail,
       jobId: data.jobId,
+      jobType: data.jobType,
+      completionDate: data.completionDate,
       repSlug: data.repSlug,
+      repName: data.repName,
       method: data.method,
       sentAt: now,
       status: 'sent',
       reminderCount: 0,
+      emailSent: false,
+      sheetLogged: false,
       createdAt: now,
     };
+
+    // Send email if method includes email
+    if (data.method === 'email' || data.method === 'both') {
+      const emailBody = this.buildReviewEmailBody({
+        customerName: data.customerName,
+        jobType: data.jobType,
+        repName: data.repName,
+      });
+
+      const emailResult = await emailService.send({
+        to: data.customerEmail,
+        subject: 'How was your experience with River City Roofing?',
+        body: emailBody,
+        fromName: 'River City Roofing Solutions',
+        replyTo: 'rcrs@rivercityroofingsolutions.com',
+      });
+
+      request.emailSent = emailResult.success;
+      if (!emailResult.success) {
+        request.emailError = emailResult.error;
+        console.error(`[ReviewRequest] Email failed for ${data.customerEmail}:`, emailResult.error);
+      }
+    }
+
+    // Log to Google Sheets (non-blocking - don't fail the request if Sheets is down)
+    try {
+      const { googleSheetsService } = await import('./google-sheets-service');
+      await googleSheetsService.addReview({
+        id: request.id,
+        name: data.customerName,
+        date: now,
+        rating: '',
+        text: `Review request sent via ${data.method} | Job: ${data.jobType || 'N/A'}`,
+        salesRep: data.repName || data.repSlug,
+        repSlug: data.repSlug,
+        source: 'review_request',
+        visible: 'false',
+        featured: 'false',
+        approved: 'false',
+        createdAt: now,
+      });
+      request.sheetLogged = true;
+    } catch (sheetError) {
+      console.error('[ReviewRequest] Google Sheets logging failed:', sheetError);
+    }
 
     requestsData.requests.push(request);
     writeRequests(requestsData);

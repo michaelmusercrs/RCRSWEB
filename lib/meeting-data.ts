@@ -53,7 +53,20 @@ export interface MeetingPrepData {
   preparedBy: string;
   preparedAt: string;
   status: 'draft' | 'ready' | 'presented';
+  approvedCharts: string[];
 }
+
+// Chart IDs available for approval
+export const AVAILABLE_CHARTS = [
+  { id: 'revenue-trend', name: 'Revenue Trend', description: 'Yearly/quarterly revenue from meeting numbers' },
+  { id: 'commission-trend', name: 'Commission Trend', description: 'Commission payouts over time' },
+  { id: 'rep-sales', name: 'Rep Sales Comparison', description: 'Sales by rep for the period' },
+  { id: 'rep-commissions', name: 'Rep Commission Comparison', description: 'Commissions by rep for the period' },
+  { id: 'key-metrics', name: 'Key Metrics Over Time', description: 'Inspections, damage, signed, and revenue trends' },
+  { id: 'quarterly', name: 'Quarter-over-Quarter', description: 'Quarterly revenue breakdown for current year' },
+] as const;
+
+export type ChartId = typeof AVAILABLE_CHARTS[number]['id'];
 
 export interface MeetingConfig {
   nextMeetingDate: string;
@@ -168,6 +181,22 @@ export const SLIDES: readonly Slide[] = [
   },
   {
     id: 13,
+    name: 'Sales Charts',
+    description: 'Revenue graphs and trends (week/month/quarter/year)',
+    duration: 90,
+    category: 'business',
+    icon: 'BarChart3',
+  },
+  {
+    id: 14,
+    name: 'Commission Charts',
+    description: 'Commission payout graphs and rep comparisons',
+    duration: 90,
+    category: 'business',
+    icon: 'LineChart',
+  },
+  {
+    id: 15,
     name: 'Announcements Part 2',
     description: 'Additional announcements and reminders',
     duration: 60,
@@ -175,7 +204,7 @@ export const SLIDES: readonly Slide[] = [
     icon: 'Bell',
   },
   {
-    id: 14,
+    id: 16,
     name: 'Training Module',
     description: 'Weekly training topic or skill development',
     duration: 180,
@@ -183,7 +212,7 @@ export const SLIDES: readonly Slide[] = [
     icon: 'GraduationCap',
   },
   {
-    id: 15,
+    id: 17,
     name: 'Motivational Quote',
     description: 'Inspirational quote to energize the team',
     duration: 30,
@@ -191,7 +220,7 @@ export const SLIDES: readonly Slide[] = [
     icon: 'Quote',
   },
   {
-    id: 16,
+    id: 18,
     name: 'Q&A',
     description: 'Open floor for questions and discussion',
     duration: 300, // 5 minutes
@@ -199,7 +228,7 @@ export const SLIDES: readonly Slide[] = [
     icon: 'MessageCircle',
   },
   {
-    id: 17,
+    id: 19,
     name: 'Sarge\'s Moment',
     description: 'Special segment - team building or closing thoughts',
     duration: 120,
@@ -207,7 +236,7 @@ export const SLIDES: readonly Slide[] = [
     icon: 'Star',
   },
   {
-    id: 18,
+    id: 20,
     name: 'Post-Meeting Loop',
     description: 'Background visuals as team disperses',
     duration: 180, // 3 minutes
@@ -323,6 +352,7 @@ export const DEFAULT_AGENDA: MeetingPrepData = {
   preparedBy: '',
   preparedAt: '',
   status: 'draft',
+  approvedCharts: [],
 };
 
 // =============================================================================

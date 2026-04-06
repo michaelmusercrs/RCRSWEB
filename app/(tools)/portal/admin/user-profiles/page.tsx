@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Users, Search, Shield, Key, Lock, Unlock, Save,
   Mail, Phone, CheckCircle2, AlertCircle, User, ChevronUp,
@@ -9,8 +10,9 @@ import {
   Calendar, FileText, Globe, PhoneCall, CreditCard, BarChart3,
   GraduationCap, UserCircle, UsersRound, MessageSquare, Truck,
   ShieldCheck, ClipboardCheck, Star, MapPin, Clock, ClipboardList,
-  Bell, ToggleLeft, ToggleRight, Sparkles, RotateCcw, X
+  Bell, ToggleLeft, ToggleRight, Sparkles, RotateCcw, X, Eye
 } from 'lucide-react';
+import { useAuth } from '@/lib/auth-context';
 import {
   TEAM_MEMBERS,
   type TeamMember,
@@ -317,8 +319,43 @@ export default function UserProfileManagerPage() {
   const [toast, setToast] = useState({ show: false, message: '' });
   const [expandedPermModules, setExpandedPermModules] = useState<Set<string>>(new Set());
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isImpersonating, setIsImpersonatingLocal] = useState(false);
+  const router = useRouter();
+  const { user: currentUser } = useAuth();
 
   const selectedMember = TEAM_MEMBERS.find(m => m.id === selectedUserId) || null;
+
+  // Check if current user can impersonate (owner or admin)
+  const canImpersonate = currentUser?.role === 'owner' || currentUser?.role === 'admin';
+
+  // Handle "View As" impersonation
+  const handleViewAs = async (member: TeamMember) => {
+    if (!canImpersonate) return;
+    if (currentUser?.email.toLowerCase() === member.email.toLowerCase()) {
+      setToast({ show: true, message: 'You cannot impersonate yourself.' });
+      return;
+    }
+
+    setIsImpersonatingLocal(true);
+    try {
+      const res = await fetch('/api/portal/admin/impersonate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetEmail: member.email }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Redirect to dashboard as the impersonated user
+        window.location.href = '/portal/dashboard';
+      } else {
+        setToast({ show: true, message: data.error || 'Failed to start impersonation.' });
+        setIsImpersonatingLocal(false);
+      }
+    } catch {
+      setToast({ show: true, message: 'Network error. Could not start impersonation.' });
+      setIsImpersonatingLocal(false);
+    }
+  };
 
   // Load config from localStorage or build defaults
   const loadConfig = useCallback((member: TeamMember) => {
@@ -580,6 +617,7 @@ export default function UserProfileManagerPage() {
                 const initials = member.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
                 const roleColor = ROLE_COLORS[member.role];
                 const textColor = roleColor.replace('bg-', 'text-');
+                const isSelf = currentUser?.email.toLowerCase() === member.email.toLowerCase();
 
                 return (
                   <button
@@ -610,6 +648,18 @@ export default function UserProfileManagerPage() {
                         {ROLE_DISPLAY_NAMES[member.role]}
                       </span>
                     </div>
+                    {canImpersonate && !isSelf && (
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => { e.stopPropagation(); handleViewAs(member); }}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); handleViewAs(member); } }}
+                        className="flex-shrink-0 w-7 h-7 rounded-lg bg-amber-500/10 hover:bg-amber-500/25 flex items-center justify-center transition-colors"
+                        title={`View as ${member.name}`}
+                      >
+                        <Eye size={14} className="text-amber-400" />
+                      </div>
+                    )}
                   </button>
                 );
               })}
@@ -666,23 +716,37 @@ export default function UserProfileManagerPage() {
                         </div>
                       </div>
                     </div>
-                    {/* Active toggle */}
-                    <button
-                      onClick={() => updateConfig({ isActive: !config.isActive })}
-                      className="flex items-center gap-2 group"
-                    >
-                      {config.isActive ? (
-                        <>
-                          <span className="text-sm text-green-400 group-hover:text-green-300 transition-colors">Active</span>
-                          <ToggleRight className="text-green-400 group-hover:text-green-300 transition-colors" size={32} />
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-sm text-red-400 group-hover:text-red-300 transition-colors">Inactive</span>
-                          <ToggleLeft className="text-red-400 group-hover:text-red-300 transition-colors" size={32} />
-                        </>
+                    <div className="flex items-center gap-3">
+                      {/* View As button */}
+                      {canImpersonate && selectedMember.email.toLowerCase() !== currentUser?.email.toLowerCase() && (
+                        <button
+                          onClick={() => handleViewAs(selectedMember)}
+                          disabled={isImpersonating}
+                          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 hover:text-amber-300 text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                          title={`View portal as ${selectedMember.name}`}
+                        >
+                          <Eye size={16} />
+                          {isImpersonating ? 'Switching...' : 'View As'}
+                        </button>
                       )}
-                    </button>
+                      {/* Active toggle */}
+                      <button
+                        onClick={() => updateConfig({ isActive: !config.isActive })}
+                        className="flex items-center gap-2 group"
+                      >
+                        {config.isActive ? (
+                          <>
+                            <span className="text-sm text-green-400 group-hover:text-green-300 transition-colors">Active</span>
+                            <ToggleRight className="text-green-400 group-hover:text-green-300 transition-colors" size={32} />
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-sm text-red-400 group-hover:text-red-300 transition-colors">Inactive</span>
+                            <ToggleLeft className="text-red-400 group-hover:text-red-300 transition-colors" size={32} />
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </section>
 

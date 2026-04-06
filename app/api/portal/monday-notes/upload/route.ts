@@ -10,11 +10,13 @@ import { requireAuth } from '@/lib/auth-service';
 import { put, del } from '@vercel/blob';
 import { MondayNoteAttachment } from '@/lib/monday-notes-service';
 
-// Max file size: 10MB
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+// Max file size: 10MB for images/docs, 50MB for videos
+const MAX_FILE_SIZE = 50 * 1024 * 1024;
+const MAX_NON_VIDEO_SIZE = 10 * 1024 * 1024;
 
 // Allowed file types
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo'];
 const ALLOWED_DOC_TYPES = [
   'application/pdf',
   'application/msword',
@@ -23,7 +25,7 @@ const ALLOWED_DOC_TYPES = [
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   'text/plain',
 ];
-const ALLOWED_TYPES = [...ALLOWED_IMAGE_TYPES, ...ALLOWED_DOC_TYPES];
+const ALLOWED_TYPES = [...ALLOWED_IMAGE_TYPES, ...ALLOWED_VIDEO_TYPES, ...ALLOWED_DOC_TYPES];
 
 function getFileType(mimeType: string): 'image' | 'document' | 'photo' {
   if (ALLOWED_IMAGE_TYPES.includes(mimeType)) {
@@ -57,10 +59,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file size
-    if (file.size > MAX_FILE_SIZE) {
+    // Validate file size (videos get 50MB, everything else 10MB)
+    const isVideo = ALLOWED_VIDEO_TYPES.includes(file.type);
+    const sizeLimit = isVideo ? MAX_FILE_SIZE : MAX_NON_VIDEO_SIZE;
+    if (file.size > sizeLimit) {
       return NextResponse.json(
-        { success: false, error: 'File size exceeds 10MB limit' },
+        { success: false, error: `File size exceeds ${isVideo ? '50MB' : '10MB'} limit` },
         { status: 400 }
       );
     }
@@ -68,7 +72,7 @@ export async function POST(request: NextRequest) {
     // Validate file type
     if (!ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json(
-        { success: false, error: 'File type not allowed. Please upload images (JPEG, PNG, GIF, WebP) or documents (PDF, Word, Excel, TXT).' },
+        { success: false, error: 'File type not allowed. Please upload images (JPEG, PNG, GIF, WebP), videos (MP4, WebM, MOV), or documents (PDF, Word, Excel, TXT).' },
         { status: 400 }
       );
     }

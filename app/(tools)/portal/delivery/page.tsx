@@ -28,6 +28,7 @@ import {
   Plus,
   UserPlus
 } from 'lucide-react';
+import DeptNotesWidget from '@/components/portal/DeptNotesWidget';
 
 interface DeliveryStop {
   orderId: string;
@@ -410,6 +411,11 @@ export default function DeliveryManagementPage() {
             <div className="text-[11px] text-zinc-500 font-medium">Unassigned</div>
           </div>
         </div>
+      </div>
+
+      {/* Monday Notes */}
+      <div className="px-4 md:px-6 py-3">
+        <DeptNotesWidget category="delivery" />
       </div>
 
       {/* Unassigned Tickets Banner */}

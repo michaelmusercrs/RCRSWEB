@@ -332,6 +332,7 @@ const SHEET_NAMES = {
   OUTSTANDING_INVOICES: 'Outstanding_Invoices',
   MONTHLY_TRENDS: 'Monthly_Trends',
   MEETING_PREP: 'MeetingPrep',
+  NUMBER_SESSIONS: 'NumberSessions',
 } as const;
 
 // =============================================================================
@@ -3166,6 +3167,144 @@ class GoogleSheetsService {
       return [];
     }
   }
+
+  // ===========================================================================
+  // NUMBER SESSIONS
+  // ===========================================================================
+
+  private readonly numberSessionHeaders = [
+    'id', 'week', 'repName', 'repEmail', 'sessionTimestamp',
+    'inspected', 'damage', 'signed', 'repair', 'gutter',
+    'revenue', 'approved', 'goal', 'referrals', 'agents',
+    'present', 'homeShow', 'action', 'previousValues',
+  ];
+
+  /**
+   * Append a single session row to the NumberSessions tab.
+   */
+  async appendNumberSession(session: {
+    id: string;
+    week: string;
+    repName: string;
+    repEmail: string;
+    sessionTimestamp: string;
+    inspected: number;
+    damage: number;
+    signed: number;
+    repair: number;
+    gutter: number;
+    revenue: number;
+    approved: number;
+    goal: number;
+    referrals: number;
+    agents: number;
+    present: string;
+    homeShow: number;
+    action: 'create' | 'update' | 'increment';
+    previousValues: string; // JSON string
+  }): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.NUMBER_SESSIONS, this.numberSessionHeaders);
+
+      await sheet.addRow({
+        id: session.id,
+        week: session.week,
+        repName: session.repName,
+        repEmail: session.repEmail,
+        sessionTimestamp: session.sessionTimestamp,
+        inspected: String(session.inspected),
+        damage: String(session.damage),
+        signed: String(session.signed),
+        repair: String(session.repair),
+        gutter: String(session.gutter),
+        revenue: String(session.revenue),
+        approved: String(session.approved),
+        goal: String(session.goal),
+        referrals: String(session.referrals),
+        agents: String(session.agents),
+        present: session.present,
+        homeShow: String(session.homeShow),
+        action: session.action,
+        previousValues: session.previousValues,
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error appending number session:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Read number sessions from the NumberSessions tab.
+   */
+  async getNumberSessions(options?: {
+    repEmail?: string;
+    week?: string;
+    limit?: number;
+  }): Promise<Record<string, string>[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.NUMBER_SESSIONS, this.numberSessionHeaders);
+      const rows = await sheet.getRows();
+
+      let records = rows.map(row => {
+        const record: Record<string, string> = {};
+        for (const h of this.numberSessionHeaders) {
+          record[h] = row.get(h) || '';
+        }
+        return record;
+      });
+
+      if (options?.repEmail) {
+        records = records.filter(r => r.repEmail === options.repEmail);
+      }
+      if (options?.week) {
+        records = records.filter(r => r.week === options.week);
+      }
+
+      // Sort by sessionTimestamp descending
+      records.sort((a, b) => (b.sessionTimestamp || '').localeCompare(a.sessionTimestamp || ''));
+
+      if (options?.limit && options.limit > 0) {
+        records = records.slice(0, options.limit);
+      }
+
+      return records;
+    } catch (error) {
+      console.error('Error reading number sessions:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Delete a number session row by id.
+   */
+  async deleteNumberSession(id: string): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.NUMBER_SESSIONS, this.numberSessionHeaders);
+      const rows = await sheet.getRows();
+
+      const row = rows.find(r => r.get('id') === id);
+      if (row) {
+        await row.delete();
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Error deleting number session:', error);
+      return false;
+    }
+  }
 }
 
 // =============================================================================
@@ -3212,6 +3351,7 @@ const sandboxProxy = new Proxy(_realService, {
       getAuditLog: async () => { sandboxLog('GoogleSheets', 'getAuditLog'); return getSandboxAuditLog(); },
       getMeetingPreps: async () => { sandboxLog('GoogleSheets', 'getMeetingPreps'); return [getSandboxMeetingPrep()]; },
       getTrainingProgress: async () => { sandboxLog('GoogleSheets', 'getTrainingProgress'); return getSandboxTrainingProgress(); },
+      getNumberSessions: async () => { sandboxLog('GoogleSheets', 'getNumberSessions'); return []; },
       getTeamMembers: async () => { sandboxLog('GoogleSheets', 'getTeamMembers'); return []; },
       getTeamAccessOverrides: async () => { sandboxLog('GoogleSheets', 'getTeamAccessOverrides'); return []; },
       getAgents: async () => { sandboxLog('GoogleSheets', 'getAgents'); return []; },
@@ -3244,6 +3384,7 @@ const sandboxProxy = new Proxy(_realService, {
       'logTrainingProgress',
       'triggerFullSync',
       'saveMeetingPrep', 'updateMeetingPrep',
+      'appendNumberSession', 'deleteNumberSession',
     ];
 
     if (writeOps.includes(prop)) {
