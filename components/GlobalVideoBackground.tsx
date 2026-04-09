@@ -78,16 +78,24 @@ export default function GlobalVideoBackground({
       )}
 
       {/* Background Image - always present as base layer.
-          Using <img> instead of CSS background so the browser discovers it early and it can be the LCP. */}
-      <img
-        key={`image-${animationKey}`}
-        src={fallbackImage}
-        alt=""
-        aria-hidden="true"
-        decoding="async"
-        fetchPriority="high"
-        className="absolute inset-0 w-full h-full object-cover animate-ken-burns"
-      />
+          Using <img> instead of CSS background so the browser discovers it early and it can be the LCP.
+          - No `key`: re-rendering the LCP element on every route change restarts the LCP timer.
+          - Animation lives on a wrapper, not the img: animating the LCP element delays its
+            "final paint" measurement and makes Lighthouse score the LCP later than it actually is. */}
+      <div className="absolute inset-0 w-full h-full overflow-hidden animate-ken-burns" key={`ken-${animationKey}`}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={fallbackImage}
+          alt=""
+          aria-hidden="true"
+          decoding="async"
+          fetchPriority="high"
+          loading="eager"
+          width={1920}
+          height={1080}
+          className="w-full h-full object-cover"
+        />
+      </div>
 
       {/* Dark Overlay for readability */}
       <div className="absolute inset-0 bg-black/50" />

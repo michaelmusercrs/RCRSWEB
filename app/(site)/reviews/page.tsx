@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Star, ExternalLink, CheckCircle2, Shield, Clock, ThumbsUp, Award, ArrowRight } from 'lucide-react';
-import { generalReviews, reviewsByRep, type Review } from '@/lib/reviewsData';
+import { loadAllReviews } from '@/lib/reviews-loader';
 import { generateMetadata as genMeta, generateBreadcrumbSchema, siteConfig } from '@/lib/seo';
 import StructuredData from '@/components/StructuredData';
 import type { Metadata } from 'next';
@@ -13,15 +13,9 @@ export const metadata: Metadata = genMeta({
   keywords: ['roofing reviews', 'roofing testimonials', 'Decatur roofer reviews', 'Huntsville roofing reviews', 'North Alabama roofer ratings'],
 });
 
-// Collect all real Google reviews from every rep + general
-function getAllReviews(): Review[] {
-  const all: Review[] = [...generalReviews];
-  for (const slug of Object.keys(reviewsByRep)) {
-    all.push(...reviewsByRep[slug]);
-  }
-  // Sort newest first
-  return all.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-}
+// Revalidate the reviews page every 5 minutes so newly-added rows in the
+// Google Sheet show up without requiring a redeploy.
+export const revalidate = 300;
 
 function StarRating({ rating }: { rating: number }) {
   return (
@@ -37,8 +31,8 @@ function StarRating({ rating }: { rating: number }) {
   );
 }
 
-export default function ReviewsPage() {
-  const allReviews = getAllReviews();
+export default async function ReviewsPage() {
+  const { reviews: allReviews } = await loadAllReviews();
 
   const breadcrumbSchema = generateBreadcrumbSchema([
     { name: 'Home', url: '/' },
