@@ -103,6 +103,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Preconnect to third-party origins so the TCP+TLS handshake completes
+            before the actual request. Saves ~100-300ms on analytics-heavy first paint. */}
+        <link rel="preconnect" href="https://www.googletagmanager.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://www.google-analytics.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
         {/* Structured Data (JSON-LD) - LocalBusiness and WebSite schemas */}
         <script
           type="application/ld+json"
@@ -130,7 +135,9 @@ export default function RootLayout({
         <meta name="msapplication-TileColor" content="#1a1a2e" />
         <meta name="msapplication-tap-highlight" content="no" />
         <meta name="format-detection" content="telephone=no" />
-        {/* Preload the hero background (largest painted element on mobile, CSS bg discovered late) */}
+        {/* Preload the hero background — this IS the LCP element on mobile.
+            It's a full-viewport <img> rendered by GlobalVideoBackground that
+            becomes the largest painted pixel area before the logo loads. */}
         <link
           rel="preload"
           href="/uploads/hero-video-poster.webp"
@@ -138,14 +145,10 @@ export default function RootLayout({
           type="image/webp"
           fetchPriority="high"
         />
-        {/* Preload the logo at the mobile-optimized size (Lighthouse tests mobile, which uses w=384) */}
-        <link
-          rel="preload"
-          href="/_next/image?url=%2Flogo-nobg.png&w=384&q=75"
-          as="image"
-          type="image/webp"
-          fetchPriority="high"
-        />
+        {/* Note: we previously preloaded the logo too, but it competed with
+            the hero poster for bandwidth and was redundant — the <Image
+            priority fetchPriority="high"> on the homepage already handles it,
+            and on every other page the logo isn't above the fold. */}
       </head>
       <body className={inter.className} suppressHydrationWarning>
         {/* Google Tag Manager / Analytics with Consent Mode */}
