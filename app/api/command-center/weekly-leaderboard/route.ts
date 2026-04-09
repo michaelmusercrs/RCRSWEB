@@ -107,6 +107,15 @@ function lookupRepSlug(repName: string): string | null {
 }
 
 /**
+ * Normalize meeting record rep names so variants like "Adam" / "Adam Rudell" /
+ * "Rudy" all aggregate into a single leaderboard row keyed by canonical slug.
+ */
+function canonicalRepKey(repName: string): string {
+  const slug = lookupRepSlug(repName);
+  return slug || repName.trim().toLowerCase();
+}
+
+/**
  * Build a map of {repSlug → review count} optionally filtered by date range.
  * Reviews flow from data/reviews-master.json via lib/rep-reviews.ts.
  */
@@ -354,11 +363,19 @@ export async function GET(request: NextRequest) {
     for (const record of records) {
       if (!record.repName || record.repName.trim() === '') continue;
 
-      const key = record.repName.trim().toLowerCase();
+      // Use canonical slug as the key so "Adam" + "Adam Rudell" + "Rudy" all
+      // aggregate into one row instead of three.
+      const key = canonicalRepKey(record.repName);
 
       if (!repTotals.has(key)) {
+        // Prefer the cleanest display name. If we have a slug, use the canonical
+        // team name; otherwise use the trimmed raw name.
+        const slug = lookupRepSlug(record.repName);
+        const displayName = slug
+          ? record.repName.trim().split(/\s+/)[0] // first name for sales reps
+          : record.repName.trim();
         repTotals.set(key, {
-          repName: record.repName.trim(),
+          repName: displayName,
           weeksReported: 0,
           totals: {},
           weeklyBreakdown: [],
