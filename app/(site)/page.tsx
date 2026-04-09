@@ -7,7 +7,6 @@ import { MapPin, Shield, Award, Users, CheckCircle2, ArrowRight, CloudLightning,
 import RotatingText from '@/components/RotatingText';
 import RotatingBanner from '@/components/RotatingBanner';
 import QuickContactForm from '@/components/QuickContactForm';
-import { generateFAQSchema } from '@/lib/seo';
 import { blogPosts } from '@/lib/blogData';
 import { services, serviceAreas } from '@/lib/servicesData';
 import { getFeaturedReviews } from '@/lib/reviewsData';
@@ -53,16 +52,11 @@ export default async function HomePage() {
     },
   ];
 
-  const faqSchema = generateFAQSchema(homepageFAQs);
+  // FAQ schema is rendered in (site) layout head so it's a real <script> in static HTML.
+  // The visible FAQ section below uses homepageFAQs directly.
 
   return (
     <div className="min-h-screen text-white overflow-x-hidden">
-      {/* FAQ schema for Google rich results. Rendered inline in layout.tsx head as well
-          because Next.js 14.2 streaming drops body-level <script> tags into RSC payload. */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema).replace(/</g, '\\u003c') }}
-      />
 
       {/* Rotating Announcement Banner */}
       <RotatingBanner />

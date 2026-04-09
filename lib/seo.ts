@@ -552,7 +552,9 @@ export function generateFAQSchema(faqs: Array<{ question: string; answer: string
  * Use this in your component with dangerouslySetInnerHTML
  */
 export function getStructuredDataScript(data: Record<string, unknown> | Record<string, unknown>[]): string {
-  return JSON.stringify(data);
+  // Escape `<` so embedded `</script>` (or `<!--`) cannot break out of the surrounding <script> tag.
+  // This is the standard JSON-LD escape and prevents the "appendChild Invalid token" console error.
+  return JSON.stringify(data).replace(/</g, '\\u003c');
 }
 
 /**
