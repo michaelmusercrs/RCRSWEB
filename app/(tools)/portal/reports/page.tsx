@@ -7,7 +7,8 @@
  * - Billing: /api/command-center/financial (commissions.json + invoices)
  * - Team: /api/command-center/sales (commissions.json leaderboard)
  * - Inventory: /api/portal/inventory (unified-inventory-service)
- * - Delivery & Job Flow: No tracking data yet - shows "No data available"
+ * - Delivery: /api/portal/pipeline?action=stats + ?action=list (18-stage pipeline)
+ * - Job Flow: /api/portal/pipeline?action=stats (stage breakdown + bottleneck detection)
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -86,6 +87,64 @@ interface CategoryBreakdown {
   lowStockCount: number;
 }
 
+interface PipelineStats {
+  total: number;
+  active: number;
+  completed: number;
+  cancelled: number;
+  byStage: Record<string, number>;
+  byPriority: Record<string, number>;
+  totalValue: number;
+  avgOrderValue: number;
+}
+
+interface PipelineOrderRow {
+  orderId: string;
+  currentStage: string;
+  priority: string;
+  createdAt: string;
+  jobNumber: string;
+  jobName: string;
+  customerName: string;
+  deliveryCity: string;
+  deliveryState: string;
+  assignedDriverName?: string;
+  totalPrice: number;
+  paymentStatus: string;
+  cancelled: boolean;
+}
+
+// Stage label map (matches lib/material-order-pipeline.ts STAGE_CONFIG)
+const STAGE_LABELS: Record<string, string> = {
+  ORDER_CREATED: 'Order Created',
+  ORDER_REVIEWED: 'Order Reviewed',
+  DRIVER_ASSIGNED: 'Driver Assigned',
+  WAREHOUSE_NOTIFIED: 'Warehouse Notified',
+  MATERIALS_PULLED: 'Materials Pulled',
+  LOAD_VERIFIED: 'Load Verified',
+  DEPARTURE_CONFIRMED: 'Departure Confirmed',
+  EN_ROUTE: 'En Route',
+  ARRIVED_AT_SITE: 'Arrived at Site',
+  UNLOADING: 'Unloading',
+  DELIVERY_CONFIRMED: 'Delivery Confirmed',
+  SIGNATURE_CAPTURED: 'Signature Captured',
+  QC_PHOTOS: 'QC Photos',
+  OFFICE_NOTIFIED: 'Office Notified',
+  BILLING_REVIEW: 'Billing Review',
+  INVOICE_SENT: 'Invoice Sent',
+  PAYMENT_RECEIVED: 'Payment Received',
+  JOB_CLOSED: 'Job Closed',
+};
+
+// Stages considered "in transit" for delivery report
+const DELIVERY_IN_TRANSIT_STAGES = [
+  'DEPARTURE_CONFIRMED', 'EN_ROUTE', 'ARRIVED_AT_SITE', 'UNLOADING',
+];
+const DELIVERY_COMPLETE_STAGES = [
+  'DELIVERY_CONFIRMED', 'SIGNATURE_CAPTURED', 'QC_PHOTOS',
+  'OFFICE_NOTIFIED', 'BILLING_REVIEW', 'INVOICE_SENT', 'PAYMENT_RECEIVED', 'JOB_CLOSED',
+];
+
 // ---------------------------------------------------------------------------
 // Format helpers
 // ---------------------------------------------------------------------------
@@ -132,6 +191,10 @@ export default function ReportsPage() {
   const [inventorySummary, setInventorySummary] = useState<InventorySummary | null>(null);
   const [categoryBreakdown, setCategoryBreakdown] = useState<CategoryBreakdown[]>([]);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+
+  // Pipeline data (delivery + job flow share the same source)
+  const [pipelineStats, setPipelineStats] = useState<PipelineStats | null>(null);
+  const [recentOrders, setRecentOrders] = useState<PipelineOrderRow[]>([]);
 
   const reportTypes = [
     { id: 'billing', label: 'Billing', icon: DollarSign, color: 'bg-green-500' },
@@ -190,8 +253,23 @@ export default function ReportsPage() {
             setInventorySummary(prev => prev ? { ...prev, lowStockCount: totalLow } : prev);
           }
         }
+      } else if (activeReport === 'delivery' || activeReport === 'jobflow') {
+        // Both tabs read from the unified 18-stage pipeline.
+        // ?action=stats gives totals + byStage + byPriority + value totals.
+        // ?action=list&limit=20 gives recent orders for the activity table.
+        const [statsRes, listRes] = await Promise.all([
+          fetch('/api/portal/pipeline?action=stats'),
+          fetch('/api/portal/pipeline?action=list&limit=20'),
+        ]);
+        if (statsRes.ok) {
+          const stats = await statsRes.json();
+          if (stats && typeof stats.total === 'number') setPipelineStats(stats);
+        }
+        if (listRes.ok) {
+          const list = await listRes.json();
+          if (Array.isArray(list)) setRecentOrders(list);
+        }
       }
-      // delivery and jobflow: no API to call, no data yet
     } catch (err) {
       console.error('Failed to load report:', err);
     } finally {
@@ -559,23 +637,184 @@ export default function ReportsPage() {
               )}
 
               {/* ============================================================ */}
-              {/* DELIVERY REPORT - No real data source yet                    */}
+              {/* DELIVERY REPORT - Real data from 18-stage pipeline           */}
               {/* ============================================================ */}
               {activeReport === 'delivery' && (
-                <NoDataPlaceholder
-                  title="No Delivery Data Available"
-                  message="Delivery tracking data is not yet connected. This report will show real delivery metrics once the delivery tracking system records actual deliveries."
-                />
+                <div className="space-y-6">
+                  {pipelineStats ? (
+                    <>
+                      {/* Top metric cards */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                          <p className="text-neutral-400 text-sm mb-1">In Transit</p>
+                          <p className="text-3xl font-bold text-cyan-400">
+                            {DELIVERY_IN_TRANSIT_STAGES.reduce((sum, s) => sum + (pipelineStats.byStage[s] || 0), 0)}
+                          </p>
+                          <p className="text-xs text-neutral-500 mt-1">Live deliveries on the road</p>
+                        </div>
+                        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                          <p className="text-neutral-400 text-sm mb-1">Completed</p>
+                          <p className="text-3xl font-bold text-green-400">
+                            {DELIVERY_COMPLETE_STAGES.reduce((sum, s) => sum + (pipelineStats.byStage[s] || 0), 0)}
+                          </p>
+                          <p className="text-xs text-neutral-500 mt-1">Past delivery confirmation</p>
+                        </div>
+                        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                          <p className="text-neutral-400 text-sm mb-1">Pipeline Value</p>
+                          <p className="text-3xl font-bold text-white">{formatCurrency(pipelineStats.totalValue)}</p>
+                          <p className="text-xs text-neutral-500 mt-1">Avg {formatCurrency(pipelineStats.avgOrderValue)}/order</p>
+                        </div>
+                        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                          <p className="text-neutral-400 text-sm mb-1">Cancelled</p>
+                          <p className="text-3xl font-bold text-red-400">{pipelineStats.cancelled}</p>
+                          <p className="text-xs text-neutral-500 mt-1">Out of {pipelineStats.total} total</p>
+                        </div>
+                      </div>
+
+                      {/* Priority breakdown */}
+                      <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-white mb-4">Active Orders by Priority</h3>
+                        <div className="grid grid-cols-3 gap-4">
+                          <div>
+                            <p className="text-xs text-neutral-400">Normal</p>
+                            <p className="text-2xl font-bold text-white">{pipelineStats.byPriority.normal || 0}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-yellow-400">Rush</p>
+                            <p className="text-2xl font-bold text-yellow-400">{pipelineStats.byPriority.rush || 0}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-red-400">Urgent</p>
+                            <p className="text-2xl font-bold text-red-400">{pipelineStats.byPriority.urgent || 0}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Recent deliveries table */}
+                      <div className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
+                        <div className="px-6 py-4 border-b border-white/5">
+                          <h3 className="text-lg font-semibold text-white">Recent Orders</h3>
+                          <p className="text-xs text-neutral-400">Last {recentOrders.length} from the pipeline</p>
+                        </div>
+                        {recentOrders.length > 0 ? (
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead className="bg-white/[0.02] text-neutral-400">
+                                <tr>
+                                  <th className="text-left px-4 py-2 font-medium">Order</th>
+                                  <th className="text-left px-4 py-2 font-medium">Job</th>
+                                  <th className="text-left px-4 py-2 font-medium">Customer</th>
+                                  <th className="text-left px-4 py-2 font-medium">Stage</th>
+                                  <th className="text-left px-4 py-2 font-medium">Driver</th>
+                                  <th className="text-right px-4 py-2 font-medium">Total</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {recentOrders.map((o) => (
+                                  <tr key={o.orderId} className="border-t border-white/5">
+                                    <td className="px-4 py-2 font-mono text-xs text-neutral-300">{o.orderId}</td>
+                                    <td className="px-4 py-2 text-white">{o.jobName || o.jobNumber}</td>
+                                    <td className="px-4 py-2 text-neutral-300">{o.customerName}</td>
+                                    <td className="px-4 py-2 text-cyan-400 text-xs">{STAGE_LABELS[o.currentStage] || o.currentStage}</td>
+                                    <td className="px-4 py-2 text-neutral-400 text-xs">{o.assignedDriverName || '—'}</td>
+                                    <td className="px-4 py-2 text-right text-white">{formatCurrency(o.totalPrice || 0)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <div className="px-6 py-8 text-center text-neutral-500 text-sm">
+                            No orders in the pipeline yet.
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <NoDataPlaceholder
+                      title="Pipeline Not Reachable"
+                      message="Could not load /api/portal/pipeline. Verify Google Sheets credentials and the PipelineOrders tab exists."
+                    />
+                  )}
+                </div>
               )}
 
               {/* ============================================================ */}
-              {/* JOB FLOW REPORT - No real data source yet                    */}
+              {/* JOB FLOW REPORT - Stage breakdown from same pipeline source  */}
               {/* ============================================================ */}
               {activeReport === 'jobflow' && (
-                <NoDataPlaceholder
-                  title="No Job Flow Data Available"
-                  message="Job flow pipeline data is not yet connected. This report will show real workflow metrics once job tracking records actual stage transitions."
-                />
+                <div className="space-y-6">
+                  {pipelineStats ? (
+                    <>
+                      {/* Top metric cards */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                          <p className="text-neutral-400 text-sm mb-1">Total Orders</p>
+                          <p className="text-3xl font-bold text-white">{pipelineStats.total}</p>
+                        </div>
+                        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                          <p className="text-neutral-400 text-sm mb-1">Active</p>
+                          <p className="text-3xl font-bold text-cyan-400">{pipelineStats.active}</p>
+                          <p className="text-xs text-neutral-500 mt-1">In flight (not yet closed)</p>
+                        </div>
+                        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                          <p className="text-neutral-400 text-sm mb-1">Completed</p>
+                          <p className="text-3xl font-bold text-green-400">{pipelineStats.completed}</p>
+                          <p className="text-xs text-neutral-500 mt-1">Reached JOB_CLOSED</p>
+                        </div>
+                        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                          <p className="text-neutral-400 text-sm mb-1">Completion Rate</p>
+                          <p className="text-3xl font-bold text-white">
+                            {pipelineStats.total > 0
+                              ? Math.round((pipelineStats.completed / pipelineStats.total) * 100)
+                              : 0}%
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Stage funnel */}
+                      <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-white mb-4">18-Stage Pipeline Distribution</h3>
+                        <p className="text-xs text-neutral-500 mb-4">
+                          How many orders are sitting at each stage right now. Bars highlight bottlenecks.
+                        </p>
+                        <div className="space-y-2">
+                          {Object.entries(STAGE_LABELS).map(([stageKey, label], idx) => {
+                            const count = pipelineStats.byStage[stageKey] || 0;
+                            const max = Math.max(...Object.values(pipelineStats.byStage), 1);
+                            const pct = (count / max) * 100;
+                            return (
+                              <div key={stageKey} className="flex items-center gap-3">
+                                <div className="w-8 text-xs text-neutral-500 text-right">{idx + 1}</div>
+                                <div className="w-44 text-xs text-neutral-400 truncate">{label}</div>
+                                <div className="flex-1 h-6 bg-white/[0.02] rounded overflow-hidden relative">
+                                  <div
+                                    className={`h-full ${
+                                      count === 0
+                                        ? 'bg-transparent'
+                                        : pct > 60
+                                        ? 'bg-yellow-500/40'
+                                        : 'bg-cyan-500/40'
+                                    }`}
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                  <div className="absolute inset-0 flex items-center px-2 text-xs text-white">
+                                    {count}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <NoDataPlaceholder
+                      title="Pipeline Not Reachable"
+                      message="Could not load /api/portal/pipeline. Verify Google Sheets credentials and the PipelineOrders tab exists."
+                    />
+                  )}
+                </div>
               )}
             </>
           )}
