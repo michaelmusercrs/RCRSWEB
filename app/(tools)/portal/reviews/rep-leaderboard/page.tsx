@@ -31,12 +31,12 @@ const REVIEW_ELIGIBLE_ROLES = new Set([
 ]);
 
 // Owners/admins/marketing are excluded from review accountability since they
-// aren't on the front line. Match the same exclusion as the sales leaderboard.
+// aren't on the front line. Slugs must match teamData.ts.
 const ACCOUNTABILITY_EXCLUDED = new Set([
   'michael-muse',
   'chris-muse',
   'sara-hill',
-  'boston-muse',
+  'boston',
 ]);
 
 function gradeColor(stats: RepReviewStats): string {

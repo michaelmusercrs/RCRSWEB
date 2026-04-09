@@ -10,48 +10,56 @@ import os
 from datetime import datetime
 from collections import Counter
 
-# Map raw rep names → canonical {slug, name} matching team-roles.ts slugs
+# Map raw rep names → canonical (slug, displayName).
+# IMPORTANT: slugs MUST match teamData.ts so /team/[slug] links resolve.
+# Most teamData entries use first-name slugs ("hunter", "aaron", "brendon").
+# Adam Rudell is a 1099 sales rep — he's not in teamData.ts yet, so we use
+# 'adam-rudell' which won't link to a profile but will still appear in the
+# leaderboard (where no link is required).
 REP_MAP = {
-    'adam rudell rudy': ('adam-rudell', 'Adam Rudell'),
-    'adam rudell': ('adam-rudell', 'Adam Rudell'),
-    'adam': ('adam-rudell', 'Adam Rudell'),
-    'rudy': ('adam-rudell', 'Adam Rudell'),
-    'brendon muse': ('brendon-muse', 'Brendon Muse'),
-    'brendon': ('brendon-muse', 'Brendon Muse'),
-    'brenden': ('brendon-muse', 'Brendon Muse'),
-    'brenden muse': ('brendon-muse', 'Brendon Muse'),
-    'brandon muse': ('brendon-muse', 'Brendon Muse'),
-    'brandon': ('brendon-muse', 'Brendon Muse'),
-    'aaron lussi': ('aaron-lussi', 'Aaron Lussi'),
-    'aaron': ('aaron-lussi', 'Aaron Lussi'),
-    'hunter rivers': ('hunter-rivers', 'Hunter Rivers'),
-    'hunter': ('hunter-rivers', 'Hunter Rivers'),
-    'travis wages': ('travis-wages', 'Travis Wages'),
-    'travis': ('travis-wages', 'Travis Wages'),
-    'greg muse': ('greg-muse', 'Greg Muse'),
-    'greg': ('greg-muse', 'Greg Muse'),
+    # Adam Rudell — slug 'adam' in team-roles.ts. The "Rudy" nickname appears
+    # in many reviews and refers to Adam Rudell (not the separate 'rudy' member).
+    'adam rudell rudy': ('adam', 'Adam Rudell'),
+    'adam rudell': ('adam', 'Adam Rudell'),
+    'adam': ('adam', 'Adam Rudell'),
+    'rudy': ('adam', 'Adam Rudell'),
+    # Active reps with /team profiles
+    'brendon muse': ('brendon', 'Brendon Muse'),
+    'brendon': ('brendon', 'Brendon Muse'),
+    'brenden': ('brendon', 'Brendon Muse'),
+    'brenden muse': ('brendon', 'Brendon Muse'),
+    'brandon muse': ('brendon', 'Brendon Muse'),
+    'brandon': ('brendon', 'Brendon Muse'),
+    'aaron lussi': ('aaron', 'Aaron Lussi'),
+    'aaron': ('aaron', 'Aaron Lussi'),
+    'hunter rivers': ('hunter', 'Hunter Rivers'),
+    'hunter': ('hunter', 'Hunter Rivers'),
+    'travis wages': ('travis', 'Travis Wages'),
+    'travis': ('travis', 'Travis Wages'),
+    'greg muse': ('greg', 'Greg Muse'),
+    'greg': ('greg', 'Greg Muse'),
     'chris muse': ('chris-muse', 'Chris Muse'),
     'chris': ('chris-muse', 'Chris Muse'),
     'michael muse': ('michael-muse', 'Michael Muse'),
     'michael': ('michael-muse', 'Michael Muse'),
     'mike muse': ('michael-muse', 'Michael Muse'),
-    'destin mccary': ('destin-mccary', 'Destin Mccary'),
-    'destin': ('destin-mccary', 'Destin Mccary'),
+    'destin mccary': ('destin', 'Destin Mccary'),
+    'destin': ('destin', 'Destin Mccary'),
     'sara hill': ('sara-hill', 'Sara Hill'),
     'sara': ('sara-hill', 'Sara Hill'),
-    'tia muse morris': ('tia-muse-morris', 'Tia Muse Morris'),
-    'tia': ('tia-muse-morris', 'Tia Muse Morris'),
-    'bart roberts': ('bart-roberts', 'Bart Roberts'),
-    'bart': ('bart-roberts', 'Bart Roberts'),
-    'john cordonis': ('john-cordonis', 'John Cordonis'),
-    'john': ('john-cordonis', 'John Cordonis'),
+    'tia muse morris': ('tia', 'Tia Muse Morris'),
+    'tia': ('tia', 'Tia Muse Morris'),
+    'bart roberts': ('bart', 'Bart Roberts'),
+    'bart': ('bart', 'Bart Roberts'),
+    'john cordonis': ('john', 'John Cordonis'),
+    'john': ('john', 'John Cordonis'),
     'rick': ('rick', 'Rick'),
-    'richard': ('rick', 'Rick'),
+    'richard': ('richard', 'Richard Geahr'),
     'richard rick': ('rick', 'Rick'),
     'joseph dowd': ('joseph-dowd', 'Joseph Dowd'),
     'joseph': ('joseph-dowd', 'Joseph Dowd'),
     'alijah': ('alijah', 'Alijah'),
-    # former employees
+    # former employees - no profile pages
     'wess': ('wess-former', 'Wess (former)'),
     'wes': ('wess-former', 'Wess (former)'),
     'cozelos wess': ('wess-former', 'Cozelos Wess (former)'),
@@ -64,8 +72,8 @@ REP_MAP = {
     'reggie': ('reggie-jackson', 'Reggie Jackson'),
     'danny ray muse': ('danny-ray-muse', 'Danny Ray Muse'),
     'danny': ('danny-ray-muse', 'Danny Ray Muse'),
-    'tae orr': ('tae-orr', 'Tae Orr'),
-    'tae': ('tae-orr', 'Tae Orr'),
+    'tae orr': ('tae', 'Tae Orr'),
+    'tae': ('tae', 'Tae Orr'),
 }
 
 RATING_MAP = {

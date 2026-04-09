@@ -82,22 +82,24 @@ const METRIC_TO_FIELD: Record<string, string> = {
 };
 
 // Map a meeting record's repName to a canonical rep slug for review lookup.
-// Meeting records use first names ("Adam", "Brendon"); the master review data
-// is keyed by full slugs ("adam-rudell", "brendon-muse").
+// Meeting records use first names ("Adam", "Brendon"); slugs match teamData.ts
+// so links from the leaderboard resolve to the right /team/[slug] page.
 const REP_NAME_TO_SLUG: Record<string, string> = {
-  'aaron': 'aaron-lussi',
-  'adam': 'adam-rudell',
-  'adam rudell': 'adam-rudell',
-  'rudy': 'adam-rudell',
-  'brendon': 'brendon-muse',
-  'brenden': 'brendon-muse',
-  'greg': 'greg-muse',
-  'hunter': 'hunter-rivers',
-  'travis': 'travis-wages',
+  'aaron': 'aaron',
+  'adam': 'adam',
+  'adam rudell': 'adam',
+  'rudy': 'adam',
+  'brendon': 'brendon',
+  'brenden': 'brendon',
+  'greg': 'greg',
+  'hunter': 'hunter',
+  'travis': 'travis',
   'rick': 'rick',
   'joseph': 'joseph-dowd',
   'joseph dowd': 'joseph-dowd',
   'alijah': 'alijah',
+  'richard geahr': 'richard',
+  'richard': 'richard',
 };
 
 function lookupRepSlug(repName: string): string | null {
