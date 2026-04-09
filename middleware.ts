@@ -1,6 +1,99 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateCsrf } from '@/lib/csrf';
 
+// ── Page-level access control ──────────────────────────────────────────────────
+//
+// In addition to API-level enforcement, the middleware bounces users away from
+// portal pages they don't have permission to load. This prevents the "broken
+// page" experience where a viewer loads /portal/admin and sees empty UI shells
+// because every API call returns 403.
+//
+// We do NOT verify the JWT signature here — API routes still do that. We only
+// peek at the payload to read the role, since this layer is for UX, not
+// security. A forged token with a fake role just gets the user a normal-looking
+// page with broken API calls (same as today).
+
+type RoleName = 'Owner' | 'Admin' | 'Manager' | 'Sales' | 'Driver' | 'Office' | string;
+
+// Routes restricted to a minimum role tier (using ROLE_HIERARCHY weights).
+// Higher number = higher privilege.
+const ROLE_RANK: Record<string, number> = {
+  Owner: 6,
+  Admin: 5,
+  Manager: 4,
+  Office: 3,
+  Sales: 2,
+  Driver: 1,
+};
+
+// Pages that require at least the named role to load.
+// Match is "starts with" — longer prefixes win over shorter ones.
+const PROTECTED_PAGE_RULES: Array<{ prefix: string; minRole: RoleName }> = [
+  // Admin-only
+  { prefix: '/portal/admin', minRole: 'Admin' },
+  { prefix: '/portal/billing', minRole: 'Office' },
+  { prefix: '/portal/office', minRole: 'Office' },
+  { prefix: '/command-center/admin', minRole: 'Admin' },
+  { prefix: '/command-center/settings', minRole: 'Admin' },
+  // Manager+ (operations oversight)
+  { prefix: '/portal/manager', minRole: 'Manager' },
+  // Office/Manager+
+  { prefix: '/portal/inventory', minRole: 'Office' },
+];
+
+function base64UrlDecode(str: string): string {
+  // Edge-runtime safe: use atob, not Buffer
+  const padded = str.replace(/-/g, '+').replace(/_/g, '/');
+  const padding = padded.length % 4;
+  const padStr = padding ? padded + '='.repeat(4 - padding) : padded;
+  try {
+    return atob(padStr);
+  } catch {
+    return '';
+  }
+}
+
+function decodeJwtPayload(token: string): { role?: string; exp?: number } | null {
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+  try {
+    const payload = JSON.parse(base64UrlDecode(parts[1]));
+    return payload || null;
+  } catch {
+    return null;
+  }
+}
+
+function getUserRoleFromRequest(request: NextRequest): string | null {
+  const token = request.cookies.get('access_token')?.value;
+  if (!token) return null;
+  const payload = decodeJwtPayload(token);
+  if (!payload) return null;
+  // Honor expiration so a stale cookie doesn't grant access through middleware
+  if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return null;
+  return payload.role || null;
+}
+
+function findProtectedRule(pathname: string): { prefix: string; minRole: RoleName } | null {
+  // Longest-prefix match so /portal/admin/lead-distro picks the /portal/admin rule
+  let best: { prefix: string; minRole: RoleName } | null = null;
+  for (const rule of PROTECTED_PAGE_RULES) {
+    if (pathname === rule.prefix || pathname.startsWith(rule.prefix + '/')) {
+      if (!best || rule.prefix.length > best.prefix.length) {
+        best = rule;
+      }
+    }
+  }
+  return best;
+}
+
+function userMeetsMinRole(userRole: string | null, minRole: RoleName): boolean {
+  if (!userRole) return false;
+  const userRank = ROLE_RANK[userRole] ?? 0;
+  const minRank = ROLE_RANK[minRole] ?? 0;
+  return userRank >= minRank;
+}
+
 // Environment-based URLs (with fallbacks)
 const PORTAL_URL = process.env.NEXT_PUBLIC_PORTAL_URL || 'https://rcrsal.com';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.rivercityroofingsolutions.com';
@@ -225,8 +318,20 @@ export function middleware(request: NextRequest) {
       return NextResponse.rewrite(new URL('/portal', request.url));
     }
 
-    // Allow portal routes
+    // Allow portal routes — but enforce page-level access control first
     if (isPortalRoute(pathname)) {
+      const rule = findProtectedRule(pathname);
+      if (rule) {
+        const userRole = getUserRoleFromRequest(request);
+        if (!userMeetsMinRole(userRole, rule.minRole)) {
+          // No role yet (not logged in) → send to login
+          if (!userRole) {
+            return NextResponse.rewrite(new URL('/portal', request.url));
+          }
+          // Logged in but insufficient role → bounce to dashboard
+          return NextResponse.redirect(new URL('/portal/dashboard', request.url), 307);
+        }
+      }
       return NextResponse.next();
     }
 

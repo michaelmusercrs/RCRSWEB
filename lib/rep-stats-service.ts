@@ -146,6 +146,20 @@ const WEIGHT_REP_HISTORY = 0.85;
 const WEIGHT_SEASONAL = 0.10;
 const WEIGHT_MOMENTUM = 0.05;
 
+/**
+ * Name aliases used by getRepStats to resolve reps that go by multiple names.
+ * Keys and values are lowercase. The value is the canonical key under which
+ * the rep's stats are stored (the first name as it appears in the meeting sheet).
+ */
+const REP_NAME_ALIASES: Record<string, string> = {
+  // Rick has dual sales+driver role; in the user registry he's "Richard Geahr"
+  // but in the Monday meeting sheet his sales numbers are filed under "Rick".
+  'richard': 'rick',
+  'richard geahr': 'rick',
+  // Travis full name -> first name
+  'travis wages': 'travis',
+};
+
 // =============================================================================
 // HELPERS
 // =============================================================================
@@ -579,11 +593,40 @@ class RepStatsService {
 
   /**
    * Get stats for a specific rep.
+   *
+   * Handles name aliases (e.g., "Richard" -> "rick") and falls back to
+   * matching the first token of multi-word names ("Travis Wages" -> "travis").
    */
   getRepStats(repName: string): RepStatsResult | null {
     this.ensureCalculated();
-    const key = repName.toLowerCase().trim();
-    return this.repStats.get(key) || null;
+    const raw = repName.toLowerCase().trim();
+
+    // 1. Exact match
+    if (this.repStats.has(raw)) {
+      return this.repStats.get(raw) || null;
+    }
+
+    // 2. Name alias map (handles "Richard"/"Rick" and similar)
+    const aliased = REP_NAME_ALIASES[raw];
+    if (aliased && this.repStats.has(aliased)) {
+      return this.repStats.get(aliased) || null;
+    }
+
+    // 3. First-name fallback ("Travis Wages" -> "travis")
+    const firstToken = raw.split(/\s+/)[0];
+    if (firstToken && firstToken !== raw && this.repStats.has(firstToken)) {
+      return this.repStats.get(firstToken) || null;
+    }
+
+    // 4. Try alias on first token too
+    if (firstToken && REP_NAME_ALIASES[firstToken]) {
+      const firstAliased = REP_NAME_ALIASES[firstToken];
+      if (this.repStats.has(firstAliased)) {
+        return this.repStats.get(firstAliased) || null;
+      }
+    }
+
+    return null;
   }
 
   /**

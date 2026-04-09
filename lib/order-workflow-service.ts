@@ -479,11 +479,7 @@ class OrderWorkflowService {
   }
 
   private async saveOrderItems(items: OrderItem[]): Promise<void> {
-    const sheet = await this.getOrCreateSheet(SHEETS.ORDER_ITEMS, [
-      'itemId', 'orderId', 'productId', 'productName', 'sku', 'category',
-      'quantity', 'unit', 'unitCost', 'unitPrice', 'totalCost', 'totalPrice',
-      'pulled', 'pulledQty', 'verified', 'notes'
-    ]);
+    const sheet = await this.getOrCreateSheet(SHEETS.ORDER_ITEMS, this.getOrderItemHeaders());
 
     for (const item of items) {
       await sheet.addRow({
@@ -506,7 +502,7 @@ class OrderWorkflowService {
   }
 
   private async getOrderItems(orderId: string): Promise<OrderItem[]> {
-    const sheet = await this.getOrCreateSheet(SHEETS.ORDER_ITEMS, []);
+    const sheet = await this.getOrCreateSheet(SHEETS.ORDER_ITEMS, this.getOrderItemHeaders());
     const rows = await sheet.getRows();
 
     return rows
@@ -707,10 +703,7 @@ class OrderWorkflowService {
     const order = await this.getOrderById(orderId);
     if (!order) throw new Error('Order not found');
 
-    const sheet = await this.getOrCreateSheet(SHEETS.LOADING_MANIFEST, [
-      'manifestId', 'orderId', 'createdAt', 'createdBy', 'items',
-      'totalItems', 'itemsPulled', 'complete', 'completedAt', 'verifiedBy', 'verifiedAt'
-    ]);
+    const sheet = await this.getOrCreateSheet(SHEETS.LOADING_MANIFEST, this.getManifestHeaders());
 
     // Get inventory locations for items
     const items = order.items.map(item => ({
@@ -742,7 +735,7 @@ class OrderWorkflowService {
   }
 
   async getLoadingManifest(orderId: string): Promise<LoadingManifest | null> {
-    const sheet = await this.getOrCreateSheet(SHEETS.LOADING_MANIFEST, []);
+    const sheet = await this.getOrCreateSheet(SHEETS.LOADING_MANIFEST, this.getManifestHeaders());
     const rows = await sheet.getRows();
     const row = rows.find(r => r.get('orderId') === orderId);
     if (!row) return null;
@@ -768,7 +761,7 @@ class OrderWorkflowService {
   }
 
   async updateManifestItem(manifestId: string, productId: string, pulledBy: string): Promise<void> {
-    const sheet = await this.getOrCreateSheet(SHEETS.LOADING_MANIFEST, []);
+    const sheet = await this.getOrCreateSheet(SHEETS.LOADING_MANIFEST, this.getManifestHeaders());
     const rows = await sheet.getRows();
     const row = rows.find(r => r.get('manifestId') === manifestId);
     if (!row) return;
@@ -799,7 +792,7 @@ class OrderWorkflowService {
   }
 
   async verifyLoad(manifestId: string, verifiedBy: string): Promise<void> {
-    const sheet = await this.getOrCreateSheet(SHEETS.LOADING_MANIFEST, []);
+    const sheet = await this.getOrCreateSheet(SHEETS.LOADING_MANIFEST, this.getManifestHeaders());
     const rows = await sheet.getRows();
     const row = rows.find(r => r.get('manifestId') === manifestId);
     if (!row) return;
@@ -821,13 +814,7 @@ class OrderWorkflowService {
     const order = await this.getOrderById(orderId);
     if (!order) throw new Error('Order not found');
 
-    const sheet = await this.getOrCreateSheet(SHEETS.ORDER_INVOICES, [
-      'invoiceId', 'orderId', 'jobId', 'jobName', 'customerName', 'customerEmail',
-      'createdAt', 'dueDate', 'subtotal', 'deliveryFee', 'rushFee', 'handlingFee',
-      'taxRate', 'taxAmount', 'total', 'status', 'sentAt', 'paidAt',
-      'paymentMethod', 'paymentReference', 'googleSheetId', 'googleSheetUrl',
-      'attachedToBreakdown', 'notes'
-    ]);
+    const sheet = await this.getOrCreateSheet(SHEETS.ORDER_INVOICES, this.getInvoiceHeaders());
 
     const subtotal = order.totalPrice;
     const deliveryFee = 75;
@@ -880,7 +867,7 @@ class OrderWorkflowService {
   }
 
   async getInvoice(invoiceId: string): Promise<OrderInvoice | null> {
-    const sheet = await this.getOrCreateSheet(SHEETS.ORDER_INVOICES, []);
+    const sheet = await this.getOrCreateSheet(SHEETS.ORDER_INVOICES, this.getInvoiceHeaders());
     const rows = await sheet.getRows();
     const row = rows.find(r => r.get('invoiceId') === invoiceId);
     if (!row) return null;
@@ -918,11 +905,7 @@ class OrderWorkflowService {
   // ============================================
 
   async ensureCustomerBreakdownSheet(order: MaterialOrderFull): Promise<CustomerBreakdownSheet> {
-    const sheet = await this.getOrCreateSheet(SHEETS.CUSTOMER_BREAKDOWN, [
-      'sheetId', 'customerId', 'customerName', 'customerEmail', 'jobId', 'jobName',
-      'createdAt', 'googleSheetId', 'googleSheetUrl', 'lastUpdated',
-      'materialOrderIds', 'invoiceIds', 'totalMaterialCost', 'totalLabor', 'totalOther', 'grandTotal'
-    ]);
+    const sheet = await this.getOrCreateSheet(SHEETS.CUSTOMER_BREAKDOWN, this.getBreakdownHeaders());
 
     const rows = await sheet.getRows();
     let existingRow = rows.find(r =>
@@ -1021,7 +1004,7 @@ class OrderWorkflowService {
   }
 
   async attachInvoiceToBreakdown(customerId: string, invoiceId: string): Promise<void> {
-    const sheet = await this.getOrCreateSheet(SHEETS.CUSTOMER_BREAKDOWN, []);
+    const sheet = await this.getOrCreateSheet(SHEETS.CUSTOMER_BREAKDOWN, this.getBreakdownHeaders());
     const rows = await sheet.getRows();
     const row = rows.find(r => r.get('customerId') === customerId);
     if (!row) return;
@@ -1056,12 +1039,7 @@ class OrderWorkflowService {
     }>;
     notes?: string;
   }): Promise<ReturnOrder> {
-    const sheet = await this.getOrCreateSheet(SHEETS.RETURNS, [
-      'returnId', 'originalOrderId', 'createdAt', 'createdBy', 'createdByName',
-      'items', 'status', 'scheduledPickupDate', 'scheduledPickupTime',
-      'assignedDriver', 'assignedDriverName', 'pickedUpAt', 'processedAt', 'processedBy',
-      'restockedQty', 'creditAmount', 'creditApplied', 'notes'
-    ]);
+    const sheet = await this.getOrCreateSheet(SHEETS.RETURNS, this.getReturnHeaders());
 
     const returnOrder: ReturnOrder = {
       returnId: this.generateId('RET'),
@@ -1094,7 +1072,7 @@ class OrderWorkflowService {
     orderId?: string;
     limit?: number;
   }): Promise<ReturnOrder[]> {
-    const sheet = await this.getOrCreateSheet(SHEETS.RETURNS, []);
+    const sheet = await this.getOrCreateSheet(SHEETS.RETURNS, this.getReturnHeaders());
     const rows = await sheet.getRows();
 
     let returns = rows.map(r => {
@@ -1144,6 +1122,48 @@ class OrderWorkflowService {
   // ============================================
   // DELIVERY ROUTES
   // ============================================
+
+  private getOrderItemHeaders(): string[] {
+    return [
+      'itemId', 'orderId', 'productId', 'productName', 'sku', 'category',
+      'quantity', 'unit', 'unitCost', 'unitPrice', 'totalCost', 'totalPrice',
+      'pulled', 'pulledQty', 'verified', 'notes'
+    ];
+  }
+
+  private getManifestHeaders(): string[] {
+    return [
+      'manifestId', 'orderId', 'createdAt', 'createdBy', 'items',
+      'totalItems', 'itemsPulled', 'complete', 'completedAt', 'verifiedBy', 'verifiedAt'
+    ];
+  }
+
+  private getInvoiceHeaders(): string[] {
+    return [
+      'invoiceId', 'orderId', 'jobId', 'jobName', 'customerName', 'customerEmail',
+      'createdAt', 'dueDate', 'subtotal', 'deliveryFee', 'rushFee', 'handlingFee',
+      'taxRate', 'taxAmount', 'total', 'status', 'sentAt', 'paidAt',
+      'paymentMethod', 'paymentReference', 'googleSheetId', 'googleSheetUrl',
+      'attachedToBreakdown', 'notes'
+    ];
+  }
+
+  private getBreakdownHeaders(): string[] {
+    return [
+      'sheetId', 'customerId', 'customerName', 'customerEmail', 'jobId', 'jobName',
+      'createdAt', 'googleSheetId', 'googleSheetUrl', 'lastUpdated',
+      'materialOrderIds', 'invoiceIds', 'totalMaterialCost', 'totalLabor', 'totalOther', 'grandTotal'
+    ];
+  }
+
+  private getReturnHeaders(): string[] {
+    return [
+      'returnId', 'originalOrderId', 'createdAt', 'createdBy', 'createdByName',
+      'items', 'status', 'scheduledPickupDate', 'scheduledPickupTime',
+      'assignedDriver', 'assignedDriverName', 'pickedUpAt', 'processedAt', 'processedBy',
+      'restockedQty', 'creditAmount', 'creditApplied', 'notes'
+    ];
+  }
 
   private getRouteHeaders(): string[] {
     return [
