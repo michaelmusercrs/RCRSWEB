@@ -72,7 +72,7 @@ export default function CookieConsent() {
               </div>
               <button
                 onClick={handleDeclineAll}
-                className="p-1 text-gray-500 hover:text-white transition-colors flex-shrink-0"
+                className="p-1 text-neutral-300 hover:text-white transition-colors flex-shrink-0"
                 aria-label="Close cookie banner"
               >
                 <X className="w-5 h-5" />
@@ -87,7 +87,7 @@ export default function CookieConsent() {
                     <Shield className="w-5 h-5 text-brand-green flex-shrink-0 mt-0.5" />
                     <div>
                       <h4 className="text-white font-semibold text-sm">Essential Cookies</h4>
-                      <p className="text-gray-500 text-xs mt-1">
+                      <p className="text-neutral-300 text-xs mt-1">
                         Required for basic site functionality. Cannot be disabled.
                       </p>
                     </div>
@@ -96,7 +96,7 @@ export default function CookieConsent() {
                     <Shield className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
                     <div>
                       <h4 className="text-white font-semibold text-sm">Analytics Cookies</h4>
-                      <p className="text-gray-500 text-xs mt-1">
+                      <p className="text-neutral-300 text-xs mt-1">
                         Help us understand how visitors interact with our website using Google Analytics.
                       </p>
                     </div>
@@ -105,7 +105,7 @@ export default function CookieConsent() {
                     <Shield className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
                     <div>
                       <h4 className="text-white font-semibold text-sm">Marketing Cookies</h4>
-                      <p className="text-gray-500 text-xs mt-1">
+                      <p className="text-neutral-300 text-xs mt-1">
                         Used to deliver relevant ads and track ad campaign performance via Facebook and Google Ads.
                       </p>
                     </div>
@@ -130,14 +130,14 @@ export default function CookieConsent() {
               </button>
               <button
                 onClick={() => setShowDetails(!showDetails)}
-                className="px-6 py-3 text-gray-400 font-medium hover:text-white transition-colors text-sm"
+                className="px-6 py-3 text-neutral-300 font-medium hover:text-white transition-colors text-sm"
               >
                 {showDetails ? 'Hide Details' : 'Learn More'}
               </button>
             </div>
 
             {/* Privacy Policy Link */}
-            <p className="mt-4 text-center text-xs text-gray-500">
+            <p className="mt-4 text-center text-xs text-neutral-300">
               View our{' '}
               <Link href="/privacy" className="text-brand-green hover:underline">
                 Privacy Policy

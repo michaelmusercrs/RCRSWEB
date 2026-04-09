@@ -101,7 +101,7 @@ export default function RootLayout({
   const combinedSchemas = [localBusinessSchema, webSiteSchema, faqSchema];
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="dark" suppressHydrationWarning>
       <head>
         {/* Preconnect to third-party origins so the TCP+TLS handshake completes
             before the actual request. Saves ~100-300ms on analytics-heavy first paint. */}

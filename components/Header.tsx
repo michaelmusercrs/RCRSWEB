@@ -152,7 +152,7 @@ export default function Header() {
                   </Link>
                 )
               )}
-              <span className="text-gray-500">|</span>
+              <span className="text-neutral-300">|</span>
               <a
                 href="tel:256-274-8530"
                 className="flex items-center gap-2 transition-colors duration-300 text-white hover:text-brand-green drop-shadow-lg"
