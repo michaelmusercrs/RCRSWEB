@@ -305,8 +305,8 @@ export function generateLocalBusinessSchema() {
       },
     ],
     priceRange: '$$$',
-    currenciesAccepted: 'USD',
-    paymentAccepted: 'Cash, Credit Card, Check, Financing',
+    currenciesAccepted: 'USD, BTC',
+    paymentAccepted: 'Cash, Credit Card, Check, Insurance, Financing, Bitcoin',
     openingHours: 'Mo-Fr 08:00-17:00',
     openingHoursSpecification: [
       {
@@ -394,6 +394,38 @@ export function generateLocalBusinessSchema() {
             '@type': 'Service',
             name: 'Storm Damage Restoration',
             description: 'Emergency storm damage repair and insurance claim assistance',
+          },
+        },
+        {
+          '@type': 'Offer',
+          itemOffered: {
+            '@type': 'Service',
+            name: 'Hail Damage Inspection',
+            description: 'Free hail damage inspection with photo documentation for insurance claims',
+          },
+        },
+        {
+          '@type': 'Offer',
+          itemOffered: {
+            '@type': 'Service',
+            name: 'Insurance Claim Assistance',
+            description: 'Full-service insurance claim handling from inspection through final invoice',
+          },
+        },
+        {
+          '@type': 'Offer',
+          itemOffered: {
+            '@type': 'Service',
+            name: 'Gutter Installation & Gutter Guards',
+            description: 'New gutters and Boral LeafX gutter protection systems',
+          },
+        },
+        {
+          '@type': 'Offer',
+          itemOffered: {
+            '@type': 'Service',
+            name: 'Free Roof Inspection',
+            description: 'No-obligation roof condition report with photos and recommendations',
           },
         },
       ],

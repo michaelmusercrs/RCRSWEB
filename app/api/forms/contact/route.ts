@@ -29,10 +29,18 @@ export async function POST(request: NextRequest) {
       marketingSource,
     } = body;
 
-    // Validate required fields (email is optional for quick quote forms)
+    // Validate required fields. Name + subject + message are always needed,
+    // and the customer must provide AT LEAST one way to reach them
+    // (phone OR email). Without that, the lead is unactionable.
     if (!name || !subject || !message) {
       return NextResponse.json(
         { success: false, message: 'Please fill in all required fields.' },
+        { status: 400 }
+      );
+    }
+    if (!phone && !email) {
+      return NextResponse.json(
+        { success: false, message: 'Please provide a phone number or email so we can reach you.' },
         { status: 400 }
       );
     }
@@ -43,6 +51,17 @@ export async function POST(request: NextRequest) {
       if (!emailRegex.test(email)) {
         return NextResponse.json(
           { success: false, message: 'Please enter a valid email address.' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate phone format if provided (US: 10 digits, optional country code)
+    if (phone) {
+      const digitsOnly = phone.replace(/\D/g, '');
+      if (digitsOnly.length < 10 || digitsOnly.length > 11) {
+        return NextResponse.json(
+          { success: false, message: 'Please enter a valid US phone number.' },
           { status: 400 }
         );
       }
@@ -63,9 +82,10 @@ export async function POST(request: NextRequest) {
       marketingSource: marketingSource || 'Website - Direct',
     });
 
-    // Also create a lead in the portal system (fire-and-forget)
-    // Only if we have enough data (phone + address are optional on contact form)
-    if (result.success && phone) {
+    // Also create a lead in the portal system (fire-and-forget).
+    // Fires whenever we have ANY contact method (phone or email) — previously
+    // this only ran on phone-bearing leads, silently dropping email-only ones.
+    if (result.success && (phone || email)) {
       const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.rivercityroofingsolutions.com';
       try {
         await fetch(`${baseUrl}/api/leads/new`, {

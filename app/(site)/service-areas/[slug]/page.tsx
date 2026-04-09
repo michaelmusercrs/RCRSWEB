@@ -130,6 +130,22 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ sl
 
   const coords = geoCoords[slug] || { lat: 34.6059, lng: -86.9833 };
 
+  // Service types we offer in every area — fed to schema as both serviceType
+  // string array AND as an OfferCatalog so search engines understand the
+  // catalog of work, not just a generic "roofing" label.
+  const serviceTypes = [
+    'Roof Replacement',
+    'Roof Repair',
+    'Storm Damage Repair',
+    'Hail Damage Inspection',
+    'Insurance Claim Assistance',
+    'Gutter Installation',
+    'Gutter Guards (LeafX)',
+    'Chimney Repair',
+    'Attic Ventilation',
+    'Free Roof Inspection',
+  ];
+
   const localBusinessSchema = {
     "@context": "https://schema.org",
     "@type": "RoofingContractor",
@@ -138,7 +154,7 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ sl
     "@id": `${siteConfig.url}/service-areas/${slug}`,
     "url": `${siteConfig.url}/service-areas/${slug}`,
     "telephone": siteConfig.phoneTel,
-    "priceRange": "$$",
+    "priceRange": "$$ — Free inspections, $5,000–$25,000+ replacements",
     "address": {
       "@type": "PostalAddress",
       "streetAddress": siteConfig.address.streetAddress,
@@ -161,6 +177,28 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ sl
         "addressRegion": area.state,
       },
     },
+    "serviceType": serviceTypes,
+    // Discoverability boost: every service we offer in this city, listed as
+    // an Offer with explicit Service typing. Google uses this to populate
+    // local pack rich results and "services offered" cards.
+    "hasOfferCatalog": {
+      "@type": "OfferCatalog",
+      "name": `Roofing Services in ${area.name}`,
+      "itemListElement": serviceTypes.map((s) => ({
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": s,
+          "areaServed": area.name,
+          "provider": {
+            "@type": "RoofingContractor",
+            "name": "River City Roofing Solutions",
+          },
+        },
+      })),
+    },
+    "paymentAccepted": "Cash, Check, Credit Card, Insurance, Financing, Bitcoin",
+    "currenciesAccepted": "USD, BTC",
     "openingHoursSpecification": [
       {
         "@type": "OpeningHoursSpecification",
@@ -173,6 +211,10 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ sl
       "@type": "AggregateRating",
       ...siteConfig.reviewStats,
     },
+    "sameAs": [
+      "https://www.facebook.com/rivercityroofingsolutions",
+      "https://g.page/r/CfEkY1DPAq8TEBM",
+    ],
   };
 
   const breadcrumbSchema = generateBreadcrumbSchema([

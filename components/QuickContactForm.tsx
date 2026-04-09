@@ -4,6 +4,10 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Phone, Send, Loader2, CheckCircle2 } from 'lucide-react';
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// US phone — accepts (256) 555-1234, 256-555-1234, 256.555.1234, 2565551234, +12565551234
+const PHONE_RE = /^(\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$/;
+
 export default function QuickContactForm() {
   const router = useRouter();
   const [name, setName] = useState('');
@@ -11,23 +15,38 @@ export default function QuickContactForm() {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
 
+    // Inline validation — fail fast before hitting the API
+    if (name.trim().length < 2) {
+      setError('Please enter your name.');
+      return;
+    }
+    if (!PHONE_RE.test(phone.trim())) {
+      setError('Please enter a valid US phone number.');
+      return;
+    }
+    if (email && !EMAIL_RE.test(email.trim())) {
+      setError('Please enter a valid email or leave it blank.');
+      return;
+    }
+
+    setLoading(true);
     try {
       const res = await fetch('/api/forms/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name,
-          phone,
-          email: email || undefined,
+          name: name.trim(),
+          phone: phone.trim(),
+          email: email.trim() || undefined,
           subject: 'Free Inspection Request',
-          message: message || 'Requesting a free roof inspection.',
+          message: message.trim() || 'Requesting a free roof inspection.',
           sourcePage: 'Homepage Quick Form',
           leadSource: 'Website',
           leadSourceDetail: 'Homepage Quick Contact',
@@ -37,8 +56,11 @@ export default function QuickContactForm() {
       const result = await res.json();
 
       if (result.success) {
-        // Redirect to thank you / next steps page
-        router.push('/thank-you');
+        // Show inline success state for 2.5s before navigating away.
+        // This is more reassuring than a full-page redirect — the user
+        // sees their submission was received before the page changes.
+        setSubmitted(true);
+        setTimeout(() => router.push('/thank-you'), 2500);
       } else {
         setError(result.message || 'Something went wrong. Please call us at (256) 274-8530.');
       }
@@ -48,6 +70,23 @@ export default function QuickContactForm() {
       setLoading(false);
     }
   };
+
+  // Inline success card — shown after successful submit, before redirect
+  if (submitted) {
+    return (
+      <div className="space-y-4 text-center py-8">
+        <CheckCircle2 className="mx-auto text-brand-green" size={56} />
+        <h3 className="text-2xl font-black text-white uppercase tracking-wider">
+          Got it, {name.split(' ')[0]}!
+        </h3>
+        <p className="text-neutral-300">
+          We&apos;ll call you at <span className="font-mono text-white">{phone}</span> within
+          the next hour during business hours.
+        </p>
+        <p className="text-xs text-neutral-500">Redirecting to next steps…</p>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">

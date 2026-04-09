@@ -16,6 +16,8 @@ import SandboxBanner from '@/components/SandboxBanner';
 import dynamic from 'next/dynamic';
 const CookieConsent = dynamic(() => import('@/components/CookieConsent'), { ssr: false });
 const EmailCapturePopup = dynamic(() => import('@/components/EmailCapturePopup'), { ssr: false });
+// PWA install prompt — client-only, must not block initial render
+const InstallPromptButton = dynamic(() => import('@/components/InstallPromptButton'), { ssr: false });
 import TrackingProvider from '@/components/TrackingProvider';
 const AnalyticsTracker = dynamic(() => import('@/components/AnalyticsTracker'), { ssr: false });
 const SpeedInsights = dynamic(
@@ -216,6 +218,7 @@ export default function RootLayout({
         <FloatingContactButton />
         {/* <ChatBot /> — disabled until configured */}
         <EmailCapturePopup />
+        <InstallPromptButton />
         {/* Honeypot links — invisible to humans, irresistible to bots */}
         <a href="/api/honeypot" style={{position:'absolute',left:'-9999px',opacity:0,height:0,width:0,overflow:'hidden'}} tabIndex={-1} aria-hidden="true">Special Roofing Deals</a>
         <a href="/api/honeypot?src=admin" style={{position:'absolute',left:'-9999px',opacity:0,height:0,width:0,overflow:'hidden'}} tabIndex={-1} aria-hidden="true">Admin Panel</a>

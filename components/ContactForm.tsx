@@ -215,29 +215,32 @@ export default function ContactForm({
               />
             </div>
             <div>
-              <label htmlFor="email" className={`block text-sm font-medium mb-1 ${labelClass}`}>
-                Email <span className="text-red-500">*</span>
+              <label htmlFor="phone" className={`block text-sm font-medium mb-1 ${labelClass}`}>
+                Phone <span className="text-red-500">*</span>
               </label>
               <input
-                type="email"
-                id="email"
-                name="email"
+                type="tel"
+                id="phone"
+                name="phone"
                 required
-                placeholder="john@example.com"
+                placeholder="(256) 555-1234"
+                inputMode="tel"
+                autoComplete="tel"
                 className={`w-full px-4 py-3 rounded-lg border outline-none transition-colors focus:ring-2 ${inputClass}`}
               />
             </div>
           </div>
 
           <div>
-            <label htmlFor="phone" className={`block text-sm font-medium mb-1 ${labelClass}`}>
-              Phone
+            <label htmlFor="email" className={`block text-sm font-medium mb-1 ${labelClass}`}>
+              Email <span className={darkMode ? 'text-gray-500' : 'text-gray-400'}>(optional)</span>
             </label>
             <input
-              type="tel"
-              id="phone"
-              name="phone"
-              placeholder="(256) 555-1234"
+              type="email"
+              id="email"
+              name="email"
+              placeholder="john@example.com"
+              autoComplete="email"
               className={`w-full px-4 py-3 rounded-lg border outline-none transition-colors focus:ring-2 ${inputClass}`}
             />
           </div>
