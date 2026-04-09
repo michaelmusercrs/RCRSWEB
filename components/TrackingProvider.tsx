@@ -5,14 +5,15 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { trackingService } from '@/lib/tracking-service';
 
 /**
- * TrackingProvider - Handles page view tracking and UTM capture
- * Place this component inside your layout to track all page views
+ * TrackingProvider - Handles page view tracking and UTM capture.
+ *
+ * IMPORTANT: This must NOT wrap children. usePathname/useSearchParams cause Suspense
+ * during streaming SSR, and wrapping the page tree causes everything inside to
+ * fall back to null in the static HTML — breaking SEO (no H1, no schema, no content).
+ *
+ * Render this as a sibling to your page content, not a wrapper.
  */
-export default function TrackingProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function TrackingProvider() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -35,5 +36,5 @@ export default function TrackingProvider({
     }
   }, [pathname, searchParams]);
 
-  return <>{children}</>;
+  return null;
 }

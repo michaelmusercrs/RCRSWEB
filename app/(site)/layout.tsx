@@ -198,26 +198,29 @@ export default function RootLayout({
         <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:bg-brand-green focus:text-black focus:px-4 focus:py-2 focus:rounded focus:font-bold focus:text-lg">
           Skip to main content
         </a>
+        {/* Page content renders directly to HTML — NO Suspense wrapper, so H1/schema/content
+            all appear in the static HTML for SEO crawlers. */}
+        <div className="sticky top-0 z-50">
+          <PromoBanner />
+          <Header />
+        </div>
+        <GlobalVideoBackground
+          videoSrc="/uploads/hero-video.mp4"
+          fallbackImage="/uploads/hero-video-poster.webp"
+        />
+        <main id="main-content">{children}</main>
+        <Footer />
+        <FloatingContactButton />
+        {/* <ChatBot /> — disabled until configured */}
+        <EmailCapturePopup />
+        {/* Honeypot links — invisible to humans, irresistible to bots */}
+        <a href="/api/honeypot" style={{position:'absolute',left:'-9999px',opacity:0,height:0,width:0,overflow:'hidden'}} tabIndex={-1} aria-hidden="true">Special Roofing Deals</a>
+        <a href="/api/honeypot?src=admin" style={{position:'absolute',left:'-9999px',opacity:0,height:0,width:0,overflow:'hidden'}} tabIndex={-1} aria-hidden="true">Admin Panel</a>
+        {/* Tracking components — sibling to content, wrapped in their own Suspense.
+            They use useSearchParams which would otherwise suspend the entire page tree. */}
         <Suspense fallback={null}>
-          <TrackingProvider>
-            <AnalyticsTracker />
-            <div className="sticky top-0 z-50">
-              <PromoBanner />
-              <Header />
-            </div>
-            <GlobalVideoBackground
-              videoSrc="/uploads/hero-video.mp4"
-              fallbackImage="/uploads/hero-video-poster.webp"
-            />
-            <main id="main-content">{children}</main>
-            <Footer />
-            <FloatingContactButton />
-            {/* <ChatBot /> — disabled until configured */}
-            <EmailCapturePopup />
-            {/* Honeypot links — invisible to humans, irresistible to bots */}
-            <a href="/api/honeypot" style={{position:'absolute',left:'-9999px',opacity:0,height:0,width:0,overflow:'hidden'}} tabIndex={-1} aria-hidden="true">Special Roofing Deals</a>
-            <a href="/api/honeypot?src=admin" style={{position:'absolute',left:'-9999px',opacity:0,height:0,width:0,overflow:'hidden'}} tabIndex={-1} aria-hidden="true">Admin Panel</a>
-          </TrackingProvider>
+          <TrackingProvider />
+          <AnalyticsTracker />
         </Suspense>
 
         <CookieConsent />
