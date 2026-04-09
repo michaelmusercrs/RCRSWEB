@@ -181,7 +181,7 @@ export default function Footer() {
               Storm damage? Let us inspect your roof for free — no obligation.
             </p>
             <FooterEmailCapture />
-            <div className="flex items-center gap-1.5 mt-3 text-gray-500 text-xs">
+            <div className="flex items-center gap-1.5 mt-3 text-neutral-300 text-xs">
               <Shield size={12} />
               <span>No spam. Your info stays private.</span>
             </div>
@@ -264,28 +264,28 @@ export default function Footer() {
       <div className="border-t border-white/10">
         <div className="container mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-gray-500 text-sm text-center md:text-left">
+            <p className="text-neutral-300 text-sm text-center md:text-left">
               &copy; {currentYear} River City Roofing Solutions. All rights reserved.
             </p>
             <div className="flex flex-wrap justify-center gap-4 text-sm">
-              <Link href="/privacy" className="text-gray-500 hover:text-brand-green transition-colors">
+              <Link href="/privacy" className="text-neutral-300 hover:text-brand-green transition-colors">
                 Privacy Policy
               </Link>
               <span className="text-gray-700">|</span>
-              <Link href="/terms" className="text-gray-500 hover:text-brand-green transition-colors">
+              <Link href="/terms" className="text-neutral-300 hover:text-brand-green transition-colors">
                 Terms of Service
               </Link>
               <span className="text-gray-700">|</span>
-              <Link href="/privacy#sms-terms" className="text-gray-500 hover:text-brand-green transition-colors">
+              <Link href="/privacy#sms-terms" className="text-neutral-300 hover:text-brand-green transition-colors">
                 SMS Terms
               </Link>
             </div>
           </div>
           {/* Agency Credit */}
           <div className="mt-4 pt-4 border-t border-white/5 text-center">
-            <p className="text-gray-600 text-xs tracking-wide">
+            <p className="text-neutral-300 text-xs tracking-wide">
               Engineered with precision by{' '}
-              <span className="text-gray-500 font-medium hover:text-brand-green transition-colors cursor-default">
+              <span className="text-neutral-300 font-medium hover:text-brand-green transition-colors cursor-default">
                 RoofPro Digital
               </span>
               {' '}— Where roofing meets innovation.

@@ -9,7 +9,7 @@ import RotatingBanner from '@/components/RotatingBanner';
 import QuickContactForm from '@/components/QuickContactForm';
 import { blogPosts } from '@/lib/blogData';
 import { services, serviceAreas } from '@/lib/servicesData';
-import { getFeaturedReviews } from '@/lib/reviewsData';
+import { loadFeaturedReviews } from '@/lib/reviews-loader';
 import { getSiteConfig } from '@/lib/site-config';
 
 export default async function HomePage() {
@@ -22,8 +22,8 @@ export default async function HomePage() {
   // Get active service areas
   const activeAreas = serviceAreas.filter(a => a.status === 'Active');
 
-  // Get featured reviews
-  const featuredReviews = getFeaturedReviews(6);
+  // Get featured reviews — pulls from the Google Sheet, falls back to hardcoded set
+  const featuredReviews = await loadFeaturedReviews(6);
 
   // Site config for feature toggles
   const siteConfig = await getSiteConfig();
@@ -147,7 +147,7 @@ export default async function HomePage() {
                     <Eye className="w-8 h-8 text-brand-blue" />
                   </div>
                   <div>
-                    <span className="text-brand-blue text-xs font-bold uppercase tracking-widest">Design Tool</span>
+                    <span className="text-[#3B9DFF] text-xs font-bold uppercase tracking-widest">Design Tool</span>
                     <h3 className="text-xl md:text-2xl font-black uppercase tracking-wider mt-1">
                       IKO ROOFViewer&reg;
                     </h3>
@@ -166,13 +166,13 @@ export default async function HomePage() {
       </section>
 
       {/* Quick Contact Form */}
-      <section id="contact" className="py-10 md:py-14 px-6 bg-brand-green/10 backdrop-blur-sm border-t border-brand-green/30">
+      <section id="contact" className="py-10 md:py-14 px-6 bg-black/90 backdrop-blur-sm border-t-2 border-brand-green/40">
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-6">
-            <h2 className="text-3xl md:text-4xl font-black uppercase tracking-wider mb-3">
+            <h2 className="text-3xl md:text-4xl font-black uppercase tracking-wider mb-3 text-white">
               Get Your <span className="text-brand-green">Free Inspection</span>
             </h2>
-            <p className="text-neutral-300">
+            <p className="text-neutral-200">
               Fill out the form below and we&apos;ll be in touch within 24 hours. Or call us right now.
             </p>
           </div>
@@ -518,7 +518,7 @@ export default async function HomePage() {
               <Image src="/uploads/cert-iko-roofpro.jpg" alt="IKO ROOFPRO Craftsman Premier" width={80} height={80} className="object-contain" />
               <div className="text-center">
                 <p className="font-black text-white uppercase tracking-wider text-sm group-hover:text-brand-green transition-colors">IKO ROOFPRO&reg;</p>
-                <p className="text-neutral-500 text-xs mt-1">Craftsman Premier</p>
+                <p className="text-neutral-300 text-xs mt-1">Craftsman Premier</p>
               </div>
             </a>
 
@@ -531,7 +531,7 @@ export default async function HomePage() {
               <Award className="w-16 h-16 text-[#E75B8D]" />
               <div className="text-center">
                 <p className="font-black text-white uppercase tracking-wider text-sm group-hover:text-brand-green transition-colors">Owens Corning</p>
-                <p className="text-neutral-500 text-xs mt-1">Preferred Contractor</p>
+                <p className="text-neutral-300 text-xs mt-1">Preferred Contractor</p>
               </div>
             </a>
 
@@ -544,7 +544,7 @@ export default async function HomePage() {
               <Shield className="w-16 h-16 text-brand-green" />
               <div className="text-center">
                 <p className="font-black text-white uppercase tracking-wider text-sm group-hover:text-brand-green transition-colors">Boral Certified</p>
-                <p className="text-neutral-500 text-xs mt-1">LeafX Dealer / Pro Installer</p>
+                <p className="text-neutral-300 text-xs mt-1">LeafX Dealer / Pro Installer</p>
               </div>
             </a>
 
@@ -557,7 +557,7 @@ export default async function HomePage() {
               <Image src="/uploads/cert-bbb.jpg" alt="BBB A+ Accredited Business" width={80} height={80} className="object-contain" />
               <div className="text-center">
                 <p className="font-black text-white uppercase tracking-wider text-sm group-hover:text-brand-green transition-colors">BBB A+ Rated</p>
-                <p className="text-neutral-500 text-xs mt-1">Accredited Business</p>
+                <p className="text-neutral-300 text-xs mt-1">Accredited Business</p>
               </div>
             </a>
 
@@ -570,7 +570,7 @@ export default async function HomePage() {
               <Image src="/uploads/cert-google.png" alt="Google Reviews" width={80} height={80} className="object-contain" />
               <div className="text-center">
                 <p className="font-black text-white uppercase tracking-wider text-sm group-hover:text-brand-green transition-colors">Google Reviews</p>
-                <p className="text-neutral-500 text-xs mt-1">{'\u2605\u2605\u2605\u2605\u2605'} Rated</p>
+                <p className="text-neutral-300 text-xs mt-1">{'\u2605\u2605\u2605\u2605\u2605'} Rated</p>
               </div>
             </a>
 
@@ -583,7 +583,7 @@ export default async function HomePage() {
               <Image src="/uploads/cert-bni.png" alt="BNI Member" width={80} height={80} className="object-contain" />
               <div className="text-center">
                 <p className="font-black text-white uppercase tracking-wider text-sm group-hover:text-brand-green transition-colors">BNI Member</p>
-                <p className="text-neutral-500 text-xs mt-1">Business Network</p>
+                <p className="text-neutral-300 text-xs mt-1">Business Network</p>
               </div>
             </a>
           </div>
@@ -618,11 +618,11 @@ export default async function HomePage() {
                   />
                 </div>
                 <CardContent className="p-5">
-                  <p className="text-xs text-neutral-400 uppercase tracking-widest mb-2">{post.date}</p>
+                  <p className="text-xs text-neutral-300 uppercase tracking-widest mb-2">{post.date}</p>
                   <h3 className="text-base font-black uppercase tracking-wider mb-2 group-hover:text-brand-green transition-colors">
                     {post.title}
                   </h3>
-                  <p className="text-sm text-neutral-400 mb-3 leading-relaxed line-clamp-3">{post.excerpt}</p>
+                  <p className="text-sm text-neutral-300 mb-3 leading-relaxed line-clamp-3">{post.excerpt}</p>
                   <Link
                     href={`/blog/${post.slug}`}
                     className="text-brand-green font-bold text-sm uppercase tracking-widest flex items-center gap-2 hover:gap-3 transition-all"
