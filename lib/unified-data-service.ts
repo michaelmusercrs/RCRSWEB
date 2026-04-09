@@ -388,23 +388,39 @@ class UnifiedDataService {
       m.position.toLowerCase().includes('sales')
     );
 
-    // Get real sales data from commission records (imported via financial service pattern)
-    // Commission data is available in commissions.json - use dynamic import to avoid circular deps
+    // Get real sales data from commission records.
+    // Falls back to "last month with data" so the dashboard never shows all-zeros
+    // when the current month hasn't been synced from QuickBooks yet.
     let commissionsByRep: Map<string, number> = new Map();
     try {
       const commissionsData = (await import('@/data/commissions.json')).default as Array<{ salesRep: string; date: string; amount: number }>;
-      const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      for (const record of commissionsData) {
-        // Parse date (M/D/YY format)
-        const parts = record.date?.split('/');
-        if (!parts || parts.length !== 3) continue;
-        let year = parseInt(parts[2], 10);
-        if (year < 100) year = 2000 + year;
-        const recordDate = new Date(year, parseInt(parts[0], 10) - 1, parseInt(parts[1], 10));
-        if (recordDate >= thisMonthStart) {
-          const rep = record.salesRep.replace(/\s+/g, ' ').trim();
-          commissionsByRep.set(rep, (commissionsByRep.get(rep) || 0) + record.amount);
-        }
+
+      // Parse all dates once
+      const parsed = commissionsData
+        .map((r) => {
+          const parts = r.date?.split('/');
+          if (!parts || parts.length !== 3) return null;
+          let year = parseInt(parts[2], 10);
+          if (year < 100) year = 2000 + year;
+          const d = new Date(year, parseInt(parts[0], 10) - 1, parseInt(parts[1], 10));
+          if (isNaN(d.getTime())) return null;
+          return { ...r, _date: d, _ym: `${year}-${String(d.getMonth() + 1).padStart(2, '0')}` };
+        })
+        .filter((r): r is NonNullable<typeof r> => r !== null);
+
+      // Try current month, then walk back month-by-month until we find data
+      const targetMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      let bestMonth = targetMonth;
+      const monthsAvailable = new Set(parsed.map((r) => r._ym));
+      if (!monthsAvailable.has(targetMonth)) {
+        const sortedMonths = [...monthsAvailable].sort().reverse();
+        bestMonth = sortedMonths[0] || targetMonth;
+      }
+
+      for (const record of parsed) {
+        if (record._ym !== bestMonth) continue;
+        const rep = record.salesRep.replace(/\s+/g, ' ').trim();
+        commissionsByRep.set(rep, (commissionsByRep.get(rep) || 0) + record.amount);
       }
     } catch {
       // Commission data unavailable
@@ -434,16 +450,59 @@ class UnifiedDataService {
       .slice(0, 3)
       .map((p, idx) => ({ ...p, rank: idx + 1 }));
 
-    // Build recent activity from real data
+    // Build recent activity from real data sources, in priority order:
+    //   1. Material orders from Google Sheets (currently empty until wired)
+    //   2. Recent commission payouts (real $ amounts to real reps)
+    //   3. Recent meeting submissions
+    // Returns an empty array (not fake data) when nothing is available — the
+    // dashboard widget renders an empty-state message in that case.
     const recentOrders = getRecentOrders(5);
-    const recentActivity: CommandCenterStats['recentActivity'] = recentOrders.map((order, idx) => ({
-      type: 'delivery' as const,
-      icon: 'Package',
-      color: order.status === 'Delivered' ? 'text-green-400' : 'text-blue-400',
-      text: order.status === 'Delivered' ? 'Delivery completed' : 'Order ' + order.status.toLowerCase(),
-      detail: `${order.jobName} - ${order.customerName}`,
-      time: this.getRelativeTime(new Date(order.updatedAt)),
-    }));
+    const recentActivity: CommandCenterStats['recentActivity'] = [];
+
+    // Source 1: real material orders
+    for (const order of recentOrders) {
+      recentActivity.push({
+        type: 'delivery' as const,
+        icon: 'Package',
+        color: order.status === 'Delivered' ? 'text-green-400' : 'text-blue-400',
+        text: order.status === 'Delivered' ? 'Delivery completed' : 'Order ' + order.status.toLowerCase(),
+        detail: `${order.jobName} - ${order.customerName}`,
+        time: this.getRelativeTime(new Date(order.updatedAt)),
+      });
+    }
+
+    // Source 2: most recent commission payouts (real money to real reps)
+    if (recentActivity.length < 5) {
+      try {
+        const commissionsData = (await import('@/data/commissions.json')).default as Array<{ salesRep: string; date: string; amount: number; customer?: string }>;
+        // Sort by parsed date desc, take top 5
+        const parsed = commissionsData
+          .map((c) => {
+            const parts = c.date?.split('/');
+            if (!parts || parts.length !== 3) return null;
+            let year = parseInt(parts[2], 10);
+            if (year < 100) year = 2000 + year;
+            const d = new Date(year, parseInt(parts[0], 10) - 1, parseInt(parts[1], 10));
+            return { ...c, _date: d };
+          })
+          .filter((c): c is NonNullable<typeof c> & { _date: Date } => c !== null && !isNaN(c._date.getTime()))
+          .sort((a, b) => b._date.getTime() - a._date.getTime())
+          .slice(0, 5 - recentActivity.length);
+
+        for (const c of parsed) {
+          recentActivity.push({
+            type: 'commission',
+            icon: 'DollarSign',
+            color: 'text-lime-400',
+            text: `Commission paid: $${c.amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+            detail: `${c.salesRep}${c.customer ? ` — ${c.customer.replace(/^QuickBooks 1099 - /, '')}` : ''}`,
+            time: this.getRelativeTime(c._date),
+          });
+        }
+      } catch {
+        // commissions.json unavailable — leave the activity feed shorter
+      }
+    }
 
     // Add inventory alerts if any
     const lowStockItems = getLowStockItems();

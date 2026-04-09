@@ -279,7 +279,9 @@ class FinancialService {
 
     const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
     const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-    const sheetId = process.env.GOOGLE_SHEET_ID;
+    // The rest of the codebase uses GOOGLE_SHEETS_ID (plural). Accept both
+    // so this service works whether the env var was set with either spelling.
+    const sheetId = process.env.GOOGLE_SHEETS_ID || process.env.GOOGLE_SHEET_ID;
 
     if (!serviceAccountEmail || !privateKey || !sheetId) {
       this.sheetsAvailable = false;
@@ -468,8 +470,24 @@ class FinancialService {
     const lastYearEnd = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59);
 
     // ---- Revenue from commissions.json (real data) ----
+    // If the current month has no commissions yet (e.g. QB hasn't been synced
+    // for April), fall back to the most recent month that DOES have data so
+    // the dashboard never shows $0 when there's real data we just haven't
+    // refreshed yet. The original date range stays in `thisMonthStart` for
+    // every other calculation downstream.
     const allCommissions = this.getCommissionData();
-    const thisMonthCommissions = this.getCommissionData(thisMonthStart);
+    let effectiveThisMonthStart = thisMonthStart;
+    let effectiveThisMonthEnd: Date | undefined = undefined;
+    const thisMonthHasData = allCommissions.some((c) => c.date >= thisMonthStart);
+    if (!thisMonthHasData && allCommissions.length > 0) {
+      const latest = allCommissions.reduce(
+        (max, c) => (c.date > max ? c.date : max),
+        allCommissions[0].date,
+      );
+      effectiveThisMonthStart = new Date(latest.getFullYear(), latest.getMonth(), 1);
+      effectiveThisMonthEnd = new Date(latest.getFullYear(), latest.getMonth() + 1, 0, 23, 59, 59);
+    }
+    const thisMonthCommissions = this.getCommissionData(effectiveThisMonthStart, effectiveThisMonthEnd);
     const lastMonthCommissions = this.getCommissionData(lastMonthStart, lastMonthEnd);
     const ytdCommissions = this.getCommissionData(yearStart);
     const lastYearCommissions = this.getCommissionData(lastYearStart, lastYearEnd);

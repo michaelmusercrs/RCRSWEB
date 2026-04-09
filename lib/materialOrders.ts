@@ -1,5 +1,10 @@
-// Material Orders Data - Source: items for web.pdf (Page 4)
-// Last Updated: December 2025
+// Material Orders — type definitions and helpers.
+//
+// IMPORTANT: This file used to contain hardcoded sample data ("Sarah Williams",
+// "Smith Properties LLC", "Robert Johnson") which violated the hard rule
+// against fake data on the dashboard. The hardcoded array is now empty —
+// real material orders should come from the Google Sheets `Orders` tab via
+// google-sheets-service.ts → getOrders().
 
 export interface MaterialOrderRequest {
   orderId: string;
@@ -38,97 +43,9 @@ export interface MaterialOrderItem {
   totalPrice: number;
 }
 
-// Sample material orders based on PDF format
-export const materialOrders: MaterialOrderRequest[] = [
-  {
-    orderId: 'MO-20251201-001',
-    salesRep: 'Hunter',
-    jobNumber: 'JOB-2024-1234',
-    jobName: 'Johnson Residence Roof Replacement',
-    customerName: 'Robert Johnson',
-    customerPhone: '',
-    customerEmail: 'rjohnson@email.com',
-    shippingAddress: '123 Oak Street',
-    city: 'Huntsville',
-    state: 'AL',
-    zipCode: '35801',
-    orderDate: '2025-12-01',
-    requestedDeliveryDate: '2025-12-03',
-    materials: [
-      { productId: 'item-125', productName: 'RCRS Syn Felt', quantity: 10, unitCost: 66.00, unitPrice: 79.86, totalCost: 660.00, totalPrice: 798.60 },
-      { productId: 'item-126', productName: 'Ice & Water Shield', quantity: 5, unitCost: 62.70, unitPrice: 114.22, totalCost: 313.50, totalPrice: 571.10 },
-      { productId: 'item-127', productName: 'Ridge Vent 4LF', quantity: 20, unitCost: 7.15, unitPrice: 10.20, totalCost: 143.00, totalPrice: 204.00 },
-      { productId: 'item-132', productName: 'Sealant', quantity: 12, unitCost: 9.35, unitPrice: 10.00, totalCost: 112.20, totalPrice: 120.00 }
-    ],
-    totalCost: 1228.70,
-    totalPrice: 1693.70,
-    specialInstructions: 'Gate code: 1234. Place materials in driveway.',
-    priority: 'Normal',
-    status: 'Delivered',
-    createdBy: 'hunter@rcrsal.com',
-    approvedBy: 'sara@rcrsal.com',
-    approvedDate: '2025-12-01T10:30:00Z',
-    createdAt: '2025-12-01T08:00:00Z',
-    updatedAt: '2025-12-03T14:00:00Z'
-  },
-  {
-    orderId: 'MO-20251202-001',
-    salesRep: 'Aaron',
-    jobNumber: 'JOB-2024-1235',
-    jobName: 'Smith Commercial Building',
-    customerName: 'Smith Properties LLC',
-    customerPhone: '',
-    shippingAddress: '456 Industrial Blvd',
-    city: 'Decatur',
-    state: 'AL',
-    zipCode: '35601',
-    orderDate: '2025-12-02',
-    requestedDeliveryDate: '2025-12-04',
-    materials: [
-      { productId: 'item-123', productName: '1 1/4 EG Nails', quantity: 3, unitCost: 27.50, unitPrice: 64.90, totalCost: 82.50, totalPrice: 194.70 },
-      { productId: 'item-124', productName: 'Bottom Caps (plastic)', quantity: 10, unitCost: 16.50, unitPrice: 29.15, totalCost: 165.00, totalPrice: 291.50 },
-      { productId: 'item-128', productName: '1 1/2" Black Bullet Boot', quantity: 7, unitCost: 16.67, unitPrice: 20.89, totalCost: 116.69, totalPrice: 146.23 },
-      { productId: 'item-129', productName: '2" Black Bullet Boot', quantity: 5, unitCost: 17.77, unitPrice: 22.54, totalCost: 88.85, totalPrice: 112.70 }
-    ],
-    totalCost: 453.04,
-    totalPrice: 745.13,
-    priority: 'Rush',
-    status: 'Shipped',
-    createdBy: 'aaron@rcrsal.com',
-    approvedBy: 'michaelmuse@rcrsal.com',
-    approvedDate: '2025-12-02T09:00:00Z',
-    createdAt: '2025-12-02T07:30:00Z',
-    updatedAt: '2025-12-02T15:00:00Z'
-  },
-  {
-    orderId: 'MO-20251202-002',
-    salesRep: 'Brendon',
-    jobNumber: 'JOB-2024-1236',
-    jobName: 'Williams Home Repair',
-    customerName: 'Sarah Williams',
-    customerPhone: '',
-    customerEmail: 'swilliams@email.com',
-    shippingAddress: '789 Maple Lane',
-    city: 'Madison',
-    state: 'AL',
-    zipCode: '35758',
-    orderDate: '2025-12-02',
-    requestedDeliveryDate: '2025-12-05',
-    materials: [
-      { productId: 'item-130', productName: '3" Black Bullet Boot', quantity: 4, unitCost: 20.19, unitPrice: 38.29, totalCost: 80.76, totalPrice: 153.16 },
-      { productId: 'item-131', productName: '4" Black Bullet Boot', quantity: 3, unitCost: 37.48, unitPrice: 42.50, totalCost: 112.44, totalPrice: 127.50 },
-      { productId: 'item-133', productName: 'Zipper Boot', quantity: 2, unitCost: 37.40, unitPrice: 48.00, totalCost: 74.80, totalPrice: 96.00 }
-    ],
-    totalCost: 268.00,
-    totalPrice: 376.66,
-    specialInstructions: 'Customer will be home. Call 30 minutes before arrival.',
-    priority: 'Normal',
-    status: 'Pending',
-    createdBy: 'brendon@rcrsal.com',
-    createdAt: '2025-12-02T11:00:00Z',
-    updatedAt: '2025-12-02T11:00:00Z'
-  }
-];
+// Material orders are read from the Google Sheets `Orders` tab at request
+// time. This array is intentionally empty — see the file header for why.
+export const materialOrders: MaterialOrderRequest[] = [];
 
 // Helper functions
 export function getOrderById(orderId: string): MaterialOrderRequest | undefined {
