@@ -18,6 +18,8 @@ const CookieConsent = dynamic(() => import('@/components/CookieConsent'), { ssr:
 const EmailCapturePopup = dynamic(() => import('@/components/EmailCapturePopup'), { ssr: false });
 // PWA install prompt — client-only, must not block initial render
 const InstallPromptButton = dynamic(() => import('@/components/InstallPromptButton'), { ssr: false });
+// Rivvy the dog — simple Duck Hunt-style lead-gathering bot. Client-only.
+const DogChatBot = dynamic(() => import('@/components/DogChatBot'), { ssr: false });
 import TrackingProvider from '@/components/TrackingProvider';
 const AnalyticsTracker = dynamic(() => import('@/components/AnalyticsTracker'), { ssr: false });
 const SpeedInsights = dynamic(
@@ -216,7 +218,8 @@ export default function RootLayout({
         <main id="main-content">{children}</main>
         <Footer />
         <FloatingContactButton />
-        {/* <ChatBot /> — disabled until configured */}
+        {/* Rivvy — Duck Hunt-style dog chatbot for lead capture */}
+        <DogChatBot />
         <EmailCapturePopup />
         <InstallPromptButton />
         {/* Honeypot links — invisible to humans, irresistible to bots */}
