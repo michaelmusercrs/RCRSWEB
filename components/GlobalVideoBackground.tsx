@@ -77,11 +77,16 @@ export default function GlobalVideoBackground({
         </video>
       )}
 
-      {/* Background Image - always present as base layer */}
-      <div
+      {/* Background Image - always present as base layer.
+          Using <img> instead of CSS background so the browser discovers it early and it can be the LCP. */}
+      <img
         key={`image-${animationKey}`}
-        className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat animate-ken-burns"
-        style={{ backgroundImage: `url(${fallbackImage})` }}
+        src={fallbackImage}
+        alt=""
+        aria-hidden="true"
+        decoding="async"
+        fetchPriority="high"
+        className="absolute inset-0 w-full h-full object-cover animate-ken-burns"
       />
 
       {/* Dark Overlay for readability */}

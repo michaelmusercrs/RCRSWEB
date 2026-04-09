@@ -22,7 +22,7 @@ const SpeedInsights = dynamic(
   () => import('@vercel/speed-insights/next').then(mod => ({ default: mod.SpeedInsights })),
   { ssr: false }
 );
-import { generateMetadata, generateLocalBusinessSchema, generateWebSiteSchema, getStructuredDataScript, siteConfig } from '@/lib/seo';
+import { generateMetadata, generateLocalBusinessSchema, generateWebSiteSchema, generateFAQSchema, getStructuredDataScript, siteConfig } from '@/lib/seo';
 
 // Tracking IDs from environment variables
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_ID || 'G-Y8PB85BZC5';
@@ -64,6 +64,30 @@ export const metadata: Metadata = generateMetadata({
   path: '/',
 });
 
+// Site-wide FAQ schema (also relevant on the homepage for rich results)
+const SITE_WIDE_FAQS = [
+  {
+    question: 'How much does a new roof cost in North Alabama?',
+    answer: 'The cost of a new roof depends on the size of your roof, materials chosen, and complexity of the job. We offer free inspections and detailed quotes so you know exactly what to expect — no obligation.',
+  },
+  {
+    question: 'Do you offer free roof inspections?',
+    answer: 'Yes! We provide completely free, no-obligation roof inspections for homeowners across North Alabama. Our certified inspectors will assess your roof\'s condition, document any issues with photos, and provide honest recommendations.',
+  },
+  {
+    question: 'How long does a roof replacement take?',
+    answer: 'Most residential roof replacements are completed in 1-3 days, depending on the size and complexity of the project. We work efficiently to minimize disruption to your daily life while ensuring top-quality workmanship.',
+  },
+  {
+    question: 'Do you help with insurance claims for storm damage?',
+    answer: 'Absolutely! We have extensive experience working with insurance companies on storm and hail damage claims. We handle all documentation, photos, and communication with your insurance adjuster to maximize your claim.',
+  },
+  {
+    question: 'What areas do you serve?',
+    answer: 'We serve all of North Alabama including Decatur, Huntsville, Madison, Athens, Owens Cross Roads, and surrounding communities. We\'re expanding to Birmingham and Nashville. Contact us to confirm service in your area.',
+  },
+];
+
 export default function RootLayout({
   children,
 }: {
@@ -72,8 +96,9 @@ export default function RootLayout({
   // Generate structured data for local business and website
   const localBusinessSchema = generateLocalBusinessSchema();
   const webSiteSchema = generateWebSiteSchema();
+  const faqSchema = generateFAQSchema(SITE_WIDE_FAQS);
   // Combine schemas into an array for multiple structured data blocks
-  const combinedSchemas = [localBusinessSchema, webSiteSchema];
+  const combinedSchemas = [localBusinessSchema, webSiteSchema, faqSchema];
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -105,16 +130,22 @@ export default function RootLayout({
         <meta name="msapplication-TileColor" content="#1a1a2e" />
         <meta name="msapplication-tap-highlight" content="no" />
         <meta name="format-detection" content="telephone=no" />
-        {/* Preload the LCP image — must match the actual URL the browser requests via <Image> */}
+        {/* Preload the hero background (largest painted element on mobile, CSS bg discovered late) */}
         <link
           rel="preload"
-          href="/_next/image?url=%2Flogo-nobg.png&w=640&q=75"
+          href="/uploads/hero-video-poster.webp"
           as="image"
           type="image/webp"
           fetchPriority="high"
         />
-        {/* Video poster is only needed on desktop — do NOT preload video files
-            since Lighthouse tests as mobile where video is disabled */}
+        {/* Preload the logo at the mobile-optimized size (Lighthouse tests mobile, which uses w=384) */}
+        <link
+          rel="preload"
+          href="/_next/image?url=%2Flogo-nobg.png&w=384&q=75"
+          as="image"
+          type="image/webp"
+          fetchPriority="high"
+        />
       </head>
       <body className={inter.className} suppressHydrationWarning>
         {/* Google Tag Manager / Analytics with Consent Mode */}

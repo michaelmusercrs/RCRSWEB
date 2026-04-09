@@ -7,8 +7,7 @@ import { MapPin, Shield, Award, Users, CheckCircle2, ArrowRight, CloudLightning,
 import RotatingText from '@/components/RotatingText';
 import RotatingBanner from '@/components/RotatingBanner';
 import QuickContactForm from '@/components/QuickContactForm';
-import StructuredData from '@/components/StructuredData';
-import { generateFAQSchema, generateHomepageStructuredData } from '@/lib/seo';
+import { generateFAQSchema } from '@/lib/seo';
 import { blogPosts } from '@/lib/blogData';
 import { services, serviceAreas } from '@/lib/servicesData';
 import { getFeaturedReviews } from '@/lib/reviewsData';
@@ -55,11 +54,15 @@ export default async function HomePage() {
   ];
 
   const faqSchema = generateFAQSchema(homepageFAQs);
-  const homepageSchemas = generateHomepageStructuredData();
 
   return (
     <div className="min-h-screen text-white overflow-x-hidden">
-      <StructuredData data={[...homepageSchemas, faqSchema]} />
+      {/* FAQ schema for Google rich results. Rendered inline in layout.tsx head as well
+          because Next.js 14.2 streaming drops body-level <script> tags into RSC payload. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema).replace(/</g, '\\u003c') }}
+      />
 
       {/* Rotating Announcement Banner */}
       <RotatingBanner />
