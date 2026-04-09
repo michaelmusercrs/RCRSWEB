@@ -92,7 +92,7 @@ export const TEAM_MEMBERS: TeamMember[] = [
     phone: '256-221-4290',
     role: 'owner',
     password: 'ChangeMe123!',
-    mustChangePassword: true,
+    mustChangePassword: false,
     isActive: true,
     permissions: ['*'],
     createdAt: '2024-01-01'
@@ -105,7 +105,7 @@ export const TEAM_MEMBERS: TeamMember[] = [
     phone: '256-648-1224',
     role: 'owner',
     password: 'ChangeMe123!',
-    mustChangePassword: true,
+    mustChangePassword: false,
     isActive: true,
     permissions: ['*'],
     createdAt: '2024-01-01'
@@ -120,7 +120,7 @@ export const TEAM_MEMBERS: TeamMember[] = [
     phone: '256-810-3594',
     role: 'admin',
     password: 'ChangeMe123!',
-    mustChangePassword: true,
+    mustChangePassword: false,
     isActive: true,
     permissions: [
       'dashboard', 'sales', 'sales.leads', 'sales.customers',
@@ -141,7 +141,7 @@ export const TEAM_MEMBERS: TeamMember[] = [
     phone: '256-905-7738',
     role: 'manager',
     password: 'ChangeMe123!',
-    mustChangePassword: true,
+    mustChangePassword: false,
     isActive: true,
     permissions: [
       'dashboard', 'reports', 'sales.leads', 'schedule',
@@ -160,7 +160,7 @@ export const TEAM_MEMBERS: TeamMember[] = [
     phone: '256-394-8396',
     role: 'office',
     password: 'ChangeMe123!',
-    mustChangePassword: true,
+    mustChangePassword: false,
     isActive: true,
     permissions: [
       'dashboard', 'billing', 'billing.invoices', 'inventory',
@@ -178,7 +178,7 @@ export const TEAM_MEMBERS: TeamMember[] = [
     phone: '256-654-0747',
     role: 'project_manager',
     password: 'ChangeMe123!',
-    mustChangePassword: true,
+    mustChangePassword: false,
     isActive: true,
     permissions: [
       'dashboard', 'delivery', 'inventory', 'inventory.manage',
@@ -194,7 +194,7 @@ export const TEAM_MEMBERS: TeamMember[] = [
     phone: '256-654-0875',
     role: 'project_manager',
     password: 'ChangeMe123!',
-    mustChangePassword: true,
+    mustChangePassword: false,
     isActive: true,
     permissions: [
       'dashboard', 'delivery', 'inventory', 'inventory.manage',
@@ -216,7 +216,7 @@ export const TEAM_MEMBERS: TeamMember[] = [
     roles: ['driver', 'sales'],
     aliases: ['Rick'],
     password: 'ChangeMe123!',
-    mustChangePassword: true,
+    mustChangePassword: false,
     isActive: true,
     permissions: [
       'dashboard', 'delivery', 'delivery.driver', 'inventory',
@@ -234,7 +234,7 @@ export const TEAM_MEMBERS: TeamMember[] = [
     phone: '256-200-3467',
     role: 'driver',
     password: 'ChangeMe123!',
-    mustChangePassword: true,
+    mustChangePassword: false,
     isActive: false, // Not in Google Workspace - inactive
     permissions: [
       'dashboard', 'delivery', 'delivery.driver'
@@ -251,7 +251,7 @@ export const TEAM_MEMBERS: TeamMember[] = [
     phone: '256-221-0548',
     role: 'sales',
     password: 'ChangeMe123!',
-    mustChangePassword: true,
+    mustChangePassword: false,
     isActive: true,
     permissions: [
       'dashboard', 'sales', 'sales.leads', 'sales.customers',
@@ -267,7 +267,7 @@ export const TEAM_MEMBERS: TeamMember[] = [
     phone: '256-656-7856',
     role: 'sales',
     password: 'ChangeMe123!',
-    mustChangePassword: true,
+    mustChangePassword: false,
     isActive: true,
     permissions: [
       'dashboard', 'sales', 'sales.leads', 'sales.customers',
@@ -283,7 +283,7 @@ export const TEAM_MEMBERS: TeamMember[] = [
     phone: '256-221-1809',
     role: 'sales',
     password: 'ChangeMe123!',
-    mustChangePassword: true,
+    mustChangePassword: false,
     isActive: true,
     permissions: [
       'dashboard', 'sales', 'sales.leads', 'sales.customers',
@@ -299,7 +299,7 @@ export const TEAM_MEMBERS: TeamMember[] = [
     phone: '256-616-6174',
     role: 'sales',
     password: 'ChangeMe123!',
-    mustChangePassword: true,
+    mustChangePassword: false,
     isActive: true,
     permissions: [
       'dashboard', 'sales', 'sales.leads', 'sales.customers',
@@ -315,7 +315,7 @@ export const TEAM_MEMBERS: TeamMember[] = [
     phone: '',
     role: 'sales',
     password: 'ChangeMe123!',
-    mustChangePassword: true,
+    mustChangePassword: false,
     isActive: false, // Not in Google Workspace - inactive
     permissions: [
       'dashboard', 'sales', 'sales.leads', 'sales.customers',
@@ -331,7 +331,7 @@ export const TEAM_MEMBERS: TeamMember[] = [
     phone: '256-654-3631',
     role: 'sales',
     password: 'ChangeMe123!',
-    mustChangePassword: true,
+    mustChangePassword: false,
     isActive: true,
     permissions: [
       'dashboard', 'sales', 'sales.leads', 'sales.customers',
@@ -347,7 +347,7 @@ export const TEAM_MEMBERS: TeamMember[] = [
     phone: '',
     role: 'viewer', // Marketing - NOT sales, excluded from sales/commission leaderboards
     password: 'ChangeMe123!',
-    mustChangePassword: true,
+    mustChangePassword: false,
     isActive: true,
     permissions: [
       'dashboard', 'monday-notes', 'training', 'blog'
@@ -362,7 +362,7 @@ export const TEAM_MEMBERS: TeamMember[] = [
     phone: '256-751-7297',
     role: 'sales',
     password: 'ChangeMe123!',
-    mustChangePassword: true,
+    mustChangePassword: false,
     isActive: true,
     permissions: [
       'dashboard', 'sales', 'sales.leads', 'sales.customers',
@@ -377,7 +377,7 @@ export const TEAM_MEMBERS: TeamMember[] = [
     email: 'alijah@rcrsal.com',
     role: 'sales',
     password: 'ChangeMe123!',
-    mustChangePassword: true,
+    mustChangePassword: false,
     isActive: true,
     permissions: [
       'dashboard', 'sales', 'sales.leads', 'sales.customers',
@@ -395,7 +395,7 @@ export const TEAM_MEMBERS: TeamMember[] = [
     phone: '256-466-0956',
     role: 'sales',
     password: 'ChangeMe123!',
-    mustChangePassword: true,
+    mustChangePassword: false,
     isActive: true,
     permissions: [
       'dashboard', 'sales', 'sales.leads', 'sales.customers',
