@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Star, ExternalLink, CheckCircle2, Shield, Clock, ThumbsUp, Award, ArrowRight } from 'lucide-react';
 import { loadAllReviews } from '@/lib/reviews-loader';
+import { getMasterStats } from '@/lib/rep-reviews';
 import { generateMetadata as genMeta, generateBreadcrumbSchema, siteConfig } from '@/lib/seo';
 import StructuredData from '@/components/StructuredData';
 import type { Metadata } from 'next';
@@ -33,6 +34,15 @@ function StarRating({ rating }: { rating: number }) {
 
 export default async function ReviewsPage() {
   const { reviews: allReviews } = await loadAllReviews();
+  const masterStats = getMasterStats();
+  // Real stats from data/reviews-master.json (317 reviews, 92% 5-star, 4.86 avg)
+  const totalCount = Math.max(allReviews.length, masterStats.total);
+  const fiveStarPct = masterStats.total > 0
+    ? Math.round((masterStats.fiveStar / masterStats.total) * 100)
+    : 100;
+  const avgRatingDisplay = masterStats.averageRating > 0
+    ? masterStats.averageRating.toFixed(2)
+    : '5.0';
 
   const breadcrumbSchema = generateBreadcrumbSchema([
     { name: 'Home', url: '/' },
@@ -94,8 +104,8 @@ export default async function ReviewsPage() {
                 <Star key={i} size={28} className="text-yellow-400 fill-yellow-400" />
               ))}
             </div>
-            <span className="text-2xl font-bold text-white ml-2">5.0</span>
-            <span className="text-white/80 text-lg">({Math.max(47, allReviews.length)}+ Google Reviews)</span>
+            <span className="text-2xl font-bold text-white ml-2">{avgRatingDisplay}</span>
+            <span className="text-white/80 text-lg">({totalCount} Verified Reviews)</span>
           </div>
         </div>
       </section>
@@ -105,20 +115,20 @@ export default async function ReviewsPage() {
         <div className="container mx-auto px-4">
           <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             <div>
-              <div className="text-4xl font-bold text-brand-green">5.0</div>
-              <div className="text-neutral-400 text-sm mt-1">Average Rating</div>
+              <div className="text-4xl font-bold text-brand-green">{avgRatingDisplay}</div>
+              <div className="text-neutral-300 text-sm mt-1">Average Rating</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-brand-green">{Math.max(47, allReviews.length)}+</div>
-              <div className="text-neutral-400 text-sm mt-1">Google Reviews</div>
+              <div className="text-4xl font-bold text-brand-green">{totalCount}</div>
+              <div className="text-neutral-300 text-sm mt-1">Total Reviews</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-brand-green">100%</div>
-              <div className="text-neutral-400 text-sm mt-1">5-Star Reviews</div>
+              <div className="text-4xl font-bold text-brand-green">{fiveStarPct}%</div>
+              <div className="text-neutral-300 text-sm mt-1">5-Star Reviews</div>
             </div>
             <div>
               <div className="text-4xl font-bold text-brand-green">A+</div>
-              <div className="text-neutral-400 text-sm mt-1">BBB Rating</div>
+              <div className="text-neutral-300 text-sm mt-1">BBB Rating</div>
             </div>
           </div>
         </div>
