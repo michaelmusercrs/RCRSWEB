@@ -259,7 +259,7 @@ async function getOrCreateSheet(tabName: string, headerValues: string[]): Promis
         await sheet.resize({ rowCount: sheet.rowCount, columnCount: headerValues.length });
       }
       // Ensure headers are set correctly
-      await sheet.loadHeaderRow().catch(() => {});
+      await sheet.loadHeaderRow().catch((err) => console.error("[pipeline] persist failed:", err));
       if (!sheet.headerValues || sheet.headerValues.length === 0) {
         await sheet.setHeaderRow(headerValues);
       }
@@ -837,9 +837,9 @@ class MaterialOrderPipelineService {
     this.orders.unshift(order);
 
     // Persist
-    this._persistOrder(order).catch(() => {});
-    this._persistOrderItems(orderId, orderItems).catch(() => {});
-    this._persistEvent(event).catch(() => {});
+    this._persistOrder(order).catch((err) => console.error("[pipeline] persist failed:", err));
+    this._persistOrderItems(orderId, orderItems).catch((err) => console.error("[pipeline] persist failed:", err));
+    this._persistEvent(event).catch((err) => console.error("[pipeline] persist failed:", err));
 
     // Auto-transition to ORDER_REVIEWED if all items are in stock
     let allInStock = true;
@@ -865,8 +865,8 @@ class MaterialOrderPipelineService {
       order.currentStage = 'ORDER_REVIEWED';
       order.updatedAt = autoEvent.timestamp;
       order.events.push(autoEvent);
-      this._persistOrder(order).catch(() => {});
-      this._persistEvent(autoEvent).catch(() => {});
+      this._persistOrder(order).catch((err) => console.error("[pipeline] persist failed:", err));
+      this._persistEvent(autoEvent).catch((err) => console.error("[pipeline] persist failed:", err));
     }
 
     return order;
@@ -983,7 +983,7 @@ class MaterialOrderPipelineService {
           }
         }
         // Persist updated item quantities
-        this._updateOrderItems(orderId, order.items).catch(() => {});
+        this._updateOrderItems(orderId, order.items).catch((err) => console.error("[pipeline] persist failed:", err));
         break;
 
       case 'LOAD_VERIFIED':
@@ -999,7 +999,7 @@ class MaterialOrderPipelineService {
           }
         }
         // Persist updated item quantities
-        this._updateOrderItems(orderId, order.items).catch(() => {});
+        this._updateOrderItems(orderId, order.items).catch((err) => console.error("[pipeline] persist failed:", err));
         break;
 
       case 'DEPARTURE_CONFIRMED':
@@ -1055,11 +1055,13 @@ class MaterialOrderPipelineService {
         // Deduct stock for all delivered items
         for (const item of order.items) {
           const qty = item.deliveredQty || item.quantity;
-          // If there's a hold, fulfill it (which also deducts)
+          // If there's a hold, fulfill it (which also deducts).
+          // Pass the actual delivered qty so partial deliveries don't
+          // over-deduct against the original held quantity.
           if (item.holdId) {
-            await unifiedInventoryService.fulfillHold(item.holdId, performedBy, performedByName);
+            await unifiedInventoryService.fulfillHold(item.holdId, performedBy, performedByName, qty);
           } else {
-            // Direct deduction
+            // Direct deduction (no hold was placed at order creation)
             await unifiedInventoryService.deductStock(
               item.productId, qty, orderId, 'pipeline_delivery',
               performedBy, performedByName,
@@ -1068,7 +1070,9 @@ class MaterialOrderPipelineService {
           }
         }
         // Persist updated item quantities
-        this._updateOrderItems(orderId, order.items).catch(() => {});
+        this._updateOrderItems(orderId, order.items).catch((err) => {
+          console.error(`[pipeline] _updateOrderItems failed for ${orderId}:`, err);
+        });
         break;
 
       case 'SIGNATURE_CAPTURED':
@@ -1106,7 +1110,7 @@ class MaterialOrderPipelineService {
           if (custInv) {
             custInv.status = 'sent';
             custInv.sentAt = now;
-            this._persistInvoice(custInv).catch(() => {});
+            this._persistInvoice(custInv).catch((err) => console.error("[pipeline] persist failed:", err));
           }
         }
         break;
@@ -1132,7 +1136,7 @@ class MaterialOrderPipelineService {
             custInv.status = 'paid';
             custInv.paidAt = now;
             custInv.paidAmount = order.paymentAmount || custInv.total;
-            this._persistInvoice(custInv).catch(() => {});
+            this._persistInvoice(custInv).catch((err) => console.error("[pipeline] persist failed:", err));
           }
         }
         if (order.internalInvoiceId) {
@@ -1141,7 +1145,7 @@ class MaterialOrderPipelineService {
             intInv.status = 'paid';
             intInv.paidAt = now;
             intInv.paidAmount = order.paymentAmount || intInv.total;
-            this._persistInvoice(intInv).catch(() => {});
+            this._persistInvoice(intInv).catch((err) => console.error("[pipeline] persist failed:", err));
           }
         }
         break;
@@ -1160,8 +1164,8 @@ class MaterialOrderPipelineService {
     }
 
     // Persist
-    this._persistOrder(order).catch(() => {});
-    this._persistEvent(event).catch(() => {});
+    this._persistOrder(order).catch((err) => console.error("[pipeline] persist failed:", err));
+    this._persistEvent(event).catch((err) => console.error("[pipeline] persist failed:", err));
 
     // Send email notifications to configured roles for this stage
     this._notifyStageAdvance(order, targetStage, performedByName).catch(err => {
@@ -1228,7 +1232,7 @@ class MaterialOrderPipelineService {
 
     // Send to all recipients (fire-and-forget per recipient)
     for (const to of recipients) {
-      emailService.send({ to, subject, body, fromName: 'RCRS Delivery' }).catch(() => {});
+      emailService.send({ to, subject, body, fromName: 'RCRS Delivery' }).catch((err) => console.error("[pipeline] persist failed:", err));
     }
   }
 
@@ -1294,8 +1298,8 @@ class MaterialOrderPipelineService {
     order.customerInvoiceId = custInvoiceId;
     order.internalInvoiceId = intInvoiceId;
 
-    this._persistInvoice(customerInvoice).catch(() => {});
-    this._persistInvoice(internalInvoice).catch(() => {});
+    this._persistInvoice(customerInvoice).catch((err) => console.error("[pipeline] persist failed:", err));
+    this._persistInvoice(internalInvoice).catch((err) => console.error("[pipeline] persist failed:", err));
   }
 
   /**
@@ -1330,8 +1334,8 @@ class MaterialOrderPipelineService {
     };
 
     order.events.push(event);
-    this._persistOrder(order).catch(() => {});
-    this._persistEvent(event).catch(() => {});
+    this._persistOrder(order).catch((err) => console.error("[pipeline] persist failed:", err));
+    this._persistEvent(event).catch((err) => console.error("[pipeline] persist failed:", err));
 
     return order;
   }
@@ -1475,7 +1479,7 @@ class MaterialOrderPipelineService {
       invoice.paidAmount = paidAmount || invoice.total;
     }
 
-    this._persistInvoice(invoice).catch(() => {});
+    this._persistInvoice(invoice).catch((err) => console.error("[pipeline] persist failed:", err));
     return invoice;
   }
 

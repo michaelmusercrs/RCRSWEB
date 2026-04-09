@@ -45,6 +45,9 @@ const SHEET_TABS = {
   PRICING_HISTORY: 'PricingHistory',
   MATERIAL_HOLDS: 'MaterialHolds',
   RETURN_TICKETS: 'ReturnTickets',
+  // Audit log — every state-changing inventory mutation gets a row here.
+  // Was previously orphaned (defined in google-sheets-service but never written).
+  INVENTORY_LOGS: 'InventoryLogs',
 };
 
 // ============================================
@@ -214,6 +217,10 @@ export interface MaterialHold {
   status: 'active' | 'fulfilled' | 'released';
   fulfilledAt?: string;
   releasedAt?: string;
+  // Set when the hold is fulfilled — tracks partial deliveries.
+  // fulfilledQty + unfulfilledQty should always equal `quantity`.
+  fulfilledQty?: number;
+  unfulfilledQty?: number;
 }
 
 export type ReturnType = 'return_to_warehouse' | 'return_to_distributor';
@@ -514,6 +521,8 @@ class UnifiedInventoryService {
       await this._loadCountSessions();
       // Load return tickets
       await this._loadReturnTickets();
+      // Load active material holds (preserves holds across server restart)
+      await this._loadMaterialHolds();
 
       this.loaded = true;
     } catch (error) {
@@ -702,6 +711,42 @@ class UnifiedInventoryService {
     }
   }
 
+  /**
+   * Load active material holds from the MaterialHolds sheet so they survive
+   * server restarts. Only loads holds with status='active' since fulfilled
+   * and released holds have already affected currentQty/holdQty.
+   */
+  private async _loadMaterialHolds(): Promise<void> {
+    const result = await getSheet(SHEET_TABS.MATERIAL_HOLDS);
+    if (!result) return;
+    try {
+      const rows = await result.sheet.getRows();
+      this.materialHolds = rows.map((row: GoogleSpreadsheetRow) => ({
+        holdId: row.get('holdId') || '',
+        productId: row.get('productId') || '',
+        productName: row.get('productName') || '',
+        quantity: parseFloat(row.get('quantity')) || 0,
+        orderId: row.get('orderId') || '',
+        orderType: row.get('orderType') || '',
+        createdAt: row.get('createdAt') || '',
+        createdBy: row.get('createdBy') || '',
+        status: (row.get('status') || 'active') as MaterialHold['status'],
+        fulfilledAt: row.get('fulfilledAt') || undefined,
+        releasedAt: row.get('releasedAt') || undefined,
+        fulfilledQty: row.get('fulfilledQty') ? parseFloat(row.get('fulfilledQty')) : undefined,
+        unfulfilledQty: row.get('unfulfilledQty') ? parseFloat(row.get('unfulfilledQty')) : undefined,
+      }));
+      // Update next ID counter so we don't collide
+      const maxHoldId = Math.max(0, ...this.materialHolds.map(h => {
+        const num = parseInt(h.holdId.replace('HLD-', ''));
+        return isNaN(num) ? 0 : num;
+      }));
+      this.nextIds.hld = Math.max(this.nextIds.hld, maxHoldId + 1);
+    } catch (error) {
+      console.error('Failed to load material holds:', error);
+    }
+  }
+
   // ============================================
   // PERSIST HELPERS
   // ============================================
@@ -778,6 +823,89 @@ class UnifiedInventoryService {
     } catch (error) {
       console.error('Failed to persist transaction:', error);
     }
+  }
+
+  /**
+   * Persist a material hold to the MaterialHolds sheet so it survives restart.
+   * Was previously in-memory only — restart = lost holds = double-allocation
+   * the next time someone places an order against the same item.
+   */
+  private async _persistHold(hold: MaterialHold): Promise<void> {
+    const result = await getOrCreateSheet(SHEET_TABS.MATERIAL_HOLDS, [
+      'holdId', 'productId', 'productName', 'quantity', 'orderId', 'orderType',
+      'createdAt', 'createdBy', 'status', 'fulfilledAt', 'releasedAt',
+      'fulfilledQty', 'unfulfilledQty',
+    ]);
+    if (!result) return;
+    try {
+      const rows = await result.sheet.getRows();
+      const existing = rows.find((r: GoogleSpreadsheetRow) => r.get('holdId') === hold.holdId);
+      const data = {
+        holdId: hold.holdId,
+        productId: hold.productId,
+        productName: hold.productName,
+        quantity: hold.quantity.toString(),
+        orderId: hold.orderId,
+        orderType: hold.orderType,
+        createdAt: hold.createdAt,
+        createdBy: hold.createdBy,
+        status: hold.status,
+        fulfilledAt: hold.fulfilledAt || '',
+        releasedAt: hold.releasedAt || '',
+        fulfilledQty: hold.fulfilledQty?.toString() || '',
+        unfulfilledQty: hold.unfulfilledQty?.toString() || '',
+      };
+      if (existing) {
+        Object.entries(data).forEach(([key, val]) => existing.set(key, val));
+        await existing.save();
+      } else {
+        await result.sheet.addRow(data);
+      }
+    } catch (error) {
+      console.error('Failed to persist material hold:', error);
+    }
+  }
+
+  /**
+   * Append an audit row to the InventoryLogs tab.
+   *
+   * Fire-and-forget by design — every state-changing inventory operation
+   * funnels through here so an admin can replay history from a single sheet
+   * (instead of joining InventoryTransactions, MaterialHolds, ReturnTickets,
+   * and CountRecords). Failures are logged but never block the caller.
+   */
+  private _writeInventoryLog(entry: {
+    productId: string;
+    productName: string;
+    action: string;        // e.g. 'fulfill_hold', 'place_hold', 'deduct', 'add', 'count_adjust', 'return_received'
+    delta: number;         // signed: positive = stock added, negative = stock removed
+    balanceAfter: number;
+    referenceId?: string;
+    performedBy: string;
+    notes?: string;
+  }): void {
+    (async () => {
+      const result = await getOrCreateSheet(SHEET_TABS.INVENTORY_LOGS, [
+        'timestamp', 'productId', 'productName', 'action', 'delta',
+        'balanceAfter', 'referenceId', 'performedBy', 'notes',
+      ]);
+      if (!result) return;
+      try {
+        await result.sheet.addRow({
+          timestamp: new Date().toISOString(),
+          productId: entry.productId,
+          productName: entry.productName,
+          action: entry.action,
+          delta: entry.delta.toString(),
+          balanceAfter: entry.balanceAfter.toString(),
+          referenceId: entry.referenceId || '',
+          performedBy: entry.performedBy,
+          notes: entry.notes || '',
+        });
+      } catch (error) {
+        console.error('[inventory] InventoryLogs write failed:', error);
+      }
+    })();
   }
 
   private async _persistCountSession(session: CountSession): Promise<void> {
@@ -913,7 +1041,7 @@ class UnifiedInventoryService {
       availableQty: (updates.currentQty ?? old.currentQty) - (updates.holdQty ?? old.holdQty),
     };
 
-    this._persistItem(this.inventory[idx]).catch(() => {});
+    this._persistItem(this.inventory[idx]).catch((err) => console.error("[inventory] persist failed:", err));
     return this.inventory[idx];
   }
 
@@ -926,7 +1054,7 @@ class UnifiedInventoryService {
       availableQty: itemData.currentQty - itemData.holdQty,
     };
     this.inventory.push(newItem);
-    this._persistItem(newItem).catch(() => {});
+    this._persistItem(newItem).catch((err) => console.error("[inventory] persist failed:", err));
     return newItem;
   }
 
@@ -980,8 +1108,22 @@ class UnifiedInventoryService {
     };
 
     this.transactions.push(txn);
-    this._persistItem(item).catch(() => {});
-    this._persistTransaction(txn).catch(() => {});
+    this._persistItem(item).catch((err) => {
+      console.error(`[inventory] deductStock persistItem failed for ${item.productId}:`, err);
+    });
+    this._persistTransaction(txn).catch((err) => {
+      console.error(`[inventory] deductStock persistTransaction failed:`, err);
+    });
+    this._writeInventoryLog({
+      productId: resolved,
+      productName: item.productName,
+      action: 'deduct',
+      delta: -quantity,
+      balanceAfter: item.currentQty,
+      referenceId,
+      performedBy: performedByName,
+      notes: notes || `Deducted ${quantity} for ${referenceType}`,
+    });
     return txn;
   }
 
@@ -1029,8 +1171,22 @@ class UnifiedInventoryService {
     };
 
     this.transactions.push(txn);
-    this._persistItem(item).catch(() => {});
-    this._persistTransaction(txn).catch(() => {});
+    this._persistItem(item).catch((err) => {
+      console.error(`[inventory] addStock persistItem failed for ${item.productId}:`, err);
+    });
+    this._persistTransaction(txn).catch((err) => {
+      console.error(`[inventory] addStock persistTransaction failed:`, err);
+    });
+    this._writeInventoryLog({
+      productId: resolved,
+      productName: item.productName,
+      action: type, // 'restock' | 'return' | 'adjustment'
+      delta: quantity,
+      balanceAfter: item.currentQty,
+      referenceId,
+      performedBy: performedByName,
+      notes: notes || `Added ${quantity} via ${type}`,
+    });
     return txn;
   }
 
@@ -1065,7 +1221,12 @@ class UnifiedInventoryService {
     };
 
     this.materialHolds.push(hold);
-    this._persistItem(item).catch(() => {});
+    this._persistItem(item).catch((err) => {
+      console.error(`[inventory] placeHold persistItem failed for ${item.productId}:`, err);
+    });
+    this._persistHold(hold).catch((err) => {
+      console.error(`[inventory] placeHold persistHold failed for ${hold.holdId}:`, err);
+    });
 
     // Log transaction
     const txn: InventoryTransaction = {
@@ -1084,7 +1245,19 @@ class UnifiedInventoryService {
       newQty: item.availableQty,
     };
     this.transactions.push(txn);
-    this._persistTransaction(txn).catch(() => {});
+    this._persistTransaction(txn).catch((err) => {
+      console.error(`[inventory] placeHold transaction persist failed:`, err);
+    });
+    this._writeInventoryLog({
+      productId: resolved,
+      productName: item.productName,
+      action: 'place_hold',
+      delta: 0, // currentQty unchanged; only availableQty drops
+      balanceAfter: item.currentQty,
+      referenceId: orderId,
+      performedBy: createdBy,
+      notes: `Hold ${hold.holdId} placed for ${quantity} units (avail now ${item.availableQty})`,
+    });
 
     return hold;
   }
@@ -1101,58 +1274,108 @@ class UnifiedInventoryService {
     if (item) {
       item.holdQty = Math.max(0, item.holdQty - hold.quantity);
       item.availableQty = item.currentQty - item.holdQty;
-      this._persistItem(item).catch(() => {});
+      this._persistItem(item).catch((err) => {
+        console.error(`[inventory] releaseHold persistItem failed for ${item.productId}:`, err);
+      });
     }
 
     hold.status = 'released';
     hold.releasedAt = new Date().toISOString();
+    this._persistHold(hold).catch((err) => {
+      console.error(`[inventory] releaseHold persistHold failed for ${holdId}:`, err);
+    });
+
+    if (item) {
+      this._writeInventoryLog({
+        productId: hold.productId,
+        productName: hold.productName,
+        action: 'release_hold',
+        delta: 0,
+        balanceAfter: item.currentQty,
+        referenceId: hold.orderId,
+        performedBy: 'system',
+        notes: `Hold ${holdId} released (${hold.quantity} units returned to available)`,
+      });
+    }
     return true;
   }
 
   /**
-   * Fulfill a hold (delivery confirmed â†’ convert hold to deduction).
+   * Fulfill a hold (delivery confirmed → convert hold to deduction).
+   *
+   * @param actualQty - The quantity actually delivered. If less than the held
+   *   quantity, the difference is released back to available stock instead of
+   *   being silently lost. Defaults to the full held quantity.
    */
   async fulfillHold(
     holdId: string,
     performedBy: string,
-    performedByName: string
+    performedByName: string,
+    actualQty?: number
   ): Promise<boolean> {
     await this.ensureLoaded();
     const hold = this.materialHolds.find(h => h.holdId === holdId);
     if (!hold || hold.status !== 'active') return false;
 
+    // If caller didn't specify actual delivered qty, assume full hold was used
+    const deliveredQty = Math.max(0, Math.min(actualQty ?? hold.quantity, hold.quantity));
+    const undeliveredQty = hold.quantity - deliveredQty;
+
     const item = this.inventory.find(i => i.productId === hold.productId);
     if (item) {
+      // Release the FULL hold (we're done with it either way)
       item.holdQty = Math.max(0, item.holdQty - hold.quantity);
-      item.currentQty = Math.max(0, item.currentQty - hold.quantity);
+      // Only deduct what was actually delivered
+      item.currentQty = Math.max(0, item.currentQty - deliveredQty);
       item.availableQty = item.currentQty - item.holdQty;
-      this._persistItem(item).catch(() => {});
+      this._persistItem(item).catch((err) => {
+        console.error(`[inventory] fulfillHold persist failed for ${item.productId}:`, err);
+      });
     }
 
     hold.status = 'fulfilled';
     hold.fulfilledAt = new Date().toISOString();
+    hold.fulfilledQty = deliveredQty;
+    hold.unfulfilledQty = undeliveredQty;
+    this._persistHold(hold).catch((err) => {
+      console.error(`[inventory] fulfillHold persistHold failed for ${holdId}:`, err);
+    });
 
-    // Log transaction
-    if (item) {
+    // Log transaction (only if something was actually delivered)
+    if (item && deliveredQty > 0) {
       const txn: InventoryTransaction = {
         transactionId: `TXN-${String(this.nextIds.txn++).padStart(6, '0')}`,
         productId: hold.productId,
         productName: hold.productName,
         type: 'delivery',
-        quantity: -hold.quantity,
+        quantity: -deliveredQty,
         referenceId: hold.orderId,
         referenceType: hold.orderType,
         performedBy,
         performedByName,
         timestamp: new Date().toISOString(),
-        notes: `Hold ${holdId} fulfilled for order ${hold.orderId}`,
-        previousQty: item.currentQty + hold.quantity,
+        notes: undeliveredQty > 0
+          ? `Hold ${holdId} fulfilled for order ${hold.orderId} (${deliveredQty}/${hold.quantity} delivered, ${undeliveredQty} returned to stock)`
+          : `Hold ${holdId} fulfilled for order ${hold.orderId}`,
+        previousQty: item.currentQty + deliveredQty,
         newQty: item.currentQty,
         unitCost: item.unitCost,
         unitPrice: item.unitPrice,
       };
       this.transactions.push(txn);
-      this._persistTransaction(txn).catch(() => {});
+      this._persistTransaction(txn).catch((err) => {
+        console.error(`[inventory] fulfillHold transaction persist failed:`, err);
+      });
+      this._writeInventoryLog({
+        productId: hold.productId,
+        productName: hold.productName,
+        action: 'fulfill_hold',
+        delta: -deliveredQty,
+        balanceAfter: item.currentQty,
+        referenceId: hold.orderId,
+        performedBy: performedByName,
+        notes: txn.notes,
+      });
     }
 
     return true;
@@ -1196,7 +1419,7 @@ class UnifiedInventoryService {
       resolvedDiscrepancies: 0,
     };
     this.countSessions.unshift(session);
-    this._persistCountSession(session).catch(() => {});
+    this._persistCountSession(session).catch((err) => console.error("[inventory] persist failed:", err));
     return session;
   }
 
@@ -1249,7 +1472,7 @@ class UnifiedInventoryService {
       session.completedAt = new Date().toISOString();
     }
 
-    this._persistCountSession(session).catch(() => {});
+    this._persistCountSession(session).catch((err) => console.error("[inventory] persist failed:", err));
     return record;
   }
 
@@ -1279,7 +1502,7 @@ class UnifiedInventoryService {
         item.availableQty = item.currentQty - item.holdQty;
         item.lastCountDate = new Date().toISOString().split('T')[0];
         item.lastCountBy = resolvedBy;
-        this._persistItem(item).catch(() => {});
+        this._persistItem(item).catch((err) => console.error("[inventory] persist failed:", err));
 
         // Log the adjustment
         const txn: InventoryTransaction = {
@@ -1298,7 +1521,7 @@ class UnifiedInventoryService {
           newQty: adjustedQty,
         };
         this.transactions.push(txn);
-        this._persistTransaction(txn).catch(() => {});
+        this._persistTransaction(txn).catch((err) => console.error("[inventory] persist failed:", err));
       }
     }
 
@@ -1307,7 +1530,7 @@ class UnifiedInventoryService {
     if (session) {
       session.resolvedDiscrepancies = this.countRecords.filter(r => r.sessionId === session.sessionId && r.discrepancy !== 0 && r.resolved).length;
       session.discrepancies = this.countRecords.filter(r => r.sessionId === session.sessionId && r.discrepancy !== 0 && !r.resolved).length;
-      this._persistCountSession(session).catch(() => {});
+      this._persistCountSession(session).catch((err) => console.error("[inventory] persist failed:", err));
     }
 
     return true;
@@ -1425,7 +1648,7 @@ class UnifiedInventoryService {
 
     item.unitCost = newCost;
     item.unitPrice = newPrice;
-    this._persistItem(item).catch(() => {});
+    this._persistItem(item).catch((err) => console.error("[inventory] persist failed:", err));
     return item;
   }
 
@@ -1566,7 +1789,7 @@ class UnifiedInventoryService {
       notes: data.notes,
     };
     this.returnTickets.unshift(ticket);
-    this._persistReturnTicket(ticket).catch(() => {});
+    this._persistReturnTicket(ticket).catch((err) => console.error("[inventory] persist failed:", err));
     return ticket;
   }
 
@@ -1602,7 +1825,7 @@ class UnifiedInventoryService {
       ticket.completedAt = new Date().toISOString();
     }
 
-    this._persistReturnTicket(ticket).catch(() => {});
+    this._persistReturnTicket(ticket).catch((err) => console.error("[inventory] persist failed:", err));
     return ticket;
   }
 

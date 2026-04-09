@@ -9,7 +9,7 @@ import {
   MapPin, Cloud, CloudRain, Sun, CloudSun, CloudSnow, CloudLightning,
   CloudDrizzle, AlertTriangle, CheckCircle, Clock, Send, ChevronRight,
   Home, User, Wrench, Shield, ExternalLink, CloudFog, Upload, X, Image as ImageIcon,
-  Truck, Package
+  Truck, Package, DollarSign, Bitcoin, Copy
 } from 'lucide-react';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -108,6 +108,50 @@ interface DeliveryInfo {
   } | null;
 }
 
+interface CustomerInvoice {
+  invoiceId: string;
+  jobNumber: string;
+  jobName: string;
+  customerName: string;
+  items: Array<{
+    productName: string;
+    quantity: number;
+    unit: string;
+    unitPrice: number;
+    totalPrice: number;
+  }>;
+  subtotal: number;
+  tax: number;
+  total: number;
+  paidAmount: number;
+  balanceDue: number;
+  status: 'draft' | 'sent' | 'paid' | 'void';
+  createdAt: string;
+  sentAt?: string;
+  paidAt?: string;
+}
+
+interface BtcQuote {
+  amountUsd: number;
+  amountBtc: number;
+  btcUsdRate: number;
+  bip21Uri: string;
+  address: string;
+  quotedAt: string;
+  expiresInSeconds: number;
+  invoiceId: string;
+  message: string;
+}
+
+interface BtcStatus {
+  seen: boolean;
+  confirmed: boolean;
+  confirmations: number;
+  txid?: string;
+  receivedBtc?: number;
+  explorerUrl?: string;
+}
+
 // ── Helper Components ──────────────────────────────────────────────────────────
 
 const getWeatherIcon = (icon: string) => {
@@ -145,7 +189,7 @@ export default function CustomerPortal() {
   const [data, setData] = useState<CustomerData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState<'overview' | 'appointments' | 'documents' | 'messages' | 'weather'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'appointments' | 'documents' | 'messages' | 'weather' | 'payments'>('overview');
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [messageSent, setMessageSent] = useState(false);
@@ -155,6 +199,16 @@ export default function CustomerPortal() {
   const [uploading, setUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [deliveries, setDeliveries] = useState<DeliveryInfo[]>([]);
+
+  // ── Payments tab state ──────────────────────────────────────────────────
+  const [invoices, setInvoices] = useState<CustomerInvoice[]>([]);
+  const [totalOwed, setTotalOwed] = useState<number>(0);
+  const [invoicesLoading, setInvoicesLoading] = useState(false);
+  const [btcQuote, setBtcQuote] = useState<BtcQuote | null>(null);
+  const [btcStatus, setBtcStatus] = useState<BtcStatus | null>(null);
+  const [btcLoading, setBtcLoading] = useState(false);
+  const [btcError, setBtcError] = useState<string>('');
+  const [btcInvoiceId, setBtcInvoiceId] = useState<string>('');
 
   // Fetch portal data on mount
   const fetchPortalData = useCallback(async () => {
@@ -214,6 +268,65 @@ export default function CustomerPortal() {
       })
       .catch(() => {}); // Silent fail
   }, [data?.customer?.customerPhone, token]);
+
+  // Fetch invoices when payments tab is opened (lazy — most customers won't visit it)
+  useEffect(() => {
+    if (activeTab !== 'payments' || !data) return;
+    setInvoicesLoading(true);
+    fetch(`/api/customer/${token}/invoices`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((result) => {
+        if (result?.success) {
+          setInvoices(result.invoices || []);
+          setTotalOwed(result.totalOwed || 0);
+        }
+      })
+      .catch((err) => console.error('Failed to load invoices:', err))
+      .finally(() => setInvoicesLoading(false));
+  }, [activeTab, data, token]);
+
+  // Poll the BTC payment endpoint every 20s while a quote is active
+  useEffect(() => {
+    if (!btcQuote || btcStatus?.confirmed) return;
+    const sinceUnix = Math.floor(new Date(btcQuote.quotedAt).getTime() / 1000);
+    const url = `/api/customer/bitcoin-payment?token=${token}&invoiceId=${encodeURIComponent(btcQuote.invoiceId)}&check=1&expectedBtc=${btcQuote.amountBtc}&since=${sinceUnix}`;
+
+    const tick = () => {
+      fetch(url)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((result) => {
+          if (result?.success && result.status) setBtcStatus(result.status);
+        })
+        .catch(() => { /* swallow polling errors */ });
+    };
+    tick(); // immediate first poll
+    const id = setInterval(tick, 20000);
+    return () => clearInterval(id);
+  }, [btcQuote, btcStatus?.confirmed, token]);
+
+  // Helper: request a fresh BTC quote for a given invoice
+  const requestBtcQuote = async (invoice: CustomerInvoice) => {
+    setBtcLoading(true);
+    setBtcError('');
+    setBtcStatus(null);
+    setBtcInvoiceId(invoice.invoiceId);
+    try {
+      const url = `/api/customer/bitcoin-payment?token=${token}&invoiceId=${encodeURIComponent(invoice.invoiceId)}&amountUsd=${invoice.balanceDue}&customerLabel=${encodeURIComponent(invoice.customerName)}`;
+      const res = await fetch(url);
+      const result = await res.json();
+      if (!res.ok || !result?.success) {
+        setBtcError(result?.error || 'Could not generate Bitcoin quote');
+        setBtcQuote(null);
+      } else {
+        setBtcQuote(result.quote);
+      }
+    } catch (err) {
+      setBtcError(err instanceof Error ? err.message : 'Network error');
+      setBtcQuote(null);
+    } finally {
+      setBtcLoading(false);
+    }
+  };
 
   const sendMessage = async () => {
     if (!message.trim()) return;
@@ -493,6 +606,7 @@ export default function CustomerPortal() {
             { id: 'documents', label: 'Documents', icon: FileText, count: documents.length, visible: showDocuments },
             { id: 'messages', label: 'Messages', icon: MessageSquare, count: msgs.length, visible: showMessages },
             { id: 'weather', label: 'Weather', icon: Cloud, visible: showWeather },
+            { id: 'payments', label: 'Payments', icon: DollarSign, visible: true },
           ].filter(tab => tab.visible).map((tab) => (
             <button
               key={tab.id}
@@ -1052,6 +1166,238 @@ export default function CustomerPortal() {
                     Request Free Hail Inspection
                   </a>
                 </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ─── Payments Tab ──────────────────────────────────────────── */}
+        {activeTab === 'payments' && (
+          <div className="space-y-6">
+            {/* Balance summary */}
+            <div className="bg-gradient-to-r from-emerald-950/40 to-neutral-900 rounded-xl border border-emerald-800/40 p-6">
+              <div className="flex items-start justify-between flex-wrap gap-4">
+                <div>
+                  <p className="text-sm text-emerald-300 mb-1">Balance Due</p>
+                  <p className="text-4xl font-bold text-white">
+                    ${totalOwed.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-xs text-neutral-500 mt-2">
+                    Across {invoices.filter((i) => i.balanceDue > 0).length} open invoice
+                    {invoices.filter((i) => i.balanceDue > 0).length === 1 ? '' : 's'}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-neutral-500 mb-1">We accept</p>
+                  <div className="flex items-center gap-2 flex-wrap justify-end">
+                    {(['Check', 'Cash', 'Card', 'Insurance', 'Financing'] as const).map((m) => (
+                      <span key={m} className="px-2 py-1 rounded bg-neutral-800 text-neutral-300 text-xs">{m}</span>
+                    ))}
+                    <span className="px-2 py-1 rounded bg-orange-900/40 text-orange-300 text-xs flex items-center gap-1">
+                      <Bitcoin size={12} /> Bitcoin
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Invoices list */}
+            {invoicesLoading ? (
+              <div className="bg-neutral-900 rounded-xl border border-neutral-800 p-8 text-center">
+                <Loader2 className="mx-auto mb-3 animate-spin text-[#39FF14]" size={32} />
+                <p className="text-sm text-neutral-400">Loading invoices…</p>
+              </div>
+            ) : invoices.length === 0 ? (
+              <div className="bg-neutral-900 rounded-xl border border-neutral-800 p-8 text-center">
+                <FileText className="text-neutral-700 mx-auto mb-4" size={48} />
+                <h3 className="font-semibold text-white mb-2">No Invoices Yet</h3>
+                <p className="text-neutral-500">When your sales rep generates an invoice, it will appear here.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {invoices.map((inv) => (
+                  <div
+                    key={inv.invoiceId}
+                    className="bg-neutral-900 rounded-xl border border-neutral-800 p-5"
+                  >
+                    <div className="flex items-start justify-between flex-wrap gap-3">
+                      <div>
+                        <p className="font-semibold text-white">{inv.jobName || inv.jobNumber}</p>
+                        <p className="text-xs text-neutral-500 mt-1">
+                          Invoice {inv.invoiceId} · {new Date(inv.createdAt).toLocaleDateString('en-US', {
+                            month: 'short', day: 'numeric', year: 'numeric',
+                          })}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-white">
+                          ${inv.balanceDue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                        <p className={`text-xs mt-1 ${
+                          inv.status === 'paid'
+                            ? 'text-emerald-400'
+                            : inv.status === 'sent'
+                            ? 'text-yellow-400'
+                            : 'text-neutral-500'
+                        }`}>
+                          {inv.status === 'paid'
+                            ? '✓ Paid in full'
+                            : inv.balanceDue < inv.total
+                            ? `Partial payment received ($${(inv.total - inv.balanceDue).toFixed(2)} of $${inv.total.toFixed(2)})`
+                            : `Total: $${inv.total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Pay-with-bitcoin button on unpaid invoices */}
+                    {inv.balanceDue > 0 && inv.status !== 'paid' && (
+                      <div className="mt-4 flex flex-wrap items-center gap-3">
+                        <button
+                          onClick={() => requestBtcQuote(inv)}
+                          disabled={btcLoading && btcInvoiceId === inv.invoiceId}
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-sm font-medium transition-colors disabled:opacity-50"
+                        >
+                          {btcLoading && btcInvoiceId === inv.invoiceId ? (
+                            <Loader2 size={16} className="animate-spin" />
+                          ) : (
+                            <Bitcoin size={16} />
+                          )}
+                          Pay with Bitcoin
+                        </button>
+                        <a
+                          href={`tel:${salesRep.phone || '+12562748530'}`}
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-sm font-medium transition-colors"
+                        >
+                          <Phone size={16} />
+                          Pay another way
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Bitcoin payment quote panel */}
+            {(btcQuote || btcError) && (
+              <div className="bg-gradient-to-br from-orange-950/40 to-neutral-900 rounded-xl border border-orange-800/40 p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Bitcoin className="text-orange-400" size={24} />
+                  <h3 className="font-semibold text-white">Bitcoin Payment</h3>
+                  {btcQuote && (
+                    <span className="text-xs text-neutral-500 ml-2">
+                      Invoice {btcQuote.invoiceId}
+                    </span>
+                  )}
+                </div>
+
+                {btcError && (
+                  <div className="bg-red-950/40 border border-red-800/40 rounded-lg p-3 mb-4">
+                    <p className="text-sm text-red-300">{btcError}</p>
+                  </div>
+                )}
+
+                {btcQuote && (
+                  <>
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <p className="text-xs text-neutral-500">Send exactly</p>
+                        <p className="text-2xl font-bold text-white font-mono">{btcQuote.amountBtc.toFixed(8)} BTC</p>
+                        <p className="text-xs text-neutral-500 mt-1">
+                          ≈ ${btcQuote.amountUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-neutral-500">Rate</p>
+                        <p className="text-sm text-white">${btcQuote.btcUsdRate.toLocaleString('en-US', { maximumFractionDigits: 0 })} / BTC</p>
+                        <p className="text-xs text-neutral-500 mt-1">
+                          Quote locks for 15 min
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* QR code via Google Charts (no extra dep) — fall back to address */}
+                    <div className="bg-white rounded-lg p-4 mb-4 inline-block">
+                      <Image
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(btcQuote.bip21Uri)}`}
+                        alt="Bitcoin payment QR code"
+                        width={240}
+                        height={240}
+                        unoptimized
+                      />
+                    </div>
+
+                    <div className="bg-neutral-950 rounded-lg p-3 mb-4">
+                      <p className="text-xs text-neutral-500 mb-1">Address</p>
+                      <div className="flex items-center gap-2">
+                        <code className="flex-1 text-xs text-neutral-300 font-mono break-all">{btcQuote.address}</code>
+                        <button
+                          onClick={() => navigator.clipboard?.writeText(btcQuote.address)}
+                          className="p-1 rounded hover:bg-neutral-800 text-neutral-400"
+                          aria-label="Copy address"
+                        >
+                          <Copy size={14} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Payment status */}
+                    {btcStatus?.confirmed ? (
+                      <div className="bg-emerald-950/40 border border-emerald-800/40 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <CheckCircle className="text-emerald-400" size={20} />
+                          <p className="font-semibold text-emerald-300">Payment Confirmed</p>
+                        </div>
+                        <p className="text-xs text-neutral-400">
+                          {btcStatus.confirmations} confirmation{btcStatus.confirmations === 1 ? '' : 's'} ·{' '}
+                          {btcStatus.receivedBtc?.toFixed(8)} BTC received
+                        </p>
+                        {btcStatus.explorerUrl && (
+                          <a
+                            href={btcStatus.explorerUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 mt-2"
+                          >
+                            View on explorer <ExternalLink size={10} />
+                          </a>
+                        )}
+                      </div>
+                    ) : btcStatus?.seen ? (
+                      <div className="bg-yellow-950/40 border border-yellow-800/40 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Loader2 className="text-yellow-400 animate-spin" size={20} />
+                          <p className="font-semibold text-yellow-300">Payment Detected — Waiting for Confirmation</p>
+                        </div>
+                        <p className="text-xs text-neutral-400">
+                          Your transaction is in the mempool and will confirm in ~10 minutes.
+                        </p>
+                        {btcStatus.explorerUrl && (
+                          <a
+                            href={btcStatus.explorerUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-yellow-400 hover:text-yellow-300 mt-2"
+                          >
+                            View on explorer <ExternalLink size={10} />
+                          </a>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="bg-neutral-950 rounded-lg p-4 flex items-center gap-2">
+                        <Loader2 className="text-neutral-500 animate-spin" size={16} />
+                        <p className="text-xs text-neutral-400">
+                          Waiting for payment… we&apos;ll detect it automatically.
+                        </p>
+                      </div>
+                    )}
+
+                    <p className="text-xs text-neutral-600 mt-4">
+                      Send the exact amount above. Quote refreshes every 15 minutes — if BTC moves significantly,
+                      generate a new quote before paying.
+                    </p>
+                  </>
+                )}
               </div>
             )}
           </div>

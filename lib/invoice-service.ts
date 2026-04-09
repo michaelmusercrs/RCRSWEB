@@ -17,7 +17,7 @@ interface InvoiceRowLike {
 
 export type InvoiceType = 'estimate' | 'progress' | 'final' | 'supplement' | 'credit';
 export type InvoiceStatus = 'draft' | 'sent' | 'viewed' | 'approved' | 'paid' | 'overdue' | 'cancelled' | 'disputed';
-export type PaymentMethod = 'check' | 'cash' | 'card' | 'insurance' | 'financing';
+export type PaymentMethod = 'check' | 'cash' | 'card' | 'insurance' | 'financing' | 'bitcoin';
 export type DiscountType = 'percent' | 'fixed';
 export type LineItemCategory = 'materials' | 'labor' | 'delivery' | 'disposal' | 'permit' | 'other';
 
