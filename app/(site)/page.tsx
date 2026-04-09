@@ -749,7 +749,7 @@ export default async function HomePage() {
             <Button asChild size="lg" className="bg-black text-brand-green hover:bg-neutral-900 font-bold uppercase tracking-widest">
               <Link href="/contact">Schedule Free Inspection</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="border-2 border-black text-black hover:bg-black hover:text-brand-green font-bold uppercase tracking-widest">
+            <Button asChild size="lg" variant="outline" className="border-2 border-black bg-transparent text-black hover:bg-black hover:text-brand-green font-bold uppercase tracking-widest">
               <Link href="tel:256-274-8530">Call (256) 274-8530</Link>
             </Button>
           </div>

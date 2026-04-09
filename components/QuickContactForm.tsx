@@ -115,7 +115,7 @@ export default function QuickContactForm() {
           <Phone className="w-5 h-5" /> Call Now
         </a>
       </div>
-      <p className="text-center text-xs text-neutral-500">
+      <p className="text-center text-xs text-neutral-300">
         100% free inspection. No obligation. We&apos;ll respond within 24 hours.
       </p>
     </form>
