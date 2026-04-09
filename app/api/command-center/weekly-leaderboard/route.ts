@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { meetingNumbersService } from '@/lib/meeting-numbers-service';
 import { validateSession } from '@/lib/auth-service';
+import { getMasterReviewsRaw } from '@/lib/rep-reviews';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -44,6 +45,7 @@ interface MeetingRecord {
 const VALID_METRICS = [
   'inspected', 'damage', 'signed', 'repair', 'gutter',
   'revenue', 'approved', 'goal', 'referrals', 'agents', 'homeShow',
+  'reviews',
 ] as const;
 
 type MetricKey = typeof VALID_METRICS[number];
@@ -60,6 +62,7 @@ const METRIC_LABELS: Record<string, string> = {
   referrals: 'Referrals',
   agents: 'Agents',
   homeShow: 'Home Show',
+  reviews: '★ Reviews (Customer)',
 };
 
 // Map from our metric keys to the raw JSON field names
@@ -75,7 +78,47 @@ const METRIC_TO_FIELD: Record<string, string> = {
   referrals: 'Referrals',
   agents: 'Agents',
   homeShow: 'Home Show',
+  // 'reviews' is computed from rep-reviews.ts master data, not a meeting field
 };
+
+// Map a meeting record's repName to a canonical rep slug for review lookup.
+// Meeting records use first names ("Adam", "Brendon"); the master review data
+// is keyed by full slugs ("adam-rudell", "brendon-muse").
+const REP_NAME_TO_SLUG: Record<string, string> = {
+  'aaron': 'aaron-lussi',
+  'adam': 'adam-rudell',
+  'adam rudell': 'adam-rudell',
+  'rudy': 'adam-rudell',
+  'brendon': 'brendon-muse',
+  'brenden': 'brendon-muse',
+  'greg': 'greg-muse',
+  'hunter': 'hunter-rivers',
+  'travis': 'travis-wages',
+  'rick': 'rick',
+  'joseph': 'joseph-dowd',
+  'joseph dowd': 'joseph-dowd',
+  'alijah': 'alijah',
+};
+
+function lookupRepSlug(repName: string): string | null {
+  return REP_NAME_TO_SLUG[repName.trim().toLowerCase()] || null;
+}
+
+/**
+ * Build a map of {repSlug → review count} optionally filtered by date range.
+ * Reviews flow from data/reviews-master.json via lib/rep-reviews.ts.
+ */
+function buildReviewCounts(start?: string, end?: string): Map<string, number> {
+  const all = getMasterReviewsRaw();
+  const counts = new Map<string, number>();
+  for (const r of all) {
+    if (!r.repSlug) continue;
+    if (start && r.date < start) continue;
+    if (end && r.date > end) continue;
+    counts.set(r.repSlug, (counts.get(r.repSlug) || 0) + 1);
+  }
+  return counts;
+}
 
 // ---------------------------------------------------------------------------
 // Periods
@@ -323,15 +366,26 @@ export async function GET(request: NextRequest) {
       const rep = repTotals.get(key)!;
       rep.weeksReported++;
 
-      // Aggregate all metrics
+      // Aggregate all metrics. 'reviews' is computed once after the loop —
+      // it isn't a per-meeting field.
       for (const m of VALID_METRICS) {
+        if (m === 'reviews') continue;
         const val = extractMetricValue(record, m);
         rep.totals[m] = (rep.totals[m] || 0) + val;
       }
 
       // Track weekly breakdown for the selected metric
-      const metricVal = extractMetricValue(record, metric);
+      const metricVal = metric === 'reviews' ? 0 : extractMetricValue(record, metric);
       rep.weeklyBreakdown.push({ meetingDate: record.meetingDate, value: metricVal });
+    }
+
+    // Inject review counts (filtered by the same date range as the selected period)
+    // so the leaderboard can sort by 'reviews' and so every metric panel shows
+    // each rep's review count alongside their other numbers.
+    const reviewCounts = buildReviewCounts(start, end);
+    for (const rep of repTotals.values()) {
+      const slug = lookupRepSlug(rep.repName);
+      rep.totals.reviews = slug ? (reviewCounts.get(slug) || 0) : 0;
     }
 
     // Sort by selected metric descending

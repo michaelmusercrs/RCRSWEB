@@ -14,12 +14,22 @@
 
 import { googleSheetsService } from './google-sheets-service';
 import { generalReviews, reviewsByRep, type Review } from './reviewsData';
+import { getMasterReviews } from './rep-reviews';
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 let cachedAt = 0;
 let cachedReviews: Review[] | null = null;
 
+/**
+ * Baseline review set used when the Google Sheet has fewer rows than we already
+ * have on disk. The master JSON (data/reviews-master.json, 317 reviews built
+ * from RCRS/data CSV exports) is the new ground truth — we used to fall back to
+ * a tiny 25-row hardcoded list which would silently downgrade the page.
+ */
 function getHardcodedReviews(): Review[] {
+  const master = getMasterReviews();
+  if (master.length > 0) return master;
+  // Last-resort fallback if master JSON is missing for any reason
   const all: Review[] = [...generalReviews];
   for (const slug of Object.keys(reviewsByRep)) {
     all.push(...reviewsByRep[slug]);

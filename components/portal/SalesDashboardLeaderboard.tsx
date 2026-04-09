@@ -17,6 +17,7 @@ import {
   Droplets,
   UserPlus,
   Handshake,
+  Star,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
@@ -55,7 +56,7 @@ interface LeaderboardResponse {
 // Constants
 // =============================================================================
 
-type MetricKey = 'revenue' | 'inspected' | 'signed' | 'damage' | 'repair' | 'gutter' | 'referrals' | 'agents';
+type MetricKey = 'revenue' | 'inspected' | 'signed' | 'damage' | 'repair' | 'gutter' | 'referrals' | 'agents' | 'reviews';
 
 interface MetricConfig {
   key: MetricKey;
@@ -115,6 +116,12 @@ const METRICS: MetricConfig[] = [
     key: 'agents',
     label: 'Agents',
     icon: <Handshake className="h-3.5 w-3.5" />,
+    format: (val: number) => val.toLocaleString('en-US'),
+  },
+  {
+    key: 'reviews',
+    label: '★ Reviews',
+    icon: <Star className="h-3.5 w-3.5" />,
     format: (val: number) => val.toLocaleString('en-US'),
   },
 ];

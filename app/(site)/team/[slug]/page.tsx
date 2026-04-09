@@ -8,6 +8,7 @@ import { getTeamMember, getAllTeamSlugs } from '@/lib/teamData';
 import { getTeamMemberWithOverrides } from '@/lib/profile-overrides';
 import ContactForm from '@/components/ContactForm';
 import { getReviewsForMember } from '@/lib/reviewsData';
+import { getReviewsForRep, getRepReviewStats } from '@/lib/rep-reviews';
 import { getApprovedPortalReviews } from '@/lib/portal-reviews';
 import { getApprovedImages } from '@/lib/portal-images';
 import StructuredData from '@/components/StructuredData';
@@ -62,11 +63,23 @@ export default async function TeamMemberPage({ params }: { params: { slug: strin
   // Apply approved profile overrides
   const member = await getTeamMemberWithOverrides(baseMember);
 
-  // Get reviews: portal reviews first, then static fallback
+  // Get reviews from three sources, in priority order:
+  //   1. Portal-submitted reviews (verified, by-job from customers via the portal)
+  //   2. Master review JSON (data/reviews-master.json — 317 imported from CSVs)
+  //   3. Static reviewsData.ts fallback (small hand-curated set, last resort)
   const portalReviews = await getApprovedPortalReviews(params.slug);
+  const masterReviews = getReviewsForRep(params.slug);
+  const masterStats = getRepReviewStats(params.slug);
   const staticReviews = getReviewsForMember(params.slug, 3);
-  // Use portal reviews if any exist and are visible, otherwise fall back to static
-  const memberReviews = portalReviews.length > 0 ? portalReviews.slice(0, 6) : staticReviews;
+
+  let memberReviews;
+  if (portalReviews.length > 0) {
+    memberReviews = portalReviews.slice(0, 6);
+  } else if (masterReviews.length > 0) {
+    memberReviews = masterReviews.slice(0, 6);
+  } else {
+    memberReviews = staticReviews;
+  }
 
   // Get approved images from portal
   const approvedImages = await getApprovedImages(params.slug);
@@ -425,6 +438,32 @@ export default async function TeamMemberPage({ params }: { params: { slug: strin
                 <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
                   What Customers Say
                 </h2>
+                {masterStats.total > 0 && (
+                  <div className="flex flex-wrap items-center justify-center gap-4 mt-4 text-sm">
+                    <div className="bg-brand-green/10 border border-brand-green/30 rounded-lg px-4 py-2">
+                      <div className="text-2xl font-black text-brand-green">{masterStats.total}</div>
+                      <div className="text-xs text-neutral-300 uppercase tracking-wider">Total Reviews</div>
+                    </div>
+                    <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-4 py-2">
+                      <div className="text-2xl font-black text-yellow-400">{masterStats.averageRating.toFixed(1)} ★</div>
+                      <div className="text-xs text-neutral-300 uppercase tracking-wider">Avg Rating</div>
+                    </div>
+                    <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg px-4 py-2">
+                      <div className="text-2xl font-black text-blue-400">{masterStats.last365Days}</div>
+                      <div className="text-xs text-neutral-300 uppercase tracking-wider">Last 12 Months</div>
+                    </div>
+                    {masterStats.lastReviewDate && (
+                      <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg px-4 py-2">
+                        <div className="text-2xl font-black text-purple-400">
+                          {masterStats.daysSinceLastReview !== null && masterStats.daysSinceLastReview <= 30
+                            ? `${masterStats.daysSinceLastReview}d`
+                            : new Date(masterStats.lastReviewDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                        </div>
+                        <div className="text-xs text-neutral-300 uppercase tracking-wider">Last Review</div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="grid md:grid-cols-3 gap-6">
