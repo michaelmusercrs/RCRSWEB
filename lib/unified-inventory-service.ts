@@ -453,8 +453,19 @@ class UnifiedInventoryService {
 
   private async _load(): Promise<void> {
     try {
-      // Load from Sheets first
-      const result = await getSheet(SHEET_TABS.INVENTORY);
+      // Load from Sheets first — use getOrCreateSheet so the tab is
+      // auto-created with correct headers if it doesn't exist yet.
+      // Previously used getSheet which returned null → silent fallback
+      // to hardcoded catalog → pricing updates never persisted.
+      const INVENTORY_HEADERS = [
+        'productId', 'legacyId', 'legacySku', 'productName', 'description',
+        'category', 'sku', 'unit', 'currentQty', 'holdQty',
+        'minStockLevel', 'maxStockLevel', 'reorderQty',
+        'unitCost', 'unitPrice', 'supplier', 'supplierPartNumber',
+        'location', 'weight', 'lastCountDate', 'lastCountBy',
+        'lastRestockDate', 'notes', 'active',
+      ];
+      const result = await getOrCreateSheet(SHEET_TABS.INVENTORY, INVENTORY_HEADERS);
       if (result) {
         const rows = await result.sheet.getRows();
         if (rows.length > 0) {
@@ -714,8 +725,19 @@ class UnifiedInventoryService {
   // ============================================
 
   private async _persistItem(item: InventoryItem): Promise<void> {
-    const result = await getSheet(SHEET_TABS.INVENTORY);
-    if (!result) return;
+    const INVENTORY_HEADERS = [
+      'productId', 'legacyId', 'legacySku', 'productName', 'description',
+      'category', 'sku', 'unit', 'currentQty', 'holdQty',
+      'minStockLevel', 'maxStockLevel', 'reorderQty',
+      'unitCost', 'unitPrice', 'supplier', 'supplierPartNumber',
+      'location', 'weight', 'lastCountDate', 'lastCountBy',
+      'lastRestockDate', 'notes', 'active',
+    ];
+    const result = await getOrCreateSheet(SHEET_TABS.INVENTORY, INVENTORY_HEADERS);
+    if (!result) {
+      console.error('[inventory] _persistItem: Sheets not available, data NOT saved');
+      return;
+    }
     try {
       const rows = await result.sheet.getRows();
       const existing = rows.find((r: GoogleSpreadsheetRow) => r.get('productId') === item.productId);
