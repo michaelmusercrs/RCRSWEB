@@ -37,6 +37,7 @@ interface UserConfig {
   userId: string;
   role: TeamRole;
   isActive: boolean;
+  phone?: string;
   enabledSections: string[];
   sectionOrder: string[];
   leadDistribution: {
@@ -361,21 +362,33 @@ export default function UserProfileManagerPage() {
   };
 
   // Load config from localStorage or build defaults
-  const loadConfig = useCallback((member: TeamMember) => {
-    const stored = localStorage.getItem(`userConfig_${member.id}`);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored) as UserConfig;
-        // Ensure any new sections are included
-        const existingSections = new Set(parsed.sectionOrder);
-        SECTION_IDS.forEach(s => { if (!existingSections.has(s)) parsed.sectionOrder.push(s); });
-        setConfig(parsed);
-      } catch {
-        setConfig(buildDefaultConfig(member));
+  const loadConfig = useCallback(async (member: TeamMember) => {
+    // Load from the REAL API first (Google Sheets), fall back to defaults
+    try {
+      const res = await fetch(`/api/admin/team-members/${member.slug}`, {
+        credentials: 'include',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const serverConfig = data.member?.portalConfig;
+        if (serverConfig && typeof serverConfig === 'object') {
+          // Ensure any new sections are included
+          const parsed = serverConfig as UserConfig;
+          const existingSections = new Set(parsed.sectionOrder || []);
+          SECTION_IDS.forEach(s => { if (!existingSections.has(s)) (parsed.sectionOrder = parsed.sectionOrder || []).push(s); });
+          // Merge server role with config
+          if (data.member?.role) parsed.role = data.member.role;
+          if (data.member?.phone) parsed.phone = data.member.phone;
+          if (data.member?.isActive !== undefined) parsed.isActive = data.member.isActive;
+          setConfig(parsed);
+          setHasUnsavedChanges(false);
+          return;
+        }
       }
-    } else {
-      setConfig(buildDefaultConfig(member));
+    } catch {
+      // API unavailable — fall through to default
     }
+    setConfig(buildDefaultConfig(member));
     setHasUnsavedChanges(false);
   }, []);
 
@@ -481,13 +494,35 @@ export default function UserProfileManagerPage() {
     setHasUnsavedChanges(true);
   };
 
-  const handleSave = () => {
-    if (!config || !selectedUserId) return;
+  const handleSave = async () => {
+    if (!config || !selectedUserId || !selectedMember) return;
     const toSave = { ...config, updatedAt: new Date().toISOString() };
-    localStorage.setItem(`userConfig_${selectedUserId}`, JSON.stringify(toSave));
-    setConfig(toSave);
-    setHasUnsavedChanges(false);
-    setToast({ show: true, message: `Profile saved for ${selectedMember?.name}` });
+
+    // Save to the REAL API (Google Sheets via team-members endpoint)
+    try {
+      const res = await fetch(`/api/admin/team-members/${selectedMember.slug}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          role: config.role,
+          isActive: config.isActive !== false,
+          phone: config.phone,
+          permissions: config.permissionOverrides,
+          portalConfig: toSave,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setToast({ show: true, message: `Save failed: ${err.error || res.statusText}` });
+        return;
+      }
+      setConfig(toSave);
+      setHasUnsavedChanges(false);
+      setToast({ show: true, message: `Profile saved for ${selectedMember.name}` });
+    } catch (err) {
+      setToast({ show: true, message: `Save failed: ${err instanceof Error ? err.message : 'Network error'}` });
+    }
   };
 
   const handleRoleChange = (newRole: TeamRole) => {
