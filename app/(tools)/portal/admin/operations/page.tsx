@@ -102,41 +102,29 @@ export default function AdminOperationsPage() {
         lowStockItems: inventoryArr.filter((i: any) => i.currentQty <= (i.minQty || 5)).length,
       }));
 
-      // Mock recent activity
-      setRecentActivity([
-        {
-          id: '1',
-          type: 'ticket',
-          action: 'Delivery Completed',
-          description: 'Smith Roof Replacement - Materials delivered',
-          user: 'Rick',
-          timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-        },
-        {
-          id: '2',
-          type: 'invoice',
-          action: 'Invoice Created',
-          description: 'Recent invoice activity',
-          user: 'Tia',
-          timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-        },
-        {
-          id: '3',
-          type: 'ticket',
-          action: 'New Order',
-          description: 'Johnson Residence - Delivery scheduled',
-          user: 'John',
-          timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-        },
-        {
-          id: '4',
-          type: 'inventory',
-          action: 'Stock Adjusted',
-          description: 'OC Duration Shingles - 50 SQ added',
-          user: 'Destin',
-          timestamp: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
-        },
-      ]);
+      // Load REAL recent activity from AuditLog
+      try {
+        const auditRes = await fetch('/api/admin/system/audit-log?limit=10');
+        if (auditRes.ok) {
+          const auditData = await auditRes.json();
+          const entries = (auditData.entries || auditData.data || []).slice(0, 6);
+          setRecentActivity(entries.map((e: Record<string, string>, i: number) => ({
+            id: String(i),
+            type: (e.Action || '').toLowerCase().includes('delivery') ? 'ticket'
+              : (e.Action || '').toLowerCase().includes('inventory') ? 'inventory'
+              : (e.Action || '').toLowerCase().includes('invoice') ? 'invoice'
+              : 'system',
+            action: e.Action || 'Activity',
+            description: (e.Details || '').substring(0, 80),
+            user: (e.UserEmail || '').split('@')[0] || 'system',
+            timestamp: e.Timestamp || new Date().toISOString(),
+          })));
+        } else {
+          setRecentActivity([]);
+        }
+      } catch {
+        setRecentActivity([]);
+      }
 
     } catch (error) {
       console.error('Error loading dashboard:', error);
@@ -430,10 +418,10 @@ export default function AdminOperationsPage() {
               </h2>
               <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 space-y-3">
                 {[
-                  { label: 'Google Sheets Sync', status: 'Connected', ok: true },
-                  { label: 'JobNimbus API', status: 'Ready', ok: true },
-                  { label: 'GPS Tracking', status: 'Active', ok: true },
-                  { label: 'SMS Notifications', status: 'Active', ok: true },
+                  { label: 'Google Sheets', status: stats.totalProducts > 0 ? 'Connected' : 'Check Config', ok: stats.totalProducts > 0 },
+                  { label: 'Inventory Items', status: `${stats.totalProducts} products`, ok: stats.totalProducts > 0 },
+                  { label: 'Active Tickets', status: `${stats.activeTickets} active`, ok: true },
+                  { label: 'Low Stock Alerts', status: stats.lowStockItems > 0 ? `${stats.lowStockItems} items` : 'All stocked', ok: stats.lowStockItems === 0 },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center justify-between">
                     <span className="text-neutral-400 text-sm">{item.label}</span>

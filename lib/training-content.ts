@@ -1,7 +1,7 @@
 /**
  * RCRS Training Content Data
  *
- * Training media lives in public/training-media/ — 32 files:
+ * Training media lives in publichttps://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/ — 32 files:
  *   15 videos (.mp4) + 17 audio deep dives (.wav)
  *
  * Quizzes, flashcards, and study guides in public/training/
@@ -36,8 +36,8 @@ export const TRAINING_MODULES: TrainingModule[] = [
     audience: ['all', 'sales_rep', 'manager'],
     difficulty: 'beginner',
     content: {
-      audioDeepDive: '/training-media/sales-performance-funnel.wav',
-      trainingVideo: '/training-media/sales-data-driven.mp4',
+      audioDeepDive: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/sales-performance-funnel.wav',
+      trainingVideo: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/sales-data-driven.mp4',
       quiz: '/training/quizzes/sales-performance-quiz.json',
       flashcards: '/training/flashcards/sales-performance-flashcards.json',
       studyGuide: '/training/guides/sales-performance-guide.md',
@@ -50,9 +50,9 @@ export const TRAINING_MODULES: TrainingModule[] = [
     audience: ['sales_rep', 'manager'],
     difficulty: 'intermediate',
     content: {
-      audioDeepDive: '/training-media/advanced-sales-deep-dive.wav',
-      trainingVideo: '/training-media/sales-2024-cracking-code.mp4',
-      briefVideo: '/training-media/sales-brendon-playbook.mp4',
+      audioDeepDive: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/advanced-sales-deep-dive.wav',
+      trainingVideo: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/sales-2024-cracking-code.mp4',
+      briefVideo: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/sales-brendon-playbook.mp4',
       quiz: '/training/quizzes/sales-mastery-quiz.json',
       flashcards: '/training/flashcards/sales-mastery-flashcards.json',
       studyGuide: '/training/guides/sales-mastery-guide.md',
@@ -65,9 +65,9 @@ export const TRAINING_MODULES: TrainingModule[] = [
     audience: ['all'],
     difficulty: 'beginner',
     content: {
-      audioDeepDive: '/training-media/portal-digital-hub.wav',
-      trainingVideo: '/training-media/portal-overview-video.mp4',
-      briefVideo: '/training-media/portal-training-video.mp4',
+      audioDeepDive: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/portal-digital-hub.wav',
+      trainingVideo: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/portal-overview-video.mp4',
+      briefVideo: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/portal-training-video.mp4',
       quiz: '/training/quizzes/platform-onboarding-quiz.json',
       flashcards: '/training/flashcards/platform-onboarding-flashcards.json',
       studyGuide: '/training/guides/platform-onboarding-guide.md',
@@ -80,9 +80,9 @@ export const TRAINING_MODULES: TrainingModule[] = [
     audience: ['driver', 'office_staff'],
     difficulty: 'intermediate',
     content: {
-      audioDeepDive: '/training-media/contractor-pipeline.wav',
-      trainingVideo: '/training-media/contractor-data-decisions.mp4',
-      briefVideo: '/training-media/contractor-chaos-clarity.mp4',
+      audioDeepDive: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/contractor-pipeline.wav',
+      trainingVideo: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/contractor-data-decisions.mp4',
+      briefVideo: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/contractor-chaos-clarity.mp4',
       quiz: '/training/quizzes/field-operations-quiz.json',
       flashcards: '/training/flashcards/field-operations-flashcards.json',
       studyGuide: '/training/guides/field-operations-guide.md',
@@ -95,8 +95,8 @@ export const TRAINING_MODULES: TrainingModule[] = [
     audience: ['sales_rep', 'office_staff'],
     difficulty: 'beginner',
     content: {
-      audioDeepDive: '/training-media/sales-2024-trust-dividends.wav',
-      trainingVideo: '/training-media/sales-construction-balance.mp4',
+      audioDeepDive: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/sales-2024-trust-dividends.wav',
+      trainingVideo: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/sales-construction-balance.mp4',
       quiz: '/training/quizzes/customer-service-quiz.json',
       flashcards: '/training/flashcards/customer-service-flashcards.json',
       studyGuide: '/training/guides/customer-service-guide.md',
@@ -109,8 +109,8 @@ export const TRAINING_MODULES: TrainingModule[] = [
     audience: ['admin', 'manager'],
     difficulty: 'advanced',
     content: {
-      audioDeepDive: '/training-media/portal-training-deep-dive.wav',
-      trainingVideo: '/training-media/sales-2025-plan.mp4',
+      audioDeepDive: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/portal-training-deep-dive.wav',
+      trainingVideo: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/sales-2025-plan.mp4',
       quiz: '/training/quizzes/admin-deep-dive-quiz.json',
       flashcards: '/training/flashcards/admin-deep-dive-flashcards.json',
       studyGuide: '/training/guides/admin-deep-dive-guide.md',
@@ -123,8 +123,8 @@ export const TRAINING_MODULES: TrainingModule[] = [
     audience: ['driver', 'office_staff', 'manager'],
     difficulty: 'intermediate',
     content: {
-      audioDeepDive: '/training-media/meeting-data-cracking-code.wav',
-      trainingVideo: '/training-media/sales-year-balance.mp4',
+      audioDeepDive: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/meeting-data-cracking-code.wav',
+      trainingVideo: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/sales-year-balance.mp4',
       quiz: '/training/quizzes/delivery-operations-quiz.json',
       flashcards: '/training/flashcards/delivery-operations-flashcards.json',
       studyGuide: '/training/guides/delivery-operations-guide.md',
@@ -138,9 +138,9 @@ export const TRAINING_MODULES: TrainingModule[] = [
     audience: ['all', 'sales_rep'],
     difficulty: 'intermediate',
     content: {
-      audioDeepDive: '/training-media/iko-shingles-exposed.wav',
-      trainingVideo: '/training-media/iko-the-promise.mp4',
-      briefVideo: '/training-media/iko-investigation-video.mp4',
+      audioDeepDive: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/iko-shingles-exposed.wav',
+      trainingVideo: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/iko-the-promise.mp4',
+      briefVideo: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/iko-investigation-video.mp4',
     },
   },
   {
@@ -150,9 +150,9 @@ export const TRAINING_MODULES: TrainingModule[] = [
     audience: ['sales_rep', 'manager'],
     difficulty: 'advanced',
     content: {
-      audioDeepDive: '/training-media/iko-ironclad-deep-dive.wav',
-      trainingVideo: '/training-media/iko-investigators-guide.mp4',
-      briefVideo: '/training-media/iko-budget-deep-dive.wav',
+      audioDeepDive: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/iko-ironclad-deep-dive.wav',
+      trainingVideo: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/iko-investigators-guide.mp4',
+      briefVideo: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/iko-budget-deep-dive.wav',
     },
   },
   {
@@ -162,9 +162,9 @@ export const TRAINING_MODULES: TrainingModule[] = [
     audience: ['manager', 'admin'],
     difficulty: 'intermediate',
     content: {
-      audioDeepDive: '/training-media/sales-commission-structure.wav',
-      trainingVideo: '/training-media/sales-hiring-video.mp4',
-      briefVideo: '/training-media/sales-hunter-record.mp4',
+      audioDeepDive: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/sales-commission-structure.wav',
+      trainingVideo: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/sales-hiring-video.mp4',
+      briefVideo: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/sales-hunter-record.mp4',
     },
   },
   {
@@ -174,9 +174,9 @@ export const TRAINING_MODULES: TrainingModule[] = [
     audience: ['manager', 'admin'],
     difficulty: 'advanced',
     content: {
-      audioDeepDive: '/training-media/sales-talent-war.wav',
-      trainingVideo: '/training-media/sales-hiring-video.mp4',
-      briefVideo: '/training-media/sales-gold-rush.wav',
+      audioDeepDive: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/sales-talent-war.wav',
+      trainingVideo: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/sales-hiring-video.mp4',
+      briefVideo: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/sales-gold-rush.wav',
     },
   },
   {
@@ -186,9 +186,9 @@ export const TRAINING_MODULES: TrainingModule[] = [
     audience: ['sales_rep', 'manager'],
     difficulty: 'intermediate',
     content: {
-      audioDeepDive: '/training-media/sales-team-performance.wav',
-      trainingVideo: '/training-media/sales-data-driven.mp4',
-      briefVideo: '/training-media/sales-success-deconstructed.wav',
+      audioDeepDive: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/sales-team-performance.wav',
+      trainingVideo: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/sales-data-driven.mp4',
+      briefVideo: 'https://m8ev5du8fbyp5uff.public.blob.vercel-storage.com/training-media/sales-success-deconstructed.wav',
     },
   },
 ];
