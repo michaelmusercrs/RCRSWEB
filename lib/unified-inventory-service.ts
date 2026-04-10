@@ -597,7 +597,11 @@ class UnifiedInventoryService {
   }
 
   private async _loadTransactions(): Promise<void> {
-    const result = await getSheet(SHEET_TABS.TRANSACTIONS);
+    const result = await getOrCreateSheet(SHEET_TABS.TRANSACTIONS, [
+      'transactionId', 'productId', 'productName', 'type', 'quantity',
+      'referenceId', 'referenceType', 'performedBy', 'performedByName',
+      'timestamp', 'notes', 'previousQty', 'newQty', 'unitCost', 'unitPrice',
+    ]);
     if (!result) return;
     try {
       const rows = await result.sheet.getRows();
@@ -629,7 +633,11 @@ class UnifiedInventoryService {
   }
 
   private async _loadCountSessions(): Promise<void> {
-    const result = await getSheet(SHEET_TABS.COUNT_SESSIONS);
+    const result = await getOrCreateSheet(SHEET_TABS.COUNT_SESSIONS, [
+      'sessionId', 'startedAt', 'startedBy', 'startedByName', 'status',
+      'completedAt', 'totalItems', 'countedItems', 'discrepancies',
+      'resolvedDiscrepancies', 'photoUrl', 'notes',
+    ]);
     if (!result) return;
     try {
       const rows = await result.sheet.getRows();
@@ -653,7 +661,13 @@ class UnifiedInventoryService {
   }
 
   private async _loadReturnTickets(): Promise<void> {
-    const result = await getSheet(SHEET_TABS.RETURN_TICKETS);
+    const result = await getOrCreateSheet(SHEET_TABS.RETURN_TICKETS, [
+      'ticketId', 'type', 'status', 'orderId', 'jobId', 'jobName',
+      'items', 'distributor', 'creditMemoNumber', 'creditAmount',
+      'createdAt', 'createdBy', 'createdByName',
+      'pickupPhotos', 'transitPhotos', 'deliveryPhotos',
+      'gpsPickup', 'gpsDelivery', 'notes', 'completedAt',
+    ]);
     if (!result) return;
     try {
       const rows = await result.sheet.getRows();
@@ -690,7 +704,11 @@ class UnifiedInventoryService {
    * and released holds have already affected currentQty/holdQty.
    */
   private async _loadMaterialHolds(): Promise<void> {
-    const result = await getSheet(SHEET_TABS.MATERIAL_HOLDS);
+    const result = await getOrCreateSheet(SHEET_TABS.MATERIAL_HOLDS, [
+      'holdId', 'productId', 'productName', 'quantity', 'orderId',
+      'orderType', 'createdAt', 'createdBy', 'status',
+      'fulfilledAt', 'releasedAt',
+    ]);
     if (!result) return;
     try {
       const rows = await result.sheet.getRows();
