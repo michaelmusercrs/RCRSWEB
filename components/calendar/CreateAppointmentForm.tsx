@@ -16,7 +16,7 @@
 import { useState, useEffect } from 'react';
 import {
   Calendar, Clock, User, MapPin, Phone, Mail, Briefcase,
-  CheckCircle2, ChevronLeft, ChevronRight, Loader2,
+  CheckCircle2, ChevronLeft, ChevronRight, Loader2, Search,
   AlertCircle, X, ExternalLink, Plus, FileText,
 } from 'lucide-react';
 
@@ -102,6 +102,44 @@ export default function CreateAppointmentForm({
   const [error, setError] = useState('');
   const [currentMonth, setCurrentMonth] = useState(defaultDate || new Date());
   const [createdAppointment, setCreatedAppointment] = useState<CreatedAppointment | null>(null);
+
+  // R-number auto-populate for appointments
+  const [jobNumber, setJobNumber] = useState('');
+  const [jobLooking, setJobLooking] = useState(false);
+  const [jobLookupMsg, setJobLookupMsg] = useState<string | null>(null);
+
+  const lookupByJobNumber = async (num: string) => {
+    const trimmed = num.trim();
+    if (!trimmed || trimmed.length < 2) return;
+    if (customerName && customerPhone) return; // already populated
+    setJobLooking(true);
+    setJobLookupMsg(null);
+    try {
+      const res = await fetch(
+        `/api/portal/delivery/work-orders?action=lookup&jobNumber=${encodeURIComponent(trimmed)}`
+      );
+      if (!res.ok) { setJobLookupMsg('Lookup failed'); return; }
+      const data = await res.json();
+      if (data.success && data.customerName) {
+        setCustomerName(data.customerName || '');
+        setCustomerPhone(data.phone || '');
+        setCustomerEmail(data.email || '');
+        setCustomerId(data.jnJobId || '');
+        setJobName(data.jobName || '');
+        setAddress(data.addressParts?.street || data.address || '');
+        setCity(data.addressParts?.city || '');
+        setStateVal(data.addressParts?.state || 'AL');
+        setZip(data.addressParts?.zip || '');
+        setJobLookupMsg(`Imported: ${data.customerName}`);
+      } else {
+        setJobLookupMsg(data.error || 'No match — fill in manually');
+      }
+    } catch {
+      setJobLookupMsg('Lookup error');
+    } finally {
+      setJobLooking(false);
+    }
+  };
 
   // Time slots generation (business hours 7 AM - 6 PM, 30-min increments)
   const timeSlots: string[] = [];
@@ -342,6 +380,39 @@ export default function CreateAppointmentForm({
               >
                 <ChevronLeft size={16} /> Back to type
               </button>
+
+              {/* Job Number auto-populate */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold text-zinc-300 flex items-center gap-2">
+                  <Search size={16} className="text-lime-400" /> Quick Lookup
+                </h3>
+                <div>
+                  <label className="block text-xs text-zinc-400 mb-1">
+                    Job Number <span className="text-zinc-600">(enter R-number to auto-fill everything)</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={jobNumber}
+                      onChange={(e) => setJobNumber(e.target.value)}
+                      onBlur={(e) => lookupByJobNumber(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); lookupByJobNumber(jobNumber); } }}
+                      placeholder="R-12345"
+                      className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:border-lime-500 focus:ring-1 focus:ring-lime-500 text-sm"
+                    />
+                    {jobLooking && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <Loader2 size={16} className="animate-spin text-lime-400" />
+                      </div>
+                    )}
+                  </div>
+                  {jobLookupMsg && (
+                    <p className={`mt-1 text-xs ${jobLookupMsg.startsWith('Imported') ? 'text-lime-400' : 'text-zinc-500'}`}>
+                      {jobLookupMsg}
+                    </p>
+                  )}
+                </div>
+              </div>
 
               {/* Customer Info */}
               <div className="space-y-3">
