@@ -395,11 +395,59 @@ export default function TrainingHubClient() {
   const visiblePaths = getVisiblePaths(user?.role as TeamRole | undefined);
 
   useEffect(() => {
-    const map = loadAllProgress();
-    setProgressMap(map);
-    setStats(loadUnifiedStats(map));
+    // Load from localStorage first (instant), then merge with server data
+    const localMap = loadAllProgress();
+    setProgressMap(localMap);
+    setStats(loadUnifiedStats(localMap));
     setMounted(true);
-  }, []);
+
+    // Also fetch real progress from the API (persisted in Google Sheets).
+    // This ensures progress syncs across devices and survives cache clears.
+    if (user?.userId) {
+      (async () => {
+        try {
+          const res = await fetch(
+            `/api/portal/training/modules?userId=${encodeURIComponent(user.userId)}`,
+            { credentials: 'include' }
+          );
+          if (!res.ok) return;
+          const data = await res.json();
+          const serverModules = data.modules || data.data || [];
+          if (!Array.isArray(serverModules) || serverModules.length === 0) return;
+
+          // Count server-side completions and merge into the progress map.
+          // Server progress wins over localStorage when both exist.
+          const serverCompleted = new Set<string>();
+          for (const m of serverModules) {
+            if (m.completed || m.status === 'completed') {
+              serverCompleted.add(m.moduleId || m.id);
+            }
+          }
+
+          if (serverCompleted.size > 0) {
+            // Update the modules path progress from server data
+            const updatedMap = { ...localMap };
+            const modulesPath = trainingPaths.find(p => p.href === '/portal/training/modules');
+            if (modulesPath) {
+              const serverCount = serverCompleted.size;
+              const localCount = updatedMap[modulesPath.href]?.completed || 0;
+              // Use whichever is higher (server or local)
+              const best = Math.max(serverCount, localCount);
+              updatedMap[modulesPath.href] = {
+                completed: best,
+                total: modulesPath.modules,
+                percentage: modulesPath.modules > 0 ? Math.round((best / modulesPath.modules) * 100) : 0,
+              };
+            }
+            setProgressMap(updatedMap);
+            setStats(loadUnifiedStats(updatedMap));
+          }
+        } catch {
+          // API unavailable — localStorage data is the fallback
+        }
+      })();
+    }
+  }, [user?.userId]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950">
