@@ -30,8 +30,8 @@ export async function GET(request: NextRequest) {
     const repId = searchParams.get('repId');
 
     // Get analytics
-    const analytics = callsService.getAnalytics(daysBack);
-    const stats = callsService.getStats();
+    const analytics = await callsService.getAnalytics(daysBack);
+    const stats = await callsService.getStats();
 
     // Filter by rep if specified
     let filteredAnalytics = analytics;
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get today's calls
-    const todaysCalls = callsService.getTodaysCalls();
+    const todaysCalls = await callsService.getTodaysCalls();
 
     // Calculate additional metrics
     const todaysStats = {

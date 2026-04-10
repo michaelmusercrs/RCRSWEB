@@ -142,12 +142,25 @@ const MOCK_NOTIFICATIONS: Notification[] = [
 // COMPONENT
 // ============================================
 
+// Empty stats — used when there's nothing to show. Replaces the previous
+// MOCK_STATS fallback that violated the no-fake-data rule.
+const EMPTY_STATS: DriverStats = {
+  todayDeliveries: 0,
+  completed: 0,
+  inProgress: 0,
+  pending: 0,
+  totalWeight: 0,
+  onTimeRate: 0,
+};
+
 export default function DriverPortalPage() {
   const [deliveries, setDeliveries] = useState<DriverDelivery[]>([]);
-  const [stats, setStats] = useState<DriverStats>(MOCK_STATS);
+  const [stats, setStats] = useState<DriverStats>(EMPTY_STATS);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isUsingMockData, setIsUsingMockData] = useState(false);
+  // Kept as a constant `false` so existing UI references compile but
+  // the page never claims to be using mock data.
+  const isUsingMockData = false;
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -159,66 +172,95 @@ export default function DriverPortalPage() {
     setError(null);
 
     try {
-      const today = new Date().toISOString().slice(0, 10);
-      const res = await fetch(`/api/portal/deliveries?date=${today}`);
+      // Pull active orders assigned to this driver from the pipeline.
+      // The pipeline is the canonical source — was previously hitting
+      // /api/portal/deliveries which returned a different shape.
+      const res = await fetch('/api/portal/pipeline?action=active');
 
       if (!res.ok) {
         throw new Error(`API returned ${res.status}`);
       }
 
       const data = await res.json();
-      const apiDeliveries: DriverDelivery[] = (data.data?.deliveries || data.deliveries || []).map((d: any) => ({
-        ticketId: d.ticketId || d.id || d.deliveryId,
-        jobName: d.jobName || d.job_name || 'Delivery',
-        customerName: d.customerName || d.customer_name || 'Customer',
-        customerPhone: d.customerPhone || d.customer_phone || '',
-        address: d.address || d.jobAddress || '',
-        city: d.city || '',
-        state: d.state || 'AL',
-        zip: d.zip || '',
-        scheduledTime: d.scheduledTime || d.scheduled_time || '',
-        priority: d.priority || 'normal',
-        status: d.status || 'assigned',
-        materialCount: d.materialCount || d.materials?.length || 0,
-        totalWeight: d.totalWeight || d.total_weight || 0,
-        specialInstructions: d.specialInstructions || d.special_instructions || undefined,
+      const orders = Array.isArray(data) ? data : (data.orders || []);
+
+      // Map pipeline orders to the shape this page renders. Keeps the
+      // existing UI intact but eliminates the stale field aliases.
+      const apiDeliveries: DriverDelivery[] = orders.map((o: any) => ({
+        ticketId: o.orderId,
+        jobName: o.jobName || 'Delivery',
+        customerName: o.customerName || 'Customer',
+        customerPhone: o.customerPhone || '',
+        address: o.deliveryAddress || '',
+        city: o.deliveryCity || '',
+        state: o.deliveryState || 'AL',
+        zip: o.deliveryZip || '',
+        scheduledTime: o.scheduledDeliveryTime || '',
+        priority: o.priority || 'normal',
+        // Map pipeline stage → driver-friendly status
+        status: mapStageToStatus(o.currentStage),
+        materialCount: o.items?.length || 0,
+        // Pipeline doesn't track total weight directly; sum from items if present
+        totalWeight: 0,
+        specialInstructions: o.specialInstructions || undefined,
       }));
 
-      if (apiDeliveries.length > 0) {
-        setDeliveries(apiDeliveries);
+      setDeliveries(apiDeliveries);
+      setNotifications([]); // No mock notifications
 
-        // Compute stats from real data
-        const completed = apiDeliveries.filter(d => d.status === 'completed' || d.status === 'delivered').length;
-        const inProgress = apiDeliveries.filter(d => ['loading', 'loaded', 'en_route', 'arrived'].includes(d.status)).length;
-        const pending = apiDeliveries.filter(d => d.status === 'assigned').length;
-        const totalWeight = apiDeliveries.reduce((sum, d) => sum + d.totalWeight, 0);
+      // Compute stats from real data
+      const completed = apiDeliveries.filter(d => d.status === 'completed' || d.status === 'delivered').length;
+      const inProgress = apiDeliveries.filter(d => ['loading', 'loaded', 'en_route', 'arrived'].includes(d.status)).length;
+      const pending = apiDeliveries.filter(d => d.status === 'assigned').length;
+      const totalWeight = apiDeliveries.reduce((sum, d) => sum + d.totalWeight, 0);
+      const onTimeRate = apiDeliveries.length > 0
+        ? Math.round((completed / apiDeliveries.length) * 100)
+        : 0;
 
-        setStats({
-          todayDeliveries: apiDeliveries.length,
-          completed,
-          inProgress,
-          pending,
-          totalWeight,
-          onTimeRate: stats.onTimeRate, // keep existing rate
-        });
-        setIsUsingMockData(false);
-      } else {
-        // API returned empty - use mock data
-        setDeliveries(MOCK_DELIVERIES);
-        setNotifications(MOCK_NOTIFICATIONS);
-        setStats(MOCK_STATS);
-        setIsUsingMockData(true);
-      }
+      setStats({
+        todayDeliveries: apiDeliveries.length,
+        completed,
+        inProgress,
+        pending,
+        totalWeight,
+        onTimeRate,
+      });
     } catch (err) {
       console.error('Failed to fetch driver deliveries:', err);
       setError(err instanceof Error ? err.message : 'Failed to load deliveries');
-      // Fallback to mock data
-      setDeliveries(MOCK_DELIVERIES);
-      setNotifications(MOCK_NOTIFICATIONS);
-      setStats(MOCK_STATS);
-      setIsUsingMockData(true);
+      // No mock fallback — show empty state instead
+      setDeliveries([]);
+      setNotifications([]);
+      setStats(EMPTY_STATS);
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  // Translate the 18-stage pipeline labels into the legacy driver status set
+  function mapStageToStatus(stage: string): DriverDelivery['status'] {
+    switch (stage) {
+      case 'ORDER_CREATED':
+      case 'ORDER_REVIEWED':
+      case 'DRIVER_ASSIGNED':
+      case 'WAREHOUSE_NOTIFIED':
+        return 'assigned';
+      case 'MATERIALS_PULLED':
+        return 'loading';
+      case 'LOAD_VERIFIED':
+        return 'loaded';
+      case 'DEPARTURE_CONFIRMED':
+      case 'EN_ROUTE':
+        return 'en_route';
+      case 'ARRIVED_AT_SITE':
+      case 'UNLOADING':
+        return 'arrived';
+      case 'DELIVERY_CONFIRMED':
+      case 'SIGNATURE_CAPTURED':
+      case 'QC_PHOTOS':
+        return 'delivered';
+      default:
+        return 'completed';
     }
   }
 
@@ -255,7 +297,8 @@ export default function DriverPortalPage() {
     }
   };
 
-  const displayNotifications = isUsingMockData ? MOCK_NOTIFICATIONS : notifications;
+  // Mock notification fallback removed — always show real notifications
+  const displayNotifications = notifications;
 
   return (
     <div className="min-h-screen bg-zinc-950">

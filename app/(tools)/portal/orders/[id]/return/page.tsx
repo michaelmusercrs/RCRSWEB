@@ -19,27 +19,36 @@ import {
   FileText
 } from 'lucide-react';
 
+// Pipeline order item — matches PipelineOrderItem from material-order-pipeline.ts.
+// Use deliveredQty (falls back to quantity) as the maximum returnable amount.
 interface OrderItem {
   itemId: string;
   productId: string;
   productName: string;
+  sku?: string;
   category: string;
   quantity: number;
   unit: string;
   unitPrice: number;
   totalPrice: number;
+  pulledQty?: number;
+  verifiedQty?: number;
+  deliveredQty?: number;
+  returnedQty?: number;
 }
 
 interface ReturnItem {
   productId: string;
   productName: string;
-  originalQty: number;
+  originalQty: number;          // max returnable (deliveredQty || quantity)
   returnQty: number;
   unit: string;
   unitPrice: number;
   condition: 'new' | 'used' | 'damaged';
   reason: string;
 }
+
+type ReturnType = 'return_to_us' | 'return_to_distributor';
 
 export default function CreateReturnPage() {
   const params = useParams();
@@ -54,13 +63,18 @@ export default function CreateReturnPage() {
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
 
+  // Return type drives whether a credit memo or distributor return ticket is created
+  const [returnType, setReturnType] = useState<ReturnType>('return_to_us');
+  const [distributor, setDistributor] = useState('');
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
   useEffect(() => {
     fetchOrder();
   }, [orderId]);
 
   async function fetchOrder() {
     try {
-      const response = await fetch(`/api/portal/orders/workflow?orderId=${orderId}`);
+      const response = await fetch(`/api/portal/pipeline?action=order&orderId=${orderId}`);
       if (response.ok) {
         const data = await response.json();
         setOrder(data);
@@ -76,10 +90,18 @@ export default function CreateReturnPage() {
     const existing = returnItems.find(r => r.productId === item.productId);
     if (existing) return;
 
+    // Max returnable = whatever was actually delivered, minus prior returns.
+    // Falls back to ordered quantity if delivery hasn't been confirmed yet.
+    const maxReturnable = Math.max(
+      0,
+      (item.deliveredQty ?? item.quantity) - (item.returnedQty ?? 0)
+    );
+    if (maxReturnable === 0) return;
+
     setReturnItems([...returnItems, {
       productId: item.productId,
       productName: item.productName,
-      originalQty: item.quantity,
+      originalQty: maxReturnable,
       returnQty: 1,
       unit: item.unit,
       unitPrice: item.unitPrice,
@@ -125,50 +147,65 @@ export default function CreateReturnPage() {
   };
 
   const submitReturn = async () => {
+    setSubmitError(null);
+
     if (returnItems.length === 0) {
-      alert('Please add at least one item to return');
+      setSubmitError('Add at least one item to return');
       return;
     }
 
     // Validate reasons
     const missingReasons = returnItems.filter(item => !item.reason.trim());
     if (missingReasons.length > 0) {
-      alert('Please provide a reason for all return items');
+      setSubmitError('Provide a reason for every return item');
       return;
     }
 
+    if (returnType === 'return_to_distributor' && !distributor.trim()) {
+      setSubmitError('Distributor name is required for distributor returns');
+      return;
+    }
+
+    // Combine all per-item reasons + condition into one top-level reason
+    // (the pipeline action takes a single reason field for the whole ticket)
+    const summaryReason = returnItems
+      .map(i => `${i.productName} (${i.condition}): ${i.reason}`)
+      .join('; ');
+
     setSubmitting(true);
     try {
-      const response = await fetch('/api/portal/orders/workflow', {
+      const response = await fetch('/api/portal/pipeline', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'create_return',
-          originalOrderId: orderId,
-          createdBy: 'current-user',
-          createdByName: 'Current User', // Populated from auth session
+          action: 'createReturnTicket',
+          orderId,
+          type: returnType,
+          reason: summaryReason,
+          distributor: returnType === 'return_to_distributor' ? distributor : undefined,
           items: returnItems.map(item => ({
             productId: item.productId,
             productName: item.productName,
             quantity: item.returnQty,
-            condition: item.condition,
-            reason: item.reason,
+            reason: `${item.condition}: ${item.reason}`,
           })),
-          scheduledPickupDate: scheduledDate,
-          scheduledPickupTime: scheduledTime,
-          notes,
+          notes: [
+            notes,
+            scheduledDate && `Scheduled pickup: ${scheduledDate}${scheduledTime ? ' ' + scheduledTime : ''}`,
+          ].filter(Boolean).join('\n'),
         }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        router.push(`/portal/orders/${orderId}?returnCreated=${data.returnId}`);
-      } else {
-        throw new Error('Failed to create return');
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || 'Failed to create return ticket');
       }
+
+      const ticketId = data?.ticket?.ticketId;
+      router.push(`/portal/orders/${orderId}${ticketId ? `?returnCreated=${ticketId}` : ''}`);
     } catch (error) {
       console.error('Error creating return:', error);
-      alert('Failed to create return. Please try again.');
+      setSubmitError(error instanceof Error ? error.message : 'Failed to create return. Try again.');
     } finally {
       setSubmitting(false);
     }
@@ -230,6 +267,53 @@ export default function CreateReturnPage() {
               </p>
             </div>
           </div>
+        </div>
+
+        {/* Return Type */}
+        <div className="bg-neutral-900 rounded-xl border border-neutral-200 p-6 mb-6">
+          <h2 className="text-lg font-semibold text-neutral-900 mb-4">Return Destination</h2>
+          <div className="grid md:grid-cols-2 gap-3">
+            <button
+              onClick={() => setReturnType('return_to_us')}
+              className={`p-4 rounded-lg border-2 text-left transition-colors ${
+                returnType === 'return_to_us'
+                  ? 'border-green-500 bg-green-500/10'
+                  : 'border-neutral-300 hover:border-neutral-400'
+              }`}
+            >
+              <div className="font-medium text-neutral-900">Return to Warehouse</div>
+              <div className="text-xs text-neutral-500 mt-1">
+                Materials come back to RCRS stock. A credit memo is auto-generated.
+              </div>
+            </button>
+            <button
+              onClick={() => setReturnType('return_to_distributor')}
+              className={`p-4 rounded-lg border-2 text-left transition-colors ${
+                returnType === 'return_to_distributor'
+                  ? 'border-green-500 bg-green-500/10'
+                  : 'border-neutral-300 hover:border-neutral-400'
+              }`}
+            >
+              <div className="font-medium text-neutral-900">Return to Distributor</div>
+              <div className="text-xs text-neutral-500 mt-1">
+                Driver delivers back to ABC, Beacon, Gold Eagle, Lowe's, etc.
+              </div>
+            </button>
+          </div>
+          {returnType === 'return_to_distributor' && (
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-neutral-700 mb-1">
+                Distributor *
+              </label>
+              <input
+                type="text"
+                value={distributor}
+                onChange={(e) => setDistributor(e.target.value)}
+                placeholder="e.g., Advance Build Products Huntsville"
+                className="w-full border border-neutral-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+          )}
         </div>
 
         {/* Select Items */}
@@ -418,6 +502,13 @@ export default function CreateReturnPage() {
             />
           </div>
         </div>
+
+        {/* Submit Error */}
+        {submitError && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+            <strong>Cannot submit:</strong> {submitError}
+          </div>
+        )}
 
         {/* Submit */}
         <div className="flex justify-between">

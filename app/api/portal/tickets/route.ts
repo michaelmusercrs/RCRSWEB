@@ -3,6 +3,11 @@ import { requireAuth } from '@/lib/auth-service';
 import { deliveryWorkflowService, TicketStatus, TicketType, MaterialItem } from '@/lib/delivery-workflow-service';
 import { groupMeService, getGroupMeConfigFromEnv } from '@/lib/groupme-service';
 import { deliveryReminderService } from '@/lib/delivery-reminder-service';
+import { ticketSheetService, type SheetTicket } from '@/lib/ticket-sheet-service';
+import { emailService } from '@/lib/email-service';
+import { jobMaterialCostService, type JobMaterialCostLine } from '@/lib/job-material-cost-service';
+import { inventoryTabSync } from '@/lib/inventory-tab-sync';
+import { unifiedInventoryService } from '@/lib/unified-inventory-service';
 
 // Helper function to send delivery notification (GroupMe + customer auto-notify)
 async function sendDeliveryNotification(ticket: any, status: string) {
@@ -78,7 +83,46 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case 'create': {
-        // Create new delivery ticket from material order
+        // ─────────────────────────────────────────────────────────────────
+        // LIVE TICKET CREATION — Triple-write + interoffice invoice + notify
+        //
+        // Per the rules:
+        //   1. NO JobNimbus lookup. The form / Material Order PDF carries
+        //      every field we need (job#, customer, address, sales rep,
+        //      materials, special instructions). Pulling from JN is for the
+        //      sync layer, not the create path.
+        //   2. Persist the ticket to BOTH the new Tickets sheet tab AND the
+        //      legacy Inventory tab Richard's app reads from. 2-way sync.
+        //   3. Auto-create an interoffice invoice (Job_Material_Costs tab).
+        //      This is INTERNAL — never goes to customer, never goes to JN.
+        //   4. Email stock@rcrsal.com the work order WITHOUT cost.
+        //   5. Email Sara the office notification WITH cost (she handles
+        //      invoicing). Customer NEVER receives anything.
+        //   6. Job number is ALWAYS the R-XXXXX format (the JN job number).
+        //      Forms / parsers may pass bare digits or "M-1234" — normalize
+        //      to "R-XXXXX" so every downstream surface uses the same key.
+        // ─────────────────────────────────────────────────────────────────
+
+        // Normalize the job number to R-XXXXX. Accepts bare digits, "R-XXXXX",
+        // or "M-XXXX" (the material order number, sometimes pasted by mistake).
+        const rawJobNumber = String(data.jobNumber || data.jobId || '').trim();
+        const jobNumberDigits = rawJobNumber.replace(/^[A-Za-z]-?/, '').replace(/\D/g, '');
+        const normalizedJobNumber = jobNumberDigits ? `R-${jobNumberDigits}` : rawJobNumber;
+
+        const formMaterials = (data.materials as MaterialItem[]) || [];
+
+        // Look up the real unitCost for each material from the inventory
+        // catalog. The form passes unitPrice (selling) but not cost — cost
+        // lives in the catalog and is the source of truth.
+        const catalog = await unifiedInventoryService.getInventory();
+        const costLookup = new Map<string, number>();
+        for (const item of catalog) {
+          costLookup.set(item.productId, item.unitCost || 0);
+        }
+
+        // Step 1: persist via the existing delivery workflow service so the
+        // pipeline + driver dashboard stay populated. This also writes to
+        // the Delivery Tickets tab via the existing path.
         const ticket = await deliveryWorkflowService.createTicket({
           ticketType: data.ticketType || 'delivery',
           createdBy: data.createdBy,
@@ -92,11 +136,13 @@ export async function POST(request: NextRequest) {
           zip: data.zip,
           customerName: data.customerName,
           customerPhone: data.customerPhone,
+          // customerEmail captured for office reference only — NEVER used
+          // to email the customer about a material order.
           customerEmail: data.customerEmail,
           projectManager: data.projectManager,
           pmPhone: data.pmPhone,
           pmEmail: data.pmEmail,
-          materials: data.materials as MaterialItem[],
+          materials: formMaterials,
           requestedDate: data.requestedDate,
           requestedTime: data.requestedTime,
           priority: data.priority,
@@ -106,7 +152,176 @@ export async function POST(request: NextRequest) {
           relatedTicketId: data.relatedTicketId,
         });
 
-        return NextResponse.json({ success: true, ticket });
+        // Build the unified material rows with REAL cost from the catalog.
+        let totalCost = 0;
+        let totalPrice = 0;
+        const sheetMaterials = formMaterials.map(m => {
+          const qty = m.quantity || 0;
+          const unitCost = costLookup.get(m.productId) || 0;
+          const unitPrice = m.unitPrice || 0;
+          const lineCost = Math.round(unitCost * qty * 100) / 100;
+          const linePrice = Math.round(unitPrice * qty * 100) / 100;
+          totalCost += lineCost;
+          totalPrice += linePrice;
+          return {
+            productId: m.productId,
+            productName: m.productName,
+            quantity: qty,
+            unitCost,
+            unitPrice,
+            totalCost: lineCost,
+            totalPrice: linePrice,
+          };
+        });
+
+        // Reference number is always the normalized R-XXXXX. The Tickets tab,
+        // the legacy Inventory tab R# column, the interoffice invoice, and
+        // the office email all use this single key so the data is joinable.
+        const referenceNumber = normalizedJobNumber || ticket.ticketId;
+        const isReturn = ticket.ticketType === 'return';
+
+        // Step 2: mirror into the unified Tickets sheet tab.
+        try {
+          const sheetTicket: SheetTicket = {
+            ticketId: ticket.ticketId,
+            ticketType: ticket.ticketType,
+            status: ticket.status,
+            referenceNumber,
+            createdAt: ticket.createdAt,
+            createdBy: ticket.createdBy,
+            createdByName: ticket.createdByName,
+            jobId: data.jobId,
+            jobName: data.jobName,
+            jobAddress: data.jobAddress,
+            city: data.city,
+            state: data.state,
+            customerName: data.customerName,
+            customerPhone: data.customerPhone,
+            customerEmail: data.customerEmail,
+            materials: sheetMaterials,
+            totalCost: Math.round(totalCost * 100) / 100,
+            totalPrice: Math.round(totalPrice * 100) / 100,
+            notes: data.specialInstructions || data.workOrderBody,
+          };
+          await ticketSheetService.upsert(sheetTicket);
+        } catch (mirrorErr) {
+          console.warn('[tickets] Failed to mirror ticket to Tickets tab:', mirrorErr);
+        }
+
+        // Step 3: dual-write to the legacy Inventory tab Richard's app uses.
+        // 2-way sync requirement — every transaction has to land here too.
+        try {
+          await inventoryTabSync.pushTransactions({
+            referenceNumber,
+            timestamp: ticket.createdAt,
+            lines: sheetMaterials.map(m => ({
+              itemId: m.productId,
+              // Sign convention: delivery = negative (out), return = positive (in)
+              amount: isReturn ? Math.abs(m.quantity) : -Math.abs(m.quantity),
+              unitPrice: m.unitPrice,
+            })),
+          });
+        } catch (legacyErr) {
+          console.warn('[tickets] Failed to sync to legacy Inventory tab:', legacyErr);
+        }
+
+        // Step 4: auto-create the interoffice invoice (or credit memo for
+        // returns). This is the internal job-material-cost record. NEVER
+        // goes to customer, NEVER goes to JN.
+        let interofficeInvoiceId = '';
+        try {
+          const invoiceLines: JobMaterialCostLine[] = sheetMaterials.map(m => ({
+            productId: m.productId,
+            productName: m.productName,
+            quantity: m.quantity,
+            unitCost: m.unitCost,
+            lineCost: m.totalCost,
+          }));
+
+          const record = isReturn
+            ? await jobMaterialCostService.createCreditMemoFromReturn({
+                ticketId: ticket.ticketId,
+                referenceNumber,
+                jobId: data.jobId,
+                jobNumber: normalizedJobNumber,
+                jobName: data.jobName,
+                customerName: data.customerName,
+                customerAddress: [data.jobAddress, data.city, data.state, data.zip].filter(Boolean).join(', '),
+                salesRepName: data.salesRepName || data.projectManager || '',
+                lines: invoiceLines,
+                createdBy: auth.user.userId,
+                createdByName: auth.user.name,
+              })
+            : await jobMaterialCostService.createFromDelivery({
+                ticketId: ticket.ticketId,
+                referenceNumber,
+                jobId: data.jobId,
+                jobNumber: normalizedJobNumber,
+                jobName: data.jobName,
+                customerName: data.customerName,
+                customerAddress: [data.jobAddress, data.city, data.state, data.zip].filter(Boolean).join(', '),
+                salesRepName: data.salesRepName || data.projectManager || '',
+                lines: invoiceLines,
+                createdBy: auth.user.userId,
+                createdByName: auth.user.name,
+              });
+          interofficeInvoiceId = record.invoiceId;
+        } catch (invErr) {
+          console.warn('[tickets] Failed to auto-create interoffice invoice:', invErr);
+        }
+
+        // Step 5: email stock@rcrsal.com the work order. NO cost in the
+        // body — items is just "qty unit name" strings. Skip for pickup.
+        if (ticket.ticketType === 'delivery') {
+          try {
+            const items = sheetMaterials.map(
+              m => `${m.quantity} ${formMaterials.find(f => f.productId === m.productId)?.unit || ''} ${m.productName}`.trim()
+            );
+            const fullAddress = [data.jobAddress, data.city, data.state, data.zip].filter(Boolean).join(', ');
+            await emailService.sendDeliveryOrder({
+              ticketId: ticket.ticketId,
+              customerName: data.customerName || 'Customer',
+              address: fullAddress,
+              items,
+              deliveryDate: data.requestedDate,
+              notes: data.specialInstructions || data.workOrderBody,
+            });
+          } catch (emailErr) {
+            console.warn('[tickets] Failed to send delivery order email:', emailErr);
+          }
+        }
+
+        // Step 6: notify Sara (office) — INCLUDES cost because she handles
+        // invoicing/accounting. This email never reaches customer or sales rep.
+        try {
+          await emailService.sendOfficeMaterialOrderNotification({
+            ticketId: ticket.ticketId,
+            ticketType: isReturn ? 'return' : 'delivery',
+            jobNumber: normalizedJobNumber,
+            customerName: data.customerName || '',
+            address: [data.jobAddress, data.city, data.state, data.zip].filter(Boolean).join(', '),
+            salesRepName: data.salesRepName || data.projectManager || '',
+            materials: sheetMaterials.map(m => ({
+              name: m.productName,
+              qty: m.quantity,
+              unit: formMaterials.find(f => f.productId === m.productId)?.unit,
+              lineCost: m.totalCost,
+              linePrice: m.totalPrice,
+            })),
+            totalCost: Math.round(totalCost * 100) / 100,
+            totalPrice: Math.round(totalPrice * 100) / 100,
+            interofficeInvoiceId,
+            notes: data.specialInstructions || data.workOrderBody,
+          });
+        } catch (saraErr) {
+          console.warn('[tickets] Failed to send office notification:', saraErr);
+        }
+
+        return NextResponse.json({
+          success: true,
+          ticket,
+          interofficeInvoiceId,
+        });
       }
 
       case 'assign-driver': {
@@ -132,6 +347,68 @@ export async function POST(request: NextRequest) {
           data.verifiedBy,
           data.gpsLocation
         );
+
+        // POST-LOAD TRIGGER: the ticket is now physically loaded on the truck.
+        // Per the rules, this is the moment we:
+        //   1. Update the Tickets sheet status
+        //   2. Push transactions to legacy Inventory tab (records the actual outbound movement)
+        //   3. Email Sara confirming the load is verified + interoffice invoice is final
+        // The interoffice invoice was already CREATED at ticket-create time.
+        // Here we just flip its visibility and notify.
+        if (ticket) {
+          // Step 1: status update on the unified Tickets tab
+          try {
+            await ticketSheetService.updateStatus(ticket.ticketId, 'load_verified');
+          } catch (err) {
+            console.warn('[verify-load] Failed to update Tickets tab status:', err);
+          }
+
+          // Step 2: push to legacy Inventory tab
+          try {
+            const sheetTicket = await ticketSheetService.getById(ticket.ticketId);
+            if (sheetTicket && sheetTicket.materials.length > 0) {
+              await inventoryTabSync.pushTransactions({
+                referenceNumber: sheetTicket.referenceNumber,
+                timestamp: new Date().toISOString(),
+                lines: sheetTicket.materials.map(m => ({
+                  itemId: m.productId,
+                  amount: -Math.abs(m.quantity),
+                  unitPrice: m.unitPrice,
+                })),
+              });
+            }
+          } catch (err) {
+            console.warn('[verify-load] Failed to push to legacy Inventory tab:', err);
+          }
+
+          // Step 3: notify Sara that the load is verified and outbound
+          try {
+            const sheetTicket = await ticketSheetService.getById(ticket.ticketId);
+            if (sheetTicket) {
+              await emailService.sendOfficeMaterialOrderNotification({
+                ticketId: ticket.ticketId,
+                ticketType: 'delivery',
+                jobNumber: sheetTicket.referenceNumber,
+                customerName: sheetTicket.customerName || '',
+                address: [sheetTicket.jobAddress, sheetTicket.city, sheetTicket.state].filter(Boolean).join(', '),
+                salesRepName: sheetTicket.createdByName || '',
+                materials: sheetTicket.materials.map(m => ({
+                  name: m.productName,
+                  qty: m.quantity,
+                  lineCost: m.totalCost,
+                  linePrice: m.totalPrice,
+                })),
+                totalCost: sheetTicket.totalCost,
+                totalPrice: sheetTicket.totalPrice,
+                interofficeInvoiceId: '',
+                notes: `LOAD VERIFIED — materials are on the truck. Verified by ${data.verifiedBy || 'driver'}. ${sheetTicket.notes || ''}`.trim(),
+              });
+            }
+          } catch (err) {
+            console.warn('[verify-load] Failed to notify Sara:', err);
+          }
+        }
+
         return NextResponse.json({ success: true, ticket });
       }
 

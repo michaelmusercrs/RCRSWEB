@@ -165,10 +165,11 @@ const MOCK_DELIVERIES: DeliveryForToday[] = [
 // ============================================
 
 export default function LoadingChecklistPage() {
-  // API data state
-  const [allDeliveries, setAllDeliveries] = useState<DeliveryForToday[]>(MOCK_DELIVERIES);
+  // API data state — starts empty, populated by fetchDeliveries() below
+  const [allDeliveries, setAllDeliveries] = useState<DeliveryForToday[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isUsingMockData, setIsUsingMockData] = useState(false);
+  // Always false — mock fallback removed per no-fake-data rule
+  const isUsingMockData = false;
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -214,28 +215,23 @@ export default function LoadingChecklistPage() {
         })),
       }));
 
+      // Show whatever the API returned (even an empty array). Mock data
+      // fallback removed per the no-fake-data rule — empty state is correct.
+      setAllDeliveries(apiDeliveries);
       if (apiDeliveries.length > 0) {
-        setAllDeliveries(apiDeliveries);
         setSelectedTicketId(apiDeliveries[0].ticketId);
-        setIsUsingMockData(false);
-      } else {
-        setAllDeliveries(MOCK_DELIVERIES);
-        setSelectedTicketId(MOCK_DELIVERIES[0].ticketId);
-        setIsUsingMockData(true);
       }
     } catch (err) {
       console.error('Failed to fetch deliveries for checklist:', err);
       setFetchError(err instanceof Error ? err.message : 'Failed to load deliveries');
-      setAllDeliveries(MOCK_DELIVERIES);
-      setSelectedTicketId(MOCK_DELIVERIES[0].ticketId);
-      setIsUsingMockData(true);
+      setAllDeliveries([]);
     } finally {
       setIsLoading(false);
     }
   }
 
-  // Delivery selection
-  const [selectedTicketId, setSelectedTicketId] = useState<string>(MOCK_DELIVERIES[0].ticketId);
+  // Delivery selection — set in fetchData() once real data arrives
+  const [selectedTicketId, setSelectedTicketId] = useState<string>('');
   const selectedDelivery = allDeliveries.find(d => d.ticketId === selectedTicketId) || allDeliveries[0];
 
   // Checklist state

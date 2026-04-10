@@ -822,7 +822,23 @@ class DeliveryWorkflowService {
       { notes }
     ).catch(() => {});
 
-    return this.rowToTicket(row);
+    const ticket = this.rowToTicket(row);
+
+    // Audit log — fire and forget, never break the business logic
+    try {
+      const { auditLog } = await import('./audit-logger');
+      const confirmedBy = row.get('assignedDriver') || driverName || 'driver';
+      const gpsLocation = row.get('gpsDeliveryLocation') || 'not captured';
+      auditLog(
+        'DELIVERY_CONFIRMED',
+        confirmedBy,
+        `Delivery ${ticketId} confirmed. Customer: ${ticket.customerName}. Photos: ${ticket.photoCount || 0}. GPS: ${gpsLocation}.`
+      );
+    } catch (err) {
+      console.warn('[audit] DELIVERY_CONFIRMED log failed:', err);
+    }
+
+    return ticket;
   }
 
   async captureProof(ticketId: string): Promise<DeliveryTicket | null> {
@@ -860,7 +876,22 @@ class DeliveryWorkflowService {
       row.get('assignedDriver') || 'system', driverName, 'driver',
     ).catch(() => {});
 
-    return this.rowToTicket(row);
+    const ticket = this.rowToTicket(row);
+
+    // Audit log — fire and forget, never break the business logic
+    try {
+      const { auditLog } = await import('./audit-logger');
+      const uploadedBy = row.get('assignedDriver') || driverName || 'driver';
+      auditLog(
+        'DELIVERY_QC_PHOTO_UPLOADED',
+        uploadedBy,
+        `QC photos uploaded for delivery ${ticketId}. Customer: ${ticket.customerName}. Total photos: ${ticket.photoCount || 0}.`
+      );
+    } catch (err) {
+      console.warn('[audit] DELIVERY_QC_PHOTO_UPLOADED log failed:', err);
+    }
+
+    return ticket;
   }
 
   async completeTicket(ticketId: string): Promise<DeliveryTicket | null> {

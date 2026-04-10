@@ -1041,7 +1041,11 @@ class UnifiedInventoryService {
       availableQty: (updates.currentQty ?? old.currentQty) - (updates.holdQty ?? old.holdQty),
     };
 
-    this._persistItem(this.inventory[idx]).catch((err) => console.error("[inventory] persist failed:", err));
+    // AWAIT — updateItem is called from many places, all of which need
+    // the change to be durable before returning.
+    await this._persistItem(this.inventory[idx]).catch((err) =>
+      console.error('[inventory] updateItem persist failed:', err)
+    );
     return this.inventory[idx];
   }
 
@@ -1054,7 +1058,10 @@ class UnifiedInventoryService {
       availableQty: itemData.currentQty - itemData.holdQty,
     };
     this.inventory.push(newItem);
-    this._persistItem(newItem).catch((err) => console.error("[inventory] persist failed:", err));
+    // AWAIT — must be durable before responding
+    await this._persistItem(newItem).catch((err) =>
+      console.error('[inventory] addItem persist failed:', err)
+    );
     return newItem;
   }
 
@@ -1108,12 +1115,17 @@ class UnifiedInventoryService {
     };
 
     this.transactions.push(txn);
-    this._persistItem(item).catch((err) => {
-      console.error(`[inventory] deductStock persistItem failed for ${item.productId}:`, err);
-    });
-    this._persistTransaction(txn).catch((err) => {
-      console.error(`[inventory] deductStock persistTransaction failed:`, err);
-    });
+    // CRITICAL: AWAIT persists. On Vercel serverless, fire-and-forget
+    // .catch() patterns get killed by the lambda dying after the response.
+    const dsResults = await Promise.allSettled([
+      this._persistItem(item),
+      this._persistTransaction(txn),
+    ]);
+    for (const r of dsResults) {
+      if (r.status === 'rejected') {
+        console.error('[inventory] deductStock persist rejected:', r.reason);
+      }
+    }
     this._writeInventoryLog({
       productId: resolved,
       productName: item.productName,
@@ -1171,12 +1183,16 @@ class UnifiedInventoryService {
     };
 
     this.transactions.push(txn);
-    this._persistItem(item).catch((err) => {
-      console.error(`[inventory] addStock persistItem failed for ${item.productId}:`, err);
-    });
-    this._persistTransaction(txn).catch((err) => {
-      console.error(`[inventory] addStock persistTransaction failed:`, err);
-    });
+    // AWAIT persists — see deductStock for the rationale.
+    const asResults = await Promise.allSettled([
+      this._persistItem(item),
+      this._persistTransaction(txn),
+    ]);
+    for (const r of asResults) {
+      if (r.status === 'rejected') {
+        console.error('[inventory] addStock persist rejected:', r.reason);
+      }
+    }
     this._writeInventoryLog({
       productId: resolved,
       productName: item.productName,
@@ -1221,14 +1237,8 @@ class UnifiedInventoryService {
     };
 
     this.materialHolds.push(hold);
-    this._persistItem(item).catch((err) => {
-      console.error(`[inventory] placeHold persistItem failed for ${item.productId}:`, err);
-    });
-    this._persistHold(hold).catch((err) => {
-      console.error(`[inventory] placeHold persistHold failed for ${hold.holdId}:`, err);
-    });
 
-    // Log transaction
+    // Log transaction (push first so all 3 persists run in parallel below)
     const txn: InventoryTransaction = {
       transactionId: `TXN-${String(this.nextIds.txn++).padStart(6, '0')}`,
       productId: resolved,
@@ -1245,9 +1255,20 @@ class UnifiedInventoryService {
       newQty: item.availableQty,
     };
     this.transactions.push(txn);
-    this._persistTransaction(txn).catch((err) => {
-      console.error(`[inventory] placeHold transaction persist failed:`, err);
-    });
+
+    // AWAIT all 3 persists in parallel before returning. Holds MUST be
+    // durable — if a hold isn't written but the inventory item is, the
+    // next request will see stale availableQty and double-allocate stock.
+    const phResults = await Promise.allSettled([
+      this._persistItem(item),
+      this._persistHold(hold),
+      this._persistTransaction(txn),
+    ]);
+    for (const r of phResults) {
+      if (r.status === 'rejected') {
+        console.error('[inventory] placeHold persist rejected:', r.reason);
+      }
+    }
     this._writeInventoryLog({
       productId: resolved,
       productName: item.productName,
@@ -1274,16 +1295,22 @@ class UnifiedInventoryService {
     if (item) {
       item.holdQty = Math.max(0, item.holdQty - hold.quantity);
       item.availableQty = item.currentQty - item.holdQty;
-      this._persistItem(item).catch((err) => {
-        console.error(`[inventory] releaseHold persistItem failed for ${item.productId}:`, err);
-      });
     }
 
     hold.status = 'released';
     hold.releasedAt = new Date().toISOString();
-    this._persistHold(hold).catch((err) => {
-      console.error(`[inventory] releaseHold persistHold failed for ${holdId}:`, err);
-    });
+
+    // AWAIT both persists. Releasing a hold must be durable — otherwise
+    // the next request will think the stock is still on hold.
+    const rhResults = await Promise.allSettled([
+      item ? this._persistItem(item) : Promise.resolve(),
+      this._persistHold(hold),
+    ]);
+    for (const r of rhResults) {
+      if (r.status === 'rejected') {
+        console.error('[inventory] releaseHold persist rejected:', r.reason);
+      }
+    }
 
     if (item) {
       this._writeInventoryLog({
@@ -1328,22 +1355,17 @@ class UnifiedInventoryService {
       // Only deduct what was actually delivered
       item.currentQty = Math.max(0, item.currentQty - deliveredQty);
       item.availableQty = item.currentQty - item.holdQty;
-      this._persistItem(item).catch((err) => {
-        console.error(`[inventory] fulfillHold persist failed for ${item.productId}:`, err);
-      });
     }
 
     hold.status = 'fulfilled';
     hold.fulfilledAt = new Date().toISOString();
     hold.fulfilledQty = deliveredQty;
     hold.unfulfilledQty = undeliveredQty;
-    this._persistHold(hold).catch((err) => {
-      console.error(`[inventory] fulfillHold persistHold failed for ${holdId}:`, err);
-    });
 
-    // Log transaction (only if something was actually delivered)
+    // Build the transaction record up front so we can persist it in parallel
+    let txn: InventoryTransaction | null = null;
     if (item && deliveredQty > 0) {
-      const txn: InventoryTransaction = {
+      txn = {
         transactionId: `TXN-${String(this.nextIds.txn++).padStart(6, '0')}`,
         productId: hold.productId,
         productName: hold.productName,
@@ -1363,9 +1385,23 @@ class UnifiedInventoryService {
         unitPrice: item.unitPrice,
       };
       this.transactions.push(txn);
-      this._persistTransaction(txn).catch((err) => {
-        console.error(`[inventory] fulfillHold transaction persist failed:`, err);
-      });
+    }
+
+    // CRITICAL: AWAIT all persists in parallel. This is the most important
+    // mutation in the system — every delivery hits this. If anything fails
+    // silently, stock counts diverge from reality.
+    const fhResults = await Promise.allSettled([
+      item ? this._persistItem(item) : Promise.resolve(),
+      this._persistHold(hold),
+      txn ? this._persistTransaction(txn) : Promise.resolve(),
+    ]);
+    for (const r of fhResults) {
+      if (r.status === 'rejected') {
+        console.error('[inventory] fulfillHold persist rejected:', r.reason);
+      }
+    }
+
+    if (item && txn) {
       this._writeInventoryLog({
         productId: hold.productId,
         productName: hold.productName,
@@ -1419,7 +1455,9 @@ class UnifiedInventoryService {
       resolvedDiscrepancies: 0,
     };
     this.countSessions.unshift(session);
-    this._persistCountSession(session).catch((err) => console.error("[inventory] persist failed:", err));
+    await this._persistCountSession(session).catch((err) =>
+      console.error('[inventory] initiateWeeklyCount persist failed:', err)
+    );
     return session;
   }
 
@@ -1472,7 +1510,9 @@ class UnifiedInventoryService {
       session.completedAt = new Date().toISOString();
     }
 
-    this._persistCountSession(session).catch((err) => console.error("[inventory] persist failed:", err));
+    await this._persistCountSession(session).catch((err) =>
+      console.error('[inventory] recordCount persist failed:', err)
+    );
     return record;
   }
 
@@ -1494,6 +1534,9 @@ class UnifiedInventoryService {
     record.resolvedAt = new Date().toISOString();
     record.reason = reason;
 
+    // Build all persists then await them in parallel at the end
+    const persistPromises: Promise<unknown>[] = [];
+
     if (resolution === 'adjust_system') {
       const item = this.inventory.find(i => i.productId === record.productId);
       if (item) {
@@ -1502,7 +1545,7 @@ class UnifiedInventoryService {
         item.availableQty = item.currentQty - item.holdQty;
         item.lastCountDate = new Date().toISOString().split('T')[0];
         item.lastCountBy = resolvedBy;
-        this._persistItem(item).catch((err) => console.error("[inventory] persist failed:", err));
+        persistPromises.push(this._persistItem(item));
 
         // Log the adjustment
         const txn: InventoryTransaction = {
@@ -1521,7 +1564,7 @@ class UnifiedInventoryService {
           newQty: adjustedQty,
         };
         this.transactions.push(txn);
-        this._persistTransaction(txn).catch((err) => console.error("[inventory] persist failed:", err));
+        persistPromises.push(this._persistTransaction(txn));
       }
     }
 
@@ -1530,7 +1573,15 @@ class UnifiedInventoryService {
     if (session) {
       session.resolvedDiscrepancies = this.countRecords.filter(r => r.sessionId === session.sessionId && r.discrepancy !== 0 && r.resolved).length;
       session.discrepancies = this.countRecords.filter(r => r.sessionId === session.sessionId && r.discrepancy !== 0 && !r.resolved).length;
-      this._persistCountSession(session).catch((err) => console.error("[inventory] persist failed:", err));
+      persistPromises.push(this._persistCountSession(session));
+    }
+
+    // AWAIT all persists in parallel before returning
+    const results = await Promise.allSettled(persistPromises);
+    for (const r of results) {
+      if (r.status === 'rejected') {
+        console.error('[inventory] resolveDiscrepancy persist rejected:', r.reason);
+      }
     }
 
     return true;
@@ -1648,7 +1699,9 @@ class UnifiedInventoryService {
 
     item.unitCost = newCost;
     item.unitPrice = newPrice;
-    this._persistItem(item).catch((err) => console.error("[inventory] persist failed:", err));
+    await this._persistItem(item).catch((err) =>
+      console.error('[inventory] updatePricing persist failed:', err)
+    );
     return item;
   }
 
@@ -1789,7 +1842,9 @@ class UnifiedInventoryService {
       notes: data.notes,
     };
     this.returnTickets.unshift(ticket);
-    this._persistReturnTicket(ticket).catch((err) => console.error("[inventory] persist failed:", err));
+    await this._persistReturnTicket(ticket).catch((err) =>
+      console.error('[inventory] createReturnTicket persist failed:', err)
+    );
     return ticket;
   }
 
@@ -1821,11 +1876,50 @@ class UnifiedInventoryService {
       }
     }
 
+    // On any received transition, sync a material credit to the matching
+    // CustomerBreakdown so job costing reflects the returned material.
+    // Wrapped so a breakdown lookup failure never blocks inventory restock.
+    if (status === 'received') {
+      try {
+        const { syncReturnToBreakdown } = await import('./customer-breakdown-service');
+        const result = await syncReturnToBreakdown({
+          ticketId: ticket.ticketId,
+          jobNumber: (ticket as any).jobNumber || ticket.jobId,
+          jobId: ticket.jobId,
+          items: ticket.items,
+          distributor: ticket.distributor,
+        });
+        if (!result.success) {
+          console.warn('[returns] Breakdown sync skipped:', result.reason);
+        } else {
+          console.log('[returns] Breakdown synced:', result.breakdownId, 'credit:', result.creditAmount);
+        }
+      } catch (err) {
+        console.error('[returns] Breakdown sync failed (non-fatal):', err);
+      }
+    }
+
     if (status === 'completed') {
       ticket.completedAt = new Date().toISOString();
     }
 
-    this._persistReturnTicket(ticket).catch((err) => console.error("[inventory] persist failed:", err));
+    await this._persistReturnTicket(ticket).catch((err) =>
+      console.error('[inventory] updateReturnStatus persist failed:', err)
+    );
+
+    // Audit log — fire and forget, never break the underlying business logic
+    try {
+      const { auditLog } = await import('./audit-logger');
+      const updatedBy = ticket.createdBy || 'system';
+      auditLog(
+        'RETURN_STATUS_CHANGED',
+        updatedBy,
+        `Return ticket ${ticketId} status changed to ${status}. Items: ${ticket.items.length}. Credit: $${ticket.creditAmount || 0}.`
+      );
+    } catch (err) {
+      console.warn('[audit] RETURN_STATUS_CHANGED log failed:', err);
+    }
+
     return ticket;
   }
 

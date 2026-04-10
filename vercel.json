@@ -29,7 +29,15 @@
     },
     {
       "path": "/api/cron/backup-sheets",
-      "schedule": "0 11 * * *"
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/low-stock-alert",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/sync-inventory-tab",
+      "schedule": "*/10 * * * *"
     }
   ],
   "headers": [

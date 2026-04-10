@@ -41,6 +41,10 @@ import {
 import NextImage from 'next/image';
 import ScheduleInspection from '@/components/calendar/ScheduleInspection';
 import { trackingService } from '@/lib/tracking-service';
+import ServiceRequestForm from '@/components/customer-portal/ServiceRequestForm';
+import WarrantyClaimForm from '@/components/customer-portal/WarrantyClaimForm';
+import NotificationPreferencesForm from '@/components/customer-portal/NotificationPreferences';
+import { Wrench, Bell } from 'lucide-react';
 
 interface CustomerData {
   jnid: string;
@@ -243,8 +247,9 @@ const JOB_PHASES = [
 
 export default function CustomerDashboard() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'status' | 'appointments' | 'weather' | 'messages' | 'documents' | 'rep' | 'upload'>('status');
+  const [activeTab, setActiveTab] = useState<'status' | 'appointments' | 'weather' | 'messages' | 'documents' | 'rep' | 'upload' | 'support'>('status');
   const [customer, setCustomer] = useState<CustomerData | null>(null);
+  const [portalToken, setPortalToken] = useState<string>('');
   const [jobs, setJobs] = useState<JobData[]>([]);
   const [appointments, setAppointments] = useState<AppointmentData[]>([]);
   const [weather, setWeather] = useState<WeatherData | null>(null);
@@ -341,6 +346,7 @@ export default function CustomerDashboard() {
         setMessages(data.messages || []);
         setSalesRep(data.salesRep || null);
         setHailReports(data.hailReports || []);
+        setPortalToken(data.portalToken || '');
 
         // Build Street View URL from customer address
         const session = sessionStorage.getItem('customerSession');
@@ -555,6 +561,7 @@ export default function CustomerDashboard() {
               { id: 'appointments', label: 'Appointments', icon: Calendar },
               { id: 'weather', label: 'Weather', icon: Cloud },
               { id: 'messages', label: 'Messages', icon: MessageSquare },
+              { id: 'support', label: 'Support', icon: Wrench },
             ].map((tab) => {
               const Icon = tab.icon;
               return (
@@ -1813,6 +1820,81 @@ export default function CustomerDashboard() {
                 </div>
               </div>
             )}
+
+            {/* Support Tab */}
+            {activeTab === 'support' && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Service &amp; Support</h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Request maintenance, file a warranty claim, or update your notification preferences.
+                  </p>
+                </div>
+
+                {!portalToken ? (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-5 flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-yellow-900">Setting up your portal access...</p>
+                      <p className="text-sm text-yellow-800 mt-1">
+                        We&apos;re finalizing your portal access. Refresh the page in a few seconds, or
+                        call us at <a href="tel:2562748530" className="underline">256-274-8530</a> if this persists.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {/* Service Request */}
+                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                      <div className="px-5 py-4 border-b border-gray-200 flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-[#0066CC]/10 flex items-center justify-center">
+                          <Wrench className="w-5 h-5 text-[#0066CC]" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-gray-900">Request Service</h4>
+                          <p className="text-xs text-gray-500">Maintenance, repair, or inspection</p>
+                        </div>
+                      </div>
+                      <div className="p-5">
+                        <ServiceRequestForm customerId={customer.jnid} token={portalToken} />
+                      </div>
+                    </div>
+
+                    {/* Warranty Claim */}
+                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                      <div className="px-5 py-4 border-b border-gray-200 flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                          <Shield className="w-5 h-5 text-amber-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-gray-900">File Warranty Claim</h4>
+                          <p className="text-xs text-gray-500">Report an issue covered by your warranty</p>
+                        </div>
+                      </div>
+                      <div className="p-5">
+                        <WarrantyClaimForm customerId={customer.jnid} token={portalToken} />
+                      </div>
+                    </div>
+
+                    {/* Notification Preferences */}
+                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                      <div className="px-5 py-4 border-b border-gray-200 flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-[#0066CC]/10 flex items-center justify-center">
+                          <Bell className="w-5 h-5 text-[#0066CC]" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-gray-900">Notification Preferences</h4>
+                          <p className="text-xs text-gray-500">Choose how we contact you</p>
+                        </div>
+                      </div>
+                      <div className="p-5">
+                        <NotificationPreferencesForm customerId={customer.jnid} token={portalToken} />
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </>
         )}
       </main>
@@ -1825,8 +1907,8 @@ export default function CustomerDashboard() {
             { id: 'documents', icon: FolderOpen },
             { id: 'upload', icon: Upload },
             { id: 'appointments', icon: Calendar },
-            { id: 'weather', icon: Cloud },
             { id: 'messages', icon: MessageSquare },
+            { id: 'support', icon: Wrench },
           ].map((tab) => {
             const Icon = tab.icon;
             return (

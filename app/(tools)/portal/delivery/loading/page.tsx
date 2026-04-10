@@ -485,10 +485,12 @@ function getWeightBarColor(pct: number) {
 
 export default function LoadingManagementPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('queue');
-  const [tickets, setTickets] = useState<LoadingTicket[]>(MOCK_TICKETS);
-  const [history, setHistory] = useState<LoadHistoryEntry[]>(MOCK_HISTORY);
+  // Start empty — fetchLoadingData populates from real API
+  const [tickets, setTickets] = useState<LoadingTicket[]>([]);
+  const [history, setHistory] = useState<LoadHistoryEntry[]>([]);
   const [isPageLoading, setIsPageLoading] = useState(true);
-  const [isUsingMockData, setIsUsingMockData] = useState(false);
+  // Always false — mock fallback removed per no-fake-data rule
+  const isUsingMockData = false;
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -505,56 +507,49 @@ export default function LoadingManagementPage() {
       const data = await res.json();
       const apiDeliveries = data.data?.deliveries || data.deliveries || [];
 
-      if (apiDeliveries.length > 0) {
-        const mappedTickets: LoadingTicket[] = apiDeliveries.map((d: any, idx: number) => ({
-          id: d.ticketId || d.id || d.deliveryId || `DT-${Date.now()}-${idx}`,
-          customer: d.customerName || d.customer_name || 'Customer',
-          jobName: d.jobName || d.job_name || 'Delivery',
-          address: d.address ? `${d.address}, ${d.city || ''}, ${d.state || 'AL'} ${d.zip || ''}` : d.jobAddress || '',
-          phone: d.customerPhone || d.customer_phone || '',
-          priority: d.priority || 'normal',
-          status: d.status || 'assigned',
-          scheduledTime: d.scheduledTime || d.scheduled_time || '',
-          scheduledDate: d.scheduledDate || d.scheduled_date || today,
-          driverName: d.driverName || d.assignedDriverName || 'Unassigned',
-          driverId: d.driverId || d.assignedDriver || 'driver-1',
-          vehicle: d.vehicle || d.assignedVehicle || 'TBD',
-          vehicleType: (d.vehicleType || 'flatbed') as VehicleType,
-          vehicleCapacityLbs: d.vehicleCapacityLbs || 6000,
-          loadingBay: d.loadingBay || null,
-          loadingStartTime: d.loadingStartTime || null,
-          loadingEndTime: d.loadingEndTime || null,
-          materials: (d.materials || []).map((m: any, mIdx: number) => ({
-            id: m.id || `mat-${mIdx}`,
-            name: m.name || m.productName || m.product_name || 'Material',
-            quantity: m.quantity || 0,
-            unit: m.unit || 'ea',
-            weightLbs: m.weightLbs || m.weight || 0,
-            category: (['heavy', 'medium', 'light', 'fragile'].includes(m.category) ? m.category : 'medium') as MaterialCategory,
-            pulled: m.pulled ?? false,
-            loaded: m.loaded ?? false,
-            flagged: m.flagged ?? false,
-            flagReason: m.flagReason || undefined,
-          })),
-          qcPassed: d.qcPassed ?? null,
-          qcNotes: d.qcNotes || '',
-          photosTaken: d.photosTaken || 0,
-          photosRequired: d.photosRequired || 3,
-        }));
+      const mappedTickets: LoadingTicket[] = apiDeliveries.map((d: any, idx: number) => ({
+        id: d.ticketId || d.id || d.deliveryId || `DT-${Date.now()}-${idx}`,
+        customer: d.customerName || d.customer_name || 'Customer',
+        jobName: d.jobName || d.job_name || 'Delivery',
+        address: d.address ? `${d.address}, ${d.city || ''}, ${d.state || 'AL'} ${d.zip || ''}` : d.jobAddress || '',
+        phone: d.customerPhone || d.customer_phone || '',
+        priority: d.priority || 'normal',
+        status: d.status || 'assigned',
+        scheduledTime: d.scheduledTime || d.scheduled_time || '',
+        scheduledDate: d.scheduledDate || d.scheduled_date || today,
+        driverName: d.driverName || d.assignedDriverName || 'Unassigned',
+        driverId: d.driverId || d.assignedDriver || 'driver-1',
+        vehicle: d.vehicle || d.assignedVehicle || 'TBD',
+        vehicleType: (d.vehicleType || 'flatbed') as VehicleType,
+        vehicleCapacityLbs: d.vehicleCapacityLbs || 6000,
+        loadingBay: d.loadingBay || null,
+        loadingStartTime: d.loadingStartTime || null,
+        loadingEndTime: d.loadingEndTime || null,
+        materials: (d.materials || []).map((m: any, mIdx: number) => ({
+          id: m.id || `mat-${mIdx}`,
+          name: m.name || m.productName || m.product_name || 'Material',
+          quantity: m.quantity || 0,
+          unit: m.unit || 'ea',
+          weightLbs: m.weightLbs || m.weight || 0,
+          category: (['heavy', 'medium', 'light', 'fragile'].includes(m.category) ? m.category : 'medium') as MaterialCategory,
+          pulled: m.pulled ?? false,
+          loaded: m.loaded ?? false,
+          flagged: m.flagged ?? false,
+          flagReason: m.flagReason || undefined,
+        })),
+        qcPassed: d.qcPassed ?? null,
+        qcNotes: d.qcNotes || '',
+        photosTaken: d.photosTaken || 0,
+        photosRequired: d.photosRequired || 3,
+      }));
 
-        setTickets(mappedTickets);
-        setIsUsingMockData(false);
-      } else {
-        setTickets(MOCK_TICKETS);
-        setHistory(MOCK_HISTORY);
-        setIsUsingMockData(true);
-      }
+      // Always set the real (possibly empty) result. Mock fallback removed.
+      setTickets(mappedTickets);
     } catch (err) {
       console.error('Failed to fetch loading data:', err);
       setFetchError(err instanceof Error ? err.message : 'Failed to load');
-      setTickets(MOCK_TICKETS);
-      setHistory(MOCK_HISTORY);
-      setIsUsingMockData(true);
+      setTickets([]);
+      setHistory([]);
     } finally {
       setIsPageLoading(false);
     }

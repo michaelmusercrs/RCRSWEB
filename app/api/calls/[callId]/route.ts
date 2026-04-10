@@ -27,7 +27,7 @@ export async function GET(
   if (!auth.authenticated) return auth.response;
 
   try {
-    const call = callsService.getCallById(params.callId);
+    const call = await callsService.getCallById(params.callId);
 
     if (!call) {
       return NextResponse.json(
@@ -79,7 +79,7 @@ export async function PATCH(
       );
     }
 
-    const updatedCall = callsService.updateCall(params.callId, allowedUpdates);
+    const updatedCall = await callsService.updateCall(params.callId, allowedUpdates);
 
     if (!updatedCall) {
       return NextResponse.json(

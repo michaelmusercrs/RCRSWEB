@@ -1,8 +1,16 @@
 /**
  * Audit Log API
  *
- * GET - Retrieve audit log entries
- * POST - Add manual audit log entry
+ * GET    - Retrieve audit log entries
+ * POST   - Add a manual audit log entry
+ * DELETE - Clear the audit log (dev only — adds a final "cleared" entry)
+ *
+ * As of the 2026-04-09 persistence migration this route is backed entirely by
+ * the AuditLog tab on the master Google Sheet. Earlier versions dual-wrote to
+ * Vercel Blob and a local data/audit-log.json fallback; both have been removed
+ * because (a) Vercel's filesystem is read-only at runtime so the JSON fallback
+ * was silently failing in prod, and (b) the master sheet is the canonical
+ * source of truth per the system directive.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -12,74 +20,68 @@ import {
   type AuditLogEntry,
 } from '@/lib/feature-flags';
 import { requireAdmin } from '@/lib/auth-service';
+import { googleSheetsService } from '@/lib/google-sheets-service';
 
-const BLOB_KEY = 'data/audit-log.json';
-const LOCAL_PATH = 'data/audit-log.json';
-
-async function readBlobData(key: string): Promise<any | null> {
+/**
+ * The AuditLog sheet stores: Timestamp, Action, UserEmail, Details, IP, UserAgent.
+ * AuditLogEntry from feature-flags has a richer in-process shape, so we map
+ * between them here.
+ */
+function sheetRowToEntry(row: Record<string, string>): AuditLogEntry {
+  let parsedDetails: Record<string, unknown> = {};
   try {
-    const { list } = await import('@vercel/blob');
-    const blobs = await list({ prefix: key });
-    if (blobs.blobs.length > 0) {
-      const res = await fetch(blobs.blobs[0].url, { cache: 'no-store' });
-      if (res.ok) return await res.json();
-    }
-  } catch (e) { /* blob not available */ }
-  return null;
-}
-
-async function writeBlobData(key: string, data: any): Promise<boolean> {
-  try {
-    const { put } = await import('@vercel/blob');
-    await put(key, JSON.stringify(data, null, 2), {
-      access: 'public', contentType: 'application/json', addRandomSuffix: false,
-    });
-    return true;
-  } catch (e) { return false; }
-}
-
-// Read audit log
-async function readAuditLog(): Promise<AuditLogEntry[]> {
-  // Try blob first
-  const blobData = await readBlobData(BLOB_KEY);
-  if (blobData) return blobData;
-  // Fallback to local file
-  try {
-    const fs = await import('fs');
-    const path = await import('path');
-    const filePath = path.join(process.cwd(), LOCAL_PATH);
-    if (!fs.existsSync(filePath)) return [];
-    const logData = fs.readFileSync(filePath, 'utf-8');
-    return JSON.parse(logData);
+    parsedDetails = row.Details ? JSON.parse(row.Details) : {};
   } catch {
-    return [];
+    parsedDetails = { raw: row.Details };
   }
+  // The original entry shape carries resource + userId + environment, which we
+  // encode into Details when writing. Pull them back out on read with safe
+  // defaults so older rows (or rows written by other systems) still parse.
+  const detailsObj =
+    typeof parsedDetails === 'object' && parsedDetails
+      ? (parsedDetails as Record<string, unknown>)
+      : {};
+  const resource = String(detailsObj.resource ?? '');
+  const userId = String(detailsObj.userId ?? '');
+  const environment = String(detailsObj.environment ?? getEnvironment()) as AuditLogEntry['environment'];
+  return {
+    id: `${row.Timestamp}-${row.Action}-${userId}`,
+    timestamp: row.Timestamp || new Date().toISOString(),
+    action: row.Action || '',
+    resource,
+    userId,
+    userEmail: row.UserEmail || undefined,
+    details: detailsObj,
+    ipAddress: row.IP || undefined,
+    environment,
+  };
 }
 
-// Write audit log
-async function writeAuditLog(entries: AuditLogEntry[]): Promise<void> {
-  const wrote = await writeBlobData(BLOB_KEY, entries);
-  if (!wrote) {
-    const fs = await import('fs');
-    const path = await import('path');
-    const filePath = path.join(process.cwd(), LOCAL_PATH);
-    const dataDir = path.dirname(filePath);
-    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-    fs.writeFileSync(filePath, JSON.stringify(entries, null, 2));
-  }
+async function readAuditLog(): Promise<AuditLogEntry[]> {
+  const rows = await googleSheetsService.getAuditLog();
+  return rows.map(sheetRowToEntry);
 }
 
-// Append to audit log
 async function appendAuditLog(entry: AuditLogEntry): Promise<void> {
-  const entries = await readAuditLog();
-  entries.push(entry);
+  // Encode resource + userId + environment into the Details JSON so the sheet
+  // schema stays flat while we still preserve the full entry on read.
+  const detailsBlob = JSON.stringify({
+    ...(entry.details ?? {}),
+    resource: entry.resource,
+    userId: entry.userId,
+    environment: entry.environment,
+  });
 
-  // Keep only last 1000 entries to prevent file from growing too large
-  const trimmedEntries = entries.slice(-1000);
-  await writeAuditLog(trimmedEntries);
+  await googleSheetsService.appendToAuditLog({
+    action: entry.action,
+    userEmail: entry.userEmail || '',
+    details: detailsBlob,
+    ip: entry.ipAddress,
+    timestamp: entry.timestamp,
+  });
 }
 
-// GET handler - Retrieve audit log
+// GET handler — Retrieve audit log
 export async function GET(request: NextRequest) {
   const auth = await requireAdmin();
   if (!auth.authenticated) return auth.response;
@@ -98,19 +100,19 @@ export async function GET(request: NextRequest) {
 
     // Apply filters
     if (action) {
-      entries = entries.filter(e => e.action.includes(action));
+      entries = entries.filter((e) => e.action.includes(action));
     }
     if (resource) {
-      entries = entries.filter(e => e.resource.includes(resource));
+      entries = entries.filter((e) => e.resource.includes(resource));
     }
     if (userId) {
-      entries = entries.filter(e => e.userId === userId);
+      entries = entries.filter((e) => e.userId === userId);
     }
     if (startDate) {
-      entries = entries.filter(e => new Date(e.timestamp) >= new Date(startDate));
+      entries = entries.filter((e) => new Date(e.timestamp) >= new Date(startDate));
     }
     if (endDate) {
-      entries = entries.filter(e => new Date(e.timestamp) <= new Date(endDate));
+      entries = entries.filter((e) => new Date(e.timestamp) <= new Date(endDate));
     }
 
     // Sort by timestamp descending (most recent first)
@@ -121,10 +123,13 @@ export async function GET(request: NextRequest) {
     const paginatedEntries = entries.slice(offset, offset + limit);
 
     // Get summary statistics
-    const actionCounts = entries.reduce((acc, entry) => {
-      acc[entry.action] = (acc[entry.action] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const actionCounts = entries.reduce(
+      (acc, entry) => {
+        acc[entry.action] = (acc[entry.action] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     return NextResponse.json({
       success: true,
@@ -147,30 +152,24 @@ export async function GET(request: NextRequest) {
     console.error('Error fetching audit log:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to fetch audit log' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
-// POST handler - Add audit log entry
+// POST handler — Add an audit log entry
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin();
   if (!auth.authenticated) return auth.response;
 
   try {
     const body = await request.json();
-    const {
-      action,
-      resource,
-      userId,
-      userEmail,
-      details = {},
-    } = body;
+    const { action, resource, userId, userEmail, details = {} } = body;
 
     if (!action || !resource || !userId) {
       return NextResponse.json(
         { success: false, error: 'Missing required fields: action, resource, userId' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -182,7 +181,7 @@ export async function POST(request: NextRequest) {
       userId,
       details,
       userEmail,
-      ipAddress
+      ipAddress,
     );
 
     await appendAuditLog(entry);
@@ -196,12 +195,16 @@ export async function POST(request: NextRequest) {
     console.error('Error creating audit log entry:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to create audit log entry' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
-// DELETE handler - Clear audit log (development only)
+// DELETE handler — Add a "cleared" marker entry (dev only)
+//
+// Truly clearing the AuditLog tab from a route handler is dangerous (a sheet
+// row delete loop would be slow and racy). Instead, we record a clear marker
+// and rely on humans to wipe the tab manually if they really want to.
 export async function DELETE(request: NextRequest) {
   const auth = await requireAdmin();
   if (!auth.authenticated) return auth.response;
@@ -209,37 +212,34 @@ export async function DELETE(request: NextRequest) {
   try {
     const environment = getEnvironment();
 
-    // Only allow clearing in development
     if (environment !== 'development') {
       return NextResponse.json(
         { success: false, error: 'Audit log can only be cleared in development' },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
-    // Create a final entry before clearing
     const body = await request.json().catch(() => ({}));
     const clearEntry = createAuditLogEntry(
       'audit-log-cleared',
       'system:audit-log',
       body.userId || 'system',
       { clearedAt: new Date().toISOString(), environment },
-      body.userEmail
+      body.userEmail,
     );
 
-    // Reset log with just the clear entry
-    await writeAuditLog([clearEntry]);
+    await appendAuditLog(clearEntry);
 
     return NextResponse.json({
       success: true,
-      message: 'Audit log cleared',
+      message: 'Audit log clear marker recorded (manual sheet wipe required to actually clear)',
       data: { entry: clearEntry },
     });
   } catch (error) {
     console.error('Error clearing audit log:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to clear audit log' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

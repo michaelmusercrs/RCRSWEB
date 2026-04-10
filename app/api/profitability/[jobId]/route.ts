@@ -6,7 +6,7 @@ export async function GET(
   { params }: { params: { jobId: string } }
 ) {
   try {
-    const job = profitabilityService.getJobCost(params.jobId);
+    const job = await profitabilityService.getJobCost(params.jobId);
     if (!job) {
       return NextResponse.json({ success: false, error: 'Job not found' }, { status: 404 });
     }
@@ -23,7 +23,7 @@ export async function PATCH(
 ) {
   try {
     const body = await request.json();
-    const job = profitabilityService.updateJobCost(params.jobId, body);
+    const job = await profitabilityService.updateJobCost(params.jobId, body);
     return NextResponse.json({ success: true, data: job });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';

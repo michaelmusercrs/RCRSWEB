@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
     const filename = `${generateId()}.${ext}`;
     const pathname = `profiles/${repSlug}/${effectiveType}/${filename}`;
 
-    // Upload to Vercel Blob
+    // Upload to Vercel Blob (canonical). Local fs is dev-only fallback.
     let blobUrl: string;
     try {
       const { put } = await import('@vercel/blob');
@@ -126,15 +126,23 @@ export async function POST(req: NextRequest) {
         contentType: file.type,
       });
       blobUrl = blob.url;
-    } catch {
-      // Fallback: save locally for dev
-      const fs = await import('fs');
-      const path = await import('path');
-      const uploadDir = path.join(process.cwd(), 'public', 'uploads', repSlug, effectiveType);
-      fs.mkdirSync(uploadDir, { recursive: true });
-      const buffer = Buffer.from(await file.arrayBuffer());
-      fs.writeFileSync(path.join(uploadDir, filename), buffer);
-      blobUrl = `/uploads/${repSlug}/${effectiveType}/${filename}`;
+    } catch (blobErr) {
+      console.warn('[profile/images] Blob upload failed, attempting fs fallback:', blobErr);
+      try {
+        const fs = await import('fs');
+        const path = await import('path');
+        const uploadDir = path.join(process.cwd(), 'public', 'uploads', repSlug, effectiveType);
+        fs.mkdirSync(uploadDir, { recursive: true });
+        const buffer = Buffer.from(await file.arrayBuffer());
+        fs.writeFileSync(path.join(uploadDir, filename), buffer);
+        blobUrl = `/uploads/${repSlug}/${effectiveType}/${filename}`;
+      } catch (fsErr) {
+        console.error('[profile/images] Both blob and fs writes failed:', fsErr);
+        return NextResponse.json(
+          { success: false, error: 'Failed to upload image (storage unavailable)' },
+          { status: 500 },
+        );
+      }
     }
 
     const imageData: ProfileImage = {

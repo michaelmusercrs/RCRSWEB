@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { warrantyService } from '@/lib/warranty-service';
-import { leadPortalService } from '@/lib/lead-portal-service';
+import { leadPortalService, WarrantyClaimRecord } from '@/lib/lead-portal-service';
+import crypto from 'crypto';
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 // Validate token and return customer info
 async function validateCustomerToken(token: string) {
@@ -57,14 +61,14 @@ export async function POST(request: NextRequest) {
     let targetWarrantyId = warrantyId;
 
     if (!targetWarrantyId) {
-      const warranties = warrantyService.getWarrantiesByCustomer(customer.customerId);
+      const warranties = await warrantyService.getWarrantiesByCustomer(customer.customerId);
       const activeWarranty = warranties.find(w => w.status === 'active' || w.status === 'expiring_soon' || w.status === 'claimed');
 
       if (activeWarranty) {
         targetWarrantyId = activeWarranty.id;
       } else {
         // Create a placeholder warranty if none exists
-        const newWarranty = warrantyService.createWarranty({
+        const newWarranty = await warrantyService.createWarranty({
           customerId: customer.customerId,
           customerName: customer.customerName,
           customerPhone: customer.customerPhone,
@@ -81,7 +85,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const claim = warrantyService.submitClaim(targetWarrantyId, {
+    const claim = await warrantyService.submitClaim(targetWarrantyId, {
       issueDescription: issueDescription.trim(),
       category,
       severity: urgency,
@@ -91,6 +95,37 @@ export async function POST(request: NextRequest) {
 
     if (!claim) {
       return NextResponse.json({ error: 'Failed to submit warranty claim' }, { status: 500 });
+    }
+
+    // Persist to Google Sheets so the claim survives server restarts.
+    // warrantyService keeps an in-memory/local copy; the Sheets row is the durable record.
+    const now = new Date().toISOString();
+    const sheetClaim: WarrantyClaimRecord = {
+      id: claim.id || `WCL-${crypto.randomBytes(6).toString('hex')}`,
+      warrantyId: targetWarrantyId,
+      customerId: customer.customerId,
+      customerName: customer.customerName,
+      customerAddress: customer.customerAddress,
+      customerPhone: customer.customerPhone,
+      customerEmail: customer.customerEmail,
+      repSlug: customer.repSlug,
+      repName: customer.repName,
+      jobId: customer.jobId || '',
+      category,
+      severity: urgency,
+      issueDescription: issueDescription.trim(),
+      photos: Array.isArray(photos) ? JSON.stringify(photos) : (photos || ''),
+      status: 'submitted',
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    try {
+      await leadPortalService.createWarrantyClaim(sheetClaim);
+    } catch (sheetErr) {
+      // Don't fail the request if Sheets write fails — claim is still in warrantyService.
+      // Log so we can investigate.
+      console.error('[warranty-claim] Failed to persist claim to Sheets:', sheetErr);
     }
 
     return NextResponse.json({
@@ -126,9 +161,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
     }
 
-    const warranties = warrantyService.getWarrantiesByCustomer(customer.customerId);
+    // Read from Sheets first (durable source). Fall back to warrantyService
+    // (in-memory) for any claims that may not have been persisted yet.
+    const sheetClaims = await leadPortalService.getWarrantyClaimsByCustomer(customer.customerId).catch(() => []);
+    const warranties = await warrantyService.getWarrantiesByCustomer(customer.customerId);
 
-    const allClaims = warranties.flatMap(w =>
+    const memoryClaims = warranties.flatMap(w =>
       w.claims.map(c => ({
         id: c.id,
         warrantyId: w.id,
@@ -146,11 +184,57 @@ export async function GET(request: NextRequest) {
       }))
     );
 
+    // Build a deduped list. Prefer Sheets row when IDs match.
+    const seenIds = new Set<string>();
+    const merged: Array<{
+      id: string;
+      warrantyId: string;
+      warrantyType?: string;
+      status: string;
+      category: string;
+      severity: string;
+      issueDescription: string;
+      resolution?: string;
+      repairDate?: string;
+      coveredByWarranty?: boolean;
+      photos: string[];
+      createdAt: string;
+      updatedAt: string;
+    }> = [];
+
+    for (const c of sheetClaims) {
+      let parsedPhotos: string[] = [];
+      try {
+        if (c.photos) parsedPhotos = JSON.parse(c.photos);
+      } catch {
+        parsedPhotos = c.photos ? [c.photos] : [];
+      }
+      merged.push({
+        id: c.id,
+        warrantyId: c.warrantyId,
+        status: c.status,
+        category: c.category,
+        severity: c.severity,
+        issueDescription: c.issueDescription,
+        resolution: c.resolution,
+        repairDate: c.repairDate,
+        coveredByWarranty: c.coveredByWarranty,
+        photos: parsedPhotos,
+        createdAt: c.createdAt,
+        updatedAt: c.updatedAt,
+      });
+      seenIds.add(c.id);
+    }
+
+    for (const c of memoryClaims) {
+      if (!seenIds.has(c.id)) merged.push(c as typeof merged[number]);
+    }
+
     // Sort newest first
-    allClaims.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     return NextResponse.json({
-      claims: allClaims,
+      claims: merged,
       warranties: warranties.map(w => ({
         id: w.id,
         type: w.type,

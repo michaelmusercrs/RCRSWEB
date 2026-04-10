@@ -177,6 +177,17 @@ export interface PipelineOrder {
 
   // Materials
   items: PipelineOrderItem[];
+  /**
+   * Where the materials come from:
+   *   - 'stock' (default) = pulled from our warehouse catalog; inventory
+   *     holds are placed on createOrder and decremented at DELIVERY_CONFIRMED.
+   *   - 'other_vendor' = purchased from an outside supplier (SRS, ABC, Beacon,
+   *     etc.) for this specific job. NEVER touches our inventory — no holds,
+   *     no stock deductions. Requires supplierName on the work-order side.
+   * Optional on read so legacy orders without the field default to 'stock'.
+   */
+  orderSource?: 'stock' | 'other_vendor';
+  supplierName?: string;
   totalCost: number;           // INTERNAL: purchase price total
   totalPrice: number;          // Customer-facing: final price total
 
@@ -355,6 +366,10 @@ class MaterialOrderPipelineService {
             cancelled: row.get('cancelled') === 'true',
             cancelReason: row.get('cancelReason') || undefined,
             completedAt: row.get('completedAt') || undefined,
+            // Default legacy rows to 'stock' so they keep decrementing
+            // inventory on DELIVERY_CONFIRMED like they always did.
+            orderSource: (row.get('orderSource') || 'stock') as 'stock' | 'other_vendor',
+            supplierName: row.get('supplierName') || undefined,
             events,
           });
         }
@@ -497,7 +512,8 @@ class MaterialOrderPipelineService {
       'totalCost', 'totalPrice',
       'customerInvoiceId', 'internalInvoiceId',
       'paymentStatus', 'paymentAmount', 'paymentDate',
-      'specialInstructions', 'notes', 'cancelled', 'cancelReason', 'completedAt'
+      'specialInstructions', 'notes', 'cancelled', 'cancelReason', 'completedAt',
+      'orderSource', 'supplierName'
     ]);
     if (!result) return;
     try {
@@ -540,6 +556,10 @@ class MaterialOrderPipelineService {
         cancelled: order.cancelled ? 'true' : 'false',
         cancelReason: order.cancelReason || '',
         completedAt: order.completedAt || '',
+        // Only write orderSource when explicitly set, so legacy rows
+        // stay blank and default to 'stock' on re-read.
+        orderSource: order.orderSource || '',
+        supplierName: order.supplierName || '',
       };
       if (existing) {
         Object.entries(data).forEach(([k, v]) => existing.set(k, v));
@@ -744,9 +764,23 @@ class MaterialOrderPipelineService {
     items: { productId: string; quantity: number; notes?: string }[];
     specialInstructions?: string;
     notes?: string;
+    /**
+     * 'stock' (default) = inventory hold placed on create, deducted on
+     * DELIVERY_CONFIRMED. 'other_vendor' = pass-through buy from SRS/ABC/etc.
+     * that NEVER touches our inventory. If 'other_vendor', supplierName is
+     * required.
+     */
+    orderSource?: 'stock' | 'other_vendor';
+    supplierName?: string;
   }): Promise<PipelineOrder> {
     await this.ensureLoaded();
     await unifiedInventoryService.ensureLoaded();
+
+    const orderSource: 'stock' | 'other_vendor' =
+      data.orderSource === 'other_vendor' ? 'other_vendor' : 'stock';
+    if (orderSource === 'other_vendor' && !data.supplierName?.trim()) {
+      throw new Error('createOrder: supplierName is required when orderSource is "other_vendor"');
+    }
 
     const year = new Date().getFullYear();
     const orderId = `MOP-${year}-${String(this.nextIds.order++).padStart(4, '0')}`;
@@ -781,10 +815,16 @@ class MaterialOrderPipelineService {
         notes: reqItem.notes,
       });
 
-      // Place inventory hold
-      const hold = await unifiedInventoryService.placeHold(resolved, reqItem.quantity, orderId, 'pipeline_order', data.createdBy);
-      if (hold) {
-        orderItems[orderItems.length - 1].holdId = hold.holdId;
+      // Place inventory hold ONLY for stock orders. Other-vendor orders are
+      // pass-through buys from SRS/ABC/etc. — we never hold or deduct our
+      // warehouse stock for them.
+      if (orderSource === 'other_vendor') {
+        console.log(`[pipeline] Skipped inventory hold for other-vendor order ${orderId} item ${resolved}`);
+      } else {
+        const hold = await unifiedInventoryService.placeHold(resolved, reqItem.quantity, orderId, 'pipeline_order', data.createdBy);
+        if (hold) {
+          orderItems[orderItems.length - 1].holdId = hold.holdId;
+        }
       }
     }
 
@@ -825,6 +865,8 @@ class MaterialOrderPipelineService {
       deliveryZip: data.deliveryZip,
       requestedDeliveryDate: data.requestedDeliveryDate,
       items: orderItems,
+      orderSource,
+      supplierName: data.supplierName?.trim() || undefined,
       totalCost,
       totalPrice,
       paymentStatus: 'pending',
@@ -836,10 +878,19 @@ class MaterialOrderPipelineService {
 
     this.orders.unshift(order);
 
-    // Persist
-    this._persistOrder(order).catch((err) => console.error("[pipeline] persist failed:", err));
-    this._persistOrderItems(orderId, orderItems).catch((err) => console.error("[pipeline] persist failed:", err));
-    this._persistEvent(event).catch((err) => console.error("[pipeline] persist failed:", err));
+    // CRITICAL: AWAIT all persists. Vercel kills the lambda the moment the
+    // response is sent, so any fire-and-forget .catch() pattern silently
+    // drops the data. Settle all writes before returning.
+    const persistResults = await Promise.allSettled([
+      this._persistOrder(order),
+      this._persistOrderItems(orderId, orderItems),
+      this._persistEvent(event),
+    ]);
+    for (const r of persistResults) {
+      if (r.status === 'rejected') {
+        console.error('[pipeline] createOrder persist rejected:', r.reason);
+      }
+    }
 
     // Auto-transition to ORDER_REVIEWED if all items are in stock
     let allInStock = true;
@@ -865,8 +916,29 @@ class MaterialOrderPipelineService {
       order.currentStage = 'ORDER_REVIEWED';
       order.updatedAt = autoEvent.timestamp;
       order.events.push(autoEvent);
-      this._persistOrder(order).catch((err) => console.error("[pipeline] persist failed:", err));
-      this._persistEvent(autoEvent).catch((err) => console.error("[pipeline] persist failed:", err));
+      const autoResults = await Promise.allSettled([
+        this._persistOrder(order),
+        this._persistEvent(autoEvent),
+      ]);
+      for (const r of autoResults) {
+        if (r.status === 'rejected') {
+          console.error('[pipeline] auto-review persist rejected:', r.reason);
+        }
+      }
+    }
+
+    // Audit log: pipeline order created
+    try {
+      const { auditLog } = await import('./audit-logger');
+      auditLog(
+        'PIPELINE_ORDER_CREATED',
+        data.createdBy || 'system',
+        `Order ${orderId} created for job ${order.jobNumber || order.jobId || 'unknown'} (${order.customerName}). ` +
+        `Items: ${order.items.length}. Source: ${order.orderSource || 'stock'}. ` +
+        `Priority: ${order.priority || 'normal'}.`
+      );
+    } catch (err) {
+      console.warn('[pipeline] PIPELINE_ORDER_CREATED audit log failed:', err);
     }
 
     return order;
@@ -982,8 +1054,10 @@ class MaterialOrderPipelineService {
             item.pulledQty = item.quantity;
           }
         }
-        // Persist updated item quantities
-        this._updateOrderItems(orderId, order.items).catch((err) => console.error("[pipeline] persist failed:", err));
+        // Persist updated item quantities — AWAIT to ensure write completes
+        await this._updateOrderItems(orderId, order.items).catch((err) =>
+          console.error('[pipeline] MATERIALS_PULLED _updateOrderItems failed:', err)
+        );
         break;
 
       case 'LOAD_VERIFIED':
@@ -998,8 +1072,10 @@ class MaterialOrderPipelineService {
             item.verifiedQty = item.pulledQty || item.quantity;
           }
         }
-        // Persist updated item quantities
-        this._updateOrderItems(orderId, order.items).catch((err) => console.error("[pipeline] persist failed:", err));
+        // Persist updated item quantities — AWAIT to ensure write completes
+        await this._updateOrderItems(orderId, order.items).catch((err) =>
+          console.error('[pipeline] LOAD_VERIFIED _updateOrderItems failed:', err)
+        );
         break;
 
       case 'DEPARTURE_CONFIRMED':
@@ -1040,7 +1116,7 @@ class MaterialOrderPipelineService {
         break;
 
       case 'DELIVERY_CONFIRMED':
-        // THIS IS WHERE STOCK DEDUCTION HAPPENS
+        // THIS IS WHERE STOCK DEDUCTION HAPPENS (stock orders only)
         if (data?.deliveredItems) {
           for (const delivered of data.deliveredItems) {
             const item = order.items.find(i => i.productId === resolveProductId(delivered.productId));
@@ -1052,26 +1128,33 @@ class MaterialOrderPipelineService {
             item.deliveredQty = item.verifiedQty || item.pulledQty || item.quantity;
           }
         }
-        // Deduct stock for all delivered items
-        for (const item of order.items) {
-          const qty = item.deliveredQty || item.quantity;
-          // If there's a hold, fulfill it (which also deducts).
-          // Pass the actual delivered qty so partial deliveries don't
-          // over-deduct against the original held quantity.
-          if (item.holdId) {
-            await unifiedInventoryService.fulfillHold(item.holdId, performedBy, performedByName, qty);
-          } else {
-            // Direct deduction (no hold was placed at order creation)
-            await unifiedInventoryService.deductStock(
-              item.productId, qty, orderId, 'pipeline_delivery',
-              performedBy, performedByName,
-              `Delivery confirmed for ${order.jobName}`
-            );
+        // Skip inventory deduction entirely for other-vendor orders. These
+        // were pass-through buys from an outside supplier, so we never held
+        // or owned the stock in the first place.
+        if (order.orderSource === 'other_vendor') {
+          console.log(`[pipeline] Skipped inventory decrement for other-vendor order ${orderId}`);
+        } else {
+          // Deduct stock for all delivered items
+          for (const item of order.items) {
+            const qty = item.deliveredQty || item.quantity;
+            // If there's a hold, fulfill it (which also deducts).
+            // Pass the actual delivered qty so partial deliveries don't
+            // over-deduct against the original held quantity.
+            if (item.holdId) {
+              await unifiedInventoryService.fulfillHold(item.holdId, performedBy, performedByName, qty);
+            } else {
+              // Direct deduction (no hold was placed at order creation)
+              await unifiedInventoryService.deductStock(
+                item.productId, qty, orderId, 'pipeline_delivery',
+                performedBy, performedByName,
+                `Delivery confirmed for ${order.jobName}`
+              );
+            }
           }
         }
-        // Persist updated item quantities
-        this._updateOrderItems(orderId, order.items).catch((err) => {
-          console.error(`[pipeline] _updateOrderItems failed for ${orderId}:`, err);
+        // Persist updated item quantities — AWAIT to ensure write completes
+        await this._updateOrderItems(orderId, order.items).catch((err) => {
+          console.error(`[pipeline] DELIVERY_CONFIRMED _updateOrderItems failed for ${orderId}:`, err);
         });
         break;
 
@@ -1100,17 +1183,27 @@ class MaterialOrderPipelineService {
       case 'BILLING_REVIEW':
         // Auto-create both invoice types
         await this._createInvoices(order);
+        // Auto-create the job breakdown row tied to the original format.
+        // This is the hook Michael asked for: every order that reaches
+        // billing review gets a breakdown sheet entry mirroring the
+        // canonical format. If creation fails, we log but don't block
+        // the stage transition (the invoices are already saved).
+        await this._createJobBreakdown(order, performedBy, performedByName).catch(err =>
+          console.error('[pipeline] BILLING_REVIEW _createJobBreakdown failed:', err)
+        );
         break;
 
       case 'INVOICE_SENT':
         order.paymentStatus = 'invoiced';
-        // Mark customer invoice as sent
+        // Mark customer invoice as sent — AWAIT the persist
         if (order.customerInvoiceId) {
           const custInv = this.invoices.find(i => i.invoiceId === order.customerInvoiceId);
           if (custInv) {
             custInv.status = 'sent';
             custInv.sentAt = now;
-            this._persistInvoice(custInv).catch((err) => console.error("[pipeline] persist failed:", err));
+            await this._persistInvoice(custInv).catch((err) =>
+              console.error('[pipeline] INVOICE_SENT _persistInvoice failed:', err)
+            );
           }
         }
         break;
@@ -1129,14 +1222,16 @@ class MaterialOrderPipelineService {
             paymentReference: meta.paymentReference || '',
           });
         }
-        // Update invoices
+        // Update invoices — AWAIT all persists
         if (order.customerInvoiceId) {
           const custInv = this.invoices.find(i => i.invoiceId === order.customerInvoiceId);
           if (custInv) {
             custInv.status = 'paid';
             custInv.paidAt = now;
             custInv.paidAmount = order.paymentAmount || custInv.total;
-            this._persistInvoice(custInv).catch((err) => console.error("[pipeline] persist failed:", err));
+            await this._persistInvoice(custInv).catch((err) =>
+              console.error('[pipeline] PAYMENT_RECEIVED customer invoice persist failed:', err)
+            );
           }
         }
         if (order.internalInvoiceId) {
@@ -1145,7 +1240,9 @@ class MaterialOrderPipelineService {
             intInv.status = 'paid';
             intInv.paidAt = now;
             intInv.paidAmount = order.paymentAmount || intInv.total;
-            this._persistInvoice(intInv).catch((err) => console.error("[pipeline] persist failed:", err));
+            await this._persistInvoice(intInv).catch((err) =>
+              console.error('[pipeline] PAYMENT_RECEIVED internal invoice persist failed:', err)
+            );
           }
         }
         break;
@@ -1163,14 +1260,42 @@ class MaterialOrderPipelineService {
         break;
     }
 
-    // Persist
-    this._persistOrder(order).catch((err) => console.error("[pipeline] persist failed:", err));
-    this._persistEvent(event).catch((err) => console.error("[pipeline] persist failed:", err));
+    // CRITICAL: AWAIT all persists before responding. Vercel kills the
+    // lambda the moment we return — fire-and-forget .catch() patterns
+    // silently lose the data.
+    const advanceResults = await Promise.allSettled([
+      this._persistOrder(order),
+      this._persistEvent(event),
+    ]);
+    for (const r of advanceResults) {
+      if (r.status === 'rejected') {
+        console.error('[pipeline] advanceStage persist rejected:', r.reason);
+      }
+    }
 
-    // Send email notifications to configured roles for this stage
+    // Email notifications are non-essential — fire-and-forget is acceptable
+    // here because notification failure doesn't lose business data.
     this._notifyStageAdvance(order, targetStage, performedByName).catch(err => {
       console.error(`[Pipeline] Stage notification failed for ${targetStage}:`, err);
     });
+
+    // Audit log: pipeline stage transition
+    try {
+      const { auditLog } = await import('./audit-logger');
+      auditLog(
+        'PIPELINE_STAGE_TRANSITIONED',
+        performedBy || 'system',
+        `Order ${orderId} → ${targetStage}. Job: ${order.jobNumber || order.jobId || 'unknown'}. ` +
+        `By: ${performedByName} (${performedByRole}). ` +
+        (targetStage === 'DELIVERY_CONFIRMED' && order.orderSource !== 'other_vendor'
+          ? 'Inventory decremented.'
+          : targetStage === 'DELIVERY_CONFIRMED'
+            ? 'Inventory skip (other_vendor).'
+            : '')
+      );
+    } catch (err) {
+      console.warn('[pipeline] PIPELINE_STAGE_TRANSITIONED audit log failed:', err);
+    }
 
     return { success: true, order };
   }
@@ -1183,22 +1308,49 @@ class MaterialOrderPipelineService {
     const config = STAGE_CONFIG[stage];
     if (!config || config.notifyRoles.length === 0) return;
 
-    // Import email service dynamically to avoid circular deps
+    // Import email service + team roles dynamically to avoid circular deps
     const { emailService } = await import('./email-service');
+    const { TEAM_MEMBERS } = await import('./team-roles');
     if (!emailService.isConfigured()) return;
 
-    // Map roles to email addresses
-    const roleEmails: Record<string, string[]> = {
-      admin: ['michaelmuse@rcrsal.com'],
-      owner: ['michaelmuse@rcrsal.com'],
-      office: ['tia@rcrsal.com', 'sara@rcrsal.com'],
-      billing: ['tia@rcrsal.com'],
-      pm: ['bart@rcrsal.com', 'john@rcrsal.com'],
-      driver: order.assignedDriverName
-        ? [`${order.assignedDriverName.toLowerCase().split(' ')[0]}@rcrsal.com`]
-        : [],
-      warehouse: ['bart@rcrsal.com'],
+    // Look up real emails by role from team-roles. Was previously hardcoded
+    // and the driver email was GUESSED from `${firstname}@rcrsal.com` —
+    // wrong for any driver whose email prefix doesn't match their first name.
+    const emailsForRole = (role: string): string[] => {
+      const matched = TEAM_MEMBERS
+        .filter(m => m.isActive && m.role === role)
+        .map(m => m.email)
+        .filter(Boolean);
+      return matched;
     };
+
+    const roleEmails: Record<string, string[]> = {
+      admin: emailsForRole('admin'),
+      owner: emailsForRole('owner'),
+      office: emailsForRole('office'),
+      billing: emailsForRole('office'), // billing = office staff
+      pm: emailsForRole('project_manager'),
+      warehouse: emailsForRole('project_manager'), // warehouse handled by PMs today
+      driver: [],
+    };
+
+    // Driver emails: use the ASSIGNED driver's real email if we know who
+    // they are. Falls back to all active drivers if no assignment yet.
+    if (order.assignedDriverId || order.assignedDriverName) {
+      const driver = TEAM_MEMBERS.find(m =>
+        m.isActive &&
+        m.role === 'driver' &&
+        (m.id === order.assignedDriverId ||
+         m.name === order.assignedDriverName ||
+         m.slug === (order.assignedDriverName || '').toLowerCase().replace(/\s+/g, '-'))
+      );
+      if (driver) {
+        roleEmails.driver = [driver.email];
+      }
+    } else {
+      // No assignment yet — notify all active drivers so someone can pick it up
+      roleEmails.driver = emailsForRole('driver');
+    }
 
     const recipients = new Set<string>();
     for (const role of config.notifyRoles) {
@@ -1230,9 +1382,18 @@ class MaterialOrderPipelineService {
       </div>
     `;
 
-    // Send to all recipients (fire-and-forget per recipient)
-    for (const to of recipients) {
-      emailService.send({ to, subject, body, fromName: 'RCRS Delivery' }).catch((err) => console.error("[pipeline] persist failed:", err));
+    // AWAIT all sends in parallel. The advanceStage caller wraps this in
+    // its own .catch so a notification failure doesn't fail the stage
+    // transition, but we still want each individual send to complete.
+    const results = await Promise.allSettled(
+      Array.from(recipients).map(to =>
+        emailService.send({ to, subject, body, fromName: 'RCRS Delivery' })
+      )
+    );
+    for (const r of results) {
+      if (r.status === 'rejected') {
+        console.error('[pipeline] _notifyStageAdvance email rejected:', r.reason);
+      }
     }
   }
 
@@ -1298,8 +1459,88 @@ class MaterialOrderPipelineService {
     order.customerInvoiceId = custInvoiceId;
     order.internalInvoiceId = intInvoiceId;
 
-    this._persistInvoice(customerInvoice).catch((err) => console.error("[pipeline] persist failed:", err));
-    this._persistInvoice(internalInvoice).catch((err) => console.error("[pipeline] persist failed:", err));
+    // AWAIT both invoice persists — these are critical financial records
+    const invResults = await Promise.allSettled([
+      this._persistInvoice(customerInvoice),
+      this._persistInvoice(internalInvoice),
+    ]);
+    for (const r of invResults) {
+      if (r.status === 'rejected') {
+        console.error('[pipeline] _createInvoices persist rejected:', r.reason);
+      }
+    }
+  }
+
+  /**
+   * Auto-create a job breakdown row for an order that's reached BILLING_REVIEW.
+   * Mirrors the original-format job breakdown sheet that Michael's team uses.
+   * Idempotent: if a breakdown already exists for this jobId, skips creation.
+   *
+   * Material costs are pulled from the order's deliveredQty (or quantity if
+   * not yet delivered). Labor is left empty for the office to fill in —
+   * we don't have labor data in the pipeline.
+   */
+  private async _createJobBreakdown(
+    order: PipelineOrder,
+    performedBy: string,
+    performedByName: string
+  ): Promise<void> {
+    // Dynamic import to avoid circular dependency
+    const { jobBreakdownService } = await import('./job-breakdown-service');
+
+    // Idempotency check — if a breakdown already exists for this job, skip
+    const jobIdForBreakdown = order.jobId || order.jobNumber || order.orderId;
+    try {
+      const existing = await jobBreakdownService.getBreakdownsByJob(jobIdForBreakdown);
+      if (existing.length > 0) {
+        console.log(`[pipeline] Breakdown already exists for ${jobIdForBreakdown}, skipping auto-create`);
+        return;
+      }
+    } catch (err) {
+      // If the lookup fails, continue with creation rather than skipping —
+      // worst case is a duplicate, which is recoverable.
+      console.warn('[pipeline] Breakdown existence check failed:', err);
+    }
+
+    // Map pipeline order items into breakdown material rows
+    const materials = order.items.map(item => ({
+      category: item.category || 'general',
+      productName: item.productName,
+      quantity: item.deliveredQty || item.quantity,
+      unit: item.unit,
+      unitCost: item.unitCost,
+      totalCost: Math.round(item.unitCost * (item.deliveredQty || item.quantity) * 100) / 100,
+      supplier: '', // Pipeline doesn't track per-line supplier
+      leadTime: '',
+      inStock: true, // We delivered it, so it was in stock
+    }));
+
+    // Default project type — office can revise after creation
+    // TODO: derive from JN job category if available
+    const projectType = 'roof_replacement' as const;
+
+    try {
+      const breakdown = await jobBreakdownService.createBreakdown({
+        jobId: jobIdForBreakdown,
+        jobName: order.jobName || `Order ${order.orderId}`,
+        customerName: order.customerName || 'Customer',
+        address: {
+          street: order.deliveryAddress || '',
+          city: order.deliveryCity || '',
+          state: order.deliveryState || 'AL',
+          zip: order.deliveryZip || '',
+        },
+        projectType,
+        materials,
+        labor: [], // Office adds labor after creation
+        notes: `Auto-created from material order ${order.orderId} on ${new Date().toLocaleDateString()}. Performed by ${performedByName}. Review and add labor before approving.`,
+        createdBy: performedBy,
+      });
+      console.log(`[pipeline] Auto-created breakdown ${breakdown.breakdownId} for order ${order.orderId}`);
+    } catch (err) {
+      console.error('[pipeline] _createJobBreakdown createBreakdown failed:', err);
+      throw err;
+    }
   }
 
   /**
@@ -1334,8 +1575,16 @@ class MaterialOrderPipelineService {
     };
 
     order.events.push(event);
-    this._persistOrder(order).catch((err) => console.error("[pipeline] persist failed:", err));
-    this._persistEvent(event).catch((err) => console.error("[pipeline] persist failed:", err));
+    // AWAIT both persists so the cancellation is durable before responding
+    const cancelResults = await Promise.allSettled([
+      this._persistOrder(order),
+      this._persistEvent(event),
+    ]);
+    for (const r of cancelResults) {
+      if (r.status === 'rejected') {
+        console.error('[pipeline] cancelOrder persist rejected:', r.reason);
+      }
+    }
 
     return order;
   }
@@ -1479,7 +1728,10 @@ class MaterialOrderPipelineService {
       invoice.paidAmount = paidAmount || invoice.total;
     }
 
-    this._persistInvoice(invoice).catch((err) => console.error("[pipeline] persist failed:", err));
+    // AWAIT the persist — invoices are critical financial records
+    await this._persistInvoice(invoice).catch((err) =>
+      console.error('[pipeline] updateInvoiceStatus persist failed:', err)
+    );
     return invoice;
   }
 

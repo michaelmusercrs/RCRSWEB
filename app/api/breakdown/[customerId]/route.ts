@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { breakdownService, LaborType } from '@/lib/breakdown-service';
+import { filterCostByRole } from '@/lib/cost-visibility';
 
 interface RouteParams {
   params: Promise<{ customerId: string }>;
@@ -27,6 +28,11 @@ export async function GET(
     const breakdownId = searchParams.get('breakdownId');
     const jobId = searchParams.get('jobId');
 
+    // Cost visibility — sales reps and customers must never see costPrice or
+    // any cost-related field on a breakdown. Office/owners/admin/manager/driver
+    // get the full breakdown. Filter at every exit point.
+    const role = auth.user.role;
+
     // If specific breakdown ID requested
     if (breakdownId) {
       const breakdown = await breakdownService.getBreakdown(breakdownId);
@@ -36,7 +42,7 @@ export async function GET(
           { status: 404 }
         );
       }
-      return NextResponse.json({ breakdown });
+      return NextResponse.json({ breakdown: filterCostByRole(breakdown, role) });
     }
 
     // If job ID specified, get breakdown for that job
@@ -48,14 +54,14 @@ export async function GET(
           { status: 404 }
         );
       }
-      return NextResponse.json({ breakdown });
+      return NextResponse.json({ breakdown: filterCostByRole(breakdown, role) });
     }
 
     // Get all breakdowns for customer
     const breakdowns = await breakdownService.getBreakdownByCustomer(customerId);
 
     return NextResponse.json({
-      breakdowns,
+      breakdowns: filterCostByRole(breakdowns, role),
       count: breakdowns.length
     });
   } catch (error: any) {

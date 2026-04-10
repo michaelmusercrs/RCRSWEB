@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get calls
-    let calls = callsService.getCalls(Object.keys(filter).length > 0 ? filter : undefined);
+    let calls = await callsService.getCalls(Object.keys(filter).length > 0 ? filter : undefined);
 
     // Pagination
     const limit = parseInt(searchParams.get('limit') || '50');
@@ -93,13 +93,13 @@ export async function GET(request: NextRequest) {
         offset,
         hasMore: offset + calls.length < total,
       },
-      stats: callsService.getStats(),
+      stats: await callsService.getStats(),
     };
 
     // Include analytics if requested
     if (searchParams.get('analytics') === 'true') {
       const daysBack = parseInt(searchParams.get('analyticsDays') || '30');
-      response.analytics = callsService.getAnalytics(daysBack);
+      response.analytics = await callsService.getAnalytics(daysBack);
     }
 
     return NextResponse.json(response);
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create the call record
-    const call = callsService.createCall({
+    const call = await callsService.createCall({
       customerId: body.customerId,
       customerName: body.customerName || 'Unknown',
       customerPhone: body.customerPhone,

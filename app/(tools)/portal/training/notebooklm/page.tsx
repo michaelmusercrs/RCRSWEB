@@ -24,6 +24,7 @@ import {
   Trophy,
 } from 'lucide-react';
 import SettingsMenu from '@/components/SettingsMenu';
+import { useAuth } from '@/lib/auth-context';
 
 // ============================================================================
 // TYPES
@@ -707,6 +708,7 @@ function saveCompletedSections(completed: Set<string>) {
 // ============================================================================
 
 export default function NotebookLMGuidePage() {
+  const { user } = useAuth();
   const [completed, setCompleted] = useState<Set<string>>(new Set());
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
   const [expandedSteps, setExpandedSteps] = useState<Set<number>>(new Set([0]));
@@ -769,8 +771,8 @@ export default function NotebookLMGuidePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: 'current-user',
-          userName: 'Team Member',
+          userId: user?.userId || 'unknown',
+          userName: user?.name || 'Unknown User',
           moduleId: sectionId,
           moduleName: guideSections.find(s => s.id === sectionId)?.title || sectionId,
           score: '100',
@@ -778,8 +780,9 @@ export default function NotebookLMGuidePage() {
           completedAt: new Date().toISOString(),
         }),
       });
-    } catch {
-      // Fail silently
+    } catch (err) {
+      // Surface the error so we know if training completion is silently failing
+      console.error('[training] markComplete sync failed:', err);
     }
   };
 

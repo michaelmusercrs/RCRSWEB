@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate') || undefined;
     const endDate = searchParams.get('endDate') || undefined;
 
-    const analytics = profitabilityService.getAnalytics(startDate, endDate);
+    const analytics = await profitabilityService.getAnalytics(startDate, endDate);
     return NextResponse.json({ success: true, data: analytics });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';

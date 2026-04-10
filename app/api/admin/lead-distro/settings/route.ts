@@ -255,7 +255,16 @@ export async function PUT(request: NextRequest) {
       updatedAt: now,
       updatedBy: user,
     };
-    writeFileSync(DISTRO_CONFIG_PATH, JSON.stringify(updatedDistro, null, 2), 'utf-8');
+    // Best-effort write to local config file. On Vercel the filesystem is
+    // read-only at runtime so this throws — wrap and log so the surrounding
+    // logic still completes (the in-memory config is what serves requests
+    // during the lifetime of the lambda; the canonical config now lives on
+    // the Lead_Distro_Reassignments tab when lead-distribution-service syncs).
+    try {
+      writeFileSync(DISTRO_CONFIG_PATH, JSON.stringify(updatedDistro, null, 2), 'utf-8');
+    } catch (err) {
+      console.warn('[lead-distro/settings] Local distro config write skipped:', err);
+    }
 
     // ── Save lead-distro-reassignment-config.json ──────────────────────────
     const existingReassign = readReassignConfig();
@@ -284,7 +293,11 @@ export async function PUT(request: NextRequest) {
       updatedAt: now,
       updatedBy: user,
     };
-    writeFileSync(REASSIGN_CONFIG_PATH, JSON.stringify(updatedReassign, null, 2), 'utf-8');
+    try {
+      writeFileSync(REASSIGN_CONFIG_PATH, JSON.stringify(updatedReassign, null, 2), 'utf-8');
+    } catch (err) {
+      console.warn('[lead-distro/settings] Local reassign config write skipped:', err);
+    }
 
     return NextResponse.json({ success: true, message: 'Settings saved successfully' });
   } catch (error) {

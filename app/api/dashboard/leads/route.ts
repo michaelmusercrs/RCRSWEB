@@ -38,18 +38,25 @@ async function readData(key: string, localPath: string, defaultValue: any = []):
 }
 
 async function writeData(key: string, localPath: string, data: any): Promise<void> {
+  // Vercel Blob is canonical; fs is dev-only fallback wrapped in try/catch.
   try {
     const { put } = await import('@vercel/blob');
     await put(key, JSON.stringify(data, null, 2), {
       access: 'public', contentType: 'application/json', addRandomSuffix: false,
     });
+    return;
   } catch (e) {
+    console.warn('[dashboard/leads] Blob write failed, attempting fs fallback:', e);
+  }
+  try {
     const fs = await import('fs');
     const path = await import('path');
     const filePath = path.join(process.cwd(), localPath);
     const dir = path.dirname(filePath);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+  } catch (fsErr) {
+    console.warn('[dashboard/leads] Local fs write skipped (read-only fs?):', fsErr);
   }
 }
 

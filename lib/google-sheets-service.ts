@@ -333,7 +333,60 @@ const SHEET_NAMES = {
   MONTHLY_TRENDS: 'Monthly_Trends',
   MEETING_PREP: 'MeetingPrep',
   NUMBER_SESSIONS: 'NumberSessions',
+
+  // ===========================================================================
+  // PERSISTENCE MIGRATION (2026-04-09): tabs added to replace local data/*.json
+  // writes, so production stops losing data on every redeploy. Each entry below
+  // is the canonical home for a service or route that previously called
+  // fs.writeFileSync. See: project_rcrsal_data_persistence_migration.md
+  // ===========================================================================
+  GAMIFICATION: 'Gamification',
+  MARCH_MADNESS_BRACKETS: 'MarchMadness_Brackets',
+  MARCH_MADNESS_SETTINGS: 'MarchMadness_Settings',
+  INVENTORY_TRANSACTIONS: 'Inventory_Transactions',
+  INVENTORY_PRODUCTS: 'Inventory_Products',
+  PIPELINE_ORDERS: 'Pipeline_Orders',
+  BLOG_POSTS: 'Blog_Posts',
+  NOTIFICATIONS: 'Notifications',
+  NOTIFICATION_PREFERENCES: 'Notification_Preferences',
+  PROFILE_NOTIFICATIONS: 'Profile_Notifications',
+  INSPECTIONS: 'Inspections',
+  JOB_PROGRESS: 'Job_Progress',
+  JOB_COSTS: 'Job_Costs',
+  SUBCONTRACTORS: 'Subcontractors',
+  TIME_ENTRIES: 'Time_Entries',
+  ROUTES: 'Routes',
+  CALLS: 'Calls',
+  DOCUMENTS: 'Documents',
+  SURVEY_RESPONSES: 'Survey_Responses',
+  CUSTOMER_REVIEWS: 'Customer_Reviews',
+  WEATHER_EVENTS: 'Weather_Events',
+  GENERATED_REPORTS: 'Generated_Reports',
+  PROFILE_UPDATES: 'Profile_Updates',
+  LEAD_DISTRO_REASSIGNMENTS: 'Lead_Distro_Reassignments',
+  VOICEMAILS: 'Voicemails',
+  CUSTOMER_SURVEY_TOKENS: 'Customer_Survey_Tokens',
+  WARRANTIES: 'Warranties',
+  ESTIMATES: 'Estimates',
+  TICKETS: 'Tickets',
+  // Interoffice invoices created automatically when materials leave the
+  // warehouse. Cost-side only. Customer NEVER sees these. Feeds the
+  // job material cost line in the job breakdown.
+  JOB_MATERIAL_COSTS: 'Job_Material_Costs',
+  // Materials picked up from a job site that came from an OUTSIDE supplier
+  // (SRS, ABC, etc.) — NOT in our catalog. These never touch our inventory
+  // app; they're tracked here so Sara can issue the vendor credit and the
+  // job breakdown can subtract the credit from material cost.
+  VENDOR_RETURNS: 'Vendor_Returns',
+  // Driver GPS pings persisted so the office can see Rick on a map.
+  DRIVER_LOCATIONS: 'Driver_Locations',
 } as const;
+
+export type SheetName = (typeof SHEET_NAMES)[keyof typeof SHEET_NAMES];
+
+// Re-export the registry so callers can reference tab names symbolically
+// instead of duplicating string literals.
+export { SHEET_NAMES };
 
 // =============================================================================
 // GOOGLE SHEETS SERVICE CLASS
@@ -3305,6 +3358,232 @@ class GoogleSheetsService {
       return false;
     }
   }
+
+  // ===========================================================================
+  // GENERIC TAB CRUD (persistence migration 2026-04-09)
+  // ===========================================================================
+  //
+  // These six methods let any service or route persist domain data to a tab on
+  // the master sheet without growing this file by hundreds of typed methods.
+  // The new tabs declared in SHEET_NAMES (Gamification, Inventory_Transactions,
+  // Blog_Posts, etc.) are all read/written through these helpers.
+  //
+  // Conventions:
+  // - Callers own the schema: pass the same `headers` array on every call so
+  //   getOrCreateSheet creates the tab with the right columns the first time.
+  // - All values are stringified before writing — Sheets stores everything as
+  //   strings anyway, and this avoids "[object Object]" surprises.
+  // - `idField` is the column whose value is the row's primary key (e.g.
+  //   "txId", "postId", "userId"). Used by upsert/update/delete.
+  // - Reads return Record<string, string> arrays. Callers parse numbers /
+  //   booleans / JSON blobs themselves at the call site, mirroring the typed
+  //   methods above.
+
+  /**
+   * Read every row from a tab as a string-map. Creates the tab if missing so
+   * a first read on a brand-new install doesn't fail — it just returns [].
+   */
+  async getGenericRows(
+    tabName: string,
+    headers: string[],
+  ): Promise<Record<string, string>[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(tabName, headers);
+      const rows = await sheet.getRows();
+      return rows.map((row) => {
+        const obj: Record<string, string> = {};
+        for (const h of headers) {
+          const v = row.get(h);
+          obj[h] = v !== undefined && v !== null ? String(v) : '';
+        }
+        return obj;
+      });
+    } catch (error) {
+      console.error(`Error fetching rows from "${tabName}":`, error);
+      return [];
+    }
+  }
+
+  /** Coerce any value to a sheet-safe string. */
+  private toCellValue(value: unknown): string {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    if (value instanceof Date) return value.toISOString();
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  }
+
+  private toRow(headers: string[], data: Record<string, unknown>): Record<string, string> {
+    const out: Record<string, string> = {};
+    for (const h of headers) {
+      out[h] = this.toCellValue(data[h]);
+    }
+    return out;
+  }
+
+  /**
+   * Append a row. Use when the row is definitely new — for upserts (insert or
+   * update by primary key) call upsertGenericRow instead.
+   */
+  async appendGenericRow(
+    tabName: string,
+    headers: string[],
+    data: Record<string, unknown>,
+  ): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(tabName, headers);
+      await sheet.addRow(this.toRow(headers, data));
+      return true;
+    } catch (error) {
+      console.error(`Error appending row to "${tabName}":`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Update an existing row in-place by primary key. Returns false when no row
+   * matches — caller can decide whether to fall back to append.
+   */
+  async updateGenericRow(
+    tabName: string,
+    headers: string[],
+    idField: string,
+    idValue: string,
+    updates: Record<string, unknown>,
+  ): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(tabName, headers);
+      const rows = await sheet.getRows();
+      const row = rows.find((r) => String(r.get(idField) || '') === idValue);
+      if (!row) return false;
+
+      for (const [k, v] of Object.entries(updates)) {
+        if (headers.includes(k)) {
+          row.set(k, this.toCellValue(v));
+        }
+      }
+      await row.save();
+      return true;
+    } catch (error) {
+      console.error(`Error updating row in "${tabName}" (${idField}=${idValue}):`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Insert-or-update by primary key. The most common write pattern for the
+   * migrated services — they don't care whether a row exists yet, they just
+   * want the latest state persisted.
+   */
+  async upsertGenericRow(
+    tabName: string,
+    headers: string[],
+    idField: string,
+    data: Record<string, unknown>,
+  ): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(tabName, headers);
+      const rows = await sheet.getRows();
+      const idValue = String(data[idField] ?? '');
+      if (!idValue) {
+        console.warn(`upsertGenericRow("${tabName}"): missing ${idField}`);
+        return false;
+      }
+      const existing = rows.find((r) => String(r.get(idField) || '') === idValue);
+
+      if (existing) {
+        for (const h of headers) {
+          if (h in data) {
+            existing.set(h, this.toCellValue(data[h]));
+          }
+        }
+        await existing.save();
+      } else {
+        await sheet.addRow(this.toRow(headers, data));
+      }
+      return true;
+    } catch (error) {
+      console.error(`Error upserting row in "${tabName}":`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Delete a row by primary key. Returns true if a row was actually removed.
+   */
+  async deleteGenericRow(
+    tabName: string,
+    idField: string,
+    idValue: string,
+  ): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = this.doc.sheetsByTitle[tabName];
+      if (!sheet) return false;
+      const rows = await sheet.getRows();
+      const row = rows.find((r) => String(r.get(idField) || '') === idValue);
+      if (!row) return false;
+      await row.delete();
+      return true;
+    } catch (error) {
+      console.error(`Error deleting row from "${tabName}" (${idField}=${idValue}):`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Replace the entire contents of a tab with `rows`. Used by services that
+   * keep an in-memory list and want to flush the whole list to the sheet
+   * (e.g. config-shaped data that's small and fully owned by one writer).
+   *
+   * NOTE: this clears every row except the header. Don't use it for tabs that
+   * other services or humans also write to — use upsertGenericRow instead.
+   */
+  async replaceAllGenericRows(
+    tabName: string,
+    headers: string[],
+    rows: Record<string, unknown>[],
+  ): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(tabName, headers);
+      // Clear everything below the header row.
+      const existing = await sheet.getRows();
+      for (const r of existing) {
+        await r.delete();
+      }
+      // Re-add. Batched in chunks of 100 to stay under the API's row limit.
+      const CHUNK = 100;
+      for (let i = 0; i < rows.length; i += CHUNK) {
+        const chunk = rows.slice(i, i + CHUNK).map((r) => this.toRow(headers, r));
+        await sheet.addRows(chunk);
+      }
+      return true;
+    } catch (error) {
+      console.error(`Error replacing rows in "${tabName}":`, error);
+      return false;
+    }
+  }
 }
 
 // =============================================================================
@@ -3362,6 +3641,11 @@ const sandboxProxy = new Proxy(_realService, {
       getRepPreferences: async () => { sandboxLog('GoogleSheets', 'getRepPreferences'); return []; },
       getLeadResponseLogs: async () => { sandboxLog('GoogleSheets', 'getLeadResponseLogs'); return []; },
       getJobBreakdowns: async () => { sandboxLog('GoogleSheets', 'getJobBreakdowns'); return []; },
+      // Generic read added 2026-04-09 for the persistence migration:
+      getGenericRows: async (...args: unknown[]) => {
+        sandboxLog('GoogleSheets', 'getGenericRows', args[0]);
+        return [];
+      },
     };
 
     if (mockHandlers[prop]) return mockHandlers[prop];
@@ -3385,6 +3669,9 @@ const sandboxProxy = new Proxy(_realService, {
       'triggerFullSync',
       'saveMeetingPrep', 'updateMeetingPrep',
       'appendNumberSession', 'deleteNumberSession',
+      // Generic CRUD added 2026-04-09 for the persistence migration:
+      'appendGenericRow', 'updateGenericRow', 'upsertGenericRow',
+      'deleteGenericRow', 'replaceAllGenericRows',
     ];
 
     if (writeOps.includes(prop)) {

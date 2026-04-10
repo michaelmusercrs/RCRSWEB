@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -21,10 +21,32 @@ import {
   User,
   Building,
   CheckCircle2,
-  Info
+  Info,
+  Loader2
 } from 'lucide-react';
-import { inventoryProducts, InventoryProduct } from '@/lib/inventoryData';
 import AddressAutocomplete, { AddressResult } from '@/components/AddressAutocomplete';
+import { useAuth } from '@/lib/auth-context';
+
+// Roles allowed to see purchase cost / margin in the order builder.
+// Per the reinforced rule (2026-04-09): cost only appears on inventory
+// entry surfaces and reports. The order builder is a delivery-side
+// surface, so driver and sales reps both NEVER see cost here.
+// Mirrors lib/cost-visibility.ts COST_VISIBLE_ROLES.
+const COST_VISIBLE_ROLES = new Set(['owner', 'admin', 'office', 'manager', 'project_manager', 'pm']);
+
+// Live catalog item — matches what /api/portal/inventory?action=list returns,
+// remapped to the local cost/price shape used by this page.
+interface CatalogProduct {
+  productId: string;       // INV-XXXX
+  productName: string;
+  category: string;
+  sku: string;
+  unit: string;
+  cost: number;            // unitCost from API (purchase price)
+  price: number;           // unitPrice from API (selling price)
+  currentQty: number;
+  availableQty: number;
+}
 
 interface OrderItemDraft {
   productId: string;
@@ -53,12 +75,59 @@ interface JobNimbusJob {
 
 export default function NewOrderPage() {
   const router = useRouter();
+  const { user } = useAuth();
+  const showCost = !!user && COST_VISIBLE_ROLES.has((user.role || '').toLowerCase());
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [searchingJobs, setSearchingJobs] = useState(false);
   const [jobSearchTerm, setJobSearchTerm] = useState('');
   const [jobs, setJobs] = useState<JobNimbusJob[]>([]);
   const [selectedJob, setSelectedJob] = useState<JobNimbusJob | null>(null);
+
+  // Live catalog from unified-inventory-service via /api/portal/inventory
+  const [inventoryProducts, setInventoryProducts] = useState<CatalogProduct[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/portal/inventory?action=list');
+        if (!res.ok) throw new Error(`Catalog fetch failed: ${res.status}`);
+        const data = await res.json();
+        if (cancelled) return;
+        const items: CatalogProduct[] = (data.items || [])
+          .filter((i: { active?: boolean }) => i.active !== false)
+          .map((i: {
+            productId: string;
+            productName: string;
+            category: string;
+            sku: string;
+            unit: string;
+            unitCost: number;
+            unitPrice: number;
+            currentQty: number;
+            availableQty: number;
+          }) => ({
+            productId: i.productId,
+            productName: i.productName,
+            category: i.category,
+            sku: i.sku,
+            unit: i.unit,
+            cost: i.unitCost,
+            price: i.unitPrice,
+            currentQty: i.currentQty,
+            availableQty: i.availableQty,
+          }));
+        setInventoryProducts(items);
+      } catch (err) {
+        console.error('Failed to load inventory catalog:', err);
+      } finally {
+        if (!cancelled) setCatalogLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   // Order form state
   const [orderData, setOrderData] = useState({
@@ -178,7 +247,7 @@ export default function NewOrderPage() {
   };
 
   // Add product to order
-  const addProduct = (product: InventoryProduct, qty: number = 1) => {
+  const addProduct = (product: CatalogProduct, qty: number = 1) => {
     const existing = orderItems.find(i => i.productId === product.productId);
     if (existing) {
       setOrderItems(orderItems.map(i =>
@@ -228,16 +297,19 @@ export default function NewOrderPage() {
     setOrderItems(orderItems.filter(i => i.productId !== productId));
   };
 
-  // Calculate totals
+  // Calculate totals. For sales reps, the API strips unitCost/totalCost so
+  // those values arrive as undefined — coalesce to 0 so the math doesn't NaN.
+  // The cost/margin display is gated by `showCost` below; sales reps see
+  // only the price total.
   const totals = {
     items: orderItems.length,
     quantity: orderItems.reduce((sum, i) => sum + i.quantity, 0),
-    cost: orderItems.reduce((sum, i) => sum + i.totalCost, 0),
-    price: orderItems.reduce((sum, i) => sum + i.totalPrice, 0),
+    cost: orderItems.reduce((sum, i) => sum + (i.totalCost || 0), 0),
+    price: orderItems.reduce((sum, i) => sum + (i.totalPrice || 0), 0),
     margin: orderItems.length > 0
-      ? ((orderItems.reduce((sum, i) => sum + i.totalPrice, 0) -
-          orderItems.reduce((sum, i) => sum + i.totalCost, 0)) /
-          orderItems.reduce((sum, i) => sum + i.totalPrice, 0) * 100)
+      ? ((orderItems.reduce((sum, i) => sum + (i.totalPrice || 0), 0) -
+          orderItems.reduce((sum, i) => sum + (i.totalCost || 0), 0)) /
+          (orderItems.reduce((sum, i) => sum + (i.totalPrice || 0), 0) || 1) * 100)
       : 0,
   };
 
@@ -264,31 +336,51 @@ export default function NewOrderPage() {
     }
   };
 
-  // Submit order
+  // Submit order via the 18-stage pipeline.
+  // Server reads createdBy from auth session — do not pass it from the client.
   const submitOrder = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/portal/orders/workflow', {
+      const response = await fetch('/api/portal/pipeline', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'create',
-          ...orderData,
-          items: orderItems,
-          createdBy: 'current-user', // Populated from auth session
-          createdByName: 'Current User', // Populated from auth session
+          action: 'createOrder',
+          priority: orderData.priority,
+          jobNumber: orderData.jobNumber,
+          jobName: orderData.jobName,
+          jobNimbusId: orderData.jobNimbusId || undefined,
+          customerName: orderData.customerName,
+          customerPhone: orderData.customerPhone,
+          customerEmail: orderData.customerEmail || undefined,
+          deliveryAddress: orderData.customerAddress,
+          deliveryCity: orderData.city,
+          deliveryState: orderData.state,
+          deliveryZip: orderData.zipCode,
+          requestedDeliveryDate: orderData.requestedDeliveryDate,
+          items: orderItems.map(i => ({
+            productId: i.productId,
+            quantity: i.quantity,
+          })),
+          specialInstructions: orderData.specialInstructions || undefined,
+          notes: orderData.internalNotes || undefined,
         }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        router.push(`/portal/orders/${data.orderId}`);
-      } else {
-        throw new Error('Failed to create order');
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || 'Failed to create order');
       }
+
+      const newOrderId = data.order?.orderId;
+      if (!newOrderId) {
+        throw new Error('Order created but no orderId returned');
+      }
+      router.push(`/portal/orders/${newOrderId}`);
     } catch (error) {
       console.error('Error creating order:', error);
-      alert('Failed to create order. Please try again.');
+      const msg = error instanceof Error ? error.message : 'Failed to create order. Please try again.';
+      alert(msg);
     } finally {
       setLoading(false);
     }
@@ -671,9 +763,11 @@ export default function NewOrderPage() {
                       <div className="text-2xl font-bold text-green-400">
                         {formatCurrency(totals.price)}
                       </div>
-                      <div className="text-sm text-neutral-500">
-                        Cost: {formatCurrency(totals.cost)} | Margin: {totals.margin.toFixed(1)}%
-                      </div>
+                      {showCost && (
+                        <div className="text-sm text-neutral-500">
+                          Cost: {formatCurrency(totals.cost)} | Margin: {totals.margin.toFixed(1)}%
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1036,18 +1130,32 @@ export default function NewOrderPage() {
             </div>
 
             <div className="p-4 overflow-y-auto max-h-[50vh]">
+              {catalogLoading ? (
+                <div className="flex items-center justify-center py-12 text-neutral-500">
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  Loading catalog...
+                </div>
+              ) : inventoryProducts.length === 0 ? (
+                <div className="text-center py-12 text-neutral-500">
+                  <Package className="w-12 h-12 mx-auto mb-4 text-neutral-300" />
+                  <p>No products in catalog</p>
+                  <p className="text-sm">Check the inventory service is reachable</p>
+                </div>
+              ) : (
               <div className="space-y-2">
                 {filteredProducts.map(product => (
                   <button
                     key={product.productId}
                     onClick={() => addProduct(product)}
-                    className="w-full text-left p-3 bg-neutral-50 rounded-lg hover:bg-green-50 border border-transparent hover:border-green-500/20 transition-colors"
+                    disabled={product.availableQty <= 0}
+                    className="w-full text-left p-3 bg-neutral-50 rounded-lg hover:bg-green-50 border border-transparent hover:border-green-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="font-medium text-neutral-900">{product.productName}</div>
                         <div className="text-sm text-neutral-500">
-                          {product.category} | {product.currentQty} in stock
+                          {product.category} | {product.availableQty} available
+                          {product.availableQty < product.currentQty && ` (${product.currentQty - product.availableQty} on hold)`}
                         </div>
                       </div>
                       <div className="text-right">
@@ -1058,6 +1166,7 @@ export default function NewOrderPage() {
                   </button>
                 ))}
               </div>
+              )}
             </div>
           </div>
         </div>

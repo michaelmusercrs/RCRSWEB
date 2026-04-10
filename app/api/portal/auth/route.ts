@@ -240,6 +240,56 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // ── Change Password (requires auth) ──────────────────
+      // Persists the new password hash to the UserCredentials sheet via
+      // credentialService.setPassword. Previously the change-password flow
+      // POSTed to 'login-password' which never wrote anything — that's why
+      // password changes appeared to succeed but reverted on next login.
+      case 'change-password': {
+        const session = await validateSession();
+        if (!session.valid || !session.user) {
+          return NextResponse.json(
+            { success: false, error: 'Authentication required' },
+            { status: 401, headers: getSecurityHeaders() }
+          );
+        }
+
+        const newPassword = (data.newPassword || data.password || '').trim();
+        if (newPassword.length < 8) {
+          return NextResponse.json(
+            { success: false, error: 'Password must be at least 8 characters.' },
+            { status: 400, headers: getSecurityHeaders() }
+          );
+        }
+        if (newPassword === 'ChangeMe123!') {
+          return NextResponse.json(
+            { success: false, error: 'Cannot reuse the default password.' },
+            { status: 400, headers: getSecurityHeaders() }
+          );
+        }
+
+        // AWAIT the persist — do not return until the sheet write completes,
+        // otherwise Vercel may kill the lambda mid-write.
+        const ok = await credentialService.setPassword(session.user.userId, newPassword);
+        if (!ok) {
+          return NextResponse.json(
+            { success: false, error: 'Failed to save password. Try again.' },
+            { status: 500, headers: getSecurityHeaders() }
+          );
+        }
+
+        // Mark the user's first-login setup as complete so they don't get
+        // bounced back to the change-password page on next login.
+        await credentialService.completeLoginSetup(session.user.userId).catch((err) =>
+          console.error('[auth] completeLoginSetup failed:', err)
+        );
+
+        return NextResponse.json(
+          { success: true, message: 'Password changed successfully.' },
+          { headers: getSecurityHeaders() }
+        );
+      }
+
       // ── Setup PIN (requires auth) ────────────────────────
       case 'setup-pin': {
         const session = await validateSession();

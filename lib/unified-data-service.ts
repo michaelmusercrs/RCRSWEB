@@ -100,7 +100,7 @@ export interface CommandCenterStats {
 
   // Recent Activity
   recentActivity: Array<{
-    type: 'sale' | 'delivery' | 'inventory' | 'call' | 'job';
+    type: 'sale' | 'delivery' | 'inventory' | 'call' | 'job' | 'commission';
     icon: string;
     color: string;
     text: string;

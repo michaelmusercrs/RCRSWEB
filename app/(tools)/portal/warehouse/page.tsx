@@ -1,0 +1,915 @@
+'use client';
+
+/**
+ * Warehouse Mobile Dashboard (Rick / Tae)
+ *
+ * Phone-first layout. Shows today's work orders, lets the driver mark
+ * status changes, and provides a GPS opt-in toggle. Each ticket has a
+ * direct "Open in JobNimbus" button. Cost data is hidden — driver role
+ * doesn't see cost on delivery-side surfaces.
+ */
+
+import { useState, useEffect, useCallback, useRef } from 'react';
+import Link from 'next/link';
+import {
+  MapPin,
+  Truck,
+  Package,
+  ExternalLink,
+  Camera,
+  CheckCircle2,
+  Clock,
+  RefreshCw,
+  Navigation,
+  Sun,
+  Cloud,
+  CloudRain,
+  Phone,
+  AlertTriangle,
+  Plus,
+  RotateCcw,
+  Building2,
+  Users,
+  X,
+  ImageIcon,
+} from 'lucide-react';
+
+interface Ticket {
+  ticketId: string;
+  jobNumber: string;
+  customerName: string;
+  address: string;
+  city: string;
+  status: string;
+  itemCount: number;
+  totalPieces: number;
+  notes: string;
+  jobnimbusUrl: string | null;
+  /**
+   * 'stock' = pulled from our warehouse (default for legacy tickets).
+   * 'other_vendor' = pickup/pass-through from SRS/ABC/etc. — don't touch our
+   * inventory.
+   */
+  orderSource?: 'stock' | 'other_vendor';
+  supplierName?: string;
+}
+
+interface TodayPayload {
+  greeting: string;
+  weather: { temp: number | null; condition: string; high: number | null; low: number | null; isWorkable: boolean | null } | null;
+  counts: { total: number; created: number; assigned: number; materials_pulled: number; en_route: number; arrived: number };
+  cities: Array<{ city: string; count: number }>;
+  tickets: Ticket[];
+}
+
+function countBySource(tickets: Ticket[] | undefined | null): { stock: number; vendor: number } {
+  const list = tickets || [];
+  let vendor = 0;
+  for (const t of list) {
+    if (t.orderSource === 'other_vendor') vendor++;
+  }
+  return { stock: list.length - vendor, vendor };
+}
+
+const STATUS_LABELS: Record<string, { label: string; color: string }> = {
+  created: { label: 'New', color: 'bg-blue-500/20 text-blue-300 border-blue-500/40' },
+  assigned: { label: 'Assigned', color: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' },
+  materials_pulled: { label: 'Pulled', color: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40' },
+  load_verified: { label: 'Loaded', color: 'bg-orange-500/20 text-orange-300 border-orange-500/40' },
+  en_route: { label: 'En Route', color: 'bg-purple-500/20 text-purple-300 border-purple-500/40' },
+  arrived: { label: 'On Site', color: 'bg-pink-500/20 text-pink-300 border-pink-500/40' },
+};
+
+function pickWeatherIcon(condition: string) {
+  const c = (condition || '').toLowerCase();
+  if (c.includes('rain')) return CloudRain;
+  if (c.includes('cloud')) return Cloud;
+  return Sun;
+}
+
+interface SuggestedAgent {
+  agentId: string;
+  agentName: string;
+  company: string;
+  city: string;
+  address: string;
+  daysSinceVisit: number | null;
+}
+
+type ModalType = null | 'newTicket' | 'creditMemo' | 'vendorReturn' | 'photo';
+type PhotoMode = 'job_site_before' | 'delivery_proof' | 'job_site_after';
+
+export default function WarehousePage() {
+  const [data, setData] = useState<TodayPayload | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [gpsEnabled, setGpsEnabled] = useState(false);
+  const [gpsStatus, setGpsStatus] = useState<string>('');
+  const watchIdRef = useRef<number | null>(null);
+
+  // Driver self-service modals
+  const [modal, setModal] = useState<ModalType>(null);
+  const [modalContext, setModalContext] = useState<{
+    ticketId?: string;
+    jobNumber?: string;
+    photoMode?: PhotoMode;
+  }>({});
+  const [submitting, setSubmitting] = useState(false);
+
+  // Suggested agents widget
+  const [suggestedAgents, setSuggestedAgents] = useState<SuggestedAgent[]>([]);
+
+  const refresh = useCallback(async () => {
+    try {
+      const res = await fetch('/api/warehouse/today', { cache: 'no-store' });
+      if (!res.ok) throw new Error(`API ${res.status}`);
+      const payload = await res.json();
+      setData(payload);
+      setError('');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Fetch suggested agents — only when the day is light. The widget shows
+  // up below the ticket list to give Rick something productive to do on
+  // slow days. Pull recommendations for his current city or default area.
+  const fetchSuggestedAgents = useCallback(async (city?: string) => {
+    try {
+      const params = new URLSearchParams({ action: 'suggest', limit: '4' });
+      if (city) params.set('location', city);
+      const res = await fetch(`/api/portal/insurance-agents?${params.toString()}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const agents = (data.suggestions || data.agents || []).map((a: Record<string, unknown>) => ({
+        agentId: a.agentId,
+        agentName: a.agentName,
+        company: a.company,
+        city: a.city,
+        address: a.address,
+        daysSinceVisit: a.daysSinceLastVisit ?? null,
+      }));
+      setSuggestedAgents(agents);
+    } catch {
+      // best-effort — widget just stays empty
+    }
+  }, []);
+
+  useEffect(() => {
+    // Fetch suggestions only when there are 3 or fewer active orders
+    // ("slow day" threshold)
+    if (data && data.counts.total <= 3) {
+      const topCity = data.cities[0]?.city;
+      fetchSuggestedAgents(topCity);
+    } else {
+      setSuggestedAgents([]);
+    }
+  }, [data, fetchSuggestedAgents]);
+
+  const openModal = (type: ModalType, ctx: typeof modalContext = {}) => {
+    setModalContext(ctx);
+    setModal(type);
+  };
+  const closeModal = () => {
+    setModal(null);
+    setModalContext({});
+    setSubmitting(false);
+  };
+
+  useEffect(() => {
+    refresh();
+    const interval = setInterval(refresh, 60_000);
+    return () => clearInterval(interval);
+  }, [refresh]);
+
+  // GPS opt-in toggle — sends pings to /api/warehouse/gps-ping which fires
+  // Tuya stub events at proximity thresholds. Persists choice in localStorage.
+  useEffect(() => {
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('rcrs_warehouse_gps') : null;
+    if (saved === 'on') setGpsEnabled(true);
+  }, []);
+
+  useEffect(() => {
+    if (!gpsEnabled) {
+      if (watchIdRef.current != null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+      setGpsStatus('');
+      return;
+    }
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      setGpsStatus('GPS not available on this device');
+      return;
+    }
+
+    const sendPing = async (pos: GeolocationPosition) => {
+      try {
+        const res = await fetch('/api/warehouse/gps-ping', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
+          }),
+        });
+        if (res.ok) {
+          const j = await res.json();
+          setGpsStatus(`${j.distanceMiles}mi from warehouse${j.triggered.length > 0 ? ` · fired ${j.triggered.join(', ')}` : ''}`);
+        }
+      } catch {
+        setGpsStatus('GPS ping failed');
+      }
+    };
+
+    const watchId = navigator.geolocation.watchPosition(
+      sendPing,
+      err => setGpsStatus(`GPS error: ${err.message}`),
+      { enableHighAccuracy: true, maximumAge: 30_000, timeout: 15_000 },
+    );
+    watchIdRef.current = watchId;
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+      watchIdRef.current = null;
+    };
+  }, [gpsEnabled]);
+
+  const toggleGps = () => {
+    const next = !gpsEnabled;
+    setGpsEnabled(next);
+    localStorage.setItem('rcrs_warehouse_gps', next ? 'on' : 'off');
+  };
+
+  const updateStatus = async (ticketId: string, action: string, payload: Record<string, unknown> = {}) => {
+    try {
+      const res = await fetch('/api/portal/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, ticketId, ...payload }),
+      });
+      if (res.ok) refresh();
+      else alert('Failed to update ticket');
+    } catch (e) {
+      alert(`Error: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  };
+
+  // Submit handlers for the self-service modals
+  const submitNewTicket = async (form: FormData) => {
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/portal/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create',
+          ticketType: 'delivery',
+          createdBy: 'driver-self',
+          createdByName: 'Warehouse',
+          createdByRole: 'driver',
+          jobNumber: form.get('jobNumber'),
+          jobName: form.get('jobName'),
+          customerName: form.get('customerName'),
+          jobAddress: form.get('jobAddress'),
+          city: form.get('city'),
+          state: form.get('state') || 'AL',
+          materials: [],
+          specialInstructions: form.get('notes'),
+          requestedDate: new Date().toISOString().slice(0, 10),
+          priority: 'normal',
+        }),
+      });
+      if (res.ok) {
+        closeModal();
+        refresh();
+      } else {
+        alert('Failed to create ticket');
+      }
+    } catch (e) {
+      alert(`Error: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const submitVendorReturn = async (form: FormData) => {
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/portal/vendor-returns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobNumber: form.get('jobNumber'),
+          customerName: form.get('customerName'),
+          pickupAddress: form.get('pickupAddress'),
+          vendorName: form.get('vendorName'),
+          vendorReceiptNumber: form.get('receiptNumber'),
+          notes: form.get('notes'),
+          lines: [
+            {
+              description: form.get('description'),
+              quantity: Number(form.get('quantity')) || 1,
+              unit: form.get('unit') || undefined,
+              estimatedValue: form.get('estValue') ? Number(form.get('estValue')) : undefined,
+            },
+          ],
+        }),
+      });
+      if (res.ok) {
+        closeModal();
+        alert('Vendor return submitted. Sara has been notified.');
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(`Failed: ${err.error || res.statusText}`);
+      }
+    } catch (e) {
+      alert(`Error: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const submitCreditMemo = async (form: FormData) => {
+    setSubmitting(true);
+    try {
+      // Credit memo = return ticket. Same endpoint, ticketType=return.
+      const res = await fetch('/api/portal/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create',
+          ticketType: 'return',
+          createdBy: 'driver-self',
+          createdByName: 'Warehouse',
+          createdByRole: 'driver',
+          jobNumber: form.get('jobNumber'),
+          customerName: form.get('customerName'),
+          jobAddress: form.get('jobAddress') || '',
+          city: form.get('city') || '',
+          state: 'AL',
+          returnReason: form.get('reason'),
+          materials: [],
+          requestedDate: new Date().toISOString().slice(0, 10),
+        }),
+      });
+      if (res.ok) {
+        closeModal();
+        refresh();
+        alert('Credit memo created. Sara has been notified.');
+      } else {
+        alert('Failed to create credit memo');
+      }
+    } catch (e) {
+      alert(`Error: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const submitPhoto = async (file: File) => {
+    if (!modalContext.ticketId || !modalContext.photoMode) return;
+    setSubmitting(true);
+    try {
+      // Upload to /api/customer/upload (existing Vercel Blob endpoint)
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('customerId', modalContext.ticketId);
+      fd.append('customerName', modalContext.jobNumber || '');
+      const upload = await fetch('/api/customer/upload', { method: 'POST', body: fd });
+      if (!upload.ok) throw new Error('Upload failed');
+      const { url } = await upload.json();
+
+      // Attach the photo to the ticket
+      const res = await fetch('/api/portal/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add-photo',
+          ticketId: modalContext.ticketId,
+          photoType: modalContext.photoMode,
+          photoUrl: url,
+          uploadedBy: 'driver',
+        }),
+      });
+      if (res.ok) {
+        closeModal();
+        refresh();
+      } else {
+        alert('Failed to attach photo');
+      }
+    } catch (e) {
+      alert(`Error: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const WeatherIcon = pickWeatherIcon(data?.weather?.condition || '');
+
+  return (
+    <div className="min-h-screen bg-black text-white pb-24">
+      {/* Sticky header */}
+      <header className="sticky top-0 z-40 bg-black/95 backdrop-blur border-b border-zinc-800">
+        <div className="px-4 py-3 flex items-center justify-between">
+          <div>
+            <div className="text-xs text-gray-500 uppercase tracking-wide">{data?.greeting || 'Warehouse'}</div>
+            <div className="text-2xl font-black text-[#39FF14]">RCRS Warehouse</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={refresh}
+              className="p-2 rounded-lg bg-zinc-800 active:bg-zinc-700"
+              title="Refresh"
+            >
+              <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+            <Link
+              href="/portal/warehouse/display"
+              target="_blank"
+              className="p-2 rounded-lg bg-zinc-800 active:bg-zinc-700"
+              title="Open TV display"
+            >
+              <ExternalLink className="w-5 h-5" />
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      <main className="px-4 py-4 space-y-4">
+        {error && (
+          <div className="bg-red-900/40 border border-red-700 rounded-xl p-3 text-sm flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4" /> {error}
+          </div>
+        )}
+
+        {/* Top stats card */}
+        {data && (
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-gradient-to-br from-[#39FF14]/20 to-lime-900/40 rounded-2xl p-4 border border-[#39FF14]/40">
+              <div className="flex items-center gap-2 text-[#39FF14] text-xs font-semibold uppercase">
+                <Truck className="w-4 h-4" /> Today
+              </div>
+              <div className="text-5xl font-black text-[#39FF14] tabular-nums leading-tight mt-1">
+                {data.counts.total}
+              </div>
+              <div className="text-xs text-lime-200">{data.counts.total === 1 ? 'work order' : 'work orders'}</div>
+            </div>
+            <div className="bg-gradient-to-br from-blue-900/40 to-zinc-900 rounded-2xl p-4 border border-blue-800/50">
+              <div className="flex items-center gap-2 text-blue-300 text-xs font-semibold uppercase">
+                <WeatherIcon className="w-4 h-4" /> Weather
+              </div>
+              <div className="text-5xl font-black tabular-nums leading-tight mt-1">
+                {data.weather?.temp != null ? `${Math.round(data.weather.temp)}°` : '—'}
+              </div>
+              <div className="text-xs text-blue-200 capitalize truncate">
+                {data.weather?.condition || 'Decatur'}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* GPS opt-in */}
+        <div className="bg-zinc-900 rounded-2xl p-4 border border-zinc-800">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Navigation className={`w-5 h-5 ${gpsEnabled ? 'text-[#39FF14]' : 'text-gray-500'}`} />
+              <div>
+                <div className="font-bold">Warehouse Auto-Ready</div>
+                <div className="text-xs text-gray-400">
+                  {gpsEnabled
+                    ? 'GPS sharing on — lights/garage/HVAC will trigger as you approach'
+                    : 'Tap to enable GPS auto-triggers'}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={toggleGps}
+              className={`px-4 py-2 rounded-full font-bold text-sm ${
+                gpsEnabled ? 'bg-[#39FF14] text-black' : 'bg-zinc-700 text-gray-300'
+              }`}
+            >
+              {gpsEnabled ? 'ON' : 'OFF'}
+            </button>
+          </div>
+          {gpsEnabled && gpsStatus && (
+            <div className="mt-3 text-xs text-gray-400 font-mono bg-black/40 rounded-lg px-3 py-2">
+              {gpsStatus}
+            </div>
+          )}
+        </div>
+
+        {/* Today's route — multi-stop Google Maps deep link */}
+        {data && data.tickets.length > 0 && (() => {
+          // Build a Google Maps directions URL with all stops in order.
+          // Format: https://www.google.com/maps/dir/?api=1&origin=...&destination=...&waypoints=...|...
+          // Origin = warehouse, destination = last stop, waypoints = everything in between.
+          // Filter out tickets without an address.
+          const withAddr = data.tickets.filter(t => t.address && t.address.trim().length > 0);
+          if (withAddr.length === 0) return null;
+
+          const warehouse = '3325 Central Pkwy SW, Decatur, AL 35603';
+          const stops = withAddr.map(t => t.address);
+          const destination = stops[stops.length - 1];
+          const waypoints = stops.slice(0, -1);
+
+          const params = new URLSearchParams({
+            api: '1',
+            origin: warehouse,
+            destination,
+            travelmode: 'driving',
+          });
+          if (waypoints.length > 0) {
+            params.set('waypoints', waypoints.join('|'));
+          }
+          const mapsUrl = `https://www.google.com/maps/dir/?${params.toString()}`;
+
+          return (
+            <a
+              href={mapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block bg-gradient-to-br from-[#0066CC] to-blue-900 rounded-2xl p-4 border border-blue-700 active:from-[#0066CC]/80"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center">
+                    <Navigation className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-white">Today&apos;s Route</div>
+                    <div className="text-xs text-blue-200">
+                      {withAddr.length} stop{withAddr.length === 1 ? '' : 's'} · open in Google Maps
+                    </div>
+                  </div>
+                </div>
+                <ExternalLink className="w-5 h-5 text-white/70" />
+              </div>
+            </a>
+          );
+        })()}
+
+        {/* Quick actions — 6-up grid for self-service */}
+        <div className="grid grid-cols-3 gap-3">
+          <button
+            onClick={() => openModal('newTicket')}
+            className="bg-zinc-900 rounded-2xl p-3 border border-zinc-800 active:bg-zinc-800 flex flex-col items-center gap-1.5"
+          >
+            <Plus className="w-6 h-6 text-[#39FF14]" />
+            <div className="font-bold text-xs text-center">New Ticket</div>
+          </button>
+          <button
+            onClick={() => openModal('creditMemo')}
+            className="bg-zinc-900 rounded-2xl p-3 border border-zinc-800 active:bg-zinc-800 flex flex-col items-center gap-1.5"
+          >
+            <RotateCcw className="w-6 h-6 text-orange-400" />
+            <div className="font-bold text-xs text-center">Credit Memo</div>
+          </button>
+          <button
+            onClick={() => openModal('vendorReturn')}
+            className="bg-zinc-900 rounded-2xl p-3 border border-zinc-800 active:bg-zinc-800 flex flex-col items-center gap-1.5"
+          >
+            <Building2 className="w-6 h-6 text-purple-400" />
+            <div className="font-bold text-xs text-center">Vendor Return</div>
+          </button>
+          <Link
+            href="/portal/inventory/restock"
+            className="bg-zinc-900 rounded-2xl p-3 border border-zinc-800 active:bg-zinc-800 flex flex-col items-center gap-1.5"
+          >
+            <Package className="w-6 h-6 text-[#0066CC]" />
+            <div className="font-bold text-xs text-center">Receive Stock</div>
+          </Link>
+          <Link
+            href="/portal/inventory/reconciliation"
+            className="bg-zinc-900 rounded-2xl p-3 border border-zinc-800 active:bg-zinc-800 flex flex-col items-center gap-1.5"
+          >
+            <Camera className="w-6 h-6 text-[#39FF14]" />
+            <div className="font-bold text-xs text-center">Weekly Count</div>
+          </Link>
+          <Link
+            href="/portal/insurance-agents"
+            className="bg-zinc-900 rounded-2xl p-3 border border-zinc-800 active:bg-zinc-800 flex flex-col items-center gap-1.5"
+          >
+            <Users className="w-6 h-6 text-blue-400" />
+            <div className="font-bold text-xs text-center">Agents</div>
+          </Link>
+        </div>
+
+        {/* Tickets list */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-bold text-gray-300">Active Work Orders</h2>
+            {(() => {
+              const split = countBySource(data?.tickets);
+              return (
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="px-2 py-0.5 rounded-full bg-[#39FF14]/15 text-[#39FF14] border border-[#39FF14]/30 font-bold">
+                    Stock: {split.stock}
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30 font-bold">
+                    Vendor: {split.vendor}
+                  </span>
+                </div>
+              );
+            })()}
+          </div>
+
+          {loading && !data && (
+            <div className="text-center text-gray-500 py-8">Loading...</div>
+          )}
+
+          {data && data.tickets.length === 0 && (
+            <div className="bg-zinc-900 rounded-2xl p-8 text-center border border-zinc-800">
+              <CheckCircle2 className="w-10 h-10 text-[#39FF14] mx-auto mb-2" />
+              <div className="text-lg font-bold">All caught up</div>
+              <div className="text-sm text-gray-500">No active orders right now</div>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            {data?.tickets.map(t => {
+              const status = STATUS_LABELS[t.status] || { label: t.status, color: 'bg-gray-700 text-gray-300' };
+              return (
+                <div key={t.ticketId} className="bg-zinc-900 rounded-2xl p-4 border border-zinc-800">
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <div className="text-2xl font-black text-[#39FF14]">{t.jobNumber}</div>
+                      <div className="text-base font-bold mt-0.5">{t.customerName}</div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      {/* Source badge — green STOCK vs purple VENDOR so Rick
+                          spots at a glance whether to pull from our
+                          warehouse or drive to an outside supplier. */}
+                      {t.orderSource === 'other_vendor' ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold border bg-purple-500/15 text-purple-300 border-purple-500/40">
+                          VENDOR
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold border bg-[#39FF14]/15 text-[#39FF14] border-[#39FF14]/40">
+                          STOCK
+                        </span>
+                      )}
+                      <span className={`px-2 py-1 rounded-full text-xs font-bold border ${status.color}`}>
+                        {status.label}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-400 flex items-center gap-1.5 mb-3">
+                    <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span className="truncate">{t.address}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
+                    <Package className="w-3.5 h-3.5" /> {t.itemCount} items · {t.totalPieces} pieces
+                  </div>
+                  {t.notes && (
+                    <div className="bg-yellow-900/20 border border-yellow-700/30 rounded-lg p-2 text-xs text-yellow-200 mb-3">
+                      {t.notes}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-2">
+                    {t.jobnimbusUrl && (
+                      <a
+                        href={t.jobnimbusUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-[#0066CC] text-white text-sm font-bold py-2.5 rounded-lg flex items-center justify-center gap-1 active:bg-[#0066CC]/80"
+                      >
+                        <ExternalLink className="w-4 h-4" /> JN Job
+                      </a>
+                    )}
+                    {t.status === 'created' && (
+                      <button
+                        onClick={() => updateStatus(t.ticketId, 'pull-materials', { pulledBy: 'rick' })}
+                        className="bg-yellow-500 text-black text-sm font-bold py-2.5 rounded-lg active:bg-yellow-600"
+                      >
+                        Pull Materials
+                      </button>
+                    )}
+                    {t.status === 'materials_pulled' && (
+                      <button
+                        onClick={() => updateStatus(t.ticketId, 'verify-load', { verifiedBy: 'rick' })}
+                        className="bg-orange-500 text-white text-sm font-bold py-2.5 rounded-lg active:bg-orange-600"
+                      >
+                        Mark Loaded
+                      </button>
+                    )}
+                    {t.status === 'load_verified' && (
+                      <button
+                        onClick={() => updateStatus(t.ticketId, 'start-delivery')}
+                        className="bg-purple-500 text-white text-sm font-bold py-2.5 rounded-lg active:bg-purple-600"
+                      >
+                        Start Delivery
+                      </button>
+                    )}
+                    {t.status === 'en_route' && (
+                      <button
+                        onClick={() => updateStatus(t.ticketId, 'mark-arrived')}
+                        className="bg-pink-500 text-white text-sm font-bold py-2.5 rounded-lg active:bg-pink-600"
+                      >
+                        Arrived
+                      </button>
+                    )}
+                    {t.status === 'arrived' && (
+                      <button
+                        onClick={() => updateStatus(t.ticketId, 'complete-delivery')}
+                        className="bg-[#39FF14] text-black text-sm font-bold py-2.5 rounded-lg active:bg-lime-500"
+                      >
+                        Delivered
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Photo capture row — pre-delivery + post-delivery */}
+                  {(t.status === 'arrived' || t.status === 'en_route') && (
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      <button
+                        onClick={() => openModal('photo', { ticketId: t.ticketId, jobNumber: t.jobNumber, photoMode: 'job_site_before' })}
+                        className="bg-zinc-800 text-white text-xs font-bold py-2 rounded-lg active:bg-zinc-700 flex items-center justify-center gap-1"
+                      >
+                        <Camera className="w-3.5 h-3.5" /> Pre-Photo
+                      </button>
+                      <button
+                        onClick={() => openModal('photo', { ticketId: t.ticketId, jobNumber: t.jobNumber, photoMode: 'delivery_proof' })}
+                        className="bg-zinc-800 text-white text-xs font-bold py-2 rounded-lg active:bg-zinc-700 flex items-center justify-center gap-1"
+                      >
+                        <ImageIcon className="w-3.5 h-3.5" /> Drop-Off
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Suggested agents — slow day filler */}
+        {suggestedAgents.length > 0 && (
+          <div className="bg-gradient-to-br from-blue-900/30 to-zinc-900 rounded-2xl p-4 border border-blue-700/30">
+            <div className="flex items-center gap-2 mb-3">
+              <Users className="w-5 h-5 text-blue-300" />
+              <h3 className="font-bold text-blue-200">Slow day? Drop in on these agents</h3>
+            </div>
+            <div className="space-y-2">
+              {suggestedAgents.map(a => (
+                <Link
+                  key={a.agentId}
+                  href={`/portal/insurance-agents?agentId=${a.agentId}`}
+                  className="block bg-zinc-900/80 rounded-xl p-3 border border-zinc-800 active:bg-zinc-800"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-sm">{a.agentName}</div>
+                      <div className="text-xs text-blue-300">{a.company}</div>
+                      <div className="text-xs text-gray-500 truncate mt-0.5">{a.address}, {a.city}</div>
+                    </div>
+                    <span className="text-xs text-gray-500 shrink-0 ml-2">
+                      {a.daysSinceVisit == null ? 'never' : `${a.daysSinceVisit}d ago`}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Office contact */}
+        <a
+          href="tel:2562748530"
+          className="block bg-zinc-900 rounded-2xl p-4 border border-zinc-800 text-center"
+        >
+          <Phone className="w-5 h-5 inline-block mr-2 text-[#0066CC]" />
+          <span className="font-bold">Call Office (256) 274-8530</span>
+        </a>
+      </main>
+
+      {/* ===================== MODALS ===================== */}
+      {modal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur flex items-end md:items-center justify-center p-4">
+          <div className="bg-zinc-950 rounded-2xl border border-zinc-800 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-zinc-950 border-b border-zinc-800 px-5 py-4 flex items-center justify-between">
+              <h2 className="text-lg font-bold">
+                {modal === 'newTicket' && 'New Work Order'}
+                {modal === 'creditMemo' && 'Create Credit Memo'}
+                {modal === 'vendorReturn' && 'Vendor Return'}
+                {modal === 'photo' && (
+                  modalContext.photoMode === 'job_site_before' ? 'Pre-Delivery Photo' :
+                  modalContext.photoMode === 'delivery_proof' ? 'Drop-Off Proof Photo' :
+                  'Job Site Photo'
+                )}
+              </h2>
+              <button onClick={closeModal} className="p-1 rounded-lg hover:bg-zinc-800">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5">
+              {modal === 'newTicket' && (
+                <form
+                  onSubmit={e => { e.preventDefault(); submitNewTicket(new FormData(e.currentTarget)); }}
+                  className="space-y-3"
+                >
+                  <p className="text-xs text-gray-500">
+                    Use this when you need to start a delivery yourself instead of waiting for the email.
+                    Sara will be notified just like the email-driven workflow.
+                  </p>
+                  <input name="jobNumber" placeholder="Job # (R-XXXXX)" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
+                  <input name="customerName" placeholder="Customer name" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
+                  <input name="jobName" placeholder="Job name (optional)" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
+                  <input name="jobAddress" placeholder="Address" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
+                  <div className="grid grid-cols-2 gap-2">
+                    <input name="city" placeholder="City" required className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
+                    <input name="state" placeholder="State" defaultValue="AL" className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
+                  </div>
+                  <textarea name="notes" placeholder="Special instructions / what you're loading" rows={3} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
+                  <button type="submit" disabled={submitting} className="w-full bg-[#39FF14] text-black font-bold py-3 rounded-lg active:bg-lime-500 disabled:opacity-50">
+                    {submitting ? 'Creating…' : 'Create Ticket'}
+                  </button>
+                </form>
+              )}
+
+              {modal === 'creditMemo' && (
+                <form
+                  onSubmit={e => { e.preventDefault(); submitCreditMemo(new FormData(e.currentTarget)); }}
+                  className="space-y-3"
+                >
+                  <p className="text-xs text-gray-500">
+                    Use when you bring our materials back from a job. Posts a credit
+                    memo against the job&apos;s material cost ledger.
+                  </p>
+                  <input name="jobNumber" placeholder="Job # (R-XXXXX)" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
+                  <input name="customerName" placeholder="Customer name" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
+                  <input name="jobAddress" placeholder="Pickup address (optional)" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
+                  <input name="city" placeholder="City" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
+                  <textarea name="reason" placeholder="What came back and why" rows={3} required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
+                  <button type="submit" disabled={submitting} className="w-full bg-orange-500 text-white font-bold py-3 rounded-lg active:bg-orange-600 disabled:opacity-50">
+                    {submitting ? 'Submitting…' : 'Create Credit Memo'}
+                  </button>
+                </form>
+              )}
+
+              {modal === 'vendorReturn' && (
+                <form
+                  onSubmit={e => { e.preventDefault(); submitVendorReturn(new FormData(e.currentTarget)); }}
+                  className="space-y-3"
+                >
+                  <p className="text-xs text-gray-500">
+                    Use when you pick up materials from a job that came from an OUTSIDE vendor (SRS, ABC, GAF Direct, etc.) — NOT our inventory. Sara will chase the vendor credit.
+                  </p>
+                  <input name="jobNumber" placeholder="Job # (R-XXXXX)" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
+                  <input name="customerName" placeholder="Customer name" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
+                  <input name="pickupAddress" placeholder="Pickup address" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
+                  <input name="vendorName" placeholder="Vendor (SRS, ABC, GAF…)" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
+                  <input name="receiptNumber" placeholder="Vendor receipt # (if known)" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
+                  <div className="border-t border-zinc-800 pt-3 space-y-2">
+                    <div className="text-xs text-gray-400 font-semibold uppercase">Material picked up</div>
+                    <input name="description" placeholder="Description" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
+                    <div className="grid grid-cols-3 gap-2">
+                      <input name="quantity" type="number" step="1" placeholder="Qty" required className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
+                      <input name="unit" placeholder="Unit" className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
+                      <input name="estValue" type="number" step="0.01" placeholder="Est. $" className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
+                    </div>
+                  </div>
+                  <textarea name="notes" placeholder="Notes for Sara" rows={2} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
+                  <button type="submit" disabled={submitting} className="w-full bg-purple-500 text-white font-bold py-3 rounded-lg active:bg-purple-600 disabled:opacity-50">
+                    {submitting ? 'Submitting…' : 'Send to Sara'}
+                  </button>
+                </form>
+              )}
+
+              {modal === 'photo' && (
+                <div className="space-y-3">
+                  <p className="text-xs text-gray-500">
+                    {modalContext.photoMode === 'job_site_before' && 'Snap the job site BEFORE you unload — captures the existing condition.'}
+                    {modalContext.photoMode === 'delivery_proof' && 'Snap the materials AFTER you drop them off — proof they arrived.'}
+                  </p>
+                  <label className="block bg-zinc-900 border-2 border-dashed border-[#39FF14]/40 rounded-2xl p-8 text-center cursor-pointer active:bg-zinc-800">
+                    <Camera className="w-10 h-10 text-[#39FF14] mx-auto mb-2" />
+                    <div className="font-bold">Tap to take photo</div>
+                    <div className="text-xs text-gray-500 mt-1">Camera or gallery</div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      disabled={submitting}
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) submitPhoto(file);
+                      }}
+                    />
+                  </label>
+                  {submitting && (
+                    <div className="text-center text-sm text-gray-400">Uploading…</div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

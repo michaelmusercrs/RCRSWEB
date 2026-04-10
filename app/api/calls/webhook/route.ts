@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const stats = callsService.getStats();
+  const stats = await callsService.getStats();
 
   return NextResponse.json({
     status: 'healthy',

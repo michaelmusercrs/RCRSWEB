@@ -6,7 +6,7 @@ import Image from 'next/image';
 import {
   ArrowLeft, FileText, Users, Image as ImageIcon, Settings, ChevronRight,
   Globe, BookOpen, BarChart3, TrendingUp, Eye, Clock, Sparkles, Home,
-  DollarSign, AlertTriangle, Package, Command, Shield, MapPin, Loader2
+  DollarSign, AlertTriangle, Package, Command, Shield, MapPin, Loader2, Store
 } from 'lucide-react';
 import SettingsMenu from '@/components/SettingsMenu';
 
@@ -125,6 +125,18 @@ export default function AdminPortal() {
       iconColor: '#06b6d4',
       stat: '-',
       statLabel: 'configs',
+    },
+    {
+      id: 'vendors',
+      title: 'Vendors & Suppliers',
+      description: 'Manage supplier and subcontractor master list',
+      icon: Store,
+      href: '/portal/admin/vendors',
+      color: 'from-green-500 to-emerald-500',
+      bgColor: 'bg-brand-green/10',
+      iconColor: '#39FF14',
+      stat: '-',
+      statLabel: 'vendors',
     },
   ];
 
@@ -395,6 +407,18 @@ export default function AdminPortal() {
                 <div>
                   <div className="text-sm font-medium text-white">Lead Distribution</div>
                   <div className="text-xs text-neutral-500">Config + geocode progress</div>
+                </div>
+              </Link>
+              <Link
+                href="/portal/admin/lead-distro/dispatch"
+                className="flex items-center gap-3 px-4 py-3 bg-white/[0.02] border border-white/5 rounded-xl hover:bg-white/[0.05] transition-colors"
+              >
+                <div className="w-10 h-10 bg-sky-500/10 rounded-lg flex items-center justify-center">
+                  <Users size={18} className="text-sky-400" />
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-white">Lead Dispatch Queue</div>
+                  <div className="text-xs text-neutral-500">Route incoming leads to reps</div>
                 </div>
               </Link>
             </div>

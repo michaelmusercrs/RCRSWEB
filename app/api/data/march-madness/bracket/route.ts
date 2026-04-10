@@ -7,29 +7,59 @@
  */
 
 import { NextResponse } from 'next/server';
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync } from 'fs';
 import { join } from 'path';
-import { googleSheetsService } from '@/lib/google-sheets-service';
+import { googleSheetsService, SHEET_NAMES } from '@/lib/google-sheets-service';
 import { cache, CACHE_TTL } from '@/lib/cache';
 
+// Tournament structure (participants, seeds, rules, prizes scaffold) is static
+// config that ships with the build. Live sales numbers come from Google Sheets
+// via googleSheetsService.getMarchMadnessSales(). Admin-mutable settings
+// (overrides, prizes, visibility flags) live on the MarchMadness_Settings tab.
 function loadBracketJSON() {
   const filePath = join(process.cwd(), 'data', 'march-madness-2026.json');
   const raw = readFileSync(filePath, 'utf8');
   return JSON.parse(raw);
 }
 
-function loadSettings() {
+const SETTINGS_HEADERS = ['key', 'value', 'updatedBy', 'updatedAt'];
+
+function decodeSettingValue(raw: string): unknown {
+  if (!raw) return undefined;
   try {
-    const filePath = join(process.cwd(), 'data', 'march-madness-settings.json');
-    return JSON.parse(readFileSync(filePath, 'utf8'));
+    return JSON.parse(raw);
   } catch {
-    return { showToReps: false, overrides: {}, prizes: {}, announcementEnabled: false, announcementMessage: '' };
+    return raw;
   }
 }
 
-function saveBracketJSON(data: Record<string, unknown>) {
-  const filePath = join(process.cwd(), 'data', 'march-madness-2026.json');
-  writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+async function loadSettings(): Promise<Record<string, unknown>> {
+  try {
+    const rows = await googleSheetsService.getGenericRows(
+      SHEET_NAMES.MARCH_MADNESS_SETTINGS,
+      SETTINGS_HEADERS,
+    );
+    const out: Record<string, unknown> = {
+      showToReps: false,
+      overrides: {},
+      prizes: {},
+      announcementEnabled: false,
+      announcementMessage: '',
+    };
+    for (const row of rows) {
+      if (!row.key) continue;
+      out[row.key] = decodeSettingValue(row.value);
+    }
+    return out;
+  } catch {
+    return {
+      showToReps: false,
+      overrides: {},
+      prizes: {},
+      announcementEnabled: false,
+      announcementMessage: '',
+    };
+  }
 }
 
 function buildBracket(
@@ -166,7 +196,7 @@ export async function GET(request: Request) {
     }
 
     // Load admin settings for overrides and visibility
-    const settings = loadSettings();
+    const settings = await loadSettings();
 
     // Build salesByRep from sheet data or default to zeros
     const salesByRep: Record<string, { week1: number; week2: number; week3: number }> = {};
@@ -200,8 +230,11 @@ export async function GET(request: Request) {
       data.dataSource = 'json';
     }
 
-    // Apply admin overrides (non-null values take priority)
-    const overrides = settings.overrides || {};
+    // Apply admin overrides (non-null values take priority).
+    // settings.overrides is `unknown` after JSON-decode, so cast to a safe shape.
+    const overrides =
+      (settings.overrides as Record<string, { week1?: number; week2?: number; week3?: number }>) ||
+      {};
     for (const repName of Object.keys(overrides)) {
       if (!salesByRep[repName]) continue;
       const o = overrides[repName];
@@ -295,7 +328,10 @@ export async function POST(request: Request) {
     data.currentRound = hasR3Data ? 3 : hasR2Data ? 2 : 1;
     data.tournament.status = 'in_progress';
 
-    saveBracketJSON(data);
+    // No local JSON write — sales already persisted to Sheets via
+    // googleSheetsService.updateMarchMadnessSales above. The bracket structure
+    // is recomputed on every GET from sheet data, so there's nothing else to
+    // persist here. Just bust the cache.
     cache.invalidatePattern('^sheets:march-madness:');
 
     return NextResponse.json({ success: true, sheetsUpdated: success });

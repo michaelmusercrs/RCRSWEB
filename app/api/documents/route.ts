@@ -42,7 +42,7 @@ async function readDocumentsData(): Promise<{
   }
 }
 
-// Helper to write documents data
+// Helper to write documents data — Blob is canonical; fs is dev-only fallback.
 async function writeDocumentsData(data: {
   documents: Document[];
   documentTypes: unknown[];
@@ -53,13 +53,19 @@ async function writeDocumentsData(data: {
     await put(BLOB_KEY, JSON.stringify(data, null, 2), {
       access: 'public', contentType: 'application/json', addRandomSuffix: false,
     });
+    return;
   } catch (e) {
+    console.warn('[documents] Blob write failed, attempting fs fallback:', e);
+  }
+  try {
     const fs = await import('fs');
     const path = await import('path');
     const filePath = path.join(process.cwd(), LOCAL_PATH);
     const dir = path.dirname(filePath);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+  } catch (fsErr) {
+    console.warn('[documents] Local fs write skipped (read-only fs?):', fsErr);
   }
 }
 

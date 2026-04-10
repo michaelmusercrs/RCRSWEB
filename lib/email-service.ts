@@ -159,9 +159,16 @@ class EmailService {
     });
   }
 
-  // Send delivery order email (triggers Gmail+ automation)
+  // Send delivery order email (triggers Gmail+ automation).
+  // driverEmail is optional — if omitted, the order goes to stock@rcrsal.com.
+  // That inbox is the single home for all inventory / stock / material-order
+  // emails and must never be used for anything else. Default can be overridden
+  // via the DEFAULT_DELIVERY_ORDER_EMAIL env var.
+  // CRITICAL: items must contain only "qty unit name" strings — never include
+  // cost, price, or any dollar value. The work order PDF physically rides out
+  // with the truck and could be left at a job site.
   async sendDeliveryOrder(data: {
-    driverEmail: string; // e.g., richard+orders@rivercityroofingsolutions.com
+    driverEmail?: string;
     ticketId: string;
     customerName: string;
     address: string;
@@ -169,6 +176,11 @@ class EmailService {
     deliveryDate: string;
     notes?: string;
   }): Promise<{ success: boolean; error?: string }> {
+    const recipient =
+      data.driverEmail ||
+      process.env.DEFAULT_DELIVERY_ORDER_EMAIL ||
+      'stock@rcrsal.com';
+
     const subject = `Delivery Order: ${data.ticketId} - ${data.customerName}`;
     const body = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -191,10 +203,187 @@ class EmailService {
     `;
 
     return this.send({
-      to: data.driverEmail,
+      to: recipient,
       subject,
       body,
       fromName: 'RCRS Dispatch',
+    });
+  }
+
+  // Notify office (Sara + anyone copied) when a new material order ticket
+  // is created. Office-side notification — INCLUDES cost / total because
+  // Sara handles invoicing and accounting. This email NEVER goes to a
+  // customer or sales rep.
+  async sendOfficeMaterialOrderNotification(data: {
+    officeEmail?: string;
+    ticketId: string;
+    ticketType: 'delivery' | 'return';
+    jobNumber: string;
+    customerName: string;
+    address: string;
+    salesRepName: string;
+    materials: Array<{ name: string; qty: number; unit?: string; lineCost: number; linePrice: number }>;
+    totalCost: number;
+    totalPrice: number;
+    interofficeInvoiceId: string;
+    notes?: string;
+  }): Promise<{ success: boolean; error?: string }> {
+    // Default to Sara per the team-roles.ts entry
+    const recipient = data.officeEmail || process.env.OFFICE_NOTIFY_EMAIL || 'sara@rcrsal.com';
+
+    const isReturn = data.ticketType === 'return';
+    const subject = isReturn
+      ? `Credit Memo: ${data.ticketId} — ${data.jobNumber} ${data.customerName}`
+      : `New Material Order: ${data.ticketId} — ${data.jobNumber} ${data.customerName}`;
+
+    const fmt = (n: number) => `$${n.toFixed(2)}`;
+    const tableRows = data.materials.map(m => `
+      <tr>
+        <td style="padding: 6px 8px; border-bottom: 1px solid #eee;">${m.qty} ${m.unit || ''} ${m.name}</td>
+        <td style="padding: 6px 8px; border-bottom: 1px solid #eee; text-align: right;">${fmt(m.lineCost)}</td>
+        <td style="padding: 6px 8px; border-bottom: 1px solid #eee; text-align: right;">${fmt(m.linePrice)}</td>
+      </tr>
+    `).join('');
+
+    const body = `
+      <div style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto;">
+        <div style="background: #000; padding: 20px; text-align: center;">
+          <h1 style="color: #39FF14; margin: 0;">${isReturn ? 'Credit Memo' : 'New Material Order'}</h1>
+        </div>
+        <div style="padding: 30px; background: #fff;">
+          <p style="font-size: 14px; color: #555;">
+            ${isReturn
+              ? 'Materials returned from job to warehouse. Credit memo posted to the job material cost ledger.'
+              : 'Materials issued from warehouse to job. Interoffice invoice posted to the job material cost ledger.'}
+          </p>
+          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+            <tr><td style="padding: 4px 8px;"><strong>Ticket:</strong></td><td style="padding: 4px 8px;">${data.ticketId}</td></tr>
+            <tr><td style="padding: 4px 8px;"><strong>Interoffice Invoice:</strong></td><td style="padding: 4px 8px;">${data.interofficeInvoiceId}</td></tr>
+            <tr><td style="padding: 4px 8px;"><strong>Job:</strong></td><td style="padding: 4px 8px;">${data.jobNumber} — ${data.customerName}</td></tr>
+            <tr><td style="padding: 4px 8px;"><strong>Address:</strong></td><td style="padding: 4px 8px;">${data.address}</td></tr>
+            <tr><td style="padding: 4px 8px;"><strong>Sales Rep:</strong></td><td style="padding: 4px 8px;">${data.salesRepName || '—'}</td></tr>
+          </table>
+
+          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+            <thead>
+              <tr style="background: #f5f5f5;">
+                <th style="padding: 8px; text-align: left;">Item</th>
+                <th style="padding: 8px; text-align: right;">Cost</th>
+                <th style="padding: 8px; text-align: right;">Price</th>
+              </tr>
+            </thead>
+            <tbody>${tableRows}</tbody>
+            <tfoot>
+              <tr style="font-weight: bold; background: #f5f5f5;">
+                <td style="padding: 8px;">TOTAL</td>
+                <td style="padding: 8px; text-align: right;">${fmt(data.totalCost)}</td>
+                <td style="padding: 8px; text-align: right;">${fmt(data.totalPrice)}</td>
+              </tr>
+            </tfoot>
+          </table>
+
+          ${data.notes ? `<div style="background: #fffbe6; border-left: 3px solid #f0ad4e; padding: 12px; margin: 16px 0;"><strong>Special Instructions:</strong><br>${data.notes.replace(/\n/g, '<br>')}</div>` : ''}
+
+          <p style="font-size: 12px; color: #888; margin-top: 20px;">
+            This notification is INTERNAL ONLY. Do not forward to customer or sales rep.
+            The interoffice invoice records cost-side material consumption for job profitability.
+          </p>
+        </div>
+      </div>
+    `;
+
+    return this.send({
+      to: recipient,
+      subject,
+      body,
+      fromName: 'RCRS Inventory',
+    });
+  }
+
+  // Notify Sara about a vendor return — Rick picked up materials from a
+  // job that came from an outside supplier (SRS, ABC, etc.). Sara needs to
+  // chase the vendor credit and post it against the job. INTERNAL ONLY —
+  // never goes to customer or sales rep.
+  async sendVendorReturnNotification(data: {
+    officeEmail?: string;
+    vendorReturnId: string;
+    jobNumber: string;
+    customerName: string;
+    pickupAddress: string;
+    vendorName: string;
+    vendorReceiptNumber?: string;
+    pickedUpByName: string;
+    lines: Array<{ description: string; quantity: number; unit?: string; estimatedValue?: number }>;
+    estimatedTotalValue: number;
+    notes?: string;
+    photoUrl?: string;
+  }): Promise<{ success: boolean; error?: string }> {
+    const recipient = data.officeEmail || process.env.OFFICE_NOTIFY_EMAIL || 'sara@rcrsal.com';
+
+    const subject = `Vendor Return: ${data.vendorName} — ${data.jobNumber} ${data.customerName}`;
+
+    const fmt = (n: number) => `$${n.toFixed(2)}`;
+    const tableRows = data.lines.map(l => `
+      <tr>
+        <td style="padding: 6px 8px; border-bottom: 1px solid #eee;">${l.quantity} ${l.unit || ''} ${l.description}</td>
+        <td style="padding: 6px 8px; border-bottom: 1px solid #eee; text-align: right;">${l.estimatedValue ? fmt(l.estimatedValue) : '—'}</td>
+      </tr>
+    `).join('');
+
+    const body = `
+      <div style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto;">
+        <div style="background: #000; padding: 20px; text-align: center;">
+          <h1 style="color: #39FF14; margin: 0;">Vendor Return — Action Needed</h1>
+        </div>
+        <div style="padding: 30px; background: #fff;">
+          <p style="font-size: 14px; color: #555;">
+            Materials were picked up from a job site that came from an outside vendor.
+            These items are NOT in our inventory catalog. Please chase the credit from
+            <strong>${data.vendorName}</strong> and post it against job <strong>${data.jobNumber}</strong>.
+          </p>
+
+          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+            <tr><td style="padding: 4px 8px;"><strong>Vendor Return:</strong></td><td style="padding: 4px 8px;">${data.vendorReturnId}</td></tr>
+            <tr><td style="padding: 4px 8px;"><strong>Job:</strong></td><td style="padding: 4px 8px;">${data.jobNumber} — ${data.customerName}</td></tr>
+            <tr><td style="padding: 4px 8px;"><strong>Pickup Address:</strong></td><td style="padding: 4px 8px;">${data.pickupAddress}</td></tr>
+            <tr><td style="padding: 4px 8px;"><strong>Vendor:</strong></td><td style="padding: 4px 8px;">${data.vendorName}</td></tr>
+            ${data.vendorReceiptNumber ? `<tr><td style="padding: 4px 8px;"><strong>Receipt #:</strong></td><td style="padding: 4px 8px;">${data.vendorReceiptNumber}</td></tr>` : ''}
+            <tr><td style="padding: 4px 8px;"><strong>Picked up by:</strong></td><td style="padding: 4px 8px;">${data.pickedUpByName}</td></tr>
+          </table>
+
+          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+            <thead>
+              <tr style="background: #f5f5f5;">
+                <th style="padding: 8px; text-align: left;">Item</th>
+                <th style="padding: 8px; text-align: right;">Est. Credit</th>
+              </tr>
+            </thead>
+            <tbody>${tableRows}</tbody>
+            <tfoot>
+              <tr style="font-weight: bold; background: #f5f5f5;">
+                <td style="padding: 8px;">ESTIMATED TOTAL</td>
+                <td style="padding: 8px; text-align: right;">${fmt(data.estimatedTotalValue)}</td>
+              </tr>
+            </tfoot>
+          </table>
+
+          ${data.notes ? `<div style="background: #fffbe6; border-left: 3px solid #f0ad4e; padding: 12px; margin: 16px 0;"><strong>Notes:</strong><br>${data.notes.replace(/\n/g, '<br>')}</div>` : ''}
+
+          ${data.photoUrl ? `<p><strong>Photo:</strong> <a href="${data.photoUrl}">${data.photoUrl}</a></p>` : ''}
+
+          <p style="font-size: 12px; color: #888; margin-top: 20px;">
+            INTERNAL ONLY. Do not forward to the customer. Once the vendor issues
+            the credit memo, mark this vendor return as credited in the portal.
+          </p>
+        </div>
+      </div>
+    `;
+
+    return this.send({
+      to: recipient,
+      subject,
+      body,
+      fromName: 'RCRS Inventory',
     });
   }
 

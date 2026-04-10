@@ -30,6 +30,7 @@ import {
   type OrderPriority,
 } from '@/lib/material-order-pipeline';
 import { unifiedInventoryService } from '@/lib/unified-inventory-service';
+import { filterCostByRole } from '@/lib/cost-visibility';
 
 // ============================================
 // ROLE HELPERS
@@ -69,6 +70,14 @@ export async function GET(request: NextRequest) {
     const action = searchParams.get('action') || 'list';
 
     switch (action) {
+      // Cost visibility gate — every order/list/active/byDriver/atStage/pullSheet
+      // response gets filtered through filterCostByRole. Sales reps and any
+      // role outside the COST_VISIBLE_ROLES set in lib/cost-visibility.ts
+      // will get cost fields (unitCost, totalCost, margin, etc.) stripped
+      // before the response leaves the route.
+      // Roles allowed to see cost: owner, admin, office, manager, driver.
+      // Driver = Richard, who handles inventory accounting.
+
       case 'list': {
         const stage = searchParams.get('stage') as PipelineStage | null;
         const priority = searchParams.get('priority') as OrderPriority | null;
@@ -87,7 +96,7 @@ export async function GET(request: NextRequest) {
           paymentStatus,
           limit,
         });
-        return NextResponse.json(orders);
+        return NextResponse.json(filterCostByRole(orders, auth.user.role));
       }
 
       case 'order': {
@@ -95,44 +104,31 @@ export async function GET(request: NextRequest) {
         if (!orderId) return NextResponse.json({ error: 'orderId required' }, { status: 400 });
         const order = await materialOrderPipeline.getOrderById(orderId);
         if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
-
-        // Filter cost data based on role
-        const role = auth.user.role;
-        if (role === 'sales' || role === 'driver') {
-          // Strip purchase price info
-          const safeOrder = {
-            ...order,
-            totalCost: undefined,
-            items: order.items.map(i => ({ ...i, unitCost: undefined, totalCost: undefined })),
-          };
-          return NextResponse.json(safeOrder);
-        }
-
-        return NextResponse.json(order);
+        return NextResponse.json(filterCostByRole(order, auth.user.role));
       }
 
       case 'active': {
         const orders = await materialOrderPipeline.getActiveOrders();
-        return NextResponse.json(orders);
+        return NextResponse.json(filterCostByRole(orders, auth.user.role));
       }
 
       case 'byDriver': {
         const driverId = searchParams.get('driverId');
         if (!driverId) return NextResponse.json({ error: 'driverId required' }, { status: 400 });
         const orders = await materialOrderPipeline.getOrdersByDriver(driverId);
-        return NextResponse.json(orders);
+        return NextResponse.json(filterCostByRole(orders, auth.user.role));
       }
 
       case 'atStage': {
         const stage = searchParams.get('stage') as PipelineStage;
         if (!stage) return NextResponse.json({ error: 'stage required' }, { status: 400 });
         const orders = await materialOrderPipeline.getOrdersAtStage(stage);
-        return NextResponse.json(orders);
+        return NextResponse.json(filterCostByRole(orders, auth.user.role));
       }
 
       case 'stats': {
         const stats = await materialOrderPipeline.getOrderStats();
-        return NextResponse.json(stats);
+        return NextResponse.json(filterCostByRole(stats, auth.user.role));
       }
 
       case 'pullSheet': {
@@ -140,7 +136,7 @@ export async function GET(request: NextRequest) {
         if (!orderId) return NextResponse.json({ error: 'orderId required' }, { status: 400 });
         const pullSheet = await materialOrderPipeline.generatePullSheet(orderId);
         if (!pullSheet) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
-        return NextResponse.json(pullSheet);
+        return NextResponse.json(filterCostByRole(pullSheet, auth.user.role));
       }
 
       case 'stages': {
@@ -157,7 +153,7 @@ export async function GET(request: NextRequest) {
           // Filter internal invoices for non-admin/office
           const role = auth.user.role;
           if (role !== 'admin' && role !== 'owner' && role !== 'office') {
-            return NextResponse.json(invoices.filter(i => i.type === 'customer'));
+            return NextResponse.json(filterCostByRole(invoices.filter(i => i.type === 'customer'), role));
           }
           return NextResponse.json(invoices);
         }
@@ -166,7 +162,7 @@ export async function GET(request: NextRequest) {
         // Filter internal invoices for non-admin/office
         const role = auth.user.role;
         if (role !== 'admin' && role !== 'owner' && role !== 'office') {
-          return NextResponse.json(invoices.filter(i => i.type === 'customer'));
+          return NextResponse.json(filterCostByRole(invoices.filter(i => i.type === 'customer'), role));
         }
         return NextResponse.json(invoices);
       }
@@ -183,7 +179,7 @@ export async function GET(request: NextRequest) {
           return NextResponse.json({ error: 'Access denied' }, { status: 403 });
         }
 
-        return NextResponse.json(invoice);
+        return NextResponse.json(filterCostByRole(invoice, role));
       }
 
       default:
@@ -576,6 +572,37 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        // ── Cumulative cap against the job breakdown ─────────────────
+        // Business rule (Michael): returns cannot exceed the original
+        // ticket for that job. Per-item qty was already checked against
+        // the source order above, but a user could still split an
+        // over-return across multiple return tickets. This second gate
+        // checks the cumulative credit against the breakdown, which
+        // includes all prior returns.
+        try {
+          const { validateReturnAgainstBreakdown } = await import('@/lib/customer-breakdown-service');
+          const validation = await validateReturnAgainstBreakdown({
+            jobNumber: sourceOrder.jobNumber || sourceOrder.jobId,
+            jobId: sourceOrder.jobId,
+            items: returnItems,
+          });
+          if (!validation.ok && validation.reason && !validation.reason.includes('No breakdown found')) {
+            // Only block if a breakdown exists AND the return is too large.
+            // If no breakdown exists, fall through (that's a data gap, not
+            // a cap violation — logged but non-blocking).
+            return NextResponse.json(
+              {
+                error: validation.reason,
+                remainingOnBreakdown: validation.remaining,
+                proposedReturn: validation.proposed,
+              },
+              { status: 400 }
+            );
+          }
+        } catch (err) {
+          console.warn('[returns] Breakdown cap check failed (non-fatal):', err);
+        }
+
         // Create the return ticket via unified inventory service
         const ticket = await unifiedInventoryService.createReturnTicket({
           type: returnType as 'return_to_warehouse' | 'return_to_distributor',
@@ -664,9 +691,130 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, invoice });
       }
 
+      // ============================================
+      // 7. EMAIL INVOICE TO CUSTOMER
+      // ============================================
+      // Sends a customer-facing invoice (FINAL PRICE ONLY) to the email
+      // address on the source pipeline order. Refuses to send internal
+      // invoices since they expose cost data. Marks the invoice as 'sent'
+      // on success and stamps sentAt.
+      case 'emailInvoice': {
+        if (!INVOICE_ROLES.includes(userRole)) {
+          return NextResponse.json(
+            { error: 'Access denied. Only Office, Admin, or Owner can email invoices.' },
+            { status: 403 }
+          );
+        }
+        if (!body.invoiceId) {
+          return NextResponse.json({ error: 'invoiceId is required' }, { status: 400 });
+        }
+
+        const invoice = await materialOrderPipeline.getInvoice(body.invoiceId);
+        if (!invoice) {
+          return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
+        }
+        if (invoice.type === 'internal') {
+          return NextResponse.json(
+            { error: 'Cannot email internal invoices — they contain cost data' },
+            { status: 400 }
+          );
+        }
+
+        const order = await materialOrderPipeline.getOrderById(invoice.orderId);
+        const recipient = invoice.customerEmail || order?.customerEmail;
+        if (!recipient) {
+          return NextResponse.json(
+            { error: 'No customer email on file. Add one to the order first.' },
+            { status: 400 }
+          );
+        }
+
+        const { emailService } = await import('@/lib/email-service');
+        if (!emailService.isConfigured()) {
+          return NextResponse.json(
+            { error: 'Email service not configured (RESEND_API_KEY missing)' },
+            { status: 503 }
+          );
+        }
+
+        const subject = `Invoice ${invoice.invoiceId} from River City Roofing Solutions`;
+        const formatCurrency = (n: number) =>
+          new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
+        const itemRows = invoice.items
+          .map(
+            (i) => `
+              <tr>
+                <td style="padding:8px;border-bottom:1px solid #eee;">${i.productName}</td>
+                <td style="padding:8px;text-align:right;border-bottom:1px solid #eee;">${i.quantity} ${i.unit}</td>
+                <td style="padding:8px;text-align:right;border-bottom:1px solid #eee;">${formatCurrency(i.unitPrice)}</td>
+                <td style="padding:8px;text-align:right;border-bottom:1px solid #eee;font-weight:bold;">${formatCurrency(i.totalPrice)}</td>
+              </tr>`
+          )
+          .join('');
+
+        const body_html = `
+          <div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;background:#fff;">
+            <div style="background:#000;padding:24px;text-align:center;">
+              <h2 style="color:#39FF14;margin:0;font-size:20px;">River City Roofing Solutions</h2>
+              <p style="color:#aaa;margin:6px 0 0;font-size:12px;">Invoice ${invoice.invoiceId}</p>
+            </div>
+            <div style="padding:24px;">
+              <p>Hi ${invoice.customerName},</p>
+              <p>Thanks for choosing RCRS. Your invoice for <strong>${invoice.jobName}</strong> is below.</p>
+              <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:13px;">
+                <thead>
+                  <tr style="background:#f5f5f5;">
+                    <th style="padding:8px;text-align:left;border-bottom:2px solid #000;">Item</th>
+                    <th style="padding:8px;text-align:right;border-bottom:2px solid #000;">Qty</th>
+                    <th style="padding:8px;text-align:right;border-bottom:2px solid #000;">Price</th>
+                    <th style="padding:8px;text-align:right;border-bottom:2px solid #000;">Total</th>
+                  </tr>
+                </thead>
+                <tbody>${itemRows}</tbody>
+                <tfoot>
+                  <tr>
+                    <td colspan="3" style="padding:12px 8px;text-align:right;font-weight:bold;border-top:2px solid #000;">TOTAL</td>
+                    <td style="padding:12px 8px;text-align:right;font-weight:bold;border-top:2px solid #000;font-size:18px;color:#39FF14;">
+                      ${formatCurrency(invoice.total)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+              <p style="font-size:12px;color:#666;">Payment Terms: Net 30. Pay by check, credit card, or Bitcoin via the customer portal.</p>
+              <p style="font-size:12px;color:#666;">Questions? Call (256) 274-8530 or email rcrs@rivercityroofingsolutions.com</p>
+              <p style="text-align:center;color:#999;font-size:11px;margin-top:24px;">Thank you for your business.</p>
+            </div>
+          </div>
+        `;
+
+        const sendResult = await emailService.send({
+          to: recipient,
+          subject,
+          body: body_html,
+          fromName: 'River City Roofing Solutions',
+        });
+
+        if (!sendResult.success) {
+          return NextResponse.json(
+            { error: sendResult.error || 'Email send failed' },
+            { status: 500 }
+          );
+        }
+
+        // Mark the invoice as sent — also stamps sentAt
+        await materialOrderPipeline.updateInvoiceStatus(invoice.invoiceId, 'sent');
+
+        return NextResponse.json({
+          success: true,
+          message: `Invoice sent to ${recipient}`,
+          invoiceId: invoice.invoiceId,
+          sentTo: recipient,
+        });
+      }
+
       default:
         return NextResponse.json(
-          { error: `Invalid action: '${action}'. Valid actions: createOrder, transitionStage, advanceStage, cancelOrder, createReturnTicket, updateInvoiceStatus` },
+          { error: `Invalid action: '${action}'. Valid actions: createOrder, transitionStage, advanceStage, cancelOrder, createReturnTicket, updateInvoiceStatus, emailInvoice` },
           { status: 400 }
         );
     }

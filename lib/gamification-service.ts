@@ -2,7 +2,22 @@
  * Gamification Service - Sales Leaderboard, Achievements, Contests & Daily Challenges
  *
  * Provides a competitive, engaging gamification layer on top of commission data.
- * Data source: data/commissions.json + data/gamification.json
+ *
+ * Persistence: as of the 2026-04-09 migration, all gamification state lives on
+ * the `Gamification` tab of the master Google Sheet. Each row represents one
+ * record (achievement, contest, daily challenge, previous-rank snapshot, or
+ * cached response-time stat) with type-specific data in the `payload` column.
+ * The in-memory cache is hydrated from the sheet on first access and flushed
+ * back via replaceAllGenericRows after every mutation.
+ *
+ * The local data/gamification.json file is now a deprecated dev seed — it's
+ * still used as a one-time fallback if the sheet is empty or unreachable, but
+ * production reads/writes go through Sheets exclusively.
+ *
+ * Commission data comes from googleSheetsService.getCommissions() (Commissions
+ * tab) so the leaderboard always reflects the same numbers as the rest of the
+ * portal. The local data/commissions.json import is kept as a fallback for
+ * dev/offline use.
  */
 
 import fs from 'fs';
@@ -10,7 +25,26 @@ import path from 'path';
 import crypto from 'crypto';
 import { getSalesReps, TEAM_MEMBERS } from './team-roles';
 import { jnResponseMiner, RepResponseStats } from './jn-response-miner';
-import { googleSheetsService } from './google-sheets-service';
+import { googleSheetsService, SHEET_NAMES } from './google-sheets-service';
+
+// Single Gamification tab schema. Each row is one record; `recordType` tags
+// which kind of entity the row represents and `payload` carries the rest of
+// the type-specific fields as JSON.
+const GAMIFICATION_HEADERS = [
+  'id',
+  'recordType',
+  'repSlug',
+  'payload',
+  'createdAt',
+  'updatedAt',
+];
+
+type GamificationRecordType =
+  | 'achievement'
+  | 'contest'
+  | 'challenge'
+  | 'previousRank'
+  | 'responseStat';
 
 // =============================================================================
 // Types
@@ -52,6 +86,26 @@ export interface LeaderboardEntry {
   trend: 'up' | 'down' | 'steady';
   previousRank: number;
 }
+
+/**
+ * Period filter for the gamification leaderboard. The base periods (daily,
+ * weekly, monthly, quarterly, all_time) match the rolling-window concept.
+ * The "last*" variants are completed-period lookbacks. "custom" requires
+ * caller to pass startDate / endDate.
+ */
+export type LeaderboardPeriod =
+  | 'daily'
+  | 'weekly'
+  | 'monthly'
+  | 'quarterly'
+  | 'yearly'
+  | 'all_time'
+  | 'lastWeek'
+  | 'lastMonth'
+  | 'last7Days'
+  | 'last30Days'
+  | 'last90Days'
+  | 'custom';
 
 export interface Contest {
   id: string;
@@ -381,6 +435,8 @@ class GamificationService {
   private commissionsPath: string;
   private cache: GamificationData | null = null;
   private commissionsCache: CommissionRecord[] | null = null;
+  private hydratePromise: Promise<void> | null = null;
+  private commissionsHydratePromise: Promise<CommissionRecord[]> | null = null;
 
   constructor() {
     this.dataPath = path.join(process.cwd(), 'data', 'gamification.json');
@@ -388,44 +444,242 @@ class GamificationService {
   }
 
   // ---------------------------------------------------------------------------
-  // Data I/O
+  // Data I/O — sheet-backed with local JSON fallback
   // ---------------------------------------------------------------------------
 
+  /**
+   * Hydrate the in-memory cache from the Gamification tab on the master sheet.
+   * Idempotent and concurrency-safe: simultaneous callers share one promise.
+   * Falls back to data/gamification.json if the sheet is empty or unreachable
+   * so dev environments without Sheets credentials still work.
+   */
+  private async hydrate(): Promise<void> {
+    if (this.cache) return;
+    if (this.hydratePromise) return this.hydratePromise;
+
+    this.hydratePromise = (async () => {
+      try {
+        const rows = await googleSheetsService.getGenericRows(
+          SHEET_NAMES.GAMIFICATION,
+          GAMIFICATION_HEADERS,
+        );
+        if (rows.length > 0) {
+          this.cache = this.rowsToData(rows);
+          return;
+        }
+      } catch (err) {
+        console.warn('[Gamification] Sheet hydration failed, falling back to JSON:', err);
+      }
+      // Fallback path: local JSON seed (dev offline, or first-ever run)
+      try {
+        const raw = fs.readFileSync(this.dataPath, 'utf-8');
+        this.cache = JSON.parse(raw);
+      } catch {
+        this.cache = {
+          repAchievements: [],
+          contests: [],
+          dailyChallenges: [],
+          previousRanks: {},
+          responseTimeCache: [],
+          lastUpdated: '',
+        };
+      }
+    })();
+    return this.hydratePromise;
+  }
+
+  /**
+   * Synchronous accessor — assumes hydrate() has already been awaited by the
+   * caller. Callers from inside private helpers can use this safely; public
+   * API methods must await hydrate() first.
+   */
   private loadData(): GamificationData {
     if (this.cache) return this.cache;
+    // Last-resort empty cache to keep type safety; callers should hydrate first.
+    this.cache = {
+      repAchievements: [],
+      contests: [],
+      dailyChallenges: [],
+      previousRanks: {},
+      responseTimeCache: [],
+      lastUpdated: '',
+    };
+    return this.cache;
+  }
+
+  /**
+   * Persist the entire GamificationData blob back to the sheet. Uses
+   * replaceAllGenericRows because this service is the sole writer of the
+   * Gamification tab — no humans or other services should be poking it.
+   *
+   * Updates the in-memory cache eagerly so subsequent reads see the new state
+   * even if the network round-trip is slow.
+   */
+  private async saveData(data: GamificationData): Promise<void> {
+    data.lastUpdated = new Date().toISOString();
+    this.cache = data;
     try {
-      const raw = fs.readFileSync(this.dataPath, 'utf-8');
-      this.cache = JSON.parse(raw);
-      return this.cache!;
-    } catch {
-      const empty: GamificationData = {
-        repAchievements: [],
-        contests: [],
-        dailyChallenges: [],
-        previousRanks: {},
-        responseTimeCache: [],
-        lastUpdated: '',
-      };
-      this.cache = empty;
-      return empty;
+      const rows = this.dataToRows(data);
+      await googleSheetsService.replaceAllGenericRows(
+        SHEET_NAMES.GAMIFICATION,
+        GAMIFICATION_HEADERS,
+        rows,
+      );
+    } catch (err) {
+      console.error('[Gamification] Failed to flush state to sheet:', err);
+      // Don't throw — leaving the in-memory cache updated lets the request
+      // succeed; the next successful flush will catch it up. If sheets is
+      // permanently down, the safety-net cron still backs up the JSON.
     }
   }
 
-  private saveData(data: GamificationData): void {
-    data.lastUpdated = new Date().toISOString();
-    fs.writeFileSync(this.dataPath, JSON.stringify(data, null, 2), 'utf-8');
-    this.cache = data;
+  /**
+   * Translate the flat row format from the sheet back into the structured
+   * GamificationData blob the rest of the service operates on.
+   */
+  private rowsToData(rows: Record<string, string>[]): GamificationData {
+    const data: GamificationData = {
+      repAchievements: [],
+      contests: [],
+      dailyChallenges: [],
+      previousRanks: {},
+      responseTimeCache: [],
+      lastUpdated: '',
+    };
+    for (const row of rows) {
+      const recordType = row.recordType as GamificationRecordType;
+      let payload: Record<string, unknown>;
+      try {
+        payload = row.payload ? JSON.parse(row.payload) : {};
+      } catch {
+        continue; // Skip malformed rows rather than crashing the whole load.
+      }
+      switch (recordType) {
+        case 'achievement':
+          data.repAchievements.push(payload as unknown as RepAchievement);
+          break;
+        case 'contest':
+          data.contests.push(payload as unknown as Contest);
+          break;
+        case 'challenge':
+          data.dailyChallenges.push(payload as unknown as DailyChallenge);
+          break;
+        case 'previousRank': {
+          const slug = String(payload.repSlug ?? row.repSlug ?? '');
+          const rank = Number(payload.rank ?? 0);
+          if (slug) data.previousRanks[slug] = rank;
+          break;
+        }
+        case 'responseStat':
+          data.responseTimeCache.push(payload as unknown as RepResponseStats);
+          break;
+      }
+      if (row.updatedAt && row.updatedAt > data.lastUpdated) {
+        data.lastUpdated = row.updatedAt;
+      }
+    }
+    return data;
+  }
+
+  /**
+   * Translate the structured GamificationData blob into the flat row format
+   * the sheet stores. Each entity becomes one row.
+   */
+  private dataToRows(data: GamificationData): Record<string, unknown>[] {
+    const now = new Date().toISOString();
+    const rows: Record<string, unknown>[] = [];
+
+    for (const a of data.repAchievements) {
+      rows.push({
+        id: a.id,
+        recordType: 'achievement',
+        repSlug: a.repSlug,
+        payload: JSON.stringify(a),
+        createdAt: a.awardedAt || now,
+        updatedAt: now,
+      });
+    }
+    for (const c of data.contests) {
+      rows.push({
+        id: c.id,
+        recordType: 'contest',
+        repSlug: '',
+        payload: JSON.stringify(c),
+        createdAt: c.createdAt || now,
+        updatedAt: now,
+      });
+    }
+    for (const ch of data.dailyChallenges) {
+      rows.push({
+        id: ch.id,
+        recordType: 'challenge',
+        repSlug: '',
+        payload: JSON.stringify(ch),
+        createdAt: ch.date || now,
+        updatedAt: now,
+      });
+    }
+    for (const [slug, rank] of Object.entries(data.previousRanks)) {
+      rows.push({
+        id: `rank-${slug}`,
+        recordType: 'previousRank',
+        repSlug: slug,
+        payload: JSON.stringify({ repSlug: slug, rank }),
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+    for (const stat of data.responseTimeCache) {
+      rows.push({
+        id: `stat-${stat.repSlug}`,
+        recordType: 'responseStat',
+        repSlug: stat.repSlug,
+        payload: JSON.stringify(stat),
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+    return rows;
+  }
+
+  /**
+   * Hydrate commissions from the Commissions tab on the master sheet (with
+   * local JSON fallback). Returns the cached array on subsequent calls.
+   */
+  private async loadCommissionsAsync(): Promise<CommissionRecord[]> {
+    if (this.commissionsCache) return this.commissionsCache;
+    if (this.commissionsHydratePromise) return this.commissionsHydratePromise;
+
+    this.commissionsHydratePromise = (async () => {
+      try {
+        const sheetEntries = await googleSheetsService.getCommissions();
+        if (sheetEntries.length > 0) {
+          this.commissionsCache = sheetEntries.map((e) => ({
+            salesRep: e.salesRep,
+            date: e.date,
+            amount: e.amount,
+            balance: e.balance,
+            jobNumber: e.jobId,
+            customer: e.jobName,
+          }));
+          return this.commissionsCache;
+        }
+      } catch (err) {
+        console.warn('[Gamification] Commissions sheet read failed, falling back to JSON:', err);
+      }
+      try {
+        const raw = fs.readFileSync(this.commissionsPath, 'utf-8');
+        this.commissionsCache = JSON.parse(raw);
+      } catch {
+        this.commissionsCache = [];
+      }
+      return this.commissionsCache!;
+    })();
+    return this.commissionsHydratePromise;
   }
 
   private loadCommissions(): CommissionRecord[] {
-    if (this.commissionsCache) return this.commissionsCache;
-    try {
-      const raw = fs.readFileSync(this.commissionsPath, 'utf-8');
-      this.commissionsCache = JSON.parse(raw);
-      return this.commissionsCache!;
-    } catch {
-      return [];
-    }
+    return this.commissionsCache || [];
   }
 
   private getRepCommissions(repSlug: string): CommissionRecord[] {
@@ -516,18 +770,22 @@ class GamificationService {
 
   private filterByPeriod(
     entries: CommissionRecord[],
-    period: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'all_time'
+    period: LeaderboardPeriod,
+    customStart?: string,
+    customEnd?: string,
   ): CommissionRecord[] {
     if (period === 'all_time') return entries;
 
     const now = new Date();
-    let startDate: Date;
+    let startDate: Date | null = null;
+    let endDate: Date | null = null;
 
     switch (period) {
       case 'daily':
         startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         break;
       case 'weekly': {
+        // Current week starting Sunday
         const dayOfWeek = now.getDay();
         startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek);
         break;
@@ -540,13 +798,56 @@ class GamificationService {
         startDate = new Date(now.getFullYear(), quarter * 3, 1);
         break;
       }
+      case 'yearly':
+        startDate = new Date(now.getFullYear(), 0, 1);
+        break;
+      case 'lastWeek': {
+        // Previous week, Sunday-Saturday
+        const dayOfWeek = now.getDay();
+        const thisSunday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek);
+        startDate = new Date(thisSunday);
+        startDate.setDate(thisSunday.getDate() - 7);
+        endDate = new Date(thisSunday);
+        endDate.setDate(thisSunday.getDate() - 1);
+        endDate.setHours(23, 59, 59, 999);
+        break;
+      }
+      case 'lastMonth': {
+        startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+        break;
+      }
+      case 'last7Days': {
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+        break;
+      }
+      case 'last30Days': {
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29);
+        break;
+      }
+      case 'last90Days': {
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 89);
+        break;
+      }
+      case 'custom': {
+        if (!customStart || !customEnd) return entries;
+        const s = new Date(customStart + 'T00:00:00');
+        const e = new Date(customEnd + 'T23:59:59');
+        if (isNaN(s.getTime()) || isNaN(e.getTime()) || s > e) return entries;
+        startDate = s;
+        endDate = e;
+        break;
+      }
       default:
         return entries;
     }
 
     return entries.filter(e => {
       const d = this.parseDate(e.date);
-      return d && d >= startDate;
+      if (!d) return false;
+      if (startDate && d < startDate) return false;
+      if (endDate && d > endDate) return false;
+      return true;
     });
   }
 
@@ -562,9 +863,10 @@ class GamificationService {
   async refreshResponseTimeCache(): Promise<RepResponseStats[]> {
     try {
       const stats = await jnResponseMiner.getStoredResponseTimes();
+      await this.hydrate();
       const data = this.loadData();
       data.responseTimeCache = stats;
-      this.saveData(data);
+      await this.saveData(data);
       return stats;
     } catch (err) {
       console.error('[Gamification] Failed to refresh response time cache:', err);
@@ -572,7 +874,30 @@ class GamificationService {
     }
   }
 
-  getLeaderboard(period: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'all_time' = 'all_time'): LeaderboardEntry[] {
+  async getLeaderboard(
+    period: LeaderboardPeriod = 'all_time',
+    customStart?: string,
+    customEnd?: string,
+  ): Promise<LeaderboardEntry[]> {
+    await this.hydrate();
+    await this.loadCommissionsAsync();
+    const entries = this.getLeaderboardFromCache(period, customStart, customEnd);
+    // Persist the previousRanks side-effect that getLeaderboardFromCache
+    // applied to the in-memory cache.
+    await this.saveData(this.loadData());
+    return entries;
+  }
+
+  /**
+   * Synchronous variant of getLeaderboard that operates on the already-loaded
+   * cache. Used internally by award-checking logic where we can't await mid-
+   * switch. Public callers should use the async getLeaderboard().
+   */
+  private getLeaderboardFromCache(
+    period: LeaderboardPeriod = 'all_time',
+    customStart?: string,
+    customEnd?: string,
+  ): LeaderboardEntry[] {
     const commissions = this.loadCommissions();
     const data = this.loadData();
     const salesReps = getSalesReps();
@@ -593,7 +918,7 @@ class GamificationService {
 
     for (const slug of eligibleSlugs) {
       const repCommissions = this.getRepCommissions(slug);
-      const filtered = this.filterByPeriod(repCommissions, period);
+      const filtered = this.filterByPeriod(repCommissions, period, customStart, customEnd);
 
       const paidEntries = filtered.filter(e => e.amount > 0);
       const totalRevenue = filtered.reduce((sum, e) => sum + e.amount, 0);
@@ -691,18 +1016,19 @@ class GamificationService {
       }
     });
 
-    // Persist current ranks as previousRanks for next comparison
+    // Update previousRanks in the in-memory cache. Persistence to the sheet
+    // happens in the public async wrapper getLeaderboard() so we don't have to
+    // await here (this method is synchronous).
     const newPreviousRanks: Record<string, number> = {};
     for (const entry of entries) {
       newPreviousRanks[entry.repSlug] = entry.rank;
     }
     data.previousRanks = newPreviousRanks;
-    this.saveData(data);
 
     return entries;
   }
 
-  getRepProfile(repSlug: string): {
+  async getRepProfile(repSlug: string): Promise<{
     rep: { slug: string; name: string };
     points: number;
     rank: number;
@@ -714,12 +1040,13 @@ class GamificationService {
       responseTime: number;
       closeRate: number;
     };
-  } | null {
-    const leaderboard = this.getLeaderboard('all_time');
+  } | null> {
+    const leaderboard = await this.getLeaderboard('all_time');
     const entry = leaderboard.find(e => e.repSlug === repSlug);
 
     if (!entry) return null;
 
+    await this.hydrate();
     const data = this.loadData();
     const achievements = data.repAchievements.filter(a => a.repSlug === repSlug);
 
@@ -738,7 +1065,9 @@ class GamificationService {
     };
   }
 
-  checkAndAwardAchievements(repSlug: string): RepAchievement[] {
+  async checkAndAwardAchievements(repSlug: string): Promise<RepAchievement[]> {
+    await this.hydrate();
+    await this.loadCommissionsAsync();
     const data = this.loadData();
     const commissions = this.getRepCommissions(repSlug);
     const newAchievements: RepAchievement[] = [];
@@ -800,8 +1129,12 @@ class GamificationService {
           earned = totalSales >= 30;
           break;
         case 'top_closer': {
-          // Check if this rep had the most sales in any recent month
-          const leaderboard = this.getLeaderboard('monthly');
+          // Check if this rep had the most sales in any recent month.
+          // We can't await here in the middle of a switch in TS without pulling
+          // the whole loop into a separate awaited section, so look at the
+          // already-cached leaderboard via getLeaderboardSync (uses current
+          // cache state).
+          const leaderboard = this.getLeaderboardFromCache('monthly');
           earned = leaderboard.length > 0 && leaderboard[0].repSlug === repSlug;
           break;
         }
@@ -815,7 +1148,7 @@ class GamificationService {
           earned = streak >= 14;
           break;
         case 'team_player': {
-          const qLeaderboard = this.getLeaderboard('quarterly');
+          const qLeaderboard = this.getLeaderboardFromCache('quarterly');
           earned = qLeaderboard.length > 0 && qLeaderboard[0].repSlug === repSlug;
           break;
         }
@@ -826,7 +1159,7 @@ class GamificationService {
           earned = totalRevenue >= 100000;
           break;
         case 'top_annual': {
-          const yearLeaderboard = this.getLeaderboard('all_time');
+          const yearLeaderboard = this.getLeaderboardFromCache('all_time');
           earned = yearLeaderboard.length > 0 && yearLeaderboard[0].repSlug === repSlug;
           break;
         }
@@ -851,7 +1184,7 @@ class GamificationService {
     }
 
     if (newAchievements.length > 0) {
-      this.saveData(data);
+      await this.saveData(data);
     }
 
     return newAchievements;
@@ -861,12 +1194,13 @@ class GamificationService {
     return [...ACHIEVEMENTS];
   }
 
-  getRepAchievements(repSlug: string): RepAchievement[] {
+  async getRepAchievements(repSlug: string): Promise<RepAchievement[]> {
+    await this.hydrate();
     const data = this.loadData();
     return data.repAchievements.filter(a => a.repSlug === repSlug);
   }
 
-  createContest(contestData: {
+  async createContest(contestData: {
     name: string;
     description: string;
     type: 'individual' | 'team';
@@ -875,7 +1209,8 @@ class GamificationService {
     endDate: string;
     prize: string;
     createdBy: string;
-  }): Contest {
+  }): Promise<Contest> {
+    await this.hydrate();
     const data = this.loadData();
 
     const now = new Date();
@@ -909,12 +1244,13 @@ class GamificationService {
     };
 
     data.contests.push(contest);
-    this.saveData(data);
+    await this.saveData(data);
 
     return contest;
   }
 
-  getActiveContests(): Contest[] {
+  async getActiveContests(): Promise<Contest[]> {
+    await this.hydrate();
     const data = this.loadData();
     const now = new Date();
 
@@ -935,13 +1271,14 @@ class GamificationService {
     }
 
     if (changed) {
-      this.saveData(data);
+      await this.saveData(data);
     }
 
     return data.contests.filter(c => c.status === 'active' || c.status === 'upcoming');
   }
 
-  getContests(status?: 'upcoming' | 'active' | 'completed'): Contest[] {
+  async getContests(status?: 'upcoming' | 'active' | 'completed'): Promise<Contest[]> {
+    await this.hydrate();
     const data = this.loadData();
     if (status) {
       return data.contests.filter(c => c.status === status);
@@ -950,6 +1287,8 @@ class GamificationService {
   }
 
   async updateContestScores(): Promise<void> {
+    await this.hydrate();
+    await this.loadCommissionsAsync();
     const data = this.loadData();
     const now = new Date();
 
@@ -1057,10 +1396,11 @@ class GamificationService {
       }
     }
 
-    this.saveData(data);
+    await this.saveData(data);
   }
 
-  getDailyChallenge(): DailyChallenge {
+  async getDailyChallenge(): Promise<DailyChallenge> {
+    await this.hydrate();
     const data = this.loadData();
     const today = new Date().toISOString().split('T')[0];
 
@@ -1095,17 +1435,17 @@ class GamificationService {
       new Date(c.date) >= thirtyDaysAgo
     );
 
-    this.saveData(data);
+    await this.saveData(data);
     return challenge;
   }
 
   // Run achievement checks for all active sales reps
-  checkAllAchievements(): { repSlug: string; newAchievements: RepAchievement[] }[] {
+  async checkAllAchievements(): Promise<{ repSlug: string; newAchievements: RepAchievement[] }[]> {
     const salesReps = getSalesReps();
     const results: { repSlug: string; newAchievements: RepAchievement[] }[] = [];
 
     for (const rep of salesReps) {
-      const newAchievements = this.checkAndAwardAchievements(rep.slug);
+      const newAchievements = await this.checkAndAwardAchievements(rep.slug);
       if (newAchievements.length > 0) {
         results.push({ repSlug: rep.slug, newAchievements });
       }
@@ -1113,7 +1453,7 @@ class GamificationService {
 
     // Also check owners who sell
     for (const ownerSlug of ['michael-muse', 'chris-muse']) {
-      const newAchievements = this.checkAndAwardAchievements(ownerSlug);
+      const newAchievements = await this.checkAndAwardAchievements(ownerSlug);
       if (newAchievements.length > 0) {
         results.push({ repSlug: ownerSlug, newAchievements });
       }

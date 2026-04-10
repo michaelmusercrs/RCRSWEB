@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/lib/auth-context';
 import {
   Clock,
   Play,
@@ -160,8 +161,17 @@ function getWeekRange(): { start: string; end: string } {
 // =============================================================================
 
 export default function TimeTrackingPage() {
-  // Current user (in production, from auth context)
-  const [currentRep] = useState({ slug: 'current-user', name: 'Current User' });
+  // Pull the current user from auth context. Was previously hardcoded
+  // to { slug: 'current-user', name: 'Current User' } which meant every
+  // time entry was attributed to a non-existent user.
+  const { user } = useAuth();
+  const currentRep = useMemo(
+    () => ({
+      slug: user?.userId || 'unknown',
+      name: user?.name || 'Unknown User',
+    }),
+    [user]
+  );
 
   // Active entry
   const [activeEntry, setActiveEntry] = useState<TimeEntry | null>(null);

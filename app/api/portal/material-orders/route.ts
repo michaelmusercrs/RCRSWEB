@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { materialOrderPipeline, type PipelineStage } from '@/lib/material-order-pipeline';
 import { unifiedInventoryService } from '@/lib/unified-inventory-service';
+import { canSeeCost, filterCostByRole } from '@/lib/cost-visibility';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth();
@@ -21,10 +22,16 @@ export async function GET(request: NextRequest) {
     const pending = searchParams.get('pending');
     const limit = searchParams.get('limit');
 
+    // Cost visibility gate — sales reps and customers must never see purchase
+    // cost. Owners/admin/office/manager/driver can. Filter applied at every
+    // exit point below.
+    const userRole = auth.user.role;
+    const showCost = canSeeCost(userRole);
+
     if (orderId) {
       const order = await materialOrderPipeline.getOrderById(orderId);
       if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
-      return NextResponse.json(order);
+      return NextResponse.json(filterCostByRole(order, userRole));
     }
 
     if (pending === 'true') {
@@ -32,7 +39,7 @@ export async function GET(request: NextRequest) {
         stage: 'ORDER_CREATED',
         cancelled: false,
       });
-      return NextResponse.json(orders);
+      return NextResponse.json(filterCostByRole(orders, userRole));
     }
 
     const orders = await materialOrderPipeline.getOrders({
@@ -43,20 +50,26 @@ export async function GET(request: NextRequest) {
     const inventory = await unifiedInventoryService.getInventory();
     const stats = await materialOrderPipeline.getOrderStats();
 
-    return NextResponse.json({
-      orders,
-      total: orders.length,
-      products: inventory.map(i => ({
+    // Build the products list with `cost` ONLY when the role is allowed.
+    // Sales reps see price, currentQty, availableQty — never the supplier cost.
+    const products = inventory.map(i => {
+      const base = {
         productId: i.productId,
         productName: i.productName,
         category: i.category,
         sku: i.sku,
         unit: i.unit,
-        cost: i.unitCost,
         price: i.unitPrice,
         currentQty: i.currentQty,
         availableQty: i.availableQty,
-      })),
+      };
+      return showCost ? { ...base, cost: i.unitCost } : base;
+    });
+
+    return NextResponse.json({
+      orders: filterCostByRole(orders, userRole),
+      total: orders.length,
+      products,
       stats: {
         pending: stats.byStage.ORDER_CREATED || 0,
         total: stats.total,

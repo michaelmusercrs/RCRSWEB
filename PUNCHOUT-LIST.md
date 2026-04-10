@@ -59,9 +59,9 @@
 - [x] Fix portal login - require PIN validation (was email-only auto-login)
 - [x] Remove team member enumeration from portal login quick links
 - [B] Implement admin auth bypass for testing phase
-- [ ] Fix horizontal privilege escalation in customer token routes
+- [x] Fix horizontal privilege escalation in customer token routes (validateTokenOwnership in /api/customer/[token]; POST rejects body customerId)
 - [ ] Add webhook signature validation for JobNimbus
-- [ ] Fix customer auth rate limit bypass (method switching)
+- [x] Fix customer auth rate limit bypass (method switching) (shared authRateLimiter on POST and GET in /api/customer/auth)
 
 ### Portal/Admin Features
 - [x] Fix admin settings save - now persists to JSON file via API

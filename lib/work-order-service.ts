@@ -9,6 +9,8 @@
 
 import { jobNimbusService, isJobNimbusConfigured } from '@/lib/jobnimbus-service';
 import type { JobNimbusJob, JobNimbusContact, JobNimbusEstimate } from '@/lib/jobnimbus-service';
+import { emailService } from '@/lib/email-service';
+import { TEAM_MEMBERS } from '@/lib/team-roles';
 
 // ============================================
 // TYPES
@@ -52,6 +54,13 @@ export interface WorkOrderStatusChange {
 export interface WorkOrder {
   workOrderId: string;
   jobId: string;
+  /**
+   * Canonical JobNimbus job number (e.g. "R-11071"). Optional on read so
+   * legacy work orders created before this field existed still deserialize
+   * cleanly, but new work orders created via the portal should always
+   * populate it.
+   */
+  jobNumber?: string;
   customerName: string;
   customerPhone: string;
   customerEmail: string;
@@ -64,7 +73,29 @@ export interface WorkOrder {
   notes: string;
   specialInstructions: string;
   assignedDriver: string;
+  /**
+   * Real email of the assigned driver (denormalized from TEAM_MEMBERS at
+   * create time). Used by the dispatch notification emailer — we never
+   * guess emails from first names.
+   */
+  assignedDriverEmail?: string;
   vehicleType: string;
+  /**
+   * Which supplier the materials come from. Lets multi-vendor jobs be
+   * routed correctly (SRS vs Gulf Eagle vs Home Depot, etc.). Free-form
+   * so the UI can accept "Other" with a typed-in vendor name.
+   */
+  supplierName?: string;
+  /**
+   * Where the materials come from:
+   *   - 'stock' = pulled from our warehouse catalog, inventory decrements on delivery
+   *   - 'other_vendor' = purchased from an outside supplier (SRS, ABC, Beacon, GAF
+   *     Direct, etc.) specifically for this job. Does NOT touch our inventory.
+   *     Requires supplierName. These are treated as pass-through — the customer
+   *     pays for them via the job invoice, but they never enter our stock.
+   * Defaults to 'stock' on existing/legacy rows for backwards compatibility.
+   */
+  orderSource?: 'stock' | 'other_vendor';
   status: WorkOrderStatus;
   createdAt: string;
   updatedAt: string;
@@ -109,6 +140,7 @@ export interface ParseUploadResult {
 
 export interface CreateWorkOrderData {
   jobId?: string;
+  jobNumber?: string;          // R-number (canonical JN id)
   customerName: string;
   customerPhone: string;
   customerEmail?: string;
@@ -122,6 +154,13 @@ export interface CreateWorkOrderData {
   specialInstructions?: string;
   assignedDriver?: string;
   vehicleType?: string;
+  supplierName?: string;       // vendor the materials come from
+  /**
+   * 'stock' (default) = our inventory will be decremented on delivery.
+   * 'other_vendor' = purchased from outside vendor for this job, does NOT
+   * touch our inventory. Requires supplierName.
+   */
+  orderSource?: 'stock' | 'other_vendor';
   createdBy: string;
 }
 
@@ -883,15 +922,45 @@ class WorkOrderService {
       return { success: false, errors: validation.errors };
     }
 
+    // Other-vendor orders require a supplier name — we can't track vendor
+    // credits or pickups without knowing who to chase. Stock orders pull
+    // from our warehouse so no supplier is required.
+    const orderSource: 'stock' | 'other_vendor' = data.orderSource === 'other_vendor'
+      ? 'other_vendor'
+      : 'stock';
+    if (orderSource === 'other_vendor' && !data.supplierName?.trim()) {
+      return {
+        success: false,
+        errors: ['Supplier name is required when orderSource is "other_vendor"'],
+      };
+    }
+
     const now = new Date().toISOString();
     const materials: WorkOrderMaterial[] = data.materials.map(m => ({
       ...m,
       id: generateMaterialId(),
     }));
 
+    // Look up the driver's real email from TEAM_MEMBERS (match by
+    // slug → id → name). We never guess addresses from first names.
+    let assignedDriverEmail: string | undefined;
+    if (data.assignedDriver) {
+      const needle = data.assignedDriver.trim().toLowerCase();
+      const driver = TEAM_MEMBERS.find(m =>
+        m.isActive && (
+          m.slug.toLowerCase() === needle ||
+          m.id.toLowerCase() === needle ||
+          m.name.toLowerCase() === needle ||
+          (m.aliases || []).some(a => a.toLowerCase() === needle)
+        )
+      );
+      if (driver) assignedDriverEmail = driver.email;
+    }
+
     const workOrder: WorkOrder = {
       workOrderId: generateWorkOrderId(),
       jobId: data.jobId || `JOB-${Math.floor(4000 + Math.random() * 1000)}`,
+      jobNumber: data.jobNumber || undefined,
       customerName: data.customerName,
       customerPhone: data.customerPhone,
       customerEmail: data.customerEmail || '',
@@ -904,7 +973,10 @@ class WorkOrderService {
       notes: data.notes || '',
       specialInstructions: data.specialInstructions || '',
       assignedDriver: data.assignedDriver || '',
+      assignedDriverEmail,
       vehicleType: data.vehicleType || '',
+      supplierName: data.supplierName || undefined,
+      orderSource,
       status: 'draft',
       createdAt: now,
       updatedAt: now,
@@ -921,7 +993,141 @@ class WorkOrderService {
     };
 
     this.workOrders.unshift(workOrder);
+
+    // Fire-and-forget dispatch notification. Only sends if the work order
+    // has a job number (R-number). Failures are logged but NEVER bubble
+    // up — we don't want an email outage to block work-order creation.
+    if (workOrder.jobNumber) {
+      this.sendDispatchNotification(workOrder).catch(err => {
+        console.error('[work-order-service] Dispatch email failed:', err);
+      });
+    }
+
     return { success: true, workOrder };
+  }
+
+  /**
+   * Send the "New Work Order" dispatch email to the assigned driver
+   * (CC stock@rcrsal.com). If no driver is assigned, falls back to
+   * stock@rcrsal.com alone with an "Unassigned" subject line.
+   *
+   * IMPORTANT: wrapped in try/catch by the caller — any failure here
+   * must not break the work order creation flow.
+   */
+  private async sendDispatchNotification(wo: WorkOrder): Promise<void> {
+    const jobNumber = wo.jobNumber || '(no R-number)';
+    const addressStr = [
+      wo.address.street,
+      wo.address.city,
+      wo.address.state,
+      wo.address.zip,
+    ].filter(Boolean).join(', ');
+
+    const priorityLabel = wo.priority.toUpperCase();
+    const priorityColor =
+      wo.priority === 'urgent' ? '#ef4444' :
+      wo.priority === 'rush' ? '#f97316' :
+      wo.priority === 'normal' ? '#39FF14' : '#a1a1aa';
+
+    // Source badge — green STOCK vs purple VENDOR PICKUP so Rick can spot
+    // at a glance whether to pull from our warehouse or drive to SRS/ABC.
+    const isOtherVendor = wo.orderSource === 'other_vendor';
+    const sourceLabel = isOtherVendor ? 'VENDOR PICKUP' : 'STOCK (OUR WAREHOUSE)';
+    const sourceColor = isOtherVendor ? '#a855f7' : '#39FF14';
+    const sourceBadge = `<div style="display: inline-block; margin-left: 8px; padding: 4px 12px; background: ${sourceColor}; color: #000; font-weight: bold; border-radius: 4px; font-size: 12px; letter-spacing: 0.5px;">${sourceLabel}</div>`;
+
+    const materialsRows = wo.materials.map(m =>
+      `<li style="margin: 4px 0;">${m.quantity} ${m.unit} — ${m.productName}</li>`
+    ).join('');
+
+    const scheduledLine = wo.scheduledDate
+      ? `${wo.scheduledDate}${wo.scheduledTime ? ' @ ' + wo.scheduledTime : ''}`
+      : 'Not scheduled';
+
+    const body = `
+<div style="font-family: -apple-system, 'Segoe UI', Arial, sans-serif; max-width: 640px; margin: 0 auto; background: #09090b; color: #e4e4e7;">
+  <div style="background: #000; padding: 24px; text-align: center; border-bottom: 2px solid #39FF14;">
+    <h1 style="color: #39FF14; margin: 0; font-size: 24px; letter-spacing: 1px;">RCRS DISPATCH</h1>
+    <p style="margin: 6px 0 0; color: #a1a1aa; font-size: 13px;">New Work Order Assigned</p>
+  </div>
+  <div style="padding: 28px 24px; background: #09090b;">
+    <div style="display: inline-block; padding: 4px 12px; background: ${priorityColor}; color: #000; font-weight: bold; border-radius: 4px; font-size: 12px; letter-spacing: 0.5px;">
+      ${priorityLabel} PRIORITY
+    </div>${sourceBadge}
+    <h2 style="color: #39FF14; margin: 18px 0 8px; font-size: 22px;">${jobNumber}</h2>
+    <h3 style="color: #fff; margin: 0 0 20px; font-size: 18px; font-weight: 500;">${wo.customerName}</h3>
+
+    <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+      <tr><td style="padding: 8px 0; color: #71717a; width: 140px; vertical-align: top;">Address</td><td style="padding: 8px 0; color: #fff;">${addressStr || '—'}</td></tr>
+      ${wo.customerPhone ? `<tr><td style="padding: 8px 0; color: #71717a; vertical-align: top;">Phone</td><td style="padding: 8px 0; color: #fff;"><a href="tel:${wo.customerPhone}" style="color: #39FF14; text-decoration: none;">${wo.customerPhone}</a></td></tr>` : ''}
+      <tr><td style="padding: 8px 0; color: #71717a; vertical-align: top;">Scheduled</td><td style="padding: 8px 0; color: #fff;">${scheduledLine}</td></tr>
+      <tr><td style="padding: 8px 0; color: #71717a; vertical-align: top;">Driver</td><td style="padding: 8px 0; color: #fff;">${wo.assignedDriver || '<span style="color: #ef4444;">UNASSIGNED</span>'}</td></tr>
+      ${wo.vehicleType ? `<tr><td style="padding: 8px 0; color: #71717a; vertical-align: top;">Vehicle</td><td style="padding: 8px 0; color: #fff;">${wo.vehicleType}</td></tr>` : ''}
+      ${wo.supplierName ? `<tr><td style="padding: 8px 0; color: #71717a; vertical-align: top;">Supplier</td><td style="padding: 8px 0; color: #fff;">${wo.supplierName}</td></tr>` : ''}
+      <tr><td style="padding: 8px 0; color: #71717a; vertical-align: top;">Work Order</td><td style="padding: 8px 0; color: #fff;">${wo.workOrderId} (${wo.type})</td></tr>
+    </table>
+
+    <div style="margin: 24px 0 8px; padding: 16px; background: #18181b; border-left: 3px solid #39FF14; border-radius: 4px;">
+      <div style="color: #39FF14; font-size: 12px; letter-spacing: 1px; margin-bottom: 8px;">MATERIALS (${wo.materials.length})</div>
+      <ul style="margin: 0; padding-left: 20px; color: #e4e4e7; font-size: 14px;">${materialsRows}</ul>
+    </div>
+
+    ${wo.specialInstructions ? `
+    <div style="margin: 16px 0; padding: 16px; background: #27272a; border-left: 3px solid #f97316; border-radius: 4px;">
+      <div style="color: #f97316; font-size: 12px; letter-spacing: 1px; margin-bottom: 6px;">SPECIAL INSTRUCTIONS</div>
+      <div style="color: #fff; font-size: 14px; white-space: pre-wrap;">${wo.specialInstructions}</div>
+    </div>` : ''}
+
+    ${wo.notes ? `
+    <div style="margin: 16px 0; padding: 16px; background: #18181b; border-left: 3px solid #71717a; border-radius: 4px;">
+      <div style="color: #a1a1aa; font-size: 12px; letter-spacing: 1px; margin-bottom: 6px;">NOTES</div>
+      <div style="color: #e4e4e7; font-size: 14px; white-space: pre-wrap;">${wo.notes}</div>
+    </div>` : ''}
+
+    <div style="text-align: center; margin: 32px 0 8px;">
+      <a href="https://rcrsal.com/portal/delivery/work-orders" style="display: inline-block; background: #39FF14; color: #000; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 15px; letter-spacing: 0.5px;">
+        OPEN IN PORTAL →
+      </a>
+    </div>
+    <div style="text-align: center; margin: 8px 0 0;">
+      <a href="https://maps.google.com/?q=${encodeURIComponent(addressStr)}" style="color: #39FF14; font-size: 13px; text-decoration: none;">Get Directions →</a>
+    </div>
+  </div>
+  <div style="background: #000; padding: 16px; text-align: center; font-size: 11px; color: #52525b; border-top: 1px solid #27272a;">
+    River City Roofing Solutions · (256) 274-8530 · rcrsal.com
+  </div>
+</div>
+`.trim();
+
+    const STOCK_CC = 'stock@rcrsal.com';
+    const isAssigned = !!wo.assignedDriverEmail;
+    // Prefix subjects with [STOCK] or [VENDOR PICKUP] so Rick / stock@
+    // can filter at a glance in their inbox.
+    const subjectPrefix = isOtherVendor ? '[VENDOR PICKUP]' : '[STOCK]';
+    const subject = isAssigned
+      ? `${subjectPrefix} New Work Order: ${jobNumber} - ${wo.customerName}`
+      : `${subjectPrefix} Unassigned Work Order: ${jobNumber}`;
+
+    try {
+      const result = await emailService.send({
+        to: isAssigned ? wo.assignedDriverEmail! : STOCK_CC,
+        cc: isAssigned ? STOCK_CC : undefined,
+        subject,
+        body,
+        fromName: 'RCRS Dispatch',
+      });
+      if (!result.success) {
+        console.error(
+          `[work-order-service] Dispatch email send returned failure for ${wo.workOrderId}:`,
+          result.error
+        );
+      }
+    } catch (err) {
+      console.error(
+        `[work-order-service] Dispatch email threw for ${wo.workOrderId}:`,
+        err
+      );
+    }
   }
 
   // --- Validation ---

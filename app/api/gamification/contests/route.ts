@@ -21,8 +21,8 @@ export async function GET(request: NextRequest) {
     await gamificationService.updateContestScores();
 
     const contests = status
-      ? gamificationService.getContests(status)
-      : gamificationService.getContests();
+      ? await gamificationService.getContests(status)
+      : await gamificationService.getContests();
 
     return NextResponse.json({
       success: true,
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const contest = gamificationService.createContest({
+    const contest = await gamificationService.createContest({
       name: body.name,
       description: body.description,
       type: body.type,

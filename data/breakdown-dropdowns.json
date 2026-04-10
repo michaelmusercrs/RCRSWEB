@@ -1,0 +1,54 @@
+{
+  "_comment": "Seed data for customer breakdown dropdowns. Sourced from 15 historical job breakdown Excel files (R1081-R1394, March 2019). New entries added via the portal will be appended to this file OR the Google Sheets BreakdownDropdowns tab — whichever source is configured in customer-breakdown-service.ts. Amounts above the thresholds in new-entry-thresholds trigger a notification to Sara, Chris, and Michael.",
+  "suppliers": [
+    { "name": "Advanced Building", "category": "roofing_materials", "active": true },
+    { "name": "Gulf Eagle", "category": "roofing_materials", "active": true },
+    { "name": "Gobble Fite", "category": "roofing_materials", "active": true },
+    { "name": "ABC Supply", "category": "roofing_materials", "active": true },
+    { "name": "Beacon Roofing Supply", "category": "roofing_materials", "active": true },
+    { "name": "SRS Distribution", "category": "roofing_materials", "active": true },
+    { "name": "Home Depot", "category": "hardware", "active": true },
+    { "name": "Lowes", "category": "hardware", "active": true },
+    { "name": "Majestic Metals", "category": "metal_specialty", "active": true },
+    { "name": "Walmart", "category": "misc", "active": true },
+    { "name": "Discount Building", "category": "roofing_materials", "active": true },
+    { "name": "Eagle View", "category": "measurement_service", "active": true }
+  ],
+  "subcontractors": [
+    { "name": "Martin Roofing", "trade": "install_crew", "active": true },
+    { "name": "Daniel Howell", "trade": "install_crew", "active": true },
+    { "name": "Paul Spradlin", "trade": "install_crew", "active": false },
+    { "name": "Roy Champion", "trade": "install_crew", "active": false }
+  ],
+  "workersComp": {
+    "enabled": true,
+    "ratePercent": 8.5,
+    "description": "Auto-added to labor total if no Workers Comp line item present. Rate applied to Labor subtotal.",
+    "displayAs": "Workers Comp (auto)"
+  },
+  "overheadTiers": [
+    { "threshold": 0, "rate": 0.15, "label": "15% on first $50,000" },
+    { "threshold": 50000, "rate": 0.10, "label": "10% on amount over $50,000" }
+  ],
+  "profitSplits": {
+    "salesRep": 0.50,
+    "pres": 0.15,
+    "vp": 0.15,
+    "_comment": "Sales Rep = 50% of profit. Pres/VP = 15% each. Remaining 20% stays with company. Pres/VP are admin-tier only (hidden from managers/sales/PMs)."
+  },
+  "newEntryThresholds": {
+    "supplier": 2500,
+    "subcontractor": 1000,
+    "_comment": "If a NEW supplier (not in dropdown) is used for more than $2500 on a single breakdown, email Sara/Chris/Michael. Same for NEW subcontractor over $1000. Protects against unauthorized vendor relationships.",
+    "notifyRecipients": ["michaelmuse@rcrsal.com", "chrismuse@rcrsal.com", "sara@rcrsal.com"]
+  },
+  "permissions": {
+    "canCreate": ["owner", "admin", "manager", "office"],
+    "canViewAdminTier": ["owner", "admin"],
+    "_comment": "canCreate roles can submit breakdowns (Michael, Chris, Sara, Destin, Tia). canViewAdminTier sees the Pres/VP lines (Michael, Chris, Sara only). Sales reps and PMs see only their own job with Sales Rep commission hidden below."
+  },
+  "inspectorInitials": {
+    "_comment": "Legacy initials from 2019 sheets — inspectors should now be selected from current team roster via getTeamMembersByRole",
+    "historical": ["HR", "DS", "MM", "RB", "WC", "SN"]
+  }
+}

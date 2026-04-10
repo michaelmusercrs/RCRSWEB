@@ -3,6 +3,11 @@ import { requireAuth } from '@/lib/auth-service';
 import { weatherService } from '@/lib/weather-service';
 import { teamMembers } from '@/lib/teamData';
 import { getReviewsForMember, generalReviews } from '@/lib/reviewsData';
+import { leadPortalService } from '@/lib/lead-portal-service';
+import { customerPortalService } from '@/lib/customer-portal-service';
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 const JOBNIMBUS_API_KEY = process.env.JOBNIMBUS_API_KEY;
 const JOBNIMBUS_API_URL = process.env.JOBNIMBUS_API_URL || 'https://app.jobnimbus.com/api1';
@@ -417,6 +422,47 @@ export async function GET(request: Request) {
       };
     }
 
+    // Resolve a portal token for this customer so the JWT-logged-in dashboard
+    // can hit the token-based form endpoints (service request, warranty claim,
+    // notification preferences). If no Sheets lead exists yet, create one so
+    // the customer's submissions are persisted under a stable ID.
+    let portalToken = '';
+    try {
+      const existingLead = await leadPortalService.getLeadByCustomerId(customerId);
+      if (existingLead) {
+        portalToken = existingLead.accessToken;
+      } else {
+        const portalAccess = customerPortalService.createPortalAccess({
+          customerName: (contactData.display_name as string) ||
+            `${contactData.first_name || ''} ${contactData.last_name || ''}`.trim() ||
+            'Customer',
+          customerEmail: (contactData.email as string) || '',
+          customerPhone: (contactData.mobile_phone as string) ||
+            (contactData.home_phone as string) ||
+            (contactData.work_phone as string) || '',
+          customerAddress: address,
+          salesRepId: salesRep.slug || '',
+          salesRepName: salesRep.name || '',
+          salesRepSlug: salesRep.slug || '',
+          jobId: jobs[0]?.jnid || '',
+        });
+        // Override the auto-generated CUST id with the JN customerId so
+        // future lookups succeed (we authenticate by jnid).
+        portalAccess.customerId = customerId;
+        const newLead = await leadPortalService.createLead({
+          portalAccess,
+          shortCode: customerPortalService.generateShortCode(),
+          source: 'jobnimbus_login',
+          jobnimbusContactId: customerId,
+          jobnimbusId: jobs[0]?.jnid || undefined,
+        });
+        portalToken = newLead.accessToken;
+      }
+    } catch (tokenErr) {
+      // Non-fatal — forms simply won't be available this session.
+      console.warn('[customer/dashboard] Failed to resolve portal token:', tokenErr);
+    }
+
     return NextResponse.json({
       success: true,
       jobs,
@@ -435,6 +481,7 @@ export async function GET(request: Request) {
       } : null,
       paymentStatus,
       customerImages: [],
+      portalToken,
     });
   } catch (error) {
     console.error('Dashboard data error:', error);

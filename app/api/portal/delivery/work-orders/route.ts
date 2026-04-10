@@ -7,6 +7,22 @@ import {
   WorkOrderType,
   WorkOrderPriority,
 } from '@/lib/work-order-service';
+import { jobNimbusService } from '@/lib/jobnimbus-service';
+
+// Roles allowed to schedule / reassign delivery work orders. Covers:
+// - owner        (Michael, Chris)
+// - admin        (Sara)
+// - manager      (Destin)
+// - project_manager (Bart, John)
+// - office       (Tia)
+// Drivers and sales reps are intentionally excluded.
+const ALLOWED_SCHEDULER_ROLES = [
+  'owner',
+  'admin',
+  'manager',
+  'project_manager',
+  'office',
+];
 
 // ============================================
 // GET - List work orders with filtering
@@ -19,6 +35,107 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
+    const action = searchParams.get('action');
+
+    // R-number lookup — used by the create form to auto-populate customer/
+    // address/rep/phone/email from JobNimbus when the user enters a job
+    // number like "R-11071".
+    if (action === 'lookup') {
+      const jobNumber = (searchParams.get('jobNumber') || '').trim();
+      if (!jobNumber) {
+        return NextResponse.json(
+          { success: false, error: 'jobNumber query param required' },
+          { status: 400 }
+        );
+      }
+
+      // JN is tolerant about formatting but not consistent — try a few
+      // reasonable variants.
+      const candidates = Array.from(new Set([
+        jobNumber,
+        jobNumber.replace(/^R\s*/i, 'R-'),
+        jobNumber.replace(/^R-?/i, ''),
+        jobNumber.replace(/^R\s*/i, 'R'),
+      ])).filter(Boolean);
+
+      let jnJob = null;
+      for (const candidate of candidates) {
+        try {
+          jnJob = await jobNimbusService.getJobByNumber(candidate);
+          if (jnJob) break;
+        } catch {
+          // try next
+        }
+      }
+
+      if (!jnJob) {
+        return NextResponse.json({
+          success: false,
+          error: `No match in JobNimbus for ${jobNumber}`,
+        });
+      }
+
+      // Pull contact record for phone/email (job has address but no phone)
+      let contact: Awaited<ReturnType<typeof jobNimbusService.getContact>> | null = null;
+      const contactJnid = jnJob.primary?.jnid;
+      if (contactJnid) {
+        try {
+          contact = await jobNimbusService.getContact(contactJnid);
+        } catch {
+          contact = null;
+        }
+      }
+
+      // Address: prefer job record, fall back to contact
+      const addrSource = [
+        jnJob.address_line1,
+        jnJob.city,
+        jnJob.state_text,
+        jnJob.zip,
+      ].some(Boolean) ? jnJob : contact;
+
+      const address = addrSource
+        ? [
+            addrSource.address_line1,
+            addrSource.city,
+            addrSource.state_text,
+            addrSource.zip,
+          ].filter(Boolean).join(', ')
+        : '';
+
+      // Phone fallback order: mobile → home → work
+      const phone =
+        contact?.mobile_phone ||
+        contact?.home_phone ||
+        contact?.work_phone ||
+        '';
+
+      // Customer name: prefer job.name (e.g. "Smith - Roof Replacement"),
+      // fall back to contact display name.
+      const customerName =
+        jnJob.name ||
+        contact?.display_name ||
+        [contact?.first_name, contact?.last_name].filter(Boolean).join(' ') ||
+        '';
+
+      return NextResponse.json({
+        success: true,
+        jobNumber: jnJob.number || jobNumber,
+        jnJobId: jnJob.jnid,
+        customerName,
+        address,
+        addressParts: {
+          street: (addrSource?.address_line1 || '').trim(),
+          city: (addrSource?.city || '').trim(),
+          state: (addrSource?.state_text || '').trim(),
+          zip: (addrSource?.zip || '').trim(),
+        },
+        phone,
+        email: contact?.email || '',
+        salesRep: jnJob.sales_rep_name || contact?.sales_rep_name || '',
+        jobName: jnJob.name || '',
+      });
+    }
 
     // Single work order lookup
     if (id) {
@@ -80,6 +197,7 @@ export async function POST(request: NextRequest) {
       case 'create': {
         const result = workOrderService.createWorkOrder({
           jobId: data.jobId,
+          jobNumber: data.jobNumber,
           customerName: data.customerName,
           customerPhone: data.customerPhone,
           customerEmail: data.customerEmail,
@@ -93,6 +211,8 @@ export async function POST(request: NextRequest) {
           specialInstructions: data.specialInstructions,
           assignedDriver: data.assignedDriver,
           vehicleType: data.vehicleType,
+          supplierName: data.supplierName,
+          orderSource: data.orderSource === 'other_vendor' ? 'other_vendor' : 'stock',
           createdBy: data.createdBy || auth.user.name || 'Unknown',
         });
 
@@ -208,6 +328,13 @@ export async function POST(request: NextRequest) {
 
       // --- Schedule work order ---
       case 'schedule': {
+        if (!ALLOWED_SCHEDULER_ROLES.includes(auth.user.role)) {
+          return NextResponse.json(
+            { error: 'Only owners, admins, managers, PMs, and office staff can schedule or reassign work orders' },
+            { status: 403 }
+          );
+        }
+
         if (!data.workOrderId || !data.scheduledDate || !data.scheduledTime) {
           return NextResponse.json(
             { error: 'workOrderId, scheduledDate, and scheduledTime are required' },
@@ -227,12 +354,24 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: result.error }, { status: 400 });
         }
 
-        auditLog('WORK_ORDER_SCHEDULE', auth.user.email, `Scheduled work order ${data.workOrderId} for ${data.scheduledDate} ${data.scheduledTime}${data.driverName ? ', driver: ' + data.driverName : ''}`, request);
+        auditLog(
+          'WORK_ORDER_SCHEDULED',
+          auth.user.email,
+          `Work order ${data.workOrderId} scheduled for ${data.scheduledDate} ${data.scheduledTime} · driver: ${data.driverName || 'unassigned'}`,
+          request
+        );
         return NextResponse.json({ success: true });
       }
 
       // --- Assign driver ---
       case 'assign-driver': {
+        if (!ALLOWED_SCHEDULER_ROLES.includes(auth.user.role)) {
+          return NextResponse.json(
+            { error: 'Only owners, admins, managers, PMs, and office staff can schedule or reassign work orders' },
+            { status: 403 }
+          );
+        }
+
         if (!data.workOrderId || !data.driverName) {
           return NextResponse.json({ error: 'workOrderId and driverName are required' }, { status: 400 });
         }
@@ -247,7 +386,12 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: result.error }, { status: 400 });
         }
 
-        auditLog('WORK_ORDER_ASSIGN', auth.user.email, `Assigned driver ${data.driverName} to work order ${data.workOrderId}`, request);
+        auditLog(
+          'WORK_ORDER_ASSIGNED',
+          auth.user.email,
+          `Work order ${data.workOrderId} driver reassigned to ${data.driverName}${data.vehicleType ? ' (' + data.vehicleType + ')' : ''}`,
+          request
+        );
         return NextResponse.json({ success: true });
       }
 

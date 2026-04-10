@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
       : platform === 'facebook' ? 'facebook'
       : 'internal';
 
-    const review = reviewManagementService.addReview({
+    const review = await reviewManagementService.addReview({
       customerId: customer.customerId,
       customerName: nameOverride || customer.customerName,
       address: customer.customerAddress,
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
     }
 
-    const allReviews = reviewManagementService.getReviews({ published: true });
+    const allReviews = await reviewManagementService.getReviews({ published: true });
     const customerReviews = allReviews.filter(r => r.customerId === customer.customerId);
 
     return NextResponse.json({

@@ -1,16 +1,104 @@
+/**
+ * Inventory Transactions API
+ *
+ * Pulls transactions from the unified inventory service (canonical source)
+ * and shapes them into the legacy format the /portal/transactions page
+ * expects. Previously this route read from a hardcoded 1660-row JSON file
+ * (lib/inventoryTransactions.ts) — that's mock data and has been removed
+ * from the read path.
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import {
-  inventoryTransactions,
-  getTransactionsByItem,
-  getTransactionsByDateRange,
-  getTransactionsByType,
-  getRecentTransactions,
-  getTransactionStats,
-  getMonthlySummary,
-  InventoryTransaction
-} from '@/lib/inventoryTransactions';
-import { getProductById } from '@/lib/inventoryData';
+  unifiedInventoryService,
+  type InventoryTransaction as UnifiedTxn,
+  type InventoryItem,
+} from '@/lib/unified-inventory-service';
+
+// Legacy shape the existing /portal/transactions page consumes
+interface LegacyTransaction {
+  inventoryId: string;
+  itemId: string;
+  dateTime: string;
+  amount: number;
+  referenceNumber: string;
+  price: number;
+  cost: number;
+  deliveryPhoto?: string;
+  status: 'completed' | 'pending' | 'cancelled';
+  type: 'delivery' | 'restock' | 'return' | 'adjustment' | 'count';
+  product?: {
+    productId: string;
+    productName: string;
+    category: string;
+  };
+}
+
+interface TransactionStats {
+  totalTransactions: number;
+  deliveryCount: number;
+  restockCount: number;
+  totalDeliveryValue: number;
+  totalRestockCost: number;
+  profitMargin: number;
+}
+
+// Map a unified-service transaction into the legacy shape the page expects
+function toLegacy(txn: UnifiedTxn, item: InventoryItem | undefined): LegacyTransaction {
+  // Unified types include 'hold' and 'release' which aren't in the legacy
+  // type union. Drop them by mapping to 'adjustment'.
+  const legacyType: LegacyTransaction['type'] =
+    txn.type === 'hold' || txn.type === 'release' || txn.type === 'write_off'
+      ? 'adjustment'
+      : txn.type;
+
+  return {
+    inventoryId: txn.transactionId,
+    itemId: txn.productId,
+    dateTime: txn.timestamp,
+    amount: Math.abs(txn.quantity),
+    referenceNumber: txn.referenceId || '',
+    price: txn.unitPrice ?? 0,
+    cost: txn.unitCost ?? 0,
+    status: 'completed',
+    type: legacyType,
+    product: item
+      ? {
+          productId: item.productId,
+          productName: item.productName,
+          category: item.category,
+        }
+      : undefined,
+  };
+}
+
+function buildStats(transactions: LegacyTransaction[]): TransactionStats {
+  let deliveryCount = 0;
+  let restockCount = 0;
+  let totalDeliveryValue = 0;
+  let totalRestockCost = 0;
+  for (const t of transactions) {
+    if (t.type === 'delivery') {
+      deliveryCount++;
+      totalDeliveryValue += (t.price || 0) * t.amount;
+    } else if (t.type === 'restock') {
+      restockCount++;
+      totalRestockCost += (t.cost || 0) * t.amount;
+    }
+  }
+  const profitMargin = totalDeliveryValue > 0
+    ? Math.round(((totalDeliveryValue - totalRestockCost) / totalDeliveryValue) * 1000) / 10
+    : 0;
+  return {
+    totalTransactions: transactions.length,
+    deliveryCount,
+    restockCount,
+    totalDeliveryValue: Math.round(totalDeliveryValue * 100) / 100,
+    totalRestockCost: Math.round(totalRestockCost * 100) / 100,
+    profitMargin,
+  };
+}
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth();
@@ -19,7 +107,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const itemId = searchParams.get('itemId');
-    const type = searchParams.get('type') as InventoryTransaction['type'] | null;
+    const type = searchParams.get('type') as LegacyTransaction['type'] | null;
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     const limit = searchParams.get('limit');
@@ -27,70 +115,62 @@ export async function GET(request: NextRequest) {
     const month = searchParams.get('month');
     const year = searchParams.get('year');
 
-    // Return transaction statistics
-    if (stats === 'true') {
-      const transactionStats = getTransactionStats();
-      return NextResponse.json(transactionStats);
-    }
+    // Pull all transactions from the canonical store (capped to keep memory sane)
+    const allTxns = await unifiedInventoryService.getTransactions(undefined, 5000);
+    const inventory = await unifiedInventoryService.getInventory();
+    const itemMap = new Map(inventory.map(i => [i.productId, i]));
 
-    // Return monthly summary
-    if (month && year) {
-      const summary = getMonthlySummary(parseInt(year), parseInt(month));
-      return NextResponse.json(summary);
-    }
+    let legacyTxns = allTxns.map(t => toLegacy(t, itemMap.get(t.productId)));
 
-    // Filter by item
+    // Apply filters
     if (itemId) {
-      const transactions = getTransactionsByItem(itemId);
-      const product = getProductById(itemId);
-      return NextResponse.json({
-        product,
-        transactions: transactions.sort((a, b) =>
-          new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime()
-        )
+      legacyTxns = legacyTxns.filter(t => t.itemId === itemId);
+    }
+    if (type) {
+      legacyTxns = legacyTxns.filter(t => t.type === type);
+    }
+    if (startDate && endDate) {
+      legacyTxns = legacyTxns.filter(t => t.dateTime >= startDate && t.dateTime <= endDate);
+    }
+    if (month && year) {
+      const m = parseInt(month, 10);
+      const y = parseInt(year, 10);
+      legacyTxns = legacyTxns.filter(t => {
+        const d = new Date(t.dateTime);
+        return d.getFullYear() === y && d.getMonth() + 1 === m;
       });
     }
 
-    // Filter by type
-    if (type) {
-      const transactions = getTransactionsByType(type);
-      return NextResponse.json(
-        transactions.sort((a, b) =>
-          new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime()
-        )
-      );
-    }
+    // Sort newest first
+    legacyTxns.sort((a, b) => b.dateTime.localeCompare(a.dateTime));
 
-    // Filter by date range
-    if (startDate && endDate) {
-      const transactions = getTransactionsByDateRange(startDate, endDate);
-      return NextResponse.json(
-        transactions.sort((a, b) =>
-          new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime()
-        )
-      );
+    if (stats === 'true') {
+      return NextResponse.json(buildStats(legacyTxns));
     }
-
-    // Return recent transactions with limit
     if (limit) {
-      const transactions = getRecentTransactions(parseInt(limit));
-      return NextResponse.json(transactions);
+      const n = parseInt(limit, 10);
+      legacyTxns = legacyTxns.slice(0, n);
     }
 
-    // Return all transactions (most recent first) with product info
-    const transactionsWithProducts = inventoryTransactions
-      .map(t => ({
-        ...t,
-        product: getProductById(t.itemId)
-      }))
-      .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime());
+    if (itemId) {
+      const product = itemMap.get(itemId);
+      return NextResponse.json({
+        product: product
+          ? {
+              productId: product.productId,
+              productName: product.productName,
+              category: product.category,
+            }
+          : null,
+        transactions: legacyTxns,
+      });
+    }
 
     return NextResponse.json({
-      transactions: transactionsWithProducts,
-      total: transactionsWithProducts.length,
-      stats: getTransactionStats()
+      transactions: legacyTxns,
+      total: legacyTxns.length,
+      stats: buildStats(legacyTxns),
     });
-
   } catch (error) {
     console.error('Error fetching transactions:', error);
     return NextResponse.json(
@@ -108,21 +188,46 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
     const { action, ...params } = data;
 
+    // Reuse the GET pipeline for stats by calling our own logic
+    const allTxns = await unifiedInventoryService.getTransactions(undefined, 5000);
+    const inventory = await unifiedInventoryService.getInventory();
+    const itemMap = new Map(inventory.map(i => [i.productId, i]));
+    const legacyTxns = allTxns.map(t => toLegacy(t, itemMap.get(t.productId)));
+
     switch (action) {
       case 'getStats':
-        return NextResponse.json(getTransactionStats());
+        return NextResponse.json(buildStats(legacyTxns));
 
-      case 'getMonthlySummary':
+      case 'getMonthlySummary': {
         const { year, month } = params;
-        return NextResponse.json(getMonthlySummary(year, month));
-
-      case 'getItemHistory':
-        const itemTransactions = getTransactionsByItem(params.itemId);
-        const product = getProductById(params.itemId);
-        return NextResponse.json({
-          product,
-          transactions: itemTransactions
+        const filtered = legacyTxns.filter(t => {
+          const d = new Date(t.dateTime);
+          return d.getFullYear() === year && d.getMonth() + 1 === month;
         });
+        return NextResponse.json({
+          year,
+          month,
+          ...buildStats(filtered),
+          transactions: filtered,
+        });
+      }
+
+      case 'getItemHistory': {
+        const itemTxns = legacyTxns
+          .filter(t => t.itemId === params.itemId)
+          .sort((a, b) => b.dateTime.localeCompare(a.dateTime));
+        const product = itemMap.get(params.itemId);
+        return NextResponse.json({
+          product: product
+            ? {
+                productId: product.productId,
+                productName: product.productName,
+                category: product.category,
+              }
+            : null,
+          transactions: itemTxns,
+        });
+      }
 
       default:
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 });

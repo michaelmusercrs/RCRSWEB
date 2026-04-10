@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') || undefined;
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
 
-    const jobs = profitabilityService.listJobCosts({ repSlug, status, limit });
+    const jobs = await profitabilityService.listJobCosts({ repSlug, status, limit });
     return NextResponse.json({ success: true, data: jobs });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const job = profitabilityService.createJobCost(body);
+    const job = await profitabilityService.createJobCost(body);
     return NextResponse.json({ success: true, data: job });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';

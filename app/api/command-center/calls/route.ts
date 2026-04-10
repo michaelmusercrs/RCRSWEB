@@ -25,16 +25,16 @@ export async function GET(request: NextRequest) {
 
     // Get recent calls
     const recentLimit = parseInt(searchParams.get('recent') || '10');
-    const recentCalls = callsService.getRecentCalls(recentLimit);
+    const recentCalls = await callsService.getRecentCalls(recentLimit);
 
     // Get today's calls
-    const todaysCalls = callsService.getTodaysCalls();
+    const todaysCalls = await callsService.getTodaysCalls();
 
     // Get overall stats
-    const stats = callsService.getStats();
+    const stats = await callsService.getStats();
 
     // Get 7-day analytics
-    const analytics = callsService.getAnalytics(7);
+    const analytics = await callsService.getAnalytics(7);
 
     // Calculate today's summary
     const todaySummary = {

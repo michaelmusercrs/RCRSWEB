@@ -953,13 +953,24 @@ function CreateWorkOrder({
   drivers: DriverInfo[];
   onCreated: () => void;
 }) {
+  const [jobNumber, setJobNumber] = useState('');
+  const [jobNumberLookupState, setJobNumberLookupState] = useState<
+    'idle' | 'loading' | 'found' | 'not-found' | 'error'
+  >('idle');
+  const [jobNumberLookupMessage, setJobNumberLookupMessage] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
+  const [salesRep, setSalesRep] = useState('');
   const [street, setStreet] = useState('');
   const [city, setCity] = useState('Huntsville');
   const [state, setState] = useState('AL');
   const [zip, setZip] = useState('');
+  const [supplierName, setSupplierName] = useState('');
+  const [suppliers, setSuppliers] = useState<string[]>([]);
+  // STOCK vs OTHER_VENDOR — drives whether inventory is held/decremented
+  // or if this is a pass-through buy from an outside supplier.
+  const [orderSource, setOrderSource] = useState<'stock' | 'other_vendor'>('stock');
   const [type, setType] = useState<'delivery' | 'pickup' | 'return' | 'supplement'>('delivery');
   const [priority, setPriority] = useState<'low' | 'normal' | 'rush' | 'urgent'>('normal');
   const [scheduledDate, setScheduledDate] = useState('');
@@ -974,6 +985,65 @@ function CreateWorkOrder({
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [success, setSuccess] = useState('');
+
+  // Fetch supplier dropdown from customer-breakdowns dropdown endpoint
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/portal/customer-breakdowns?action=dropdowns');
+        if (!res.ok) return;
+        const data = await res.json();
+        const list = (data?.config?.suppliers || []) as Array<{ name: string; active?: boolean }>;
+        const names = list
+          .filter(s => s.active !== false)
+          .map(s => s.name)
+          .filter(Boolean);
+        if (!cancelled) setSuppliers(names);
+      } catch {
+        // Silent — supplier dropdown falls back to the text input
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // R-number lookup — called on blur or Enter key. Pulls customer/address/
+  // rep/phone/email from JobNimbus and autofills the form.
+  const lookupJobNumber = useCallback(async () => {
+    const trimmed = jobNumber.trim();
+    if (!trimmed) {
+      setJobNumberLookupState('idle');
+      setJobNumberLookupMessage('');
+      return;
+    }
+    setJobNumberLookupState('loading');
+    setJobNumberLookupMessage('Searching JobNimbus...');
+    try {
+      const res = await fetch(
+        `/api/portal/delivery/work-orders?action=lookup&jobNumber=${encodeURIComponent(trimmed)}`
+      );
+      const data = await res.json();
+      if (data?.success) {
+        if (data.customerName) setCustomerName(data.customerName);
+        if (data.phone) setCustomerPhone(data.phone);
+        if (data.email) setCustomerEmail(data.email);
+        if (data.salesRep) setSalesRep(data.salesRep);
+        const parts = data.addressParts || {};
+        if (parts.street) setStreet(parts.street);
+        if (parts.city) setCity(parts.city);
+        if (parts.state) setState(parts.state);
+        if (parts.zip) setZip(parts.zip);
+        setJobNumberLookupState('found');
+        setJobNumberLookupMessage('Imported from JobNimbus');
+      } else {
+        setJobNumberLookupState('not-found');
+        setJobNumberLookupMessage(data?.error || `No match in JobNimbus for ${trimmed}`);
+      }
+    } catch {
+      setJobNumberLookupState('error');
+      setJobNumberLookupMessage('Lookup failed — check your connection');
+    }
+  }, [jobNumber]);
 
   const addMaterialRow = () => {
     setMaterials(prev => [
@@ -1031,6 +1101,13 @@ function CreateWorkOrder({
   const handleSubmit = async () => {
     setErrors([]);
     setSuccess('');
+
+    // Enforce supplier on other-vendor orders before the round-trip.
+    if (orderSource === 'other_vendor' && !supplierName.trim()) {
+      setErrors(['Supplier is required when the source is "From Outside Vendor".']);
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -1039,10 +1116,13 @@ function CreateWorkOrder({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'create',
+          jobNumber: jobNumber.trim() || undefined,
           customerName,
           customerPhone,
           customerEmail,
           address: { street, city, state, zip },
+          supplierName: supplierName.trim() || undefined,
+          orderSource,
           type,
           priority,
           materials: materials.map(m => ({
@@ -1097,6 +1177,129 @@ function CreateWorkOrder({
           {success}
         </div>
       )}
+
+      {/* Source — STOCK vs OUTSIDE VENDOR. This is the first decision on
+          every work order because it determines whether inventory gets
+          touched. */}
+      <div className="border border-zinc-800 rounded-xl p-6">
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <Package className="w-5 h-5 text-[#39FF14]" />
+          Source
+          <span className="text-xs text-zinc-500 font-normal">
+            Where are these materials coming from?
+          </span>
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setOrderSource('stock')}
+            className={`text-left rounded-xl p-4 border-2 transition-colors ${
+              orderSource === 'stock'
+                ? 'border-[#39FF14] bg-[#39FF14]/10'
+                : 'border-zinc-800 bg-zinc-900 hover:border-zinc-700'
+            }`}
+          >
+            <div className="flex items-center gap-2 text-2xl">
+              <span aria-hidden>🟢</span>
+              <span className={`font-bold ${orderSource === 'stock' ? 'text-[#39FF14]' : 'text-zinc-300'}`}>
+                From Our Stock
+              </span>
+            </div>
+            <p className="mt-2 text-xs text-zinc-400">
+              Pulled from our warehouse catalog. Inventory will be held now and
+              decremented on delivery. Supplier field is optional.
+            </p>
+          </button>
+          <button
+            type="button"
+            onClick={() => setOrderSource('other_vendor')}
+            className={`text-left rounded-xl p-4 border-2 transition-colors ${
+              orderSource === 'other_vendor'
+                ? 'border-purple-500 bg-purple-500/10'
+                : 'border-zinc-800 bg-zinc-900 hover:border-zinc-700'
+            }`}
+          >
+            <div className="flex items-center gap-2 text-2xl">
+              <span aria-hidden>🟣</span>
+              <span className={`font-bold ${orderSource === 'other_vendor' ? 'text-purple-300' : 'text-zinc-300'}`}>
+                From Outside Vendor
+              </span>
+            </div>
+            <p className="mt-2 text-xs text-zinc-400">
+              Purchased from SRS / ABC / Beacon / GAF Direct for this job.
+              Does NOT touch our inventory. Supplier is required.
+            </p>
+          </button>
+        </div>
+      </div>
+
+      {/* Job Number (R-number) — canonical ID, auto-populates from JobNimbus */}
+      <div className="border border-zinc-800 rounded-xl p-6">
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <Hash className="w-5 h-5 text-[#39FF14]" />
+          Job Number (R-Number)
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="md:col-span-2">
+            <label className="block text-sm text-zinc-400 mb-1">
+              R-Number <span className="text-zinc-500 text-xs">(enter and press Tab or Enter to import)</span>
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={jobNumber}
+                onChange={e => {
+                  setJobNumber(e.target.value);
+                  if (jobNumberLookupState !== 'idle' && jobNumberLookupState !== 'loading') {
+                    setJobNumberLookupState('idle');
+                    setJobNumberLookupMessage('');
+                  }
+                }}
+                onBlur={() => lookupJobNumber()}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    lookupJobNumber();
+                  }
+                }}
+                placeholder="R-11071"
+                className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm focus:outline-none focus:border-[#39FF14]/50"
+              />
+              {jobNumberLookupState === 'loading' && (
+                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 animate-spin" />
+              )}
+            </div>
+            {jobNumberLookupMessage && (
+              <div
+                className={`mt-2 text-xs flex items-center gap-1.5 ${
+                  jobNumberLookupState === 'found'
+                    ? 'text-[#39FF14]'
+                    : jobNumberLookupState === 'not-found'
+                    ? 'text-yellow-400'
+                    : jobNumberLookupState === 'error'
+                    ? 'text-red-400'
+                    : 'text-zinc-400'
+                }`}
+              >
+                {jobNumberLookupState === 'found' && <CheckCircle2 className="w-3.5 h-3.5" />}
+                {jobNumberLookupState === 'not-found' && <AlertCircle className="w-3.5 h-3.5" />}
+                {jobNumberLookupState === 'error' && <XCircle className="w-3.5 h-3.5" />}
+                {jobNumberLookupMessage}
+              </div>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm text-zinc-400 mb-1">Sales Rep</label>
+            <input
+              type="text"
+              value={salesRep}
+              onChange={e => setSalesRep(e.target.value)}
+              placeholder="Auto-filled from lookup"
+              className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm focus:outline-none focus:border-[#39FF14]/50"
+            />
+          </div>
+        </div>
+      </div>
 
       {/* Customer Information */}
       <div className="border border-zinc-800 rounded-xl p-6">
@@ -1192,6 +1395,43 @@ function CreateWorkOrder({
               />
             </div>
           </div>
+        </div>
+        {/* Supplier — populated from breakdown-dropdowns.json, free-form via datalist.
+            REQUIRED when orderSource = other_vendor (so Sara can chase credits). */}
+        <div className="mt-4">
+          <label className="block text-sm text-zinc-400 mb-1">
+            Supplier
+            {orderSource === 'other_vendor' ? (
+              <span className="text-red-400 ml-1">*</span>
+            ) : (
+              <span className="text-zinc-500 text-xs ml-1">(optional for stock orders)</span>
+            )}
+          </label>
+          <input
+            type="text"
+            list="work-order-suppliers"
+            value={supplierName}
+            onChange={e => setSupplierName(e.target.value)}
+            placeholder="e.g. Gulf Eagle, ABC Supply, SRS Distribution..."
+            required={orderSource === 'other_vendor'}
+            className={`w-full px-3 py-2 bg-zinc-900 border rounded-lg text-sm focus:outline-none focus:border-[#39FF14]/50 ${
+              orderSource === 'other_vendor' && !supplierName.trim()
+                ? 'border-red-500/60'
+                : 'border-zinc-700'
+            }`}
+          />
+          <datalist id="work-order-suppliers">
+            {suppliers.map(s => (
+              <option key={s} value={s} />
+            ))}
+            <option value="Other (type to add)" />
+          </datalist>
+          {orderSource === 'other_vendor' && (
+            <p className="mt-1 text-xs text-purple-300">
+              Required — other-vendor orders never touch our inventory, so we
+              need the vendor on file for credit/return tracking.
+            </p>
+          )}
         </div>
       </div>
 
@@ -1446,8 +1686,13 @@ function CreateWorkOrder({
       <div className="flex items-center justify-end gap-3">
         <button
           onClick={() => {
+            setJobNumber('');
+            setJobNumberLookupState('idle');
+            setJobNumberLookupMessage('');
             setCustomerName(''); setCustomerPhone(''); setCustomerEmail('');
+            setSalesRep('');
             setStreet(''); setCity('Huntsville'); setState('AL'); setZip('');
+            setSupplierName('');
             setType('delivery'); setPriority('normal');
             setScheduledDate(''); setScheduledTime('');
             setAssignedDriver(''); setVehicleType('');

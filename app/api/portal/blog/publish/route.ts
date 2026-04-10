@@ -1,39 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-service';
-import fs from 'fs';
-import path from 'path';
-
-const DATA_FILE = path.join(process.cwd(), 'data', 'blog-posts.json');
-
-interface BlogPost {
-  id: string;
-  slug: string;
-  authorSlug: string;
-  authorName: string;
-  title: string;
-  metaDescription: string;
-  body: string;
-  images: string[];
-  status: 'draft' | 'review' | 'approved' | 'published' | 'rejected';
-  createdAt: string;
-  updatedAt: string;
-  publishDate: string | null;
-  publishedAt: string | null;
-  rejectionReason: string | null;
-}
-
-function readPosts(): BlogPost[] {
-  try {
-    if (!fs.existsSync(DATA_FILE)) return [];
-    return JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
-  } catch {
-    return [];
-  }
-}
-
-function writePosts(posts: BlogPost[]) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(posts, null, 2));
-}
+import { readBlogPosts, upsertBlogPost } from '@/lib/blog-posts-store';
 
 // POST - manually publish an approved post (enforces Friday-only + 7-day cooldown)
 export async function POST(request: NextRequest) {
@@ -46,14 +13,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'postId required' }, { status: 400 });
   }
 
-  const posts = readPosts();
-  const idx = posts.findIndex(p => p.id === postId);
+  const posts = await readBlogPosts();
+  const post = posts.find(p => p.id === postId);
 
-  if (idx === -1) {
+  if (!post) {
     return NextResponse.json({ success: false, error: 'Post not found' }, { status: 404 });
   }
-
-  const post = posts[idx];
 
   if (post.status !== 'approved') {
     return NextResponse.json({ success: false, error: 'Post must be approved before publishing' }, { status: 400 });
@@ -96,8 +61,7 @@ export async function POST(request: NextRequest) {
   post.publishedAt = now.toISOString();
   post.publishDate = now.toISOString().split('T')[0];
   post.updatedAt = now.toISOString();
-  posts[idx] = post;
-  writePosts(posts);
+  await upsertBlogPost(post);
 
   return NextResponse.json({ success: true, post, message: 'Post published successfully!' });
 }

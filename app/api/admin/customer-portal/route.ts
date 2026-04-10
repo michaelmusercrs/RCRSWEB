@@ -8,7 +8,9 @@ import { cache, CACHE_TTL } from '@/lib/cache';
 async function getDoc(): Promise<GoogleSpreadsheet> {
   const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-  const sheetId = process.env.GOOGLE_SHEET_ID;
+  const sheetId = process.env.GOOGLE_SHEET_ID
+    || process.env.GOOGLE_SHEETS_ID
+    || process.env.DELIVERY_SHEETS_ID;
 
   if (!serviceAccountEmail || !privateKey || !sheetId) {
     throw new Error('Missing Google Sheets credentials');

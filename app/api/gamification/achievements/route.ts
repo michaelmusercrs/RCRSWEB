@@ -18,14 +18,14 @@ export async function GET(request: NextRequest) {
 
     // Optionally run achievement checks
     if (checkAll) {
-      gamificationService.checkAllAchievements();
+      await gamificationService.checkAllAchievements();
     }
 
     if (repSlug) {
       // Run achievement check for this rep first
-      const newAchievements = gamificationService.checkAndAwardAchievements(repSlug);
-      const allRepAchievements = gamificationService.getRepAchievements(repSlug);
-      const profile = gamificationService.getRepProfile(repSlug);
+      const newAchievements = await gamificationService.checkAndAwardAchievements(repSlug);
+      const allRepAchievements = await gamificationService.getRepAchievements(repSlug);
+      const profile = await gamificationService.getRepProfile(repSlug);
 
       return NextResponse.json({
         success: true,
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     const allAchievements = gamificationService.getAchievements();
 
     // Gather achievements by rep
-    const leaderboard = gamificationService.getLeaderboard('all_time');
+    const leaderboard = await gamificationService.getLeaderboard('all_time');
     const achievementsByRep: Record<string, { repName: string; achievements: string[] }> = {};
 
     for (const entry of leaderboard) {

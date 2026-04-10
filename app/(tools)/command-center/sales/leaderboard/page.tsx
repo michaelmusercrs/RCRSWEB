@@ -90,7 +90,20 @@ interface DailyChallenge {
   completedBy: string[];
 }
 
-type PeriodType = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'biannual' | 'yearly' | 'all_time';
+type PeriodType =
+  | 'daily'
+  | 'weekly'
+  | 'monthly'
+  | 'quarterly'
+  | 'biannual'
+  | 'yearly'
+  | 'all_time'
+  | 'lastWeek'
+  | 'lastMonth'
+  | 'last7Days'
+  | 'last30Days'
+  | 'last90Days'
+  | 'custom';
 
 // Weekly numbers leaderboard types
 interface WeeklyMetric {
@@ -107,7 +120,19 @@ interface WeeklyLeaderboardEntry {
   allMetrics: Record<string, number>;
 }
 
-type WeeklyPeriod = 'thisWeek' | 'lastWeek' | 'thisMonth' | 'thisQuarter' | 'biannual' | 'thisYear' | 'allTime';
+type WeeklyPeriod =
+  | 'thisWeek'
+  | 'lastWeek'
+  | 'thisMonth'
+  | 'lastMonth'
+  | 'last7Days'
+  | 'last30Days'
+  | 'last90Days'
+  | 'thisQuarter'
+  | 'biannual'
+  | 'thisYear'
+  | 'allTime'
+  | 'custom';
 
 // =============================================================================
 // Constants
@@ -191,33 +216,95 @@ function getRepNameForSlug(slug: string, leaderboard: LeaderboardEntry[]): strin
 // Sub-Components
 // =============================================================================
 
-function PeriodTabs({ selected, onChange }: { selected: PeriodType; onChange: (p: PeriodType) => void }) {
-  const periods: { value: PeriodType; label: string }[] = [
-    { value: 'daily', label: 'Day' },
-    { value: 'weekly', label: 'Week' },
-    { value: 'monthly', label: 'Month' },
-    { value: 'quarterly', label: 'Quarter' },
+function PeriodTabs({
+  selected,
+  onChange,
+  customStart,
+  customEnd,
+  onCustomStartChange,
+  onCustomEndChange,
+}: {
+  selected: PeriodType;
+  onChange: (p: PeriodType) => void;
+  customStart: string;
+  customEnd: string;
+  onCustomStartChange: (s: string) => void;
+  onCustomEndChange: (s: string) => void;
+}) {
+  // Quick-pick chips: the most common periods
+  const quickPicks: { value: PeriodType; label: string }[] = [
+    { value: 'weekly', label: 'This Week' },
+    { value: 'lastWeek', label: 'Last Week' },
+    { value: 'monthly', label: 'This Month' },
+    { value: 'lastMonth', label: 'Last Month' },
+    { value: 'all_time', label: 'All Time' },
+  ];
+
+  // Full dropdown with everything
+  const allPeriods: { value: PeriodType; label: string }[] = [
+    { value: 'daily', label: 'Today' },
+    { value: 'weekly', label: 'This Week' },
+    { value: 'lastWeek', label: 'Last Week' },
+    { value: 'monthly', label: 'This Month' },
+    { value: 'lastMonth', label: 'Last Month' },
+    { value: 'last7Days', label: 'Last 7 Days' },
+    { value: 'last30Days', label: 'Last 30 Days' },
+    { value: 'last90Days', label: 'Last 90 Days' },
+    { value: 'quarterly', label: 'This Quarter' },
     { value: 'biannual', label: 'H1/H2' },
-    { value: 'yearly', label: 'Year' },
-    { value: 'all_time', label: 'All' },
+    { value: 'yearly', label: 'This Year' },
+    { value: 'all_time', label: 'All Time' },
+    { value: 'custom', label: 'Custom Range…' },
   ];
 
   return (
-    <div className="flex gap-1 bg-zinc-900 p-1 rounded-lg overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
-      {periods.map(({ value, label }) => (
-        <button
-          key={value}
-          onClick={() => onChange(value)}
-          className={cn(
-            'px-3 py-2 text-sm font-medium rounded-md transition-all whitespace-nowrap flex-shrink-0',
-            selected === value
-              ? 'bg-[#39FF14] text-black'
-              : 'text-neutral-500 hover:text-white hover:bg-zinc-800'
-          )}
+    <div className="flex flex-col gap-2 w-full sm:w-auto">
+      <div className="flex flex-wrap gap-1.5">
+        {quickPicks.map(({ value, label }) => (
+          <button
+            key={value}
+            onClick={() => onChange(value)}
+            className={cn(
+              'px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap',
+              selected === value
+                ? 'bg-[#39FF14] text-black'
+                : 'bg-zinc-900 text-neutral-400 hover:text-white hover:bg-zinc-800'
+            )}
+          >
+            {label}
+          </button>
+        ))}
+        <select
+          value={selected}
+          onChange={(e) => onChange(e.target.value as PeriodType)}
+          className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-md text-xs text-white focus:outline-none focus:border-[#39FF14]/50"
         >
-          {label}
-        </button>
-      ))}
+          {allPeriods.map(({ value, label }) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </div>
+      {selected === 'custom' && (
+        <div className="flex items-center gap-2 text-xs">
+          <input
+            type="date"
+            value={customStart}
+            onChange={(e) => onCustomStartChange(e.target.value)}
+            className="px-2 py-1.5 bg-zinc-900 border border-zinc-800 rounded-md text-white focus:outline-none focus:border-[#39FF14]/50"
+            aria-label="Start date"
+          />
+          <span className="text-neutral-500">to</span>
+          <input
+            type="date"
+            value={customEnd}
+            onChange={(e) => onCustomEndChange(e.target.value)}
+            className="px-2 py-1.5 bg-zinc-900 border border-zinc-800 rounded-md text-white focus:outline-none focus:border-[#39FF14]/50"
+            aria-label="End date"
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -804,6 +891,15 @@ function PersonalStatsPanel({
 function WeeklyNumbersLeaderboard() {
   const [metric, setMetric] = useState<string>('points');
   const [weeklyPeriod, setWeeklyPeriod] = useState<WeeklyPeriod>('thisWeek');
+  // Custom date range — only sent when weeklyPeriod === 'custom'
+  const [customStart, setCustomStart] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().slice(0, 10);
+  });
+  const [customEnd, setCustomEnd] = useState<string>(() =>
+    new Date().toISOString().slice(0, 10)
+  );
   const [entries, setEntries] = useState<WeeklyLeaderboardEntry[]>([]);
   const [availableMetrics, setAvailableMetrics] = useState<WeeklyMetric[]>([]);
   const [metricLabel, setMetricLabel] = useState('Total Points');
@@ -813,9 +909,16 @@ function WeeklyNumbersLeaderboard() {
   const fetchWeeklyData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(
-        `/api/command-center/weekly-leaderboard?metric=${metric}&period=${weeklyPeriod}`
-      );
+      const params = new URLSearchParams({ metric, period: weeklyPeriod });
+      if (weeklyPeriod === 'custom') {
+        if (!customStart || !customEnd) {
+          setLoading(false);
+          return;
+        }
+        params.set('startDate', customStart);
+        params.set('endDate', customEnd);
+      }
+      const res = await fetch(`/api/command-center/weekly-leaderboard?${params.toString()}`);
       if (!res.ok) throw new Error('Failed to fetch');
       const data = await res.json();
       if (data.success) {
@@ -829,7 +932,7 @@ function WeeklyNumbersLeaderboard() {
     } finally {
       setLoading(false);
     }
-  }, [metric, weeklyPeriod]);
+  }, [metric, weeklyPeriod, customStart, customEnd]);
 
   useEffect(() => {
     fetchWeeklyData();
@@ -844,9 +947,14 @@ function WeeklyNumbersLeaderboard() {
     { value: 'thisWeek', label: 'This Week' },
     { value: 'lastWeek', label: 'Last Week' },
     { value: 'thisMonth', label: 'This Month' },
+    { value: 'lastMonth', label: 'Last Month' },
+    { value: 'last7Days', label: 'Last 7 Days' },
+    { value: 'last30Days', label: 'Last 30 Days' },
+    { value: 'last90Days', label: 'Last 90 Days' },
     { value: 'thisQuarter', label: 'This Quarter' },
     { value: 'thisYear', label: 'YTD' },
     { value: 'allTime', label: 'All Time' },
+    { value: 'custom', label: 'Custom Range…' },
   ];
 
   return (
@@ -866,40 +974,63 @@ function WeeklyNumbersLeaderboard() {
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {/* Period Selector */}
-            <select
-              value={weeklyPeriod}
-              onChange={(e) => setWeeklyPeriod(e.target.value as WeeklyPeriod)}
-              className="px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-[#39FF14]/50"
-            >
-              {periodOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap gap-2">
+              {/* Period Selector */}
+              <select
+                value={weeklyPeriod}
+                onChange={(e) => setWeeklyPeriod(e.target.value as WeeklyPeriod)}
+                className="px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-[#39FF14]/50"
+              >
+                {periodOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
 
-            {/* Metric Filter */}
-            <select
-              value={metric}
-              onChange={(e) => setMetric(e.target.value)}
-              className="px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-[#39FF14]/50"
-            >
-              {availableMetrics.map((m) => (
-                <option key={m.key} value={m.key}>
-                  {m.label}
-                </option>
-              ))}
-            </select>
+              {/* Metric Filter */}
+              <select
+                value={metric}
+                onChange={(e) => setMetric(e.target.value)}
+                className="px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-[#39FF14]/50"
+              >
+                {availableMetrics.map((m) => (
+                  <option key={m.key} value={m.key}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
 
-            <button
-              onClick={fetchWeeklyData}
-              className="p-1.5 bg-zinc-800 text-neutral-400 rounded-lg hover:bg-zinc-700 hover:text-white transition"
-              title="Refresh"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </button>
+              <button
+                onClick={fetchWeeklyData}
+                className="p-1.5 bg-zinc-800 text-neutral-400 rounded-lg hover:bg-zinc-700 hover:text-white transition"
+                title="Refresh"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Custom date range — only visible when "Custom Range…" is selected */}
+            {weeklyPeriod === 'custom' && (
+              <div className="flex items-center gap-2 text-xs">
+                <input
+                  type="date"
+                  value={customStart}
+                  onChange={(e) => setCustomStart(e.target.value)}
+                  className="px-2 py-1.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-[#39FF14]/50"
+                  aria-label="Start date"
+                />
+                <span className="text-neutral-500">to</span>
+                <input
+                  type="date"
+                  value={customEnd}
+                  onChange={(e) => setCustomEnd(e.target.value)}
+                  className="px-2 py-1.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-[#39FF14]/50"
+                  aria-label="End date"
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1005,6 +1136,15 @@ function WeeklyNumbersLeaderboard() {
 export default function GamificationLeaderboardPage() {
   const { user } = useAuth();
   const [period, setPeriod] = useState<PeriodType>('all_time');
+  // Default custom range = last 30 days, only used when period === 'custom'
+  const [customStart, setCustomStart] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().slice(0, 10);
+  });
+  const [customEnd, setCustomEnd] = useState<string>(() =>
+    new Date().toISOString().slice(0, 10)
+  );
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [contests, setContests] = useState<Contest[]>([]);
@@ -1023,8 +1163,22 @@ export default function GamificationLeaderboardPage() {
     setLoading(true);
     setError(null);
     try {
+      // Build leaderboard URL with custom date params when applicable.
+      // The gamification API ignores startDate/endDate unless period=custom,
+      // and rejects custom without both, so we only send them when needed.
+      const lbParams = new URLSearchParams({ period });
+      if (period === 'custom') {
+        if (!customStart || !customEnd) {
+          // Don't fetch with an incomplete range — wait for the user to fill both
+          setLoading(false);
+          return;
+        }
+        lbParams.set('startDate', customStart);
+        lbParams.set('endDate', customEnd);
+      }
+
       const [lbRes, achRes] = await Promise.all([
-        fetch(`/api/gamification/leaderboard?period=${period}`),
+        fetch(`/api/gamification/leaderboard?${lbParams.toString()}`),
         fetch('/api/gamification/achievements?checkAll=true'),
       ]);
 
@@ -1048,7 +1202,7 @@ export default function GamificationLeaderboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [period]);
+  }, [period, customStart, customEnd]);
 
   useEffect(() => {
     fetchData();
@@ -1123,7 +1277,14 @@ export default function GamificationLeaderboardPage() {
         </div>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-          <PeriodTabs selected={period} onChange={setPeriod} />
+          <PeriodTabs
+            selected={period}
+            onChange={setPeriod}
+            customStart={customStart}
+            customEnd={customEnd}
+            onCustomStartChange={setCustomStart}
+            onCustomEndChange={setCustomEnd}
+          />
           <div className="flex gap-2">
             <Link
               href="/command-center/sales/achievements"

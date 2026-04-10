@@ -1,61 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { leadPortalService } from '@/lib/lead-portal-service';
-import fs from 'fs';
-import path from 'path';
+import { leadPortalService, ServiceRequestRecord } from '@/lib/lead-portal-service';
 import crypto from 'crypto';
 
-const DATA_FILE = path.join(process.cwd(), 'data', 'service-requests.json');
-
-interface ServiceRequest {
-  id: string;
-  customerId: string;
-  customerName: string;
-  customerAddress: string;
-  customerPhone: string;
-  customerEmail: string;
-  repSlug: string;
-  repName: string;
-  type: 'maintenance' | 'repair' | 'inspection' | 'other';
-  description: string;
-  preferredDate: string;
-  urgency: 'low' | 'medium' | 'high' | 'emergency';
-  photos: string[];
-  status: 'submitted' | 'reviewed' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
-  assignedTo?: string;
-  scheduledDate?: string;
-  resolution?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface ServiceRequestsData {
-  requests: ServiceRequest[];
-}
-
-function readData(): ServiceRequestsData {
-  try {
-    if (fs.existsSync(DATA_FILE)) {
-      const content = fs.readFileSync(DATA_FILE, 'utf-8');
-      return JSON.parse(content);
-    }
-  } catch (error) {
-    console.error('[ServiceRequest] Error reading data:', error);
-  }
-  return { requests: [] };
-}
-
-function writeData(data: ServiceRequestsData): void {
-  try {
-    const dir = path.dirname(DATA_FILE);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-  } catch (error) {
-    console.error('[ServiceRequest] Error writing data:', error);
-    throw error;
-  }
-}
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 // Validate token and return customer info
 async function validateCustomerToken(token: string) {
@@ -107,10 +55,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
     }
 
-    const data = readData();
     const now = new Date().toISOString();
 
-    const serviceRequest: ServiceRequest = {
+    const serviceRequest: ServiceRequestRecord = {
       id: `SRQ-${crypto.randomBytes(6).toString('hex')}`,
       customerId: customer.customerId,
       customerName: customer.customerName,
@@ -123,14 +70,13 @@ export async function POST(request: NextRequest) {
       description: description.trim(),
       preferredDate: preferredDate || '',
       urgency,
-      photos: photos || [],
+      photos: Array.isArray(photos) ? JSON.stringify(photos) : (photos || ''),
       status: 'submitted',
       createdAt: now,
       updatedAt: now,
     };
 
-    data.requests.unshift(serviceRequest);
-    writeData(data);
+    await leadPortalService.createServiceRequest(serviceRequest);
 
     return NextResponse.json({
       success: true,
@@ -163,10 +109,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
     }
 
-    const data = readData();
-    const customerRequests = data.requests
-      .filter(r => r.customerId === customer.customerId)
-      .map(r => ({
+    const records = await leadPortalService.getServiceRequestsByCustomer(customer.customerId);
+
+    const customerRequests = records.map(r => {
+      let parsedPhotos: string[] = [];
+      try {
+        if (r.photos) parsedPhotos = JSON.parse(r.photos);
+      } catch {
+        parsedPhotos = r.photos ? [r.photos] : [];
+      }
+      return {
         id: r.id,
         type: r.type,
         description: r.description,
@@ -176,10 +128,11 @@ export async function GET(request: NextRequest) {
         assignedTo: r.assignedTo,
         scheduledDate: r.scheduledDate,
         resolution: r.resolution,
-        photos: r.photos,
+        photos: parsedPhotos,
         createdAt: r.createdAt,
         updatedAt: r.updatedAt,
-      }));
+      };
+    });
 
     return NextResponse.json({ requests: customerRequests });
   } catch (error) {

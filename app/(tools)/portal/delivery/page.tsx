@@ -354,6 +354,10 @@ export default function DeliveryManagementPage() {
       <div className="bg-zinc-900/50 border-b border-zinc-800 px-4 md:px-6 py-2 overflow-x-auto">
         <div className="flex items-center gap-3 text-sm min-w-max">
           <span className="text-zinc-600 text-[11px] font-bold uppercase tracking-wider">Tools:</span>
+          <Link href="/portal/delivery/schedule" className="flex items-center gap-1 text-zinc-500 hover:text-brand-green transition-colors text-xs">
+            <Calendar className="w-3.5 h-3.5" /> Schedule
+          </Link>
+          <span className="text-zinc-700">|</span>
           <Link href="/portal/delivery/job-breakdowns" className="flex items-center gap-1 text-zinc-500 hover:text-brand-green transition-colors text-xs">
             <FileSignature className="w-3.5 h-3.5" /> Job Breakdowns
           </Link>

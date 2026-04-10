@@ -137,6 +137,7 @@ const PUBLIC_PREFIXES = [
   '/team/',
   '/p/',          // short links
   '/lp/',         // Google Ads landing pages
+  '/view/',       // public customer portal by token (homeowner-facing)
 ];
 
 // Internal portal prefixes allowed on rcrsal.com
@@ -205,8 +206,8 @@ function isApiRoute(pathname: string): boolean {
 }
 
 function isCustomerPortalRoute(pathname: string): boolean {
-  // /my/[token] pattern - customer portal accessible on both domains
-  return pathname.startsWith('/my/');
+  // /my/[token] and /view/[token] patterns - customer portal accessible on both domains
+  return pathname.startsWith('/my/') || pathname.startsWith('/view/');
 }
 
 function isPublicRoute(pathname: string): boolean {

@@ -36,18 +36,25 @@ async function readReviews(): Promise<ProfileReview[]> {
 }
 
 async function saveReviews(reviews: ProfileReview[]): Promise<void> {
+  // Vercel Blob is canonical; fs is dev-only fallback wrapped in try/catch.
   try {
     const { put } = await import('@vercel/blob');
     await put(BLOB_KEY, JSON.stringify(reviews, null, 2), {
       access: 'public', contentType: 'application/json', addRandomSuffix: false,
     });
+    return;
   } catch (e) {
+    console.warn('[profile/reviews] Blob write failed, attempting fs fallback:', e);
+  }
+  try {
     const fs = await import('fs');
     const path = await import('path');
     const filePath = path.join(process.cwd(), LOCAL_PATH);
     const dir = path.dirname(filePath);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(filePath, JSON.stringify(reviews, null, 2));
+  } catch (fsErr) {
+    console.warn('[profile/reviews] Local fs write skipped (read-only fs?):', fsErr);
   }
 }
 

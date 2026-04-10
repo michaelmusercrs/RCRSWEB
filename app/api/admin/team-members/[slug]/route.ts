@@ -34,7 +34,8 @@ async function readTeamMembers(): Promise<TeamMember[]> {
 }
 
 /**
- * Write team members - tries Vercel Blob first, then local file
+ * Write team members - Blob is canonical; fs is dev fallback only.
+ * (Same legacy pattern as the parent route — see ../route.ts for context.)
  */
 async function writeTeamMembers(members: TeamMember[]): Promise<void> {
   try {
@@ -42,13 +43,19 @@ async function writeTeamMembers(members: TeamMember[]): Promise<void> {
     await put(BLOB_KEY, JSON.stringify(members, null, 2), {
       access: 'public', contentType: 'application/json', addRandomSuffix: false,
     });
+    return;
   } catch (e) {
+    console.warn('[team-members/[slug]] Blob write failed, attempting local fs fallback:', e);
+  }
+  try {
     const fs = await import('fs');
     const path = await import('path');
     const filePath = path.join(process.cwd(), LOCAL_PATH);
     const dir = path.dirname(filePath);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(filePath, JSON.stringify(members, null, 2));
+  } catch (fsErr) {
+    console.warn('[team-members/[slug]] Local fs write skipped (read-only fs?):', fsErr);
   }
 }
 

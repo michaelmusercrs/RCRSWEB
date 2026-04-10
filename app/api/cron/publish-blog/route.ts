@@ -1,36 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 import { apiError } from '@/lib/api-response';
-
-const DATA_FILE = path.join(process.cwd(), 'data', 'blog-posts.json');
-
-interface BlogPost {
-  id: string;
-  authorSlug: string;
-  authorName: string;
-  title: string;
-  body: string;
-  status: 'draft' | 'review' | 'approved' | 'published' | 'rejected';
-  createdAt: string;
-  updatedAt: string;
-  publishDate: string | null;
-  publishedAt: string | null;
-  rejectionReason: string | null;
-}
-
-function readPosts(): BlogPost[] {
-  try {
-    if (!fs.existsSync(DATA_FILE)) return [];
-    return JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
-  } catch {
-    return [];
-  }
-}
-
-function writePosts(posts: BlogPost[]) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(posts, null, 2));
-}
+import { readBlogPosts, upsertBlogPost } from '@/lib/blog-posts-store';
 
 // GET /api/cron/publish-blog — Auto-publish approved posts on their scheduled Friday
 // Should be called by a cron job daily (or on Fridays)
@@ -43,7 +13,7 @@ export async function GET(request: NextRequest) {
   }
 
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-  const posts = readPosts();
+  const posts = await readBlogPosts();
   const published: string[] = [];
 
   for (const post of posts) {
@@ -55,12 +25,9 @@ export async function GET(request: NextRequest) {
       post.status = 'published';
       post.publishedAt = new Date().toISOString();
       post.updatedAt = new Date().toISOString();
+      await upsertBlogPost(post);
       published.push(post.id);
     }
-  }
-
-  if (published.length > 0) {
-    writePosts(posts);
   }
 
   return NextResponse.json({

@@ -4,6 +4,15 @@ import { matchRepToTeamMember, JN_TO_PORTAL_STATUS } from '@/lib/jn-sync-engine'
 import { breakdownService } from '@/lib/breakdown-service';
 import { emailService } from '@/lib/email-service';
 import { auditLog } from '@/lib/audit-logger';
+import { jobNimbusService } from '@/lib/jobnimbus-service';
+import {
+  saveBreakdown,
+  getBreakdownByRNumber,
+  generateBreakdownId,
+  calculateTotals,
+  loadDropdownConfig,
+  type CustomerBreakdown,
+} from '@/lib/customer-breakdown-service';
 import crypto from 'crypto';
 
 // Statuses that should trigger auto-creation of a job breakdown sheet
@@ -104,6 +113,12 @@ export async function POST(request: NextRequest) {
     }
 
     const { event, data } = body;
+    // JN webhooks are inconsistent — some payloads use `type` instead of `event`.
+    // We honor `event` as primary (existing behavior) but fall back to `type`
+    // for deposit detection below.
+    const eventType: string = (typeof event === 'string' && event)
+      || (typeof body?.type === 'string' && body.type)
+      || '';
 
     // SECURITY: Validate required fields
     if (!event || typeof event !== 'string') {
@@ -121,6 +136,15 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // DEPOSIT DETECTION — fire-and-forget auto-create of CustomerBreakdown draft.
+    // Wrapped in its own try/catch inside the handler; MUST NOT block the 200 response.
+    if (isDepositEvent(eventType, body, data)) {
+      handleDepositWebhook(data, body).catch(err => {
+        console.error('[JN webhook] deposit handler crashed:', err);
+      });
+    }
+
     switch (event) {
       case 'contact.created':
       case 'contact.updated': {
@@ -300,4 +324,285 @@ async function autoCreateBreakdown(
     'jobnimbus-webhook',
     `Auto-created breakdown for ${customerName} — Job: ${jobName || jobId} — Status: ${data?.status}`,
   );
+}
+
+// ─── Deposit webhook → CustomerBreakdown draft auto-create ────────────────
+//
+// When JN fires a deposit-related event we create a draft CustomerBreakdown
+// pre-populated with customer info from JN. The office fills in totals later.
+//
+// Idempotent: checked via getBreakdownByRNumber(rNumber). If one already exists
+// for the job's R-number, we skip.
+
+/**
+ * Decide whether a webhook payload represents a "deposit received" event.
+ * JN uses a few different shapes for this:
+ *   - event: 'job.status_changed' where new status contains "deposit"
+ *   - type:  'task.created' where the task title/type contains "deposit"
+ *   - type:  'payment.received' (any variant)
+ *   - data.customFields.depositReceived truthy
+ */
+function isDepositEvent(
+  eventType: string,
+  body: Record<string, any>,
+  data: Record<string, any>,
+): boolean {
+  const ev = (eventType || '').toLowerCase();
+
+  // Payment events — any payment.* event is a strong signal.
+  // Also catches 'payment_received', 'payment.created', etc.
+  if (ev.startsWith('payment')) return true;
+  if (ev.includes('deposit')) return true;  // e.g. 'deposit.received'
+
+  // Match deposit-related status across the common JN lifecycle phrasings:
+  //   "Deposit Received", "Deposited", "Down Payment", "Signed — Deposit",
+  //   "Scheduled - Deposit In", etc.
+  const depositStatusRe = /deposit|down\s*pay|sign.*deposit|scheduled.*deposit/i;
+
+  // job.status_changed / job.updated with a deposit-bearing status
+  if (ev === 'job.status_changed' || ev === 'job.updated' || ev === 'job.created') {
+    const candidateStatuses: string[] = [];
+    const pushIfString = (v: unknown) => {
+      if (typeof v === 'string' && v.trim()) candidateStatuses.push(v);
+    };
+    pushIfString(body?.new_status);
+    pushIfString(body?.old_status);
+    pushIfString(data?.new_status);
+    pushIfString(data?.status);
+    pushIfString(data?.status_name);
+    pushIfString(data?.record_type_name);
+    pushIfString(data?.workflow_stage);
+    for (const s of candidateStatuses) {
+      if (depositStatusRe.test(s)) return true;
+    }
+  }
+
+  // task.created / task.updated with a deposit-related title/type/description.
+  // Includes workflow tasks (e.g. "Collect Deposit", "Deposit Received").
+  if (ev === 'task.created' || ev === 'task.updated' || ev === 'task.completed') {
+    const title = `${data?.title || ''} ${data?.type || ''} ${data?.description || ''} ${data?.record_type_name || ''} ${data?.name || ''}`;
+    if (depositStatusRe.test(title)) return true;
+    // Task completion with a positive amount is ALSO a deposit signal
+    if (ev === 'task.completed' && Number(data?.amount || 0) > 0 && depositStatusRe.test(title)) {
+      return true;
+    }
+  }
+
+  // estimate.signed — in JN this means the customer accepted the estimate,
+  // which is effectively a deposit trigger for jobs that require one
+  if (ev === 'estimate.signed' || ev === 'estimate.approved') return true;
+
+  // Custom field flag — supports several field name conventions
+  const customFields = data?.customFields || data?.custom_fields || data?.custom || {};
+  if (customFields && typeof customFields === 'object') {
+    const candidates = [
+      customFields.depositReceived,
+      customFields.deposit_received,
+      customFields['Deposit Received'],
+      customFields['deposit-received'],
+      customFields.depositPaid,
+      customFields['Deposit Paid'],
+      customFields.downPayment,
+      customFields['Down Payment'],
+    ];
+    for (const flag of candidates) {
+      if (flag === true || flag === 'true' || flag === 1 || flag === '1') return true;
+      if (typeof flag === 'string' && /^(yes|y|paid|received|true)$/i.test(flag.trim())) return true;
+      // Treat any non-zero numeric amount as a deposit signal
+      if (typeof flag === 'number' && flag > 0) return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Auto-create a draft CustomerBreakdown in response to a JN deposit webhook.
+ * Everything is wrapped in try/catch — webhook MUST return 200 regardless.
+ */
+async function handleDepositWebhook(
+  data: Record<string, any>,
+  body: Record<string, any>,
+): Promise<void> {
+  try {
+    // Extract job identifiers from the payload. The payload shape varies by
+    // event type, so we probe multiple candidate fields.
+    // For task/payment events the related job is usually under data.related
+    // or data.primary or data.job_number.
+    const jnJobId: string =
+      (typeof data?.jnid === 'string' && data.jnid)
+      || (typeof data?.job_jnid === 'string' && data.job_jnid)
+      || (typeof data?.related?.jnid === 'string' && data.related.jnid)
+      || (typeof data?.primary?.jnid === 'string' && data.primary.jnid)
+      || '';
+
+    let jnJobNumber: string =
+      (typeof data?.number === 'string' && data.number)
+      || (typeof data?.job_number === 'string' && data.job_number)
+      || (typeof data?.related?.number === 'string' && data.related.number)
+      || '';
+
+    if (!jnJobNumber && !jnJobId) {
+      console.warn('[webhook] deposit event missing both jnJobId and jnJobNumber, skipping');
+      return;
+    }
+
+    // Fetch the full job from JN. Prefer by number (canonical R-number);
+    // fall back to by-id if we only have jnid.
+    let jnJob: Record<string, any> | null = null;
+    if (jnJobNumber) {
+      try {
+        jnJob = await jobNimbusService.getJobByNumber(jnJobNumber) as Record<string, any> | null;
+      } catch (err) {
+        console.warn(`[webhook] getJobByNumber(${jnJobNumber}) failed:`, err);
+      }
+    }
+    if (!jnJob && jnJobId) {
+      try {
+        jnJob = await jobNimbusService.getJob(jnJobId) as Record<string, any> | null;
+      } catch (err) {
+        console.warn(`[webhook] getJob(${jnJobId}) failed:`, err);
+      }
+    }
+
+    // If JN lookup failed, fall back to the webhook payload itself — it often
+    // contains enough data to build the draft. Never abort on lookup failure.
+    const job: Record<string, any> = jnJob || data;
+    const rNumber: string =
+      (typeof job?.number === 'string' && job.number)
+      || jnJobNumber
+      || '';
+
+    if (!rNumber) {
+      console.warn('[webhook] deposit event could not resolve rNumber, skipping');
+      return;
+    }
+
+    // Idempotency check — skip if breakdown already exists for this rNumber
+    try {
+      const existing = await getBreakdownByRNumber(rNumber);
+      if (existing) {
+        console.log(`[webhook] breakdown already exists for ${rNumber}, skipping deposit auto-create`);
+        return;
+      }
+    } catch (err) {
+      // If the check fails, continue — worst case is a duplicate, not data loss.
+      console.warn(`[webhook] getBreakdownByRNumber(${rNumber}) lookup failed, proceeding:`, err);
+    }
+
+    // Enrich with contact data if we have a contact jnid but no email/phone yet.
+    const contactJnid: string =
+      (typeof job?.primary?.jnid === 'string' && job.primary.jnid)
+      || (typeof job?.primary_id === 'string' && job.primary_id)
+      || '';
+
+    let contact: Record<string, any> | null = null;
+    if (contactJnid) {
+      try {
+        contact = await jobNimbusService.getContact(contactJnid) as Record<string, any> | null;
+      } catch (err) {
+        console.warn(`[webhook] getContact(${contactJnid}) failed:`, err);
+      }
+    }
+
+    // Build display name preferring contact, then job fields
+    const customerName: string =
+      (contact?.display_name as string)
+      || `${contact?.first_name || ''} ${contact?.last_name || ''}`.trim()
+      || (job?.display_name as string)
+      || `${job?.first_name || ''} ${job?.last_name || ''}`.trim()
+      || (job?.name as string)
+      || 'Unknown Customer';
+
+    // Address: prefer job's address, fall back to contact's
+    const addressLine1 = job?.address_line1 || contact?.address_line1 || '';
+    const city = job?.city || contact?.city || '';
+    const state = job?.state_text || contact?.state_text || '';
+    const zip = job?.zip || contact?.zip || '';
+    const address = [addressLine1, city, state, zip].filter(Boolean).join(', ');
+
+    const now = new Date().toISOString();
+    const breakdownId = generateBreakdownId();
+
+    const breakdown: CustomerBreakdown = {
+      breakdownId,
+      rNumber,
+      jnJobId: (job?.jnid as string) || jnJobId || '',
+      jnJobNumber: (job?.number as string) || rNumber,
+      customerName,
+      address,
+      salesRep: (job?.sales_rep_name as string) || '',
+      inspector: '',
+      dateInstalled: '',
+      jobTotal: 0,
+      permit: 0,
+      otherCosts: [],
+      materials: [],
+      labor: [],
+      paymentsIn: [],
+      commissionsPaid: { revisions: [] },
+      notes: 'Auto-created on JobNimbus deposit webhook. Office to fill in totals.',
+      status: 'draft',
+      createdAt: now,
+      updatedAt: now,
+      createdBy: 'jobnimbus-webhook',
+    };
+
+    // Compute initial totals (all zeros, but the service still expects them)
+    let savedOk = false;
+    try {
+      const config = await loadDropdownConfig();
+      const totals = calculateTotals(breakdown, config);
+      savedOk = await saveBreakdown(breakdown, totals);
+    } catch (err) {
+      console.error(`[webhook] failed to compute/save breakdown for ${rNumber}:`, err);
+      return;
+    }
+
+    if (!savedOk) {
+      console.error(`[webhook] saveBreakdown returned false for ${rNumber}`);
+      return;
+    }
+
+    console.log(`[webhook] Auto-created breakdown ${breakdownId} for ${rNumber} on deposit`);
+
+    auditLog(
+      'BREAKDOWN_AUTO_CREATED_DEPOSIT',
+      'jobnimbus-webhook',
+      `Deposit-triggered breakdown draft ${breakdownId} for ${rNumber} (${customerName})`,
+    );
+
+    // Notify stock of the new draft
+    try {
+      await emailService.send({
+        to: 'stock@rcrsal.com',
+        subject: `New breakdown draft: ${rNumber} - ${customerName}`,
+        body: `
+          <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;">
+            <div style="background:#000;padding:16px;text-align:center;">
+              <h2 style="color:#39FF14;margin:0;">New Breakdown Draft</h2>
+            </div>
+            <div style="padding:20px;background:#fff;">
+              <p>A deposit was received on JobNimbus and a draft breakdown has been auto-created.</p>
+              <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+                <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">R-Number</td><td style="padding:6px;border-bottom:1px solid #eee;">${rNumber}</td></tr>
+                <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Customer</td><td style="padding:6px;border-bottom:1px solid #eee;">${customerName}</td></tr>
+                <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Address</td><td style="padding:6px;border-bottom:1px solid #eee;">${address || 'n/a'}</td></tr>
+                <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Sales Rep</td><td style="padding:6px;border-bottom:1px solid #eee;">${breakdown.salesRep || 'unassigned'}</td></tr>
+                <tr><td style="padding:6px;font-weight:bold;">Breakdown ID</td><td style="padding:6px;">${breakdownId}</td></tr>
+              </table>
+              <p style="color:#666;font-size:12px;">Office to fill in totals, materials, labor, and payments.</p>
+            </div>
+          </div>
+        `,
+        fromName: 'RCRS JobNimbus',
+      });
+    } catch (err) {
+      // Email failure must not propagate — we've already saved the breakdown.
+      console.warn(`[webhook] stock notification email failed for ${rNumber}:`, err);
+    }
+  } catch (err) {
+    // Absolute outer catch — webhook processing must never throw to the caller
+    console.error('[webhook] handleDepositWebhook unexpected error:', err);
+  }
 }

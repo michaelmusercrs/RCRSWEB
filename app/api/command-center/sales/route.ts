@@ -104,7 +104,23 @@ interface ErrorResponse {
   timestamp: string;
 }
 
-type ValidPeriod = 'week' | 'month' | 'year' | 'all';
+type ValidPeriod =
+  | 'week'
+  | 'month'
+  | 'year'
+  | 'all'
+  | 'lastWeek'
+  | 'lastMonth'
+  | 'last7Days'
+  | 'last30Days'
+  | 'last90Days'
+  | 'custom';
+
+const VALID_PERIODS: ValidPeriod[] = [
+  'week', 'month', 'year', 'all',
+  'lastWeek', 'lastMonth', 'last7Days', 'last30Days', 'last90Days',
+  'custom',
+];
 
 // ============================================================================
 // Cache Implementation (5-minute TTL)
@@ -332,8 +348,7 @@ async function loadCommissionData(): Promise<CacheEntry> {
 // ============================================================================
 
 function validatePeriod(value: string | null): ValidPeriod {
-  const valid: ValidPeriod[] = ['week', 'month', 'year', 'all'];
-  if (value && valid.includes(value as ValidPeriod)) {
+  if (value && VALID_PERIODS.includes(value as ValidPeriod)) {
     return value as ValidPeriod;
   }
   return 'all';
@@ -362,6 +377,8 @@ interface FilterOptions {
   year: number | null;
   month: number | null;
   rep: string | null;
+  startDate?: string | null;  // YYYY-MM-DD, used when period=custom
+  endDate?: string | null;    // YYYY-MM-DD, used when period=custom
 }
 
 function filterEntries(entries: CommissionEntry[], options: FilterOptions): CommissionEntry[] {
@@ -387,6 +404,46 @@ function filterEntries(entries: CommissionEntry[], options: FilterOptions): Comm
     case 'year': {
       filterStart = new Date(targetYear, 0, 1);
       filterEnd = new Date(targetYear, 11, 31, 23, 59, 59, 999);
+      break;
+    }
+    case 'lastWeek': {
+      // Previous calendar week (Sun-Sat) using getWeekBoundaries semantics
+      const lastWeekRef = new Date(now);
+      lastWeekRef.setDate(now.getDate() - 7);
+      const { start, end } = getWeekBoundaries(lastWeekRef);
+      filterStart = start;
+      filterEnd = end;
+      break;
+    }
+    case 'lastMonth': {
+      filterStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      filterEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+      break;
+    }
+    case 'last7Days': {
+      filterStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+      filterEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      break;
+    }
+    case 'last30Days': {
+      filterStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29);
+      filterEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      break;
+    }
+    case 'last90Days': {
+      filterStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 89);
+      filterEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      break;
+    }
+    case 'custom': {
+      if (options.startDate && options.endDate) {
+        const s = new Date(options.startDate + 'T00:00:00');
+        const e = new Date(options.endDate + 'T23:59:59');
+        if (!isNaN(s.getTime()) && !isNaN(e.getTime()) && s <= e) {
+          filterStart = s;
+          filterEnd = e;
+        }
+      }
       break;
     }
     case 'all':
@@ -589,13 +646,38 @@ export async function GET(request: NextRequest): Promise<NextResponse<SalesApiRe
     const year = validateYear(searchParams.get('year'));
     const month = validateMonth(searchParams.get('month'));
     const rep = searchParams.get('rep')?.trim() || null;
+    const startDate = searchParams.get('startDate')?.trim() || null;
+    const endDate = searchParams.get('endDate')?.trim() || null;
+
+    // Validate custom date range up front so the caller gets a clear error
+    if (period === 'custom') {
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!startDate || !endDate || !dateRegex.test(startDate) || !dateRegex.test(endDate)) {
+        const errorResponse: ErrorResponse = {
+          success: false,
+          error: 'Custom period requires startDate and endDate in YYYY-MM-DD format',
+          code: 'INVALID_DATE_RANGE',
+          timestamp,
+        };
+        return NextResponse.json(errorResponse, { status: 400 });
+      }
+      if (startDate > endDate) {
+        const errorResponse: ErrorResponse = {
+          success: false,
+          error: 'startDate must be on or before endDate',
+          code: 'INVALID_DATE_RANGE',
+          timestamp,
+        };
+        return NextResponse.json(errorResponse, { status: 400 });
+      }
+    }
 
     // Load data (from cache or bundled JSON + live Google Sheets)
     const wasCached = isCacheValid();
     const cacheEntry = await loadCommissionData();
 
     // Filter entries based on query params
-    const filterOptions: FilterOptions = { period, year, month, rep };
+    const filterOptions: FilterOptions = { period, year, month, rep, startDate, endDate };
     const filteredEntries = filterEntries(cacheEntry.data, filterOptions);
 
     // Build response data

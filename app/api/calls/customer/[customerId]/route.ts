@@ -47,9 +47,9 @@ export async function GET(
     const isPhone = /^[\d\-\(\)\s]+$/.test(identifier);
 
     if (isPhone) {
-      calls = callsService.getCallsByPhone(identifier);
+      calls = await callsService.getCallsByPhone(identifier);
     } else {
-      calls = callsService.getCallsByCustomer(identifier);
+      calls = await callsService.getCallsByCustomer(identifier);
     }
 
     // Limit results

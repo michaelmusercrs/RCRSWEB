@@ -1,49 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { leadPortalService } from '@/lib/lead-portal-service';
-import fs from 'fs';
-import path from 'path';
 
-const DATA_FILE = path.join(process.cwd(), 'data', 'notification-preferences.json');
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
-interface NotificationPreferences {
-  customerId: string;
-  emailNotifications: boolean;
-  smsNotifications: boolean;
-  weatherAlerts: boolean;
-  statusUpdates: boolean;
-  updatedAt: string;
-}
-
-interface PreferencesData {
-  preferences: NotificationPreferences[];
-}
-
-function readData(): PreferencesData {
-  try {
-    if (fs.existsSync(DATA_FILE)) {
-      const content = fs.readFileSync(DATA_FILE, 'utf-8');
-      return JSON.parse(content);
-    }
-  } catch (error) {
-    console.error('[NotificationPreferences] Error reading data:', error);
-  }
-  return { preferences: [] };
-}
-
-function writeData(data: PreferencesData): void {
-  try {
-    const dir = path.dirname(DATA_FILE);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-  } catch (error) {
-    console.error('[NotificationPreferences] Error writing data:', error);
-    throw error;
-  }
-}
-
-const DEFAULT_PREFERENCES: Omit<NotificationPreferences, 'customerId' | 'updatedAt'> = {
+const DEFAULT_PREFERENCES = {
   emailNotifications: true,
   smsNotifications: true,
   weatherAlerts: true,
@@ -80,8 +41,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
     }
 
-    const data = readData();
-    const existing = data.preferences.find(p => p.customerId === customer.customerId);
+    const existing = await leadPortalService.getNotificationPrefs(customer.customerId);
 
     if (existing) {
       return NextResponse.json({ preferences: existing });
@@ -116,10 +76,9 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
     }
 
-    const data = readData();
     const now = new Date().toISOString();
 
-    const updatedPrefs: NotificationPreferences = {
+    const updatedPrefs = {
       customerId: customer.customerId,
       emailNotifications: typeof emailNotifications === 'boolean' ? emailNotifications : DEFAULT_PREFERENCES.emailNotifications,
       smsNotifications: typeof smsNotifications === 'boolean' ? smsNotifications : DEFAULT_PREFERENCES.smsNotifications,
@@ -128,14 +87,7 @@ export async function PUT(request: NextRequest) {
       updatedAt: now,
     };
 
-    const existingIndex = data.preferences.findIndex(p => p.customerId === customer.customerId);
-    if (existingIndex >= 0) {
-      data.preferences[existingIndex] = updatedPrefs;
-    } else {
-      data.preferences.push(updatedPrefs);
-    }
-
-    writeData(data);
+    await leadPortalService.upsertNotificationPrefs(updatedPrefs);
 
     return NextResponse.json({
       success: true,

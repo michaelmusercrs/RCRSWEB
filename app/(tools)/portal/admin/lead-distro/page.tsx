@@ -522,6 +522,13 @@ export default function LeadDistroAdmin() {
                 </div>
               </div>
               <div className="flex items-center gap-3">
+                <Link
+                  href="/portal/admin/lead-distro/dispatch"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm bg-white/5 hover:bg-white/10 text-neutral-300 transition-colors"
+                >
+                  <Users size={16} />
+                  Dispatch Queue
+                </Link>
                 <button
                   onClick={handleSave}
                   disabled={saving || !weightsValid}

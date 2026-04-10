@@ -1,42 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { auditLog } from '@/lib/audit-logger';
-import fs from 'fs';
-import path from 'path';
-
-const DATA_FILE = path.join(process.cwd(), 'data', 'blog-posts.json');
-
-interface BlogPost {
-  id: string;
-  slug: string;
-  authorSlug: string;
-  authorName: string;
-  title: string;
-  metaDescription: string;
-  body: string;
-  images: string[];
-  status: 'draft' | 'review' | 'approved' | 'published' | 'rejected';
-  createdAt: string;
-  updatedAt: string;
-  publishDate: string | null;
-  publishedAt: string | null;
-  rejectionReason: string | null;
-}
-
-function readPosts(): BlogPost[] {
-  try {
-    if (!fs.existsSync(DATA_FILE)) return [];
-    return JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
-  } catch {
-    return [];
-  }
-}
-
-function writePosts(posts: BlogPost[]) {
-  const dir = path.dirname(DATA_FILE);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(DATA_FILE, JSON.stringify(posts, null, 2));
-}
+import {
+  type BlogPost,
+  readBlogPosts,
+  upsertBlogPost,
+} from '@/lib/blog-posts-store';
 
 function slugify(title: string): string {
   return title
@@ -106,14 +75,14 @@ export async function GET(request: NextRequest) {
   const auth = await requireAuth();
   if (!auth.authenticated) return auth.response;
 
-  const posts = readPosts();
+  const posts = await readBlogPosts();
   const isAdmin = auth.user.role === 'admin' || auth.user.role === 'owner';
 
   const filtered = isAdmin ? posts : posts.filter(p => p.authorSlug === auth.user.userId);
-  
+
   // Include publish cooldown info
   const cooldownDate = checkPublishCooldown(posts);
-  
+
   return NextResponse.json({ success: true, posts: filtered, cooldownDate });
 }
 
@@ -143,7 +112,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const posts = readPosts();
+  const posts = await readBlogPosts();
 
   // Generate unique slug
   let slug = slugify(title);
@@ -169,8 +138,7 @@ export async function POST(request: NextRequest) {
     rejectionReason: null,
   };
 
-  posts.push(newPost);
-  writePosts(posts);
+  await upsertBlogPost(newPost);
 
   auditLog('BLOG_CREATE', auth.user.email, `Created blog post "${title}" (${newPost.id}, status: ${status})`, request);
 

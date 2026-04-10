@@ -136,13 +136,19 @@ function buildReviewCounts(start?: string, end?: string): Map<string, number> {
 // ---------------------------------------------------------------------------
 
 const VALID_PERIODS = [
-  'thisWeek', 'lastWeek', 'thisMonth', 'thisQuarter', 'thisYear', 'allTime', 'custom',
+  'thisWeek', 'lastWeek', 'thisMonth', 'lastMonth',
+  'last7Days', 'last30Days', 'last90Days',
+  'thisQuarter', 'thisYear', 'allTime', 'custom',
 ] as const;
 
 const PERIOD_LABELS: Record<string, string> = {
   thisWeek: 'This Week',
   lastWeek: 'Last Week',
   thisMonth: 'This Month',
+  lastMonth: 'Last Month',
+  last7Days: 'Last 7 Days',
+  last30Days: 'Last 30 Days',
+  last90Days: 'Last 90 Days',
   thisQuarter: 'This Quarter',
   thisYear: 'This Year',
   allTime: 'All Time',
@@ -218,6 +224,26 @@ function getDateRange(
       const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
       const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
       return { start: formatDate(firstDay), end: formatDate(lastDay) };
+    }
+    case 'lastMonth': {
+      const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const lastDay = new Date(now.getFullYear(), now.getMonth(), 0);
+      return { start: formatDate(firstDay), end: formatDate(lastDay) };
+    }
+    case 'last7Days': {
+      const start = new Date(now);
+      start.setDate(now.getDate() - 6);
+      return { start: formatDate(start), end: formatDate(now) };
+    }
+    case 'last30Days': {
+      const start = new Date(now);
+      start.setDate(now.getDate() - 29);
+      return { start: formatDate(start), end: formatDate(now) };
+    }
+    case 'last90Days': {
+      const start = new Date(now);
+      start.setDate(now.getDate() - 89);
+      return { start: formatDate(start), end: formatDate(now) };
     }
     case 'thisQuarter': {
       const quarter = Math.floor(now.getMonth() / 3);

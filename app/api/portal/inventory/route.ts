@@ -15,6 +15,7 @@ import {
   type InventoryCategory,
   type InventoryFilters,
 } from '@/lib/unified-inventory-service';
+import { filterCostByRole, canSeeCostOnInventoryEntry } from '@/lib/cost-visibility';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth();
@@ -40,7 +41,19 @@ export async function GET(request: NextRequest) {
 
         const inventory = await unifiedInventoryService.getInventory(filters);
         const value = await unifiedInventoryService.getInventoryValue();
-        return NextResponse.json({ items: inventory, ...value });
+
+        // Cost visibility:
+        //   - Default catalog browse: cost stripped for driver, sales, customer
+        //   - When ?purpose=restock or ?includeCost=1, use the inventory-entry
+        //     guard which allows the driver (Rick types supplier prices when
+        //     stock comes in). Office and above always see cost regardless.
+        const purpose = searchParams.get('purpose');
+        const includeCost = searchParams.get('includeCost') === '1' || purpose === 'restock' || purpose === 'pricing';
+        const payload = { items: inventory, ...value };
+        if (includeCost && canSeeCostOnInventoryEntry(auth.user.role)) {
+          return NextResponse.json(payload);
+        }
+        return NextResponse.json(filterCostByRole(payload, auth.user.role));
       }
 
       case 'item': {
@@ -48,7 +61,12 @@ export async function GET(request: NextRequest) {
         if (!productId) return NextResponse.json({ error: 'productId required' }, { status: 400 });
         const item = await unifiedInventoryService.getItemById(productId);
         if (!item) return NextResponse.json({ error: 'Item not found' }, { status: 404 });
-        return NextResponse.json(item);
+        const purpose = searchParams.get('purpose');
+        const includeCost = searchParams.get('includeCost') === '1' || purpose === 'restock' || purpose === 'pricing';
+        if (includeCost && canSeeCostOnInventoryEntry(auth.user.role)) {
+          return NextResponse.json(item);
+        }
+        return NextResponse.json(filterCostByRole(item, auth.user.role));
       }
 
       case 'alerts': {
@@ -235,6 +253,30 @@ export async function POST(request: NextRequest) {
         if (!txn) return NextResponse.json({ error: 'Item not found' }, { status: 404 });
         auditLog('INVENTORY_ADD_STOCK', auth.user.email, `Added ${body.quantity} to ${body.productId} (type: ${body.type || 'adjustment'})`, request);
         return NextResponse.json(txn);
+      }
+
+      case 'logRestockReceived': {
+        // Aggregate audit event fired once per shipment by the restock page.
+        // Per-line INVENTORY_ADD_STOCK events are still written by the
+        // addStock case above; this one captures the supplier + totals so
+        // the AuditLog can be queried for "shipments received today".
+        // Gate on the inventory-entry cost role (driver included).
+        if (!canSeeCostOnInventoryEntry(auth.user.role)) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+        const supplier = String(body.supplier || 'unknown');
+        const receiptNumber = String(body.receiptNumber || '');
+        const totalItems = Number(body.totalItems || 0);
+        const totalCost = Number(body.totalCost || 0);
+        const details =
+          `Restock received from ${supplier}` +
+          (receiptNumber ? ` (receipt ${receiptNumber})` : '') +
+          ` — ${totalItems} line${totalItems === 1 ? '' : 's'}, total cost $${totalCost.toFixed(2)}`;
+        // Dynamic import per convention — keeps the sheets client out of the
+        // hot path when this action isn't used.
+        const { auditLog: log } = await import('@/lib/audit-logger');
+        log('INVENTORY_RESTOCK_RECEIVED', auth.user.email, details, request);
+        return NextResponse.json({ success: true });
       }
 
       case 'updatePricing': {

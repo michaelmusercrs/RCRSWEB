@@ -1,40 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { auditLog } from '@/lib/audit-logger';
-import fs from 'fs';
-import path from 'path';
-
-const DATA_FILE = path.join(process.cwd(), 'data', 'blog-posts.json');
-
-interface BlogPost {
-  id: string;
-  slug: string;
-  authorSlug: string;
-  authorName: string;
-  title: string;
-  metaDescription: string;
-  body: string;
-  images: string[];
-  status: 'draft' | 'review' | 'approved' | 'published' | 'rejected';
-  createdAt: string;
-  updatedAt: string;
-  publishDate: string | null;
-  publishedAt: string | null;
-  rejectionReason: string | null;
-}
-
-function readPosts(): BlogPost[] {
-  try {
-    if (!fs.existsSync(DATA_FILE)) return [];
-    return JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
-  } catch {
-    return [];
-  }
-}
-
-function writePosts(posts: BlogPost[]) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(posts, null, 2));
-}
+import {
+  type BlogPost,
+  findBlogPostById,
+  upsertBlogPost,
+  deleteBlogPost,
+} from '@/lib/blog-posts-store';
 
 function countWords(text: string): number {
   return text.trim().split(/\s+/).filter(w => w.length > 0).length;
@@ -55,8 +27,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   if (!auth.authenticated) return auth.response;
 
   const { id } = await params;
-  const posts = readPosts();
-  const post = posts.find(p => p.id === id);
+  const post = await findBlogPostById(id);
 
   if (!post) {
     return NextResponse.json({ success: false, error: 'Post not found' }, { status: 404 });
@@ -75,14 +46,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   if (!auth.authenticated) return auth.response;
 
   const { id } = await params;
-  const posts = readPosts();
-  const idx = posts.findIndex(p => p.id === id);
+  const post = await findBlogPostById(id);
 
-  if (idx === -1) {
+  if (!post) {
     return NextResponse.json({ success: false, error: 'Post not found' }, { status: 404 });
   }
 
-  const post = posts[idx];
   const isAdmin = auth.user.role === 'admin' || auth.user.role === 'owner';
 
   if (!isAdmin && post.authorSlug !== auth.user.userId) {
@@ -122,8 +91,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   post.updatedAt = new Date().toISOString();
-  posts[idx] = post;
-  writePosts(posts);
+  await upsertBlogPost(post);
 
   const blogAction = status === 'approved' ? 'BLOG_APPROVE' : status === 'published' ? 'BLOG_PUBLISH' : status === 'rejected' ? 'BLOG_REJECT' : 'BLOG_EDIT';
   auditLog(blogAction, auth.user.email, `${blogAction === 'BLOG_EDIT' ? 'Edited' : blogAction === 'BLOG_APPROVE' ? 'Approved' : blogAction === 'BLOG_PUBLISH' ? 'Published' : 'Rejected'} blog post "${post.title}" (${id})`, request);
@@ -136,14 +104,12 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   if (!auth.authenticated) return auth.response;
 
   const { id } = await params;
-  const posts = readPosts();
-  const idx = posts.findIndex(p => p.id === id);
+  const post = await findBlogPostById(id);
 
-  if (idx === -1) {
+  if (!post) {
     return NextResponse.json({ success: false, error: 'Post not found' }, { status: 404 });
   }
 
-  const post = posts[idx];
   const isAdmin = auth.user.role === 'admin' || auth.user.role === 'owner';
 
   if (!isAdmin && post.authorSlug !== auth.user.userId) {
@@ -154,8 +120,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     return NextResponse.json({ success: false, error: 'Can only delete draft posts' }, { status: 400 });
   }
 
-  posts.splice(idx, 1);
-  writePosts(posts);
+  await deleteBlogPost(id);
 
   auditLog('BLOG_DELETE', auth.user.email, `Deleted blog post "${post.title}" (${id})`, request);
 

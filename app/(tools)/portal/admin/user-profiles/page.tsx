@@ -10,7 +10,7 @@ import {
   Calendar, FileText, Globe, PhoneCall, CreditCard, BarChart3,
   GraduationCap, UserCircle, UsersRound, MessageSquare, Truck,
   ShieldCheck, ClipboardCheck, Star, MapPin, Clock, ClipboardList,
-  Bell, ToggleLeft, ToggleRight, Sparkles, RotateCcw, X, Eye
+  Bell, ToggleLeft, ToggleRight, Sparkles, RotateCcw, X, Eye, Loader2
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import {
@@ -320,6 +320,9 @@ export default function UserProfileManagerPage() {
   const [expandedPermModules, setExpandedPermModules] = useState<Set<string>>(new Set());
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isImpersonating, setIsImpersonatingLocal] = useState(false);
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const router = useRouter();
   const { user: currentUser } = useAuth();
 
@@ -381,6 +384,86 @@ export default function UserProfileManagerPage() {
       loadConfig(selectedMember);
     }
   }, [selectedMember, loadConfig]);
+
+  // Load the team member's existing profile image (from team-members blob/file)
+  // whenever the selected user changes. Falls back to null if none on record.
+  useEffect(() => {
+    if (!selectedMember?.slug) {
+      setProfileImageUrl(null);
+      setPhotoError(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/admin/team-members/${selectedMember.slug}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+        setProfileImageUrl(data?.member?.profileImage || null);
+        setPhotoError(null);
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Failed to load team member photo:', err);
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [selectedMember]);
+
+  // Upload a new profile photo. Validates client-side, posts to the
+  // admin upload endpoint, then refreshes the displayed URL.
+  const handlePhotoUpload = async (file: File) => {
+    if (!selectedMember?.slug) return;
+    setPhotoError(null);
+
+    // Client-side validation (server validates again)
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/heic'].includes(file.type)) {
+      setPhotoError(`Unsupported file type: ${file.type}`);
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoError(`File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 5MB.`);
+      return;
+    }
+    if (file.size === 0) {
+      setPhotoError('File is empty');
+      return;
+    }
+
+    setPhotoUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('slug', selectedMember.slug);
+      formData.append('field', 'profileImage');
+
+      const res = await fetch('/api/admin/team-photo-upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok && res.status !== 207) {
+        throw new Error(data?.error || `Upload failed (${res.status})`);
+      }
+
+      // Even on partial-success (207), the URL is in the response and we
+      // can show it. The user can re-save the form to retry the metadata write.
+      if (data?.url) {
+        setProfileImageUrl(data.url);
+        setToast({
+          show: true,
+          message: res.status === 207
+            ? 'Photo uploaded but team save failed — re-save to retry'
+            : `Photo updated for ${selectedMember.name}`,
+        });
+      }
+    } catch (err) {
+      setPhotoError(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
 
   // Filtered members
   const filteredMembers = TEAM_MEMBERS.filter(m => {
@@ -697,11 +780,60 @@ export default function UserProfileManagerPage() {
                 <section className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-5">
-                      <div className={`w-16 h-16 rounded-2xl ${ROLE_COLORS[config.role]}/20 flex items-center justify-center text-2xl font-bold ${ROLE_COLORS[config.role].replace('bg-', 'text-')}`}>
-                        {selectedMember.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                      </div>
+                      {/* Profile photo with click-to-upload + hover overlay */}
+                      <label
+                        className={`relative group w-20 h-20 rounded-2xl overflow-hidden cursor-pointer flex-shrink-0 ${
+                          profileImageUrl
+                            ? 'bg-zinc-900'
+                            : `${ROLE_COLORS[config.role]}/20 flex items-center justify-center text-2xl font-bold ${ROLE_COLORS[config.role].replace('bg-', 'text-')}`
+                        }`}
+                        title="Click to upload a new photo"
+                      >
+                        {profileImageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={profileImageUrl}
+                            alt={selectedMember.name}
+                            className="w-full h-full object-cover"
+                            onError={() => setProfileImageUrl(null)}
+                          />
+                        ) : (
+                          <span>
+                            {selectedMember.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                          </span>
+                        )}
+                        {/* Hover overlay */}
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          {photoUploading ? (
+                            <Loader2 className="w-6 h-6 text-brand-green animate-spin" />
+                          ) : (
+                            <span className="text-[10px] text-white font-bold uppercase tracking-wider">
+                              Change
+                              <br />Photo
+                            </span>
+                          )}
+                        </div>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/heic"
+                          className="sr-only"
+                          disabled={photoUploading}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handlePhotoUpload(file);
+                            // Reset so re-uploading the same file fires onChange
+                            e.target.value = '';
+                          }}
+                        />
+                      </label>
                       <div>
                         <h2 className="text-2xl font-bold text-white">{selectedMember.name}</h2>
+                        {photoError && (
+                          <div className="mt-1 text-xs text-red-400 flex items-center gap-1">
+                            <AlertCircle size={12} />
+                            {photoError}
+                          </div>
+                        )}
                         <div className="flex items-center gap-4 mt-1.5 text-sm text-neutral-400">
                           <span className="flex items-center gap-1.5"><Mail size={14} />{selectedMember.email}</span>
                           {selectedMember.phone && (

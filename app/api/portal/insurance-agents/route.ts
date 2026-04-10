@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { insuranceAgentService, type AgentArea } from '@/lib/insurance-agent-service';
+import { auditLog } from '@/lib/audit-logger';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth();
@@ -113,6 +114,19 @@ export async function POST(request: NextRequest) {
           outcome: body.outcome,
           followUpDate: body.followUpDate,
         });
+
+        // Audit log — never break the business logic
+        try {
+          auditLog(
+            'AGENT_VISIT_RECORDED',
+            auth.user.email,
+            `Visit to agent ${visit.agentName} (${visit.company}) on ${visit.visitDate}. Duration: ${visit.duration || 'n/a'}. Outcome: ${visit.outcome || 'n/a'}.`,
+            request
+          );
+        } catch (auditErr) {
+          console.warn('[audit] AGENT_VISIT_RECORDED log failed:', auditErr);
+        }
+
         return NextResponse.json(visit, { status: 201 });
       }
 

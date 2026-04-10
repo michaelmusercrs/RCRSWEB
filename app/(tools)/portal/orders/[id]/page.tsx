@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft,
   Package,
@@ -23,254 +23,322 @@ import {
   ClipboardCheck,
   RefreshCw,
   ExternalLink,
-  Edit,
   RotateCcw,
   Receipt,
   Printer,
-  Ticket,
   Loader2,
+  ChevronRight,
 } from 'lucide-react';
 
-interface OrderItem {
+// Pipeline order shape — matches lib/material-order-pipeline.ts PipelineOrder
+interface PipelineOrderItem {
   itemId: string;
   productId: string;
   productName: string;
+  sku: string;
   category: string;
   quantity: number;
   unit: string;
+  unitCost?: number;     // hidden for sales/driver roles
   unitPrice: number;
+  totalCost?: number;    // hidden for sales/driver roles
   totalPrice: number;
-  pulled: boolean;
-  verified: boolean;
+  pulledQty: number;
+  verifiedQty: number;
+  deliveredQty: number;
+  returnedQty: number;
+  holdId?: string;
+  notes?: string;
 }
 
-interface MaterialOrder {
+interface PipelineEvent {
+  eventId: string;
   orderId: string;
+  stage: string;
+  timestamp: string;
+  performedBy: string;
+  performedByName: string;
+  performedByRole: string;
+  photoUrls: string[];
+  gpsLatitude?: number;
+  gpsLongitude?: number;
+  gpsAddress?: string;
+  notes?: string;
+  metadata?: string;
+}
+
+interface PipelineOrder {
+  orderId: string;
+  currentStage: string;
+  priority: 'normal' | 'rush' | 'urgent';
   createdAt: string;
+  updatedAt: string;
   createdBy: string;
   createdByName: string;
-  status: string;
-  priority: string;
+  createdByRole: string;
+  jobId?: string;
+  jobNimbusId?: string;
   jobNumber: string;
   jobName: string;
-  jobNimbusId?: string;
   customerName: string;
   customerPhone: string;
   customerEmail?: string;
-  customerAddress: string;
-  city: string;
-  state: string;
-  zipCode: string;
+  deliveryAddress: string;
+  deliveryCity: string;
+  deliveryState: string;
+  deliveryZip: string;
   requestedDeliveryDate: string;
-  requestedDeliveryTime?: string;
   scheduledDeliveryDate?: string;
   scheduledDeliveryTime?: string;
-  estimatedArrival?: string;
-  assignedDriver?: string;
+  assignedDriverId?: string;
   assignedDriverName?: string;
-  assignedVehicle?: string;
-  items: OrderItem[];
-  totalItems: number;
+  items: PipelineOrderItem[];
+  totalCost?: number;
   totalPrice: number;
+  customerInvoiceId?: string;
+  internalInvoiceId?: string;
+  paymentStatus: string;
+  paymentAmount?: number;
+  paymentDate?: string;
   specialInstructions?: string;
-  internalNotes?: string;
-  approvedBy?: string;
-  approvedAt?: string;
-  loadedAt?: string;
-  loadedBy?: string;
-  departedAt?: string;
-  deliveredAt?: string;
+  notes?: string;
+  cancelled: boolean;
+  cancelReason?: string;
   completedAt?: string;
-  invoiceId?: string;
-  invoiceStatus?: string;
-  hasBreakdownSheet: boolean;
-  inspectorRequired: boolean;
-  inspectorName?: string;
-  inspectorPhone?: string;
-  inspectorArrivalTime?: string;
-  qualityCheckComplete: boolean;
-  qualityCheckBy?: string;
-  qualityCheckAt?: string;
+  events: PipelineEvent[];
 }
 
-const STATUS_STEPS = [
-  { key: 'submitted', label: 'Submitted', icon: FileText },
-  { key: 'approved', label: 'Approved', icon: CheckCircle },
-  { key: 'processing', label: 'Processing', icon: ClipboardCheck },
-  { key: 'loading', label: 'Loading', icon: Package },
-  { key: 'ready_for_delivery', label: 'Ready', icon: Truck },
-  { key: 'in_transit', label: 'In Transit', icon: Navigation },
-  { key: 'delivered', label: 'Delivered', icon: MapPin },
-  { key: 'completed', label: 'Complete', icon: CheckCircle },
-];
+interface PipelineInvoice {
+  invoiceId: string;
+  orderId: string;
+  type: 'customer' | 'internal';
+  jobNumber: string;
+  jobName: string;
+  customerName: string;
+  customerEmail?: string;
+  items: {
+    productName: string;
+    quantity: number;
+    unit: string;
+    unitPrice: number;
+    totalPrice: number;
+    unitCost?: number;
+    totalCost?: number;
+  }[];
+  subtotal: number;
+  tax: number;
+  total: number;
+  costTotal?: number;
+  margin?: number;
+  status: 'draft' | 'sent' | 'paid' | 'void';
+  createdAt: string;
+  sentAt?: string;
+  paidAt?: string;
+  paidAmount?: number;
+}
+
+// 18 pipeline stages — order, label, icon, role
+const PIPELINE_STAGES = [
+  'ORDER_CREATED',
+  'ORDER_REVIEWED',
+  'DRIVER_ASSIGNED',
+  'WAREHOUSE_NOTIFIED',
+  'MATERIALS_PULLED',
+  'LOAD_VERIFIED',
+  'DEPARTURE_CONFIRMED',
+  'EN_ROUTE',
+  'ARRIVED_AT_SITE',
+  'UNLOADING',
+  'DELIVERY_CONFIRMED',
+  'SIGNATURE_CAPTURED',
+  'QC_PHOTOS',
+  'OFFICE_NOTIFIED',
+  'BILLING_REVIEW',
+  'INVOICE_SENT',
+  'PAYMENT_RECEIVED',
+  'JOB_CLOSED',
+] as const;
+
+const STAGE_LABELS: Record<string, string> = {
+  ORDER_CREATED: 'Order Created',
+  ORDER_REVIEWED: 'Reviewed',
+  DRIVER_ASSIGNED: 'Driver Assigned',
+  WAREHOUSE_NOTIFIED: 'Warehouse Notified',
+  MATERIALS_PULLED: 'Materials Pulled',
+  LOAD_VERIFIED: 'Load Verified',
+  DEPARTURE_CONFIRMED: 'Departed',
+  EN_ROUTE: 'En Route',
+  ARRIVED_AT_SITE: 'At Site',
+  UNLOADING: 'Unloading',
+  DELIVERY_CONFIRMED: 'Delivered',
+  SIGNATURE_CAPTURED: 'Signed',
+  QC_PHOTOS: 'QC Photos',
+  OFFICE_NOTIFIED: 'Office Notified',
+  BILLING_REVIEW: 'Billing Review',
+  INVOICE_SENT: 'Invoice Sent',
+  PAYMENT_RECEIVED: 'Paid',
+  JOB_CLOSED: 'Closed',
+};
+
+const PRIORITY_BADGE_COLORS: Record<string, string> = {
+  normal: 'bg-zinc-700/50 text-zinc-300',
+  rush: 'bg-orange-500/20 text-orange-400',
+  urgent: 'bg-red-500/20 text-red-400',
+};
+
+type Tab = 'details' | 'timeline' | 'invoice';
 
 export default function OrderDetailPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const orderId = params.id as string;
-  const [order, setOrder] = useState<MaterialOrder | null>(null);
+  const initialTab = (searchParams.get('tab') as Tab) || 'details';
+
+  const [order, setOrder] = useState<PipelineOrder | null>(null);
+  const [invoices, setInvoices] = useState<PipelineInvoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'details' | 'tracking' | 'quality' | 'invoice'>('details');
-  const [creatingTicket, setCreatingTicket] = useState(false);
-  const [linkedTicketId, setLinkedTicketId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
+  const [advancing, setAdvancing] = useState(false);
+  const [advanceError, setAdvanceError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchOrder();
-  }, [orderId]);
-
-  async function fetchOrder() {
+  const fetchOrder = useCallback(async () => {
     try {
-      const response = await fetch(`/api/portal/orders/workflow?orderId=${orderId}`);
-      if (response.ok) {
-        const data = await response.json();
+      const [orderRes, invoiceRes] = await Promise.all([
+        fetch(`/api/portal/pipeline?action=order&orderId=${orderId}`),
+        fetch(`/api/portal/pipeline?action=invoices&orderId=${orderId}`),
+      ]);
+      if (orderRes.ok) {
+        const data = await orderRes.json();
         setOrder(data);
+      } else {
+        setOrder(null);
+      }
+      if (invoiceRes.ok) {
+        const inv = await invoiceRes.json();
+        setInvoices(Array.isArray(inv) ? inv : []);
       }
     } catch (error) {
       console.error('Error fetching order:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  }
+  }, [orderId]);
 
-  async function refreshOrder() {
+  useEffect(() => {
+    fetchOrder();
+  }, [fetchOrder]);
+
+  const refreshOrder = () => {
     setRefreshing(true);
-    await fetchOrder();
-    setRefreshing(false);
-  }
+    fetchOrder();
+  };
 
-  async function createTicketFromOrder() {
+  // Advance to the next stage (uses /api/portal/pipeline transitionStage).
+  // Stages that require photos/GPS will fail server-side with a clear error
+  // — those need to be advanced from the driver/warehouse pages instead.
+  const advanceToNextStage = async () => {
     if (!order) return;
-    setCreatingTicket(true);
+    const idx = PIPELINE_STAGES.indexOf(order.currentStage as typeof PIPELINE_STAGES[number]);
+    if (idx === -1 || idx >= PIPELINE_STAGES.length - 1) return;
+    const nextStage = PIPELINE_STAGES[idx + 1];
+
+    // PAYMENT_RECEIVED requires a payment amount; prompt for it.
+    let paymentAmount: number | undefined;
+    if (nextStage === 'PAYMENT_RECEIVED') {
+      const input = prompt(`Payment amount for order ${order.orderId}?`, String(order.totalPrice));
+      if (!input) return;
+      const parsed = parseFloat(input);
+      if (isNaN(parsed) || parsed <= 0) {
+        alert('Invalid payment amount');
+        return;
+      }
+      paymentAmount = parsed;
+    }
+
+    setAdvancing(true);
+    setAdvanceError(null);
     try {
-      const response = await fetch('/api/portal/material-orders', {
+      const res = await fetch('/api/portal/pipeline', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'create-ticket-from-job',
-          jobId: order.jobNumber,
-          jobName: order.jobName,
-          jobAddress: order.customerAddress,
-          city: order.city,
-          state: order.state,
-          zip: order.zipCode,
-          customerName: order.customerName,
-          customerPhone: order.customerPhone,
-          customerEmail: order.customerEmail,
-          salesRep: order.createdByName,
-          createdBy: order.createdBy || 'system',
-          createdByName: order.createdByName || 'System',
-          requestedDate: order.requestedDeliveryDate,
-          priority: order.priority || 'normal',
-          specialInstructions: order.specialInstructions,
-          materials: (order.items || []).map((item: OrderItem) => ({
-            productId: item.productId,
-            productName: item.productName,
-            quantity: item.quantity,
-            unit: item.unit,
-            unitPrice: item.unitPrice,
-            category: item.category,
-          })),
+          action: 'transitionStage',
+          orderId: order.orderId,
+          stage: nextStage,
+          paymentAmount,
         }),
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.ticket?.ticketId) {
-          setLinkedTicketId(data.ticket.ticketId);
-        }
+      const data = await res.json();
+      if (!res.ok) {
+        setAdvanceError(data.error || `Failed to advance to ${nextStage}`);
+      } else {
+        await fetchOrder();
       }
-    } catch (error) {
-      console.error('Error creating ticket from order:', error);
+    } catch (err) {
+      console.error('Stage advance failed:', err);
+      setAdvanceError(err instanceof Error ? err.message : 'Stage advance failed');
     } finally {
-      setCreatingTicket(false);
+      setAdvancing(false);
     }
-  }
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
   };
 
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
+    if (!dateStr) return '—';
+    try {
+      return new Date(dateStr).toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    } catch {
+      return dateStr;
+    }
   };
 
   const formatTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-    });
-  };
-
-  const getStatusIndex = (status: string) => {
-    return STATUS_STEPS.findIndex(s => s.key === status);
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-      case 'delivered':
-        return 'bg-green-500/20 text-green-400';
-      case 'in_transit':
-      case 'ready_for_delivery':
-      case 'loading':
-        return 'bg-brand-green/20 text-blue-400';
-      case 'processing':
-      case 'approved':
-        return 'bg-purple-500/20 text-purple-400';
-      case 'submitted':
-        return 'bg-yellow-500/20 text-yellow-400';
-      case 'cancelled':
-        return 'bg-red-500/20 text-red-400';
-      case 'on_hold':
-        return 'bg-orange-500/20 text-orange-400';
-      default:
-        return 'bg-white/10 text-neutral-300';
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'urgent':
-        return 'bg-red-500/20 text-red-400';
-      case 'rush':
-        return 'bg-orange-500/20 text-orange-400';
-      default:
-        return 'bg-white/10 text-neutral-300';
+    if (!dateStr) return '';
+    try {
+      return new Date(dateStr).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    } catch {
+      return '';
     }
   };
 
   const getGoogleMapsUrl = () => {
     if (!order) return '';
     const address = encodeURIComponent(
-      `${order.customerAddress}, ${order.city}, ${order.state} ${order.zipCode}`
+      `${order.deliveryAddress}, ${order.deliveryCity}, ${order.deliveryState} ${order.deliveryZip}`
     );
     return `https://www.google.com/maps/dir/?api=1&destination=${address}`;
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-12 h-12 text-brand-green animate-spin" />
+          <p className="text-zinc-500">Loading order...</p>
+        </div>
       </div>
     );
   }
 
   if (!order) {
     return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <Package className="w-12 h-12 mx-auto mb-4 text-neutral-300" />
-          <h2 className="text-xl font-semibold text-neutral-900 mb-2">Order Not Found</h2>
-          <p className="text-neutral-500 mb-4">The order you are looking for does not exist.</p>
-          <Link href="/portal/orders" className="text-green-400 hover:text-green-400 font-medium">
+          <Package className="w-12 h-12 mx-auto mb-4 text-zinc-700" />
+          <h2 className="text-xl font-semibold text-white mb-2">Order Not Found</h2>
+          <p className="text-zinc-500 mb-4">
+            The order <code className="text-zinc-300">{orderId}</code> does not exist.
+          </p>
+          <Link href="/portal/orders" className="text-brand-green hover:underline font-medium">
             Back to Orders
           </Link>
         </div>
@@ -278,132 +346,151 @@ export default function OrderDetailPage() {
     );
   }
 
-  const currentStatusIndex = getStatusIndex(order.status);
+  const currentStageIdx = PIPELINE_STAGES.indexOf(order.currentStage as typeof PIPELINE_STAGES[number]);
+  const nextStage = currentStageIdx >= 0 && currentStageIdx < PIPELINE_STAGES.length - 1
+    ? PIPELINE_STAGES[currentStageIdx + 1]
+    : null;
+  const isInTransit = ['DEPARTURE_CONFIRMED', 'EN_ROUTE', 'ARRIVED_AT_SITE', 'UNLOADING'].includes(
+    order.currentStage
+  );
+  const isDelivered = currentStageIdx >= PIPELINE_STAGES.indexOf('DELIVERY_CONFIRMED');
+
+  // Customer-facing invoice (final price only) and internal invoice (with cost)
+  const customerInvoice = invoices.find((i) => i.type === 'customer');
+  const internalInvoice = invoices.find((i) => i.type === 'internal');
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-black">
       {/* Header */}
-      <header className="bg-white border-b border-neutral-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/portal/orders" className="text-neutral-500 hover:text-neutral-700">
+      <header className="bg-zinc-900 border-b border-zinc-800 px-4 md:px-6 py-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <Link
+              href="/portal/orders"
+              className="text-zinc-500 hover:text-brand-green transition-colors"
+            >
               <ArrowLeft className="w-5 h-5" />
             </Link>
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-xl font-semibold text-neutral-900">{order.orderId}</h1>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                  {order.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-lg font-bold text-white">{order.orderId}</h1>
+                <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-brand-green/20 text-brand-green">
+                  {STAGE_LABELS[order.currentStage] || order.currentStage}
                 </span>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(order.priority)}`}>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                    PRIORITY_BADGE_COLORS[order.priority] || PRIORITY_BADGE_COLORS.normal
+                  }`}
+                >
                   {order.priority.charAt(0).toUpperCase() + order.priority.slice(1)}
                 </span>
+                {order.cancelled && (
+                  <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-500/20 text-red-400">
+                    Cancelled
+                  </span>
+                )}
               </div>
-              <p className="text-sm text-neutral-500">{order.jobName}</p>
+              <p className="text-xs text-zinc-500 truncate">
+                {order.jobName} · {order.customerName}
+              </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button
               onClick={refreshOrder}
               disabled={refreshing}
-              className="p-2 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded-lg"
+              className="p-2 text-zinc-500 hover:text-brand-green hover:bg-zinc-800 rounded-lg transition-colors"
               title="Refresh"
             >
-              <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
-
-            {order.status === 'ready_for_delivery' || order.status === 'in_transit' ? (
+            {isInTransit && (
               <a
                 href={getGoogleMapsUrl()}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-4 py-2 bg-brand-green text-black rounded-lg hover:bg-blue-700"
+                className="flex items-center gap-2 px-3 py-2 bg-brand-green text-black rounded-xl hover:brightness-90 text-sm font-bold"
               >
-                <Navigation className="w-4 h-4" />
-                Navigate
+                <Navigation className="w-4 h-4" /> Navigate
               </a>
-            ) : null}
-
-            {order.status === 'submitted' && (
-              <Link
-                href={`/portal/orders/${order.orderId}/edit`}
-                className="flex items-center gap-2 px-4 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-50"
+            )}
+            {nextStage && !order.cancelled && (
+              <button
+                onClick={advanceToNextStage}
+                disabled={advancing}
+                className="flex items-center gap-2 px-3 py-2 bg-brand-green/15 text-brand-green border border-brand-green/30 rounded-xl hover:bg-brand-green/25 text-sm font-bold disabled:opacity-50"
+                title={`Advance to ${STAGE_LABELS[nextStage] || nextStage}`}
               >
-                <Edit className="w-4 h-4" />
-                Edit
-              </Link>
+                {advancing ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronRight className="w-4 h-4" />}
+                Advance to {STAGE_LABELS[nextStage] || nextStage}
+              </button>
             )}
           </div>
         </div>
+        {advanceError && (
+          <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-sm text-red-400">
+            <strong>Could not advance stage:</strong> {advanceError}
+          </div>
+        )}
       </header>
 
-      {/* Status Progress */}
-      <div className="bg-white border-b border-neutral-200 px-6 py-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between">
-            {STATUS_STEPS.map((step, idx) => {
-              const Icon = step.icon;
-              const isActive = idx === currentStatusIndex;
-              const isComplete = idx < currentStatusIndex;
-              const isFuture = idx > currentStatusIndex;
-
-              return (
-                <div key={step.key} className="flex items-center">
-                  <div className="flex flex-col items-center">
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        isComplete
-                          ? 'bg-green-600 text-white'
-                          : isActive
-                          ? 'bg-brand-green text-black'
-                          : 'bg-neutral-200 text-neutral-400'
-                      }`}
-                    >
-                      {isComplete ? (
-                        <CheckCircle className="w-5 h-5" />
-                      ) : (
-                        <Icon className="w-5 h-5" />
-                      )}
-                    </div>
-                    <span
-                      className={`mt-2 text-xs font-medium ${
-                        isComplete || isActive ? 'text-neutral-900' : 'text-neutral-400'
-                      }`}
-                    >
-                      {step.label}
-                    </span>
+      {/* Stage Progress (compact, all 18 stages) */}
+      <div className="bg-zinc-900/50 border-b border-zinc-800 px-4 md:px-6 py-4 overflow-x-auto">
+        <div className="flex items-center min-w-max">
+          {PIPELINE_STAGES.map((stage, idx) => {
+            const isComplete = idx < currentStageIdx;
+            const isActive = idx === currentStageIdx;
+            return (
+              <div key={stage} className="flex items-center">
+                <div className="flex flex-col items-center">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold ${
+                      isComplete
+                        ? 'bg-brand-green text-black'
+                        : isActive
+                        ? 'bg-brand-green/30 text-brand-green border-2 border-brand-green'
+                        : 'bg-zinc-800 text-zinc-600'
+                    }`}
+                  >
+                    {isComplete ? <CheckCircle className="w-4 h-4" /> : idx + 1}
                   </div>
-                  {idx < STATUS_STEPS.length - 1 && (
-                    <div
-                      className={`w-16 h-0.5 mx-2 ${
-                        idx < currentStatusIndex ? 'bg-green-600' : 'bg-neutral-200'
-                      }`}
-                    />
-                  )}
+                  <span
+                    className={`mt-1 text-[10px] font-medium whitespace-nowrap ${
+                      isComplete || isActive ? 'text-zinc-300' : 'text-zinc-600'
+                    }`}
+                  >
+                    {STAGE_LABELS[stage]}
+                  </span>
                 </div>
-              );
-            })}
-          </div>
+                {idx < PIPELINE_STAGES.length - 1 && (
+                  <div
+                    className={`w-6 h-0.5 mx-1 ${
+                      idx < currentStageIdx ? 'bg-brand-green' : 'bg-zinc-800'
+                    }`}
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="bg-white border-b border-neutral-200 px-6">
+      <div className="bg-zinc-900 border-b border-zinc-800 px-4 md:px-6">
         <div className="flex gap-6">
           {[
-            { id: 'details', label: 'Order Details', icon: FileText },
-            { id: 'tracking', label: 'Tracking', icon: Truck },
-            { id: 'quality', label: 'Quality Check', icon: ClipboardCheck },
-            { id: 'invoice', label: 'Invoice', icon: Receipt },
-          ].map(tab => (
+            { id: 'details' as Tab, label: 'Order Details', icon: FileText },
+            { id: 'timeline' as Tab, label: 'Timeline', icon: Clock },
+            { id: 'invoice' as Tab, label: 'Invoice', icon: Receipt },
+          ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-4 py-3 border-b-2 font-medium transition-colors ${
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-1 py-3 border-b-2 font-medium transition-colors text-sm ${
                 activeTab === tab.id
-                  ? 'border-green-600 text-green-400'
-                  : 'border-transparent text-neutral-500 hover:text-neutral-700'
+                  ? 'border-brand-green text-brand-green'
+                  : 'border-transparent text-zinc-500 hover:text-zinc-300'
               }`}
             >
               <tab.icon className="w-4 h-4" />
@@ -414,25 +501,25 @@ export default function OrderDetailPage() {
       </div>
 
       {/* Content */}
-      <div className="max-w-6xl mx-auto px-6 py-6">
+      <div className="max-w-6xl mx-auto px-4 md:px-6 py-6">
         {activeTab === 'details' && (
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Left Column */}
             <div className="lg:col-span-2 space-y-6">
               {/* Job Info */}
-              <div className="bg-neutral-900 rounded-xl border border-neutral-200 p-6">
-                <h2 className="text-lg font-semibold text-neutral-900 mb-4 flex items-center gap-2">
-                  <Building className="w-5 h-5 text-green-400" />
+              <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6">
+                <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+                  <Building className="w-4 h-4 text-brand-green" />
                   Job Information
                 </h2>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <div className="text-sm text-neutral-500">Job Number</div>
-                    <div className="font-medium">{order.jobNumber}</div>
+                    <div className="text-xs text-zinc-500">Job Number</div>
+                    <div className="font-medium text-white">{order.jobNumber || '—'}</div>
                   </div>
                   <div>
-                    <div className="text-sm text-neutral-500">Job Name</div>
-                    <div className="font-medium">{order.jobName}</div>
+                    <div className="text-xs text-zinc-500">Job Name</div>
+                    <div className="font-medium text-white">{order.jobName}</div>
                   </div>
                   {order.jobNimbusId && (
                     <div className="md:col-span-2">
@@ -440,7 +527,7 @@ export default function OrderDetailPage() {
                         href={`https://app.jobnimbus.com/contact/${order.jobNimbusId}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-green-400 hover:text-green-400 text-sm"
+                        className="inline-flex items-center gap-1 text-brand-green hover:underline text-sm"
                       >
                         View in JobNimbus
                         <ExternalLink className="w-3 h-3" />
@@ -451,32 +538,35 @@ export default function OrderDetailPage() {
               </div>
 
               {/* Customer Info */}
-              <div className="bg-neutral-900 rounded-xl border border-neutral-200 p-6">
-                <h2 className="text-lg font-semibold text-neutral-900 mb-4 flex items-center gap-2">
-                  <User className="w-5 h-5 text-green-400" />
+              <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6">
+                <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+                  <User className="w-4 h-4 text-brand-green" />
                   Customer & Delivery Location
                 </h2>
                 <div className="space-y-3">
-                  <div className="font-medium text-lg">{order.customerName}</div>
-                  <div className="flex items-start gap-2 text-neutral-600">
-                    <MapPin className="w-4 h-4 mt-1 flex-shrink-0" />
+                  <div className="font-medium text-lg text-white">{order.customerName}</div>
+                  <div className="flex items-start gap-2 text-zinc-400 text-sm">
+                    <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
                     <div>
-                      {order.customerAddress}<br />
-                      {order.city}, {order.state} {order.zipCode}
+                      {order.deliveryAddress}
+                      <br />
+                      {order.deliveryCity}, {order.deliveryState} {order.deliveryZip}
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <a
-                      href={`tel:${order.customerPhone}`}
-                      className="flex items-center gap-1 text-green-400 hover:text-green-400"
-                    >
-                      <Phone className="w-4 h-4" />
-                      {order.customerPhone}
-                    </a>
+                  <div className="flex items-center gap-4 flex-wrap">
+                    {order.customerPhone && (
+                      <a
+                        href={`tel:${order.customerPhone}`}
+                        className="flex items-center gap-1 text-brand-green hover:underline text-sm"
+                      >
+                        <Phone className="w-4 h-4" />
+                        {order.customerPhone}
+                      </a>
+                    )}
                     {order.customerEmail && (
                       <a
                         href={`mailto:${order.customerEmail}`}
-                        className="flex items-center gap-1 text-green-400 hover:text-green-400"
+                        className="flex items-center gap-1 text-brand-green hover:underline text-sm"
                       >
                         <Mail className="w-4 h-4" />
                         {order.customerEmail}
@@ -487,7 +577,7 @@ export default function OrderDetailPage() {
                     href={getGoogleMapsUrl()}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-brand-green/20 text-blue-400 rounded-lg hover:bg-blue-200 mt-2"
+                    className="inline-flex items-center gap-2 px-3 py-2 bg-brand-green/15 text-brand-green border border-brand-green/30 rounded-lg hover:bg-brand-green/25 text-sm font-medium mt-2"
                   >
                     <Navigation className="w-4 h-4" />
                     Open in Google Maps
@@ -496,196 +586,200 @@ export default function OrderDetailPage() {
               </div>
 
               {/* Materials */}
-              <div className="bg-neutral-900 rounded-xl border border-neutral-200 p-6">
-                <h2 className="text-lg font-semibold text-neutral-900 mb-4 flex items-center gap-2">
-                  <Package className="w-5 h-5 text-green-400" />
-                  Materials ({order.totalItems} items)
+              <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6">
+                <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+                  <Package className="w-4 h-4 text-brand-green" />
+                  Materials ({order.items.length} {order.items.length === 1 ? 'item' : 'items'})
                 </h2>
-                <div className="space-y-3">
-                  {order.items.map((item, idx) => (
-                    <div
-                      key={item.itemId}
-                      className={`flex items-center justify-between p-3 rounded-lg ${
-                        item.verified
-                          ? 'bg-green-500/10 border border-green-500/20'
-                          : item.pulled
-                          ? 'bg-brand-green/10 border border-blue-500/20'
-                          : 'bg-neutral-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        {item.verified ? (
-                          <CheckCircle className="w-5 h-5 text-green-400" />
-                        ) : item.pulled ? (
-                          <Circle className="w-5 h-5 text-blue-400" />
-                        ) : (
-                          <Circle className="w-5 h-5 text-neutral-300" />
-                        )}
-                        <div>
-                          <div className="font-medium text-neutral-900">{item.productName}</div>
-                          <div className="text-sm text-neutral-500">
-                            {item.category} | {formatCurrency(item.unitPrice)}/{item.unit}
+                <div className="space-y-2">
+                  {order.items.map((item) => {
+                    const fullyDelivered = item.deliveredQty >= item.quantity;
+                    const partial = item.deliveredQty > 0 && item.deliveredQty < item.quantity;
+                    const verified = item.verifiedQty >= item.quantity;
+                    const pulled = item.pulledQty >= item.quantity;
+                    return (
+                      <div
+                        key={item.itemId}
+                        className={`flex items-center justify-between p-3 rounded-lg border ${
+                          fullyDelivered
+                            ? 'bg-brand-green/5 border-brand-green/20'
+                            : partial
+                            ? 'bg-yellow-500/5 border-yellow-500/20'
+                            : verified
+                            ? 'bg-cyan-500/5 border-cyan-500/20'
+                            : pulled
+                            ? 'bg-blue-500/5 border-blue-500/20'
+                            : 'bg-zinc-800/50 border-zinc-800'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          {fullyDelivered ? (
+                            <CheckCircle className="w-5 h-5 text-brand-green flex-shrink-0" />
+                          ) : verified || pulled ? (
+                            <Circle className="w-5 h-5 text-zinc-400 flex-shrink-0" />
+                          ) : (
+                            <Circle className="w-5 h-5 text-zinc-600 flex-shrink-0" />
+                          )}
+                          <div className="min-w-0">
+                            <div className="font-medium text-white text-sm truncate">
+                              {item.productName}
+                            </div>
+                            <div className="text-xs text-zinc-500">
+                              {item.sku} · {formatCurrency(item.unitPrice)}/{item.unit}
+                              {item.pulledQty > 0 && ` · pulled ${item.pulledQty}`}
+                              {item.deliveredQty > 0 && ` · delivered ${item.deliveredQty}`}
+                              {item.returnedQty > 0 && ` · returned ${item.returnedQty}`}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <div className="font-medium text-white">×{item.quantity}</div>
+                          <div className="text-xs text-brand-green">
+                            {formatCurrency(item.totalPrice)}
                           </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-medium">x{item.quantity}</div>
-                        <div className="text-sm text-green-400">{formatCurrency(item.totalPrice)}</div>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
-                <div className="mt-4 pt-4 border-t border-neutral-200 flex justify-between items-center">
-                  <span className="font-semibold text-neutral-900">Total</span>
-                  <span className="text-xl font-bold text-green-400">{formatCurrency(order.totalPrice)}</span>
+                <div className="mt-4 pt-4 border-t border-zinc-800 flex justify-between items-center">
+                  <span className="font-bold text-white">Total</span>
+                  <span className="text-xl font-bold text-brand-green">
+                    {formatCurrency(order.totalPrice)}
+                  </span>
                 </div>
+                {typeof order.totalCost === 'number' && (
+                  <div className="mt-1 flex justify-between items-center text-xs text-zinc-500">
+                    <span>Cost (internal)</span>
+                    <span>{formatCurrency(order.totalCost)}</span>
+                  </div>
+                )}
               </div>
 
               {/* Special Instructions */}
               {order.specialInstructions && (
-                <div className="bg-yellow-50 rounded-xl border border-yellow-500/20 p-6">
-                  <h2 className="text-lg font-semibold text-yellow-900 mb-2 flex items-center gap-2">
-                    <AlertCircle className="w-5 h-5" />
+                <div className="bg-yellow-500/5 rounded-xl border border-yellow-500/20 p-6">
+                  <h2 className="text-base font-bold text-yellow-400 mb-2 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4" />
                     Special Instructions
                   </h2>
-                  <p className="text-yellow-400">{order.specialInstructions}</p>
+                  <p className="text-yellow-300 text-sm">{order.specialInstructions}</p>
+                </div>
+              )}
+
+              {order.notes && (
+                <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6">
+                  <h2 className="text-base font-bold text-white mb-2">Internal Notes</h2>
+                  <p className="text-zinc-400 text-sm whitespace-pre-wrap">{order.notes}</p>
                 </div>
               )}
             </div>
 
             {/* Right Column */}
             <div className="space-y-6">
-              {/* Delivery Info */}
-              <div className="bg-neutral-900 rounded-xl border border-neutral-200 p-6">
-                <h2 className="text-lg font-semibold text-neutral-900 mb-4 flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-green-400" />
+              {/* Delivery Schedule */}
+              <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6">
+                <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-brand-green" />
                   Delivery Schedule
                 </h2>
                 <div className="space-y-3">
                   <div>
-                    <div className="text-sm text-neutral-500">Requested Date</div>
-                    <div className="font-medium">{formatDate(order.requestedDeliveryDate)}</div>
-                    {order.requestedDeliveryTime && (
-                      <div className="text-sm text-neutral-600">{order.requestedDeliveryTime}</div>
-                    )}
+                    <div className="text-xs text-zinc-500">Requested</div>
+                    <div className="font-medium text-white">
+                      {formatDate(order.requestedDeliveryDate)}
+                    </div>
                   </div>
                   {order.scheduledDeliveryDate && (
                     <div>
-                      <div className="text-sm text-neutral-500">Scheduled Date</div>
-                      <div className="font-medium text-green-400">{formatDate(order.scheduledDeliveryDate)}</div>
-                      {order.scheduledDeliveryTime && (
-                        <div className="text-sm text-green-400">{order.scheduledDeliveryTime}</div>
-                      )}
-                    </div>
-                  )}
-                  {order.estimatedArrival && (
-                    <div>
-                      <div className="text-sm text-neutral-500">Estimated Arrival</div>
-                      <div className="font-medium text-blue-400">{order.estimatedArrival}</div>
+                      <div className="text-xs text-zinc-500">Scheduled</div>
+                      <div className="font-medium text-brand-green">
+                        {formatDate(order.scheduledDeliveryDate)}
+                        {order.scheduledDeliveryTime && ` at ${order.scheduledDeliveryTime}`}
+                      </div>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Inspector Info */}
-              {order.inspectorRequired && (
-                <div className="bg-amber-50 rounded-xl border border-amber-200 p-6">
-                  <h2 className="text-lg font-semibold text-amber-900 mb-4 flex items-center gap-2">
-                    <AlertCircle className="w-5 h-5" />
-                    Inspector Coordination
-                  </h2>
-                  <div className="space-y-2 text-amber-800">
-                    {order.inspectorName && (
-                      <div>
-                        <span className="font-medium">Inspector:</span> {order.inspectorName}
-                      </div>
-                    )}
-                    {order.inspectorPhone && (
-                      <a href={`tel:${order.inspectorPhone}`} className="flex items-center gap-1">
-                        <Phone className="w-4 h-4" />
-                        {order.inspectorPhone}
-                      </a>
-                    )}
-                    {order.inspectorArrivalTime && (
-                      <div>
-                        <span className="font-medium">Arrival Time:</span> {order.inspectorArrivalTime}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
               {/* Driver Info */}
               {order.assignedDriverName && (
-                <div className="bg-neutral-900 rounded-xl border border-neutral-200 p-6">
-                  <h2 className="text-lg font-semibold text-neutral-900 mb-4 flex items-center gap-2">
-                    <Truck className="w-5 h-5 text-green-400" />
+                <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6">
+                  <h2 className="text-base font-bold text-white mb-3 flex items-center gap-2">
+                    <Truck className="w-4 h-4 text-brand-green" />
                     Assigned Driver
                   </h2>
-                  <div className="space-y-2">
-                    <div className="font-medium">{order.assignedDriverName}</div>
-                    {order.assignedVehicle && (
-                      <div className="text-sm text-neutral-500">Vehicle: {order.assignedVehicle}</div>
-                    )}
-                  </div>
+                  <div className="font-medium text-white">{order.assignedDriverName}</div>
                 </div>
               )}
 
-              {/* Linked Delivery Ticket */}
-              {linkedTicketId && (
-                <div className="bg-green-50 rounded-xl border border-green-500/20 p-6">
-                  <h2 className="text-lg font-semibold text-green-900 mb-2 flex items-center gap-2">
-                    <Ticket className="w-5 h-5" />
-                    Linked Delivery Ticket
-                  </h2>
-                  <p className="text-sm text-green-400 mb-3">
-                    Ticket <strong>{linkedTicketId}</strong> has been created for this order.
-                  </p>
-                  <Link
-                    href={`/portal/driver?ticket=${linkedTicketId}`}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
-                  >
-                    <Truck className="w-4 h-4" />
-                    View Ticket
-                  </Link>
+              {/* Payment Status */}
+              <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6">
+                <h2 className="text-base font-bold text-white mb-3">Payment Status</h2>
+                <div className="text-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-zinc-400">Status</span>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                        order.paymentStatus === 'paid'
+                          ? 'bg-brand-green/20 text-brand-green'
+                          : order.paymentStatus === 'invoiced'
+                          ? 'bg-cyan-500/20 text-cyan-400'
+                          : order.paymentStatus === 'partial'
+                          ? 'bg-orange-500/20 text-orange-400'
+                          : 'bg-zinc-700/50 text-zinc-400'
+                      }`}
+                    >
+                      {order.paymentStatus.toUpperCase()}
+                    </span>
+                  </div>
+                  {order.paymentAmount && (
+                    <div className="flex justify-between text-zinc-400">
+                      <span>Amount</span>
+                      <span className="text-white font-medium">
+                        {formatCurrency(order.paymentAmount)}
+                      </span>
+                    </div>
+                  )}
+                  {order.paymentDate && (
+                    <div className="flex justify-between text-zinc-400">
+                      <span>Paid on</span>
+                      <span>{formatDate(order.paymentDate)}</span>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
 
               {/* Quick Actions */}
-              <div className="bg-neutral-900 rounded-xl border border-neutral-200 p-6">
-                <h2 className="text-lg font-semibold text-neutral-900 mb-4">Quick Actions</h2>
+              <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6">
+                <h2 className="text-base font-bold text-white mb-4">Quick Actions</h2>
                 <div className="space-y-2">
-                  {!linkedTicketId && (
-                    <button
-                      onClick={createTicketFromOrder}
-                      disabled={creatingTicket}
-                      className="flex items-center gap-2 w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-                    >
-                      {creatingTicket ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Ticket className="w-4 h-4" />
-                      )}
-                      Create Delivery Ticket
-                    </button>
-                  )}
                   <Link
-                    href="/portal/driver/loading"
-                    className="flex items-center gap-2 w-full px-4 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-50"
+                    href="/portal/delivery/pipeline"
+                    className="flex items-center gap-2 w-full px-3 py-2 border border-zinc-700 text-zinc-300 rounded-lg hover:bg-zinc-800 text-sm"
                   >
                     <ClipboardCheck className="w-4 h-4" />
-                    Loading Checklist
+                    Pipeline View
                   </Link>
                   <Link
-                    href={`/portal/orders/${order.orderId}/return`}
-                    className="flex items-center gap-2 w-full px-4 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-50"
+                    href={`/portal/delivery/${order.orderId}`}
+                    className="flex items-center gap-2 w-full px-3 py-2 border border-zinc-700 text-zinc-300 rounded-lg hover:bg-zinc-800 text-sm"
                   >
-                    <RotateCcw className="w-4 h-4" />
-                    Create Return
+                    <Truck className="w-4 h-4" />
+                    Driver View
                   </Link>
+                  {isDelivered && (
+                    <Link
+                      href={`/portal/orders/${order.orderId}/return`}
+                      className="flex items-center gap-2 w-full px-3 py-2 border border-orange-500/30 text-orange-400 rounded-lg hover:bg-orange-500/10 text-sm"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      Create Return
+                    </Link>
+                  )}
                   <button
                     onClick={() => window.print()}
-                    className="flex items-center gap-2 w-full px-4 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-50"
+                    className="flex items-center gap-2 w-full px-3 py-2 border border-zinc-700 text-zinc-300 rounded-lg hover:bg-zinc-800 text-sm"
                   >
                     <Printer className="w-4 h-4" />
                     Print Order
@@ -696,183 +790,159 @@ export default function OrderDetailPage() {
           </div>
         )}
 
-        {activeTab === 'tracking' && (
-          <div className="bg-neutral-900 rounded-xl border border-neutral-200 p-6">
-            <h2 className="text-lg font-semibold text-neutral-900 mb-6">Order Timeline</h2>
-            <div className="space-y-6">
-              {[
-                { time: order.completedAt, label: 'Order Completed', icon: CheckCircle },
-                { time: order.deliveredAt, label: 'Materials Delivered', icon: MapPin },
-                { time: order.departedAt, label: 'Driver Departed', icon: Navigation },
-                { time: order.loadedAt, label: 'Load Verified', user: order.loadedBy, icon: Package },
-                { time: order.approvedAt, label: 'Order Approved', user: order.approvedBy, icon: CheckCircle },
-                { time: order.createdAt, label: 'Order Submitted', user: order.createdByName, icon: FileText },
-              ].filter(e => e.time).map((event, idx) => (
-                <div key={idx} className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                    <event.icon className="w-5 h-5 text-green-400" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-medium text-neutral-900">{event.label}</div>
-                    <div className="text-sm text-neutral-500">
-                      {formatDate(event.time!)} at {formatTime(event.time!)}
-                      {event.user && ` by ${event.user}`}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {(order.status === 'in_transit' || order.status === 'ready_for_delivery') && (
-              <div className="mt-8 p-4 bg-blue-50 rounded-xl">
-                <h3 className="font-semibold text-brand-green mb-2">Live Tracking</h3>
-                <p className="text-blue-400 text-sm mb-4">
-                  Driver tracking is available when the order is in transit.
-                </p>
-                <a
-                  href={getGoogleMapsUrl()}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-brand-green text-black rounded-lg hover:bg-blue-700"
-                >
-                  <Navigation className="w-4 h-4" />
-                  Open Navigation
-                </a>
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'quality' && (
-          <div className="bg-neutral-900 rounded-xl border border-neutral-200 p-6">
-            <h2 className="text-lg font-semibold text-neutral-900 mb-6 flex items-center gap-2">
-              <ClipboardCheck className="w-5 h-5 text-green-400" />
-              Quality Check Checklist
+        {activeTab === 'timeline' && (
+          <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6">
+            <h2 className="text-base font-bold text-white mb-6 flex items-center gap-2">
+              <Clock className="w-4 h-4 text-brand-green" />
+              Stage History ({order.events.length} events)
             </h2>
-
-            {order.qualityCheckComplete ? (
-              <div className="p-4 bg-green-50 rounded-lg mb-6">
-                <div className="flex items-center gap-2 text-green-400">
-                  <CheckCircle className="w-5 h-5" />
-                  <span className="font-medium">Quality Check Complete</span>
-                </div>
-                <p className="text-sm text-green-400 mt-1">
-                  Completed by {order.qualityCheckBy} on {formatDate(order.qualityCheckAt!)}
-                </p>
-              </div>
-            ) : (
-              <div className="p-4 bg-yellow-50 rounded-lg mb-6">
-                <div className="flex items-center gap-2 text-yellow-400">
-                  <AlertCircle className="w-5 h-5" />
-                  <span className="font-medium">Quality Check Pending</span>
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-3">
-              {[
-                { id: 1, label: 'All materials match order', required: true },
-                { id: 2, label: 'Quantities verified against manifest', required: true },
-                { id: 3, label: 'No damaged items', required: true },
-                { id: 4, label: 'Delivery location confirmed', required: true },
-                { id: 5, label: 'Customer signature obtained', required: true },
-                { id: 6, label: 'Photo documentation complete', required: true },
-                { id: 7, label: 'Special instructions followed', required: false },
-                { id: 8, label: 'Site left clean', required: false },
-              ].map(item => (
-                <div
-                  key={item.id}
-                  className={`flex items-center gap-3 p-3 rounded-lg ${
-                    order.qualityCheckComplete ? 'bg-green-50' : 'bg-neutral-50'
-                  }`}
-                >
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                    order.qualityCheckComplete
-                      ? 'bg-green-600 text-white'
-                      : 'bg-neutral-200 text-neutral-400'
-                  }`}>
-                    {order.qualityCheckComplete ? (
-                      <CheckCircle className="w-4 h-4" />
-                    ) : (
-                      <Circle className="w-4 h-4" />
+            <div className="space-y-4">
+              {[...order.events].reverse().map((event) => (
+                <div key={event.eventId} className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-brand-green/10 border border-brand-green/30 flex items-center justify-center flex-shrink-0">
+                    <CheckCircle className="w-4 h-4 text-brand-green" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="font-medium text-white text-sm">
+                        {STAGE_LABELS[event.stage] || event.stage}
+                      </div>
+                      <span className="text-xs text-zinc-500">
+                        {formatDate(event.timestamp)} at {formatTime(event.timestamp)}
+                      </span>
+                    </div>
+                    <div className="text-xs text-zinc-500">
+                      by {event.performedByName}
+                      {event.performedByRole && ` (${event.performedByRole})`}
+                    </div>
+                    {event.notes && (
+                      <div className="mt-1 text-sm text-zinc-300">{event.notes}</div>
+                    )}
+                    {event.gpsAddress && (
+                      <div className="mt-1 flex items-center gap-1 text-xs text-zinc-500">
+                        <MapPin className="w-3 h-3" />
+                        {event.gpsAddress}
+                      </div>
+                    )}
+                    {event.photoUrls && event.photoUrls.length > 0 && (
+                      <div className="mt-2 flex items-center gap-1 text-xs text-cyan-400">
+                        <Camera className="w-3 h-3" />
+                        {event.photoUrls.length} {event.photoUrls.length === 1 ? 'photo' : 'photos'}
+                      </div>
                     )}
                   </div>
-                  <span className={order.qualityCheckComplete ? 'text-green-900' : 'text-neutral-700'}>
-                    {item.label}
-                    {item.required && <span className="text-red-500 ml-1">*</span>}
-                  </span>
                 </div>
               ))}
+              {order.events.length === 0 && (
+                <p className="text-zinc-500 text-sm">No stage events recorded yet.</p>
+              )}
             </div>
-
-            {!order.qualityCheckComplete && order.status === 'delivered' && (
-              <div className="mt-6">
-                <Link
-                  href={`/portal/orders/${order.orderId}/quality-check`}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                >
-                  <ClipboardCheck className="w-4 h-4" />
-                  Complete Quality Check
-                </Link>
-              </div>
-            )}
           </div>
         )}
 
         {activeTab === 'invoice' && (
-          <div className="bg-neutral-900 rounded-xl border border-neutral-200 p-6">
-            <h2 className="text-lg font-semibold text-neutral-900 mb-6 flex items-center gap-2">
-              <Receipt className="w-5 h-5 text-green-400" />
-              Invoice
-            </h2>
-
-            {order.invoiceId ? (
-              <div>
-                <div className="p-4 bg-green-50 rounded-lg mb-6">
-                  <div className="flex items-center justify-between">
+          <div className="space-y-6">
+            {/* Customer Invoice */}
+            <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6">
+              <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+                <Receipt className="w-4 h-4 text-brand-green" />
+                Customer Invoice
+              </h2>
+              {customerInvoice ? (
+                <div>
+                  <div className="flex items-center justify-between p-3 bg-brand-green/5 rounded-lg mb-4">
                     <div>
-                      <div className="font-medium text-green-900">Invoice #{order.invoiceId}</div>
-                      <div className="text-sm text-green-400">
-                        Status: {order.invoiceStatus ? `${order.invoiceStatus.charAt(0).toUpperCase()}${order.invoiceStatus.slice(1)}` : 'Pending'}
+                      <div className="font-medium text-white">{customerInvoice.invoiceId}</div>
+                      <div className="text-xs text-zinc-500">
+                        Status:{' '}
+                        <span className="font-medium text-brand-green uppercase">
+                          {customerInvoice.status}
+                        </span>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Link
-                        href={`/portal/invoices/${order.invoiceId}`}
-                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                    <div className="text-right">
+                      <div className="text-xl font-bold text-brand-green">
+                        {formatCurrency(customerInvoice.total)}
+                      </div>
+                      {customerInvoice.paidAmount && (
+                        <div className="text-xs text-zinc-500">
+                          Paid: {formatCurrency(customerInvoice.paidAmount)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-1 text-sm">
+                    {customerInvoice.items.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="flex justify-between py-1 border-b border-zinc-800/60 last:border-0"
                       >
-                        View Invoice
-                      </Link>
-                      <button className="px-4 py-2 border border-green-600 text-green-400 rounded-lg hover:bg-green-50">
-                        <Printer className="w-4 h-4" />
-                      </button>
+                        <span className="text-zinc-300">
+                          {item.productName} ×{item.quantity}
+                        </span>
+                        <span className="text-white">{formatCurrency(item.totalPrice)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-zinc-500 text-sm">
+                  Customer invoice will be generated automatically when the order reaches Billing
+                  Review.
+                </p>
+              )}
+            </div>
+
+            {/* Internal Invoice (cost/margin) */}
+            {internalInvoice && (
+              <div className="bg-zinc-900 rounded-xl border border-purple-500/20 p-6">
+                <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+                  <Receipt className="w-4 h-4 text-purple-400" />
+                  Internal Invoice
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400">
+                    Admin/Office Only
+                  </span>
+                </h2>
+                <div className="grid md:grid-cols-3 gap-4 mb-4">
+                  <div>
+                    <div className="text-xs text-zinc-500">Cost</div>
+                    <div className="font-bold text-white">
+                      {formatCurrency(internalInvoice.costTotal || 0)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-zinc-500">Total</div>
+                    <div className="font-bold text-white">
+                      {formatCurrency(internalInvoice.total)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-zinc-500">Margin</div>
+                    <div className="font-bold text-brand-green">
+                      {formatCurrency(internalInvoice.margin || 0)}
                     </div>
                   </div>
                 </div>
-
-                {order.hasBreakdownSheet && (
-                  <div className="p-4 bg-blue-50 rounded-lg">
-                    <div className="flex items-center gap-2 text-blue-400">
-                      <FileText className="w-5 h-5" />
-                      <span className="font-medium">Customer Breakdown Sheet</span>
+                <div className="space-y-1 text-sm">
+                  {internalInvoice.items.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="flex justify-between py-1 border-b border-zinc-800/60 last:border-0"
+                    >
+                      <span className="text-zinc-300">
+                        {item.productName} ×{item.quantity}
+                      </span>
+                      <div className="text-right">
+                        <div className="text-white">{formatCurrency(item.totalPrice)}</div>
+                        {item.totalCost && (
+                          <div className="text-xs text-zinc-500">
+                            Cost: {formatCurrency(item.totalCost)}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-sm text-blue-400 mt-1">
-                      This invoice has been added to the customer breakdown sheet.
-                    </p>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <Receipt className="w-12 h-12 mx-auto mb-4 text-neutral-300" />
-                <p className="text-neutral-500 mb-4">
-                  Invoice will be generated when the order is delivered.
-                </p>
-                {order.status === 'delivered' || order.status === 'completed' ? (
-                  <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
-                    Generate Invoice
-                  </button>
-                ) : null}
+                  ))}
+                </div>
               </div>
             )}
           </div>

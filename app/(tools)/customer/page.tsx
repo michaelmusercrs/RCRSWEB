@@ -41,7 +41,12 @@ import {
   ChevronDown,
   ChevronUp,
   Info,
+  Wrench,
+  Bell,
 } from 'lucide-react';
+import ServiceRequestForm from '@/components/customer-portal/ServiceRequestForm';
+import WarrantyClaimForm from '@/components/customer-portal/WarrantyClaimForm';
+import NotificationPreferences from '@/components/customer-portal/NotificationPreferences';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -1677,6 +1682,92 @@ function SalesRepCard({ rep }: { rep: SalesRep }) {
 // Main Dashboard
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Service & Support Section (collapsible: service request, warranty claim,
+// notification preferences). Wired to Sheets-backed APIs.
+// ---------------------------------------------------------------------------
+
+function ServiceSupportSection({ token, customerId }: { token: string; customerId: string }) {
+  const [expanded, setExpanded] = useState<'service' | 'warranty' | 'notifications' | null>(null);
+
+  const cards: Array<{
+    key: 'service' | 'warranty' | 'notifications';
+    title: string;
+    description: string;
+    Icon: typeof Wrench;
+  }> = [
+    {
+      key: 'service',
+      title: 'Request Service',
+      description: 'Maintenance, repair, or inspection request',
+      Icon: Wrench,
+    },
+    {
+      key: 'warranty',
+      title: 'File Warranty Claim',
+      description: 'Report an issue covered by your warranty',
+      Icon: Shield,
+    },
+    {
+      key: 'notifications',
+      title: 'Notification Preferences',
+      description: 'Choose how we contact you',
+      Icon: Bell,
+    },
+  ];
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="px-5 py-4 border-b border-gray-200">
+        <h3 className="font-bold text-gray-900">Service & Support</h3>
+        <p className="text-xs text-gray-500 mt-0.5">
+          Submit a request, file a warranty claim, or update your notification settings.
+        </p>
+      </div>
+      <div className="divide-y divide-gray-100">
+        {cards.map(({ key, title, description, Icon }) => {
+          const isOpen = expanded === key;
+          return (
+            <div key={key}>
+              <button
+                onClick={() => setExpanded(isOpen ? null : key)}
+                className="w-full flex items-center gap-3 px-5 py-4 hover:bg-gray-50 transition-colors text-left"
+                aria-expanded={isOpen}
+              >
+                <div className="w-9 h-9 rounded-lg bg-[#0066CC]/10 flex items-center justify-center flex-shrink-0">
+                  <Icon className="w-5 h-5 text-[#0066CC]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-900 text-sm">{title}</p>
+                  <p className="text-xs text-gray-500">{description}</p>
+                </div>
+                {isOpen ? (
+                  <ChevronUp className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                )}
+              </button>
+              {isOpen && (
+                <div className="px-5 pb-5 pt-1 bg-gray-50/40">
+                  {key === 'service' && (
+                    <ServiceRequestForm customerId={customerId} token={token} />
+                  )}
+                  {key === 'warranty' && (
+                    <WarrantyClaimForm customerId={customerId} token={token} />
+                  )}
+                  {key === 'notifications' && (
+                    <NotificationPreferences customerId={customerId} token={token} />
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function CustomerDashboard({
   data,
   token,
@@ -1850,6 +1941,12 @@ function CustomerDashboard({
                 jobId={customer.jobId}
               />
             )}
+
+            {/* Service & Support */}
+            <ServiceSupportSection
+              token={token}
+              customerId={customer.customerId}
+            />
           </div>
 
           {/* Right column - sidebar */}
