@@ -379,7 +379,16 @@ export function middleware(request: NextRequest) {
       return NextResponse.next();
     }
 
-    // Block portal/admin/dashboard routes on the public domain — redirect to rcrsal.com
+    // Allow portal login + auth flow on the public domain so users can
+    // sign in with either rcrsal.com or rivercityroofingsolutions.com.
+    // Once authenticated, portal pages still work on both domains — but
+    // rcrsal.com remains the canonical/bookmarked portal URL.
+    if (pathname === '/portal' || pathname === '/portal/change-password' || pathname === '/portal/welcome') {
+      return NextResponse.next();
+    }
+
+    // Authenticated portal routes on the public domain — redirect to rcrsal.com
+    // so the URL bar shows the portal domain for bookmarking / sharing.
     if (isPortalRoute(pathname)) {
       const redirectUrl = new URL(pathname + request.nextUrl.search, PORTAL_URL);
       return NextResponse.redirect(redirectUrl, 307);
