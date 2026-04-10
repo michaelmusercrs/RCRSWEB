@@ -179,6 +179,53 @@ export default function NewOrderPage() {
     return matchesSearch && matchesCategory;
   });
 
+  // Auto-populate from R-number when the user types a job number and
+  // blurs or presses Enter. Uses the work-order lookup endpoint which
+  // tries JN by number, then commissions.json fallback.
+  const [jobNumberLooking, setJobNumberLooking] = useState(false);
+  const [jobNumberMsg, setJobNumberMsg] = useState<string | null>(null);
+
+  const lookupByJobNumber = async (jobNum: string) => {
+    const trimmed = jobNum.trim();
+    if (!trimmed || trimmed.length < 2) return;
+    // Skip if we already populated from the JN search picker
+    if (selectedJob && orderData.customerName) return;
+
+    setJobNumberLooking(true);
+    setJobNumberMsg(null);
+    try {
+      const res = await fetch(
+        `/api/portal/delivery/work-orders?action=lookup&jobNumber=${encodeURIComponent(trimmed)}`
+      );
+      if (!res.ok) {
+        setJobNumberMsg('Lookup failed');
+        return;
+      }
+      const data = await res.json();
+      if (data.success && data.customerName) {
+        setOrderData(prev => ({
+          ...prev,
+          jobName: data.jobName || prev.jobName,
+          jobNimbusId: data.jnJobId || prev.jobNimbusId,
+          customerName: data.customerName || prev.customerName,
+          customerPhone: data.phone || prev.customerPhone,
+          customerEmail: data.email || prev.customerEmail,
+          customerAddress: data.addressParts?.street || data.address || prev.customerAddress,
+          city: data.addressParts?.city || prev.city,
+          state: data.addressParts?.state || prev.state,
+          zipCode: data.addressParts?.zip || prev.zipCode,
+        }));
+        setJobNumberMsg(`Imported from JobNimbus: ${data.customerName}`);
+      } else {
+        setJobNumberMsg(data.error || 'No match found — fill in manually');
+      }
+    } catch {
+      setJobNumberMsg('Lookup error — fill in manually');
+    } finally {
+      setJobNumberLooking(false);
+    }
+  };
+
   // Search for jobs from JobNimbus
   const searchJobs = async () => {
     if (!jobSearchTerm.trim()) return;
@@ -538,15 +585,29 @@ export default function NewOrderPage() {
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-1">
-                    Job Number *
+                    Job Number * <span className="text-xs text-neutral-500 font-normal">(enter R-number, auto-populates)</span>
                   </label>
-                  <input
-                    type="text"
-                    value={orderData.jobNumber}
-                    onChange={(e) => setOrderData({ ...orderData, jobNumber: e.target.value })}
-                    className="w-full border border-neutral-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500"
-                    placeholder="JOB-2024-####"
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={orderData.jobNumber}
+                      onChange={(e) => setOrderData({ ...orderData, jobNumber: e.target.value })}
+                      onBlur={(e) => lookupByJobNumber(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); lookupByJobNumber(orderData.jobNumber); } }}
+                      className="w-full border border-neutral-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500"
+                      placeholder="R-12345"
+                    />
+                    {jobNumberLooking && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <Loader2 className="w-4 h-4 animate-spin text-green-400" />
+                      </div>
+                    )}
+                  </div>
+                  {jobNumberMsg && (
+                    <p className={`mt-1 text-xs ${jobNumberMsg.includes('Imported') ? 'text-green-400' : 'text-neutral-500'}`}>
+                      {jobNumberMsg}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-1">
