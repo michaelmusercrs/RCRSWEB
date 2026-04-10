@@ -151,9 +151,12 @@ function getPortalNav(role: TeamRole, permissions: string[] = []): PortalNavItem
 
   const driverItems: PortalNavItem[] = [
     ...shared,
+    { id: 'warehouse', label: 'Warehouse', href: '/portal/warehouse', icon: Package },
     { id: 'driver', label: 'My Deliveries', href: '/portal/driver', icon: Truck },
     { id: 'inventory', label: 'Materials', href: '/portal/inventory', icon: Box },
+    { id: 'restock', label: 'Receive Stock', href: '/portal/inventory/restock', icon: Plus },
     { id: 'insurance-agents', label: 'Insurance Agents', href: '/portal/insurance-agents', icon: Building2 },
+    { id: 'schedule', label: 'Schedule', href: '/portal/schedule', icon: Calendar },
   ];
 
   const viewerItems: PortalNavItem[] = [

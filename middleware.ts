@@ -50,7 +50,8 @@ const PROTECTED_PAGE_RULES: Array<{ prefix: string; minRole: RoleName }> = [
   // Manager+ (operations oversight)
   { prefix: '/portal/manager', minRole: 'Manager' },
   // Office/Manager+
-  { prefix: '/portal/inventory', minRole: 'Office' },
+  // Rick (driver) needs inventory access for restock, weekly counts, QR scans
+  { prefix: '/portal/inventory', minRole: 'Driver' },
 ];
 
 function base64UrlDecode(str: string): string {

@@ -145,12 +145,13 @@ export async function PUT(
       message: 'Team member updated successfully',
     });
   } catch (error) {
-    console.error('Error updating team member:', error);
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error updating team member:', msg, error);
+    console.error('BLOB_READ_WRITE_TOKEN set:', !!process.env.BLOB_READ_WRITE_TOKEN);
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to update team member',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        error: `Failed to update team member: ${msg}`,
       },
       { status: 500 }
     );
