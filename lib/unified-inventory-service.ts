@@ -36,7 +36,10 @@ const serviceAuth = new JWT({
 const SHEETS_CONFIGURED = !!(SHEETS_ID && process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && privateKey);
 
 const SHEET_TABS = {
-  INVENTORY: 'Inventory',
+  // Product catalog (definitions + current qty + pricing). This is WHERE
+  // _persistItem writes. Was previously set to 'Inventory' which is the
+  // TRANSACTION log tab — that's why pricing updates weren't saving.
+  INVENTORY: 'Inventory_Products',
   TRANSACTIONS: 'InventoryTransactions',
   COUNT_SESSIONS: 'CountSessions',
   COUNT_RECORDS: 'CountRecords',
@@ -435,7 +438,7 @@ class UnifiedInventoryService {
   private returnTickets: ReturnTicket[] = [];
   private loaded = false;
   private loadPromise: Promise<void> | null = null;
-  private nextIds = { inv: 43, txn: 1, cnt: 1, rec: 1, rst: 1, prc: 1, hld: 1, ret: 1 };
+  private nextIds = { inv: 12, txn: 1, cnt: 1, rec: 1, rst: 1, prc: 1, hld: 1, ret: 1 };
 
   // ============================================
   // INITIALIZATION
