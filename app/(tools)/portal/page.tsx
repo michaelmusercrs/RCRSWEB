@@ -95,7 +95,7 @@ function SplashScreen({ onComplete }: { onComplete: () => void }) {
         })}
       </div>
 
-      <div className={`absolute inset-0 pointer-events-none transition-opacity duration-[1200ms] ${phase >= 1 ? 'opacity-100' : 'opacity-0'}`}
+      <div className={`absolute inset-0 pointer-events-none transition-opacity duration-1200 ${phase >= 1 ? 'opacity-100' : 'opacity-0'}`}
         style={{ background: 'radial-gradient(ellipse 80% 50% at 50% 45%, rgba(57,255,20,0.03) 0%, transparent 70%)' }}
       />
 
@@ -119,7 +119,7 @@ function SplashScreen({ onComplete }: { onComplete: () => void }) {
           </h1>
           <p className="text-neutral-500 text-sm sm:text-base tracking-[0.2em] uppercase">Everything Under One Roof</p>
           <div className="mt-8 w-40 h-[2px] bg-neutral-800/50 rounded-full overflow-hidden">
-            <div className={`h-full rounded-full transition-all ease-out ${phase >= 2 ? 'w-full duration-[900ms]' : 'w-0 duration-100'}`}
+            <div className={`h-full rounded-full transition-all ease-out ${phase >= 2 ? 'w-full duration-900' : 'w-0 duration-100'}`}
               style={{ background: 'linear-gradient(90deg, #39FF14, #10b981)', boxShadow: '0 0 8px rgba(57,255,20,0.4)' }}
             />
           </div>

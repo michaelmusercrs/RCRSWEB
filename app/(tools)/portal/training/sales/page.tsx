@@ -30,6 +30,7 @@ import {
   Printer,
 } from 'lucide-react';
 import SettingsMenu from '@/components/SettingsMenu';
+import { useAuth } from '@/lib/auth-context';
 
 // ============================================================================
 // TYPES
@@ -1440,6 +1441,7 @@ function saveProgress(progress: Record<string, ModuleProgress>) {
 // ============================================================================
 
 export default function SalesTrainingPage() {
+  const { user } = useAuth();
   const [progress, setProgress] = useState<Record<string, ModuleProgress>>({});
   const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<'content' | 'quiz'>('content');
@@ -1553,13 +1555,12 @@ export default function SalesTrainingPage() {
 
     // Submit to server for authoritative grading
     try {
-      const { userId, userName } = getUserIdentity();
       const res = await fetch('/api/portal/training/sales', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId,
-          userName,
+          userId: user?.userId || 'unknown',
+          userName: user?.name || 'Unknown',
           moduleId: activeModule.id,
           moduleName: activeModule.title,
           answers: answersMap,

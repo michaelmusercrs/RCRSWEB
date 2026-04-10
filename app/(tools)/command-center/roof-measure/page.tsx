@@ -160,7 +160,7 @@ export default function RoofMeasurePage() {
     } catch { /* ignore */ }
   }, []);
 
-  // Save history to localStorage
+  // Calculator history — local cache only, not business-critical data
   const saveHistory = useCallback((entries: HistoryEntry[]) => {
     setHistory(entries);
     try {

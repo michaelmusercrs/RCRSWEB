@@ -52,7 +52,7 @@ export default function FeatureUpdatesPopup({
 
   const handleNext = () => {
     if (isLastUpdate) {
-      // Save that user has seen updates
+      // UI preference — tracks which update popup was dismissed
       try {
         localStorage.setItem(`rcrs-last-seen-version-${role}`, getLatestVersion());
         localStorage.setItem(`rcrs-updates-seen-date-${role}`, new Date().toISOString());
@@ -72,6 +72,7 @@ export default function FeatureUpdatesPopup({
   };
 
   const handleSkip = () => {
+    // UI preference — tracks which update popup was dismissed
     try {
       localStorage.setItem(`rcrs-last-seen-version-${role}`, getLatestVersion());
       localStorage.setItem(`rcrs-updates-seen-date-${role}`, new Date().toISOString());
@@ -256,6 +257,7 @@ export function useFeatureUpdates(role: TeamRole) {
     }
   }, [role]);
 
+  // UI preference — tracks which update popup was dismissed
   const markAsSeen = () => {
     try {
       localStorage.setItem(`rcrs-last-seen-version-${role}`, getLatestVersion());

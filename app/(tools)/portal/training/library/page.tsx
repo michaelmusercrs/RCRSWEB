@@ -28,6 +28,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import SettingsMenu from '@/components/SettingsMenu';
+import { useAuth } from '@/lib/auth-context';
 import SalesInfographic from './SalesInfographic';
 import SalesMasteryInfographic from './SalesMasteryInfographic';
 import PlatformOnboardingInfographic from './PlatformOnboardingInfographic';
@@ -227,6 +228,7 @@ function renderMarkdownBlock(body: string): string {
 // ---------------------------------------------------------------------------
 
 export default function TrainingLibraryPage() {
+  const { user } = useAuth();
   const [modules, setModules] = useState<TrainingModule[]>([]);
   const [selectedModule, setSelectedModule] = useState<TrainingModule | null>(null);
   const [activeContent, setActiveContent] = useState<ContentType>('audio');
@@ -440,30 +442,20 @@ export default function TrainingLibraryPage() {
       const updated = markModuleCompleted(selectedModule.id);
       setCompletedModulesState(updated);
 
-      // Persist to server
-      try {
-        let userId = 'anonymous';
-        let userName = 'Team Member';
-        const raw = localStorage.getItem('rcrs-user-settings');
-        if (raw) {
-          const settings = JSON.parse(raw);
-          userId = settings.email || settings.userId || 'anonymous';
-          userName = settings.displayName || settings.name || 'Team Member';
-        }
-        fetch('/api/portal/training/quiz-submit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId,
-            userName,
-            moduleId: selectedModule.id,
-            moduleName: selectedModule.title,
-            score: String(Math.round(pct)),
-            passed: true,
-            completedAt: new Date().toISOString(),
-          }),
-        }).catch(() => { /* fail silently */ });
-      } catch { /* ignore */ }
+      // Persist to server (fire-and-forget)
+      fetch('/api/portal/training', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user?.userId || 'unknown',
+          userName: user?.name || 'Unknown',
+          moduleId: selectedModule.id,
+          moduleName: selectedModule.title,
+          score: String(Math.round(pct)),
+          passed: true,
+          completedAt: new Date().toISOString(),
+        }),
+      }).catch(() => {}); // fire-and-forget
     }
   }
 

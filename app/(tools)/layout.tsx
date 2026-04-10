@@ -3,7 +3,7 @@ import { Inter } from 'next/font/google';
 import Script from 'next/script';
 import '../globals.css';
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ subsets: ['latin'], adjustFontFallback: false });
 
 export const metadata: Metadata = {
   title: 'RCRS Internal Tools',

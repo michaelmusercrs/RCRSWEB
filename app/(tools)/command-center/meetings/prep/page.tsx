@@ -331,10 +331,34 @@ export default function MeetingPrepPage() {
     updateForm('useRandomVerse', true);
   };
 
-  // Save draft to localStorage
+  // Save draft to localStorage + persist to API
   const saveDraft = () => {
+    // Keep localStorage as fast draft cache
     localStorage.setItem(`meeting-prep-draft-${meetingDate}`, JSON.stringify(form));
-    setSuccess('Draft saved to local storage');
+
+    // Also persist draft to API (fire-and-forget)
+    fetch('/api/command-center/meetings', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'save-prep',
+        data: {
+          meetingDate,
+          bibleVerse: form.bibleVerse,
+          useRandomVerse: form.useRandomVerse,
+          announcements: form.announcements,
+          employeeOfMonth: form.employeeOfMonth,
+          trainingTopic: form.trainingTopic,
+          departmentNotes: form.departmentNotes,
+          specialNotes: form.specialNotes,
+          preparedBy: form.preparedBy,
+          status: 'draft',
+        },
+      }),
+    }).catch(() => {});
+
+    setSuccess('Draft saved');
     setTimeout(() => setSuccess(null), 3000);
   };
 

@@ -405,8 +405,9 @@ class CMSSheetsService {
       return;
     }
 
-    // Import from blogData.ts
-    const { blogPosts } = await import('./blogData');
+    // Import from split blog files (metadata + content)
+    const { getAllBlogPostsWithContent } = await import('./blogContent');
+    const blogPosts = getAllBlogPostsWithContent();
 
     for (const post of blogPosts) {
       await sheet.addRow({

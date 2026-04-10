@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import SettingsMenu from '@/components/SettingsMenu';
 import { getChecklistBySlug, type OnboardingChecklist } from '@/lib/onboarding-checklists';
+import { useAuth } from '@/lib/auth-context';
 
 const STORAGE_PREFIX = 'rcrs-onboarding-checklist-';
 
@@ -28,14 +29,32 @@ function loadProgress(slug: string): Set<string> {
   }
 }
 
-function saveProgress(slug: string, completed: Set<string>) {
+function saveProgress(slug: string, completed: Set<string>, user?: { userId: string; name: string } | null, checklist?: OnboardingChecklist | null) {
   if (typeof window === 'undefined') return;
   localStorage.setItem(STORAGE_PREFIX + slug, JSON.stringify(Array.from(completed)));
+
+  // Also persist each completed step to the server
+  Array.from(completed).forEach((stepId) => {
+    fetch('/api/portal/training', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: user?.userId || 'unknown',
+        userName: user?.name || 'Unknown',
+        moduleId: `checklist_${slug}_${stepId}`,
+        moduleName: `Checklist: ${checklist?.name || slug} - ${stepId}`,
+        score: '100',
+        passed: true,
+        completedAt: new Date().toISOString(),
+      }),
+    }).catch(() => {}); // fire-and-forget
+  });
 }
 
 export default function OnboardingChecklistPage() {
   const params = useParams();
   const slug = params?.slug as string;
+  const { user } = useAuth();
   const [checklist, setChecklist] = useState<OnboardingChecklist | null>(null);
   const [completed, setCompleted] = useState<Set<string>>(new Set());
   const [justCompleted, setJustCompleted] = useState<string | null>(null);
@@ -59,7 +78,7 @@ export default function OnboardingChecklistPage() {
       setTimeout(() => setJustCompleted(null), 1500);
     }
     setCompleted(next);
-    saveProgress(slug, next);
+    saveProgress(slug, next, user, checklist);
   };
 
   if (!checklist) {

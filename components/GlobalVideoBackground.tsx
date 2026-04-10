@@ -34,8 +34,9 @@ export default function GlobalVideoBackground({
       if (slow) return;
     }
 
-    // Delay video load to avoid competing with LCP resources
-    const timer = setTimeout(() => setShowVideo(true), 100);
+    // Delay video load to avoid competing with LCP resources.
+    // 3s gives the hero poster image clean network priority.
+    const timer = setTimeout(() => setShowVideo(true), 3000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -67,7 +68,7 @@ export default function GlobalVideoBackground({
           loop
           muted
           playsInline
-          preload="auto"
+          preload="none"
           poster={fallbackImage}
           onError={handleVideoError}
           className="absolute inset-0 w-full h-full object-cover"

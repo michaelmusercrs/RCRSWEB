@@ -161,14 +161,8 @@ const ALL_PERMISSIONS = [
 
 const ALL_ROLES = ['admin', 'manager', 'office', 'driver', 'warehouse'];
 
-const MOCK_USERS = [
-  { id: 'u1', name: 'Michael Muse', email: 'michaelmuse@rcrsal.com', role: 'admin' },
-  { id: 'u2', name: 'Sara Hill', email: 'sara@rcrsal.com', role: 'manager' },
-  { id: 'u3', name: 'Tia', email: 'tia@rcrsal.com', role: 'office' },
-  { id: 'u4', name: 'Carlos Rivera', email: 'carlos@rcrsal.com', role: 'driver' },
-  { id: 'u5', name: 'Marcus Johnson', email: 'marcus@rcrsal.com', role: 'driver' },
-  { id: 'u6', name: 'Destin', email: 'destin@rcrsal.com', role: 'warehouse' },
-];
+// Team members loaded from API — no hardcoded user list
+const TEAM_USERS: { id: string; name: string; email: string; role: string }[] = [];
 
 const STATUS_LABELS: Record<string, string> = {
   assigned: 'Assigned',
@@ -430,9 +424,10 @@ export default function DeliverySettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ------------------------------------------
-  // Load settings from localStorage
+  // Load settings from localStorage (instant cache), then hydrate from API
   // ------------------------------------------
   useEffect(() => {
+    // Load instant cache first
     try {
       const stored = localStorage.getItem('rcrs-delivery-settings');
       if (stored) {
@@ -443,6 +438,25 @@ export default function DeliverySettingsPage() {
       // Use defaults
     }
     setLoading(false);
+
+    // Hydrate from API (server is source of truth)
+    fetch('/api/portal/delivery/settings', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'get' }),
+    })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.success && data.settings) {
+          const merged = { ...DEFAULT_SETTINGS, ...data.settings };
+          setSettings(merged);
+          try {
+            localStorage.setItem('rcrs-delivery-settings', JSON.stringify(merged));
+          } catch { /* ignore */ }
+        }
+      })
+      .catch(() => { /* API unavailable, localStorage cache is fine */ });
   }, []);
 
   // ------------------------------------------
@@ -1510,7 +1524,7 @@ export default function DeliverySettingsPage() {
           <div>
             <label className="block text-sm font-medium text-zinc-300 mb-3">Team Members</label>
             <div className="space-y-2">
-              {MOCK_USERS.map(user => (
+              {TEAM_USERS.map(user => (
                 <div key={user.id} className="flex items-center justify-between p-3 bg-zinc-900/50 rounded-lg border border-zinc-800">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center">

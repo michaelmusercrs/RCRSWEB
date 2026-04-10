@@ -4,7 +4,7 @@ import Script from 'next/script';
 import '../globals.css';
 import { generateMetadata as genMeta, siteConfig } from '@/lib/seo';
 
-const inter = Inter({ subsets: ['latin'], display: 'swap' });
+const inter = Inter({ subsets: ['latin'], display: 'swap', adjustFontFallback: false });
 
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_ID || 'G-Y8PB85BZC5';
 const GOOGLE_ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID || '';

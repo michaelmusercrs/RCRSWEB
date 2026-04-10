@@ -368,7 +368,7 @@ export default function MondayChecklistPage() {
 
   const previousWeek = getPreviousISOWeek();
 
-  // ─── Load checklist state from localStorage ────────────────────────────────
+  // ─── Load checklist state from localStorage (instant cache) ─────────────────
   useEffect(() => {
     try {
       const stored = localStorage.getItem(LOCALSTORAGE_KEY);
@@ -382,11 +382,30 @@ export default function MondayChecklistPage() {
     } catch {
       // Invalid localStorage data, start fresh
     }
+
+    // Hydrate from API (server is source of truth)
+    fetch(`/api/command-center/meetings?action=get-checklist&week=${previousWeek}`, {
+      credentials: 'include',
+    })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.success && data.checklist) {
+          setCheckedItems(data.checklist);
+          try {
+            localStorage.setItem(
+              LOCALSTORAGE_KEY,
+              JSON.stringify({ week: previousWeek, items: data.checklist })
+            );
+          } catch { /* ignore */ }
+        }
+      })
+      .catch(() => { /* API unavailable, localStorage cache is fine */ });
   }, [previousWeek]);
 
-  // ─── Save checklist state to localStorage ──────────────────────────────────
+  // ─── Save checklist state to localStorage + persist to API ─────────────────
   const saveChecklist = useCallback(
     (items: Record<string, boolean>) => {
+      // Keep localStorage as instant cache
       try {
         localStorage.setItem(
           LOCALSTORAGE_KEY,
@@ -395,6 +414,17 @@ export default function MondayChecklistPage() {
       } catch {
         // localStorage full or unavailable
       }
+
+      // Also persist to API (fire-and-forget)
+      fetch('/api/command-center/meetings', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'save-checklist',
+          data: { week: previousWeek, items },
+        }),
+      }).catch(() => {});
     },
     [previousWeek]
   );

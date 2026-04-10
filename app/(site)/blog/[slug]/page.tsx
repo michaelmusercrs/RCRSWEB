@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { blogPosts as staticBlogPosts } from '@/lib/blogData';
+import { blogPostIndex as staticBlogPosts } from '@/lib/blogPostIndex';
 import { getAllBlogPosts, getBlogPostBySlug } from '@/lib/blog-loader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';

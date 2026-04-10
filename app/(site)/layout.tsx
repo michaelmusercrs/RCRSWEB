@@ -7,13 +7,13 @@ import { Suspense } from 'react';
 import '../globals.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import FloatingContactButton from '@/components/FloatingContactButton';
 // ChatBot disabled — not yet configured (2026-02-17)
 // import ChatBot from '@/components/ChatBot';
 import GlobalVideoBackground from '@/components/GlobalVideoBackground';
 import PromoBanner from '@/components/PromoBanner';
 import SandboxBanner from '@/components/SandboxBanner';
 import dynamic from 'next/dynamic';
+const FloatingContactButton = dynamic(() => import('@/components/FloatingContactButton'), { ssr: false });
 const CookieConsent = dynamic(() => import('@/components/CookieConsent'), { ssr: false });
 const EmailCapturePopup = dynamic(() => import('@/components/EmailCapturePopup'), { ssr: false });
 // PWA install prompt — client-only, must not block initial render
@@ -38,7 +38,7 @@ const FB_PIXEL_ID = process.env.NEXT_PUBLIC_FB_PIXEL_ID || '';
 // Get it from: Google Ads → Tools → Conversions → Tag setup (format: AW-XXXXXXXXX)
 const GOOGLE_ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID || '';
 
-const inter = Inter({ subsets: ['latin'], display: 'swap' });
+const inter = Inter({ subsets: ['latin'], display: 'swap', adjustFontFallback: false });
 
 export const metadata: Metadata = generateMetadata({
   title: 'Roofing Contractor Decatur & Huntsville AL | Roof Replacement & Storm Damage Repair',
@@ -236,7 +236,7 @@ export default function RootLayout({
         <SpeedInsights />
 
         {/* Service Worker Registration */}
-        <Script id="sw-register" strategy="afterInteractive">
+        <Script id="sw-register" strategy="lazyOnload">
           {`
             if ('serviceWorker' in navigator) {
               window.addEventListener('load', function() {

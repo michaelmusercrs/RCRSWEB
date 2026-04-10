@@ -69,81 +69,10 @@ interface Notification {
 }
 
 // ============================================
-// FALLBACK MOCK DATA
-// ============================================
-
-const MOCK_STATS: DriverStats = {
-  todayDeliveries: 3,
-  completed: 0,
-  inProgress: 1,
-  pending: 2,
-  totalWeight: 7248,
-  onTimeRate: 96,
-};
-
-const MOCK_DELIVERIES: DriverDelivery[] = [
-  {
-    ticketId: 'DEL-20260211-A1B2',
-    jobName: 'Henderson Roof Replacement',
-    customerName: 'Mark Henderson',
-    customerPhone: '(256) 555-1234',
-    address: '1482 Oak Valley Dr',
-    city: 'Huntsville',
-    state: 'AL',
-    zip: '35801',
-    scheduledTime: '08:30 AM',
-    priority: 'normal',
-    status: 'assigned',
-    materialCount: 7,
-    totalWeight: 3994,
-    specialInstructions: 'Gate code #4429. Stack shingles south side.',
-  },
-  {
-    ticketId: 'DEL-20260211-C3D4',
-    jobName: 'Whitfield Insurance Repair',
-    customerName: 'Sarah Whitfield',
-    customerPhone: '(256) 555-8877',
-    address: '305 Monroe St SW',
-    city: 'Decatur',
-    state: 'AL',
-    zip: '35601',
-    scheduledTime: '11:00 AM',
-    priority: 'rush',
-    status: 'assigned',
-    materialCount: 6,
-    totalWeight: 2166,
-    specialInstructions: 'Insurance job - take before photos. Inspector at 11:30 AM.',
-  },
-  {
-    ticketId: 'DEL-20260211-E5F6',
-    jobName: 'Thompson Gutter Install',
-    customerName: 'David Thompson',
-    customerPhone: '(256) 555-3301',
-    address: '920 Bailey Cove Rd',
-    city: 'Huntsville',
-    state: 'AL',
-    zip: '35802',
-    scheduledTime: '2:00 PM',
-    priority: 'normal',
-    status: 'assigned',
-    materialCount: 4,
-    totalWeight: 137,
-    specialInstructions: 'Stage materials in garage. Ring doorbell.',
-  },
-];
-
-const MOCK_NOTIFICATIONS: Notification[] = [
-  { id: '1', message: 'Henderson delivery assigned to you for 8:30 AM', time: '6:45 AM', priority: 'normal', read: false },
-  { id: '2', message: 'RUSH: Whitfield Insurance repair added for 11:00 AM', time: '7:00 AM', priority: 'high', read: false },
-  { id: '3', message: 'Thompson Gutter job confirmed for 2:00 PM', time: '7:15 AM', priority: 'normal', read: true },
-];
-
-// ============================================
 // COMPONENT
 // ============================================
 
-// Empty stats — used when there's nothing to show. Replaces the previous
-// MOCK_STATS fallback that violated the no-fake-data rule.
+// Empty stats — used when there's nothing to show before API data arrives.
 const EMPTY_STATS: DriverStats = {
   todayDeliveries: 0,
   completed: 0,

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/lib/auth-context';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -708,10 +709,11 @@ function FirstDeliveryStepsVisual() {
 const LS_KEY = 'rcrs-delivery-onboarding-progress';
 
 export default function DeliveryOnboardingPage() {
+  const { user } = useAuth();
   const [completedSections, setCompletedSections] = useState<Set<string>>(new Set());
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['welcome']));
 
-  // Load progress from localStorage
+  // Load progress from localStorage (instant cache), then hydrate from API
   useEffect(() => {
     try {
       const saved = localStorage.getItem(LS_KEY);
@@ -726,14 +728,34 @@ export default function DeliveryOnboardingPage() {
     }
   }, []);
 
-  // Save progress to localStorage
-  const saveProgress = (updated: Set<string>) => {
+  // Save progress to localStorage + persist to API
+  const saveProgress = useCallback((updated: Set<string>) => {
+    const arr = Array.from(updated);
+    // Keep localStorage as instant cache
     try {
-      localStorage.setItem(LS_KEY, JSON.stringify(Array.from(updated)));
+      localStorage.setItem(LS_KEY, JSON.stringify(arr));
     } catch {
       // Ignore
     }
-  };
+    // Also persist to API (fire-and-forget)
+    if (user) {
+      for (const stepId of arr) {
+        fetch('/api/portal/training', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.userId,
+            userName: user.name,
+            moduleId: 'delivery-onboarding',
+            moduleName: `Delivery Onboarding: ${stepId}`,
+            score: 100,
+            passed: true,
+          }),
+        }).catch(() => {});
+      }
+    }
+  }, [user]);
 
   const toggleComplete = (sectionId: string) => {
     setCompletedSections(prev => {

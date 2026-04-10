@@ -5,7 +5,7 @@
  */
 
 import { MetadataRoute } from 'next';
-import { blogPosts } from '@/lib/blogData';
+import { blogPostIndex as blogPosts } from '@/lib/blogPostIndex';
 import { services, serviceAreas } from '@/lib/servicesData';
 import { teamMembers } from '@/lib/teamData';
 

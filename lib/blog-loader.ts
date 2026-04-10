@@ -6,7 +6,8 @@
  * taking priority when slugs overlap.
  */
 
-import { blogPosts as staticPosts } from './blogData';
+import { blogPostIndex } from './blogPostIndex';
+import { getBlogPostContent, getAllBlogPostsWithContent } from './blogContent';
 
 interface UnifiedBlogPost {
   id: string | number;
@@ -29,6 +30,7 @@ export async function getAllBlogPosts(): Promise<UnifiedBlogPost[]> {
   // Start with static posts
   const postsBySlug = new Map<string, UnifiedBlogPost>();
 
+  const staticPosts = getAllBlogPostsWithContent();
   for (const post of staticPosts) {
     postsBySlug.set(post.slug, { ...post, published: true });
   }
@@ -73,6 +75,6 @@ export async function getBlogPostBySlug(slug: string): Promise<UnifiedBlogPost |
   }
 
   // Fall back to static
-  const staticPost = staticPosts.find(p => p.slug === slug);
+  const staticPost = getBlogPostContent(slug);
   return staticPost ? { ...staticPost, published: true } : null;
 }

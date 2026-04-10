@@ -14,12 +14,14 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import type { WalkthroughData } from '@/lib/walkthrough-data/types';
+import { useAuth } from '@/lib/auth-context';
 
 interface WalkthroughPageProps {
   data: WalkthroughData;
 }
 
 export default function WalkthroughPage({ data }: WalkthroughPageProps) {
+  const { user } = useAuth();
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [completedSections, setCompletedSections] = useState<Set<string>>(new Set());
 
@@ -42,33 +44,21 @@ export default function WalkthroughPage({ data }: WalkthroughPageProps) {
     const arr = Array.from(newCompleted);
     localStorage.setItem(storageKey, JSON.stringify(arr));
 
-    // Sync each newly completed section to server
-    const getUserId = () => {
-      try {
-        const raw = localStorage.getItem('rcrs-user-settings');
-        if (raw) {
-          const s = JSON.parse(raw);
-          return { userId: s.email || s.userId || 'anonymous', userName: s.displayName || s.name || 'Team Member' };
-        }
-      } catch { /* ignore */ }
-      return { userId: 'anonymous', userName: 'Team Member' };
-    };
-    const { userId, userName } = getUserId();
-
+    // Sync each completed section to server using auth context
     arr.forEach((sectionId) => {
       fetch('/api/portal/training', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId,
-          userName,
+          userId: user?.userId || 'unknown',
+          userName: user?.name || 'Unknown',
           moduleId: `wt_${data.slug}_${sectionId}`,
           moduleName: `Walkthrough: ${data.name} - ${sectionId}`,
           score: '100',
           passed: true,
           completedAt: new Date().toISOString(),
         }),
-      }).catch(() => {});
+      }).catch(() => {}); // fire-and-forget
     });
   };
 

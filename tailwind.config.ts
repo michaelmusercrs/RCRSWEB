@@ -17,6 +17,10 @@ const config: Config = {
   		}
   	},
   	extend: {
+  		transitionDuration: {
+  			'900': '900ms',
+  			'1200': '1200ms',
+  		},
   		colors: {
   			'brand-black': '#000000',
   			'brand-green': '#39FF14',

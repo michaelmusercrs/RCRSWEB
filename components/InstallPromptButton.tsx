@@ -82,6 +82,7 @@ export default function InstallPromptButton() {
     setDeferredPrompt(null);
   };
 
+  // UI preference — tracks PWA install prompt dismissal
   const dismiss = () => {
     setDismissed(true);
     if (typeof localStorage !== 'undefined') {

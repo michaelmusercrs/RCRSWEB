@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { blogPosts as staticBlogPosts } from '@/lib/blogData';
+// Note: staticBlogPosts removed — listing page uses getAllBlogPosts() from blog-loader
 import { getAllBlogPosts } from '@/lib/blog-loader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';

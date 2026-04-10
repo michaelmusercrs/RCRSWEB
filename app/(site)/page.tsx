@@ -6,8 +6,9 @@ import { MapPin, Shield, Award, Users, CheckCircle2, ArrowRight, CloudLightning,
 
 import RotatingText from '@/components/RotatingText';
 import RotatingBanner from '@/components/RotatingBanner';
-import QuickContactForm from '@/components/QuickContactForm';
-import { blogPosts } from '@/lib/blogData';
+import dynamic from 'next/dynamic';
+const QuickContactForm = dynamic(() => import('@/components/QuickContactForm'), { ssr: false });
+import { blogPostIndex as blogPosts } from '@/lib/blogPostIndex';
 import { services, serviceAreas } from '@/lib/servicesData';
 import { loadFeaturedReviews } from '@/lib/reviews-loader';
 import { getSiteConfig } from '@/lib/site-config';
@@ -468,7 +469,7 @@ export default async function HomePage() {
                 >
                   {area.image && (
                     <div className="h-32 relative">
-                      <Image src={area.image} alt={`${area.name} ${area.state} roofing`} fill className="object-cover" />
+                      <Image src={area.image} alt={`${area.name} ${area.state} roofing`} fill className="object-cover" loading="lazy" sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw" />
                       <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-all" />
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
                         <h3 className="font-black uppercase tracking-wider text-lg text-white drop-shadow-lg">
@@ -515,7 +516,7 @@ export default async function HomePage() {
               rel="noopener noreferrer"
               className="flex flex-col items-center gap-3 p-6 bg-neutral-950 border border-neutral-800 rounded-2xl hover:border-brand-green transition-all group"
             >
-              <Image src="/uploads/cert-iko-roofpro.jpg" alt="IKO ROOFPRO Craftsman Premier" width={80} height={80} className="object-contain" />
+              <Image src="/uploads/cert-iko-roofpro.jpg" alt="IKO ROOFPRO Craftsman Premier" width={80} height={80} className="object-contain" loading="lazy" />
               <div className="text-center">
                 <p className="font-black text-white uppercase tracking-wider text-sm group-hover:text-brand-green transition-colors">IKO ROOFPRO&reg;</p>
                 <p className="text-neutral-300 text-xs mt-1">Craftsman Premier</p>
@@ -554,7 +555,7 @@ export default async function HomePage() {
               rel="noopener noreferrer"
               className="flex flex-col items-center gap-3 p-6 bg-neutral-950 border border-neutral-800 rounded-2xl hover:border-brand-green transition-all group"
             >
-              <Image src="/uploads/cert-bbb.jpg" alt="BBB A+ Accredited Business" width={80} height={80} className="object-contain" />
+              <Image src="/uploads/cert-bbb.jpg" alt="BBB A+ Accredited Business" width={80} height={80} className="object-contain" loading="lazy" />
               <div className="text-center">
                 <p className="font-black text-white uppercase tracking-wider text-sm group-hover:text-brand-green transition-colors">BBB A+ Rated</p>
                 <p className="text-neutral-300 text-xs mt-1">Accredited Business</p>
@@ -567,7 +568,7 @@ export default async function HomePage() {
               rel="noopener noreferrer"
               className="flex flex-col items-center gap-3 p-6 bg-neutral-950 border border-neutral-800 rounded-2xl hover:border-brand-green transition-all group"
             >
-              <Image src="/uploads/cert-google.png" alt="Google Reviews" width={80} height={80} className="object-contain" />
+              <Image src="/uploads/cert-google.png" alt="Google Reviews" width={80} height={80} className="object-contain" loading="lazy" />
               <div className="text-center">
                 <p className="font-black text-white uppercase tracking-wider text-sm group-hover:text-brand-green transition-colors">Google Reviews</p>
                 <p className="text-neutral-300 text-xs mt-1">{'\u2605\u2605\u2605\u2605\u2605'} Rated</p>
@@ -580,7 +581,7 @@ export default async function HomePage() {
               rel="noopener noreferrer"
               className="flex flex-col items-center gap-3 p-6 bg-neutral-950 border border-neutral-800 rounded-2xl hover:border-brand-green transition-all group"
             >
-              <Image src="/uploads/cert-bni.png" alt="BNI Member" width={80} height={80} className="object-contain" />
+              <Image src="/uploads/cert-bni.png" alt="BNI Member" width={80} height={80} className="object-contain" loading="lazy" />
               <div className="text-center">
                 <p className="font-black text-white uppercase tracking-wider text-sm group-hover:text-brand-green transition-colors">BNI Member</p>
                 <p className="text-neutral-300 text-xs mt-1">Business Network</p>
@@ -615,6 +616,8 @@ export default async function HomePage() {
                     alt={post.title}
                     fill
                     className="object-cover"
+                    loading="lazy"
+                    sizes="(max-width: 768px) 100vw, 33vw"
                   />
                 </div>
                 <CardContent className="p-5">
@@ -661,11 +664,11 @@ export default async function HomePage() {
                 <div className="grid grid-cols-2">
                   <div className="relative h-40 sm:h-56">
                     <div className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-red-600 text-white px-2 py-0.5 rounded-md font-bold text-xs z-10">BEFORE</div>
-                    <Image src="/uploads/service-storm.jpg" alt="Before: Storm damaged roof in Huntsville" fill className="object-cover" />
+                    <Image src="/uploads/service-storm.jpg" alt="Before: Storm damaged roof in Huntsville" fill className="object-cover" loading="lazy" sizes="(max-width: 768px) 50vw, 25vw" />
                   </div>
                   <div className="relative h-40 sm:h-56">
                     <div className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-brand-green text-black px-2 py-0.5 rounded-md font-bold text-xs z-10">AFTER</div>
-                    <Image src="/uploads/service-repair.jpg" alt="After: Completed roof repair in Huntsville" fill className="object-cover" />
+                    <Image src="/uploads/service-repair.jpg" alt="After: Completed roof repair in Huntsville" fill className="object-cover" loading="lazy" sizes="(max-width: 768px) 50vw, 25vw" />
                   </div>
                 </div>
                 <CardContent className="p-5">
@@ -678,11 +681,11 @@ export default async function HomePage() {
                 <div className="grid grid-cols-2">
                   <div className="relative h-40 sm:h-56">
                     <div className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-red-600 text-white px-2 py-0.5 rounded-md font-bold text-xs z-10">BEFORE</div>
-                    <Image src="/uploads/service-residential.png" alt="Before: Aging residential roof in Madison" fill className="object-cover" />
+                    <Image src="/uploads/service-residential.png" alt="Before: Aging residential roof in Madison" fill className="object-cover" loading="lazy" sizes="(max-width: 768px) 50vw, 25vw" />
                   </div>
                   <div className="relative h-40 sm:h-56">
                     <div className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-brand-green text-black px-2 py-0.5 rounded-md font-bold text-xs z-10">AFTER</div>
-                    <Image src="/uploads/service-commercial.png" alt="After: Premium roof installation in Madison" fill className="object-cover" />
+                    <Image src="/uploads/service-commercial.png" alt="After: Premium roof installation in Madison" fill className="object-cover" loading="lazy" sizes="(max-width: 768px) 50vw, 25vw" />
                   </div>
                 </div>
                 <CardContent className="p-5">

@@ -28,6 +28,7 @@ import {
   Clock,
 } from 'lucide-react';
 import SettingsMenu from '@/components/SettingsMenu';
+import { useAuth } from '@/lib/auth-context';
 
 // ============================================================================
 // TYPES
@@ -735,6 +736,7 @@ function saveCompletedSections(completed: Set<string>) {
 // ============================================================================
 
 export default function OnboardingPage() {
+  const { user } = useAuth();
   const [completed, setCompleted] = useState<Set<string>>(new Set());
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
   const [expandedSteps, setExpandedSteps] = useState<Set<number>>(new Set([0]));
@@ -816,13 +818,12 @@ export default function OnboardingPage() {
 
     // Persist to server with quiz answers for server-side validation
     try {
-      const { userId, userName } = getUserIdentity();
       await fetch('/api/portal/training', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId,
-          userName,
+          userId: user?.userId || 'unknown',
+          userName: user?.name || 'Unknown',
           moduleId: sectionId,
           moduleName: onboardingSections.find(s => s.id === sectionId)?.title || sectionId,
           score: '100',
