@@ -229,10 +229,7 @@ function renderMarkdownBlock(body: string): string {
 export default function TrainingLibraryPage() {
   const [modules, setModules] = useState<TrainingModule[]>([]);
   const [selectedModule, setSelectedModule] = useState<TrainingModule | null>(null);
-  // Default to 'quiz' since audio/video content hasn't been generated yet.
-  // Audio + video will become available once NotebookLM generates the content
-  // and the URLs are added to lib/training-content.ts.
-  const [activeContent, setActiveContent] = useState<ContentType>('quiz');
+  const [activeContent, setActiveContent] = useState<ContentType>('audio');
   const [isPlaying, setIsPlaying] = useState(false);
   const [studyGuideContent, setStudyGuideContent] = useState<string>('');
   const [quizData, setQuizData] = useState<Record<string, unknown> | null>(null);
