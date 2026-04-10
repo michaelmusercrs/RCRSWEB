@@ -30,7 +30,7 @@ async function writeOverrides(overrides: Record<string, Record<string, unknown>>
   try {
     const { put } = await import('@vercel/blob');
     await put(BLOB_KEY, JSON.stringify(overrides, null, 2), {
-      access: 'public', contentType: 'application/json', addRandomSuffix: false,
+      access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true,
     });
     return;
   } catch (e) {

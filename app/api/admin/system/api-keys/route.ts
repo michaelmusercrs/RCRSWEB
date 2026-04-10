@@ -45,7 +45,7 @@ async function writeConfig(config: Record<string, any>): Promise<void> {
   try {
     const { put } = await import('@vercel/blob');
     await put(BLOB_KEY, JSON.stringify(config, null, 2), {
-      access: 'public', contentType: 'application/json', addRandomSuffix: false,
+      access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true,
     });
   } catch (e) {
     const fs = await import('fs');

@@ -51,7 +51,7 @@ async function writeDocumentsData(data: {
   try {
     const { put } = await import('@vercel/blob');
     await put(BLOB_KEY, JSON.stringify(data, null, 2), {
-      access: 'public', contentType: 'application/json', addRandomSuffix: false,
+      access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true,
     });
     return;
   } catch (e) {

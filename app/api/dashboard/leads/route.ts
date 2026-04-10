@@ -42,7 +42,7 @@ async function writeData(key: string, localPath: string, data: any): Promise<voi
   try {
     const { put } = await import('@vercel/blob');
     await put(key, JSON.stringify(data, null, 2), {
-      access: 'public', contentType: 'application/json', addRandomSuffix: false,
+      access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true,
     });
     return;
   } catch (e) {

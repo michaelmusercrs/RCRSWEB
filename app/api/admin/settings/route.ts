@@ -47,7 +47,7 @@ async function writeSettings(settings: Record<string, unknown>): Promise<void> {
     await put(SETTINGS_BLOB_KEY, JSON.stringify(settings, null, 2), {
       access: 'public',
       contentType: 'application/json',
-      addRandomSuffix: false,
+      addRandomSuffix: false, allowOverwrite: true,
     });
   } catch (e) {
     console.error('Settings: Blob write failed, trying local file:', e);

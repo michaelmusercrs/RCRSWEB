@@ -41,7 +41,7 @@ export async function saveImageMetadata(images: ProfileImage[]): Promise<void> {
     await put(BLOB_KEY, JSON.stringify(images, null, 2), {
       access: 'public',
       contentType: 'application/json',
-      addRandomSuffix: false,
+      addRandomSuffix: false, allowOverwrite: true,
     });
     return;
   } catch { /* blob not available */ }

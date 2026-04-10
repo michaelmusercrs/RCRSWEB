@@ -41,7 +41,7 @@ async function writeTeamMembers(members: TeamMember[]): Promise<void> {
   try {
     const { put } = await import('@vercel/blob');
     await put(BLOB_KEY, JSON.stringify(members, null, 2), {
-      access: 'public', contentType: 'application/json', addRandomSuffix: false,
+      access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true,
     });
     return;
   } catch (e) {

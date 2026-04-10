@@ -135,7 +135,7 @@ async function backupSheet(
       const blob = await put(blobPath, content, {
         access: 'public',
         contentType: 'application/json',
-        addRandomSuffix: false,
+        addRandomSuffix: false, allowOverwrite: true,
       });
 
       totalRows += data.length;
@@ -277,7 +277,7 @@ async function backupLocalJson(dateStr: string): Promise<LocalJsonBackupResult> 
       const blob = await put(blobPath, content, {
         access: 'public',
         contentType: 'application/json',
-        addRandomSuffix: false,
+        addRandomSuffix: false, allowOverwrite: true,
       });
 
       result.filesBacked++;
@@ -414,7 +414,7 @@ export async function GET(request: NextRequest) {
     await put(`backups/${dateStr}/manifest.json`, JSON.stringify(manifest, null, 2), {
       access: 'public',
       contentType: 'application/json',
-      addRandomSuffix: false,
+      addRandomSuffix: false, allowOverwrite: true,
     });
 
     console.log(

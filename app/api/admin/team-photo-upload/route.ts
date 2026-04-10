@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     // AWAIT the upload — must complete before returning so the URL is real
     const blob = await put(path, file, {
       access: 'public',
-      addRandomSuffix: false,
+      addRandomSuffix: false, allowOverwrite: true,
       contentType: file.type,
     });
 
