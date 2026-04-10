@@ -18,12 +18,24 @@ type RoleName = 'Owner' | 'Admin' | 'Manager' | 'Sales' | 'Driver' | 'Office' | 
 // Routes restricted to a minimum role tier (using ROLE_HIERARCHY weights).
 // Higher number = higher privilege.
 const ROLE_RANK: Record<string, number> = {
+  // Capitalized (display names)
   Owner: 6,
   Admin: 5,
   Manager: 4,
   Office: 3,
   Sales: 2,
   Driver: 1,
+  // Lowercase (JWT payload values from team-roles.ts)
+  owner: 6,
+  admin: 5,
+  manager: 4,
+  office: 3,
+  sales: 2,
+  driver: 1,
+  // Extended roles from team-roles.ts
+  project_manager: 4,
+  pm: 4,
+  viewer: 1,
 };
 
 // Pages that require at least the named role to load.
@@ -89,8 +101,11 @@ function findProtectedRule(pathname: string): { prefix: string; minRole: RoleNam
 
 function userMeetsMinRole(userRole: string | null, minRole: RoleName): boolean {
   if (!userRole) return false;
-  const userRank = ROLE_RANK[userRole] ?? 0;
-  const minRank = ROLE_RANK[minRole] ?? 0;
+  // JWT stores role as lowercase ("owner"), ROLE_RANK uses capitalized ("Owner").
+  // Normalize both sides to handle any casing.
+  const normalize = (r: string) => r.charAt(0).toUpperCase() + r.slice(1).toLowerCase();
+  const userRank = ROLE_RANK[normalize(userRole)] ?? ROLE_RANK[userRole] ?? 0;
+  const minRank = ROLE_RANK[normalize(minRole)] ?? ROLE_RANK[minRole] ?? 0;
   return userRank >= minRank;
 }
 
