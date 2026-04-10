@@ -73,6 +73,14 @@ interface RepStats {
   name: string;
   initials: string;
   avatarColor: string;
+  // Correctly-named: meeting revenue (self-reported $$$$$ from Monday meetings)
+  estimatedSalesAllTime?: number;
+  estimatedSalesWeekly?: number;
+  estimatedSalesMonthly?: number;
+  estimatedSalesYTD?: number;
+  // Real commissions from QuickBooks
+  actualCommissionsYTD?: number;
+  // Backward compat (these are meeting revenue, NOT commissions)
   totalCommissions: number;
   weeklyCommissions: number;
   monthlyCommissions: number;
@@ -109,6 +117,13 @@ interface RepStats {
 interface LeaderboardData {
   leaderboard: RepStats[];
   summary: {
+    // Correctly-named fields
+    estimatedSalesAllTime?: number;
+    estimatedSalesWeekly?: number;
+    estimatedSalesMonthly?: number;
+    estimatedSalesYTD?: number;
+    actualCommissionsYTD?: number;
+    // Backward compat
     totalTeamCommissions: number;
     totalTransactions: number;
     weeklyTotal: number;
@@ -128,10 +143,19 @@ interface LeaderboardData {
 interface MeetingStats {
   period: 'week' | 'month' | 'ytd';
   periodLabel: string;
+  // Correctly-named
+  estimatedSales?: number;
+  meetingWeeks?: number;
+  avgWeeklyRevenue?: number;
+  actualCommissions?: number;
+  // Backward compat
   totalCommissions: number;
   totalTransactions: number;
   avgTransaction: number;
   change: {
+    sales?: number;
+    salesPercent?: number;
+    // Backward compat
     commissions: number;
     commissionsPercent: number;
     transactions: number;
@@ -272,15 +296,15 @@ function PodiumDisplay({ leaderboard, period }: { leaderboard: RepStats[]; perio
     <Award key="bronze" className="h-10 w-10 text-orange-400" />,
   ];
 
-  // Show the period-specific revenue (meetingMetrics.revenue is the period-filtered value)
+  // Show the period-specific estimated sales (meetingMetrics.revenue is the period-filtered value)
   const getPeriodRevenue = (rep: RepStats) => {
     if (rep.meetingMetrics) return rep.meetingMetrics.revenue;
-    // Fallback to backward-compat fields
+    // Fallback to correctly-named fields, then backward-compat
     switch (period) {
-      case 'week': return rep.weeklyCommissions;
-      case 'month': return rep.monthlyCommissions;
-      case 'ytd': return rep.ytdCommissions;
-      default: return rep.totalCommissions;
+      case 'week': return rep.estimatedSalesWeekly ?? rep.weeklyCommissions;
+      case 'month': return rep.estimatedSalesMonthly ?? rep.monthlyCommissions;
+      case 'ytd': return rep.estimatedSalesYTD ?? rep.ytdCommissions;
+      default: return rep.estimatedSalesAllTime ?? rep.totalCommissions;
     }
   };
 
@@ -345,12 +369,12 @@ function StatsDisplay({ stats, leaderboard }: { stats: MeetingStats | null; lead
       bgColor: 'bg-lime-500/20',
     },
     {
-      label: `${stats.periodLabel} Revenue`,
-      value: formatCurrency(stats.totalCommissions),
-      subValue: `${stats.change.commissionsPercent >= 0 ? '+' : ''}${stats.change.commissionsPercent}% vs last period`,
-      icon: stats.change.commissionsPercent >= 0 ? TrendingUp : TrendingDown,
-      color: stats.change.commissionsPercent >= 0 ? 'text-green-400' : 'text-red-400',
-      bgColor: stats.change.commissionsPercent >= 0 ? 'bg-green-500/20' : 'bg-red-500/20',
+      label: `${stats.periodLabel} Estimated Sales`,
+      value: formatCurrency(stats.estimatedSales ?? stats.totalCommissions),
+      subValue: `${(stats.change.salesPercent ?? stats.change.commissionsPercent) >= 0 ? '+' : ''}${stats.change.salesPercent ?? stats.change.commissionsPercent}% vs last period`,
+      icon: (stats.change.salesPercent ?? stats.change.commissionsPercent) >= 0 ? TrendingUp : TrendingDown,
+      color: (stats.change.salesPercent ?? stats.change.commissionsPercent) >= 0 ? 'text-green-400' : 'text-red-400',
+      bgColor: (stats.change.salesPercent ?? stats.change.commissionsPercent) >= 0 ? 'bg-green-500/20' : 'bg-red-500/20',
     },
     {
       label: 'Avg Weekly Revenue',
@@ -692,13 +716,13 @@ function LeaderboardTable({ leaderboard, period }: { leaderboard: RepStats[]; pe
   const getValue = (rep: RepStats) => {
     switch (period) {
       case 'week':
-        return rep.weeklyCommissions;
+        return rep.estimatedSalesWeekly ?? rep.weeklyCommissions;
       case 'month':
-        return rep.monthlyCommissions;
+        return rep.estimatedSalesMonthly ?? rep.monthlyCommissions;
       case 'ytd':
-        return rep.ytdCommissions;
+        return rep.estimatedSalesYTD ?? rep.ytdCommissions;
       default:
-        return rep.totalCommissions;
+        return rep.estimatedSalesAllTime ?? rep.totalCommissions;
     }
   };
 
@@ -710,9 +734,9 @@ function LeaderboardTable({ leaderboard, period }: { leaderboard: RepStats[]; pe
             <th className="px-6 py-4 text-left text-lg font-semibold text-neutral-500">Rank</th>
             <th className="px-6 py-4 text-left text-lg font-semibold text-neutral-500">Rep</th>
             <th className="px-6 py-4 text-right text-lg font-semibold text-neutral-500">
-              {period === 'week' ? 'Weekly' : period === 'month' ? 'Monthly' : 'YTD'}
+              {period === 'week' ? 'Weekly' : period === 'month' ? 'Monthly' : 'YTD'} Est. Sales
             </th>
-            <th className="px-6 py-4 text-right text-lg font-semibold text-neutral-500">All Time</th>
+            <th className="px-6 py-4 text-right text-lg font-semibold text-neutral-500">YTD Comm (QB)</th>
             <th className="px-6 py-4 text-right text-lg font-semibold text-neutral-500">Deals</th>
             <th className="px-6 py-4 text-center text-lg font-semibold text-neutral-500">Status</th>
           </tr>
@@ -771,7 +795,7 @@ function LeaderboardTable({ leaderboard, period }: { leaderboard: RepStats[]; pe
                 <span className="text-2xl font-bold text-lime-400">{formatCurrency(getValue(rep))}</span>
               </td>
               <td className="px-6 py-4 text-right">
-                <span className="text-xl text-neutral-400">{formatCurrency(rep.totalCommissions)}</span>
+                <span className="text-xl text-neutral-400">{formatCurrency(rep.actualCommissionsYTD ?? 0)}</span>
               </td>
               <td className="px-6 py-4 text-right">
                 <span className="text-xl text-neutral-500">{rep.totalTransactions.toLocaleString()}</span>
@@ -1277,13 +1301,13 @@ export default function MeetingPresentationPage() {
           <SalesCompetitionPresentation
             reps={filteredLeaderboard.leaderboard.map(rep => {
               const competitionPeriod = getCurrentPeriod();
-              const periodTotal = competitionPeriod.half === 1
-                ? rep.ytdCommissions
-                : rep.totalCommissions - (rep.ytdCommissions - rep.monthlyCommissions);
+              const ytdSales = rep.estimatedSalesYTD ?? rep.ytdCommissions;
+              const allTimeSales = rep.estimatedSalesAllTime ?? rep.totalCommissions;
+              const monthlySales = rep.estimatedSalesMonthly ?? rep.monthlyCommissions;
               return {
                 name: rep.name,
-                periodTotal: competitionPeriod.half === 1 ? rep.ytdCommissions : rep.monthlyCommissions * 6,
-                monthlyTotal: rep.monthlyCommissions,
+                periodTotal: competitionPeriod.half === 1 ? ytdSales : monthlySales * 6,
+                monthlyTotal: monthlySales,
               };
             })}
           />
@@ -1479,7 +1503,7 @@ export default function MeetingPresentationPage() {
                 'weekly-numbers': '📈 Weekly Numbers',
                 'stats': '💰 Stats',
                 'sales-charts': '📊 Sales Charts',
-                'commission-charts': '💵 Commission Charts',
+                'commission-charts': '💵 QB Commission Charts',
                 'goals': '🎯 Goals',
                 'milestones': '⚡ Milestones',
                 'office-bonus': '💵 Office Bonus',
@@ -1520,27 +1544,27 @@ export default function MeetingPresentationPage() {
         <div className="fixed bottom-0 left-0 right-0 bg-zinc-900/90 backdrop-blur-sm border-t border-zinc-800 py-3 px-6">
           <div className="flex items-center justify-around text-center">
             <div>
-              <p className="text-sm text-neutral-500">Weekly Revenue</p>
+              <p className="text-sm text-neutral-500">Weekly Est. Sales</p>
               <p className="text-xl font-bold text-blue-400">
-                {formatCurrency(leaderboardData.summary.weeklyTotal)}
+                {formatCurrency(leaderboardData.summary.estimatedSalesWeekly ?? leaderboardData.summary.weeklyTotal)}
               </p>
             </div>
             <div>
-              <p className="text-sm text-neutral-500">Monthly Revenue</p>
+              <p className="text-sm text-neutral-500">Monthly Est. Sales</p>
               <p className="text-xl font-bold text-purple-400">
-                {formatCurrency(leaderboardData.summary.monthlyTotal)}
+                {formatCurrency(leaderboardData.summary.estimatedSalesMonthly ?? leaderboardData.summary.monthlyTotal)}
               </p>
             </div>
             <div>
-              <p className="text-sm text-neutral-500">YTD Revenue</p>
+              <p className="text-sm text-neutral-500">YTD Est. Sales</p>
               <p className="text-xl font-bold text-yellow-400">
-                {formatCurrency(leaderboardData.summary.ytdTotal)}
+                {formatCurrency(leaderboardData.summary.estimatedSalesYTD ?? leaderboardData.summary.ytdTotal)}
               </p>
             </div>
             <div>
-              <p className="text-sm text-neutral-500">All-Time Revenue</p>
+              <p className="text-sm text-neutral-500">YTD Commissions (QB)</p>
               <p className="text-xl font-bold text-lime-400">
-                {formatLargeCurrency(leaderboardData.summary.totalTeamCommissions)}
+                {formatCurrency(leaderboardData.summary.actualCommissionsYTD ?? 0)}
               </p>
             </div>
           </div>

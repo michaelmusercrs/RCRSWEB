@@ -21,6 +21,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readFileSync, existsSync } from 'fs';
 import * as path from 'path';
+import { resolveCommissionName } from '@/lib/team-roles';
 
 // ============================================================================
 // Types
@@ -61,6 +62,15 @@ interface ParsedRecord {
   homeShow: number;
 }
 
+interface CommissionRecord {
+  salesRep: string;
+  date: string;
+  amount: number;
+  balance?: number;
+  jobNumber?: string;
+  customer?: string;
+}
+
 interface RepPeriodStats {
   name: string;
   // Meeting sheet metrics
@@ -77,13 +87,21 @@ interface RepPeriodStats {
   homeShow: number;
   weeksPresent: number;
   totalWeeks: number;
-  // Derived / comparison
+  // Correctly-named meeting revenue fields
+  estimatedSales: number;       // meeting $$$$$ for this period
+  salesPercent: number;          // percent of team meeting revenue
+  // Real commission data from QuickBooks (commissions.json)
+  actualCommissions: number;
+  // Derived / comparison (backward compat)
   currentPeriod: number;        // revenue for this period (backward compat)
   previousPeriod: number;       // revenue for previous period
   change: number;
   changePercent: number;
   transactionCount: number;     // number of weeks with data
   avgTransaction: number;       // average revenue per week
+  // Backward compat aliases (deprecated — use estimatedSales / salesPercent)
+  commissions: number;
+  commissionsPercent: number;
   rank: number;
   isHot: boolean;
   isCold: boolean;
@@ -96,20 +114,34 @@ interface MeetingStats {
     start: string;
     end: string;
   };
-  // Backward-compatible commission fields (now sourced from meeting $$$$$ column)
-  totalCommissions: number;
-  totalTransactions: number;
-  avgTransaction: number;
+  // Correctly-named meeting revenue fields (self-reported Monday meeting $$$$$)
+  estimatedSales: number;
+  meetingWeeks: number;
+  avgWeeklyRevenue: number;
+  // Real commission data from QuickBooks (commissions.json)
+  actualCommissions: number;
   previousPeriod: {
+    estimatedSales: number;
+    meetingWeeks: number;
+    // Backward compat
     totalCommissions: number;
     totalTransactions: number;
   };
   change: {
+    sales: number;
+    salesPercent: number;
+    weeks: number;
+    weeksPercent: number;
+    // Backward compat
     commissions: number;
     commissionsPercent: number;
     transactions: number;
     transactionsPercent: number;
   };
+  // Backward-compatible fields (deprecated — use estimatedSales / meetingWeeks / avgWeeklyRevenue)
+  totalCommissions: number;
+  totalTransactions: number;
+  avgTransaction: number;
   topPerformer: {
     name: string;
     amount: number;
@@ -289,6 +321,17 @@ export async function GET(request: NextRequest) {
       ? periodParam
       : 'week') as 'week' | 'month' | 'ytd';
 
+    // Load real commission data from QuickBooks (commissions.json)
+    let commissionRecords: CommissionRecord[] = [];
+    try {
+      const commPath = path.join(process.cwd(), 'data', 'commissions.json');
+      if (existsSync(commPath)) {
+        commissionRecords = JSON.parse(readFileSync(commPath, 'utf-8'));
+      }
+    } catch (err) {
+      console.error('[Meeting Stats] Error loading commissions.json:', err);
+    }
+
     // Use Central Time so "this month" and "this week" match Alabama local dates
     const now = getCentralDate();
     // HARD RULE: Michael, Chris, Sara, Boston NEVER on leaderboards
@@ -376,6 +419,32 @@ export async function GET(request: NextRequest) {
       previousRevenueTotal += rec.revenue;
     }
 
+    // Helper: parse commission dates (MM/DD/YYYY) to YYYY-MM-DD for comparison
+    function parseCommissionDate(dateStr: string): string {
+      const parts = dateStr.split('/');
+      if (parts.length !== 3) return '';
+      const [mm, dd, yyyy] = parts;
+      return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+    }
+
+    // Filter commissions by date range and sum by resolved rep name
+    function getCommissionsByRep(startDate: string, endDate: string): Map<string, number> {
+      const result = new Map<string, number>();
+      for (const rec of commissionRecords) {
+        const isoDate = parseCommissionDate(rec.date);
+        if (isoDate >= startDate && isoDate <= endDate && rec.amount > 0) {
+          const canonicalName = resolveCommissionName(rec.salesRep);
+          result.set(canonicalName, (result.get(canonicalName) || 0) + rec.amount);
+        }
+      }
+      return result;
+    }
+
+    // Get real commission totals for the current period
+    const periodCommissionsByRep = getCommissionsByRep(currentBounds.start, currentBounds.end);
+    let totalActualCommissions = 0;
+    periodCommissionsByRep.forEach(v => { totalActualCommissions += v; });
+
     // Build rep stats
     const repStats: RepPeriodStats[] = [];
 
@@ -390,6 +459,12 @@ export async function GET(request: NextRequest) {
         : (currentRevenue > 0 ? 100 : 0);
 
       const weeksPresent = records.filter(r => r.present === '1').length;
+
+      // Match rep name to commission data
+      const repCommissions = periodCommissionsByRep.get(repName) || 0;
+      const salesPercent = teamTotals.revenue > 0
+        ? Math.round((currentRevenue / teamTotals.revenue) * 1000) / 10
+        : 0;
 
       repStats.push({
         name: repName,
@@ -406,12 +481,19 @@ export async function GET(request: NextRequest) {
         homeShow: records.reduce((s, r) => s + r.homeShow, 0),
         weeksPresent,
         totalWeeks: records.length,
+        // Correctly-named fields
+        estimatedSales: Math.round(currentRevenue * 100) / 100,
+        salesPercent,
+        actualCommissions: Math.round(repCommissions * 100) / 100,
+        // Backward compat
         currentPeriod: Math.round(currentRevenue * 100) / 100,
         previousPeriod: Math.round(previousRevenue * 100) / 100,
         change: Math.round(change * 100) / 100,
         changePercent: Math.round(changePercent * 10) / 10,
         transactionCount: records.length,
         avgTransaction: records.length > 0 ? Math.round((currentRevenue / records.length) * 100) / 100 : 0,
+        commissions: Math.round(currentRevenue * 100) / 100,
+        commissionsPercent: salesPercent,
         rank: 0,
         isHot: false,
         isCold: false,
@@ -498,17 +580,33 @@ export async function GET(request: NextRequest) {
         start: currentBounds.start,
         end: currentBounds.end,
       },
-      // Backward-compatible: map revenue -> totalCommissions, weeks -> transactions
+      // Correctly-named: meeting revenue (self-reported Monday meeting $$$$$)
+      estimatedSales: Math.round(teamTotals.revenue * 100) / 100,
+      meetingWeeks: uniqueWeeks.size,
+      avgWeeklyRevenue: uniqueWeeks.size > 0
+        ? Math.round((teamTotals.revenue / uniqueWeeks.size) * 100) / 100
+        : 0,
+      // Real commission data from QuickBooks
+      actualCommissions: Math.round(totalActualCommissions * 100) / 100,
+      // Backward-compatible (deprecated — use estimatedSales / meetingWeeks / avgWeeklyRevenue)
       totalCommissions: Math.round(teamTotals.revenue * 100) / 100,
       totalTransactions: uniqueWeeks.size,
       avgTransaction: uniqueWeeks.size > 0
         ? Math.round((teamTotals.revenue / uniqueWeeks.size) * 100) / 100
         : 0,
       previousPeriod: {
+        estimatedSales: Math.round(previousRevenueTotal * 100) / 100,
+        meetingWeeks: new Set(previousRecords.map(r => r.meetingDate)).size,
+        // Backward compat
         totalCommissions: Math.round(previousRevenueTotal * 100) / 100,
         totalTransactions: new Set(previousRecords.map(r => r.meetingDate)).size,
       },
       change: {
+        sales: Math.round(revenueChange * 100) / 100,
+        salesPercent: Math.round(revenueChangePercent * 10) / 10,
+        weeks: weekCountChange,
+        weeksPercent: Math.round(weekCountChangePercent * 10) / 10,
+        // Backward compat
         commissions: Math.round(revenueChange * 100) / 100,
         commissionsPercent: Math.round(revenueChangePercent * 10) / 10,
         transactions: weekCountChange,

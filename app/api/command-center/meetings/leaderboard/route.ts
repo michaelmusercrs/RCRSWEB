@@ -20,7 +20,20 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { readFileSync, existsSync } from 'fs';
+import * as path from 'path';
 import { meetingNumbersService } from '@/lib/meeting-numbers-service';
+import { resolveCommissionName } from '@/lib/team-roles';
+
+// Commission record from QuickBooks (data/commissions.json)
+interface CommissionRecord {
+  salesRep: string;
+  date: string;
+  amount: number;
+  balance?: number;
+  jobNumber?: string;
+  customer?: string;
+}
 
 // ============================================================================
 // Types
@@ -85,7 +98,16 @@ interface LeaderboardRep {
     attendanceRate: number;
   };
 
-  // Backward-compatible commission fields (mapped from $$$$$ revenue)
+  // Correctly-named: meeting revenue (self-reported $$$$$ from Monday meetings)
+  estimatedSalesAllTime: number;
+  estimatedSalesWeekly: number;
+  estimatedSalesMonthly: number;
+  estimatedSalesYTD: number;
+
+  // REAL commissions (1099 payouts from QuickBooks)
+  actualCommissionsYTD: number;
+
+  // Backward-compatible fields (deprecated — use estimatedSales* / actualCommissions*)
   totalCommissions: number;
   weeklyCommissions: number;
   monthlyCommissions: number;
@@ -310,6 +332,38 @@ export async function GET(request: NextRequest) {
     const sortMetric = searchParams.get('metric') || 'revenue';
     const periodParam = searchParams.get('period') || 'thisYear';
 
+    // Load real commission data from QuickBooks (commissions.json)
+    let commissionRecords: CommissionRecord[] = [];
+    try {
+      const commPath = path.join(process.cwd(), 'data', 'commissions.json');
+      if (existsSync(commPath)) {
+        commissionRecords = JSON.parse(readFileSync(commPath, 'utf-8'));
+      }
+    } catch (err) {
+      console.error('[Leaderboard] Error loading commissions.json:', err);
+    }
+
+    // Helper: parse commission dates (MM/DD/YYYY) to YYYY-MM-DD for comparison
+    function parseCommissionDate(dateStr: string): string {
+      const parts = dateStr.split('/');
+      if (parts.length !== 3) return '';
+      const [mm, dd, yyyy] = parts;
+      return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+    }
+
+    // Filter commissions by date range and sum by resolved rep name
+    function getCommissionsByRep(startDate: string, endDate: string): Map<string, number> {
+      const result = new Map<string, number>();
+      for (const rec of commissionRecords) {
+        const isoDate = parseCommissionDate(rec.date);
+        if (isoDate >= startDate && isoDate <= endDate && rec.amount > 0) {
+          const canonicalName = resolveCommissionName(rec.salesRep);
+          result.set(canonicalName, (result.get(canonicalName) || 0) + rec.amount);
+        }
+      }
+      return result;
+    }
+
     // Use Central Time so "this month" and "this week" match Alabama local dates
     const now = getCentralDate();
 
@@ -347,6 +401,9 @@ export async function GET(request: NextRequest) {
     const prevWeekStart = new Date(now);
     prevWeekStart.setDate(prevWeekStart.getDate() - 7);
     const prevWeekBounds = getWeekBoundaries(prevWeekStart);
+
+    // Get real YTD commission totals from QuickBooks
+    const ytdCommissionsByRep = getCommissionsByRep(ytdBounds.start, ytdBounds.end);
 
     // Determine the primary filter period for the leaderboard ranking
     let periodStart: string | undefined;
@@ -514,6 +571,9 @@ export async function GET(request: NextRequest) {
         homeShow: periodHomeShow,
       };
 
+      // Look up real commission for this rep
+      const repActualCommissionsYTD = ytdCommissionsByRep.get(repName) || 0;
+
       leaderboard.push({
         rank: 0,
         name: repName,
@@ -537,7 +597,16 @@ export async function GET(request: NextRequest) {
           attendanceRate: Math.round(attendanceRate * 1000) / 10,
         },
 
-        // Backward-compatible fields (mapped from revenue / $$$$$ column)
+        // Correctly-named: meeting revenue (self-reported $$$$$ from Monday meetings)
+        estimatedSalesAllTime: Math.round(allTimeRevenue * 100) / 100,
+        estimatedSalesWeekly: Math.round(weekRevenue * 100) / 100,
+        estimatedSalesMonthly: Math.round(monthRevenue * 100) / 100,
+        estimatedSalesYTD: Math.round(ytdRevenue * 100) / 100,
+
+        // REAL commissions (1099 payouts from QuickBooks)
+        actualCommissionsYTD: Math.round(repActualCommissionsYTD * 100) / 100,
+
+        // Backward-compatible fields (deprecated — mapped from revenue / $$$$$ column)
         totalCommissions: Math.round(allTimeRevenue * 100) / 100,
         weeklyCommissions: Math.round(weekRevenue * 100) / 100,
         monthlyCommissions: Math.round(monthRevenue * 100) / 100,
@@ -643,11 +712,22 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Sum real YTD commissions for team total
+    let teamActualCommissionsYTD = 0;
+    ytdCommissionsByRep.forEach(v => { teamActualCommissionsYTD += v; });
+
     const response = {
       success: true,
       data: {
         leaderboard: view === 'compact' ? leaderboard.slice(0, 6) : leaderboard,
         summary: {
+          // Correctly-named fields
+          estimatedSalesAllTime: Math.round(grandTotal * 100) / 100,
+          estimatedSalesWeekly: Math.round(weeklyTotal * 100) / 100,
+          estimatedSalesMonthly: Math.round(monthlyTotal * 100) / 100,
+          estimatedSalesYTD: Math.round(ytdTotal * 100) / 100,
+          actualCommissionsYTD: Math.round(teamActualCommissionsYTD * 100) / 100,
+          // Backward compat (deprecated — these are meeting revenue, NOT commissions)
           totalTeamCommissions: Math.round(grandTotal * 100) / 100,
           totalTransactions,
           weeklyTotal: Math.round(weeklyTotal * 100) / 100,
