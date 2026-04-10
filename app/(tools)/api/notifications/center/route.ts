@@ -8,6 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { notificationCenterService, NotificationType } from '@/lib/notification-center-service';
 
 /**
@@ -46,9 +47,9 @@ export async function GET(request: NextRequest) {
       options.type = undefined;
     }
 
-    const notifications = notificationCenterService.getForUser(repSlug, options);
-    const unreadCount = notificationCenterService.getUnreadCount(repSlug);
-    const unreadByType = notificationCenterService.getUnreadCountsByType(repSlug);
+    const notifications = await notificationCenterService.getForUser(repSlug, options);
+    const unreadCount = await notificationCenterService.getUnreadCount(repSlug);
+    const unreadByType = await notificationCenterService.getUnreadCountsByType(repSlug);
 
     return NextResponse.json({
       success: true,
@@ -78,6 +79,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
 
     if (!body.title || !body.message) {
@@ -90,7 +94,7 @@ export async function POST(request: NextRequest) {
     let notification;
 
     if (body.broadcast) {
-      notification = notificationCenterService.broadcast({
+      notification = await notificationCenterService.broadcast({
         type: body.type,
         title: body.title,
         message: body.message,
@@ -110,7 +114,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      notification = notificationCenterService.create({
+      notification = await notificationCenterService.create({
         type: body.type,
         title: body.title,
         message: body.message,
@@ -147,10 +151,13 @@ export async function POST(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
 
     if (body.markAllRead && body.repSlug) {
-      notificationCenterService.markAllRead(body.repSlug);
+      await notificationCenterService.markAllRead(body.repSlug);
       return NextResponse.json({ success: true, message: 'All notifications marked as read' });
     }
 
@@ -161,7 +168,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    notificationCenterService.markMultipleAsRead(body.ids);
+    await notificationCenterService.markMultipleAsRead(body.ids);
 
     return NextResponse.json({
       success: true,
@@ -185,6 +192,9 @@ export async function PATCH(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
 
     if (!body.ids || !Array.isArray(body.ids) || body.ids.length === 0) {
@@ -197,9 +207,9 @@ export async function DELETE(request: NextRequest) {
     const action = body.action || 'archive';
 
     if (action === 'delete') {
-      notificationCenterService.deleteMultiple(body.ids);
+      await notificationCenterService.deleteMultiple(body.ids);
     } else {
-      notificationCenterService.archiveMultiple(body.ids);
+      await notificationCenterService.archiveMultiple(body.ids);
     }
 
     return NextResponse.json({

@@ -16,6 +16,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import {
   communicationHubService,
   CommunicationEventType,
@@ -116,6 +117,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
     const { action, customerId, message, channel, author, note, type, eventData } = body;
 
@@ -185,7 +189,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        const event = communicationHubService.addEvent({
+        const event = await communicationHubService.addEvent({
           type: type || eventData.type || 'note',
           timestamp: eventData.timestamp || new Date().toISOString(),
           direction: eventData.direction,

@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { notificationCenterService } from '@/lib/notification-center-service';
 
 /**
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const preferences = notificationCenterService.getPreferences(repSlug);
+    const preferences = await notificationCenterService.getPreferences(repSlug);
 
     return NextResponse.json({
       success: true,
@@ -53,6 +54,9 @@ export async function GET(request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
 
     if (!body.repSlug) {
@@ -62,7 +66,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const updated = notificationCenterService.updatePreferences(body.repSlug, {
+    const updated = await notificationCenterService.updatePreferences(body.repSlug, {
       channels: body.channels,
       quietHours: body.quietHours,
       mutedTypes: body.mutedTypes,

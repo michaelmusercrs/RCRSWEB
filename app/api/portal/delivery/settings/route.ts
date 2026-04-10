@@ -14,7 +14,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { validateSession } from '@/lib/auth-service';
+import { requireAuth, validateSession } from '@/lib/auth-service';
 import { deliverySettingsService, SettingsCategory } from '@/lib/delivery-settings-service';
 import { DeliveryAIAgent } from '@/lib/delivery-ai-agent';
 import { WarehouseIoTService } from '@/lib/warehouse-iot-service';
@@ -47,12 +47,10 @@ export async function GET() {
 // ============================================
 
 export async function POST(request: NextRequest) {
-  try {
-    const session = await validateSession();
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
 
+  try {
     const body = await request.json();
     const { action } = body;
 

@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     // If a specific alert or storm ID is given, get its impact
     if (alertId || stormId) {
       const id = alertId || stormId || '';
-      const impact = weatherAlertService.getImpactAnalysis(id);
+      const impact = await weatherAlertService.getImpactAnalysis(id);
 
       if (!impact) {
         return NextResponse.json(
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
     }
 
     // No parameters: return impact for all current active alerts
-    const activeAlerts = weatherAlertService.getActiveAlerts();
+    const activeAlerts = await weatherAlertService.getActiveAlerts();
     const impactSummaries = activeAlerts.map(alert => ({
       alertId: alert.id,
       title: alert.title,

@@ -15,6 +15,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { googleSheetsService, isGoogleSheetsConfigured } from '@/lib/google-sheets-service';
 
 const REPORTS_SHEET_NAME = 'Reports_Data';
@@ -50,6 +51,9 @@ const REPORT_HEADERS = [
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     // Check Google Sheets configuration
     if (!isGoogleSheetsConfigured()) {
       return NextResponse.json(

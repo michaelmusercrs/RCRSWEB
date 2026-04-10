@@ -11,9 +11,8 @@
  * @version 1.0.0
  */
 
-import fs from 'fs';
-import path from 'path';
 import crypto from 'crypto';
+import { googleSheetsService, SHEET_NAMES } from './google-sheets-service';
 
 // =============================================================================
 // TYPES
@@ -79,10 +78,41 @@ export interface EstimateResult {
   leadId?: string;
 }
 
-interface EstimateData {
-  estimates: EstimateResult[];
-  lastUpdated: string;
-}
+// =============================================================================
+// SHEET SCHEMA
+// =============================================================================
+
+const ESTIMATE_HEADERS: string[] = [
+  'id',
+  'createdAt',
+  'customerName',
+  'address',
+  'leadId',
+  'input',
+  'materialCost',
+  'laborCost',
+  'tearOffCost',
+  'extrasCost',
+  'wasteFactorPercent',
+  'wasteCost',
+  'subtotal',
+  'overhead',
+  'profit',
+  'totalEstimate',
+  'squares',
+  'bundlesNeeded',
+  'underlaymentRolls',
+  'ridgeCapLinearFt',
+  'dripEdgeLinearFt',
+  'starterStripLinearFt',
+  'nailPounds',
+  'lowEstimate',
+  'highEstimate',
+  'pricePerSquare',
+  'estimatedDays',
+  'crewSize',
+  'notes',
+];
 
 // =============================================================================
 // PRICING DATA (Alabama / North Alabama rates)
@@ -178,39 +208,88 @@ const MATERIAL_LABELS: Record<string, string> = {
 };
 
 // =============================================================================
-// DATA HELPERS
+// HELPERS
 // =============================================================================
-
-const DATA_FILE_PATH = path.join(process.cwd(), 'data', 'estimates.json');
-
-function readData(): EstimateData {
-  try {
-    if (fs.existsSync(DATA_FILE_PATH)) {
-      const content = fs.readFileSync(DATA_FILE_PATH, 'utf-8');
-      return JSON.parse(content);
-    }
-  } catch (error) {
-    console.error('[EstimateService] Error reading data:', error);
-  }
-  return { estimates: [], lastUpdated: new Date().toISOString() };
-}
-
-function writeData(data: EstimateData): void {
-  try {
-    const dir = path.dirname(DATA_FILE_PATH);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    data.lastUpdated = new Date().toISOString();
-    fs.writeFileSync(DATA_FILE_PATH, JSON.stringify(data, null, 2));
-  } catch (error) {
-    console.error('[EstimateService] Error writing data:', error);
-    throw error;
-  }
-}
 
 function generateId(): string {
   return `EST-${crypto.randomBytes(6).toString('hex')}`;
+}
+
+function parseJsonField<T>(value: string | undefined, fallback: T): T {
+  if (!value) return fallback;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+function parseEstimateRow(row: Record<string, string>): EstimateResult {
+  return {
+    id: row.id || '',
+    createdAt: row.createdAt || '',
+    customerName: row.customerName || undefined,
+    address: row.address || undefined,
+    leadId: row.leadId || undefined,
+    input: parseJsonField<EstimateInput>(row.input, {} as EstimateInput),
+    materialCost: Number(row.materialCost) || 0,
+    laborCost: Number(row.laborCost) || 0,
+    tearOffCost: Number(row.tearOffCost) || 0,
+    extrasCost: parseJsonField<Record<string, number>>(row.extrasCost, {}),
+    wasteFactorPercent: Number(row.wasteFactorPercent) || 0,
+    wasteCost: Number(row.wasteCost) || 0,
+    subtotal: Number(row.subtotal) || 0,
+    overhead: Number(row.overhead) || 0,
+    profit: Number(row.profit) || 0,
+    totalEstimate: Number(row.totalEstimate) || 0,
+    squares: Number(row.squares) || 0,
+    bundlesNeeded: Number(row.bundlesNeeded) || 0,
+    underlaymentRolls: Number(row.underlaymentRolls) || 0,
+    ridgeCapLinearFt: Number(row.ridgeCapLinearFt) || 0,
+    dripEdgeLinearFt: Number(row.dripEdgeLinearFt) || 0,
+    starterStripLinearFt: Number(row.starterStripLinearFt) || 0,
+    nailPounds: Number(row.nailPounds) || 0,
+    lowEstimate: Number(row.lowEstimate) || 0,
+    highEstimate: Number(row.highEstimate) || 0,
+    pricePerSquare: Number(row.pricePerSquare) || 0,
+    estimatedDays: Number(row.estimatedDays) || 0,
+    crewSize: Number(row.crewSize) || 0,
+    notes: parseJsonField<string[]>(row.notes, []),
+  };
+}
+
+function estimateToRow(e: EstimateResult): Record<string, unknown> {
+  return {
+    id: e.id,
+    createdAt: e.createdAt,
+    customerName: e.customerName ?? '',
+    address: e.address ?? '',
+    leadId: e.leadId ?? '',
+    input: JSON.stringify(e.input),
+    materialCost: e.materialCost,
+    laborCost: e.laborCost,
+    tearOffCost: e.tearOffCost,
+    extrasCost: JSON.stringify(e.extrasCost),
+    wasteFactorPercent: e.wasteFactorPercent,
+    wasteCost: e.wasteCost,
+    subtotal: e.subtotal,
+    overhead: e.overhead,
+    profit: e.profit,
+    totalEstimate: e.totalEstimate,
+    squares: e.squares,
+    bundlesNeeded: e.bundlesNeeded,
+    underlaymentRolls: e.underlaymentRolls,
+    ridgeCapLinearFt: e.ridgeCapLinearFt,
+    dripEdgeLinearFt: e.dripEdgeLinearFt,
+    starterStripLinearFt: e.starterStripLinearFt,
+    nailPounds: e.nailPounds,
+    lowEstimate: e.lowEstimate,
+    highEstimate: e.highEstimate,
+    pricePerSquare: e.pricePerSquare,
+    estimatedDays: e.estimatedDays,
+    crewSize: e.crewSize,
+    notes: JSON.stringify(e.notes),
+  };
 }
 
 function avg(low: number, high: number): number {
@@ -222,6 +301,34 @@ function avg(low: number, high: number): number {
 // =============================================================================
 
 class EstimateCalculatorService {
+  private cache: EstimateResult[] | null = null;
+  private cacheExpiresAt = 0;
+  private readonly CACHE_TTL_MS = 60_000;
+
+  // ---------------------------------------------------------------------------
+  // Sheet I/O
+  // ---------------------------------------------------------------------------
+
+  private async loadFromSheet(): Promise<EstimateResult[]> {
+    const rows = await googleSheetsService.getGenericRows(
+      SHEET_NAMES.ESTIMATES,
+      ESTIMATE_HEADERS,
+    );
+    return rows.map(r => parseEstimateRow(r));
+  }
+
+  private async loadCached(): Promise<EstimateResult[]> {
+    if (this.cache && Date.now() < this.cacheExpiresAt) return this.cache;
+    this.cache = await this.loadFromSheet();
+    this.cacheExpiresAt = Date.now() + this.CACHE_TTL_MS;
+    return this.cache;
+  }
+
+  private invalidateCache(): void {
+    this.cache = null;
+    this.cacheExpiresAt = 0;
+  }
+
   // ---------------------------------------------------------------------------
   // Calculate
   // ---------------------------------------------------------------------------
@@ -388,23 +495,27 @@ class EstimateCalculatorService {
   // Persistence
   // ---------------------------------------------------------------------------
 
-  saveEstimate(result: EstimateResult): string {
-    const data = readData();
+  async saveEstimate(result: EstimateResult): Promise<string> {
     // Ensure the estimate has an ID
     if (!result.id) result.id = generateId();
-    data.estimates.unshift(result);
-    writeData(data);
+    await googleSheetsService.upsertGenericRow(
+      SHEET_NAMES.ESTIMATES,
+      ESTIMATE_HEADERS,
+      'id',
+      estimateToRow(result),
+    );
+    this.invalidateCache();
     return result.id;
   }
 
-  getEstimate(id: string): EstimateResult | null {
-    const data = readData();
-    return data.estimates.find(e => e.id === id) || null;
+  async getEstimate(id: string): Promise<EstimateResult | null> {
+    const all = await this.loadCached();
+    return all.find(e => e.id === id) || null;
   }
 
-  getRecentEstimates(limit: number = 20): EstimateResult[] {
-    const data = readData();
-    return data.estimates
+  async getRecentEstimates(limit: number = 20): Promise<EstimateResult[]> {
+    const all = await this.loadCached();
+    return [...all]
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, limit);
   }

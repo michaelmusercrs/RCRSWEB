@@ -3,7 +3,7 @@
 // GET: Check current geocoded contact count
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth-service';
+import { requireAdmin } from '@/lib/auth-service';
 import { jobNimbusService, isJobNimbusConfigured } from '@/lib/jobnimbus-service';
 import { googleSheetsService, GeocodedContactRecord } from '@/lib/google-sheets-service';
 import { cache, CACHE_TTL } from '@/lib/cache';
@@ -131,7 +131,7 @@ async function populateFromJNGeo(): Promise<PopulateResult> {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireAdmin();
   if (!auth.authenticated) return auth.response;
 
   if (!isJobNimbusConfigured()) {
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireAdmin();
   if (!auth.authenticated) return auth.response;
 
   try {

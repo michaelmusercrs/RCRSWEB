@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { timeTrackingService } from '@/lib/time-tracking-service';
 
 /**
@@ -25,6 +26,9 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const { id } = params;
     const body = await request.json();
     const { action } = body;
@@ -33,7 +37,7 @@ export async function PATCH(
 
     switch (action) {
       case 'clockOut':
-        entry = timeTrackingService.clockOut(id);
+        entry = await timeTrackingService.clockOut(id);
         return NextResponse.json({
           success: true,
           message: 'Clocked out successfully',
@@ -41,7 +45,7 @@ export async function PATCH(
         });
 
       case 'startBreak':
-        entry = timeTrackingService.startBreak(id);
+        entry = await timeTrackingService.startBreak(id);
         return NextResponse.json({
           success: true,
           message: 'Break started',
@@ -49,7 +53,7 @@ export async function PATCH(
         });
 
       case 'endBreak':
-        entry = timeTrackingService.endBreak(id);
+        entry = await timeTrackingService.endBreak(id);
         return NextResponse.json({
           success: true,
           message: 'Break ended',
@@ -58,7 +62,7 @@ export async function PATCH(
 
       default:
         // Update fields
-        entry = timeTrackingService.updateEntry(id, {
+        entry = await timeTrackingService.updateEntry(id, {
           notes: body.notes,
           category: body.category,
           jobId: body.jobId,
@@ -89,8 +93,11 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const { id } = params;
-    timeTrackingService.deleteEntry(id);
+    await timeTrackingService.deleteEntry(id);
 
     return NextResponse.json({
       success: true,

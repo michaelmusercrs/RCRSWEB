@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { subcontractorService } from '@/lib/subcontractor-service';
 import type { SubcontractorSpecialty, SubcontractorStatus } from '@/lib/subcontractor-service';
 
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get('sortBy') as 'name' | 'rating' | 'reliability' | 'recent' | null;
     const sortOrder = searchParams.get('sortOrder') as 'asc' | 'desc' | null;
 
-    const subcontractors = subcontractorService.getSubcontractors({
+    const subcontractors = await subcontractorService.getSubcontractors({
       specialty: specialty || undefined,
       status: status || undefined,
       search,
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest) {
       sortOrder: sortOrder || undefined,
     });
 
-    const stats = subcontractorService.getSubcontractorStats();
+    const stats = await subcontractorService.getSubcontractorStats();
 
     return NextResponse.json({
       success: true,
@@ -66,6 +67,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
 
     if (!body.companyName || !body.contactName) {
@@ -82,7 +86,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const sub = subcontractorService.addSubcontractor({
+    const sub = await subcontractorService.addSubcontractor({
       companyName: body.companyName,
       contactName: body.contactName,
       phone: body.phone || '',

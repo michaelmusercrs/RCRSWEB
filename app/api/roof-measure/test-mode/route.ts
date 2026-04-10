@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth-service';
 import { analyzeMethodConsistency, autoCalibrate, type AICalibrationResult } from '@/lib/roof-calibration';
 
 export const maxDuration = 300;
@@ -19,6 +20,9 @@ const TEST_ADDRESSES = [
  * and auto-generates initial accuracy scores.
  */
 export async function POST(request: NextRequest) {
+  const auth = await requireAdmin();
+  if (!auth.authenticated) return auth.response;
+
   const baseUrl = request.nextUrl.origin;
   const results: { address: string; aiResults: AICalibrationResult[]; error?: string }[] = [];
 

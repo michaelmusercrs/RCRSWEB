@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { jobProgressService, JobPhase } from '@/lib/job-progress-service';
 
 /**
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
 
     // Single job lookup
     if (jobId) {
-      const timeline = jobProgressService.getTimeline(jobId);
+      const timeline = await jobProgressService.getTimeline(jobId);
       if (!timeline) {
         return NextResponse.json(
           { error: 'Job timeline not found' },
@@ -45,18 +46,18 @@ export async function GET(request: NextRequest) {
 
     // Recent progress entries
     if (recent === 'true') {
-      const entries = jobProgressService.getRecentProgress(limit || 20);
+      const entries = await jobProgressService.getRecentProgress(limit || 20);
       return NextResponse.json({ success: true, entries, total: entries.length });
     }
 
     // List timelines with filters
-    const timelines = jobProgressService.getAllTimelines({
+    const timelines = await jobProgressService.getAllTimelines({
       phase: phase || undefined,
       repSlug,
       limit,
     });
 
-    const stats = jobProgressService.getProgressStats();
+    const stats = await jobProgressService.getProgressStats();
 
     return NextResponse.json({
       success: true,
@@ -94,6 +95,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
 
     // Validate required fields
@@ -106,7 +110,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const entry = jobProgressService.addProgressEntry(body.jobId, {
+    const entry = await jobProgressService.addProgressEntry(body.jobId, {
       phase: body.phase,
       notes: body.notes,
       photos: body.photos || [],

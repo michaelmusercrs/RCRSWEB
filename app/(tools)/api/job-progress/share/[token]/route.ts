@@ -22,7 +22,7 @@ export async function GET(
   { params }: { params: { token: string } }
 ) {
   try {
-    const timeline = jobProgressService.getCustomerTimeline(params.token);
+    const timeline = await jobProgressService.getCustomerTimeline(params.token);
 
     if (!timeline) {
       return NextResponse.json(
@@ -32,7 +32,7 @@ export async function GET(
     }
 
     // Mark as viewed
-    jobProgressService.markCustomerViewed(params.token);
+    await jobProgressService.markCustomerViewed(params.token);
 
     return NextResponse.json({
       success: true,

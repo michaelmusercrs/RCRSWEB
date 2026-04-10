@@ -12,6 +12,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
@@ -63,6 +64,8 @@ function readNotesData(): CallNotesData {
 }
 
 function writeNotesData(data: CallNotesData): void {
+  // Best-effort local write — Vercel's filesystem is read-only at runtime so
+  // we log and swallow rather than 500-ing the request.
   try {
     const dir = path.dirname(DATA_FILE_PATH);
     if (!fs.existsSync(dir)) {
@@ -72,8 +75,7 @@ function writeNotesData(data: CallNotesData): void {
     data.lastUpdated = new Date().toISOString();
     fs.writeFileSync(DATA_FILE_PATH, JSON.stringify(data, null, 2));
   } catch (error) {
-    console.error('Error writing call notes data:', error);
-    throw error;
+    console.warn('[calls/notes] Local write skipped (read-only fs?):', error);
   }
 }
 
@@ -139,6 +141,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
 
     if (!body.callId) {

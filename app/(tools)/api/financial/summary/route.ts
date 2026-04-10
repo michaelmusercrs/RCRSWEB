@@ -44,8 +44,8 @@ export async function GET(req: NextRequest) {
       invoiceService.getAllInvoices(),
     ]);
 
-    // Profitability analytics from job-costs.json
-    const profitabilityAnalytics = profitabilityService.getAnalytics(dateFrom, dateTo);
+    // Profitability analytics from Job_Costs sheet tab
+    const profitabilityAnalytics = await profitabilityService.getAnalytics(dateFrom, dateTo);
 
     // Build invoice summary
     const paidInvoices = allInvoices.filter(inv => inv.status === 'paid');

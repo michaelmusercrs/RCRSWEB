@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { inspectionService } from '@/lib/inspection-service';
 
 export const dynamic = 'force-dynamic';
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
     const limitParam = searchParams.get('limit');
     const limit = limitParam ? parseInt(limitParam, 10) : undefined;
 
-    const inspections = inspectionService.listInspections({
+    const inspections = await inspectionService.listInspections({
       customerId,
       inspectorId,
       status,
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
       limit,
     });
 
-    const stats = inspectionService.getInspectionStats();
+    const stats = await inspectionService.getInspectionStats();
 
     return NextResponse.json({
       inspections,
@@ -54,6 +55,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
     const {
       templateId,
@@ -91,7 +95,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const inspection = inspectionService.startInspection({
+    const inspection = await inspectionService.startInspection({
       templateId,
       customerId,
       customerName,

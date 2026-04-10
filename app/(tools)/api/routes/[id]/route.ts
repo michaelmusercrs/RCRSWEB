@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { routeTrackerService } from '@/lib/route-tracker-service';
 
 export const dynamic = 'force-dynamic';
@@ -18,7 +19,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const route = routeTrackerService.getRoute(params.id);
+    const route = await routeTrackerService.getRoute(params.id);
     if (!route) {
       return NextResponse.json(
         { error: 'Route not found' },
@@ -53,6 +54,9 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
     const { action, stopId, notes, photos, reason } = body;
 
@@ -67,7 +71,7 @@ export async function PATCH(
 
     switch (action) {
       case 'start': {
-        const route = routeTrackerService.startRoute(routeId);
+        const route = await routeTrackerService.startRoute(routeId);
         return NextResponse.json({ route });
       }
 
@@ -78,8 +82,8 @@ export async function PATCH(
             { status: 400 }
           );
         }
-        const stop = routeTrackerService.arriveAtStop(routeId, stopId);
-        const route = routeTrackerService.getRoute(routeId);
+        const stop = await routeTrackerService.arriveAtStop(routeId, stopId);
+        const route = await routeTrackerService.getRoute(routeId);
         return NextResponse.json({ stop, route });
       }
 
@@ -90,18 +94,18 @@ export async function PATCH(
             { status: 400 }
           );
         }
-        const stop = routeTrackerService.departStop(
+        const stop = await routeTrackerService.departStop(
           routeId,
           stopId,
           notes,
           photos
         );
-        const route = routeTrackerService.getRoute(routeId);
+        const route = await routeTrackerService.getRoute(routeId);
         return NextResponse.json({ stop, route });
       }
 
       case 'complete': {
-        const route = routeTrackerService.completeRoute(routeId);
+        const route = await routeTrackerService.completeRoute(routeId);
         return NextResponse.json({ route });
       }
 
@@ -112,13 +116,13 @@ export async function PATCH(
             { status: 400 }
           );
         }
-        const stop = routeTrackerService.skipStop(routeId, stopId, reason);
-        const route = routeTrackerService.getRoute(routeId);
+        const stop = await routeTrackerService.skipStop(routeId, stopId, reason);
+        const route = await routeTrackerService.getRoute(routeId);
         return NextResponse.json({ stop, route });
       }
 
       case 'optimize': {
-        const route = routeTrackerService.optimizeRoute(routeId);
+        const route = await routeTrackerService.optimizeRoute(routeId);
         return NextResponse.json({ route });
       }
 

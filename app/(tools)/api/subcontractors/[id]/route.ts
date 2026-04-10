@@ -10,6 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { subcontractorService } from '@/lib/subcontractor-service';
 
 /**
@@ -20,7 +21,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const sub = subcontractorService.getSubcontractor(params.id);
+    const sub = await subcontractorService.getSubcontractor(params.id);
 
     if (!sub) {
       return NextResponse.json(
@@ -69,8 +70,11 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
-    const sub = subcontractorService.updateSubcontractor(params.id, body);
+    const sub = await subcontractorService.updateSubcontractor(params.id, body);
 
     return NextResponse.json({ success: true, subcontractor: sub });
   } catch (error) {
@@ -91,7 +95,10 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const sub = subcontractorService.deactivate(params.id);
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
+    const sub = await subcontractorService.deactivate(params.id);
 
     return NextResponse.json({
       success: true,

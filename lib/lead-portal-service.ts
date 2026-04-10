@@ -105,6 +105,123 @@ const LEAD_HEADERS = [
   'activityLog',
 ];
 
+// =============================================================================
+// Customer Service Requests (submitted from /customer portal)
+// =============================================================================
+export interface ServiceRequestRecord {
+  id: string;
+  customerId: string;
+  customerName: string;
+  customerAddress: string;
+  customerPhone: string;
+  customerEmail: string;
+  repSlug: string;
+  repName: string;
+  type: 'maintenance' | 'repair' | 'inspection' | 'other';
+  description: string;
+  preferredDate: string;
+  urgency: 'low' | 'medium' | 'high' | 'emergency';
+  photos: string;
+  status: 'submitted' | 'reviewed' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+  assignedTo?: string;
+  scheduledDate?: string;
+  resolution?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+const SERVICE_REQUEST_HEADERS = [
+  'id',
+  'customerId',
+  'customerName',
+  'customerAddress',
+  'customerPhone',
+  'customerEmail',
+  'repSlug',
+  'repName',
+  'type',
+  'description',
+  'preferredDate',
+  'urgency',
+  'photos',
+  'status',
+  'assignedTo',
+  'scheduledDate',
+  'resolution',
+  'createdAt',
+  'updatedAt',
+];
+
+// =============================================================================
+// Customer Notification Preferences
+// =============================================================================
+export interface NotificationPrefsRecord {
+  customerId: string;
+  emailNotifications: boolean;
+  smsNotifications: boolean;
+  weatherAlerts: boolean;
+  statusUpdates: boolean;
+  updatedAt: string;
+}
+
+const NOTIFICATION_PREFS_HEADERS = [
+  'customerId',
+  'emailNotifications',
+  'smsNotifications',
+  'weatherAlerts',
+  'statusUpdates',
+  'updatedAt',
+];
+
+// =============================================================================
+// Customer Warranty Claims (Sheets-backed log of customer-submitted claims)
+// =============================================================================
+export interface WarrantyClaimRecord {
+  id: string;
+  warrantyId: string;
+  customerId: string;
+  customerName: string;
+  customerAddress: string;
+  customerPhone: string;
+  customerEmail: string;
+  repSlug: string;
+  repName: string;
+  jobId: string;
+  category: 'leak' | 'shingle_damage' | 'flashing' | 'gutter' | 'ventilation' | 'other';
+  severity: 'minor' | 'moderate' | 'major' | 'emergency';
+  issueDescription: string;
+  photos: string;
+  status: 'submitted' | 'under_review' | 'approved' | 'denied' | 'completed';
+  resolution?: string;
+  repairDate?: string;
+  coveredByWarranty?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+const WARRANTY_CLAIM_HEADERS = [
+  'id',
+  'warrantyId',
+  'customerId',
+  'customerName',
+  'customerAddress',
+  'customerPhone',
+  'customerEmail',
+  'repSlug',
+  'repName',
+  'jobId',
+  'category',
+  'severity',
+  'issueDescription',
+  'photos',
+  'status',
+  'resolution',
+  'repairDate',
+  'coveredByWarranty',
+  'createdAt',
+  'updatedAt',
+];
+
 class LeadPortalService {
   private doc: GoogleSpreadsheet | null = null;
   private initialized = false;
@@ -664,6 +781,135 @@ class LeadPortalService {
     stats.avgPortalViews = leads.length > 0 ? totalViews / leads.length : 0;
 
     return stats;
+  }
+
+  // ===========================================================================
+  // Service Requests
+  // ===========================================================================
+
+  async createServiceRequest(req: ServiceRequestRecord): Promise<void> {
+    const sheet = await this.getOrCreateSheet('CustomerServiceRequests', SERVICE_REQUEST_HEADERS);
+    await sheet.addRow(req as unknown as Record<string, string | number | boolean>);
+  }
+
+  async getServiceRequestsByCustomer(customerId: string): Promise<ServiceRequestRecord[]> {
+    const sheet = await this.getOrCreateSheet('CustomerServiceRequests', SERVICE_REQUEST_HEADERS);
+    const rows = await sheet.getRows();
+    return rows
+      .filter(r => r.get('customerId') === customerId)
+      .map(r => this.rowToServiceRequest(r))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  private rowToServiceRequest(row: { get(key: string): string }): ServiceRequestRecord {
+    return {
+      id: row.get('id'),
+      customerId: row.get('customerId'),
+      customerName: row.get('customerName'),
+      customerAddress: row.get('customerAddress'),
+      customerPhone: row.get('customerPhone'),
+      customerEmail: row.get('customerEmail'),
+      repSlug: row.get('repSlug'),
+      repName: row.get('repName'),
+      type: (row.get('type') || 'other') as ServiceRequestRecord['type'],
+      description: row.get('description'),
+      preferredDate: row.get('preferredDate'),
+      urgency: (row.get('urgency') || 'low') as ServiceRequestRecord['urgency'],
+      photos: row.get('photos') || '',
+      status: (row.get('status') || 'submitted') as ServiceRequestRecord['status'],
+      assignedTo: row.get('assignedTo') || undefined,
+      scheduledDate: row.get('scheduledDate') || undefined,
+      resolution: row.get('resolution') || undefined,
+      createdAt: row.get('createdAt'),
+      updatedAt: row.get('updatedAt'),
+    };
+  }
+
+  // ===========================================================================
+  // Notification Preferences
+  // ===========================================================================
+
+  async getNotificationPrefs(customerId: string): Promise<NotificationPrefsRecord | null> {
+    const sheet = await this.getOrCreateSheet('CustomerNotificationPrefs', NOTIFICATION_PREFS_HEADERS);
+    const rows = await sheet.getRows();
+    const row = rows.find(r => r.get('customerId') === customerId);
+    if (!row) return null;
+    return {
+      customerId: row.get('customerId'),
+      emailNotifications: row.get('emailNotifications') !== 'false',
+      smsNotifications: row.get('smsNotifications') !== 'false',
+      weatherAlerts: row.get('weatherAlerts') !== 'false',
+      statusUpdates: row.get('statusUpdates') !== 'false',
+      updatedAt: row.get('updatedAt'),
+    };
+  }
+
+  async upsertNotificationPrefs(prefs: NotificationPrefsRecord): Promise<void> {
+    const sheet = await this.getOrCreateSheet('CustomerNotificationPrefs', NOTIFICATION_PREFS_HEADERS);
+    const rows = await sheet.getRows();
+    const existing = rows.find(r => r.get('customerId') === prefs.customerId);
+    const payload = {
+      customerId: prefs.customerId,
+      emailNotifications: String(prefs.emailNotifications),
+      smsNotifications: String(prefs.smsNotifications),
+      weatherAlerts: String(prefs.weatherAlerts),
+      statusUpdates: String(prefs.statusUpdates),
+      updatedAt: prefs.updatedAt,
+    };
+    if (existing) {
+      Object.entries(payload).forEach(([k, v]) => existing.set(k, v));
+      await existing.save();
+    } else {
+      await sheet.addRow(payload);
+    }
+  }
+
+  // ===========================================================================
+  // Warranty Claims (customer-submitted log persisted to Sheets)
+  // ===========================================================================
+
+  async createWarrantyClaim(claim: WarrantyClaimRecord): Promise<void> {
+    const sheet = await this.getOrCreateSheet('CustomerWarrantyClaims', WARRANTY_CLAIM_HEADERS);
+    const payload = {
+      ...claim,
+      coveredByWarranty: claim.coveredByWarranty === undefined ? '' : String(claim.coveredByWarranty),
+    };
+    await sheet.addRow(payload as unknown as Record<string, string | number | boolean>);
+  }
+
+  async getWarrantyClaimsByCustomer(customerId: string): Promise<WarrantyClaimRecord[]> {
+    const sheet = await this.getOrCreateSheet('CustomerWarrantyClaims', WARRANTY_CLAIM_HEADERS);
+    const rows = await sheet.getRows();
+    return rows
+      .filter(r => r.get('customerId') === customerId)
+      .map(r => this.rowToWarrantyClaim(r))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  private rowToWarrantyClaim(row: { get(key: string): string }): WarrantyClaimRecord {
+    const covered = row.get('coveredByWarranty');
+    return {
+      id: row.get('id'),
+      warrantyId: row.get('warrantyId'),
+      customerId: row.get('customerId'),
+      customerName: row.get('customerName'),
+      customerAddress: row.get('customerAddress'),
+      customerPhone: row.get('customerPhone'),
+      customerEmail: row.get('customerEmail'),
+      repSlug: row.get('repSlug'),
+      repName: row.get('repName'),
+      jobId: row.get('jobId'),
+      category: (row.get('category') || 'other') as WarrantyClaimRecord['category'],
+      severity: (row.get('severity') || 'minor') as WarrantyClaimRecord['severity'],
+      issueDescription: row.get('issueDescription'),
+      photos: row.get('photos') || '',
+      status: (row.get('status') || 'submitted') as WarrantyClaimRecord['status'],
+      resolution: row.get('resolution') || undefined,
+      repairDate: row.get('repairDate') || undefined,
+      coveredByWarranty: covered === '' ? undefined : covered === 'true',
+      createdAt: row.get('createdAt'),
+      updatedAt: row.get('updatedAt'),
+    };
   }
 }
 

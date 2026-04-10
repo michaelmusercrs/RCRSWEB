@@ -4,13 +4,16 @@
  * Manages subcontractor directory, job assignments, ratings, compliance
  * tracking, and performance analytics.
  *
+ * Persisted to the Google Sheets master workbook (Subcontractors tab).
+ * The legacy data/subcontractors.json file is left in place as a dev seed
+ * but no longer read or written at runtime.
+ *
  * @author RCRS Development Team
- * @version 1.0.0
+ * @version 2.0.0
  */
 
-import fs from 'fs';
-import path from 'path';
 import crypto from 'crypto';
+import { googleSheetsService, SHEET_NAMES } from './google-sheets-service';
 
 // =============================================================================
 // TYPES
@@ -104,48 +107,143 @@ export interface SubcontractorFilter {
   sortOrder?: 'asc' | 'desc';
 }
 
-interface SubcontractorsFile {
-  subcontractors: Subcontractor[];
+// =============================================================================
+// SHEET SCHEMA
+// =============================================================================
+
+const SUBCONTRACTOR_HEADERS: string[] = [
+  'id',
+  'companyName',
+  'contactName',
+  'phone',
+  'email',
+  'address',
+  'specialty',        // JSON string[]
+  'licenseNumber',
+  'insuranceExpiry',
+  'rating',
+  'reliability',
+  'quality',
+  'status',
+  'hourlyRate',
+  'perSquareRate',
+  'jobHistory',       // JSON SubcontractorJob[]
+  'notes',
+  'documents',        // JSON SubcontractorDocument[]
+  'createdAt',
+  'updatedAt',
+];
+
+// =============================================================================
+// ROW <-> OBJECT CONVERSION
+// =============================================================================
+
+function parseJson<T>(raw: string, fallback: T): T {
+  if (!raw) return fallback;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
 }
 
-// =============================================================================
-// DATA PATH
-// =============================================================================
+function parseNumber(raw: string): number {
+  if (!raw) return 0;
+  const n = parseFloat(raw);
+  return Number.isFinite(n) ? n : 0;
+}
 
-const DATA_FILE_PATH = path.join(process.cwd(), 'data', 'subcontractors.json');
+function rowToSub(row: Record<string, string>): Subcontractor {
+  const sub: Subcontractor = {
+    id: row.id || '',
+    companyName: row.companyName || '',
+    contactName: row.contactName || '',
+    phone: row.phone || '',
+    email: row.email || '',
+    address: row.address || '',
+    specialty: parseJson<SubcontractorSpecialty[]>(row.specialty, []),
+    rating: parseNumber(row.rating),
+    reliability: parseNumber(row.reliability),
+    quality: parseNumber(row.quality),
+    status: (row.status as SubcontractorStatus) || 'active',
+    jobHistory: parseJson<SubcontractorJob[]>(row.jobHistory, []),
+    notes: row.notes || '',
+    documents: parseJson<SubcontractorDocument[]>(row.documents, []),
+    createdAt: row.createdAt || '',
+    updatedAt: row.updatedAt || '',
+  };
+  if (row.licenseNumber) sub.licenseNumber = row.licenseNumber;
+  if (row.insuranceExpiry) sub.insuranceExpiry = row.insuranceExpiry;
+  if (row.hourlyRate) sub.hourlyRate = parseNumber(row.hourlyRate);
+  if (row.perSquareRate) sub.perSquareRate = parseNumber(row.perSquareRate);
+  return sub;
+}
+
+function subToRow(sub: Subcontractor): Record<string, unknown> {
+  return {
+    id: sub.id,
+    companyName: sub.companyName,
+    contactName: sub.contactName,
+    phone: sub.phone,
+    email: sub.email,
+    address: sub.address,
+    specialty: JSON.stringify(sub.specialty || []),
+    licenseNumber: sub.licenseNumber || '',
+    insuranceExpiry: sub.insuranceExpiry || '',
+    rating: sub.rating,
+    reliability: sub.reliability,
+    quality: sub.quality,
+    status: sub.status,
+    hourlyRate: sub.hourlyRate ?? '',
+    perSquareRate: sub.perSquareRate ?? '',
+    jobHistory: JSON.stringify(sub.jobHistory || []),
+    notes: sub.notes || '',
+    documents: JSON.stringify(sub.documents || []),
+    createdAt: sub.createdAt,
+    updatedAt: sub.updatedAt,
+  };
+}
 
 // =============================================================================
 // SERVICE CLASS
 // =============================================================================
 
 class SubcontractorService {
-  // ---------------------------------------------------------------------------
-  // File I/O
-  // ---------------------------------------------------------------------------
+  // 60-second in-memory cache
+  private cache: Subcontractor[] | null = null;
+  private cacheExpiresAt = 0;
+  private readonly CACHE_TTL_MS = 60_000;
 
-  private readData(): SubcontractorsFile {
-    try {
-      if (fs.existsSync(DATA_FILE_PATH)) {
-        const content = fs.readFileSync(DATA_FILE_PATH, 'utf-8');
-        return JSON.parse(content);
-      }
-    } catch (error) {
-      console.error('[Subcontractor] Error reading data:', error);
-    }
-    return { subcontractors: [] };
+  private async loadFromSheet(): Promise<Subcontractor[]> {
+    const rows = await googleSheetsService.getGenericRows(
+      SHEET_NAMES.SUBCONTRACTORS,
+      SUBCONTRACTOR_HEADERS
+    );
+    return rows.map(rowToSub);
   }
 
-  private writeData(data: SubcontractorsFile): void {
-    try {
-      const dir = path.dirname(DATA_FILE_PATH);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-      fs.writeFileSync(DATA_FILE_PATH, JSON.stringify(data, null, 2));
-    } catch (error) {
-      console.error('[Subcontractor] Error writing data:', error);
-      throw error;
+  private async loadCached(): Promise<Subcontractor[]> {
+    if (this.cache && Date.now() < this.cacheExpiresAt) {
+      return this.cache;
     }
+    this.cache = await this.loadFromSheet();
+    this.cacheExpiresAt = Date.now() + this.CACHE_TTL_MS;
+    return this.cache;
+  }
+
+  private invalidateCache(): void {
+    this.cache = null;
+    this.cacheExpiresAt = 0;
+  }
+
+  private async persist(sub: Subcontractor): Promise<void> {
+    await googleSheetsService.upsertGenericRow(
+      SHEET_NAMES.SUBCONTRACTORS,
+      SUBCONTRACTOR_HEADERS,
+      'id',
+      subToRow(sub)
+    );
+    this.invalidateCache();
   }
 
   // ---------------------------------------------------------------------------
@@ -195,10 +293,9 @@ class SubcontractorService {
   /**
    * Add a new subcontractor
    */
-  addSubcontractor(
+  async addSubcontractor(
     data: Omit<Subcontractor, 'id' | 'jobHistory' | 'createdAt' | 'updatedAt'>
-  ): Subcontractor {
-    const file = this.readData();
+  ): Promise<Subcontractor> {
     const now = new Date().toISOString();
 
     const sub: Subcontractor = {
@@ -216,17 +313,15 @@ class SubcontractorService {
       updatedAt: now,
     };
 
-    file.subcontractors.push(sub);
-    this.writeData(file);
-
+    await this.persist(sub);
     return sub;
   }
 
   /**
    * Get all subcontractors with optional filtering
    */
-  getSubcontractors(options?: SubcontractorFilter): Subcontractor[] {
-    const { subcontractors } = this.readData();
+  async getSubcontractors(options?: SubcontractorFilter): Promise<Subcontractor[]> {
+    const subcontractors = await this.loadCached();
     let results = [...subcontractors];
 
     if (options?.specialty) {
@@ -286,47 +381,47 @@ class SubcontractorService {
   /**
    * Get a single subcontractor by ID
    */
-  getSubcontractor(id: string): Subcontractor | null {
-    const { subcontractors } = this.readData();
+  async getSubcontractor(id: string): Promise<Subcontractor | null> {
+    const subcontractors = await this.loadCached();
     return subcontractors.find((s) => s.id === id) || null;
   }
 
   /**
    * Update a subcontractor
    */
-  updateSubcontractor(
+  async updateSubcontractor(
     id: string,
     data: Partial<Omit<Subcontractor, 'id' | 'createdAt'>>
-  ): Subcontractor {
-    const file = this.readData();
-    const index = file.subcontractors.findIndex((s) => s.id === id);
+  ): Promise<Subcontractor> {
+    const subcontractors = await this.loadCached();
+    const existing = subcontractors.find((s) => s.id === id);
 
-    if (index === -1) {
+    if (!existing) {
       throw new Error(`Subcontractor not found: ${id}`);
     }
 
     const { jobHistory: _ignoreJobs, ...safeUpdates } = data;
-    file.subcontractors[index] = {
-      ...file.subcontractors[index],
+    const updated: Subcontractor = {
+      ...existing,
       ...safeUpdates,
       updatedAt: new Date().toISOString(),
     };
 
-    this.writeData(file);
-    return file.subcontractors[index];
+    await this.persist(updated);
+    return updated;
   }
 
   /**
    * Assign a job to a subcontractor
    */
-  assignJob(
+  async assignJob(
     subId: string,
     jobData: Omit<SubcontractorJob, 'id' | 'subcontractorId' | 'createdAt'>
-  ): SubcontractorJob {
-    const file = this.readData();
-    const index = file.subcontractors.findIndex((s) => s.id === subId);
+  ): Promise<SubcontractorJob> {
+    const subcontractors = await this.loadCached();
+    const existing = subcontractors.find((s) => s.id === subId);
 
-    if (index === -1) {
+    if (!existing) {
       throw new Error(`Subcontractor not found: ${subId}`);
     }
 
@@ -342,58 +437,60 @@ class SubcontractorService {
       createdAt: new Date().toISOString(),
     };
 
-    file.subcontractors[index].jobHistory.push(job);
-    file.subcontractors[index].updatedAt = new Date().toISOString();
-    this.writeData(file);
+    const updated: Subcontractor = {
+      ...existing,
+      jobHistory: [...existing.jobHistory, job],
+      updatedAt: new Date().toISOString(),
+    };
 
+    await this.persist(updated);
     return job;
   }
 
   /**
    * Update a job for a subcontractor
    */
-  updateJob(
+  async updateJob(
     subId: string,
     jobId: string,
     updates: Partial<SubcontractorJob>
-  ): SubcontractorJob {
-    const file = this.readData();
-    const subIndex = file.subcontractors.findIndex((s) => s.id === subId);
+  ): Promise<SubcontractorJob> {
+    const subcontractors = await this.loadCached();
+    const existing = subcontractors.find((s) => s.id === subId);
 
-    if (subIndex === -1) {
+    if (!existing) {
       throw new Error(`Subcontractor not found: ${subId}`);
     }
 
-    const jobIndex = file.subcontractors[subIndex].jobHistory.findIndex(
-      (j) => j.id === jobId
-    );
-
+    const jobIndex = existing.jobHistory.findIndex((j) => j.id === jobId);
     if (jobIndex === -1) {
       throw new Error(`Job not found: ${jobId}`);
     }
 
     const { id: _ignoreId, subcontractorId: _ignoreSub, createdAt: _ignoreCreated, ...safeUpdates } = updates;
-    file.subcontractors[subIndex].jobHistory[jobIndex] = {
-      ...file.subcontractors[subIndex].jobHistory[jobIndex],
-      ...safeUpdates,
+    const newJobHistory = [...existing.jobHistory];
+    newJobHistory[jobIndex] = { ...newJobHistory[jobIndex], ...safeUpdates };
+
+    const updated: Subcontractor = {
+      ...existing,
+      jobHistory: newJobHistory,
+      updatedAt: new Date().toISOString(),
     };
 
     // Recalculate ratings if quality or timeliness was updated
     if (updates.qualityRating !== undefined || updates.timelinessRating !== undefined) {
-      this.recalculateRatings(file.subcontractors[subIndex]);
+      this.recalculateRatings(updated);
     }
 
-    file.subcontractors[subIndex].updatedAt = new Date().toISOString();
-    this.writeData(file);
-
-    return file.subcontractors[subIndex].jobHistory[jobIndex];
+    await this.persist(updated);
+    return updated.jobHistory[jobIndex];
   }
 
   /**
    * Get available subcontractors by specialty and date
    */
-  getAvailable(specialty: SubcontractorSpecialty, date: string): Subcontractor[] {
-    const { subcontractors } = this.readData();
+  async getAvailable(specialty: SubcontractorSpecialty, date: string): Promise<Subcontractor[]> {
+    const subcontractors = await this.loadCached();
     const checkDate = new Date(date);
 
     return subcontractors.filter((sub) => {
@@ -419,8 +516,8 @@ class SubcontractorService {
   /**
    * Get aggregate stats
    */
-  getSubcontractorStats(): SubcontractorStats {
-    const { subcontractors } = this.readData();
+  async getSubcontractorStats(): Promise<SubcontractorStats> {
+    const subcontractors = await this.loadCached();
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const thirtyDays = new Date();
@@ -474,14 +571,14 @@ class SubcontractorService {
   /**
    * Search subcontractors by text query
    */
-  searchSubcontractors(query: string): Subcontractor[] {
+  async searchSubcontractors(query: string): Promise<Subcontractor[]> {
     return this.getSubcontractors({ search: query });
   }
 
   /**
    * Deactivate a subcontractor (soft delete)
    */
-  deactivate(id: string): Subcontractor {
+  async deactivate(id: string): Promise<Subcontractor> {
     return this.updateSubcontractor(id, { status: 'inactive' });
   }
 }

@@ -16,7 +16,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
-import { requireAuth } from '@/lib/auth-service';
+import { requireAdmin } from '@/lib/auth-service';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic'];
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
@@ -24,7 +24,7 @@ const VALID_FIELDS = new Set(['profileImage', 'truckImage']);
 
 export async function POST(request: NextRequest) {
   // Auth: admin/owner only
-  const auth = await requireAuth();
+  const auth = await requireAdmin();
   if (!auth.authenticated) return auth.response;
   if (!['admin', 'owner'].includes(auth.user.role)) {
     return NextResponse.json(

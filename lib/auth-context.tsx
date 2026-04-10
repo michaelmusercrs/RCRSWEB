@@ -430,22 +430,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return false;
     if (newPassword === 'ChangeMe123!') return false;
 
-    // Save to server-side credential store
+    // Save to server-side credential store via the change-password action.
+    // The server AWAITS the sheet write so by the time we get a 200 back,
+    // the new password is durable in the UserCredentials tab.
     try {
       const res = await fetch('/api/portal/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'login-password',
-          email: user.email,
-          password: newPassword,
-          isPasswordChange: true,
+          action: 'change-password',
+          newPassword,
         }),
       });
-      // Even if server save fails, persist locally as fallback
-    } catch { /* continue */ }
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.success) {
+        console.error('[auth] change-password failed:', body?.error || res.status);
+        return false;
+      }
+    } catch (err) {
+      console.error('[auth] change-password network error:', err);
+      return false;
+    }
 
-    // Persist in localStorage for backward compat
+    // Persist in localStorage for backward compat with offline-first flows
     localStorage.setItem(`portalPassword_${user.userId}`, newPassword);
     localStorage.setItem(`passwordChanged_${user.userId}`, 'true');
 

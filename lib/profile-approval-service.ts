@@ -1,9 +1,20 @@
 // Profile Approval Workflow Service
 // Manages pending profile edits that require admin approval before going live
+//
+// Persistence (2026-04-09): Migrated off the four local JSON files
+//   - data/profile-updates.json
+//   - data/pending-profile-changes.json
+//   - data/pending-profile-edits.json
+//   - data/profile-overrides.json
+// onto ONE Google Sheet tab: SHEET_NAMES.PROFILE_UPDATES (`Profile_Updates`).
+// The `status` column differentiates pending / approved / rejected / override
+// rows. Profile notifications now live on SHEET_NAMES.PROFILE_NOTIFICATIONS
+// (`Profile_Notifications`).
+//
+// Local data/*.json files remain in place as deprecated dev seeds.
 
-import { promises as fs } from 'fs';
-import path from 'path';
 import { emailService } from './email-service';
+import { googleSheetsService, SHEET_NAMES } from './google-sheets-service';
 
 // Types
 export interface ProfileEditRequest {
@@ -13,7 +24,7 @@ export interface ProfileEditRequest {
   userEmail: string;
   userSlug: string;
   submittedAt: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'override';
   reviewedBy?: string;
   reviewedAt?: string;
   rejectionReason?: string;
@@ -48,52 +59,192 @@ export interface NotificationRecord {
   sent: boolean;
 }
 
-// Data file paths
-const DATA_DIR = path.join(process.cwd(), 'data');
-const PENDING_EDITS_FILE = path.join(DATA_DIR, 'pending-profile-edits.json');
-const NOTIFICATIONS_FILE = path.join(DATA_DIR, 'profile-notifications.json');
+// =============================================================================
+// SHEET SCHEMA
+// =============================================================================
 
-// Ensure data directory exists
-async function ensureDataDir() {
+const PROFILE_UPDATES_HEADERS: string[] = [
+  'id',
+  'userId',
+  'userName',
+  'userEmail',
+  'userSlug',
+  'submittedAt',
+  'status',
+  'reviewedBy',
+  'reviewedAt',
+  'rejectionReason',
+  'changes',
+  'originalData',
+];
+
+const PROFILE_NOTIFICATIONS_HEADERS: string[] = [
+  'id',
+  'type',
+  'profileEditId',
+  'recipientEmail',
+  'recipientName',
+  'message',
+  'createdAt',
+  'sent',
+];
+
+// =============================================================================
+// PARSING HELPERS
+// =============================================================================
+
+function parseBool(value: string | undefined): boolean {
+  if (!value) return false;
+  return value === 'true' || value === 'TRUE' || value === '1';
+}
+
+function parseJson<T>(value: string | undefined, fallback: T): T {
+  if (!value) return fallback;
   try {
-    await fs.access(DATA_DIR);
+    return JSON.parse(value) as T;
   } catch {
-    await fs.mkdir(DATA_DIR, { recursive: true });
+    return fallback;
   }
 }
 
-// Read pending edits
-async function readPendingEdits(): Promise<ProfileEditRequest[]> {
-  await ensureDataDir();
-  try {
-    const data = await fs.readFile(PENDING_EDITS_FILE, 'utf-8');
-    return JSON.parse(data);
-  } catch {
-    return [];
+function rowToEdit(row: Record<string, string>): ProfileEditRequest {
+  const status = (row.status || 'pending') as ProfileEditRequest['status'];
+  return {
+    id: row.id,
+    userId: row.userId,
+    userName: row.userName,
+    userEmail: row.userEmail,
+    userSlug: row.userSlug,
+    submittedAt: row.submittedAt,
+    status,
+    reviewedBy: row.reviewedBy || undefined,
+    reviewedAt: row.reviewedAt || undefined,
+    rejectionReason: row.rejectionReason || undefined,
+    changes: parseJson<ProfileChanges>(row.changes, {}),
+    originalData: parseJson<ProfileChanges>(row.originalData, {}),
+  };
+}
+
+function editToRow(edit: ProfileEditRequest): Record<string, unknown> {
+  return {
+    id: edit.id,
+    userId: edit.userId,
+    userName: edit.userName,
+    userEmail: edit.userEmail,
+    userSlug: edit.userSlug,
+    submittedAt: edit.submittedAt,
+    status: edit.status,
+    reviewedBy: edit.reviewedBy ?? '',
+    reviewedAt: edit.reviewedAt ?? '',
+    rejectionReason: edit.rejectionReason ?? '',
+    changes: JSON.stringify(edit.changes ?? {}),
+    originalData: JSON.stringify(edit.originalData ?? {}),
+  };
+}
+
+function rowToNotification(row: Record<string, string>): NotificationRecord {
+  return {
+    id: row.id,
+    type: (row.type || 'edit_submitted') as NotificationRecord['type'],
+    profileEditId: row.profileEditId,
+    recipientEmail: row.recipientEmail,
+    recipientName: row.recipientName,
+    message: row.message,
+    createdAt: row.createdAt,
+    sent: parseBool(row.sent),
+  };
+}
+
+function notificationToRow(n: NotificationRecord): Record<string, unknown> {
+  return {
+    id: n.id,
+    type: n.type,
+    profileEditId: n.profileEditId,
+    recipientEmail: n.recipientEmail,
+    recipientName: n.recipientName,
+    message: n.message,
+    createdAt: n.createdAt,
+    sent: n.sent,
+  };
+}
+
+// =============================================================================
+// CACHED LOADERS
+// =============================================================================
+
+const CACHE_TTL_MS = 60_000;
+
+let editsCache: ProfileEditRequest[] | null = null;
+let editsCacheExpiresAt = 0;
+
+let notificationsCache: NotificationRecord[] | null = null;
+let notificationsCacheExpiresAt = 0;
+
+function invalidateEditsCache(): void {
+  editsCache = null;
+  editsCacheExpiresAt = 0;
+}
+
+function invalidateNotificationsCache(): void {
+  notificationsCache = null;
+  notificationsCacheExpiresAt = 0;
+}
+
+async function loadAllEditsFromSheet(): Promise<ProfileEditRequest[]> {
+  const rows = await googleSheetsService.getGenericRows(
+    SHEET_NAMES.PROFILE_UPDATES,
+    PROFILE_UPDATES_HEADERS,
+  );
+  return rows.filter((r) => r.id).map(rowToEdit);
+}
+
+async function loadAllEdits(): Promise<ProfileEditRequest[]> {
+  if (editsCache && Date.now() < editsCacheExpiresAt) return editsCache;
+  editsCache = await loadAllEditsFromSheet();
+  editsCacheExpiresAt = Date.now() + CACHE_TTL_MS;
+  return editsCache;
+}
+
+async function saveEdit(edit: ProfileEditRequest): Promise<void> {
+  await googleSheetsService.upsertGenericRow(
+    SHEET_NAMES.PROFILE_UPDATES,
+    PROFILE_UPDATES_HEADERS,
+    'id',
+    editToRow(edit),
+  );
+  invalidateEditsCache();
+}
+
+async function deleteEditRow(id: string): Promise<void> {
+  await googleSheetsService.deleteGenericRow(SHEET_NAMES.PROFILE_UPDATES, 'id', id);
+  invalidateEditsCache();
+}
+
+async function loadAllNotificationsFromSheet(): Promise<NotificationRecord[]> {
+  const rows = await googleSheetsService.getGenericRows(
+    SHEET_NAMES.PROFILE_NOTIFICATIONS,
+    PROFILE_NOTIFICATIONS_HEADERS,
+  );
+  return rows.filter((r) => r.id).map(rowToNotification);
+}
+
+async function loadAllNotifications(): Promise<NotificationRecord[]> {
+  if (notificationsCache && Date.now() < notificationsCacheExpiresAt) {
+    return notificationsCache;
   }
+  notificationsCache = await loadAllNotificationsFromSheet();
+  notificationsCacheExpiresAt = Date.now() + CACHE_TTL_MS;
+  return notificationsCache;
 }
 
-// Write pending edits
-async function writePendingEdits(edits: ProfileEditRequest[]): Promise<void> {
-  await ensureDataDir();
-  await fs.writeFile(PENDING_EDITS_FILE, JSON.stringify(edits, null, 2));
-}
-
-// Read notifications
-async function readNotifications(): Promise<NotificationRecord[]> {
-  await ensureDataDir();
-  try {
-    const data = await fs.readFile(NOTIFICATIONS_FILE, 'utf-8');
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
-}
-
-// Write notifications
-async function writeNotifications(notifications: NotificationRecord[]): Promise<void> {
-  await ensureDataDir();
-  await fs.writeFile(NOTIFICATIONS_FILE, JSON.stringify(notifications, null, 2));
+async function saveNotification(n: NotificationRecord): Promise<void> {
+  await googleSheetsService.upsertGenericRow(
+    SHEET_NAMES.PROFILE_NOTIFICATIONS,
+    PROFILE_NOTIFICATIONS_HEADERS,
+    'id',
+    notificationToRow(n),
+  );
+  invalidateNotificationsCache();
 }
 
 // Generate unique ID
@@ -114,18 +265,18 @@ export const profileApprovalService = {
     changes: ProfileChanges;
     originalData: ProfileChanges;
   }): Promise<ProfileEditRequest> {
-    const edits = await readPendingEdits();
+    const edits = await loadAllEdits();
 
     // Check if there's already a pending edit for this user
     const existingPending = edits.find(
-      e => e.userId === params.userId && e.status === 'pending'
+      (e) => e.userId === params.userId && e.status === 'pending',
     );
 
     if (existingPending) {
       // Update existing pending edit instead of creating new one
       existingPending.changes = { ...existingPending.changes, ...params.changes };
       existingPending.submittedAt = new Date().toISOString();
-      await writePendingEdits(edits);
+      await saveEdit(existingPending);
 
       // Create notification for admins
       await this.createNotification({
@@ -152,8 +303,7 @@ export const profileApprovalService = {
       originalData: params.originalData,
     };
 
-    edits.push(newEdit);
-    await writePendingEdits(edits);
+    await saveEdit(newEdit);
 
     // Notify Michael and Sara directly for profile edit requests
     await Promise.all([
@@ -178,46 +328,52 @@ export const profileApprovalService = {
 
   // Get all pending edits (for admins)
   async getPendingEdits(): Promise<ProfileEditRequest[]> {
-    const edits = await readPendingEdits();
-    return edits.filter(e => e.status === 'pending')
+    const edits = await loadAllEdits();
+    return edits
+      .filter((e) => e.status === 'pending')
       .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
   },
 
   // Get all edits (for admin history view)
   async getAllEdits(): Promise<ProfileEditRequest[]> {
-    const edits = await readPendingEdits();
-    return edits.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
+    const edits = await loadAllEdits();
+    return [...edits].sort(
+      (a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime(),
+    );
   },
 
   // Get edits for a specific user
   async getUserEdits(userId: string): Promise<ProfileEditRequest[]> {
-    const edits = await readPendingEdits();
-    return edits.filter(e => e.userId === userId)
+    const edits = await loadAllEdits();
+    return edits
+      .filter((e) => e.userId === userId)
       .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
   },
 
   // Get a single edit by ID
   async getEditById(editId: string): Promise<ProfileEditRequest | null> {
-    const edits = await readPendingEdits();
-    return edits.find(e => e.id === editId) || null;
+    const edits = await loadAllEdits();
+    return edits.find((e) => e.id === editId) || null;
   },
 
   // Get pending edit for a user (if exists)
   async getPendingEditForUser(userId: string): Promise<ProfileEditRequest | null> {
-    const edits = await readPendingEdits();
-    return edits.find(e => e.userId === userId && e.status === 'pending') || null;
+    const edits = await loadAllEdits();
+    return edits.find((e) => e.userId === userId && e.status === 'pending') || null;
   },
 
   // Approve an edit
-  async approveEdit(editId: string, reviewerName: string, reviewerEmail?: string): Promise<{ success: boolean; error?: string; edit?: ProfileEditRequest }> {
-    const edits = await readPendingEdits();
-    const editIndex = edits.findIndex(e => e.id === editId);
+  async approveEdit(
+    editId: string,
+    reviewerName: string,
+    reviewerEmail?: string,
+  ): Promise<{ success: boolean; error?: string; edit?: ProfileEditRequest }> {
+    const edits = await loadAllEdits();
+    const edit = edits.find((e) => e.id === editId);
 
-    if (editIndex === -1) {
+    if (!edit) {
       return { success: false, error: 'Edit request not found' };
     }
-
-    const edit = edits[editIndex];
 
     if (edit.status !== 'pending') {
       return { success: false, error: 'Edit has already been processed' };
@@ -228,7 +384,10 @@ export const profileApprovalService = {
       edit.userName.toLowerCase() === reviewerName.toLowerCase() ||
       (reviewerEmail && edit.userEmail.toLowerCase() === reviewerEmail.toLowerCase())
     ) {
-      return { success: false, error: 'You cannot approve your own profile changes. Another admin must review.' };
+      return {
+        success: false,
+        error: 'You cannot approve your own profile changes. Another admin must review.',
+      };
     }
 
     // Update the edit status
@@ -236,8 +395,7 @@ export const profileApprovalService = {
     edit.reviewedBy = reviewerName;
     edit.reviewedAt = new Date().toISOString();
 
-    edits[editIndex] = edit;
-    await writePendingEdits(edits);
+    await saveEdit(edit);
 
     // Create notification for the user
     await this.createNotification({
@@ -252,15 +410,17 @@ export const profileApprovalService = {
   },
 
   // Reject an edit
-  async rejectEdit(editId: string, reviewerName: string, reason?: string): Promise<{ success: boolean; error?: string; edit?: ProfileEditRequest }> {
-    const edits = await readPendingEdits();
-    const editIndex = edits.findIndex(e => e.id === editId);
+  async rejectEdit(
+    editId: string,
+    reviewerName: string,
+    reason?: string,
+  ): Promise<{ success: boolean; error?: string; edit?: ProfileEditRequest }> {
+    const edits = await loadAllEdits();
+    const edit = edits.find((e) => e.id === editId);
 
-    if (editIndex === -1) {
+    if (!edit) {
       return { success: false, error: 'Edit request not found' };
     }
-
-    const edit = edits[editIndex];
 
     if (edit.status !== 'pending') {
       return { success: false, error: 'Edit has already been processed' };
@@ -272,8 +432,7 @@ export const profileApprovalService = {
     edit.reviewedAt = new Date().toISOString();
     edit.rejectionReason = reason || 'No reason provided';
 
-    edits[editIndex] = edit;
-    await writePendingEdits(edits);
+    await saveEdit(edit);
 
     // Create notification for the user
     await this.createNotification({
@@ -281,38 +440,39 @@ export const profileApprovalService = {
       profileEditId: edit.id,
       recipientEmail: edit.userEmail,
       recipientName: edit.userName,
-      message: `Your profile edit was not approved. Reason: ${reason || 'No reason provided'}. Please revise and resubmit.`,
+      message: `Your profile edit was not approved. Reason: ${
+        reason || 'No reason provided'
+      }. Please revise and resubmit.`,
     });
 
     return { success: true, edit };
   },
 
   // Cancel a pending edit (by the user who submitted it)
-  async cancelEdit(editId: string, userId: string): Promise<{ success: boolean; error?: string }> {
-    const edits = await readPendingEdits();
-    const editIndex = edits.findIndex(e => e.id === editId && e.userId === userId);
+  async cancelEdit(
+    editId: string,
+    userId: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    const edits = await loadAllEdits();
+    const edit = edits.find((e) => e.id === editId && e.userId === userId);
 
-    if (editIndex === -1) {
+    if (!edit) {
       return { success: false, error: 'Edit request not found or not authorized' };
     }
-
-    const edit = edits[editIndex];
 
     if (edit.status !== 'pending') {
       return { success: false, error: 'Can only cancel pending edits' };
     }
 
-    // Remove the edit
-    edits.splice(editIndex, 1);
-    await writePendingEdits(edits);
+    await deleteEditRow(edit.id);
 
     return { success: true };
   },
 
   // Create a notification
-  async createNotification(params: Omit<NotificationRecord, 'id' | 'createdAt' | 'sent'>): Promise<NotificationRecord> {
-    const notifications = await readNotifications();
-
+  async createNotification(
+    params: Omit<NotificationRecord, 'id' | 'createdAt' | 'sent'>,
+  ): Promise<NotificationRecord> {
     const notification: NotificationRecord = {
       id: `NOTIF-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`.toUpperCase(),
       ...params,
@@ -320,23 +480,26 @@ export const profileApprovalService = {
       sent: false,
     };
 
-    notifications.push(notification);
-    await writeNotifications(notifications);
+    await saveNotification(notification);
 
     // Send email notification (fire-and-forget)
     if (params.recipientEmail) {
-      emailService.send({
-        to: params.recipientEmail,
-        subject: `RCRS Profile Update: ${params.type}`,
-        body: `<p>${params.message}</p>`,
-        fromName: 'RCRS Portal',
-      }).then(() => {
-        notification.sent = true;
-        readNotifications().then(all => {
-          const idx = all.findIndex(n => n.id === notification.id);
-          if (idx >= 0) { all[idx].sent = true; writeNotifications(all); }
+      emailService
+        .send({
+          to: params.recipientEmail,
+          subject: `RCRS Profile Update: ${params.type}`,
+          body: `<p>${params.message}</p>`,
+          fromName: 'RCRS Portal',
+        })
+        .then(() => {
+          notification.sent = true;
+          saveNotification(notification).catch(() => {
+            /* non-critical */
+          });
+        })
+        .catch(() => {
+          /* email send is non-critical */
         });
-      }).catch(() => { /* email send is non-critical */ });
     }
 
     return notification;
@@ -344,24 +507,24 @@ export const profileApprovalService = {
 
   // Get unsent notifications (for email processing)
   async getUnsentNotifications(): Promise<NotificationRecord[]> {
-    const notifications = await readNotifications();
-    return notifications.filter(n => !n.sent);
+    const notifications = await loadAllNotifications();
+    return notifications.filter((n) => !n.sent);
   },
 
   // Mark notification as sent
   async markNotificationSent(notificationId: string): Promise<void> {
-    const notifications = await readNotifications();
-    const notification = notifications.find(n => n.id === notificationId);
+    const notifications = await loadAllNotifications();
+    const notification = notifications.find((n) => n.id === notificationId);
     if (notification) {
       notification.sent = true;
-      await writeNotifications(notifications);
+      await saveNotification(notification);
     }
   },
 
   // Get count of pending edits (for dashboard badges)
   async getPendingCount(): Promise<number> {
-    const edits = await readPendingEdits();
-    return edits.filter(e => e.status === 'pending').length;
+    const edits = await loadAllEdits();
+    return edits.filter((e) => e.status === 'pending').length;
   },
 };
 

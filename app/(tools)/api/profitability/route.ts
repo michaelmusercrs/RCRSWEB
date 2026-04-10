@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { profitabilityService } from '@/lib/profitability-service';
 
 export const dynamic = 'force-dynamic';
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
     const limitParam = searchParams.get('limit');
     const limit = limitParam ? parseInt(limitParam, 10) : undefined;
 
-    const jobCosts = profitabilityService.listJobCosts({
+    const jobCosts = await profitabilityService.listJobCosts({
       repSlug,
       status,
       limit,
@@ -46,6 +47,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
     const { customerName, address, repSlug, repName, contractAmount } = body;
 
@@ -59,7 +63,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const jobCost = profitabilityService.createJobCost({
+    const jobCost = await profitabilityService.createJobCost({
       jobId: body.jobId,
       customerName,
       address,

@@ -4,15 +4,18 @@
  * Tracks job progress through phases with photos, notes, weather, and crew info.
  * Supports customer-facing shared timelines via token-based public links.
  *
- * Data stored in data/job-progress.json
+ * Persisted to the master Google Sheet on the `Job_Progress` tab via
+ * googleSheetsService. One row per jobId — the `entries` array (with embedded
+ * photos) is stored as a JSON string on each row. The local
+ * data/job-progress.json file is now a deprecated dev seed and is NOT written
+ * by this service anymore.
  *
  * @author RCRS Development Team
- * @version 1.0.0
+ * @version 2.0.0
  */
 
-import fs from 'fs';
-import path from 'path';
 import crypto from 'crypto';
+import { googleSheetsService, SHEET_NAMES } from './google-sheets-service';
 
 // =============================================================================
 // TYPES
@@ -131,39 +134,28 @@ export const PHOTO_CATEGORIES = [
 ] as const;
 
 // =============================================================================
-// DATA HELPERS
+// SHEET CONFIG
 // =============================================================================
 
-interface JobProgressData {
-  timelines: Record<string, JobTimeline>;
-}
+// Canonical column order for the Job_Progress tab. Do NOT reorder.
+// One row per jobId; `entries` is a JSON-encoded array of JobProgressEntry.
+const JOB_PROGRESS_HEADERS: string[] = [
+  'jobId',
+  'customerName',
+  'address',
+  'status',
+  'startDate',
+  'completionDate',
+  'entries',
+  'totalPhotos',
+  'completionPercentage',
+  'assignedRep',
+  'shareToken',
+];
 
-const DATA_FILE_PATH = path.join(process.cwd(), 'data', 'job-progress.json');
-
-function readData(): JobProgressData {
-  try {
-    if (fs.existsSync(DATA_FILE_PATH)) {
-      const content = fs.readFileSync(DATA_FILE_PATH, 'utf-8');
-      return JSON.parse(content);
-    }
-  } catch (error) {
-    console.error('[JobProgressService] Error reading data:', error);
-  }
-  return { timelines: {} };
-}
-
-function writeData(data: JobProgressData): void {
-  try {
-    const dir = path.dirname(DATA_FILE_PATH);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(DATA_FILE_PATH, JSON.stringify(data, null, 2));
-  } catch (error) {
-    console.error('[JobProgressService] Error writing data:', error);
-    throw error;
-  }
-}
+// =============================================================================
+// HELPERS
+// =============================================================================
 
 function generateId(prefix: string): string {
   return `${prefix}-${crypto.randomBytes(6).toString('hex')}`;
@@ -191,18 +183,107 @@ function computeStatus(timeline: JobTimeline): string {
   return 'in_progress';
 }
 
+/** Parse a sheet row back into a JobTimeline. */
+function rowToTimeline(row: Record<string, string>): JobTimeline {
+  let entries: JobProgressEntry[] = [];
+  if (row.entries) {
+    try {
+      entries = JSON.parse(row.entries) as JobProgressEntry[];
+    } catch {
+      entries = [];
+    }
+  }
+
+  const timeline: JobTimeline = {
+    jobId: row.jobId || '',
+    customerName: row.customerName || '',
+    address: row.address || '',
+    status: row.status || 'not_started',
+    startDate: row.startDate || '',
+    completionDate: row.completionDate || undefined,
+    entries,
+    totalPhotos:
+      row.totalPhotos !== '' && row.totalPhotos !== undefined
+        ? Number(row.totalPhotos)
+        : 0,
+    completionPercentage:
+      row.completionPercentage !== '' && row.completionPercentage !== undefined
+        ? Number(row.completionPercentage)
+        : 0,
+    assignedRep: row.assignedRep || '',
+    shareToken: row.shareToken || undefined,
+  };
+
+  return timeline;
+}
+
+/** Flatten a JobTimeline into sheet columns. */
+function timelineToRow(timeline: JobTimeline): Record<string, unknown> {
+  return {
+    jobId: timeline.jobId,
+    customerName: timeline.customerName,
+    address: timeline.address,
+    status: timeline.status,
+    startDate: timeline.startDate,
+    completionDate: timeline.completionDate || '',
+    entries: JSON.stringify(timeline.entries || []),
+    totalPhotos: timeline.totalPhotos,
+    completionPercentage: timeline.completionPercentage,
+    assignedRep: timeline.assignedRep,
+    shareToken: timeline.shareToken || '',
+  };
+}
+
 // =============================================================================
 // SERVICE CLASS
 // =============================================================================
 
 class JobProgressService {
+  // 60-second cache so we don't hammer the Sheets API for read-heavy endpoints.
+  private cache: JobTimeline[] | null = null;
+  private cacheExpiresAt = 0;
+
+  private invalidateCache(): void {
+    this.cache = null;
+    this.cacheExpiresAt = 0;
+  }
+
+  private async loadFromSheet(): Promise<JobTimeline[]> {
+    try {
+      const rows = await googleSheetsService.getGenericRows(
+        SHEET_NAMES.JOB_PROGRESS,
+        JOB_PROGRESS_HEADERS,
+      );
+      return rows.filter((r) => r.jobId).map(rowToTimeline);
+    } catch (error) {
+      console.error('[JobProgressService] Error loading timelines from sheet:', error);
+      return [];
+    }
+  }
+
+  private async loadCached(): Promise<JobTimeline[]> {
+    if (this.cache && Date.now() < this.cacheExpiresAt) return this.cache;
+    this.cache = await this.loadFromSheet();
+    this.cacheExpiresAt = Date.now() + 60_000;
+    return this.cache;
+  }
+
+  private async persistTimeline(timeline: JobTimeline): Promise<void> {
+    await googleSheetsService.upsertGenericRow(
+      SHEET_NAMES.JOB_PROGRESS,
+      JOB_PROGRESS_HEADERS,
+      'jobId',
+      timelineToRow(timeline),
+    );
+    this.invalidateCache();
+  }
 
   /**
    * Get the full timeline for a job.
    */
-  getTimeline(jobId: string): JobTimeline | null {
-    const data = readData();
-    const timeline = data.timelines[jobId];
+  async getTimeline(jobId: string): Promise<JobTimeline | null> {
+    const timelines = await this.loadCached();
+    const timeline = timelines.find((t) => t.jobId === jobId);
     if (!timeline) return null;
 
     // Recompute dynamic fields
@@ -217,7 +298,7 @@ class JobProgressService {
    * Add a new progress entry to a job timeline.
    * Creates the timeline if it doesn't exist.
    */
-  addProgressEntry(jobId: string, entryData: {
+  async addProgressEntry(jobId: string, entryData: {
     phase: JobPhase;
     notes: string;
     photos?: Omit<JobPhoto, 'id' | 'uploadedAt'>[];
@@ -229,12 +310,13 @@ class JobProgressService {
     completedByName: string;
     jobNimbusId?: string;
     customerNotified?: boolean;
-  }): JobProgressEntry {
-    const data = readData();
+  }): Promise<JobProgressEntry> {
+    // Load current timeline (bypass cache for writes to avoid stale reads)
+    const timelines = await this.loadFromSheet();
+    let timeline = timelines.find((t) => t.jobId === jobId);
 
-    // Create timeline if needed
-    if (!data.timelines[jobId]) {
-      data.timelines[jobId] = {
+    if (!timeline) {
+      timeline = {
         jobId,
         customerName: entryData.customerName,
         address: entryData.address,
@@ -247,7 +329,6 @@ class JobProgressService {
       };
     }
 
-    const timeline = data.timelines[jobId];
     const now = new Date().toISOString();
 
     // Build photos
@@ -283,16 +364,16 @@ class JobProgressService {
       timeline.completionDate = now;
     }
 
-    writeData(data);
+    await this.persistTimeline(timeline);
     return entry;
   }
 
   /**
    * Add photos to an existing progress entry.
    */
-  addPhotos(jobId: string, entryId: string, photos: Omit<JobPhoto, 'id' | 'uploadedAt'>[]): JobPhoto[] {
-    const data = readData();
-    const timeline = data.timelines[jobId];
+  async addPhotos(jobId: string, entryId: string, photos: Omit<JobPhoto, 'id' | 'uploadedAt'>[]): Promise<JobPhoto[]> {
+    const timelines = await this.loadFromSheet();
+    const timeline = timelines.find((t) => t.jobId === jobId);
     if (!timeline) throw new Error(`Timeline not found for job ${jobId}`);
 
     const entry = timeline.entries.find(e => e.id === entryId);
@@ -308,16 +389,16 @@ class JobProgressService {
     entry.photos.push(...newPhotos);
     timeline.totalPhotos = timeline.entries.reduce((sum, e) => sum + e.photos.length, 0);
 
-    writeData(data);
+    await this.persistTimeline(timeline);
     return newPhotos;
   }
 
   /**
    * Update the phase of a job (convenience method that creates a new entry).
    */
-  updatePhase(jobId: string, phase: JobPhase, notes: string, photos?: Omit<JobPhoto, 'id' | 'uploadedAt'>[]): JobProgressEntry {
-    const data = readData();
-    const timeline = data.timelines[jobId];
+  async updatePhase(jobId: string, phase: JobPhase, notes: string, photos?: Omit<JobPhoto, 'id' | 'uploadedAt'>[]): Promise<JobProgressEntry> {
+    const timelines = await this.loadFromSheet();
+    const timeline = timelines.find((t) => t.jobId === jobId);
     if (!timeline) throw new Error(`Timeline not found for job ${jobId}`);
 
     return this.addProgressEntry(jobId, {
@@ -334,11 +415,11 @@ class JobProgressService {
   /**
    * Get recently updated progress entries across all jobs.
    */
-  getRecentProgress(limit: number = 20): JobProgressEntry[] {
-    const data = readData();
+  async getRecentProgress(limit: number = 20): Promise<JobProgressEntry[]> {
+    const timelines = await this.loadCached();
     const allEntries: JobProgressEntry[] = [];
 
-    for (const timeline of Object.values(data.timelines)) {
+    for (const timeline of timelines) {
       allEntries.push(...timeline.entries);
     }
 
@@ -349,11 +430,11 @@ class JobProgressService {
   /**
    * Get all job timelines filtered by phase.
    */
-  getJobsByPhase(phase: JobPhase): JobTimeline[] {
-    const data = readData();
+  async getJobsByPhase(phase: JobPhase): Promise<JobTimeline[]> {
+    const timelines = await this.loadCached();
     const result: JobTimeline[] = [];
 
-    for (const timeline of Object.values(data.timelines)) {
+    for (const timeline of timelines) {
       if (timeline.entries.length === 0) continue;
       const latestPhase = timeline.entries[timeline.entries.length - 1]?.phase;
       if (latestPhase === phase) {
@@ -370,16 +451,14 @@ class JobProgressService {
   /**
    * Get all timelines, optionally filtered.
    */
-  getAllTimelines(options?: {
+  async getAllTimelines(options?: {
     phase?: JobPhase;
     repSlug?: string;
     limit?: number;
-  }): JobTimeline[] {
-    const data = readData();
-    let timelines = Object.values(data.timelines);
-
+  }): Promise<JobTimeline[]> {
+    const cached = await this.loadCached();
     // Recompute dynamic fields
-    timelines = timelines.map(t => ({
+    let timelines: JobTimeline[] = cached.map(t => ({
       ...t,
       totalPhotos: t.entries.reduce((sum, e) => sum + e.photos.length, 0),
       completionPercentage: computeCompletionPercentage(t.entries),
@@ -414,14 +493,14 @@ class JobProgressService {
   /**
    * Generate a shareable customer-facing timeline link.
    */
-  shareTimeline(jobId: string): { url: string; token: string } {
-    const data = readData();
-    const timeline = data.timelines[jobId];
+  async shareTimeline(jobId: string): Promise<{ url: string; token: string }> {
+    const timelines = await this.loadFromSheet();
+    const timeline = timelines.find((t) => t.jobId === jobId);
     if (!timeline) throw new Error(`Timeline not found for job ${jobId}`);
 
     if (!timeline.shareToken) {
       timeline.shareToken = generateShareToken();
-      writeData(data);
+      await this.persistTimeline(timeline);
     }
 
     return {
@@ -434,10 +513,10 @@ class JobProgressService {
    * Get customer-visible timeline using a share token.
    * Filters out non-customer-visible photos and internal notes.
    */
-  getCustomerTimeline(token: string): JobTimeline | null {
-    const data = readData();
+  async getCustomerTimeline(token: string): Promise<JobTimeline | null> {
+    const timelines = await this.loadCached();
 
-    for (const timeline of Object.values(data.timelines)) {
+    for (const timeline of timelines) {
       if (timeline.shareToken === token) {
         // Filter entries to only customer-visible content
         const filteredEntries = timeline.entries.map(entry => ({
@@ -461,10 +540,10 @@ class JobProgressService {
   /**
    * Mark a customer timeline as viewed.
    */
-  markCustomerViewed(token: string): void {
-    const data = readData();
+  async markCustomerViewed(token: string): Promise<void> {
+    const timelines = await this.loadFromSheet();
 
-    for (const timeline of Object.values(data.timelines)) {
+    for (const timeline of timelines) {
       if (timeline.shareToken === token) {
         const now = new Date().toISOString();
         for (const entry of timeline.entries) {
@@ -472,7 +551,7 @@ class JobProgressService {
             entry.customerViewedAt = now;
           }
         }
-        writeData(data);
+        await this.persistTimeline(timeline);
         return;
       }
     }
@@ -481,9 +560,8 @@ class JobProgressService {
   /**
    * Get aggregate progress statistics.
    */
-  getProgressStats(): ProgressStats {
-    const data = readData();
-    const timelines = Object.values(data.timelines);
+  async getProgressStats(): Promise<ProgressStats> {
+    const timelines = await this.loadCached();
 
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -542,15 +620,15 @@ class JobProgressService {
   /**
    * Notify customer about progress update.
    */
-  markCustomerNotified(jobId: string, entryId: string): void {
-    const data = readData();
-    const timeline = data.timelines[jobId];
+  async markCustomerNotified(jobId: string, entryId: string): Promise<void> {
+    const timelines = await this.loadFromSheet();
+    const timeline = timelines.find((t) => t.jobId === jobId);
     if (!timeline) return;
 
     const entry = timeline.entries.find(e => e.id === entryId);
     if (entry) {
       entry.customerNotified = true;
-      writeData(data);
+      await this.persistTimeline(timeline);
     }
   }
 }

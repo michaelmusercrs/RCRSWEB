@@ -11,6 +11,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { voicemailService } from '@/lib/voicemail-service';
 
 /**
@@ -23,7 +24,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const voicemail = voicemailService.getById(params.id);
+    const voicemail = await voicemailService.getById(params.id);
 
     if (!voicemail) {
       return NextResponse.json(
@@ -61,12 +62,15 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
     let result = null;
 
     // Handle mark all read (special case using id as a signal)
     if (body.markAllRead === true) {
-      const count = voicemailService.markAllRead(body.extension);
+      const count = await voicemailService.markAllRead(body.extension);
       return NextResponse.json({
         success: true,
         message: `Marked ${count} voicemails as read`,
@@ -77,28 +81,28 @@ export async function PATCH(
     // Mark read/unread
     if ('isRead' in body) {
       result = body.isRead
-        ? voicemailService.markAsRead(params.id)
-        : voicemailService.markAsUnread(params.id);
+        ? await voicemailService.markAsRead(params.id)
+        : await voicemailService.markAsUnread(params.id);
     }
 
     // Add note
     if (body.note) {
-      result = voicemailService.addNote(params.id, body.note);
+      result = await voicemailService.addNote(params.id, body.note);
     }
 
     // Link to job
     if (body.linkedJobId !== undefined) {
-      result = voicemailService.linkToJob(params.id, body.linkedJobId, body.linkedContactId);
+      result = await voicemailService.linkToJob(params.id, body.linkedJobId, body.linkedContactId);
     }
 
     // Share with team
     if (body.sharedWith && Array.isArray(body.sharedWith)) {
-      result = voicemailService.shareWithTeam(params.id, body.sharedWith);
+      result = await voicemailService.shareWithTeam(params.id, body.sharedWith);
     }
 
     // Toggle urgent
     if ('isUrgent' in body && !('isRead' in body) && !body.note && body.linkedJobId === undefined && !body.sharedWith) {
-      result = voicemailService.update(params.id, { isUrgent: body.isUrgent });
+      result = await voicemailService.update(params.id, { isUrgent: body.isUrgent });
     }
 
     // Generic update fallback for other fields
@@ -112,7 +116,7 @@ export async function PATCH(
       }
 
       if (Object.keys(updates).length > 0) {
-        result = voicemailService.update(params.id, updates as any);
+        result = await voicemailService.update(params.id, updates as any);
       }
     }
 
@@ -146,7 +150,10 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const deleted = voicemailService.deleteVoicemail(params.id);
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
+    const deleted = await voicemailService.deleteVoicemail(params.id);
 
     if (!deleted) {
       return NextResponse.json(

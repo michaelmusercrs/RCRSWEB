@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { communicationHubService } from '@/lib/communication-hub-service';
 
 // =============================================================================
@@ -73,6 +74,9 @@ export async function POST(
   { params }: { params: { customerId: string } }
 ) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const { customerId } = params;
 
     if (!customerId) {
@@ -139,7 +143,7 @@ export async function POST(
       }
 
       case 'status_change': {
-        const event = communicationHubService.addEvent({
+        const event = await communicationHubService.addEvent({
           type: 'status_change',
           timestamp: new Date().toISOString(),
           from: authorName,
@@ -158,7 +162,7 @@ export async function POST(
       }
 
       case 'appointment': {
-        const event = communicationHubService.addEvent({
+        const event = await communicationHubService.addEvent({
           type: 'appointment',
           timestamp: new Date().toISOString(),
           from: authorName,
@@ -178,7 +182,7 @@ export async function POST(
       }
 
       case 'document': {
-        const event = communicationHubService.addEvent({
+        const event = await communicationHubService.addEvent({
           type: 'document',
           timestamp: new Date().toISOString(),
           from: authorName,

@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readFileSync, writeFileSync } from 'fs';
 import path from 'path';
-import { requireAuth } from '@/lib/auth-service';
+import { requireAdmin } from '@/lib/auth-service';
 import { getSalesReps } from '@/lib/team-roles';
 
 const DISTRO_CONFIG_PATH = path.join(process.cwd(), 'data', 'lead-distro-config.json');
@@ -132,7 +132,7 @@ function readReassignConfig(): ReassignConfig {
 }
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireAdmin();
   if (!auth.authenticated) return auth.response;
 
   try {
@@ -181,7 +181,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireAdmin();
   if (!auth.authenticated) return auth.response;
 
   try {

@@ -5,14 +5,17 @@
  * Handles creation, retrieval, read/unread tracking, archival,
  * and per-user notification preferences (channels, quiet hours, muted types).
  *
- * Data persisted to:
- *   data/notifications.json
- *   data/notification-preferences.json
+ * Persistence (2026-04-09): Migrated off local JSON files onto the master
+ * Google Sheet via the generic CRUD helpers on google-sheets-service. Tabs:
+ *   - SHEET_NAMES.NOTIFICATIONS (`Notifications`)
+ *   - SHEET_NAMES.NOTIFICATION_PREFERENCES (`Notification_Preferences`)
+ *
+ * Local data/notifications.json and data/notification-preferences.json remain
+ * in place as deprecated dev seeds.
  */
 
-import fs from 'fs';
-import path from 'path';
 import crypto from 'crypto';
+import { googleSheetsService, SHEET_NAMES } from './google-sheets-service';
 
 // =============================================================================
 // TYPES
@@ -83,82 +86,211 @@ export interface GetNotificationsOptions {
   includeArchived?: boolean;
 }
 
-interface NotificationsData {
-  notifications: Notification[];
-  lastCleanup: string;
-}
-
-interface PreferencesData {
-  preferences: NotificationPreferences[];
-}
-
 // =============================================================================
-// FILE PATHS
+// SHEET SCHEMA
 // =============================================================================
 
-const DATA_DIR = path.join(process.cwd(), 'data');
-const NOTIFICATIONS_FILE = path.join(DATA_DIR, 'notifications.json');
-const PREFERENCES_FILE = path.join(DATA_DIR, 'notification-preferences.json');
+const NOTIFICATION_HEADERS: string[] = [
+  'id',
+  'type',
+  'title',
+  'message',
+  'priority',
+  'recipient',
+  'sender',
+  'isRead',
+  'isArchived',
+  'actionUrl',
+  'actionLabel',
+  'metadata',
+  'createdAt',
+  'readAt',
+  'expiresAt',
+  'groupId',
+];
+
+const PREFERENCES_HEADERS: string[] = [
+  'repSlug',
+  'channels',
+  'quietHours',
+  'mutedTypes',
+  'urgentOnly',
+];
+
+// =============================================================================
+// PARSING HELPERS
+// =============================================================================
+
+function parseBool(value: string | undefined, fallback = false): boolean {
+  if (value === undefined || value === '') return fallback;
+  return value === 'true' || value === 'TRUE' || value === '1';
+}
+
+function parseJson<T>(value: string | undefined, fallback: T): T {
+  if (!value) return fallback;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+function rowToNotification(row: Record<string, string>): Notification {
+  return {
+    id: row.id,
+    type: (row.type || 'system_alert') as NotificationType,
+    title: row.title || '',
+    message: row.message || '',
+    priority: (row.priority || 'medium') as NotificationPriority,
+    recipient: row.recipient || 'all',
+    sender: row.sender || undefined,
+    isRead: parseBool(row.isRead, false),
+    isArchived: parseBool(row.isArchived, false),
+    actionUrl: row.actionUrl || undefined,
+    actionLabel: row.actionLabel || undefined,
+    metadata: row.metadata ? parseJson<Record<string, string>>(row.metadata, {}) : undefined,
+    createdAt: row.createdAt || '',
+    readAt: row.readAt || undefined,
+    expiresAt: row.expiresAt || undefined,
+    groupId: row.groupId || undefined,
+  };
+}
+
+function notificationToRow(n: Notification): Record<string, unknown> {
+  return {
+    id: n.id,
+    type: n.type,
+    title: n.title,
+    message: n.message,
+    priority: n.priority,
+    recipient: n.recipient,
+    sender: n.sender ?? '',
+    isRead: n.isRead,
+    isArchived: n.isArchived,
+    actionUrl: n.actionUrl ?? '',
+    actionLabel: n.actionLabel ?? '',
+    metadata: n.metadata ? JSON.stringify(n.metadata) : '',
+    createdAt: n.createdAt,
+    readAt: n.readAt ?? '',
+    expiresAt: n.expiresAt ?? '',
+    groupId: n.groupId ?? '',
+  };
+}
+
+function rowToPreferences(row: Record<string, string>): NotificationPreferences {
+  return {
+    repSlug: row.repSlug,
+    channels: parseJson(row.channels, {
+      inPortal: true,
+      groupme: true,
+      sms: false,
+      email: true,
+    }),
+    quietHours: parseJson(row.quietHours, {
+      start: '22:00',
+      end: '07:00',
+      enabled: false,
+    }),
+    mutedTypes: parseJson<string[]>(row.mutedTypes, []),
+    urgentOnly: parseBool(row.urgentOnly, false),
+  };
+}
+
+function preferencesToRow(p: NotificationPreferences): Record<string, unknown> {
+  return {
+    repSlug: p.repSlug,
+    channels: JSON.stringify(p.channels),
+    quietHours: JSON.stringify(p.quietHours),
+    mutedTypes: JSON.stringify(p.mutedTypes),
+    urgentOnly: p.urgentOnly,
+  };
+}
 
 // =============================================================================
 // SERVICE
 // =============================================================================
 
+const CACHE_TTL_MS = 60_000;
+
 class NotificationCenterService {
+  // In-memory 60s cache for read-heavy paths.
+  private notificationsCache: Notification[] | null = null;
+  private notificationsCacheExpiresAt = 0;
+
+  private preferencesCache: NotificationPreferences[] | null = null;
+  private preferencesCacheExpiresAt = 0;
+
   // ---------------------------------------------------------------------------
-  // Data I/O
+  // Sheet I/O
   // ---------------------------------------------------------------------------
 
-  private readNotifications(): NotificationsData {
-    try {
-      if (!fs.existsSync(NOTIFICATIONS_FILE)) {
-        const initial: NotificationsData = { notifications: [], lastCleanup: '' };
-        this.writeNotifications(initial);
-        return initial;
-      }
-      const raw = fs.readFileSync(NOTIFICATIONS_FILE, 'utf-8');
-      return JSON.parse(raw) as NotificationsData;
-    } catch (error) {
-      console.error('Failed to read notifications file:', error);
-      return { notifications: [], lastCleanup: '' };
-    }
+  private async loadNotificationsFromSheet(): Promise<Notification[]> {
+    const rows = await googleSheetsService.getGenericRows(
+      SHEET_NAMES.NOTIFICATIONS,
+      NOTIFICATION_HEADERS,
+    );
+    return rows.filter((r) => r.id).map(rowToNotification);
   }
 
-  private writeNotifications(data: NotificationsData): void {
-    try {
-      if (!fs.existsSync(DATA_DIR)) {
-        fs.mkdirSync(DATA_DIR, { recursive: true });
-      }
-      fs.writeFileSync(NOTIFICATIONS_FILE, JSON.stringify(data, null, 2), 'utf-8');
-    } catch (error) {
-      console.error('Failed to write notifications file:', error);
+  private async loadNotifications(): Promise<Notification[]> {
+    if (this.notificationsCache && Date.now() < this.notificationsCacheExpiresAt) {
+      return this.notificationsCache;
     }
+    this.notificationsCache = await this.loadNotificationsFromSheet();
+    this.notificationsCacheExpiresAt = Date.now() + CACHE_TTL_MS;
+    return this.notificationsCache;
   }
 
-  private readPreferences(): PreferencesData {
-    try {
-      if (!fs.existsSync(PREFERENCES_FILE)) {
-        const initial: PreferencesData = { preferences: [] };
-        this.writePreferences(initial);
-        return initial;
-      }
-      const raw = fs.readFileSync(PREFERENCES_FILE, 'utf-8');
-      return JSON.parse(raw) as PreferencesData;
-    } catch (error) {
-      console.error('Failed to read notification preferences file:', error);
-      return { preferences: [] };
-    }
+  private invalidateNotificationsCache(): void {
+    this.notificationsCache = null;
+    this.notificationsCacheExpiresAt = 0;
   }
 
-  private writePreferences(data: PreferencesData): void {
-    try {
-      if (!fs.existsSync(DATA_DIR)) {
-        fs.mkdirSync(DATA_DIR, { recursive: true });
-      }
-      fs.writeFileSync(PREFERENCES_FILE, JSON.stringify(data, null, 2), 'utf-8');
-    } catch (error) {
-      console.error('Failed to write notification preferences file:', error);
+  private async saveNotification(n: Notification): Promise<void> {
+    await googleSheetsService.upsertGenericRow(
+      SHEET_NAMES.NOTIFICATIONS,
+      NOTIFICATION_HEADERS,
+      'id',
+      notificationToRow(n),
+    );
+    this.invalidateNotificationsCache();
+  }
+
+  private async deleteNotificationRow(id: string): Promise<void> {
+    await googleSheetsService.deleteGenericRow(SHEET_NAMES.NOTIFICATIONS, 'id', id);
+    this.invalidateNotificationsCache();
+  }
+
+  private async loadPreferencesFromSheet(): Promise<NotificationPreferences[]> {
+    const rows = await googleSheetsService.getGenericRows(
+      SHEET_NAMES.NOTIFICATION_PREFERENCES,
+      PREFERENCES_HEADERS,
+    );
+    return rows.filter((r) => r.repSlug).map(rowToPreferences);
+  }
+
+  private async loadPreferences(): Promise<NotificationPreferences[]> {
+    if (this.preferencesCache && Date.now() < this.preferencesCacheExpiresAt) {
+      return this.preferencesCache;
     }
+    this.preferencesCache = await this.loadPreferencesFromSheet();
+    this.preferencesCacheExpiresAt = Date.now() + CACHE_TTL_MS;
+    return this.preferencesCache;
+  }
+
+  private invalidatePreferencesCache(): void {
+    this.preferencesCache = null;
+    this.preferencesCacheExpiresAt = 0;
+  }
+
+  private async savePreferences(p: NotificationPreferences): Promise<void> {
+    await googleSheetsService.upsertGenericRow(
+      SHEET_NAMES.NOTIFICATION_PREFERENCES,
+      PREFERENCES_HEADERS,
+      'repSlug',
+      preferencesToRow(p),
+    );
+    this.invalidatePreferencesCache();
   }
 
   // ---------------------------------------------------------------------------
@@ -169,9 +301,7 @@ class NotificationCenterService {
    * Create a new notification and persist it.
    * Auto-generates id, createdAt, and defaults for isRead/isArchived.
    */
-  create(partial: Partial<Notification>): Notification {
-    const data = this.readNotifications();
-
+  async create(partial: Partial<Notification>): Promise<Notification> {
     const notification: Notification = {
       id: crypto.randomBytes(6).toString('hex'),
       type: partial.type || 'system_alert',
@@ -190,12 +320,7 @@ class NotificationCenterService {
       groupId: partial.groupId,
     };
 
-    data.notifications.unshift(notification);
-
-    // Periodic cleanup: remove expired notifications and cap total at 2000
-    this.cleanupIfNeeded(data);
-
-    this.writeNotifications(data);
+    await this.saveNotification(notification);
     return notification;
   }
 
@@ -203,35 +328,25 @@ class NotificationCenterService {
    * Get notifications for a specific user.
    * Includes notifications targeted at the user OR to 'all'.
    */
-  getForUser(repSlug: string, options: GetNotificationsOptions = {}): Notification[] {
-    const data = this.readNotifications();
+  async getForUser(repSlug: string, options: GetNotificationsOptions = {}): Promise<Notification[]> {
+    const all = await this.loadNotifications();
     const now = new Date().toISOString();
 
-    let results = data.notifications.filter(n => {
-      // Must be for this user or broadcast
+    let results = all.filter((n) => {
       if (n.recipient !== repSlug && n.recipient !== 'all') return false;
-
-      // Filter out archived unless explicitly requested
       if (!options.includeArchived && n.isArchived) return false;
-
-      // Filter out expired
       if (n.expiresAt && n.expiresAt < now) return false;
-
-      // Unread only filter
       if (options.unreadOnly && n.isRead) return false;
-
-      // Type filter
       if (options.type && n.type !== options.type) return false;
-
       return true;
     });
 
-    // Apply offset
+    // Sort newest first (createdAt desc)
+    results.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
     if (options.offset && options.offset > 0) {
       results = results.slice(options.offset);
     }
-
-    // Apply limit
     if (options.limit && options.limit > 0) {
       results = results.slice(0, options.limit);
     }
@@ -242,124 +357,117 @@ class NotificationCenterService {
   /**
    * Mark a single notification as read.
    */
-  markAsRead(id: string): void {
-    const data = this.readNotifications();
-    const notification = data.notifications.find(n => n.id === id);
+  async markAsRead(id: string): Promise<void> {
+    const all = await this.loadNotifications();
+    const notification = all.find((n) => n.id === id);
     if (notification && !notification.isRead) {
       notification.isRead = true;
       notification.readAt = new Date().toISOString();
-      this.writeNotifications(data);
+      await this.saveNotification(notification);
     }
   }
 
   /**
    * Mark multiple notifications as read by ID.
    */
-  markMultipleAsRead(ids: string[]): void {
-    const data = this.readNotifications();
+  async markMultipleAsRead(ids: string[]): Promise<void> {
+    if (ids.length === 0) return;
+    const all = await this.loadNotifications();
     const now = new Date().toISOString();
-    let changed = false;
+    const idSet = new Set(ids);
 
-    for (const id of ids) {
-      const notification = data.notifications.find(n => n.id === id);
-      if (notification && !notification.isRead) {
-        notification.isRead = true;
-        notification.readAt = now;
-        changed = true;
+    const changed: Notification[] = [];
+    for (const n of all) {
+      if (idSet.has(n.id) && !n.isRead) {
+        n.isRead = true;
+        n.readAt = now;
+        changed.push(n);
       }
     }
 
-    if (changed) {
-      this.writeNotifications(data);
+    for (const n of changed) {
+      await this.saveNotification(n);
     }
   }
 
   /**
    * Mark all notifications as read for a specific user.
    */
-  markAllRead(repSlug: string): void {
-    const data = this.readNotifications();
+  async markAllRead(repSlug: string): Promise<void> {
+    const all = await this.loadNotifications();
     const now = new Date().toISOString();
-    let changed = false;
+    const changed: Notification[] = [];
 
-    for (const n of data.notifications) {
+    for (const n of all) {
       if ((n.recipient === repSlug || n.recipient === 'all') && !n.isRead) {
         n.isRead = true;
         n.readAt = now;
-        changed = true;
+        changed.push(n);
       }
     }
 
-    if (changed) {
-      this.writeNotifications(data);
+    for (const n of changed) {
+      await this.saveNotification(n);
     }
   }
 
   /**
    * Archive a notification (soft delete).
    */
-  archive(id: string): void {
-    const data = this.readNotifications();
-    const notification = data.notifications.find(n => n.id === id);
-    if (notification) {
+  async archive(id: string): Promise<void> {
+    const all = await this.loadNotifications();
+    const notification = all.find((n) => n.id === id);
+    if (notification && !notification.isArchived) {
       notification.isArchived = true;
-      this.writeNotifications(data);
+      await this.saveNotification(notification);
     }
   }
 
   /**
    * Archive multiple notifications by ID.
    */
-  archiveMultiple(ids: string[]): void {
-    const data = this.readNotifications();
-    let changed = false;
+  async archiveMultiple(ids: string[]): Promise<void> {
+    if (ids.length === 0) return;
+    const all = await this.loadNotifications();
+    const idSet = new Set(ids);
+    const changed: Notification[] = [];
 
-    for (const id of ids) {
-      const notification = data.notifications.find(n => n.id === id);
-      if (notification && !notification.isArchived) {
-        notification.isArchived = true;
-        changed = true;
+    for (const n of all) {
+      if (idSet.has(n.id) && !n.isArchived) {
+        n.isArchived = true;
+        changed.push(n);
       }
     }
 
-    if (changed) {
-      this.writeNotifications(data);
+    for (const n of changed) {
+      await this.saveNotification(n);
     }
   }
 
   /**
    * Permanently delete a notification.
    */
-  deleteNotification(id: string): void {
-    const data = this.readNotifications();
-    const idx = data.notifications.findIndex(n => n.id === id);
-    if (idx !== -1) {
-      data.notifications.splice(idx, 1);
-      this.writeNotifications(data);
-    }
+  async deleteNotification(id: string): Promise<void> {
+    await this.deleteNotificationRow(id);
   }
 
   /**
    * Delete multiple notifications by ID.
    */
-  deleteMultiple(ids: string[]): void {
-    const data = this.readNotifications();
-    const idSet = new Set(ids);
-    const before = data.notifications.length;
-    data.notifications = data.notifications.filter(n => !idSet.has(n.id));
-    if (data.notifications.length !== before) {
-      this.writeNotifications(data);
+  async deleteMultiple(ids: string[]): Promise<void> {
+    for (const id of ids) {
+      await this.deleteNotificationRow(id);
     }
   }
 
   /**
    * Get count of unread notifications for a user.
    */
-  getUnreadCount(repSlug: string): number {
-    const data = this.readNotifications();
+  async getUnreadCount(repSlug: string): Promise<number> {
+    const all = await this.loadNotifications();
     const now = new Date().toISOString();
 
-    return data.notifications.filter(n => {
+    return all.filter((n) => {
       if (n.recipient !== repSlug && n.recipient !== 'all') return false;
       if (n.isRead) return false;
       if (n.isArchived) return false;
@@ -371,12 +479,12 @@ class NotificationCenterService {
   /**
    * Get unread counts broken down by notification type.
    */
-  getUnreadCountsByType(repSlug: string): Record<string, number> {
-    const data = this.readNotifications();
+  async getUnreadCountsByType(repSlug: string): Promise<Record<string, number>> {
+    const all = await this.loadNotifications();
     const now = new Date().toISOString();
     const counts: Record<string, number> = {};
 
-    for (const n of data.notifications) {
+    for (const n of all) {
       if (n.recipient !== repSlug && n.recipient !== 'all') continue;
       if (n.isRead || n.isArchived) continue;
       if (n.expiresAt && n.expiresAt < now) continue;
@@ -389,7 +497,7 @@ class NotificationCenterService {
   /**
    * Broadcast a notification to all users.
    */
-  broadcast(partial: Partial<Notification>): Notification {
+  async broadcast(partial: Partial<Notification>): Promise<Notification> {
     return this.create({
       ...partial,
       recipient: 'all',
@@ -423,9 +531,9 @@ class NotificationCenterService {
    * Get notification preferences for a user.
    * Returns default preferences if none have been saved.
    */
-  getPreferences(repSlug: string): NotificationPreferences {
-    const data = this.readPreferences();
-    const existing = data.preferences.find(p => p.repSlug === repSlug);
+  async getPreferences(repSlug: string): Promise<NotificationPreferences> {
+    const all = await this.loadPreferences();
+    const existing = all.find((p) => p.repSlug === repSlug);
     return existing || this.getDefaultPreferences(repSlug);
   }
 
@@ -433,10 +541,12 @@ class NotificationCenterService {
    * Update notification preferences for a user.
    * Merges with existing preferences.
    */
-  updatePreferences(repSlug: string, prefs: Partial<NotificationPreferences>): NotificationPreferences {
-    const data = this.readPreferences();
-    const idx = data.preferences.findIndex(p => p.repSlug === repSlug);
-    const current = idx >= 0 ? data.preferences[idx] : this.getDefaultPreferences(repSlug);
+  async updatePreferences(
+    repSlug: string,
+    prefs: Partial<NotificationPreferences>,
+  ): Promise<NotificationPreferences> {
+    const all = await this.loadPreferences();
+    const current = all.find((p) => p.repSlug === repSlug) || this.getDefaultPreferences(repSlug);
 
     const updated: NotificationPreferences = {
       repSlug,
@@ -452,52 +562,8 @@ class NotificationCenterService {
       urgentOnly: prefs.urgentOnly !== undefined ? prefs.urgentOnly : current.urgentOnly,
     };
 
-    if (idx >= 0) {
-      data.preferences[idx] = updated;
-    } else {
-      data.preferences.push(updated);
-    }
-
-    this.writePreferences(data);
+    await this.savePreferences(updated);
     return updated;
-  }
-
-  // ---------------------------------------------------------------------------
-  // Cleanup
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Remove expired notifications and cap total storage.
-   * Runs automatically when total exceeds threshold.
-   */
-  private cleanupIfNeeded(data: NotificationsData): void {
-    const now = new Date();
-    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
-
-    // Only run cleanup at most once per hour
-    if (data.lastCleanup && data.lastCleanup > oneHourAgo) return;
-
-    const nowStr = now.toISOString();
-
-    // Remove expired notifications
-    data.notifications = data.notifications.filter(n => {
-      if (n.expiresAt && n.expiresAt < nowStr) return false;
-      return true;
-    });
-
-    // Remove archived notifications older than 30 days
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    data.notifications = data.notifications.filter(n => {
-      if (n.isArchived && n.createdAt < thirtyDaysAgo) return false;
-      return true;
-    });
-
-    // Cap at 2000 notifications total (keep newest)
-    if (data.notifications.length > 2000) {
-      data.notifications = data.notifications.slice(0, 2000);
-    }
-
-    data.lastCleanup = nowStr;
   }
 }
 

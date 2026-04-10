@@ -27,8 +27,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const unreadCount = notificationCenterService.getUnreadCount(repSlug);
-    const unreadByType = notificationCenterService.getUnreadCountsByType(repSlug);
+    const unreadCount = await notificationCenterService.getUnreadCount(repSlug);
+    const unreadByType = await notificationCenterService.getUnreadCountsByType(repSlug);
 
     return NextResponse.json({
       success: true,

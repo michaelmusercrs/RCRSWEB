@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { reviewManagementService, ReviewPlatform } from '@/lib/review-management-service';
 
 /**
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
     const publishedStr = searchParams.get('published');
     const published = publishedStr === 'true' ? true : publishedStr === 'false' ? false : undefined;
 
-    const reviews = reviewManagementService.getReviews({
+    const reviews = await reviewManagementService.getReviews({
       platform: platform || undefined,
       repSlug,
       rating,
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
       published,
     });
 
-    const stats = reviewManagementService.getReviewStats();
+    const stats = await reviewManagementService.getReviewStats();
 
     return NextResponse.json({
       success: true,
@@ -82,6 +83,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
 
     // Validate required fields

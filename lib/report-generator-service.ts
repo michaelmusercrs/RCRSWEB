@@ -184,6 +184,10 @@ class ReportGeneratorService {
   }
 
   private writeConfigs(data: ConfigsFile): void {
+    // Best-effort local write — Vercel filesystem is read-only at runtime so
+    // we log and swallow rather than 500-ing the request. The Phase 1 backup
+    // cron snapshots data/*.json files hourly, so any successful local writes
+    // are still captured to Blob.
     try {
       const dir = path.dirname(CONFIGS_PATH);
       if (!fs.existsSync(dir)) {
@@ -191,8 +195,7 @@ class ReportGeneratorService {
       }
       fs.writeFileSync(CONFIGS_PATH, JSON.stringify(data, null, 2));
     } catch (error) {
-      console.error('[ReportGenerator] Error writing configs:', error);
-      throw error;
+      console.warn('[ReportGenerator] Local configs write skipped (read-only fs?):', error);
     }
   }
 
@@ -209,6 +212,7 @@ class ReportGeneratorService {
   }
 
   private writeReports(data: ReportsFile): void {
+    // Best-effort local write (see writeConfigs above for context).
     try {
       const dir = path.dirname(REPORTS_PATH);
       if (!fs.existsSync(dir)) {
@@ -216,8 +220,7 @@ class ReportGeneratorService {
       }
       fs.writeFileSync(REPORTS_PATH, JSON.stringify(data, null, 2));
     } catch (error) {
-      console.error('[ReportGenerator] Error writing reports:', error);
-      throw error;
+      console.warn('[ReportGenerator] Local reports write skipped (read-only fs?):', error);
     }
   }
 

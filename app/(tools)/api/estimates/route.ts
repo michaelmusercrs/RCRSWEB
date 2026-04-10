@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { estimateCalculatorService } from '@/lib/estimate-calculator-service';
 
 /**
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
     const limitStr = searchParams.get('limit');
     const limit = limitStr ? parseInt(limitStr, 10) : 20;
 
-    const estimates = estimateCalculatorService.getRecentEstimates(limit);
+    const estimates = await estimateCalculatorService.getRecentEstimates(limit);
 
     return NextResponse.json({
       success: true,
@@ -62,6 +63,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
 
     // Validate required fields
@@ -101,7 +105,7 @@ export async function POST(request: NextRequest) {
 
     // Save if requested
     if (body.save) {
-      estimateCalculatorService.saveEstimate(result);
+      await estimateCalculatorService.saveEstimate(result);
     }
 
     return NextResponse.json({

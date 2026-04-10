@@ -14,6 +14,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { weatherAlertService, StormEvent } from '@/lib/weather-alert-service';
 
 export async function GET(request: NextRequest) {
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type') || undefined;
     const followUpStatus = searchParams.get('status') as StormEvent['followUpStatus'] | undefined;
 
-    const events = weatherAlertService.getStormHistory({
+    const events = await weatherAlertService.getStormHistory({
       limit,
       startDate,
       endDate,
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Compute summary stats
-    const allEvents = weatherAlertService.getStormHistory();
+    const allEvents = await weatherAlertService.getStormHistory();
     const totalLeadsGenerated = allEvents.reduce((sum, e) => sum + e.leadsGenerated, 0);
     const pendingFollowUps = allEvents.filter(e => e.followUpStatus === 'pending').length;
     const inProgressFollowUps = allEvents.filter(e => e.followUpStatus === 'in_progress').length;
@@ -64,6 +65,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
 
     // Validate required fields
@@ -74,7 +78,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const event = weatherAlertService.logStormEvent({
+    const event = await weatherAlertService.logStormEvent({
       date: body.date,
       type: body.type,
       counties: body.counties,

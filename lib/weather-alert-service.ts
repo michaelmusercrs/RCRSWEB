@@ -5,11 +5,14 @@
  * severe weather alerts. Tracks storm events for lead generation and
  * customer impact analysis.
  *
- * Data persisted to data/weather-alerts.json and data/storm-events.json.
+ * Persisted to the Google Sheets master workbook (Weather_Events tab).
+ * A single tab holds both weather alerts and storm events, differentiated
+ * by the `type` column (`alert` vs `storm`). The legacy
+ * data/weather-alerts.json and data/storm-events.json files are left in
+ * place as dev seeds but no longer read or written at runtime.
  */
 
-import fs from 'fs';
-import path from 'path';
+import { googleSheetsService, SHEET_NAMES } from './google-sheets-service';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -49,15 +52,6 @@ export interface StormEvent {
   followUpStatus: 'pending' | 'in_progress' | 'completed';
   notes: string;
   createdAt: string;
-}
-
-interface AlertsFile {
-  alerts: WeatherAlert[];
-  lastFetched: string;
-}
-
-interface StormEventsFile {
-  events: StormEvent[];
 }
 
 // ---------------------------------------------------------------------------
@@ -133,36 +127,155 @@ const ZIP_HOME_ESTIMATES: Record<string, number> = {
 };
 
 // ---------------------------------------------------------------------------
-// File helpers
+// Sheet schema (unified alerts + storms)
 // ---------------------------------------------------------------------------
 
-const ALERTS_FILE = path.join(process.cwd(), 'data', 'weather-alerts.json');
-const EVENTS_FILE = path.join(process.cwd(), 'data', 'storm-events.json');
+type WeatherRecordType = 'alert' | 'storm';
 
-function readAlertsFile(): AlertsFile {
+const WEATHER_EVENT_HEADERS: string[] = [
+  'id',
+  'recordType',       // 'alert' | 'storm'
+  // Shared
+  'type',             // alert type or storm type
+  'severity',
+  'counties',         // JSON string[]
+  'hailSize',
+  'windSpeed',
+  'description',
+  'createdAt',
+  // Alert-only
+  'title',
+  'area',
+  'startTime',
+  'endTime',
+  'source',
+  'isActive',
+  'affectedCustomers',
+  'affectedJobs',
+  // Storm-only
+  'date',
+  'estimatedDamage',
+  'leadsGenerated',
+  'customersAffected',
+  'followUpStatus',
+  'notes',
+];
+
+function parseNumber(raw: string): number {
+  if (!raw) return 0;
+  const n = parseFloat(raw);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function parseBool(raw: string): boolean {
+  return raw === 'true' || raw === 'TRUE' || raw === '1';
+}
+
+function parseJson<T>(raw: string, fallback: T): T {
+  if (!raw) return fallback;
   try {
-    const raw = fs.readFileSync(ALERTS_FILE, 'utf-8');
-    return JSON.parse(raw);
+    return JSON.parse(raw) as T;
   } catch {
-    return { alerts: [], lastFetched: '' };
+    return fallback;
   }
 }
 
-function writeAlertsFile(data: AlertsFile): void {
-  fs.writeFileSync(ALERTS_FILE, JSON.stringify(data, null, 2), 'utf-8');
+function rowToAlert(row: Record<string, string>): WeatherAlert {
+  const alert: WeatherAlert = {
+    id: row.id || '',
+    type: (row.type as WeatherAlert['type']) || 'general',
+    severity: (row.severity as WeatherAlert['severity']) || 'minor',
+    title: row.title || '',
+    description: row.description || '',
+    area: row.area || '',
+    counties: parseJson<string[]>(row.counties, []),
+    startTime: row.startTime || '',
+    endTime: row.endTime || '',
+    source: (row.source as WeatherAlert['source']) || 'manual',
+    isActive: parseBool(row.isActive),
+    affectedCustomers: parseNumber(row.affectedCustomers),
+    affectedJobs: parseNumber(row.affectedJobs),
+    createdAt: row.createdAt || '',
+  };
+  if (row.hailSize) alert.hailSize = row.hailSize;
+  if (row.windSpeed) alert.windSpeed = parseNumber(row.windSpeed);
+  return alert;
 }
 
-function readEventsFile(): StormEventsFile {
-  try {
-    const raw = fs.readFileSync(EVENTS_FILE, 'utf-8');
-    return JSON.parse(raw);
-  } catch {
-    return { events: [] };
-  }
+function alertToRow(alert: WeatherAlert): Record<string, unknown> {
+  return {
+    id: alert.id,
+    recordType: 'alert' as WeatherRecordType,
+    type: alert.type,
+    severity: alert.severity,
+    counties: JSON.stringify(alert.counties || []),
+    hailSize: alert.hailSize || '',
+    windSpeed: alert.windSpeed ?? '',
+    description: alert.description,
+    createdAt: alert.createdAt,
+    title: alert.title,
+    area: alert.area,
+    startTime: alert.startTime,
+    endTime: alert.endTime,
+    source: alert.source,
+    isActive: alert.isActive ? 'true' : 'false',
+    affectedCustomers: alert.affectedCustomers,
+    affectedJobs: alert.affectedJobs,
+    date: '',
+    estimatedDamage: '',
+    leadsGenerated: '',
+    customersAffected: '',
+    followUpStatus: '',
+    notes: '',
+  };
 }
 
-function writeEventsFile(data: StormEventsFile): void {
-  fs.writeFileSync(EVENTS_FILE, JSON.stringify(data, null, 2), 'utf-8');
+function rowToStorm(row: Record<string, string>): StormEvent {
+  const storm: StormEvent = {
+    id: row.id || '',
+    date: row.date || '',
+    type: row.type || '',
+    counties: parseJson<string[]>(row.counties, []),
+    severity: row.severity || '',
+    description: row.description || '',
+    estimatedDamage: (row.estimatedDamage as StormEvent['estimatedDamage']) || 'minor',
+    leadsGenerated: parseNumber(row.leadsGenerated),
+    customersAffected: parseNumber(row.customersAffected),
+    followUpStatus: (row.followUpStatus as StormEvent['followUpStatus']) || 'pending',
+    notes: row.notes || '',
+    createdAt: row.createdAt || '',
+  };
+  if (row.hailSize) storm.hailSize = row.hailSize;
+  if (row.windSpeed) storm.windSpeed = parseNumber(row.windSpeed);
+  return storm;
+}
+
+function stormToRow(storm: StormEvent): Record<string, unknown> {
+  return {
+    id: storm.id,
+    recordType: 'storm' as WeatherRecordType,
+    type: storm.type,
+    severity: storm.severity,
+    counties: JSON.stringify(storm.counties || []),
+    hailSize: storm.hailSize || '',
+    windSpeed: storm.windSpeed ?? '',
+    description: storm.description,
+    createdAt: storm.createdAt,
+    title: '',
+    area: '',
+    startTime: '',
+    endTime: '',
+    source: '',
+    isActive: '',
+    affectedCustomers: '',
+    affectedJobs: '',
+    date: storm.date,
+    estimatedDamage: storm.estimatedDamage,
+    leadsGenerated: storm.leadsGenerated,
+    customersAffected: storm.customersAffected,
+    followUpStatus: storm.followUpStatus,
+    notes: storm.notes || '',
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -242,6 +355,63 @@ class WeatherAlertService {
   private lastFetchTime = 0;
   private readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
+  // 60-second in-memory cache for sheet-backed reads
+  private sheetCache: { alerts: WeatherAlert[]; storms: StormEvent[] } | null = null;
+  private sheetCacheExpiresAt = 0;
+  private readonly SHEET_CACHE_TTL_MS = 60_000;
+
+  private async loadFromSheet(): Promise<{ alerts: WeatherAlert[]; storms: StormEvent[] }> {
+    const rows = await googleSheetsService.getGenericRows(
+      SHEET_NAMES.WEATHER_EVENTS,
+      WEATHER_EVENT_HEADERS
+    );
+    const alerts: WeatherAlert[] = [];
+    const storms: StormEvent[] = [];
+    for (const row of rows) {
+      if (row.recordType === 'storm') {
+        storms.push(rowToStorm(row));
+      } else {
+        // default to alert
+        alerts.push(rowToAlert(row));
+      }
+    }
+    return { alerts, storms };
+  }
+
+  private async loadCached(): Promise<{ alerts: WeatherAlert[]; storms: StormEvent[] }> {
+    if (this.sheetCache && Date.now() < this.sheetCacheExpiresAt) {
+      return this.sheetCache;
+    }
+    this.sheetCache = await this.loadFromSheet();
+    this.sheetCacheExpiresAt = Date.now() + this.SHEET_CACHE_TTL_MS;
+    return this.sheetCache;
+  }
+
+  private invalidateSheetCache(): void {
+    this.sheetCache = null;
+    this.sheetCacheExpiresAt = 0;
+  }
+
+  private async persistAlert(alert: WeatherAlert): Promise<void> {
+    await googleSheetsService.upsertGenericRow(
+      SHEET_NAMES.WEATHER_EVENTS,
+      WEATHER_EVENT_HEADERS,
+      'id',
+      alertToRow(alert)
+    );
+    this.invalidateSheetCache();
+  }
+
+  private async persistStorm(storm: StormEvent): Promise<void> {
+    await googleSheetsService.upsertGenericRow(
+      SHEET_NAMES.WEATHER_EVENTS,
+      WEATHER_EVENT_HEADERS,
+      'id',
+      stormToRow(storm)
+    );
+    this.invalidateSheetCache();
+  }
+
   /**
    * Fetch active weather alerts from NWS for specified counties.
    * Defaults to Alabama state-level if no counties specified.
@@ -309,15 +479,14 @@ class WeatherAlertService {
         nwsAlerts.push(alert);
       }
 
-      // Update cache
+      // Update in-memory NWS cache
       this.cachedAlerts = nwsAlerts;
       this.lastFetchTime = Date.now();
 
-      // Persist to file
-      const fileData = readAlertsFile();
-      fileData.alerts = nwsAlerts;
-      fileData.lastFetched = new Date().toISOString();
-      writeAlertsFile(fileData);
+      // Persist each NWS alert to the sheet
+      for (const alert of nwsAlerts) {
+        await this.persistAlert(alert);
+      }
 
       // Filter by requested counties
       if (counties && counties.length > 0) {
@@ -334,42 +503,41 @@ class WeatherAlertService {
   }
 
   /**
-   * Get currently active alerts (from cache or file).
+   * Get currently active alerts (from cache or sheet).
    */
-  getActiveAlerts(): WeatherAlert[] {
-    // Try memory cache first
+  async getActiveAlerts(): Promise<WeatherAlert[]> {
+    const now = new Date();
+    // Try NWS memory cache first
     if (this.cachedAlerts.length > 0) {
-      const now = new Date();
       return this.cachedAlerts.filter(a => a.isActive && new Date(a.endTime) > now);
     }
 
-    // Fall back to file
-    const fileData = readAlertsFile();
-    const now = new Date();
-    return fileData.alerts.filter(a => a.isActive && new Date(a.endTime) > now);
+    // Fall back to sheet
+    const { alerts } = await this.loadCached();
+    return alerts.filter(a => a.isActive && new Date(a.endTime) > now);
   }
 
   /**
    * Get all alerts including manual ones merged with NWS data.
    */
-  getAllAlerts(): WeatherAlert[] {
-    const fileData = readAlertsFile();
-    const manualAlerts = fileData.alerts.filter(a => a.source === 'manual');
+  async getAllAlerts(): Promise<WeatherAlert[]> {
+    const { alerts } = await this.loadCached();
+    const manualAlerts = alerts.filter(a => a.source === 'manual');
 
     if (this.cachedAlerts.length > 0) {
-      // Merge NWS cached alerts with manual alerts from file
+      // Merge NWS cached alerts with manual alerts from sheet
       const nwsIds = new Set(this.cachedAlerts.map(a => a.id));
       const uniqueManual = manualAlerts.filter(a => !nwsIds.has(a.id));
       return [...this.cachedAlerts, ...uniqueManual];
     }
 
-    return fileData.alerts;
+    return alerts;
   }
 
   /**
    * Add a manual alert.
    */
-  addManualAlert(alert: Omit<WeatherAlert, 'id' | 'createdAt' | 'source'>): WeatherAlert {
+  async addManualAlert(alert: Omit<WeatherAlert, 'id' | 'createdAt' | 'source'>): Promise<WeatherAlert> {
     const newAlert: WeatherAlert = {
       ...alert,
       id: `manual-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -377,11 +545,9 @@ class WeatherAlertService {
       createdAt: new Date().toISOString(),
     };
 
-    const fileData = readAlertsFile();
-    fileData.alerts.push(newAlert);
-    writeAlertsFile(fileData);
+    await this.persistAlert(newAlert);
 
-    // Also add to memory cache
+    // Also add to in-memory NWS cache
     this.cachedAlerts.push(newAlert);
 
     return newAlert;
@@ -390,33 +556,30 @@ class WeatherAlertService {
   /**
    * Log a storm event for tracking.
    */
-  logStormEvent(event: Omit<StormEvent, 'id' | 'createdAt'>): StormEvent {
+  async logStormEvent(event: Omit<StormEvent, 'id' | 'createdAt'>): Promise<StormEvent> {
     const newEvent: StormEvent = {
       ...event,
       id: `storm-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       createdAt: new Date().toISOString(),
     };
 
-    const fileData = readEventsFile();
-    fileData.events.unshift(newEvent);
-    writeEventsFile(fileData);
-
+    await this.persistStorm(newEvent);
     return newEvent;
   }
 
   /**
    * Get storm history with optional filters.
    */
-  getStormHistory(options?: {
+  async getStormHistory(options?: {
     limit?: number;
     startDate?: string;
     endDate?: string;
     county?: string;
     type?: string;
     followUpStatus?: StormEvent['followUpStatus'];
-  }): StormEvent[] {
-    const fileData = readEventsFile();
-    let events = fileData.events;
+  }): Promise<StormEvent[]> {
+    const { storms } = await this.loadCached();
+    let events = [...storms];
 
     if (options?.startDate) {
       const start = new Date(options.startDate);
@@ -455,14 +618,14 @@ class WeatherAlertService {
   /**
    * Update a storm event's follow-up status or notes.
    */
-  updateStormEvent(eventId: string, updates: Partial<Pick<StormEvent, 'followUpStatus' | 'notes' | 'leadsGenerated'>>): StormEvent | null {
-    const fileData = readEventsFile();
-    const idx = fileData.events.findIndex(e => e.id === eventId);
-    if (idx === -1) return null;
+  async updateStormEvent(eventId: string, updates: Partial<Pick<StormEvent, 'followUpStatus' | 'notes' | 'leadsGenerated'>>): Promise<StormEvent | null> {
+    const { storms } = await this.loadCached();
+    const existing = storms.find(e => e.id === eventId);
+    if (!existing) return null;
 
-    fileData.events[idx] = { ...fileData.events[idx], ...updates };
-    writeEventsFile(fileData);
-    return fileData.events[idx];
+    const updated: StormEvent = { ...existing, ...updates };
+    await this.persistStorm(updated);
+    return updated;
   }
 
   /**
@@ -519,16 +682,16 @@ class WeatherAlertService {
   /**
    * Get impact analysis for a specific alert or storm.
    */
-  getImpactAnalysis(alertOrStormId: string): {
+  async getImpactAnalysis(alertOrStormId: string): Promise<{
     affectedCustomers: number;
     affectedJobs: number;
     affectedZips: string[];
     potentialLeads: number;
     counties: string[];
     severity: string;
-  } | null {
+  } | null> {
     // Check alerts first
-    const allAlerts = this.getAllAlerts();
+    const allAlerts = await this.getAllAlerts();
     const alert = allAlerts.find(a => a.id === alertOrStormId);
 
     if (alert) {
@@ -560,8 +723,8 @@ class WeatherAlertService {
     }
 
     // Check storm events
-    const events = readEventsFile().events;
-    const event = events.find(e => e.id === alertOrStormId);
+    const { storms } = await this.loadCached();
+    const event = storms.find(e => e.id === alertOrStormId);
     if (event) {
       const leadInfo = this.generateStormLeadOpportunities(event);
       return {
@@ -615,10 +778,10 @@ class WeatherAlertService {
     }
   }
 
-  private getFallbackAlerts(): WeatherAlert[] {
-    // Return cached file data if NWS is unreachable
-    const fileData = readAlertsFile();
-    return fileData.alerts;
+  private async getFallbackAlerts(): Promise<WeatherAlert[]> {
+    // Return sheet-backed data if NWS is unreachable
+    const { alerts } = await this.loadCached();
+    return alerts;
   }
 
   /**

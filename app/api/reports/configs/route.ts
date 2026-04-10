@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth-service';
 import { reportGeneratorService } from '@/lib/report-generator-service';
 
 export async function GET() {
@@ -12,6 +13,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAdmin();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const body = await request.json();
     const config = reportGeneratorService.createReportConfig(body);

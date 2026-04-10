@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateSession } from '@/lib/auth-service';
+import { requireAuth, validateSession } from '@/lib/auth-service';
 import {
   customerPortalService,
   CustomerSettingsOverride,
@@ -51,6 +51,9 @@ export async function GET(request: NextRequest) {
 
 // PUT - Save per-customer settings overrides
 export async function PUT(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   const session = await validateSession();
   if (!session.valid) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });

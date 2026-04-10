@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth-service';
 import { googleSheetsService } from '@/lib/google-sheets-service';
 
 // All reviews to seed into the Reviews Google Sheet
@@ -58,6 +59,9 @@ const ALL_REVIEWS = [
 ];
 
 export async function POST() {
+  const auth = await requireAdmin();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const rows = ALL_REVIEWS.map(r => ({
       ...r,

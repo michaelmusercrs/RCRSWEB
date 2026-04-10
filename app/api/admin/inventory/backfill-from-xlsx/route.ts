@@ -33,7 +33,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth-service';
+import { requireAdmin } from '@/lib/auth-service';
 import {
   loadInventoryXlsx,
   groupByReference,
@@ -276,7 +276,7 @@ async function buildTicketsFromXlsx(opts: {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireAdmin();
   if (!auth.authenticated) return auth.response;
   if (!['admin', 'owner'].includes(auth.user.role)) {
     return NextResponse.json({ error: 'Admin or owner role required' }, { status: 403 });
@@ -339,7 +339,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
-  const auth = await requireAuth();
+  const auth = await requireAdmin();
   if (!auth.authenticated) return auth.response;
   if (!['admin', 'owner'].includes(auth.user.role)) {
     return NextResponse.json({ error: 'Admin or owner role required' }, { status: 403 });

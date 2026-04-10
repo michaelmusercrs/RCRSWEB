@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +27,9 @@ interface Override {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const body = await request.json();
     const { measurements, overrides, solarData } = body;

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth-service';
 import { profitabilityService } from '@/lib/profitability-service';
 
 export async function GET(request: NextRequest) {
@@ -17,6 +18,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAdmin();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const body = await request.json();
     const job = await profitabilityService.createJobCost(body);

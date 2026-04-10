@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { reviewManagementService } from '@/lib/review-management-service';
 
 /**
@@ -19,7 +20,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const review = reviewManagementService.getReview(params.id);
+    const review = await reviewManagementService.getReview(params.id);
 
     if (!review) {
       return NextResponse.json(
@@ -55,6 +56,9 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
     const { action } = body;
 
@@ -73,7 +77,7 @@ export async function PATCH(
             { status: 400 }
           );
         }
-        const review = reviewManagementService.respondToReview(
+        const review = await reviewManagementService.respondToReview(
           params.id,
           body.response,
           body.respondedBy
@@ -91,7 +95,7 @@ export async function PATCH(
             { status: 400 }
           );
         }
-        reviewManagementService.featureReview(params.id, body.featured);
+        await reviewManagementService.featureReview(params.id, body.featured);
         return NextResponse.json({ success: true, message: 'Featured status updated' });
       }
 
@@ -102,7 +106,7 @@ export async function PATCH(
             { status: 400 }
           );
         }
-        reviewManagementService.publishReview(params.id, body.published);
+        await reviewManagementService.publishReview(params.id, body.published);
         return NextResponse.json({ success: true, message: 'Publish status updated' });
       }
 

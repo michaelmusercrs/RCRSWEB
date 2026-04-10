@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { inspectionService } from '@/lib/inspection-service';
 
 export const dynamic = 'force-dynamic';
@@ -32,6 +33,9 @@ export async function GET() {
  */
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
     const { name, description, sections, estimatedMinutes, createdBy } = body;
 

@@ -11,6 +11,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { voicemailService } from '@/lib/voicemail-service';
 
 /**
@@ -55,11 +56,11 @@ export async function GET(request: NextRequest) {
       filter.linkedJobId = searchParams.get('linkedJobId')!;
     }
 
-    const voicemails = voicemailService.getAll(
+    const voicemails = await voicemailService.getAll(
       Object.keys(filter).length > 0 ? filter as any : undefined
     );
 
-    const stats = voicemailService.getStats();
+    const stats = await voicemailService.getStats();
 
     return NextResponse.json({
       voicemails,
@@ -93,6 +94,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
 
     if (!body.callerPhone) {
@@ -102,7 +106,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const voicemail = voicemailService.create({
+    const voicemail = await voicemailService.create({
       callId: body.callId,
       callerPhone: body.callerPhone,
       callerName: body.callerName,

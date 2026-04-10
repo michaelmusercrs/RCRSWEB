@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { routeTrackerService } from '@/lib/route-tracker-service';
 
 export const dynamic = 'force-dynamic';
@@ -22,14 +23,14 @@ export async function GET(request: NextRequest) {
     const limitParam = searchParams.get('limit');
     const limit = limitParam ? parseInt(limitParam, 10) : undefined;
 
-    const routes = routeTrackerService.listRoutes({
+    const routes = await routeTrackerService.listRoutes({
       driverId,
       date,
       status,
       limit,
     });
 
-    const analytics = routeTrackerService.getAnalytics();
+    const analytics = await routeTrackerService.getAnalytics();
 
     return NextResponse.json({
       routes,
@@ -51,6 +52,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
     const { driverId, driverName, date, stops, vehicleId } = body;
 
@@ -68,7 +72,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const route = routeTrackerService.createRoute(
+    const route = await routeTrackerService.createRoute(
       driverId,
       driverName,
       date,

@@ -3,14 +3,18 @@
  *
  * Tracks per-job costs (materials, labor, subs, overhead), calculates
  * gross/net margins, and provides analytics by rep, month, and material.
- * Data persisted in data/job-costs.json.
  *
- * @version 1.0.0
+ * Persisted to the master Google Sheet on the `Job_Costs` tab via
+ * googleSheetsService. One row per jobId — the nested cost-item arrays
+ * (materials, labor, subcontractors, overhead, other) are stored as
+ * JSON-encoded strings on each row. The local data/job-costs.json file is
+ * now a deprecated dev seed and is NOT written by this service anymore.
+ *
+ * @version 2.0.0
  */
 
-import fs from 'fs';
-import path from 'path';
 import crypto from 'crypto';
+import { googleSheetsService, SHEET_NAMES } from './google-sheets-service';
 
 // =============================================================================
 // TYPES
@@ -107,45 +111,130 @@ export interface ProfitabilityAnalytics {
 }
 
 // =============================================================================
-// DATA HELPERS
+// SHEET CONFIG
 // =============================================================================
 
-interface JobCostData {
-  jobCosts: JobCosts[];
-}
-
-const JOB_COSTS_FILE = path.join(process.cwd(), 'data', 'job-costs.json');
+// Canonical column order for the Job_Costs tab. Do NOT reorder.
+// One row per jobId; nested cost arrays are JSON-encoded strings.
+const JOB_COSTS_HEADERS: string[] = [
+  'jobId',
+  'customerName',
+  'address',
+  'repSlug',
+  'repName',
+  'contractAmount',
+  'additionalWork',
+  'insurancePayout',
+  'totalRevenue',
+  'materials',
+  'labor',
+  'subcontractors',
+  'overhead',
+  'other',
+  'totalCosts',
+  'grossProfit',
+  'grossMargin',
+  'netProfit',
+  'netMargin',
+  'commissionRate',
+  'commissionAmount',
+  'status',
+  'notes',
+  'createdAt',
+  'updatedAt',
+];
 
 // Default overhead rate applied to all jobs (percentage of revenue)
 const DEFAULT_OVERHEAD_RATE = 0.08;
 
-function readJobCosts(): JobCostData {
-  try {
-    if (fs.existsSync(JOB_COSTS_FILE)) {
-      const content = fs.readFileSync(JOB_COSTS_FILE, 'utf-8');
-      return JSON.parse(content);
-    }
-  } catch (error) {
-    console.error('[ProfitabilityService] Error reading job costs:', error);
-  }
-  return { jobCosts: [] };
-}
-
-function writeJobCosts(data: JobCostData): void {
-  try {
-    const dir = path.dirname(JOB_COSTS_FILE);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(JOB_COSTS_FILE, JSON.stringify(data, null, 2));
-  } catch (error) {
-    console.error('[ProfitabilityService] Error writing job costs:', error);
-    throw error;
-  }
-}
+// =============================================================================
+// HELPERS
+// =============================================================================
 
 function generateId(prefix: string): string {
   return `${prefix}-${crypto.randomBytes(6).toString('hex')}`;
+}
+
+function parseNum(raw: string | undefined, fallback = 0): number {
+  if (raw === undefined || raw === null || raw === '') return fallback;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function parseCostItems(raw: string | undefined): CostItem[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed as CostItem[];
+  } catch {
+    // fall through
+  }
+  return [];
+}
+
+/** Parse a sheet row (all strings) into a typed JobCosts. */
+function rowToJobCost(row: Record<string, string>): JobCosts {
+  return {
+    jobId: row.jobId || '',
+    customerName: row.customerName || '',
+    address: row.address || '',
+    repSlug: row.repSlug || '',
+    repName: row.repName || '',
+    contractAmount: parseNum(row.contractAmount),
+    additionalWork: parseNum(row.additionalWork),
+    insurancePayout:
+      row.insurancePayout !== '' && row.insurancePayout !== undefined
+        ? parseNum(row.insurancePayout)
+        : undefined,
+    totalRevenue: parseNum(row.totalRevenue),
+    materials: parseCostItems(row.materials),
+    labor: parseCostItems(row.labor),
+    subcontractors: parseCostItems(row.subcontractors),
+    overhead: parseCostItems(row.overhead),
+    other: parseCostItems(row.other),
+    totalCosts: parseNum(row.totalCosts),
+    grossProfit: parseNum(row.grossProfit),
+    grossMargin: parseNum(row.grossMargin),
+    netProfit: parseNum(row.netProfit),
+    netMargin: parseNum(row.netMargin),
+    commissionRate: parseNum(row.commissionRate),
+    commissionAmount: parseNum(row.commissionAmount),
+    status: (row.status || 'estimating') as JobCosts['status'],
+    notes: row.notes || '',
+    createdAt: row.createdAt || '',
+    updatedAt: row.updatedAt || '',
+  };
+}
+
+/** Flatten a JobCosts into sheet-friendly scalar columns. */
+function jobCostToRow(job: JobCosts): Record<string, unknown> {
+  return {
+    jobId: job.jobId,
+    customerName: job.customerName,
+    address: job.address,
+    repSlug: job.repSlug,
+    repName: job.repName,
+    contractAmount: job.contractAmount,
+    additionalWork: job.additionalWork,
+    insurancePayout: job.insurancePayout !== undefined ? job.insurancePayout : '',
+    totalRevenue: job.totalRevenue,
+    materials: JSON.stringify(job.materials || []),
+    labor: JSON.stringify(job.labor || []),
+    subcontractors: JSON.stringify(job.subcontractors || []),
+    overhead: JSON.stringify(job.overhead || []),
+    other: JSON.stringify(job.other || []),
+    totalCosts: job.totalCosts,
+    grossProfit: job.grossProfit,
+    grossMargin: job.grossMargin,
+    netProfit: job.netProfit,
+    netMargin: job.netMargin,
+    commissionRate: job.commissionRate,
+    commissionAmount: job.commissionAmount,
+    status: job.status,
+    notes: job.notes,
+    createdAt: job.createdAt,
+    updatedAt: job.updatedAt,
+  };
 }
 
 // =============================================================================
@@ -153,6 +242,45 @@ function generateId(prefix: string): string {
 // =============================================================================
 
 class ProfitabilityService {
+  // 60-second cache so we don't hammer the Sheets API for read-heavy endpoints.
+  private cache: JobCosts[] | null = null;
+  private cacheExpiresAt = 0;
+
+  private invalidateCache(): void {
+    this.cache = null;
+    this.cacheExpiresAt = 0;
+  }
+
+  private async loadFromSheet(): Promise<JobCosts[]> {
+    try {
+      const rows = await googleSheetsService.getGenericRows(
+        SHEET_NAMES.JOB_COSTS,
+        JOB_COSTS_HEADERS,
+      );
+      return rows.filter((r) => r.jobId).map(rowToJobCost);
+    } catch (error) {
+      console.error('[ProfitabilityService] Error loading job costs from sheet:', error);
+      return [];
+    }
+  }
+
+  private async loadCached(): Promise<JobCosts[]> {
+    if (this.cache && Date.now() < this.cacheExpiresAt) return this.cache;
+    this.cache = await this.loadFromSheet();
+    this.cacheExpiresAt = Date.now() + 60_000;
+    return this.cache;
+  }
+
+  private async persistJobCost(job: JobCosts): Promise<void> {
+    await googleSheetsService.upsertGenericRow(
+      SHEET_NAMES.JOB_COSTS,
+      JOB_COSTS_HEADERS,
+      'jobId',
+      jobCostToRow(job),
+    );
+    this.invalidateCache();
+  }
+
   /**
    * Recalculate totals and margins for a job cost entry.
    */
@@ -200,7 +328,7 @@ class ProfitabilityService {
   /**
    * Create a new job cost tracking entry.
    */
-  createJobCost(input: {
+  async createJobCost(input: {
     jobId?: string;
     customerName: string;
     address: string;
@@ -212,9 +340,7 @@ class ProfitabilityService {
     commissionRate?: number;
     status?: JobCosts['status'];
     notes?: string;
-  }): JobCosts {
-    const data = readJobCosts();
-
+  }): Promise<JobCosts> {
     const job: JobCosts = {
       jobId: input.jobId || generateId('job'),
       customerName: input.customerName,
@@ -264,23 +390,22 @@ class ProfitabilityService {
 
     this.recalculate(job);
 
-    data.jobCosts.push(job);
-    writeJobCosts(data);
+    await this.persistJobCost(job);
     return job;
   }
 
   /**
    * Get a single job cost entry by jobId.
    */
-  getJobCost(jobId: string): JobCosts | null {
-    const data = readJobCosts();
-    return data.jobCosts.find((j) => j.jobId === jobId) || null;
+  async getJobCost(jobId: string): Promise<JobCosts | null> {
+    const jobs = await this.loadCached();
+    return jobs.find((j) => j.jobId === jobId) || null;
   }
 
   /**
    * Update job cost fields (revenue, status, notes, commission rate, etc.).
    */
-  updateJobCost(
+  async updateJobCost(
     jobId: string,
     updates: Partial<
       Pick<
@@ -297,9 +422,10 @@ class ProfitabilityService {
         | 'repName'
       >
     >
-  ): JobCosts {
-    const data = readJobCosts();
-    const job = data.jobCosts.find((j) => j.jobId === jobId);
+  ): Promise<JobCosts> {
+    // Pull a fresh copy to avoid stale cache for writes
+    const jobs = await this.loadFromSheet();
+    const job = jobs.find((j) => j.jobId === jobId);
     if (!job) throw new Error(`Job cost entry ${jobId} not found`);
 
     // Apply updates
@@ -322,20 +448,20 @@ class ProfitabilityService {
     this.recalculate(job);
     job.updatedAt = new Date().toISOString();
 
-    writeJobCosts(data);
+    await this.persistJobCost(job);
     return job;
   }
 
   /**
    * Add a cost item to a specific category.
    */
-  addCostItem(
+  async addCostItem(
     jobId: string,
     category: 'materials' | 'labor' | 'subcontractors' | 'overhead' | 'other',
     item: Omit<CostItem, 'id' | 'totalCost'>
-  ): CostItem {
-    const data = readJobCosts();
-    const job = data.jobCosts.find((j) => j.jobId === jobId);
+  ): Promise<CostItem> {
+    const jobs = await this.loadFromSheet();
+    const job = jobs.find((j) => j.jobId === jobId);
     if (!job) throw new Error(`Job cost entry ${jobId} not found`);
 
     const costItem: CostItem = {
@@ -354,16 +480,16 @@ class ProfitabilityService {
     this.recalculate(job);
     job.updatedAt = new Date().toISOString();
 
-    writeJobCosts(data);
+    await this.persistJobCost(job);
     return costItem;
   }
 
   /**
    * Remove a cost item by ID from any category.
    */
-  removeCostItem(jobId: string, costItemId: string): void {
-    const data = readJobCosts();
-    const job = data.jobCosts.find((j) => j.jobId === jobId);
+  async removeCostItem(jobId: string, costItemId: string): Promise<void> {
+    const jobs = await this.loadFromSheet();
+    const job = jobs.find((j) => j.jobId === jobId);
     if (!job) throw new Error(`Job cost entry ${jobId} not found`);
 
     const categories: (keyof Pick<
@@ -381,16 +507,16 @@ class ProfitabilityService {
 
     this.recalculate(job);
     job.updatedAt = new Date().toISOString();
-    writeJobCosts(data);
+    await this.persistJobCost(job);
   }
 
   /**
    * Get profitability metrics for a single job.
    */
-  calculateProfitability(
+  async calculateProfitability(
     jobId: string
-  ): { grossProfit: number; grossMargin: number; netProfit: number; netMargin: number } | null {
-    const job = this.getJobCost(jobId);
+  ): Promise<{ grossProfit: number; grossMargin: number; netProfit: number; netMargin: number } | null> {
+    const job = await this.getJobCost(jobId);
     if (!job) return null;
     return {
       grossProfit: job.grossProfit,
@@ -407,13 +533,13 @@ class ProfitabilityService {
   /**
    * List job costs with optional filters.
    */
-  listJobCosts(filters?: {
+  async listJobCosts(filters?: {
     repSlug?: string;
     status?: string;
     limit?: number;
-  }): JobCosts[] {
-    const data = readJobCosts();
-    let jobs = [...data.jobCosts];
+  }): Promise<JobCosts[]> {
+    const data = await this.loadCached();
+    let jobs = [...data];
 
     if (filters?.repSlug) {
       jobs = jobs.filter((j) => j.repSlug === filters.repSlug);
@@ -438,11 +564,11 @@ class ProfitabilityService {
   /**
    * Get profitability summary for a specific rep.
    */
-  getRepProfitability(
+  async getRepProfitability(
     repSlug: string
-  ): { jobs: number; totalRevenue: number; totalProfit: number; avgMargin: number } {
-    const data = readJobCosts();
-    const repJobs = data.jobCosts.filter((j) => j.repSlug === repSlug);
+  ): Promise<{ jobs: number; totalRevenue: number; totalProfit: number; avgMargin: number }> {
+    const data = await this.loadCached();
+    const repJobs = data.filter((j) => j.repSlug === repSlug);
 
     if (repJobs.length === 0) {
       return { jobs: 0, totalRevenue: 0, totalProfit: 0, avgMargin: 0 };
@@ -468,9 +594,9 @@ class ProfitabilityService {
   /**
    * Get comprehensive profitability analytics.
    */
-  getAnalytics(startDate?: string, endDate?: string): ProfitabilityAnalytics {
-    const data = readJobCosts();
-    let jobs = [...data.jobCosts];
+  async getAnalytics(startDate?: string, endDate?: string): Promise<ProfitabilityAnalytics> {
+    const data = await this.loadCached();
+    let jobs = [...data];
 
     if (startDate) {
       jobs = jobs.filter((j) => j.createdAt >= startDate);

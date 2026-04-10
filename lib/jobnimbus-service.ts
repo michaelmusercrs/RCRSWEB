@@ -2,6 +2,8 @@
 // Syncs contacts, jobs, and estimates with customer portal
 // NO DEMO MODE - requires valid API key
 
+import { stripCostFields } from './cost-visibility';
+
 const JOBNIMBUS_API_KEY = process.env.JOBNIMBUS_API_KEY;
 const JOBNIMBUS_API_URL = process.env.JOBNIMBUS_API_URL || 'https://app.jobnimbus.com/api1';
 
@@ -174,6 +176,15 @@ class JobNimbusService {
 
     const url = `${JOBNIMBUS_API_URL}${endpoint}`;
 
+    // HARD RULE: never push purchase cost / margin / wholesale to JobNimbus.
+    // Strip every cost-related field from the body before sending. This is a
+    // belt-and-suspenders guard — the typed methods above already exclude
+    // cost fields, but if a future caller bypasses the type via `as any` we
+    // still don't leak. See feedback_purchase_price_visibility.md.
+    const safeBody = body && (method === 'POST' || method === 'PUT')
+      ? stripCostFields(body)
+      : body;
+
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
         const response = await fetch(url, {
@@ -182,7 +193,7 @@ class JobNimbusService {
             'Authorization': `Bearer ${JOBNIMBUS_API_KEY}`,
             'Content-Type': 'application/json',
           },
-          body: body ? JSON.stringify(body) : undefined,
+          body: safeBody ? JSON.stringify(safeBody) : undefined,
         });
 
         if (!response.ok) {
@@ -279,6 +290,25 @@ class JobNimbusService {
       `/jobs?filter=primary.jnid:"${contactJnid}"`
     );
     return result.results;
+  }
+
+  /**
+   * Look up a single job by its display number (e.g. "R-11071"). Returns
+   * null if no match — used by the historical inventory backfill to
+   * enrich tickets with customer/address/sales rep data.
+   */
+  async getJobByNumber(jobNumber: string): Promise<JobNimbusJob | null> {
+    if (!jobNumber) return null;
+    try {
+      // JN supports filter=number:"R-XXXXX"
+      const result = await this.apiRequest<{ results: JobNimbusJob[] }>(
+        `/jobs?filter=number:"${encodeURIComponent(jobNumber)}"`
+      );
+      const jobs = result.results || [];
+      return jobs[0] || null;
+    } catch {
+      return null;
+    }
   }
 
   // Get estimates

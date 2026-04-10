@@ -10,6 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { warrantyService } from '@/lib/warranty-service';
 
 /**
@@ -20,7 +21,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const warranty = warrantyService.getWarranty(params.id);
+    const warranty = await warrantyService.getWarranty(params.id);
 
     if (!warranty) {
       return NextResponse.json(
@@ -49,9 +50,12 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
 
-    const warranty = warrantyService.updateWarranty(params.id, body);
+    const warranty = await warrantyService.updateWarranty(params.id, body);
 
     if (!warranty) {
       return NextResponse.json(
@@ -80,7 +84,10 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const success = warrantyService.archiveWarranty(params.id);
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
+    const success = await warrantyService.archiveWarranty(params.id);
 
     if (!success) {
       return NextResponse.json(

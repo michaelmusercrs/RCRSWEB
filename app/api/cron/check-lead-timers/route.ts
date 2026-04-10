@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
     return apiError('Unauthorized', 401);
   }
 
+  const _hbStart = Date.now();
   try {
     // Sync timer config from lead distribution config on each check
     const config = leadDistributionService.getConfig();
@@ -143,6 +144,9 @@ export async function GET(request: NextRequest) {
       actions.push(`reassign:${timer.leadId}`);
     }
 
+    const { recordCronHeartbeat } = await import('@/lib/cron-heartbeat');
+    await recordCronHeartbeat('check-lead-timers', 'success', Date.now() - _hbStart, `${actions.length} actions`);
+
     return NextResponse.json({
       success: true,
       activeTimers: leadResponseTimerService.getActiveTimers().length,
@@ -151,6 +155,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('[CronTimer] Error:', error);
+    try {
+      const { recordCronHeartbeat } = await import('@/lib/cron-heartbeat');
+      await recordCronHeartbeat('check-lead-timers', 'error', Date.now() - _hbStart, error instanceof Error ? error.message : String(error));
+    } catch { /* heartbeat must not mask real error */ }
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : 'Cron failed' },
       { status: 500 }

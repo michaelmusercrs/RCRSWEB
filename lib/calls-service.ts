@@ -6,13 +6,15 @@
  * - Customer portal
  * - JobNimbus contacts
  *
+ * Persistence: Google Sheets (Calls tab) via google-sheets-service.
+ * The local data/calls.json file is kept as a deprecated dev seed only.
+ *
  * @author RCRS Development Team
- * @version 1.0.0
+ * @version 2.0.0
  */
 
-import fs from 'fs';
-import path from 'path';
 import crypto from 'crypto';
+import { googleSheetsService, SHEET_NAMES } from './google-sheets-service';
 
 // =============================================================================
 // TYPES
@@ -130,61 +132,119 @@ export interface CallAnalytics {
 }
 
 // =============================================================================
-// DATA PATH
+// SHEET SCHEMA
 // =============================================================================
 
-const DATA_FILE_PATH = path.join(process.cwd(), 'data', 'calls.json');
+const CALL_HEADERS: string[] = [
+  'callId',
+  'customerId',
+  'customerName',
+  'customerPhone',
+  'customerEmail',
+  'repId',
+  'repName',
+  'repExtension',
+  'direction',
+  'status',
+  'startTime',
+  'endTime',
+  'duration',
+  'recordingUrl',
+  'recordingAvailable',
+  'notes',
+  'tags',
+  'jobNimbusContactId',
+  'createdAt',
+  'updatedAt',
+];
 
 // =============================================================================
 // SERVICE CLASS
 // =============================================================================
 
 class CallsService {
-  /**
-   * Read calls data from file
-   */
-  private readData(): CallsData {
+  private cache: CallRecord[] | null = null;
+  private cacheExpiresAt = 0;
+  private readonly CACHE_TTL_MS = 60_000;
+
+  // ---------------------------------------------------------------------------
+  // Sheet I/O
+  // ---------------------------------------------------------------------------
+
+  private parseCallRow(row: Record<string, string>): CallRecord {
+    let tags: string[] = [];
     try {
-      if (fs.existsSync(DATA_FILE_PATH)) {
-        const content = fs.readFileSync(DATA_FILE_PATH, 'utf-8');
-        return JSON.parse(content);
-      }
-    } catch (error) {
-      console.error('Error reading calls data:', error);
+      tags = row.tags ? JSON.parse(row.tags) : [];
+      if (!Array.isArray(tags)) tags = [];
+    } catch {
+      tags = row.tags ? row.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
     }
 
-    // Return empty data structure
     return {
-      calls: [],
-      callStats: {
-        totalCalls: 0,
-        totalDuration: 0,
-        inboundCalls: 0,
-        outboundCalls: 0,
-        missedCalls: 0,
-        completedCalls: 0,
-        averageDuration: 0,
-        lastUpdated: new Date().toISOString(),
-      },
+      callId: row.callId || '',
+      customerId: row.customerId || '',
+      customerName: row.customerName || '',
+      customerPhone: row.customerPhone || '',
+      customerEmail: row.customerEmail || '',
+      repId: row.repId || '',
+      repName: row.repName || '',
+      repExtension: row.repExtension || '',
+      direction: (row.direction as CallDirection) || 'inbound',
+      status: (row.status as CallStatus) || 'completed',
+      startTime: row.startTime || '',
+      endTime: row.endTime || '',
+      duration: Number(row.duration) || 0,
+      recordingUrl: row.recordingUrl || '',
+      recordingAvailable: row.recordingAvailable === 'true',
+      notes: row.notes || '',
+      tags,
+      jobNimbusContactId: row.jobNimbusContactId || '',
+      createdAt: row.createdAt || '',
+      updatedAt: row.updatedAt || '',
     };
   }
 
-  /**
-   * Write calls data to file
-   */
-  private writeData(data: CallsData): void {
-    try {
-      // Ensure data directory exists
-      const dir = path.dirname(DATA_FILE_PATH);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
+  private async loadFromSheet(): Promise<CallRecord[]> {
+    const rows = await googleSheetsService.getGenericRows(SHEET_NAMES.CALLS, CALL_HEADERS);
+    return rows.map(r => this.parseCallRow(r));
+  }
 
-      fs.writeFileSync(DATA_FILE_PATH, JSON.stringify(data, null, 2));
-    } catch (error) {
-      console.error('Error writing calls data:', error);
-      throw error;
-    }
+  private async loadCached(): Promise<CallRecord[]> {
+    if (this.cache && Date.now() < this.cacheExpiresAt) return this.cache;
+    this.cache = await this.loadFromSheet();
+    this.cacheExpiresAt = Date.now() + this.CACHE_TTL_MS;
+    return this.cache;
+  }
+
+  private invalidateCache(): void {
+    this.cache = null;
+    this.cacheExpiresAt = 0;
+  }
+
+  private async upsertCall(call: CallRecord): Promise<void> {
+    await googleSheetsService.upsertGenericRow(
+      SHEET_NAMES.CALLS,
+      CALL_HEADERS,
+      'callId',
+      call as unknown as Record<string, unknown>,
+    );
+    this.invalidateCache();
+  }
+
+  private computeStats(calls: CallRecord[]): CallStats {
+    const completedCount = calls.filter(c => c.status === 'completed').length;
+    return {
+      totalCalls: calls.length,
+      totalDuration: calls.reduce((sum, c) => sum + c.duration, 0),
+      inboundCalls: calls.filter(c => c.direction === 'inbound').length,
+      outboundCalls: calls.filter(c => c.direction === 'outbound').length,
+      missedCalls: calls.filter(c => c.status === 'missed').length,
+      completedCalls: completedCount,
+      averageDuration: completedCount > 0
+        ? Math.round(calls.reduce((sum, c) => sum + c.duration, 0) / completedCount)
+        : 0,
+      lastUpdated: new Date().toISOString(),
+    };
   }
 
   /**
@@ -230,26 +290,6 @@ class CallsService {
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
   }
 
-  /**
-   * Update call stats
-   */
-  private updateStats(data: CallsData): void {
-    const calls = data.calls;
-
-    data.callStats = {
-      totalCalls: calls.length,
-      totalDuration: calls.reduce((sum, c) => sum + c.duration, 0),
-      inboundCalls: calls.filter(c => c.direction === 'inbound').length,
-      outboundCalls: calls.filter(c => c.direction === 'outbound').length,
-      missedCalls: calls.filter(c => c.status === 'missed').length,
-      completedCalls: calls.filter(c => c.status === 'completed').length,
-      averageDuration: calls.length > 0
-        ? Math.round(calls.reduce((sum, c) => sum + c.duration, 0) / calls.filter(c => c.status === 'completed').length)
-        : 0,
-      lastUpdated: new Date().toISOString(),
-    };
-  }
-
   // ===========================================================================
   // PUBLIC METHODS
   // ===========================================================================
@@ -258,11 +298,11 @@ class CallsService {
    * Process incoming webhook from phone system
    */
   async processWebhook(payload: WebhookPayload): Promise<CallRecord> {
-    const data = this.readData();
+    const calls = await this.loadCached();
     const now = new Date().toISOString();
 
     // Find existing call record for this UUID
-    let existingIndex = data.calls.findIndex(c => c.callId.includes(payload.callUuid));
+    const existing = calls.find(c => c.callId.includes(payload.callUuid));
 
     if (payload.event === 'call_start') {
       // Create new call record
@@ -304,88 +344,83 @@ class CallsService {
         newCall.repName = matchedRep.name;
       }
 
-      data.calls.unshift(newCall);
-      this.updateStats(data);
-      this.writeData(data);
-
+      await this.upsertCall(newCall);
       return newCall;
     }
 
-    if (payload.event === 'call_end' && existingIndex >= 0) {
-      // Update existing call
-      const call = data.calls[existingIndex];
-      call.status = 'completed';
-      call.endTime = payload.timestamp;
-      call.duration = payload.duration || 0;
-      call.updatedAt = now;
-
-      this.updateStats(data);
-      this.writeData(data);
-
-      return call;
+    if (payload.event === 'call_end' && existing) {
+      const updated: CallRecord = {
+        ...existing,
+        status: 'completed',
+        endTime: payload.timestamp,
+        duration: payload.duration || 0,
+        updatedAt: now,
+      };
+      await this.upsertCall(updated);
+      return updated;
     }
 
     if (payload.event === 'call_missed') {
-      // Find or create missed call record
-      if (existingIndex >= 0) {
-        data.calls[existingIndex].status = 'missed';
-        data.calls[existingIndex].endTime = payload.timestamp;
-        data.calls[existingIndex].updatedAt = now;
-      } else {
-        const missedCall: CallRecord = {
-          callId: this.generateCallId(),
-          customerId: '',
-          customerName: payload.callerIdName || 'Unknown Caller',
-          customerPhone: this.normalizePhone(payload.from),
-          customerEmail: '',
-          repId: '',
-          repName: '',
-          repExtension: payload.extension || '',
-          direction: 'inbound',
+      if (existing) {
+        const updated: CallRecord = {
+          ...existing,
           status: 'missed',
-          startTime: payload.timestamp,
           endTime: payload.timestamp,
-          duration: 0,
-          recordingUrl: '',
-          recordingAvailable: false,
-          notes: '',
-          tags: ['missed'],
-          jobNimbusContactId: '',
-          createdAt: now,
           updatedAt: now,
         };
-        data.calls.unshift(missedCall);
+        await this.upsertCall(updated);
+        return updated;
       }
-
-      this.updateStats(data);
-      this.writeData(data);
-
-      return data.calls[existingIndex >= 0 ? existingIndex : 0];
+      const missedCall: CallRecord = {
+        callId: this.generateCallId(),
+        customerId: '',
+        customerName: payload.callerIdName || 'Unknown Caller',
+        customerPhone: this.normalizePhone(payload.from),
+        customerEmail: '',
+        repId: '',
+        repName: '',
+        repExtension: payload.extension || '',
+        direction: 'inbound',
+        status: 'missed',
+        startTime: payload.timestamp,
+        endTime: payload.timestamp,
+        duration: 0,
+        recordingUrl: '',
+        recordingAvailable: false,
+        notes: '',
+        tags: ['missed'],
+        jobNimbusContactId: '',
+        createdAt: now,
+        updatedAt: now,
+      };
+      await this.upsertCall(missedCall);
+      return missedCall;
     }
 
-    if (payload.event === 'voicemail' && existingIndex >= 0) {
-      data.calls[existingIndex].status = 'voicemail';
-      data.calls[existingIndex].endTime = payload.timestamp;
-      data.calls[existingIndex].updatedAt = now;
-
-      this.updateStats(data);
-      this.writeData(data);
-
-      return data.calls[existingIndex];
+    if (payload.event === 'voicemail' && existing) {
+      const updated: CallRecord = {
+        ...existing,
+        status: 'voicemail',
+        endTime: payload.timestamp,
+        updatedAt: now,
+      };
+      await this.upsertCall(updated);
+      return updated;
     }
 
-    if (payload.event === 'recording_ready' && existingIndex >= 0) {
-      data.calls[existingIndex].recordingUrl = payload.recordingUrl || '';
-      data.calls[existingIndex].recordingAvailable = !!payload.recordingUrl;
-      data.calls[existingIndex].updatedAt = now;
-
-      this.writeData(data);
-
-      return data.calls[existingIndex];
+    if (payload.event === 'recording_ready' && existing) {
+      const updated: CallRecord = {
+        ...existing,
+        recordingUrl: payload.recordingUrl || '',
+        recordingAvailable: !!payload.recordingUrl,
+        updatedAt: now,
+      };
+      await this.upsertCall(updated);
+      return updated;
     }
 
     // Return a default response if no matching case
-    return data.calls[0] || {
+    return calls[0] || {
       callId: '',
       customerId: '',
       customerName: '',
@@ -412,8 +447,7 @@ class CallsService {
   /**
    * Create a new call record manually
    */
-  createCall(callData: Partial<CallRecord>): CallRecord {
-    const data = this.readData();
+  async createCall(callData: Partial<CallRecord>): Promise<CallRecord> {
     const now = new Date().toISOString();
 
     const newCall: CallRecord = {
@@ -439,19 +473,18 @@ class CallsService {
       updatedAt: now,
     };
 
-    data.calls.unshift(newCall);
-    this.updateStats(data);
-    this.writeData(data);
-
+    await this.upsertCall(newCall);
     return newCall;
   }
 
   /**
    * Get all calls with optional filtering
    */
-  getCalls(filter?: CallFilter): CallRecord[] {
-    const data = this.readData();
-    let calls = [...data.calls];
+  async getCalls(filter?: CallFilter): Promise<CallRecord[]> {
+    const all = await this.loadCached();
+    let calls = [...all];
+    // Sort newest first (by startTime descending)
+    calls.sort((a, b) => (b.startTime || '').localeCompare(a.startTime || ''));
 
     if (filter) {
       if (filter.customerId) {
@@ -501,59 +534,54 @@ class CallsService {
   /**
    * Get calls for a specific customer
    */
-  getCallsByCustomer(customerId: string): CallRecord[] {
+  async getCallsByCustomer(customerId: string): Promise<CallRecord[]> {
     return this.getCalls({ customerId });
   }
 
   /**
    * Get calls by phone number
    */
-  getCallsByPhone(phone: string): CallRecord[] {
+  async getCallsByPhone(phone: string): Promise<CallRecord[]> {
     return this.getCalls({ customerPhone: phone });
   }
 
   /**
    * Get a single call by ID
    */
-  getCallById(callId: string): CallRecord | null {
-    const data = this.readData();
-    return data.calls.find(c => c.callId === callId) || null;
+  async getCallById(callId: string): Promise<CallRecord | null> {
+    const calls = await this.loadCached();
+    return calls.find(c => c.callId === callId) || null;
   }
 
   /**
    * Update a call record
    */
-  updateCall(callId: string, updates: Partial<CallRecord>): CallRecord | null {
-    const data = this.readData();
-    const index = data.calls.findIndex(c => c.callId === callId);
+  async updateCall(callId: string, updates: Partial<CallRecord>): Promise<CallRecord | null> {
+    const existing = await this.getCallById(callId);
+    if (!existing) return null;
 
-    if (index < 0) return null;
-
-    data.calls[index] = {
-      ...data.calls[index],
+    const updated: CallRecord = {
+      ...existing,
       ...updates,
       callId, // Prevent changing ID
       updatedAt: new Date().toISOString(),
     };
-
-    this.updateStats(data);
-    this.writeData(data);
-
-    return data.calls[index];
+    await this.upsertCall(updated);
+    return updated;
   }
 
   /**
    * Add note to a call
    */
-  addCallNote(callId: string, note: string): CallRecord | null {
+  async addCallNote(callId: string, note: string): Promise<CallRecord | null> {
     return this.updateCall(callId, { notes: note });
   }
 
   /**
    * Add tags to a call
    */
-  addCallTags(callId: string, tags: string[]): CallRecord | null {
-    const call = this.getCallById(callId);
+  async addCallTags(callId: string, tags: string[]): Promise<CallRecord | null> {
+    const call = await this.getCallById(callId);
     if (!call) return null;
 
     const uniqueTags = [...new Set([...call.tags, ...tags])];
@@ -563,27 +591,27 @@ class CallsService {
   /**
    * Link call to JobNimbus contact
    */
-  linkToJobNimbus(callId: string, jobNimbusContactId: string): CallRecord | null {
+  async linkToJobNimbus(callId: string, jobNimbusContactId: string): Promise<CallRecord | null> {
     return this.updateCall(callId, { jobNimbusContactId });
   }
 
   /**
    * Get call statistics
    */
-  getStats(): CallStats {
-    const data = this.readData();
-    return data.callStats;
+  async getStats(): Promise<CallStats> {
+    const calls = await this.loadCached();
+    return this.computeStats(calls);
   }
 
   /**
    * Get call analytics
    */
-  getAnalytics(daysBack: number = 30): CallAnalytics {
-    const data = this.readData();
+  async getAnalytics(daysBack: number = 30): Promise<CallAnalytics> {
+    const calls = await this.loadCached();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - daysBack);
 
-    const recentCalls = data.calls.filter(c => new Date(c.startTime) >= startDate);
+    const recentCalls = calls.filter(c => new Date(c.startTime) >= startDate);
 
     // Daily volume
     const dailyMap = new Map<string, { count: number; duration: number }>();
@@ -642,10 +670,6 @@ class CallsService {
       .sort((a, b) => b.count - a.count);
 
     // Average response time in seconds for answered inbound calls.
-    // Calculated as the time between call start and when it was answered (startTime to endTime minus duration).
-    // For calls where we only have startTime, endTime, and duration, the ring/wait time is:
-    //   totalElapsed - talkDuration = time spent ringing/waiting.
-    // This is an approximation; precise ring-time would require PBX ring-time integration.
     const answeredInbound = recentCalls.filter(
       c => c.direction === 'inbound' && c.status === 'completed' && c.startTime && c.endTime && c.duration > 0
     );
@@ -671,18 +695,18 @@ class CallsService {
   /**
    * Get recent calls for dashboard
    */
-  getRecentCalls(limit: number = 10): CallRecord[] {
-    const data = this.readData();
-    return data.calls.slice(0, limit);
+  async getRecentCalls(limit: number = 10): Promise<CallRecord[]> {
+    const all = await this.getCalls();
+    return all.slice(0, limit);
   }
 
   /**
    * Get today's calls
    */
-  getTodaysCalls(): CallRecord[] {
+  async getTodaysCalls(): Promise<CallRecord[]> {
     const today = new Date().toISOString().slice(0, 10);
-    const data = this.readData();
-    return data.calls.filter(c => c.startTime.startsWith(today));
+    const calls = await this.loadCached();
+    return calls.filter(c => c.startTime.startsWith(today));
   }
 
   // ===========================================================================
@@ -699,8 +723,6 @@ class CallsService {
     customerEmail?: string;
   } | null> {
     // FUTURE: Look up customer by phone number from Google Sheets Customer_Portal_Access tab.
-    // Would query googleSheetsService.getCustomers() and match on phone field.
-    // Not yet implemented because customer phone data is sparse in the current sheet.
     return null;
   }
 

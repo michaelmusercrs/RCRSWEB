@@ -236,6 +236,7 @@ export async function GET(request: NextRequest) {
     return apiError('Unauthorized', 401);
   }
 
+  const _hbStart = Date.now();
   try {
     const reassignConfig = readReassignConfig();
     const distroConfig = readDistroConfig();
@@ -390,6 +391,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    const { recordCronHeartbeat } = await import('@/lib/cron-heartbeat');
+    await recordCronHeartbeat('auto-reassign', 'success', Date.now() - _hbStart, `${actions.length} actions, ${errors.length} errors`);
+
     return NextResponse.json({
       success: true,
       summary: {
@@ -412,6 +416,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('[AutoReassign] Cron error:', error);
+    try {
+      const { recordCronHeartbeat } = await import('@/lib/cron-heartbeat');
+      await recordCronHeartbeat('auto-reassign', 'error', Date.now() - _hbStart, error instanceof Error ? error.message : String(error));
+    } catch { /* heartbeat must not mask real error */ }
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : 'Cron failed' },
       { status: 500 }

@@ -28,8 +28,8 @@ export async function GET(request: NextRequest) {
     // Fetch live NWS alerts (with caching)
     const nwsAlerts = await weatherAlertService.fetchNWSAlerts(counties);
 
-    // Get any manual alerts from local storage
-    const allAlerts = weatherAlertService.getAllAlerts();
+    // Get any manual alerts from persistent storage
+    const allAlerts = await weatherAlertService.getAllAlerts();
     const manualAlerts = allAlerts.filter(a => a.source === 'manual');
 
     // Merge: NWS alerts + manual alerts that are not duplicates

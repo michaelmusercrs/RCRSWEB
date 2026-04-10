@@ -108,7 +108,9 @@ class LeadDistributionService {
   }
 
   /**
-   * Save updated configuration to disk.
+   * Save updated configuration to disk. Best-effort: Vercel filesystem is
+   * read-only at runtime, so failures are logged but not thrown. The Phase 1
+   * backup cron snapshots data/*.json hourly so dev writes are still captured.
    */
   saveConfig(config: LeadDistroConfig, updatedBy: string): void {
     const updated: LeadDistroConfig = {
@@ -116,7 +118,11 @@ class LeadDistributionService {
       updatedAt: new Date().toISOString(),
       updatedBy,
     };
-    writeFileSync(CONFIG_FILE_PATH, JSON.stringify(updated, null, 2), 'utf-8');
+    try {
+      writeFileSync(CONFIG_FILE_PATH, JSON.stringify(updated, null, 2), 'utf-8');
+    } catch (err) {
+      console.warn('[LeadDistribution] Local config write skipped (read-only fs?):', err);
+    }
   }
 
   // ---------------------------------------------------------------------------

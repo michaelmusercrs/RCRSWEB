@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { roofMeasureService } from '@/lib/roof-measure-service';
 import type { EngineResult, MeasurementResult } from '@/lib/roof-measure-service';
 
@@ -44,6 +45,9 @@ function sumLines(lines: { lengthFt: number }[]): number {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
     const { address, engines: requestedEngines } = body;
 

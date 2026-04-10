@@ -15,6 +15,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { financialService } from '@/lib/financial-service';
 import { invoiceService } from '@/lib/invoice-service';
 import { profitabilityService } from '@/lib/profitability-service';
@@ -22,6 +23,9 @@ import { googleSheetsService, isGoogleSheetsConfigured } from '@/lib/google-shee
 
 export async function POST(req: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     // Verify Google Sheets is configured
     if (!isGoogleSheetsConfigured()) {
       return NextResponse.json(
@@ -99,7 +103,7 @@ export async function POST(req: NextRequest) {
       const jobProfitability = await financialService.getJobProfitability();
 
       // Also merge data from profitability service (job-costs.json) if available
-      const jobCosts = profitabilityService.listJobCosts();
+      const jobCosts = await profitabilityService.listJobCosts();
 
       // Combine both sources, preferring profitability service data (more detailed)
       const combinedJobs: Record<string, string | number>[] = [];

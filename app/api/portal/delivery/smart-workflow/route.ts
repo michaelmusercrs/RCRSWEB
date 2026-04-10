@@ -13,16 +13,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { validateSession } from '@/lib/auth-service';
+import { requireAuth, validateSession } from '@/lib/auth-service';
 import { smartDeliveryEngine } from '@/lib/smart-delivery-engine';
 
 export async function POST(request: NextRequest) {
-  try {
-    const session = await validateSession();
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
 
+  try {
     const body = await request.json();
     const { action } = body;
 

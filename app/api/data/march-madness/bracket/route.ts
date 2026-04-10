@@ -7,6 +7,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { googleSheetsService, SHEET_NAMES } from '@/lib/google-sheets-service';
@@ -270,6 +271,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const body = await request.json();
     const { repName, week, sales } = body;
@@ -342,6 +346,9 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const data = loadBracketJSON();
     const success = await googleSheetsService.initMarchMadnessBracket(

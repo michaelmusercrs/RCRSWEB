@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  const _hbStart = Date.now();
   try {
     // Pull every alert from the canonical inventory service
     const alerts = await unifiedInventoryService.getStockAlerts();
@@ -102,6 +103,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    const { recordCronHeartbeat } = await import('@/lib/cron-heartbeat');
+    await recordCronHeartbeat('low-stock-alert', 'success', Date.now() - _hbStart, `${alerts.length} alerts, ${sent} emails sent`);
+
     return NextResponse.json({
       success: true,
       alertsFound: alerts.length,
@@ -117,6 +121,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('[low-stock-alert] failed:', error);
+    try {
+      const { recordCronHeartbeat } = await import('@/lib/cron-heartbeat');
+      await recordCronHeartbeat('low-stock-alert', 'error', Date.now() - _hbStart, error instanceof Error ? error.message : String(error));
+    } catch { /* heartbeat must not mask real error */ }
     return NextResponse.json(
       {
         success: false,

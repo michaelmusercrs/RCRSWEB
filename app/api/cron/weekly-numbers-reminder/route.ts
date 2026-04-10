@@ -228,6 +228,7 @@ export async function GET(request: NextRequest) {
     return apiError('Missing or invalid ?type= parameter. Use "midweek" or "final".', 400);
   }
 
+  const _hbStart = Date.now();
   try {
     const mondayDate = getNextMondayDate();
     const missingReps = getRepsWithoutNumbers(mondayDate);
@@ -255,6 +256,9 @@ export async function GET(request: NextRequest) {
     const sentCount = results.filter(r => r.sent).length;
     const skippedCount = getActiveSalesReps().length - missingReps.length;
 
+    const { recordCronHeartbeat } = await import('@/lib/cron-heartbeat');
+    await recordCronHeartbeat('weekly-numbers-reminder', 'success', Date.now() - _hbStart, `${type}: ${sentCount} sent, ${skippedCount} already submitted`);
+
     return NextResponse.json({
       success: true,
       type,
@@ -268,6 +272,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('[WeeklyNumbersReminder] Error:', error);
+    try {
+      const { recordCronHeartbeat } = await import('@/lib/cron-heartbeat');
+      await recordCronHeartbeat('weekly-numbers-reminder', 'error', Date.now() - _hbStart, error instanceof Error ? error.message : String(error));
+    } catch { /* heartbeat must not mask real error */ }
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : 'Cron failed' },
       { status: 500 }

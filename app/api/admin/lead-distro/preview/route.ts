@@ -2,11 +2,11 @@
 // POST: Simulate distribution for an address without saving
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth-service';
+import { requireAdmin } from '@/lib/auth-service';
 import { leadDistributionService } from '@/lib/lead-distribution-service';
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireAdmin();
   if (!auth.authenticated) return auth.response;
 
   try {

@@ -11,7 +11,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { validateSession } from '@/lib/auth-service';
+import { requireAdmin, validateSession } from '@/lib/auth-service';
 import { googleSheetsService, SHEET_NAMES } from '@/lib/google-sheets-service';
 
 // Each setting is one row keyed by `key`. Complex values (objects, arrays) are
@@ -122,6 +122,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const auth = await requireAdmin();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const session = await validateSession();
     if (!session.valid || !session.user) {

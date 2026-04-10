@@ -11,19 +11,28 @@
  * - Appointments
  * - Documents
  *
- * Stores supplemental data in:
- * - data/communications.json (communication events not covered by other services)
- * - data/customer-notes.json (internal team notes per customer)
+ * Persistence (2026-04-09): Migrated off local JSON files
+ *   - data/communications.json  (events + customer profile cache)
+ *   - data/customer-notes.json  (internal team notes per customer)
+ * onto the master Google Sheet. To avoid stomping on notification-center, the
+ * hub uses SHEET_NAMES.DOCUMENTS for both events and customer profiles,
+ * discriminating with a `recordType` column (`event` | `customer`). The tab
+ * was previously declared but unused, and `DOCUMENTS` is the nearest
+ * semantic fit for a shared communication-events store. Internal notes are
+ * written as `type='note'` events in the same tab — the legacy notes JSON is
+ * collapsed into the unified event list.
+ *
+ * Local data/communications.json and data/customer-notes.json remain in place
+ * as deprecated dev seeds.
  *
  * @author RCRS Development Team
- * @version 1.0.0
+ * @version 2.0.0
  */
 
-import fs from 'fs';
-import path from 'path';
 import crypto from 'crypto';
 import { callsService, CallRecord } from './calls-service';
 import { smsService } from './sms-service';
+import { googleSheetsService, SHEET_NAMES } from './google-sheets-service';
 
 // =============================================================================
 // TYPES
@@ -120,90 +129,260 @@ export interface CommunicationThread {
   };
 }
 
-interface CommunicationsData {
+// =============================================================================
+// SHEET SCHEMA
+// =============================================================================
+
+/**
+ * Unified tab schema. Both events and customer profiles live here, keyed by
+ * `id`, with `recordType` discriminating the two shapes.
+ */
+const COMM_HUB_HEADERS: string[] = [
+  'id',
+  'recordType',
+  // event columns
+  'type',
+  'timestamp',
+  'direction',
+  'fromField',
+  'toField',
+  'subject',
+  'body',
+  'duration',
+  'recordingUrl',
+  'attachments',
+  'metadata',
+  'repId',
+  'repName',
+  'isRead',
+  'jobId',
+  'leadId',
+  // customer columns
+  'customer_name',
+  'customer_phone',
+  'customer_email',
+  'customer_address',
+  'customer_jobNimbusId',
+  'customer_leadId',
+  'customer_jobIds',
+  'customer_totalCalls',
+  'customer_totalMessages',
+  'customer_lastContact',
+  'customer_assignedRep',
+  'customer_status',
+];
+
+const COMM_HUB_TAB = SHEET_NAMES.DOCUMENTS;
+
+// =============================================================================
+// PARSING HELPERS
+// =============================================================================
+
+function parseBool(value: string | undefined, fallback = false): boolean {
+  if (value === undefined || value === '') return fallback;
+  return value === 'true' || value === 'TRUE' || value === '1';
+}
+
+function parseNumber(value: string | undefined, fallback = 0): number {
+  if (!value) return fallback;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function parseJson<T>(value: string | undefined, fallback: T): T {
+  if (!value) return fallback;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+function rowToEvent(row: Record<string, string>): CommunicationEvent {
+  return {
+    id: row.id,
+    type: (row.type || 'note') as CommunicationEventType,
+    timestamp: row.timestamp || '',
+    direction: row.direction ? (row.direction as 'inbound' | 'outbound') : undefined,
+    from: row.fromField || '',
+    to: row.toField || '',
+    subject: row.subject || undefined,
+    body: row.body || '',
+    duration: row.duration ? parseNumber(row.duration, 0) : undefined,
+    recordingUrl: row.recordingUrl || undefined,
+    attachments: row.attachments
+      ? parseJson<{ name: string; url: string; type: string }[]>(row.attachments, [])
+      : undefined,
+    metadata: row.metadata
+      ? parseJson<Record<string, string>>(row.metadata, {})
+      : undefined,
+    repId: row.repId || undefined,
+    repName: row.repName || undefined,
+    isRead: parseBool(row.isRead, true),
+    jobId: row.jobId || undefined,
+    leadId: row.leadId || undefined,
+  };
+}
+
+function eventToRow(e: CommunicationEvent): Record<string, unknown> {
+  return {
+    id: e.id,
+    recordType: 'event',
+    type: e.type,
+    timestamp: e.timestamp,
+    direction: e.direction ?? '',
+    fromField: e.from,
+    toField: e.to,
+    subject: e.subject ?? '',
+    body: e.body,
+    duration: e.duration ?? '',
+    recordingUrl: e.recordingUrl ?? '',
+    attachments: e.attachments ? JSON.stringify(e.attachments) : '',
+    metadata: e.metadata ? JSON.stringify(e.metadata) : '',
+    repId: e.repId ?? '',
+    repName: e.repName ?? '',
+    isRead: e.isRead,
+    jobId: e.jobId ?? '',
+    leadId: e.leadId ?? '',
+    customer_name: '',
+    customer_phone: '',
+    customer_email: '',
+    customer_address: '',
+    customer_jobNimbusId: '',
+    customer_leadId: '',
+    customer_jobIds: '',
+    customer_totalCalls: '',
+    customer_totalMessages: '',
+    customer_lastContact: '',
+    customer_assignedRep: '',
+    customer_status: '',
+  };
+}
+
+function rowToCustomer(row: Record<string, string>): CustomerProfile {
+  return {
+    id: row.id,
+    name: row.customer_name || 'Unknown',
+    phone: row.customer_phone || '',
+    email: row.customer_email || '',
+    address: row.customer_address || '',
+    jobNimbusId: row.customer_jobNimbusId || undefined,
+    leadId: row.customer_leadId || undefined,
+    jobIds: parseJson<string[]>(row.customer_jobIds, []),
+    totalCalls: parseNumber(row.customer_totalCalls, 0),
+    totalMessages: parseNumber(row.customer_totalMessages, 0),
+    lastContact: row.customer_lastContact || '',
+    assignedRep: row.customer_assignedRep || '',
+    status: row.customer_status || 'active',
+  };
+}
+
+function customerToRow(c: CustomerProfile): Record<string, unknown> {
+  return {
+    id: c.id,
+    recordType: 'customer',
+    type: '',
+    timestamp: '',
+    direction: '',
+    fromField: '',
+    toField: '',
+    subject: '',
+    body: '',
+    duration: '',
+    recordingUrl: '',
+    attachments: '',
+    metadata: '',
+    repId: '',
+    repName: '',
+    isRead: '',
+    jobId: '',
+    leadId: '',
+    customer_name: c.name,
+    customer_phone: c.phone,
+    customer_email: c.email,
+    customer_address: c.address,
+    customer_jobNimbusId: c.jobNimbusId ?? '',
+    customer_leadId: c.leadId ?? '',
+    customer_jobIds: JSON.stringify(c.jobIds ?? []),
+    customer_totalCalls: c.totalCalls,
+    customer_totalMessages: c.totalMessages,
+    customer_lastContact: c.lastContact,
+    customer_assignedRep: c.assignedRep,
+    customer_status: c.status,
+  };
+}
+
+interface CommHubData {
   events: CommunicationEvent[];
   customers: CustomerProfile[];
-  lastUpdated: string;
 }
-
-interface CustomerNotesData {
-  notes: {
-    id: string;
-    customerId: string;
-    note: string;
-    author: string;
-    createdAt: string;
-    updatedAt: string;
-  }[];
-  lastUpdated: string;
-}
-
-// =============================================================================
-// DATA PATHS
-// =============================================================================
-
-const COMMS_FILE_PATH = path.join(process.cwd(), 'data', 'communications.json');
-const NOTES_FILE_PATH = path.join(process.cwd(), 'data', 'customer-notes.json');
 
 // =============================================================================
 // SERVICE CLASS
 // =============================================================================
 
+const CACHE_TTL_MS = 60_000;
+
 class CommunicationHubService {
+  // Single unified cache — one sheet read populates both events and customers.
+  private cache: CommHubData | null = null;
+  private cacheExpiresAt = 0;
+
   // ---------------------------------------------------------------------------
-  // Data I/O
+  // Sheet I/O
   // ---------------------------------------------------------------------------
 
-  private readCommsData(): CommunicationsData {
-    try {
-      if (fs.existsSync(COMMS_FILE_PATH)) {
-        const content = fs.readFileSync(COMMS_FILE_PATH, 'utf-8');
-        return JSON.parse(content);
+  private async loadFromSheet(): Promise<CommHubData> {
+    const rows = await googleSheetsService.getGenericRows(
+      COMM_HUB_TAB,
+      COMM_HUB_HEADERS,
+    );
+
+    const events: CommunicationEvent[] = [];
+    const customers: CustomerProfile[] = [];
+
+    for (const row of rows) {
+      if (!row.id) continue;
+      if (row.recordType === 'customer') {
+        customers.push(rowToCustomer(row));
+      } else {
+        events.push(rowToEvent(row));
       }
-    } catch (error) {
-      console.error('Error reading communications data:', error);
     }
-    return { events: [], customers: [], lastUpdated: new Date().toISOString() };
+
+    return { events, customers };
   }
 
-  private writeCommsData(data: CommunicationsData): void {
-    try {
-      const dir = path.dirname(COMMS_FILE_PATH);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-      data.lastUpdated = new Date().toISOString();
-      fs.writeFileSync(COMMS_FILE_PATH, JSON.stringify(data, null, 2));
-    } catch (error) {
-      console.error('Error writing communications data:', error);
-      throw error;
-    }
+  private async loadCached(): Promise<CommHubData> {
+    if (this.cache && Date.now() < this.cacheExpiresAt) return this.cache;
+    this.cache = await this.loadFromSheet();
+    this.cacheExpiresAt = Date.now() + CACHE_TTL_MS;
+    return this.cache;
   }
 
-  private readNotesData(): CustomerNotesData {
-    try {
-      if (fs.existsSync(NOTES_FILE_PATH)) {
-        const content = fs.readFileSync(NOTES_FILE_PATH, 'utf-8');
-        return JSON.parse(content);
-      }
-    } catch (error) {
-      console.error('Error reading customer notes data:', error);
-    }
-    return { notes: [], lastUpdated: new Date().toISOString() };
+  private invalidateCache(): void {
+    this.cache = null;
+    this.cacheExpiresAt = 0;
   }
 
-  private writeNotesData(data: CustomerNotesData): void {
-    try {
-      const dir = path.dirname(NOTES_FILE_PATH);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-      data.lastUpdated = new Date().toISOString();
-      fs.writeFileSync(NOTES_FILE_PATH, JSON.stringify(data, null, 2));
-    } catch (error) {
-      console.error('Error writing customer notes data:', error);
-      throw error;
-    }
+  private async saveEvent(event: CommunicationEvent): Promise<void> {
+    await googleSheetsService.upsertGenericRow(
+      COMM_HUB_TAB,
+      COMM_HUB_HEADERS,
+      'id',
+      eventToRow(event),
+    );
+    this.invalidateCache();
+  }
+
+  private async saveCustomer(customer: CustomerProfile): Promise<void> {
+    await googleSheetsService.upsertGenericRow(
+      COMM_HUB_TAB,
+      COMM_HUB_HEADERS,
+      'id',
+      customerToRow(customer),
+    );
+    this.invalidateCache();
   }
 
   // ---------------------------------------------------------------------------
@@ -273,43 +452,38 @@ class CommunicationHubService {
   /**
    * Get or create a customer profile by ID
    */
-  getCustomerProfile(customerId: string): CustomerProfile | null {
-    const data = this.readCommsData();
-    return data.customers.find(c => c.id === customerId) || null;
+  async getCustomerProfile(customerId: string): Promise<CustomerProfile | null> {
+    const data = await this.loadCached();
+    return data.customers.find((c) => c.id === customerId) || null;
   }
 
   /**
    * Upsert a customer profile
    */
-  upsertCustomer(profile: Partial<CustomerProfile> & { id: string }): CustomerProfile {
-    const data = this.readCommsData();
-    const index = data.customers.findIndex(c => c.id === profile.id);
+  async upsertCustomer(profile: Partial<CustomerProfile> & { id: string }): Promise<CustomerProfile> {
+    const data = await this.loadCached();
+    const existing = data.customers.find((c) => c.id === profile.id);
 
-    if (index >= 0) {
-      data.customers[index] = { ...data.customers[index], ...profile };
-      this.writeCommsData(data);
-      return data.customers[index];
-    }
+    const merged: CustomerProfile = existing
+      ? { ...existing, ...profile }
+      : {
+          id: profile.id,
+          name: profile.name || 'Unknown',
+          phone: profile.phone || '',
+          email: profile.email || '',
+          address: profile.address || '',
+          jobNimbusId: profile.jobNimbusId,
+          leadId: profile.leadId,
+          jobIds: profile.jobIds || [],
+          totalCalls: profile.totalCalls || 0,
+          totalMessages: profile.totalMessages || 0,
+          lastContact: profile.lastContact || new Date().toISOString(),
+          assignedRep: profile.assignedRep || '',
+          status: profile.status || 'active',
+        };
 
-    const newCustomer: CustomerProfile = {
-      id: profile.id,
-      name: profile.name || 'Unknown',
-      phone: profile.phone || '',
-      email: profile.email || '',
-      address: profile.address || '',
-      jobNimbusId: profile.jobNimbusId,
-      leadId: profile.leadId,
-      jobIds: profile.jobIds || [],
-      totalCalls: profile.totalCalls || 0,
-      totalMessages: profile.totalMessages || 0,
-      lastContact: profile.lastContact || new Date().toISOString(),
-      assignedRep: profile.assignedRep || '',
-      status: profile.status || 'active',
-    };
-
-    data.customers.push(newCustomer);
-    this.writeCommsData(data);
-    return newCustomer;
+    await this.saveCustomer(merged);
+    return merged;
   }
 
   // ---------------------------------------------------------------------------
@@ -321,14 +495,12 @@ class CommunicationHubService {
    * Aggregates data from calls, stored events, and notes.
    */
   async getCustomerThread(customerId: string): Promise<CommunicationThread> {
-    const commsData = this.readCommsData();
-    const notesData = this.readNotesData();
+    const data = await this.loadCached();
 
     // Get or build customer profile
-    let customer = commsData.customers.find(c => c.id === customerId);
+    let customer = data.customers.find((c) => c.id === customerId);
     if (!customer) {
-      // Try to build a profile from call records
-      const allCalls = callsService.getCalls({ customerId });
+      const allCalls = await callsService.getCalls({ customerId });
       const firstCall = allCalls[0];
       customer = {
         id: customerId,
@@ -349,53 +521,38 @@ class CommunicationHubService {
     const events: CommunicationEvent[] = [];
 
     // 1. Call records -> events
-    const customerCalls = callsService.getCalls({ customerId });
+    const customerCalls = await callsService.getCalls({ customerId });
     for (const call of customerCalls) {
       events.push(this.callToEvent(call));
     }
 
-    // 2. Stored communication events (SMS, email, status changes, etc.)
-    const storedEvents = commsData.events.filter(
-      e => e.metadata?.customerId === customerId
+    // 2. Stored communication events (SMS, email, notes, status changes, etc.)
+    //    Notes live here too now (type='note') — data/customer-notes.json is deprecated.
+    const storedEvents = data.events.filter(
+      (e) => e.metadata?.customerId === customerId,
     );
     events.push(...storedEvents);
-
-    // 3. Internal notes -> note events
-    const customerNotes = notesData.notes.filter(n => n.customerId === customerId);
-    for (const note of customerNotes) {
-      events.push({
-        id: note.id,
-        type: 'note',
-        timestamp: note.createdAt,
-        from: note.author,
-        to: customer.name,
-        body: note.note,
-        repName: note.author,
-        isRead: true,
-        metadata: { customerId },
-      });
-    }
 
     // Sort all events chronologically (newest first)
     events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
     // Build summary
-    const inboundEvents = events.filter(e => e.direction === 'inbound');
-    const outboundEvents = events.filter(e => e.direction === 'outbound');
-    const unreadCount = events.filter(e => !e.isRead).length;
+    const inboundEvents = events.filter((e) => e.direction === 'inbound');
+    const outboundEvents = events.filter((e) => e.direction === 'outbound');
+    const unreadCount = events.filter((e) => !e.isRead).length;
 
     // Calculate average response time (time between inbound and next outbound)
     let totalResponseTime = 0;
     let responseCount = 0;
     const sortedAsc = [...events].sort(
-      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
     );
     for (let i = 0; i < sortedAsc.length; i++) {
       if (sortedAsc[i].direction === 'inbound') {
-        // Find the next outbound event
         for (let j = i + 1; j < sortedAsc.length; j++) {
           if (sortedAsc[j].direction === 'outbound') {
-            const diff = new Date(sortedAsc[j].timestamp).getTime() - new Date(sortedAsc[i].timestamp).getTime();
+            const diff =
+              new Date(sortedAsc[j].timestamp).getTime() - new Date(sortedAsc[i].timestamp).getTime();
             totalResponseTime += diff;
             responseCount++;
             break;
@@ -405,12 +562,11 @@ class CommunicationHubService {
     }
 
     const avgResponseMs = responseCount > 0 ? totalResponseTime / responseCount : 0;
-    // Convert to minutes
     const avgResponseMinutes = Math.round(avgResponseMs / 60000);
 
     // Update customer stats
     customer.totalCalls = customerCalls.length;
-    customer.totalMessages = events.filter(e => e.type === 'sms' || e.type === 'email').length;
+    customer.totalMessages = events.filter((e) => e.type === 'sms' || e.type === 'email').length;
     if (events.length > 0) {
       customer.lastContact = events[0].timestamp;
     }
@@ -432,24 +588,10 @@ class CommunicationHubService {
    * Add an internal note to a customer's timeline.
    */
   async addNote(customerId: string, note: string, author: string): Promise<CommunicationEvent> {
-    const notesData = this.readNotesData();
     const now = new Date().toISOString();
 
-    const newNote = {
-      id: this.generateId('NOTE'),
-      customerId,
-      note,
-      author,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    notesData.notes.unshift(newNote);
-    this.writeNotesData(notesData);
-
-    // Also store as a communication event for the timeline
     const event: CommunicationEvent = {
-      id: newNote.id,
+      id: this.generateId('NOTE'),
       type: 'note',
       timestamp: now,
       from: author,
@@ -460,6 +602,7 @@ class CommunicationHubService {
       metadata: { customerId },
     };
 
+    await this.saveEvent(event);
     return event;
   }
 
@@ -470,11 +613,11 @@ class CommunicationHubService {
     customerId: string,
     message: string,
     channel: 'sms' | 'email',
-    from: string
+    from: string,
   ): Promise<CommunicationEvent> {
-    const commsData = this.readCommsData();
+    const data = await this.loadCached();
     const now = new Date().toISOString();
-    const customer = commsData.customers.find(c => c.id === customerId);
+    const customer = data.customers.find((c) => c.id === customerId);
 
     const event: CommunicationEvent = {
       id: this.generateId('MSG'),
@@ -511,27 +654,20 @@ class CommunicationHubService {
       event.metadata!.status = 'queued';
     }
 
-    // Store the event
-    commsData.events.unshift(event);
-    this.writeCommsData(commsData);
-
+    await this.saveEvent(event);
     return event;
   }
 
   /**
    * Add a communication event directly (for webhooks, integrations, etc.)
    */
-  addEvent(event: Omit<CommunicationEvent, 'id'>): CommunicationEvent {
-    const commsData = this.readCommsData();
-
+  async addEvent(event: Omit<CommunicationEvent, 'id'>): Promise<CommunicationEvent> {
     const newEvent: CommunicationEvent = {
       ...event,
       id: this.generateId('EVT'),
     };
 
-    commsData.events.unshift(newEvent);
-    this.writeCommsData(commsData);
-
+    await this.saveEvent(newEvent);
     return newEvent;
   }
 
@@ -539,25 +675,26 @@ class CommunicationHubService {
    * Search customers by name, phone, email, or address.
    */
   async searchCustomers(query: string): Promise<CustomerProfile[]> {
-    const commsData = this.readCommsData();
+    const data = await this.loadCached();
     const q = query.toLowerCase().trim();
 
     if (!q) {
-      return commsData.customers.slice(0, 50);
+      return data.customers.slice(0, 50);
     }
 
     // Search stored customer profiles
-    const matchedCustomers = commsData.customers.filter(c =>
-      c.name.toLowerCase().includes(q) ||
-      this.normalizePhone(c.phone).includes(this.normalizePhone(q)) ||
-      c.phone.includes(q) ||
-      c.email.toLowerCase().includes(q) ||
-      c.address.toLowerCase().includes(q)
+    const matchedCustomers = data.customers.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        this.normalizePhone(c.phone).includes(this.normalizePhone(q)) ||
+        c.phone.includes(q) ||
+        c.email.toLowerCase().includes(q) ||
+        c.address.toLowerCase().includes(q),
     );
 
     // Also search call records for customers not in the profile store
-    const allCalls = callsService.getCalls({ searchQuery: query });
-    const callCustomerIds = new Set(matchedCustomers.map(c => c.id));
+    const allCalls = await callsService.getCalls({ searchQuery: query });
+    const callCustomerIds = new Set(matchedCustomers.map((c) => c.id));
 
     // Build profiles from call data for unmatched customers
     const callCustomerMap = new Map<string, CallRecord[]>();
@@ -593,39 +730,22 @@ class CommunicationHubService {
    * Get recent activity across all customers.
    */
   async getRecentActivity(limit: number = 50): Promise<CommunicationEvent[]> {
-    const commsData = this.readCommsData();
-    const notesData = this.readNotesData();
+    const data = await this.loadCached();
 
     const events: CommunicationEvent[] = [];
 
-    // 1. Stored communication events
-    events.push(...commsData.events);
+    // 1. Stored communication events (includes notes)
+    events.push(...data.events);
 
     // 2. Recent calls
-    const recentCalls = callsService.getRecentCalls(limit);
+    const recentCalls = await callsService.getRecentCalls(limit);
     for (const call of recentCalls) {
       events.push(this.callToEvent(call));
     }
 
-    // 3. Recent notes
-    const recentNotes = notesData.notes.slice(0, limit);
-    for (const note of recentNotes) {
-      events.push({
-        id: note.id,
-        type: 'note',
-        timestamp: note.createdAt,
-        from: note.author,
-        to: note.customerId,
-        body: note.note,
-        repName: note.author,
-        isRead: true,
-        metadata: { customerId: note.customerId },
-      });
-    }
-
     // Deduplicate by ID
     const seen = new Set<string>();
-    const unique = events.filter(e => {
+    const unique = events.filter((e) => {
       if (seen.has(e.id)) return false;
       seen.add(e.id);
       return true;
@@ -640,34 +760,33 @@ class CommunicationHubService {
   /**
    * Mark a communication event as read.
    */
-  markAsRead(eventId: string): boolean {
-    const commsData = this.readCommsData();
-    const index = commsData.events.findIndex(e => e.id === eventId);
-    if (index >= 0) {
-      commsData.events[index].isRead = true;
-      this.writeCommsData(commsData);
-      return true;
-    }
-    return false;
+  async markAsRead(eventId: string): Promise<boolean> {
+    const data = await this.loadCached();
+    const event = data.events.find((e) => e.id === eventId);
+    if (!event) return false;
+    if (event.isRead) return true;
+    event.isRead = true;
+    await this.saveEvent(event);
+    return true;
   }
 
   /**
    * Get all stored customer profiles, sorted by last contact.
    */
-  getAllCustomers(): CustomerProfile[] {
-    const commsData = this.readCommsData();
-    return [...commsData.customers].sort(
-      (a, b) => new Date(b.lastContact).getTime() - new Date(a.lastContact).getTime()
+  async getAllCustomers(): Promise<CustomerProfile[]> {
+    const data = await this.loadCached();
+    return [...data.customers].sort(
+      (a, b) => new Date(b.lastContact).getTime() - new Date(a.lastContact).getTime(),
     );
   }
 
   /**
    * Get unread event count for a customer.
    */
-  getUnreadCount(customerId: string): number {
-    const commsData = this.readCommsData();
-    return commsData.events.filter(
-      e => e.metadata?.customerId === customerId && !e.isRead
+  async getUnreadCount(customerId: string): Promise<number> {
+    const data = await this.loadCached();
+    return data.events.filter(
+      (e) => e.metadata?.customerId === customerId && !e.isRead,
     ).length;
   }
 }

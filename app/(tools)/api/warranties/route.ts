@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { warrantyService } from '@/lib/warranty-service';
 
 /**
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
     const expiringDaysStr = searchParams.get('expiringDays');
     const expiringDays = expiringDaysStr ? parseInt(expiringDaysStr, 10) : undefined;
 
-    const warranties = warrantyService.searchWarranties({
+    const warranties = await warrantyService.searchWarranties({
       customerId,
       status,
       type,
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest) {
       expiringDays,
     });
 
-    const stats = warrantyService.getWarrantyStats();
+    const stats = await warrantyService.getWarrantyStats();
 
     return NextResponse.json({
       success: true,
@@ -68,6 +69,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
 
     // Validate required fields
@@ -89,7 +93,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const warranty = warrantyService.createWarranty({
+    const warranty = await warrantyService.createWarranty({
       customerId: body.customerId || `CUST-${Date.now()}`,
       customerName: body.customerName,
       customerPhone: body.customerPhone,

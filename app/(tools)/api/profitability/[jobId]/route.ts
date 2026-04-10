@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { profitabilityService } from '@/lib/profitability-service';
 
 export const dynamic = 'force-dynamic';
@@ -18,7 +19,7 @@ export async function GET(
   { params }: { params: { jobId: string } }
 ) {
   try {
-    const jobCost = profitabilityService.getJobCost(params.jobId);
+    const jobCost = await profitabilityService.getJobCost(params.jobId);
     if (!jobCost) {
       return NextResponse.json(
         { error: 'Job cost entry not found' },
@@ -26,7 +27,7 @@ export async function GET(
       );
     }
 
-    const profitability = profitabilityService.calculateProfitability(params.jobId);
+    const profitability = await profitabilityService.calculateProfitability(params.jobId);
 
     return NextResponse.json({
       jobCost,
@@ -54,6 +55,9 @@ export async function PATCH(
   { params }: { params: { jobId: string } }
 ) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
     const { action } = body;
 
@@ -90,7 +94,7 @@ export async function PATCH(
           );
         }
 
-        const costItem = profitabilityService.addCostItem(jobId, category, {
+        const costItem = await profitabilityService.addCostItem(jobId, category, {
           description: item.description,
           category: item.category || category,
           quantity: Number(item.quantity),
@@ -100,7 +104,7 @@ export async function PATCH(
           date: item.date,
         });
 
-        const jobCost = profitabilityService.getJobCost(jobId);
+        const jobCost = await profitabilityService.getJobCost(jobId);
         return NextResponse.json({ costItem, jobCost });
       }
 
@@ -113,8 +117,8 @@ export async function PATCH(
           );
         }
 
-        profitabilityService.removeCostItem(jobId, costItemId);
-        const jobCost = profitabilityService.getJobCost(jobId);
+        await profitabilityService.removeCostItem(jobId, costItemId);
+        const jobCost = await profitabilityService.getJobCost(jobId);
         return NextResponse.json({ jobCost });
       }
 
@@ -127,7 +131,7 @@ export async function PATCH(
           );
         }
 
-        const jobCost = profitabilityService.updateJobCost(jobId, updates);
+        const jobCost = await profitabilityService.updateJobCost(jobId, updates);
         return NextResponse.json({ jobCost });
       }
 

@@ -310,6 +310,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  const _hbStart = Date.now();
   const startTime = Date.now();
   const dateStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
@@ -420,6 +421,9 @@ export async function GET(request: NextRequest) {
       `[backup-sheets] Complete: ${manifest.totals.tabsBacked} tabs, ${manifest.totals.totalRows} rows, ${manifest.totals.localJsonFilesBacked} local JSON files in ${elapsedSeconds}s`,
     );
 
+    const { recordCronHeartbeat } = await import('@/lib/cron-heartbeat');
+    await recordCronHeartbeat('backup-sheets', 'success', Date.now() - _hbStart, `${manifest.totals.tabsBacked} tabs, ${manifest.totals.totalRows} rows`);
+
     return NextResponse.json({
       success: true,
       message: `Backup complete for ${dateStr}`,
@@ -449,6 +453,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[backup-sheets] Failed:', message);
+
+    try {
+      const { recordCronHeartbeat } = await import('@/lib/cron-heartbeat');
+      await recordCronHeartbeat('backup-sheets', 'error', Date.now() - _hbStart, message);
+    } catch { /* heartbeat must not mask real error */ }
 
     return NextResponse.json(
       {

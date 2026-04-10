@@ -10,6 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { timeTrackingService } from '@/lib/time-tracking-service';
 
 /**
@@ -35,12 +36,12 @@ export async function GET(request: NextRequest) {
     }
 
     if (repSlug) {
-      const summary = timeTrackingService.getTimesheetSummary(repSlug, startDate, endDate);
+      const summary = await timeTrackingService.getTimesheetSummary(repSlug, startDate, endDate);
       return NextResponse.json({ success: true, timesheet: summary });
     }
 
     // Team view
-    const timesheets = timeTrackingService.getTeamTimesheets(startDate, endDate);
+    const timesheets = await timeTrackingService.getTeamTimesheets(startDate, endDate);
     return NextResponse.json({
       success: true,
       timesheets,
@@ -63,6 +64,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
     const { repSlug, startDate, endDate } = body;
 
@@ -73,7 +77,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const summary = timeTrackingService.getTimesheetSummary(repSlug, startDate, endDate);
+    const summary = await timeTrackingService.getTimesheetSummary(repSlug, startDate, endDate);
     // Verify all entries are completed (not still active)
     const activeEntries = summary.entries.filter((e) => e.status === 'active');
     if (activeEntries.length > 0) {
@@ -105,6 +109,9 @@ export async function POST(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
     const { repSlug, startDate, endDate, action, approvedBy } = body;
 
@@ -122,14 +129,14 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    timeTrackingService.approveTimesheet(
+    await timeTrackingService.approveTimesheet(
       repSlug,
       { start: startDate, end: endDate },
       approvedBy,
       action
     );
 
-    const summary = timeTrackingService.getTimesheetSummary(repSlug, startDate, endDate);
+    const summary = await timeTrackingService.getTimesheetSummary(repSlug, startDate, endDate);
 
     return NextResponse.json({
       success: true,

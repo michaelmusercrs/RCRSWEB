@@ -2,14 +2,18 @@
  * Route Tracker Service for River City Roofing Solutions
  *
  * GPS route tracking with stop management, route optimization (nearest-neighbor),
- * and driver analytics. Data persisted in data/routes.json.
+ * and driver analytics.
  *
- * @version 1.0.0
+ * Persisted to the Google Sheets master workbook (Routes tab). One row per
+ * route; stops are stored as a JSON blob within the row. The legacy
+ * data/routes.json file is left in place as a dev seed but no longer
+ * read or written at runtime.
+ *
+ * @version 2.0.0
  */
 
-import fs from 'fs';
-import path from 'path';
 import crypto from 'crypto';
+import { googleSheetsService, SHEET_NAMES } from './google-sheets-service';
 
 // =============================================================================
 // TYPES
@@ -78,14 +82,8 @@ export interface RouteAnalytics {
 }
 
 // =============================================================================
-// DATA HELPERS
+// CONSTANTS
 // =============================================================================
-
-interface RouteData {
-  routes: Route[];
-}
-
-const ROUTES_FILE = path.join(process.cwd(), 'data', 'routes.json');
 
 // Huntsville, AL warehouse
 const WAREHOUSE_LOCATION = {
@@ -99,29 +97,94 @@ const AVG_SPEED_MPH = 30;
 // Average minutes spent at each stop
 const AVG_STOP_DURATION = 20;
 
-function readRoutes(): RouteData {
-  try {
-    if (fs.existsSync(ROUTES_FILE)) {
-      const content = fs.readFileSync(ROUTES_FILE, 'utf-8');
-      return JSON.parse(content);
-    }
-  } catch (error) {
-    console.error('[RouteTrackerService] Error reading routes:', error);
-  }
-  return { routes: [] };
+// =============================================================================
+// SHEET SCHEMA
+// =============================================================================
+
+const ROUTE_HEADERS: string[] = [
+  'id',
+  'date',
+  'driverId',
+  'driverName',
+  'vehicleId',
+  'stops',           // JSON RouteStop[]
+  'startLocation',   // JSON {address, lat, lng}
+  'startTime',
+  'endTime',
+  'totalMiles',
+  'totalStops',
+  'completedStops',
+  'status',
+  'optimizedOrder',  // JSON number[]
+  'estimatedTotalTime',
+  'actualTotalTime',
+  'createdAt',
+  'updatedAt',
+];
+
+function parseNumber(raw: string): number {
+  if (!raw) return 0;
+  const n = parseFloat(raw);
+  return Number.isFinite(n) ? n : 0;
 }
 
-function writeRoutes(data: RouteData): void {
+function parseJson<T>(raw: string, fallback: T): T {
+  if (!raw) return fallback;
   try {
-    const dir = path.dirname(ROUTES_FILE);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(ROUTES_FILE, JSON.stringify(data, null, 2));
-  } catch (error) {
-    console.error('[RouteTrackerService] Error writing routes:', error);
-    throw error;
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
   }
+}
+
+function rowToRoute(row: Record<string, string>): Route {
+  const route: Route = {
+    id: row.id || '',
+    date: row.date || '',
+    driverId: row.driverId || '',
+    driverName: row.driverName || '',
+    stops: parseJson<RouteStop[]>(row.stops, []),
+    startLocation: parseJson<Route['startLocation']>(
+      row.startLocation,
+      { ...WAREHOUSE_LOCATION }
+    ),
+    startTime: row.startTime || '',
+    totalMiles: parseNumber(row.totalMiles),
+    totalStops: parseNumber(row.totalStops),
+    completedStops: parseNumber(row.completedStops),
+    status: (row.status as Route['status']) || 'planned',
+    estimatedTotalTime: parseNumber(row.estimatedTotalTime),
+    createdAt: row.createdAt || '',
+    updatedAt: row.updatedAt || '',
+  };
+  if (row.vehicleId) route.vehicleId = row.vehicleId;
+  if (row.endTime) route.endTime = row.endTime;
+  if (row.optimizedOrder) route.optimizedOrder = parseJson<number[]>(row.optimizedOrder, []);
+  if (row.actualTotalTime) route.actualTotalTime = parseNumber(row.actualTotalTime);
+  return route;
+}
+
+function routeToRow(route: Route): Record<string, unknown> {
+  return {
+    id: route.id,
+    date: route.date,
+    driverId: route.driverId,
+    driverName: route.driverName,
+    vehicleId: route.vehicleId || '',
+    stops: JSON.stringify(route.stops || []),
+    startLocation: JSON.stringify(route.startLocation),
+    startTime: route.startTime,
+    endTime: route.endTime || '',
+    totalMiles: route.totalMiles,
+    totalStops: route.totalStops,
+    completedStops: route.completedStops,
+    status: route.status,
+    optimizedOrder: route.optimizedOrder ? JSON.stringify(route.optimizedOrder) : '',
+    estimatedTotalTime: route.estimatedTotalTime,
+    actualTotalTime: route.actualTotalTime ?? '',
+    createdAt: route.createdAt,
+    updatedAt: route.updatedAt,
+  };
 }
 
 function generateId(prefix: string): string {
@@ -133,6 +196,43 @@ function generateId(prefix: string): string {
 // =============================================================================
 
 class RouteTrackerService {
+  // 60-second in-memory cache
+  private cache: Route[] | null = null;
+  private cacheExpiresAt = 0;
+  private readonly CACHE_TTL_MS = 60_000;
+
+  private async loadFromSheet(): Promise<Route[]> {
+    const rows = await googleSheetsService.getGenericRows(
+      SHEET_NAMES.ROUTES,
+      ROUTE_HEADERS
+    );
+    return rows.map(rowToRoute);
+  }
+
+  private async loadCached(): Promise<Route[]> {
+    if (this.cache && Date.now() < this.cacheExpiresAt) {
+      return this.cache;
+    }
+    this.cache = await this.loadFromSheet();
+    this.cacheExpiresAt = Date.now() + this.CACHE_TTL_MS;
+    return this.cache;
+  }
+
+  private invalidateCache(): void {
+    this.cache = null;
+    this.cacheExpiresAt = 0;
+  }
+
+  private async persist(route: Route): Promise<void> {
+    await googleSheetsService.upsertGenericRow(
+      SHEET_NAMES.ROUTES,
+      ROUTE_HEADERS,
+      'id',
+      routeToRow(route)
+    );
+    this.invalidateCache();
+  }
+
   /**
    * Haversine distance between two lat/lng points in miles.
    */
@@ -210,15 +310,13 @@ class RouteTrackerService {
   /**
    * Create a new route with stops.
    */
-  createRoute(
+  async createRoute(
     driverId: string,
     driverName: string,
     date: string,
     stops: Omit<RouteStop, 'id' | 'order' | 'status' | 'estimatedArrival' | 'photos' | 'notes'>[],
     vehicleId?: string
-  ): Route {
-    const data = readRoutes();
-
+  ): Promise<Route> {
     const routeStops: RouteStop[] = stops.map((s, idx) => ({
       id: generateId('stop'),
       order: idx + 1,
@@ -270,31 +368,31 @@ class RouteTrackerService {
     );
     route.estimatedTotalTime = driveTime + stopTime;
 
-    data.routes.push(route);
-    writeRoutes(data);
+    await this.persist(route);
     return route;
   }
 
   /**
    * Get a route by ID.
    */
-  getRoute(routeId: string): Route | null {
-    const data = readRoutes();
-    return data.routes.find((r) => r.id === routeId) || null;
+  async getRoute(routeId: string): Promise<Route | null> {
+    const routes = await this.loadCached();
+    return routes.find((r) => r.id === routeId) || null;
   }
 
   /**
    * Optimize a route's stop order using nearest-neighbor heuristic.
    * Reorders stops to minimize total distance starting from the warehouse.
    */
-  optimizeRoute(routeId: string): Route {
-    const data = readRoutes();
-    const route = data.routes.find((r) => r.id === routeId);
-    if (!route) throw new Error(`Route ${routeId} not found`);
-    if (route.status !== 'planned') {
+  async optimizeRoute(routeId: string): Promise<Route> {
+    const routes = await this.loadCached();
+    const existing = routes.find((r) => r.id === routeId);
+    if (!existing) throw new Error(`Route ${routeId} not found`);
+    if (existing.status !== 'planned') {
       throw new Error('Can only optimize planned routes');
     }
 
+    const route: Route = { ...existing, stops: existing.stops.map((s) => ({ ...s })) };
     const stops = [...route.stops];
     if (stops.length <= 1) return route;
 
@@ -345,7 +443,7 @@ class RouteTrackerService {
     route.estimatedTotalTime = driveTime + stopTime;
     route.updatedAt = new Date().toISOString();
 
-    writeRoutes(data);
+    await this.persist(route);
     return route;
   }
 
@@ -391,14 +489,15 @@ class RouteTrackerService {
   /**
    * Start a route — set status to active and record start time.
    */
-  startRoute(routeId: string): Route {
-    const data = readRoutes();
-    const route = data.routes.find((r) => r.id === routeId);
-    if (!route) throw new Error(`Route ${routeId} not found`);
-    if (route.status !== 'planned') {
+  async startRoute(routeId: string): Promise<Route> {
+    const routes = await this.loadCached();
+    const existing = routes.find((r) => r.id === routeId);
+    if (!existing) throw new Error(`Route ${routeId} not found`);
+    if (existing.status !== 'planned') {
       throw new Error('Can only start a planned route');
     }
 
+    const route: Route = { ...existing, stops: existing.stops.map((s) => ({ ...s })) };
     route.status = 'active';
     route.startTime = new Date().toISOString();
     // Set first stop as en_route
@@ -407,18 +506,19 @@ class RouteTrackerService {
     }
     route.updatedAt = new Date().toISOString();
 
-    writeRoutes(data);
+    await this.persist(route);
     return route;
   }
 
   /**
    * Mark arrival at a stop.
    */
-  arriveAtStop(routeId: string, stopId: string): RouteStop {
-    const data = readRoutes();
-    const route = data.routes.find((r) => r.id === routeId);
-    if (!route) throw new Error(`Route ${routeId} not found`);
+  async arriveAtStop(routeId: string, stopId: string): Promise<RouteStop> {
+    const routes = await this.loadCached();
+    const existing = routes.find((r) => r.id === routeId);
+    if (!existing) throw new Error(`Route ${routeId} not found`);
 
+    const route: Route = { ...existing, stops: existing.stops.map((s) => ({ ...s })) };
     const stop = route.stops.find((s) => s.id === stopId);
     if (!stop) throw new Error(`Stop ${stopId} not found`);
 
@@ -426,23 +526,24 @@ class RouteTrackerService {
     stop.actualArrival = new Date().toISOString();
     route.updatedAt = new Date().toISOString();
 
-    writeRoutes(data);
+    await this.persist(route);
     return stop;
   }
 
   /**
    * Depart from a stop — mark completed and optionally add notes/photos.
    */
-  departStop(
+  async departStop(
     routeId: string,
     stopId: string,
     notes?: string,
     photos?: string[]
-  ): RouteStop {
-    const data = readRoutes();
-    const route = data.routes.find((r) => r.id === routeId);
-    if (!route) throw new Error(`Route ${routeId} not found`);
+  ): Promise<RouteStop> {
+    const routes = await this.loadCached();
+    const existing = routes.find((r) => r.id === routeId);
+    if (!existing) throw new Error(`Route ${routeId} not found`);
 
+    const route: Route = { ...existing, stops: existing.stops.map((s) => ({ ...s })) };
     const stop = route.stops.find((s) => s.id === stopId);
     if (!stop) throw new Error(`Stop ${stopId} not found`);
 
@@ -473,18 +574,19 @@ class RouteTrackerService {
     }
 
     route.updatedAt = new Date().toISOString();
-    writeRoutes(data);
+    await this.persist(route);
     return stop;
   }
 
   /**
    * Skip a stop with a reason.
    */
-  skipStop(routeId: string, stopId: string, reason: string): RouteStop {
-    const data = readRoutes();
-    const route = data.routes.find((r) => r.id === routeId);
-    if (!route) throw new Error(`Route ${routeId} not found`);
+  async skipStop(routeId: string, stopId: string, reason: string): Promise<RouteStop> {
+    const routes = await this.loadCached();
+    const existing = routes.find((r) => r.id === routeId);
+    if (!existing) throw new Error(`Route ${routeId} not found`);
 
+    const route: Route = { ...existing, stops: existing.stops.map((s) => ({ ...s })) };
     const stop = route.stops.find((s) => s.id === stopId);
     if (!stop) throw new Error(`Stop ${stopId} not found`);
 
@@ -501,18 +603,19 @@ class RouteTrackerService {
     }
 
     route.updatedAt = new Date().toISOString();
-    writeRoutes(data);
+    await this.persist(route);
     return stop;
   }
 
   /**
    * Complete the entire route.
    */
-  completeRoute(routeId: string): Route {
-    const data = readRoutes();
-    const route = data.routes.find((r) => r.id === routeId);
-    if (!route) throw new Error(`Route ${routeId} not found`);
+  async completeRoute(routeId: string): Promise<Route> {
+    const routes = await this.loadCached();
+    const existing = routes.find((r) => r.id === routeId);
+    if (!existing) throw new Error(`Route ${routeId} not found`);
 
+    const route: Route = { ...existing, stops: existing.stops.map((s) => ({ ...s })) };
     route.status = 'completed';
     route.endTime = new Date().toISOString();
     route.completedStops = route.stops.filter(
@@ -527,7 +630,7 @@ class RouteTrackerService {
     }
 
     route.updatedAt = new Date().toISOString();
-    writeRoutes(data);
+    await this.persist(route);
     return route;
   }
 
@@ -538,17 +641,17 @@ class RouteTrackerService {
   /**
    * Get all currently active routes.
    */
-  getActiveRoutes(): Route[] {
-    const data = readRoutes();
-    return data.routes.filter((r) => r.status === 'active');
+  async getActiveRoutes(): Promise<Route[]> {
+    const routes = await this.loadCached();
+    return routes.filter((r) => r.status === 'active');
   }
 
   /**
    * Get route history with optional filters.
    */
-  getRouteHistory(driverId?: string, limit?: number): Route[] {
-    const data = readRoutes();
-    let routes = [...data.routes].sort(
+  async getRouteHistory(driverId?: string, limit?: number): Promise<Route[]> {
+    const all = await this.loadCached();
+    let routes = [...all].sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
 
@@ -564,14 +667,14 @@ class RouteTrackerService {
   /**
    * List routes with filters.
    */
-  listRoutes(filters?: {
+  async listRoutes(filters?: {
     driverId?: string;
     date?: string;
     status?: string;
     limit?: number;
-  }): Route[] {
-    const data = readRoutes();
-    let routes = [...data.routes];
+  }): Promise<Route[]> {
+    const all = await this.loadCached();
+    let routes = [...all];
 
     if (filters?.driverId) {
       routes = routes.filter((r) => r.driverId === filters.driverId);
@@ -602,9 +705,9 @@ class RouteTrackerService {
   /**
    * Get route analytics, optionally filtered by date range.
    */
-  getAnalytics(startDate?: string, endDate?: string): RouteAnalytics {
-    const data = readRoutes();
-    let routes = data.routes.filter((r) => r.status === 'completed');
+  async getAnalytics(startDate?: string, endDate?: string): Promise<RouteAnalytics> {
+    const all = await this.loadCached();
+    let routes = all.filter((r) => r.status === 'completed');
 
     if (startDate) {
       routes = routes.filter((r) => r.date >= startDate);

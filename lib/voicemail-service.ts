@@ -2,18 +2,17 @@
  * RCRS Voicemail Management Service
  *
  * Complete voicemail management with:
- * - Storage/retrieval from data/voicemails.json
- * - Transcription (placeholder for AI integration)
+ * - Storage/retrieval in Google Sheets (Voicemails tab)
+ * - Transcription (OpenAI Whisper)
  * - Sharing, notes, and job linking
  * - Read/unread tracking
  *
  * @author RCRS Development Team
- * @version 1.0.0
+ * @version 2.0.0
  */
 
-import fs from 'fs';
-import path from 'path';
 import crypto from 'crypto';
+import { googleSheetsService, SHEET_NAMES } from './google-sheets-service';
 
 // =============================================================================
 // TYPES
@@ -72,51 +71,100 @@ export interface VoicemailFilter {
 }
 
 // =============================================================================
-// DATA PATH
+// SHEET SCHEMA
 // =============================================================================
 
-const DATA_FILE_PATH = path.join(process.cwd(), 'data', 'voicemails.json');
+const VOICEMAIL_HEADERS: string[] = [
+  'id',
+  'callId',
+  'callerPhone',
+  'callerName',
+  'extension',
+  'timestamp',
+  'duration',
+  'audioUrl',
+  'transcription',
+  'isRead',
+  'isUrgent',
+  'linkedJobId',
+  'linkedContactId',
+  'sharedWith',
+  'notes',
+  'createdAt',
+  'updatedAt',
+];
 
 // =============================================================================
 // SERVICE CLASS
 // =============================================================================
 
 class VoicemailService {
-  /**
-   * Read voicemail data from file
-   */
-  private readData(): VoicemailData {
+  private cache: VoicemailMessage[] | null = null;
+  private cacheExpiresAt = 0;
+  private readonly CACHE_TTL_MS = 60_000;
+
+  // ---------------------------------------------------------------------------
+  // Sheet I/O
+  // ---------------------------------------------------------------------------
+
+  private parseRow(row: Record<string, string>): VoicemailMessage {
+    let sharedWith: string[] = [];
     try {
-      if (fs.existsSync(DATA_FILE_PATH)) {
-        const content = fs.readFileSync(DATA_FILE_PATH, 'utf-8');
-        return JSON.parse(content);
-      }
-    } catch (error) {
-      console.error('Error reading voicemail data:', error);
+      sharedWith = row.sharedWith ? JSON.parse(row.sharedWith) : [];
+      if (!Array.isArray(sharedWith)) sharedWith = [];
+    } catch {
+      sharedWith = row.sharedWith ? row.sharedWith.split(',').map(s => s.trim()).filter(Boolean) : [];
     }
 
     return {
-      voicemails: [],
-      lastUpdated: new Date().toISOString(),
+      id: row.id || '',
+      callId: row.callId || '',
+      callerPhone: row.callerPhone || '',
+      callerName: row.callerName || '',
+      extension: row.extension || '',
+      timestamp: row.timestamp || '',
+      duration: Number(row.duration) || 0,
+      audioUrl: row.audioUrl || '',
+      transcription: row.transcription || '',
+      isRead: row.isRead === 'true',
+      isUrgent: row.isUrgent === 'true',
+      linkedJobId: row.linkedJobId || '',
+      linkedContactId: row.linkedContactId || '',
+      sharedWith,
+      notes: row.notes || '',
+      createdAt: row.createdAt || '',
+      updatedAt: row.updatedAt || '',
     };
   }
 
-  /**
-   * Write voicemail data to file
-   */
-  private writeData(data: VoicemailData): void {
-    try {
-      const dir = path.dirname(DATA_FILE_PATH);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
+  private async loadFromSheet(): Promise<VoicemailMessage[]> {
+    const rows = await googleSheetsService.getGenericRows(
+      SHEET_NAMES.VOICEMAILS,
+      VOICEMAIL_HEADERS,
+    );
+    return rows.map(r => this.parseRow(r));
+  }
 
-      data.lastUpdated = new Date().toISOString();
-      fs.writeFileSync(DATA_FILE_PATH, JSON.stringify(data, null, 2));
-    } catch (error) {
-      console.error('Error writing voicemail data:', error);
-      throw error;
-    }
+  private async loadCached(): Promise<VoicemailMessage[]> {
+    if (this.cache && Date.now() < this.cacheExpiresAt) return this.cache;
+    this.cache = await this.loadFromSheet();
+    this.cacheExpiresAt = Date.now() + this.CACHE_TTL_MS;
+    return this.cache;
+  }
+
+  private invalidateCache(): void {
+    this.cache = null;
+    this.cacheExpiresAt = 0;
+  }
+
+  private async upsert(vm: VoicemailMessage): Promise<void> {
+    await googleSheetsService.upsertGenericRow(
+      SHEET_NAMES.VOICEMAILS,
+      VOICEMAIL_HEADERS,
+      'id',
+      vm as unknown as Record<string, unknown>,
+    );
+    this.invalidateCache();
   }
 
   /**
@@ -135,9 +183,9 @@ class VoicemailService {
   /**
    * Get all voicemails with optional filtering
    */
-  getAll(filter?: VoicemailFilter): VoicemailMessage[] {
-    const data = this.readData();
-    let voicemails = [...data.voicemails];
+  async getAll(filter?: VoicemailFilter): Promise<VoicemailMessage[]> {
+    const all = await this.loadCached();
+    let voicemails = [...all];
 
     if (filter) {
       if (filter.extension) {
@@ -180,23 +228,22 @@ class VoicemailService {
   /**
    * Get voicemails for a specific extension
    */
-  getByExtension(extension: string): VoicemailMessage[] {
+  async getByExtension(extension: string): Promise<VoicemailMessage[]> {
     return this.getAll({ extension });
   }
 
   /**
    * Get a single voicemail by ID
    */
-  getById(id: string): VoicemailMessage | null {
-    const data = this.readData();
-    return data.voicemails.find(vm => vm.id === id) || null;
+  async getById(id: string): Promise<VoicemailMessage | null> {
+    const all = await this.loadCached();
+    return all.find(vm => vm.id === id) || null;
   }
 
   /**
    * Create a new voicemail record
    */
-  create(voicemailData: Partial<VoicemailMessage>): VoicemailMessage {
-    const data = this.readData();
+  async create(voicemailData: Partial<VoicemailMessage>): Promise<VoicemailMessage> {
     const now = new Date().toISOString();
 
     const newVoicemail: VoicemailMessage = {
@@ -219,60 +266,49 @@ class VoicemailService {
       updatedAt: now,
     };
 
-    data.voicemails.unshift(newVoicemail);
-    this.writeData(data);
-
+    await this.upsert(newVoicemail);
     return newVoicemail;
   }
 
   /**
    * Mark a voicemail as read
    */
-  markAsRead(id: string): VoicemailMessage | null {
-    const data = this.readData();
-    const index = data.voicemails.findIndex(vm => vm.id === id);
-    if (index < 0) return null;
-
-    data.voicemails[index].isRead = true;
-    data.voicemails[index].updatedAt = new Date().toISOString();
-    this.writeData(data);
-
-    return data.voicemails[index];
+  async markAsRead(id: string): Promise<VoicemailMessage | null> {
+    const vm = await this.getById(id);
+    if (!vm) return null;
+    vm.isRead = true;
+    vm.updatedAt = new Date().toISOString();
+    await this.upsert(vm);
+    return vm;
   }
 
   /**
    * Mark a voicemail as unread
    */
-  markAsUnread(id: string): VoicemailMessage | null {
-    const data = this.readData();
-    const index = data.voicemails.findIndex(vm => vm.id === id);
-    if (index < 0) return null;
-
-    data.voicemails[index].isRead = false;
-    data.voicemails[index].updatedAt = new Date().toISOString();
-    this.writeData(data);
-
-    return data.voicemails[index];
+  async markAsUnread(id: string): Promise<VoicemailMessage | null> {
+    const vm = await this.getById(id);
+    if (!vm) return null;
+    vm.isRead = false;
+    vm.updatedAt = new Date().toISOString();
+    await this.upsert(vm);
+    return vm;
   }
 
   /**
    * Mark all voicemails as read, optionally filtered by extension
    */
-  markAllRead(extension?: string): number {
-    const data = this.readData();
+  async markAllRead(extension?: string): Promise<number> {
+    const all = await this.loadCached();
     const now = new Date().toISOString();
     let count = 0;
 
-    data.voicemails.forEach(vm => {
+    for (const vm of all) {
       if (!vm.isRead && (!extension || vm.extension === extension)) {
         vm.isRead = true;
         vm.updatedAt = now;
+        await this.upsert(vm);
         count++;
       }
-    });
-
-    if (count > 0) {
-      this.writeData(data);
     }
 
     return count;
@@ -281,107 +317,89 @@ class VoicemailService {
   /**
    * Delete a voicemail
    */
-  deleteVoicemail(id: string): boolean {
-    const data = this.readData();
-    const initialLength = data.voicemails.length;
-    data.voicemails = data.voicemails.filter(vm => vm.id !== id);
-
-    if (data.voicemails.length < initialLength) {
-      this.writeData(data);
-      return true;
-    }
-
-    return false;
+  async deleteVoicemail(id: string): Promise<boolean> {
+    const deleted = await googleSheetsService.deleteGenericRow(
+      SHEET_NAMES.VOICEMAILS,
+      'id',
+      id,
+    );
+    if (deleted) this.invalidateCache();
+    return deleted;
   }
 
   /**
    * Add a note to a voicemail
    */
-  addNote(id: string, note: string): VoicemailMessage | null {
-    const data = this.readData();
-    const index = data.voicemails.findIndex(vm => vm.id === id);
-    if (index < 0) return null;
+  async addNote(id: string, note: string): Promise<VoicemailMessage | null> {
+    const vm = await this.getById(id);
+    if (!vm) return null;
 
     const now = new Date().toISOString();
-    // Append note with timestamp
-    const existingNotes = data.voicemails[index].notes;
     const formattedNote = `[${now}] ${note}`;
-    data.voicemails[index].notes = existingNotes
-      ? `${existingNotes}\n${formattedNote}`
-      : formattedNote;
-    data.voicemails[index].updatedAt = now;
-    this.writeData(data);
-
-    return data.voicemails[index];
+    vm.notes = vm.notes ? `${vm.notes}\n${formattedNote}` : formattedNote;
+    vm.updatedAt = now;
+    await this.upsert(vm);
+    return vm;
   }
 
   /**
    * Share a voicemail with team members
    */
-  shareWithTeam(id: string, userIds: string[]): VoicemailMessage | null {
-    const data = this.readData();
-    const index = data.voicemails.findIndex(vm => vm.id === id);
-    if (index < 0) return null;
+  async shareWithTeam(id: string, userIds: string[]): Promise<VoicemailMessage | null> {
+    const vm = await this.getById(id);
+    if (!vm) return null;
 
-    const existing = data.voicemails[index].sharedWith || [];
-    data.voicemails[index].sharedWith = [...new Set([...existing, ...userIds])];
-    data.voicemails[index].updatedAt = new Date().toISOString();
-    this.writeData(data);
-
-    return data.voicemails[index];
+    vm.sharedWith = [...new Set([...(vm.sharedWith || []), ...userIds])];
+    vm.updatedAt = new Date().toISOString();
+    await this.upsert(vm);
+    return vm;
   }
 
   /**
    * Link a voicemail to a JobNimbus job
    */
-  linkToJob(id: string, jobId: string, contactId?: string): VoicemailMessage | null {
-    const data = this.readData();
-    const index = data.voicemails.findIndex(vm => vm.id === id);
-    if (index < 0) return null;
+  async linkToJob(id: string, jobId: string, contactId?: string): Promise<VoicemailMessage | null> {
+    const vm = await this.getById(id);
+    if (!vm) return null;
 
-    data.voicemails[index].linkedJobId = jobId;
-    if (contactId) {
-      data.voicemails[index].linkedContactId = contactId;
-    }
-    data.voicemails[index].updatedAt = new Date().toISOString();
-    this.writeData(data);
-
-    return data.voicemails[index];
+    vm.linkedJobId = jobId;
+    if (contactId) vm.linkedContactId = contactId;
+    vm.updatedAt = new Date().toISOString();
+    await this.upsert(vm);
+    return vm;
   }
 
   /**
    * Get total unread count across all extensions
    */
-  getUnreadCount(): number {
-    const data = this.readData();
-    return data.voicemails.filter(vm => !vm.isRead).length;
+  async getUnreadCount(): Promise<number> {
+    const all = await this.loadCached();
+    return all.filter(vm => !vm.isRead).length;
   }
 
   /**
    * Get unread count for a specific extension
    */
-  getUnreadByExtension(extension: string): number {
-    const data = this.readData();
-    return data.voicemails.filter(vm => !vm.isRead && vm.extension === extension).length;
+  async getUnreadByExtension(extension: string): Promise<number> {
+    const all = await this.loadCached();
+    return all.filter(vm => !vm.isRead && vm.extension === extension).length;
   }
 
   /**
    * Update a voicemail record with partial fields
    */
-  update(id: string, updates: Partial<VoicemailMessage>): VoicemailMessage | null {
-    const data = this.readData();
-    const index = data.voicemails.findIndex(vm => vm.id === id);
-    if (index < 0) return null;
+  async update(id: string, updates: Partial<VoicemailMessage>): Promise<VoicemailMessage | null> {
+    const vm = await this.getById(id);
+    if (!vm) return null;
 
-    data.voicemails[index] = {
-      ...data.voicemails[index],
+    const updated: VoicemailMessage = {
+      ...vm,
       ...updates,
       id, // Prevent ID changes
       updatedAt: new Date().toISOString(),
     };
-    this.writeData(data);
-
-    return data.voicemails[index];
+    await this.upsert(updated);
+    return updated;
   }
 
   /**
@@ -391,24 +409,19 @@ class VoicemailService {
    * Falls back to a placeholder message when the API key is not configured.
    */
   async transcribeVoicemail(id: string): Promise<VoicemailMessage | null> {
-    const data = this.readData();
-    const index = data.voicemails.findIndex(vm => vm.id === id);
-    if (index < 0) return null;
-
-    const voicemail = data.voicemails[index];
+    const voicemail = await this.getById(id);
+    if (!voicemail) return null;
 
     const openaiKey = process.env.OPENAI_API_KEY;
 
     if (openaiKey && voicemail.audioUrl) {
       try {
-        // Fetch the audio file
         const audioResponse = await fetch(voicemail.audioUrl);
         if (!audioResponse.ok) {
           throw new Error(`Failed to fetch audio: HTTP ${audioResponse.status}`);
         }
         const audioBlob = await audioResponse.blob();
 
-        // Build multipart form data for Whisper API
         const formData = new FormData();
         formData.append('file', audioBlob, 'voicemail.wav');
         formData.append('model', 'whisper-1');
@@ -437,23 +450,21 @@ class VoicemailService {
     }
     voicemail.updatedAt = new Date().toISOString();
 
-    this.writeData(data);
-
+    await this.upsert(voicemail);
     return voicemail;
   }
 
   /**
    * Get voicemail statistics
    */
-  getStats(): {
+  async getStats(): Promise<{
     total: number;
     unread: number;
     urgent: number;
     avgDuration: number;
     byExtension: { extension: string; total: number; unread: number }[];
-  } {
-    const data = this.readData();
-    const voicemails = data.voicemails;
+  }> {
+    const voicemails = await this.loadCached();
 
     const extensionMap = new Map<string, { total: number; unread: number }>();
     voicemails.forEach(vm => {

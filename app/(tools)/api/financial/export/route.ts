@@ -183,7 +183,7 @@ export async function GET(req: NextRequest) {
       // =====================================================================
       case 'profitability': {
         // Combine data from both profitability sources
-        const jobCosts = profitabilityService.listJobCosts();
+        const jobCosts = await profitabilityService.listJobCosts();
         const invoiceJobs = await financialService.getJobProfitability({
           dateFrom,
           dateTo,

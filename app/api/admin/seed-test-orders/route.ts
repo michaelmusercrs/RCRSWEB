@@ -24,7 +24,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth-service';
+import { requireAdmin } from '@/lib/auth-service';
 import { materialOrderPipeline } from '@/lib/material-order-pipeline';
 import { unifiedInventoryService } from '@/lib/unified-inventory-service';
 import { jobNimbusService, isJobNimbusConfigured } from '@/lib/jobnimbus-service';
@@ -148,7 +148,7 @@ function pickItemsForJN(seed: number, count: number = 5) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireAdmin();
   if (!auth.authenticated) return auth.response;
   if (!['admin', 'owner'].includes(auth.user.role)) {
     return NextResponse.json({ error: 'Admin or owner role required' }, { status: 403 });
@@ -317,7 +317,7 @@ export async function POST(request: NextRequest) {
 
 // GET — list which test orders currently exist (for reference + delete planning)
 export async function GET() {
-  const auth = await requireAuth();
+  const auth = await requireAdmin();
   if (!auth.authenticated) return auth.response;
   if (!['admin', 'owner'].includes(auth.user.role)) {
     return NextResponse.json({ error: 'Admin or owner role required' }, { status: 403 });
@@ -346,7 +346,7 @@ export async function GET() {
 
 // DELETE — cancel all test orders (cleanup)
 export async function DELETE() {
-  const auth = await requireAuth();
+  const auth = await requireAdmin();
   if (!auth.authenticated) return auth.response;
   if (!['admin', 'owner'].includes(auth.user.role)) {
     return NextResponse.json({ error: 'Admin or owner role required' }, { status: 403 });

@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { timeTrackingService } from '@/lib/time-tracking-service';
 
 /**
@@ -38,17 +39,17 @@ export async function GET(request: NextRequest) {
 
     // Get active entry for a rep
     if (active === 'true' && repSlug) {
-      const entry = timeTrackingService.getActiveEntry(repSlug);
+      const entry = await timeTrackingService.getActiveEntry(repSlug);
       return NextResponse.json({ success: true, entry });
     }
 
     // Get weekly hours for a rep
     if (weekly === 'true' && repSlug) {
-      const hours = timeTrackingService.getWeeklyHours(repSlug);
+      const hours = await timeTrackingService.getWeeklyHours(repSlug);
       return NextResponse.json({ success: true, hours });
     }
 
-    const entries = timeTrackingService.getEntries({
+    const entries = await timeTrackingService.getEntries({
       repSlug,
       date,
       startDate,
@@ -79,6 +80,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
 
     // Validate required fields
@@ -98,7 +102,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const entry = timeTrackingService.clockIn(
+    const entry = await timeTrackingService.clockIn(
       repSlug,
       repName,
       category,

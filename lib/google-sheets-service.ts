@@ -380,6 +380,7 @@ const SHEET_NAMES = {
   VENDOR_RETURNS: 'Vendor_Returns',
   // Driver GPS pings persisted so the office can see Rick on a map.
   DRIVER_LOCATIONS: 'Driver_Locations',
+  SYSTEM_HEALTH: 'SystemHealth',
 } as const;
 
 export type SheetName = (typeof SHEET_NAMES)[keyof typeof SHEET_NAMES];

@@ -11,6 +11,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import {
   reviewManagementService,
   RequestStatus,
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
     const pending = searchParams.get('pending');
 
     if (pending === 'true') {
-      const requests = reviewManagementService.getPendingRequests();
+      const requests = await reviewManagementService.getPendingRequests();
       return NextResponse.json({
         success: true,
         requests,
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const requests = reviewManagementService.getReviewRequests({
+    const requests = await reviewManagementService.getReviewRequests({
       status: status || undefined,
       repSlug,
       limit,
@@ -89,6 +90,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
 
     // Handle action-based requests
@@ -99,7 +103,7 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      const updated = reviewManagementService.sendReminder(body.requestId);
+      const updated = await reviewManagementService.sendReminder(body.requestId);
       if (!updated) {
         return NextResponse.json(
           { error: 'Review request not found' },
@@ -116,7 +120,7 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      const updated = reviewManagementService.updateRequestStatus(
+      const updated = await reviewManagementService.updateRequestStatus(
         body.requestId,
         body.status
       );
@@ -167,7 +171,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limit check: max 1 request per customer email per 30 days
-    const existingRequest = reviewManagementService.checkRateLimit(
+    const existingRequest = await reviewManagementService.checkRateLimit(
       body.customerEmail
     );
     if (existingRequest) {

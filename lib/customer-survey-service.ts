@@ -5,15 +5,16 @@
  * Supports rating, NPS, text, yes/no, and multiple choice question types.
  * Calculates sentiment, NPS scores, and per-rep breakdowns.
  *
- * Data stored in data/surveys.json, data/survey-responses.json
+ * Persistence (2026-04-09): Surveys and responses both live on the
+ * SHEET_NAMES.SURVEY_RESPONSES tab, differentiated by a `type` column
+ * (`survey` vs `response`). Invitations live on SHEET_NAMES.CUSTOMER_SURVEY_TOKENS.
  *
  * @author RCRS Development Team
- * @version 1.0.0
+ * @version 2.0.0
  */
 
-import fs from 'fs';
-import path from 'path';
 import crypto from 'crypto';
+import { googleSheetsService, SHEET_NAMES } from './google-sheets-service';
 
 // =============================================================================
 // TYPES
@@ -73,15 +74,7 @@ export interface SurveyAnalytics {
   trends: { month: string; avgRating: number; count: number }[];
 }
 
-interface SurveyData {
-  surveys: Survey[];
-}
-
-interface ResponseData {
-  responses: SurveyResponse[];
-}
-
-// Represents a pending survey invitation (stored in responses file with no answers yet)
+// Represents a pending survey invitation
 interface SurveyInvitation {
   token: string;
   surveyId: string;
@@ -96,81 +89,58 @@ interface SurveyInvitation {
 }
 
 // =============================================================================
-// DATA HELPERS
+// SHEET SCHEMAS
 // =============================================================================
 
-const SURVEYS_FILE = path.join(process.cwd(), 'data', 'surveys.json');
-const RESPONSES_FILE = path.join(process.cwd(), 'data', 'survey-responses.json');
-const INVITATIONS_FILE = path.join(process.cwd(), 'data', 'survey-invitations.json');
+/**
+ * Unified survey/response tab. `type` discriminates between a survey definition
+ * row (`survey`) and a customer response row (`response`). Irrelevant columns
+ * for the other kind are simply blank.
+ */
+const SURVEY_ROW_HEADERS: string[] = [
+  'id',
+  'type',
+  // survey columns
+  'surveyName',
+  'surveyType',
+  'questions',
+  'isActive',
+  'createdAt',
+  // response columns
+  'surveyId',
+  'customerId',
+  'customerName',
+  'customerEmail',
+  'jobId',
+  'repSlug',
+  'repName',
+  'answers',
+  'overallRating',
+  'npsScore',
+  'sentiment',
+  'submittedAt',
+  'token',
+  'followUpNeeded',
+  'followUpNote',
+  'followUpCompletedAt',
+];
 
-function readSurveys(): SurveyData {
-  try {
-    if (fs.existsSync(SURVEYS_FILE)) {
-      const content = fs.readFileSync(SURVEYS_FILE, 'utf-8');
-      return JSON.parse(content);
-    }
-  } catch (error) {
-    console.error('[SurveyService] Error reading surveys:', error);
-  }
-  return { surveys: [] };
-}
+const INVITATION_HEADERS: string[] = [
+  'token',
+  'surveyId',
+  'customerId',
+  'customerName',
+  'customerEmail',
+  'repSlug',
+  'repName',
+  'jobId',
+  'sentAt',
+  'method',
+];
 
-function writeSurveys(data: SurveyData): void {
-  try {
-    const dir = path.dirname(SURVEYS_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(SURVEYS_FILE, JSON.stringify(data, null, 2), 'utf-8');
-  } catch (error) {
-    console.error('[SurveyService] Error writing surveys:', error);
-    throw new Error('Failed to save survey data');
-  }
-}
-
-function readResponses(): ResponseData {
-  try {
-    if (fs.existsSync(RESPONSES_FILE)) {
-      const content = fs.readFileSync(RESPONSES_FILE, 'utf-8');
-      return JSON.parse(content);
-    }
-  } catch (error) {
-    console.error('[SurveyService] Error reading responses:', error);
-  }
-  return { responses: [] };
-}
-
-function writeResponses(data: ResponseData): void {
-  try {
-    const dir = path.dirname(RESPONSES_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(RESPONSES_FILE, JSON.stringify(data, null, 2), 'utf-8');
-  } catch (error) {
-    console.error('[SurveyService] Error writing responses:', error);
-    throw new Error('Failed to save response data');
-  }
-}
-
-function readInvitations(): { invitations: SurveyInvitation[] } {
-  try {
-    if (fs.existsSync(INVITATIONS_FILE)) {
-      const content = fs.readFileSync(INVITATIONS_FILE, 'utf-8');
-      return JSON.parse(content);
-    }
-  } catch (error) {
-    console.error('[SurveyService] Error reading invitations:', error);
-  }
-  return { invitations: [] };
-}
-
-function writeInvitations(data: { invitations: SurveyInvitation[] }): void {
-  try {
-    const dir = path.dirname(INVITATIONS_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(INVITATIONS_FILE, JSON.stringify(data, null, 2), 'utf-8');
-  } catch (error) {
-    console.error('[SurveyService] Error writing invitations:', error);
-    throw new Error('Failed to save invitation data');
-  }
-}
+// =============================================================================
+// HELPERS
+// =============================================================================
 
 function generateId(): string {
   return crypto.randomBytes(6).toString('hex');
@@ -180,12 +150,131 @@ function generateToken(): string {
   return crypto.randomBytes(16).toString('hex');
 }
 
+function parseJsonField<T>(value: string | undefined, fallback: T): T {
+  if (!value) return fallback;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+function parseNumber(value: string | undefined): number | undefined {
+  if (value === undefined || value === '') return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+function rowToSurvey(row: Record<string, string>): Survey {
+  return {
+    id: row.id || '',
+    name: row.surveyName || '',
+    type: (row.surveyType as Survey['type']) || 'general',
+    questions: parseJsonField<SurveyQuestion[]>(row.questions, []),
+    isActive: row.isActive === 'true',
+    createdAt: row.createdAt || '',
+  };
+}
+
+function surveyToRow(s: Survey): Record<string, unknown> {
+  return {
+    id: s.id,
+    type: 'survey',
+    surveyName: s.name,
+    surveyType: s.type,
+    questions: JSON.stringify(s.questions),
+    isActive: s.isActive,
+    createdAt: s.createdAt,
+    surveyId: '',
+    customerId: '',
+    customerName: '',
+    customerEmail: '',
+    jobId: '',
+    repSlug: '',
+    repName: '',
+    answers: '',
+    overallRating: '',
+    npsScore: '',
+    sentiment: '',
+    submittedAt: '',
+    token: '',
+    followUpNeeded: '',
+    followUpNote: '',
+    followUpCompletedAt: '',
+  };
+}
+
+function rowToResponse(row: Record<string, string>): SurveyResponse {
+  return {
+    id: row.id || '',
+    surveyId: row.surveyId || '',
+    surveyName: row.surveyName || '',
+    customerId: row.customerId || '',
+    customerName: row.customerName || '',
+    customerEmail: row.customerEmail || undefined,
+    jobId: row.jobId || undefined,
+    repSlug: row.repSlug || undefined,
+    repName: row.repName || undefined,
+    answers: parseJsonField<{ questionId: string; value: string | number }[]>(row.answers, []),
+    overallRating: Number(row.overallRating) || 0,
+    npsScore: parseNumber(row.npsScore),
+    sentiment: (row.sentiment as SurveyResponse['sentiment']) || 'neutral',
+    submittedAt: row.submittedAt || '',
+    token: row.token || '',
+    followUpNeeded: row.followUpNeeded === 'true',
+    followUpNote: row.followUpNote || undefined,
+    followUpCompletedAt: row.followUpCompletedAt || undefined,
+  };
+}
+
+function responseToRow(r: SurveyResponse): Record<string, unknown> {
+  return {
+    id: r.id,
+    type: 'response',
+    surveyName: r.surveyName,
+    surveyType: '',
+    questions: '',
+    isActive: '',
+    createdAt: '',
+    surveyId: r.surveyId,
+    customerId: r.customerId,
+    customerName: r.customerName,
+    customerEmail: r.customerEmail ?? '',
+    jobId: r.jobId ?? '',
+    repSlug: r.repSlug ?? '',
+    repName: r.repName ?? '',
+    answers: JSON.stringify(r.answers),
+    overallRating: r.overallRating,
+    npsScore: r.npsScore ?? '',
+    sentiment: r.sentiment,
+    submittedAt: r.submittedAt,
+    token: r.token,
+    followUpNeeded: r.followUpNeeded,
+    followUpNote: r.followUpNote ?? '',
+    followUpCompletedAt: r.followUpCompletedAt ?? '',
+  };
+}
+
+function rowToInvitation(row: Record<string, string>): SurveyInvitation {
+  return {
+    token: row.token || '',
+    surveyId: row.surveyId || '',
+    customerId: row.customerId || '',
+    customerName: row.customerName || '',
+    customerEmail: row.customerEmail || '',
+    repSlug: row.repSlug || undefined,
+    repName: row.repName || undefined,
+    jobId: row.jobId || undefined,
+    sentAt: row.sentAt || '',
+    method: (row.method as 'email' | 'sms') || 'email',
+  };
+}
+
 // =============================================================================
 // SENTIMENT + NPS HELPERS
 // =============================================================================
 
 function determineSentiment(overallRating: number, npsScore?: number): 'positive' | 'neutral' | 'negative' {
-  // Weighted: overall rating is primary, NPS adjusts
   if (npsScore !== undefined) {
     const combined = (overallRating / 5) * 0.6 + (npsScore / 10) * 0.4;
     if (combined >= 0.7) return 'positive';
@@ -217,17 +306,112 @@ function calculateNPS(responses: SurveyResponse[]): number {
 // =============================================================================
 
 class CustomerSurveyService {
+  private surveyCache: Survey[] | null = null;
+  private responseCache: SurveyResponse[] | null = null;
+  private invitationCache: SurveyInvitation[] | null = null;
+  private cacheExpiresAt = 0;
+  private readonly CACHE_TTL_MS = 60_000;
+
+  // ---------------------------------------------------------------------------
+  // Sheet I/O
+  // ---------------------------------------------------------------------------
+
+  private async loadUnified(): Promise<void> {
+    if (
+      this.surveyCache !== null &&
+      this.responseCache !== null &&
+      Date.now() < this.cacheExpiresAt
+    ) {
+      return;
+    }
+    const rows = await googleSheetsService.getGenericRows(
+      SHEET_NAMES.SURVEY_RESPONSES,
+      SURVEY_ROW_HEADERS,
+    );
+    const surveys: Survey[] = [];
+    const responses: SurveyResponse[] = [];
+    for (const row of rows) {
+      if (row.type === 'survey') {
+        surveys.push(rowToSurvey(row));
+      } else if (row.type === 'response') {
+        responses.push(rowToResponse(row));
+      }
+    }
+    this.surveyCache = surveys;
+    this.responseCache = responses;
+    this.cacheExpiresAt = Date.now() + this.CACHE_TTL_MS;
+  }
+
+  private async loadSurveys(): Promise<Survey[]> {
+    await this.loadUnified();
+    return this.surveyCache!;
+  }
+
+  private async loadResponses(): Promise<SurveyResponse[]> {
+    await this.loadUnified();
+    return this.responseCache!;
+  }
+
+  private async loadInvitations(): Promise<SurveyInvitation[]> {
+    if (this.invitationCache && Date.now() < this.cacheExpiresAt) {
+      return this.invitationCache;
+    }
+    const rows = await googleSheetsService.getGenericRows(
+      SHEET_NAMES.CUSTOMER_SURVEY_TOKENS,
+      INVITATION_HEADERS,
+    );
+    this.invitationCache = rows.map(rowToInvitation);
+    return this.invitationCache;
+  }
+
+  private invalidateCaches(): void {
+    this.surveyCache = null;
+    this.responseCache = null;
+    this.invitationCache = null;
+    this.cacheExpiresAt = 0;
+  }
+
+  private async upsertSurvey(survey: Survey): Promise<void> {
+    await googleSheetsService.upsertGenericRow(
+      SHEET_NAMES.SURVEY_RESPONSES,
+      SURVEY_ROW_HEADERS,
+      'id',
+      surveyToRow(survey),
+    );
+    this.invalidateCaches();
+  }
+
+  private async upsertResponse(response: SurveyResponse): Promise<void> {
+    await googleSheetsService.upsertGenericRow(
+      SHEET_NAMES.SURVEY_RESPONSES,
+      SURVEY_ROW_HEADERS,
+      'id',
+      responseToRow(response),
+    );
+    this.invalidateCaches();
+  }
+
+  private async appendInvitation(invitation: SurveyInvitation): Promise<void> {
+    await googleSheetsService.appendGenericRow(
+      SHEET_NAMES.CUSTOMER_SURVEY_TOKENS,
+      INVITATION_HEADERS,
+      invitation as unknown as Record<string, unknown>,
+    );
+    this.invitationCache = null;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Public API
+  // ---------------------------------------------------------------------------
 
   /**
    * Create a new survey template.
    */
-  createSurvey(data: {
+  async createSurvey(data: {
     name: string;
     type: Survey['type'];
     questions: Omit<SurveyQuestion, 'id'>[];
-  }): Survey {
-    const surveyData = readSurveys();
-
+  }): Promise<Survey> {
     const survey: Survey = {
       id: `survey-${generateId()}`,
       name: data.name,
@@ -241,30 +425,29 @@ class CustomerSurveyService {
       })),
     };
 
-    surveyData.surveys.push(survey);
-    writeSurveys(surveyData);
+    await this.upsertSurvey(survey);
     return survey;
   }
 
   /**
    * Get all surveys.
    */
-  getSurveys(): Survey[] {
-    return readSurveys().surveys;
+  async getSurveys(): Promise<Survey[]> {
+    return this.loadSurveys();
   }
 
   /**
    * Get a single survey by ID.
    */
-  getSurvey(surveyId: string): Survey | null {
-    const surveys = readSurveys().surveys;
+  async getSurvey(surveyId: string): Promise<Survey | null> {
+    const surveys = await this.loadSurveys();
     return surveys.find((s) => s.id === surveyId) || null;
   }
 
   /**
    * Send a survey to a customer. Creates an invitation token.
    */
-  sendSurvey(
+  async sendSurvey(
     surveyId: string,
     customerId: string,
     customerName: string,
@@ -273,15 +456,14 @@ class CustomerSurveyService {
     repSlug?: string,
     repName?: string,
     jobId?: string
-  ): { token: string; surveyUrl: string } {
-    const survey = this.getSurvey(surveyId);
+  ): Promise<{ token: string; surveyUrl: string }> {
+    const survey = await this.getSurvey(surveyId);
     if (!survey) throw new Error(`Survey ${surveyId} not found`);
     if (!survey.isActive) throw new Error('Survey is not active');
 
     const token = generateToken();
 
-    const invData = readInvitations();
-    invData.invitations.push({
+    await this.appendInvitation({
       token,
       surveyId,
       customerId,
@@ -293,7 +475,6 @@ class CustomerSurveyService {
       sentAt: new Date().toISOString(),
       method,
     });
-    writeInvitations(invData);
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.rivercityroofingsolutions.com';
     const surveyUrl = `${baseUrl}/survey/${token}`;
@@ -304,17 +485,17 @@ class CustomerSurveyService {
   /**
    * Get the survey associated with a token (for the public survey page).
    */
-  getSurveyByToken(token: string): { survey: Survey; invitation: SurveyInvitation } | null {
-    const invData = readInvitations();
-    const invitation = invData.invitations.find((i) => i.token === token);
+  async getSurveyByToken(token: string): Promise<{ survey: Survey; invitation: SurveyInvitation } | null> {
+    const invitations = await this.loadInvitations();
+    const invitation = invitations.find((i) => i.token === token);
     if (!invitation) return null;
 
     // Check if already submitted
-    const responses = readResponses();
-    const existing = responses.responses.find((r) => r.token === token);
+    const responses = await this.loadResponses();
+    const existing = responses.find((r) => r.token === token);
     if (existing) return null; // Already submitted
 
-    const survey = this.getSurvey(invitation.surveyId);
+    const survey = await this.getSurvey(invitation.surveyId);
     if (!survey) return null;
 
     return { survey, invitation };
@@ -323,20 +504,20 @@ class CustomerSurveyService {
   /**
    * Submit a survey response from a customer.
    */
-  submitResponse(
+  async submitResponse(
     token: string,
     answers: { questionId: string; value: string | number }[]
-  ): SurveyResponse {
-    const invData = readInvitations();
-    const invitation = invData.invitations.find((i) => i.token === token);
+  ): Promise<SurveyResponse> {
+    const invitations = await this.loadInvitations();
+    const invitation = invitations.find((i) => i.token === token);
     if (!invitation) throw new Error('Invalid survey token');
 
     // Check for duplicate submission
-    const responseData = readResponses();
-    const existing = responseData.responses.find((r) => r.token === token);
+    const responses = await this.loadResponses();
+    const existing = responses.find((r) => r.token === token);
     if (existing) throw new Error('Survey already submitted');
 
-    const survey = this.getSurvey(invitation.surveyId);
+    const survey = await this.getSurvey(invitation.surveyId);
     if (!survey) throw new Error('Survey not found');
 
     // Validate required questions
@@ -391,24 +572,22 @@ class CustomerSurveyService {
       followUpNeeded,
     };
 
-    responseData.responses.push(response);
-    writeResponses(responseData);
-
+    await this.upsertResponse(response);
     return response;
   }
 
   /**
    * Get responses, optionally filtered.
    */
-  getResponses(options?: {
+  async getResponses(options?: {
     surveyId?: string;
     repSlug?: string;
     startDate?: string;
     endDate?: string;
     sentiment?: string;
     followUpNeeded?: boolean;
-  }): SurveyResponse[] {
-    let responses = readResponses().responses;
+  }): Promise<SurveyResponse[]> {
+    let responses = await this.loadResponses();
 
     if (options?.surveyId) {
       responses = responses.filter((r) => r.surveyId === options.surveyId);
@@ -430,15 +609,14 @@ class CustomerSurveyService {
     }
 
     // Sort newest first
-    responses.sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
-    return responses;
+    return [...responses].sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
   }
 
   /**
    * Get analytics for surveys.
    */
-  getAnalytics(surveyId?: string, dateRange?: { start: string; end: string }): SurveyAnalytics {
-    let responses = this.getResponses({
+  async getAnalytics(surveyId?: string, dateRange?: { start: string; end: string }): Promise<SurveyAnalytics> {
+    const responses = await this.getResponses({
       surveyId,
       startDate: dateRange?.start,
       endDate: dateRange?.end,
@@ -455,8 +633,8 @@ class CustomerSurveyService {
     const npsScore = calculateNPS(responses);
 
     // Response rate (invitations sent vs responses)
-    const invData = readInvitations();
-    let relevantInvitations = invData.invitations;
+    const invitations = await this.loadInvitations();
+    let relevantInvitations = invitations;
     if (surveyId) {
       relevantInvitations = relevantInvitations.filter((i) => i.surveyId === surveyId);
     }
@@ -469,7 +647,7 @@ class CustomerSurveyService {
     responses.forEach((r) => sentimentBreakdown[r.sentiment]++);
 
     // By question
-    const allSurveys = readSurveys().surveys;
+    const allSurveys = await this.loadSurveys();
     const questionMap = new Map<string, { text: string; type: string; ratings: number[]; count: number }>();
     allSurveys.forEach((s) => {
       if (surveyId && s.id !== surveyId) return;
@@ -552,9 +730,9 @@ class CustomerSurveyService {
   /**
    * Mark a response for follow-up or complete follow-up.
    */
-  markFollowUp(responseId: string, note: string, completed?: boolean): SurveyResponse {
-    const data = readResponses();
-    const response = data.responses.find((r) => r.id === responseId);
+  async markFollowUp(responseId: string, note: string, completed?: boolean): Promise<SurveyResponse> {
+    const responses = await this.loadResponses();
+    const response = responses.find((r) => r.id === responseId);
     if (!response) throw new Error(`Response ${responseId} not found`);
 
     response.followUpNote = note;
@@ -565,7 +743,7 @@ class CustomerSurveyService {
       response.followUpNeeded = true;
     }
 
-    writeResponses(data);
+    await this.upsertResponse(response);
     return response;
   }
 }

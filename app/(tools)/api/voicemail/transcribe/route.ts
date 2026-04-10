@@ -13,6 +13,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { voicemailService } from '@/lib/voicemail-service';
 
 /**
@@ -26,6 +27,9 @@ import { voicemailService } from '@/lib/voicemail-service';
  */
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
 
     if (!body.id) {
@@ -36,7 +40,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if voicemail exists
-    const existing = voicemailService.getById(body.id);
+    const existing = await voicemailService.getById(body.id);
     if (!existing) {
       return NextResponse.json(
         { error: 'Voicemail not found' },

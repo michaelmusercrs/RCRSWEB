@@ -4,16 +4,23 @@
  * Manages customer reviews across platforms (Google, Facebook, Yelp, BBB, etc.),
  * review request workflows, response tracking, and rep performance analytics.
  *
- * Data stored in data/reviews.json and data/review-requests.json
+ * Persistence (2026-04-09): Reviews and review requests live on the
+ * SHEET_NAMES.CUSTOMER_REVIEWS tab, differentiated by a `source` column
+ * (`primary` for customer reviews, `request` for review request records).
+ * The `master` and `profile` sources are reserved for external builders
+ * (data/reviews-master.json, data/profile-reviews.json) that may eventually
+ * funnel data through this same tab.
+ *
+ * Local data/reviews.json and data/review-requests.json remain as
+ * deprecated dev seeds.
  *
  * @author RCRS Development Team
  * @version 2.0.0
  */
 
-import fs from 'fs';
-import path from 'path';
 import crypto from 'crypto';
 import emailService from './email-service';
+import { googleSheetsService, SHEET_NAMES } from './google-sheets-service';
 
 // =============================================================================
 // CONSTANTS
@@ -124,68 +131,200 @@ export const PLATFORM_COLORS: Record<ReviewPlatform, string> = {
 };
 
 // =============================================================================
-// DATA HELPERS
+// SHEET SCHEMA
 // =============================================================================
 
-interface ReviewsData {
-  reviews: CustomerReview[];
-}
+/**
+ * Unified reviews tab. Both `CustomerReview` and `ReviewRequest` rows live
+ * here, differentiated by `source`.
+ */
+const REVIEW_ROW_HEADERS: string[] = [
+  'id',
+  'source', // 'primary' | 'master' | 'request' | 'profile'
+  'customerId',
+  'customerName',
+  'address',
+  'jobId',
+  // CustomerReview fields
+  'platform',
+  'rating',
+  'title',
+  'content',
+  'response',
+  'respondedBy',
+  'respondedAt',
+  'repSlug',
+  'repName',
+  'isPublished',
+  'isFeatured',
+  'sentRequestAt',
+  'requestMethod',
+  'photos',
+  // ReviewRequest-only fields
+  'customerPhone',
+  'customerEmail',
+  'jobType',
+  'completionDate',
+  'method',
+  'sentAt',
+  'status',
+  'reminderCount',
+  'lastReminderAt',
+  'reviewId',
+  'emailSent',
+  'emailError',
+  'sheetLogged',
+  // Timestamps
+  'createdAt',
+  'updatedAt',
+];
 
-interface ReviewRequestsData {
-  requests: ReviewRequest[];
-}
+// =============================================================================
+// PARSING HELPERS
+// =============================================================================
 
-const REVIEWS_FILE = path.join(process.cwd(), 'data', 'reviews.json');
-const REQUESTS_FILE = path.join(process.cwd(), 'data', 'review-requests.json');
-
-function readReviews(): ReviewsData {
+function parseJsonField<T>(value: string | undefined, fallback: T): T {
+  if (!value) return fallback;
   try {
-    if (fs.existsSync(REVIEWS_FILE)) {
-      const content = fs.readFileSync(REVIEWS_FILE, 'utf-8');
-      return JSON.parse(content);
-    }
-  } catch (error) {
-    console.error('[ReviewService] Error reading reviews data:', error);
-  }
-  return { reviews: [] };
-}
-
-function writeReviews(data: ReviewsData): void {
-  try {
-    const dir = path.dirname(REVIEWS_FILE);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(REVIEWS_FILE, JSON.stringify(data, null, 2));
-  } catch (error) {
-    console.error('[ReviewService] Error writing reviews data:', error);
-    throw error;
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
   }
 }
 
-function readRequests(): ReviewRequestsData {
-  try {
-    if (fs.existsSync(REQUESTS_FILE)) {
-      const content = fs.readFileSync(REQUESTS_FILE, 'utf-8');
-      return JSON.parse(content);
-    }
-  } catch (error) {
-    console.error('[ReviewService] Error reading requests data:', error);
-  }
-  return { requests: [] };
+function parseBool(value: string | undefined): boolean {
+  return value === 'true';
 }
 
-function writeRequests(data: ReviewRequestsData): void {
-  try {
-    const dir = path.dirname(REQUESTS_FILE);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(REQUESTS_FILE, JSON.stringify(data, null, 2));
-  } catch (error) {
-    console.error('[ReviewService] Error writing requests data:', error);
-    throw error;
-  }
+function rowToReview(row: Record<string, string>): CustomerReview {
+  return {
+    id: row.id || '',
+    customerId: row.customerId || '',
+    customerName: row.customerName || '',
+    address: row.address || '',
+    jobId: row.jobId || undefined,
+    platform: (row.platform as ReviewPlatform) || 'internal',
+    rating: Number(row.rating) || 0,
+    title: row.title || undefined,
+    content: row.content || '',
+    response: row.response || undefined,
+    respondedBy: row.respondedBy || undefined,
+    respondedAt: row.respondedAt || undefined,
+    repSlug: row.repSlug || undefined,
+    repName: row.repName || undefined,
+    isPublished: parseBool(row.isPublished),
+    isFeatured: parseBool(row.isFeatured),
+    sentRequestAt: row.sentRequestAt || undefined,
+    requestMethod: (row.requestMethod as RequestMethod) || undefined,
+    photos: row.photos ? parseJsonField<string[]>(row.photos, []) : undefined,
+    createdAt: row.createdAt || '',
+    updatedAt: row.updatedAt || '',
+  };
+}
+
+function reviewToRow(r: CustomerReview): Record<string, unknown> {
+  return {
+    id: r.id,
+    source: 'primary',
+    customerId: r.customerId,
+    customerName: r.customerName,
+    address: r.address,
+    jobId: r.jobId ?? '',
+    platform: r.platform,
+    rating: r.rating,
+    title: r.title ?? '',
+    content: r.content,
+    response: r.response ?? '',
+    respondedBy: r.respondedBy ?? '',
+    respondedAt: r.respondedAt ?? '',
+    repSlug: r.repSlug ?? '',
+    repName: r.repName ?? '',
+    isPublished: r.isPublished,
+    isFeatured: r.isFeatured,
+    sentRequestAt: r.sentRequestAt ?? '',
+    requestMethod: r.requestMethod ?? '',
+    photos: r.photos ? JSON.stringify(r.photos) : '',
+    customerPhone: '',
+    customerEmail: '',
+    jobType: '',
+    completionDate: '',
+    method: '',
+    sentAt: '',
+    status: '',
+    reminderCount: '',
+    lastReminderAt: '',
+    reviewId: '',
+    emailSent: '',
+    emailError: '',
+    sheetLogged: '',
+    createdAt: r.createdAt,
+    updatedAt: r.updatedAt,
+  };
+}
+
+function rowToRequest(row: Record<string, string>): ReviewRequest {
+  return {
+    id: row.id || '',
+    customerId: row.customerId || '',
+    customerName: row.customerName || '',
+    customerPhone: row.customerPhone || '',
+    customerEmail: row.customerEmail || '',
+    jobId: row.jobId || '',
+    jobType: row.jobType || undefined,
+    completionDate: row.completionDate || undefined,
+    repSlug: row.repSlug || '',
+    repName: row.repName || undefined,
+    method: (row.method as RequestMethod) || 'email',
+    sentAt: row.sentAt || '',
+    status: (row.status as RequestStatus) || 'pending',
+    reminderCount: Number(row.reminderCount) || 0,
+    lastReminderAt: row.lastReminderAt || undefined,
+    reviewId: row.reviewId || undefined,
+    emailSent: row.emailSent ? parseBool(row.emailSent) : undefined,
+    emailError: row.emailError || undefined,
+    sheetLogged: row.sheetLogged ? parseBool(row.sheetLogged) : undefined,
+    createdAt: row.createdAt || '',
+  };
+}
+
+function requestToRow(r: ReviewRequest): Record<string, unknown> {
+  return {
+    id: r.id,
+    source: 'request',
+    customerId: r.customerId,
+    customerName: r.customerName,
+    address: '',
+    jobId: r.jobId,
+    platform: '',
+    rating: '',
+    title: '',
+    content: '',
+    response: '',
+    respondedBy: '',
+    respondedAt: '',
+    repSlug: r.repSlug,
+    repName: r.repName ?? '',
+    isPublished: '',
+    isFeatured: '',
+    sentRequestAt: '',
+    requestMethod: '',
+    photos: '',
+    customerPhone: r.customerPhone,
+    customerEmail: r.customerEmail,
+    jobType: r.jobType ?? '',
+    completionDate: r.completionDate ?? '',
+    method: r.method,
+    sentAt: r.sentAt,
+    status: r.status,
+    reminderCount: r.reminderCount,
+    lastReminderAt: r.lastReminderAt ?? '',
+    reviewId: r.reviewId ?? '',
+    emailSent: r.emailSent ?? '',
+    emailError: r.emailError ?? '',
+    sheetLogged: r.sheetLogged ?? '',
+    createdAt: r.createdAt,
+    updatedAt: '',
+  };
 }
 
 function generateId(prefix: string): string {
@@ -197,11 +336,87 @@ function generateId(prefix: string): string {
 // =============================================================================
 
 class ReviewManagementService {
+  private reviewCache: CustomerReview[] | null = null;
+  private requestCache: ReviewRequest[] | null = null;
+  private cacheExpiresAt = 0;
+  private readonly CACHE_TTL_MS = 60_000;
+
+  // ---------------------------------------------------------------------------
+  // Sheet I/O
+  // ---------------------------------------------------------------------------
+
+  private async loadUnified(): Promise<void> {
+    if (
+      this.reviewCache !== null &&
+      this.requestCache !== null &&
+      Date.now() < this.cacheExpiresAt
+    ) {
+      return;
+    }
+    const rows = await googleSheetsService.getGenericRows(
+      SHEET_NAMES.CUSTOMER_REVIEWS,
+      REVIEW_ROW_HEADERS,
+    );
+    const reviews: CustomerReview[] = [];
+    const requests: ReviewRequest[] = [];
+    for (const row of rows) {
+      const source = row.source || 'primary';
+      if (source === 'request') {
+        requests.push(rowToRequest(row));
+      } else {
+        // Treat primary, master, profile all as CustomerReviews
+        reviews.push(rowToReview(row));
+      }
+    }
+    this.reviewCache = reviews;
+    this.requestCache = requests;
+    this.cacheExpiresAt = Date.now() + this.CACHE_TTL_MS;
+  }
+
+  private async loadReviews(): Promise<CustomerReview[]> {
+    await this.loadUnified();
+    return this.reviewCache!;
+  }
+
+  private async loadRequests(): Promise<ReviewRequest[]> {
+    await this.loadUnified();
+    return this.requestCache!;
+  }
+
+  private invalidateCaches(): void {
+    this.reviewCache = null;
+    this.requestCache = null;
+    this.cacheExpiresAt = 0;
+  }
+
+  private async upsertReview(review: CustomerReview): Promise<void> {
+    await googleSheetsService.upsertGenericRow(
+      SHEET_NAMES.CUSTOMER_REVIEWS,
+      REVIEW_ROW_HEADERS,
+      'id',
+      reviewToRow(review),
+    );
+    this.invalidateCaches();
+  }
+
+  private async upsertRequest(request: ReviewRequest): Promise<void> {
+    await googleSheetsService.upsertGenericRow(
+      SHEET_NAMES.CUSTOMER_REVIEWS,
+      REVIEW_ROW_HEADERS,
+      'id',
+      requestToRow(request),
+    );
+    this.invalidateCaches();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Public API
+  // ---------------------------------------------------------------------------
 
   /**
    * Add a new customer review.
    */
-  addReview(data: {
+  async addReview(data: {
     customerId?: string;
     customerName: string;
     address: string;
@@ -216,8 +431,7 @@ class ReviewManagementService {
     isFeatured?: boolean;
     photos?: string[];
     requestMethod?: RequestMethod;
-  }): CustomerReview {
-    const reviewsData = readReviews();
+  }): Promise<CustomerReview> {
     const now = new Date().toISOString();
 
     const review: CustomerReview = {
@@ -240,19 +454,18 @@ class ReviewManagementService {
       updatedAt: now,
     };
 
-    reviewsData.reviews.push(review);
-    writeReviews(reviewsData);
+    await this.upsertReview(review);
 
     // Link to any pending review request for this customer
     if (data.jobId) {
-      const requestsData = readRequests();
-      const matchingRequest = requestsData.requests.find(
+      const requests = await this.loadRequests();
+      const matchingRequest = requests.find(
         r => r.jobId === data.jobId && r.status !== 'completed' && r.status !== 'declined'
       );
       if (matchingRequest) {
         matchingRequest.status = 'completed';
         matchingRequest.reviewId = review.id;
-        writeRequests(requestsData);
+        await this.upsertRequest(matchingRequest);
       }
     }
 
@@ -262,16 +475,15 @@ class ReviewManagementService {
   /**
    * Get reviews with optional filtering.
    */
-  getReviews(options?: {
+  async getReviews(options?: {
     platform?: ReviewPlatform;
     repSlug?: string;
     rating?: number;
     limit?: number;
     featured?: boolean;
     published?: boolean;
-  }): CustomerReview[] {
-    const data = readReviews();
-    let reviews = data.reviews;
+  }): Promise<CustomerReview[]> {
+    let reviews = await this.loadReviews();
 
     if (options?.platform) {
       reviews = reviews.filter(r => r.platform === options.platform);
@@ -294,7 +506,9 @@ class ReviewManagementService {
     }
 
     // Sort by newest first
-    reviews.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    reviews = [...reviews].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
 
     if (options?.limit) {
       reviews = reviews.slice(0, options.limit);
@@ -306,18 +520,17 @@ class ReviewManagementService {
   /**
    * Get a single review by ID.
    */
-  getReview(reviewId: string): CustomerReview | null {
-    const data = readReviews();
-    return data.reviews.find(r => r.id === reviewId) || null;
+  async getReview(reviewId: string): Promise<CustomerReview | null> {
+    const reviews = await this.loadReviews();
+    return reviews.find(r => r.id === reviewId) || null;
   }
 
   /**
    * Calculate review statistics.
    */
-  getReviewStats(): ReviewStats {
-    const reviewsData = readReviews();
-    const requestsData = readRequests();
-    const reviews = reviewsData.reviews;
+  async getReviewStats(): Promise<ReviewStats> {
+    const reviews = await this.loadReviews();
+    const requests = await this.loadRequests();
 
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -383,7 +596,7 @@ class ReviewManagementService {
       };
     }
 
-    const pendingRequests = requestsData.requests.filter(
+    const pendingRequests = requests.filter(
       r => r.status === 'pending' || r.status === 'sent' || r.status === 'opened'
     ).length;
 
@@ -402,9 +615,8 @@ class ReviewManagementService {
   /**
    * Respond to a review.
    */
-  respondToReview(reviewId: string, response: string, respondedBy: string): CustomerReview | null {
-    const data = readReviews();
-    const review = data.reviews.find(r => r.id === reviewId);
+  async respondToReview(reviewId: string, response: string, respondedBy: string): Promise<CustomerReview | null> {
+    const review = await this.getReview(reviewId);
     if (!review) return null;
 
     review.response = response;
@@ -412,7 +624,7 @@ class ReviewManagementService {
     review.respondedAt = new Date().toISOString();
     review.updatedAt = new Date().toISOString();
 
-    writeReviews(data);
+    await this.upsertReview(review);
     return review;
   }
 
@@ -420,12 +632,12 @@ class ReviewManagementService {
    * Check if a customer email has been sent a review request within the rate limit window.
    * Returns the existing request if rate-limited, null otherwise.
    */
-  checkRateLimit(customerEmail: string): ReviewRequest | null {
-    const requestsData = readRequests();
+  async checkRateLimit(customerEmail: string): Promise<ReviewRequest | null> {
+    const requests = await this.loadRequests();
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - RATE_LIMIT_DAYS);
 
-    const recentRequest = requestsData.requests.find(
+    const recentRequest = requests.find(
       r => r.customerEmail.toLowerCase() === customerEmail.toLowerCase()
         && new Date(r.createdAt) >= cutoff
     );
@@ -503,7 +715,6 @@ class ReviewManagementService {
     repName?: string;
     method: RequestMethod;
   }): Promise<ReviewRequest> {
-    const requestsData = readRequests();
     const now = new Date().toISOString();
 
     const request: ReviewRequest = {
@@ -549,9 +760,9 @@ class ReviewManagementService {
       }
     }
 
-    // Log to Google Sheets (non-blocking - don't fail the request if Sheets is down)
+    // Log to the legacy typed Reviews sheet (separate from our unified tab).
+    // Non-blocking — don't fail the request if Sheets is down.
     try {
-      const { googleSheetsService } = await import('./google-sheets-service');
       await googleSheetsService.addReview({
         id: request.id,
         name: data.customerName,
@@ -571,21 +782,19 @@ class ReviewManagementService {
       console.error('[ReviewRequest] Google Sheets logging failed:', sheetError);
     }
 
-    requestsData.requests.push(request);
-    writeRequests(requestsData);
+    await this.upsertRequest(request);
     return request;
   }
 
   /**
    * Get review requests with optional filtering.
    */
-  getReviewRequests(options?: {
+  async getReviewRequests(options?: {
     status?: RequestStatus;
     repSlug?: string;
     limit?: number;
-  }): ReviewRequest[] {
-    const data = readRequests();
-    let requests = data.requests;
+  }): Promise<ReviewRequest[]> {
+    let requests = await this.loadRequests();
 
     if (options?.status) {
       requests = requests.filter(r => r.status === options.status);
@@ -596,7 +805,9 @@ class ReviewManagementService {
     }
 
     // Sort newest first
-    requests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    requests = [...requests].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
 
     if (options?.limit) {
       requests = requests.slice(0, options.limit);
@@ -608,8 +819,9 @@ class ReviewManagementService {
   /**
    * Get pending review requests.
    */
-  getPendingRequests(): ReviewRequest[] {
-    return this.getReviewRequests().filter(
+  async getPendingRequests(): Promise<ReviewRequest[]> {
+    const all = await this.getReviewRequests();
+    return all.filter(
       r => r.status === 'pending' || r.status === 'sent' || r.status === 'opened'
     );
   }
@@ -617,60 +829,58 @@ class ReviewManagementService {
   /**
    * Toggle featured status of a review.
    */
-  featureReview(reviewId: string, featured: boolean): void {
-    const data = readReviews();
-    const review = data.reviews.find(r => r.id === reviewId);
+  async featureReview(reviewId: string, featured: boolean): Promise<void> {
+    const review = await this.getReview(reviewId);
     if (!review) throw new Error(`Review ${reviewId} not found`);
 
     review.isFeatured = featured;
     review.updatedAt = new Date().toISOString();
-    writeReviews(data);
+    await this.upsertReview(review);
   }
 
   /**
    * Update review publish status.
    */
-  publishReview(reviewId: string, published: boolean): void {
-    const data = readReviews();
-    const review = data.reviews.find(r => r.id === reviewId);
+  async publishReview(reviewId: string, published: boolean): Promise<void> {
+    const review = await this.getReview(reviewId);
     if (!review) throw new Error(`Review ${reviewId} not found`);
 
     review.isPublished = published;
     review.updatedAt = new Date().toISOString();
-    writeReviews(data);
+    await this.upsertReview(review);
   }
 
   /**
    * Get all reviews for a specific rep.
    */
-  getRepReviews(repSlug: string): CustomerReview[] {
+  async getRepReviews(repSlug: string): Promise<CustomerReview[]> {
     return this.getReviews({ repSlug });
   }
 
   /**
    * Send a reminder for an existing review request.
    */
-  sendReminder(requestId: string): ReviewRequest | null {
-    const data = readRequests();
-    const request = data.requests.find(r => r.id === requestId);
+  async sendReminder(requestId: string): Promise<ReviewRequest | null> {
+    const requests = await this.loadRequests();
+    const request = requests.find(r => r.id === requestId);
     if (!request) return null;
 
     request.reminderCount++;
     request.lastReminderAt = new Date().toISOString();
-    writeRequests(data);
+    await this.upsertRequest(request);
     return request;
   }
 
   /**
    * Update a review request status.
    */
-  updateRequestStatus(requestId: string, status: RequestStatus): ReviewRequest | null {
-    const data = readRequests();
-    const request = data.requests.find(r => r.id === requestId);
+  async updateRequestStatus(requestId: string, status: RequestStatus): Promise<ReviewRequest | null> {
+    const requests = await this.loadRequests();
+    const request = requests.find(r => r.id === requestId);
     if (!request) return null;
 
     request.status = status;
-    writeRequests(data);
+    await this.upsertRequest(request);
     return request;
   }
 }

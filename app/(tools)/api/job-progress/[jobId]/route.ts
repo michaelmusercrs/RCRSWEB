@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { jobProgressService } from '@/lib/job-progress-service';
 
 /**
@@ -19,7 +20,7 @@ export async function GET(
   { params }: { params: { jobId: string } }
 ) {
   try {
-    const timeline = jobProgressService.getTimeline(params.jobId);
+    const timeline = await jobProgressService.getTimeline(params.jobId);
 
     if (!timeline) {
       return NextResponse.json(
@@ -58,6 +59,9 @@ export async function PATCH(
   { params }: { params: { jobId: string } }
 ) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
     const { action } = body;
 
@@ -76,7 +80,7 @@ export async function PATCH(
             { status: 400 }
           );
         }
-        const photos = jobProgressService.addPhotos(params.jobId, body.entryId, body.photos);
+        const photos = await jobProgressService.addPhotos(params.jobId, body.entryId, body.photos);
         return NextResponse.json({ success: true, photos });
       }
 
@@ -87,7 +91,7 @@ export async function PATCH(
             { status: 400 }
           );
         }
-        const entry = jobProgressService.updatePhase(
+        const entry = await jobProgressService.updatePhase(
           params.jobId,
           body.phase,
           body.notes,
@@ -97,7 +101,7 @@ export async function PATCH(
       }
 
       case 'share': {
-        const shareData = jobProgressService.shareTimeline(params.jobId);
+        const shareData = await jobProgressService.shareTimeline(params.jobId);
         return NextResponse.json({ success: true, ...shareData });
       }
 
@@ -108,7 +112,7 @@ export async function PATCH(
             { status: 400 }
           );
         }
-        jobProgressService.markCustomerNotified(params.jobId, body.entryId);
+        await jobProgressService.markCustomerNotified(params.jobId, body.entryId);
         return NextResponse.json({ success: true, message: 'Customer notified' });
       }
 

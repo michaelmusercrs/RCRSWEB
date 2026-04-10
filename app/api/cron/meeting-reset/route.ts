@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
   const resetDate = new Date().toISOString();
   console.log(`[meeting-reset] Weekly reset triggered at ${resetDate}`);
 
+  const _hbStart = Date.now();
   try {
     // Sync latest data from Google Sheets
     const syncResult = await meetingNumbersService.syncFromSheet();
@@ -37,6 +38,9 @@ export async function GET(request: NextRequest) {
       ` — ${syncResult.recordCount} records` +
       (syncResult.error ? ` — ${syncResult.error}` : ''),
     );
+
+    const { recordCronHeartbeat } = await import('@/lib/cron-heartbeat');
+    await recordCronHeartbeat('meeting-reset', syncResult.success ? 'success' : 'error', Date.now() - _hbStart, `${syncResult.recordCount} records synced`);
 
     return NextResponse.json({
       success: syncResult.success,
@@ -49,6 +53,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[meeting-reset] Failed:', message);
+
+    try {
+      const { recordCronHeartbeat } = await import('@/lib/cron-heartbeat');
+      await recordCronHeartbeat('meeting-reset', 'error', Date.now() - _hbStart, message);
+    } catch { /* heartbeat must not mask real error */ }
 
     return NextResponse.json(
       {

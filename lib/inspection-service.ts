@@ -4,15 +4,20 @@
  * Manages inspection templates, field inspections, and report generation.
  * Supports multiple template types: Standard, Storm Damage, Pre/Post-Installation, Insurance.
  *
- * Data stored in data/inspection-templates.json and data/inspections.json
+ * Templates are still stored in data/inspection-templates.json (config-like,
+ * rarely edited). Inspection reports are persisted to the master Google Sheet
+ * on the `Inspections` tab via googleSheetsService. The local
+ * data/inspections.json file is now a deprecated dev seed and is NOT written
+ * by this service anymore.
  *
  * @author RCRS Development Team
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import { googleSheetsService, SHEET_NAMES } from './google-sheets-service';
 
 // =============================================================================
 // TYPES
@@ -112,16 +117,44 @@ interface TemplateData {
   templates: InspectionTemplate[];
 }
 
-interface InspectionData {
-  inspections: InspectionReport[];
-}
+// =============================================================================
+// SHEET CONFIG
+// =============================================================================
+
+// Canonical column order for the Inspections tab. Do NOT reorder — the sheet
+// already has rows keyed off these column names.
+const INSPECTION_HEADERS: string[] = [
+  'id',
+  'templateId',
+  'templateName',
+  'customerId',
+  'customerName',
+  'address',
+  'jobId',
+  'leadId',
+  'inspectorId',
+  'inspectorName',
+  'status',
+  'startedAt',
+  'completedAt',
+  'responses',
+  'photos',
+  'overallCondition',
+  'summary',
+  'recommendations',
+  'estimatedRepairCost',
+  'urgencyLevel',
+  'shareToken',
+  'sharedAt',
+  'createdAt',
+  'updatedAt',
+];
 
 // =============================================================================
 // DATA HELPERS
 // =============================================================================
 
 const TEMPLATES_FILE = path.join(process.cwd(), 'data', 'inspection-templates.json');
-const INSPECTIONS_FILE = path.join(process.cwd(), 'data', 'inspections.json');
 
 function readTemplates(): TemplateData {
   try {
@@ -136,6 +169,9 @@ function readTemplates(): TemplateData {
 }
 
 function writeTemplates(data: TemplateData): void {
+  // Inspection templates are static config that ships with the build. Writing
+  // them in production is best-effort: Vercel's filesystem is read-only, so
+  // we log and swallow rather than 500-ing the request.
   try {
     const dir = path.dirname(TEMPLATES_FILE);
     if (!fs.existsSync(dir)) {
@@ -143,33 +179,7 @@ function writeTemplates(data: TemplateData): void {
     }
     fs.writeFileSync(TEMPLATES_FILE, JSON.stringify(data, null, 2));
   } catch (error) {
-    console.error('[InspectionService] Error writing templates:', error);
-    throw error;
-  }
-}
-
-function readInspections(): InspectionData {
-  try {
-    if (fs.existsSync(INSPECTIONS_FILE)) {
-      const content = fs.readFileSync(INSPECTIONS_FILE, 'utf-8');
-      return JSON.parse(content);
-    }
-  } catch (error) {
-    console.error('[InspectionService] Error reading inspections:', error);
-  }
-  return { inspections: [] };
-}
-
-function writeInspections(data: InspectionData): void {
-  try {
-    const dir = path.dirname(INSPECTIONS_FILE);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(INSPECTIONS_FILE, JSON.stringify(data, null, 2));
-  } catch (error) {
-    console.error('[InspectionService] Error writing inspections:', error);
-    throw error;
+    console.warn('[InspectionService] Local templates write skipped (read-only fs?):', error);
   }
 }
 
@@ -177,13 +187,127 @@ function generateId(prefix: string): string {
   return `${prefix}-${crypto.randomBytes(6).toString('hex')}`;
 }
 
+/** Parse a sheet row (all strings) back into a typed InspectionReport. */
+function rowToInspection(row: Record<string, string>): InspectionReport {
+  const parseJson = <T,>(raw: string, fallback: T): T => {
+    if (!raw) return fallback;
+    try {
+      return JSON.parse(raw) as T;
+    } catch {
+      return fallback;
+    }
+  };
+
+  const inspection: InspectionReport = {
+    id: row.id || '',
+    templateId: row.templateId || '',
+    templateName: row.templateName || '',
+    customerId: row.customerId || '',
+    customerName: row.customerName || '',
+    address: row.address || '',
+    jobId: row.jobId || undefined,
+    leadId: row.leadId || undefined,
+    inspectorId: row.inspectorId || '',
+    inspectorName: row.inspectorName || '',
+    status: (row.status || 'draft') as InspectionReport['status'],
+    startedAt: row.startedAt || '',
+    completedAt: row.completedAt || undefined,
+    responses: parseJson<InspectionResponse[]>(row.responses, []),
+    photos: parseJson<InspectionPhoto[]>(row.photos, []),
+    overallCondition: (row.overallCondition || 'good') as InspectionReport['overallCondition'],
+    summary: row.summary || '',
+    recommendations: parseJson<string[]>(row.recommendations, []),
+    estimatedRepairCost:
+      row.estimatedRepairCost !== '' && row.estimatedRepairCost !== undefined
+        ? Number(row.estimatedRepairCost)
+        : undefined,
+    urgencyLevel: (row.urgencyLevel || 'none') as InspectionReport['urgencyLevel'],
+    shareToken: row.shareToken || undefined,
+    sharedAt: row.sharedAt || undefined,
+    createdAt: row.createdAt || '',
+    updatedAt: row.updatedAt || '',
+  };
+
+  return inspection;
+}
+
+/** Flatten an InspectionReport into sheet-friendly scalar columns. */
+function inspectionToRow(inspection: InspectionReport): Record<string, unknown> {
+  return {
+    id: inspection.id,
+    templateId: inspection.templateId,
+    templateName: inspection.templateName,
+    customerId: inspection.customerId,
+    customerName: inspection.customerName,
+    address: inspection.address,
+    jobId: inspection.jobId || '',
+    leadId: inspection.leadId || '',
+    inspectorId: inspection.inspectorId,
+    inspectorName: inspection.inspectorName,
+    status: inspection.status,
+    startedAt: inspection.startedAt,
+    completedAt: inspection.completedAt || '',
+    responses: JSON.stringify(inspection.responses || []),
+    photos: JSON.stringify(inspection.photos || []),
+    overallCondition: inspection.overallCondition,
+    summary: inspection.summary,
+    recommendations: JSON.stringify(inspection.recommendations || []),
+    estimatedRepairCost:
+      inspection.estimatedRepairCost !== undefined ? inspection.estimatedRepairCost : '',
+    urgencyLevel: inspection.urgencyLevel,
+    shareToken: inspection.shareToken || '',
+    sharedAt: inspection.sharedAt || '',
+    createdAt: inspection.createdAt,
+    updatedAt: inspection.updatedAt,
+  };
+}
+
 // =============================================================================
 // SERVICE CLASS
 // =============================================================================
 
 class InspectionService {
+  // 60-second cache so we don't hammer the Sheets API for read-heavy endpoints.
+  private cache: InspectionReport[] | null = null;
+  private cacheExpiresAt = 0;
+
+  private invalidateCache(): void {
+    this.cache = null;
+    this.cacheExpiresAt = 0;
+  }
+
+  private async loadFromSheet(): Promise<InspectionReport[]> {
+    try {
+      const rows = await googleSheetsService.getGenericRows(
+        SHEET_NAMES.INSPECTIONS,
+        INSPECTION_HEADERS,
+      );
+      return rows.filter((r) => r.id).map(rowToInspection);
+    } catch (error) {
+      console.error('[InspectionService] Error loading inspections from sheet:', error);
+      return [];
+    }
+  }
+
+  private async loadCached(): Promise<InspectionReport[]> {
+    if (this.cache && Date.now() < this.cacheExpiresAt) return this.cache;
+    this.cache = await this.loadFromSheet();
+    this.cacheExpiresAt = Date.now() + 60_000;
+    return this.cache;
+  }
+
+  private async persistInspection(inspection: InspectionReport): Promise<void> {
+    await googleSheetsService.upsertGenericRow(
+      SHEET_NAMES.INSPECTIONS,
+      INSPECTION_HEADERS,
+      'id',
+      inspectionToRow(inspection),
+    );
+    this.invalidateCache();
+  }
+
   // ---------------------------------------------------------------------------
-  // Template Methods
+  // Template Methods (still JSON-backed; templates are config-like)
   // ---------------------------------------------------------------------------
 
   /**
@@ -241,13 +365,13 @@ class InspectionService {
   }
 
   // ---------------------------------------------------------------------------
-  // Inspection CRUD
+  // Inspection CRUD (sheet-backed)
   // ---------------------------------------------------------------------------
 
   /**
    * Start a new inspection from a template.
    */
-  startInspection(input: {
+  async startInspection(input: {
     templateId: string;
     customerId: string;
     customerName: string;
@@ -256,7 +380,7 @@ class InspectionService {
     inspectorName: string;
     jobId?: string;
     leadId?: string;
-  }): InspectionReport {
+  }): Promise<InspectionReport> {
     const template = this.getTemplate(input.templateId);
     if (!template) {
       throw new Error(`Template not found: ${input.templateId}`);
@@ -286,17 +410,14 @@ class InspectionService {
       updatedAt: now,
     };
 
-    const data = readInspections();
-    data.inspections.push(inspection);
-    writeInspections(data);
-
+    await this.persistInspection(inspection);
     return inspection;
   }
 
   /**
    * Update an in-progress inspection with new responses, photos, or metadata.
    */
-  updateInspection(
+  async updateInspection(
     id: string,
     updates: {
       responses?: InspectionResponse[];
@@ -309,14 +430,11 @@ class InspectionService {
       jobId?: string;
       leadId?: string;
     }
-  ): InspectionReport {
-    const data = readInspections();
-    const index = data.inspections.findIndex((i) => i.id === id);
-    if (index === -1) {
+  ): Promise<InspectionReport> {
+    const inspection = await this.getInspection(id);
+    if (!inspection) {
       throw new Error(`Inspection not found: ${id}`);
     }
-
-    const inspection = data.inspections[index];
 
     // Merge responses — replace existing by itemId, add new ones
     if (updates.responses) {
@@ -361,8 +479,7 @@ class InspectionService {
     }
 
     inspection.updatedAt = new Date().toISOString();
-    data.inspections[index] = inspection;
-    writeInspections(data);
+    await this.persistInspection(inspection);
 
     return inspection;
   }
@@ -370,7 +487,7 @@ class InspectionService {
   /**
    * Complete an inspection with summary and recommendations.
    */
-  completeInspection(
+  async completeInspection(
     id: string,
     completion: {
       summary: string;
@@ -379,14 +496,12 @@ class InspectionService {
       urgencyLevel: InspectionReport['urgencyLevel'];
       estimatedRepairCost?: number;
     }
-  ): InspectionReport {
-    const data = readInspections();
-    const index = data.inspections.findIndex((i) => i.id === id);
-    if (index === -1) {
+  ): Promise<InspectionReport> {
+    const inspection = await this.getInspection(id);
+    if (!inspection) {
       throw new Error(`Inspection not found: ${id}`);
     }
 
-    const inspection = data.inspections[index];
     inspection.status = 'completed';
     inspection.completedAt = new Date().toISOString();
     inspection.summary = completion.summary;
@@ -398,8 +513,7 @@ class InspectionService {
     }
     inspection.updatedAt = new Date().toISOString();
 
-    data.inspections[index] = inspection;
-    writeInspections(data);
+    await this.persistInspection(inspection);
 
     return inspection;
   }
@@ -407,17 +521,17 @@ class InspectionService {
   /**
    * Get a single inspection by ID.
    */
-  getInspection(id: string): InspectionReport | null {
-    const data = readInspections();
-    return data.inspections.find((i) => i.id === id) || null;
+  async getInspection(id: string): Promise<InspectionReport | null> {
+    const inspections = await this.loadCached();
+    return inspections.find((i) => i.id === id) || null;
   }
 
   /**
    * Get all inspections for a customer.
    */
-  getInspectionsByCustomer(customerId: string): InspectionReport[] {
-    const data = readInspections();
-    return data.inspections
+  async getInspectionsByCustomer(customerId: string): Promise<InspectionReport[]> {
+    const inspections = await this.loadCached();
+    return inspections
       .filter((i) => i.customerId === customerId)
       .sort(
         (a, b) =>
@@ -428,9 +542,9 @@ class InspectionService {
   /**
    * Get recent inspections with optional limit.
    */
-  getRecentInspections(limit: number = 20): InspectionReport[] {
-    const data = readInspections();
-    return data.inspections
+  async getRecentInspections(limit: number = 20): Promise<InspectionReport[]> {
+    const inspections = await this.loadCached();
+    return [...inspections]
       .sort(
         (a, b) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -441,15 +555,15 @@ class InspectionService {
   /**
    * List inspections with optional filters.
    */
-  listInspections(filters?: {
+  async listInspections(filters?: {
     customerId?: string;
     inspectorId?: string;
     status?: string;
     templateId?: string;
     limit?: number;
-  }): InspectionReport[] {
-    const data = readInspections();
-    let results = data.inspections;
+  }): Promise<InspectionReport[]> {
+    const inspections = await this.loadCached();
+    let results = [...inspections];
 
     if (filters?.customerId) {
       results = results.filter((i) => i.customerId === filters.customerId);
@@ -480,32 +594,32 @@ class InspectionService {
   /**
    * Delete a draft inspection.
    */
-  deleteInspection(id: string): boolean {
-    const data = readInspections();
-    const index = data.inspections.findIndex((i) => i.id === id);
-    if (index === -1) return false;
+  async deleteInspection(id: string): Promise<boolean> {
+    const inspection = await this.getInspection(id);
+    if (!inspection) return false;
 
-    const inspection = data.inspections[index];
     if (inspection.status !== 'draft' && inspection.status !== 'in_progress') {
       throw new Error('Only draft or in-progress inspections can be deleted');
     }
 
-    data.inspections.splice(index, 1);
-    writeInspections(data);
-    return true;
+    const removed = await googleSheetsService.deleteGenericRow(
+      SHEET_NAMES.INSPECTIONS,
+      'id',
+      id,
+    );
+    this.invalidateCache();
+    return removed;
   }
 
   /**
    * Generate a shareable link for an inspection.
    */
-  shareInspection(id: string): { shareUrl: string; token: string } {
-    const data = readInspections();
-    const index = data.inspections.findIndex((i) => i.id === id);
-    if (index === -1) {
+  async shareInspection(id: string): Promise<{ shareUrl: string; token: string }> {
+    const inspection = await this.getInspection(id);
+    if (!inspection) {
       throw new Error(`Inspection not found: ${id}`);
     }
 
-    const inspection = data.inspections[index];
     if (inspection.status !== 'completed' && inspection.status !== 'approved') {
       throw new Error('Only completed or approved inspections can be shared');
     }
@@ -516,8 +630,7 @@ class InspectionService {
     inspection.status = 'shared';
     inspection.updatedAt = new Date().toISOString();
 
-    data.inspections[index] = inspection;
-    writeInspections(data);
+    await this.persistInspection(inspection);
 
     const baseUrl =
       process.env.NEXT_PUBLIC_BASE_URL ||
@@ -530,17 +643,16 @@ class InspectionService {
   /**
    * Look up an inspection by share token.
    */
-  getInspectionByToken(token: string): InspectionReport | null {
-    const data = readInspections();
-    return data.inspections.find((i) => i.shareToken === token) || null;
+  async getInspectionByToken(token: string): Promise<InspectionReport | null> {
+    const inspections = await this.loadCached();
+    return inspections.find((i) => i.shareToken === token) || null;
   }
 
   /**
    * Compute inspection statistics.
    */
-  getInspectionStats(): InspectionStats {
-    const data = readInspections();
-    const inspections = data.inspections;
+  async getInspectionStats(): Promise<InspectionStats> {
+    const inspections = await this.loadCached();
 
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);

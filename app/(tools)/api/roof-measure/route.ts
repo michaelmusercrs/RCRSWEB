@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { roofMeasureService } from '@/lib/roof-measure-service';
 import { roofReportService } from '@/lib/roof-report-service';
 
@@ -19,6 +20,9 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
     const { address, latLng, images, selectedStreetViewHeadings, structures, leadId } = body;
 

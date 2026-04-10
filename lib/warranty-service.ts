@@ -4,15 +4,15 @@
  * Manages roof warranties, expiration tracking, and warranty claims.
  * Supports manufacturer, workmanship, extended, and leak-free guarantee warranties.
  *
- * Data stored in data/warranties.json
+ * Persistence: Google Sheets (Warranties tab) via google-sheets-service.
+ * Claims are stored as a JSON blob on the warranty row.
  *
  * @author RCRS Development Team
- * @version 1.0.0
+ * @version 2.0.0
  */
 
-import fs from 'fs';
-import path from 'path';
 import crypto from 'crypto';
+import { googleSheetsService, SHEET_NAMES } from './google-sheets-service';
 
 // =============================================================================
 // TYPES
@@ -81,11 +81,6 @@ export interface WarrantyStats {
   totalProtectedValue: number;
 }
 
-interface WarrantyData {
-  warranties: Warranty[];
-  lastUpdated: string;
-}
-
 // =============================================================================
 // CONSTANTS
 // =============================================================================
@@ -113,39 +108,50 @@ const MANUFACTURER_LIST = [
 const EXPIRING_SOON_DAYS = 90; // Flag warranties expiring within 90 days
 
 // =============================================================================
-// DATA HELPERS
+// SHEET SCHEMA
 // =============================================================================
 
-const DATA_FILE_PATH = path.join(process.cwd(), 'data', 'warranties.json');
+const WARRANTY_HEADERS: string[] = [
+  'id',
+  'customerId',
+  'customerName',
+  'customerPhone',
+  'customerEmail',
+  'address',
+  'jobId',
+  'jobNimbusId',
+  'type',
+  'manufacturer',
+  'productLine',
+  'startDate',
+  'endDate',
+  'durationYears',
+  'status',
+  'claims',
+  'certificateUrl',
+  'documents',
+  'installedBy',
+  'inspectedBy',
+  'notes',
+  'createdAt',
+  'updatedAt',
+];
 
-function readData(): WarrantyData {
-  try {
-    if (fs.existsSync(DATA_FILE_PATH)) {
-      const content = fs.readFileSync(DATA_FILE_PATH, 'utf-8');
-      return JSON.parse(content);
-    }
-  } catch (error) {
-    console.error('[WarrantyService] Error reading data:', error);
-  }
-  return { warranties: [], lastUpdated: new Date().toISOString() };
-}
-
-function writeData(data: WarrantyData): void {
-  try {
-    const dir = path.dirname(DATA_FILE_PATH);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    data.lastUpdated = new Date().toISOString();
-    fs.writeFileSync(DATA_FILE_PATH, JSON.stringify(data, null, 2));
-  } catch (error) {
-    console.error('[WarrantyService] Error writing data:', error);
-    throw error;
-  }
-}
+// =============================================================================
+// HELPERS
+// =============================================================================
 
 function generateId(prefix: string): string {
   return `${prefix}-${crypto.randomBytes(6).toString('hex')}`;
+}
+
+function safeJsonArray<T>(value: string): T[] {
+  try {
+    const parsed = value ? JSON.parse(value) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -170,32 +176,96 @@ function computeStatus(warranty: Warranty): Warranty['status'] {
   return 'active';
 }
 
-/**
- * Refresh statuses on all warranties in-place and persist if any changed.
- */
-function refreshStatuses(data: WarrantyData): void {
-  let changed = false;
-  for (const w of data.warranties) {
-    const newStatus = computeStatus(w);
-    if (w.status !== newStatus) {
-      w.status = newStatus;
-      w.updatedAt = new Date().toISOString();
-      changed = true;
-    }
-  }
-  if (changed) writeData(data);
-}
-
 // =============================================================================
 // SERVICE CLASS
 // =============================================================================
 
 class WarrantyService {
+  private cache: Warranty[] | null = null;
+  private cacheExpiresAt = 0;
+  private readonly CACHE_TTL_MS = 60_000;
+
+  // ---------------------------------------------------------------------------
+  // Sheet I/O
+  // ---------------------------------------------------------------------------
+
+  private parseRow(row: Record<string, string>): Warranty {
+    return {
+      id: row.id || '',
+      customerId: row.customerId || '',
+      customerName: row.customerName || '',
+      customerPhone: row.customerPhone || '',
+      customerEmail: row.customerEmail || '',
+      address: row.address || '',
+      jobId: row.jobId || '',
+      jobNimbusId: row.jobNimbusId || undefined,
+      type: (row.type as Warranty['type']) || 'manufacturer',
+      manufacturer: row.manufacturer || undefined,
+      productLine: row.productLine || undefined,
+      startDate: row.startDate || '',
+      endDate: row.endDate || '',
+      durationYears: Number(row.durationYears) || 0,
+      status: (row.status as Warranty['status']) || 'active',
+      claims: safeJsonArray<WarrantyClaim>(row.claims),
+      certificateUrl: row.certificateUrl || undefined,
+      documents: safeJsonArray<{ name: string; url: string; uploadedAt: string }>(row.documents),
+      installedBy: row.installedBy || '',
+      inspectedBy: row.inspectedBy || undefined,
+      notes: row.notes || '',
+      createdAt: row.createdAt || '',
+      updatedAt: row.updatedAt || '',
+    };
+  }
+
+  private async loadFromSheet(): Promise<Warranty[]> {
+    const rows = await googleSheetsService.getGenericRows(
+      SHEET_NAMES.WARRANTIES,
+      WARRANTY_HEADERS,
+    );
+    return rows.map(r => this.parseRow(r));
+  }
+
+  private async loadCached(): Promise<Warranty[]> {
+    if (this.cache && Date.now() < this.cacheExpiresAt) return this.cache;
+    this.cache = await this.loadFromSheet();
+    this.cacheExpiresAt = Date.now() + this.CACHE_TTL_MS;
+    return this.cache;
+  }
+
+  private invalidateCache(): void {
+    this.cache = null;
+    this.cacheExpiresAt = 0;
+  }
+
+  private async upsert(warranty: Warranty): Promise<void> {
+    await googleSheetsService.upsertGenericRow(
+      SHEET_NAMES.WARRANTIES,
+      WARRANTY_HEADERS,
+      'id',
+      warranty as unknown as Record<string, unknown>,
+    );
+    this.invalidateCache();
+  }
+
+  /**
+   * Refresh statuses for a list of warranties, persisting any that changed.
+   */
+  private async refreshStatuses(warranties: Warranty[]): Promise<void> {
+    for (const w of warranties) {
+      const newStatus = computeStatus(w);
+      if (w.status !== newStatus) {
+        w.status = newStatus;
+        w.updatedAt = new Date().toISOString();
+        await this.upsert(w);
+      }
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Warranty CRUD
   // ---------------------------------------------------------------------------
 
-  createWarranty(input: {
+  async createWarranty(input: {
     customerId: string;
     customerName: string;
     customerPhone: string;
@@ -212,8 +282,7 @@ class WarrantyService {
     inspectedBy?: string;
     notes?: string;
     certificateUrl?: string;
-  }): Warranty {
-    const data = readData();
+  }): Promise<Warranty> {
     const now = new Date().toISOString();
 
     const startDate = new Date(input.startDate);
@@ -251,29 +320,29 @@ class WarrantyService {
     // Compute initial status
     warranty.status = computeStatus(warranty);
 
-    data.warranties.unshift(warranty);
-    writeData(data);
+    await this.upsert(warranty);
     return warranty;
   }
 
-  getWarranty(id: string): Warranty | null {
-    const data = readData();
-    refreshStatuses(data);
-    return data.warranties.find(w => w.id === id) || null;
+  async getWarranty(id: string): Promise<Warranty | null> {
+    const all = await this.loadCached();
+    await this.refreshStatuses(all);
+    return all.find(w => w.id === id) || null;
   }
 
-  getWarrantiesByCustomer(customerId: string): Warranty[] {
-    const data = readData();
-    refreshStatuses(data);
-    return data.warranties.filter(w => w.customerId === customerId);
+  async getWarrantiesByCustomer(customerId: string): Promise<Warranty[]> {
+    const all = await this.loadCached();
+    await this.refreshStatuses(all);
+    return all.filter(w => w.customerId === customerId);
   }
 
-  updateWarranty(id: string, updates: Partial<Omit<Warranty, 'id' | 'claims' | 'createdAt'>>): Warranty | null {
-    const data = readData();
-    const idx = data.warranties.findIndex(w => w.id === id);
-    if (idx < 0) return null;
+  async updateWarranty(
+    id: string,
+    updates: Partial<Omit<Warranty, 'id' | 'claims' | 'createdAt'>>,
+  ): Promise<Warranty | null> {
+    const warranty = await this.getWarranty(id);
+    if (!warranty) return null;
 
-    const warranty = data.warranties[idx];
     const allowed: (keyof typeof updates)[] = [
       'customerName', 'customerPhone', 'customerEmail', 'address',
       'jobId', 'jobNimbusId', 'type', 'manufacturer', 'productLine',
@@ -298,19 +367,17 @@ class WarrantyService {
 
     warranty.status = computeStatus(warranty);
     warranty.updatedAt = new Date().toISOString();
-    data.warranties[idx] = warranty;
-    writeData(data);
+    await this.upsert(warranty);
     return warranty;
   }
 
-  archiveWarranty(id: string): boolean {
-    const data = readData();
-    const idx = data.warranties.findIndex(w => w.id === id);
-    if (idx < 0) return false;
+  async archiveWarranty(id: string): Promise<boolean> {
+    const warranty = await this.getWarranty(id);
+    if (!warranty) return false;
 
-    data.warranties[idx].status = 'voided';
-    data.warranties[idx].updatedAt = new Date().toISOString();
-    writeData(data);
+    warranty.status = 'voided';
+    warranty.updatedAt = new Date().toISOString();
+    await this.upsert(warranty);
     return true;
   }
 
@@ -318,18 +385,18 @@ class WarrantyService {
   // Search & Filtering
   // ---------------------------------------------------------------------------
 
-  searchWarranties(query: {
+  async searchWarranties(query: {
     search?: string;
     status?: string;
     type?: string;
     manufacturer?: string;
     customerId?: string;
     expiringDays?: number;
-  }): Warranty[] {
-    const data = readData();
-    refreshStatuses(data);
+  }): Promise<Warranty[]> {
+    const all = await this.loadCached();
+    await this.refreshStatuses(all);
 
-    let results = [...data.warranties];
+    let results = [...all];
 
     if (query.customerId) {
       results = results.filter(w => w.customerId === query.customerId);
@@ -374,29 +441,28 @@ class WarrantyService {
     );
   }
 
-  getExpiringWarranties(daysAhead: number = 30): Warranty[] {
+  async getExpiringWarranties(daysAhead: number = 30): Promise<Warranty[]> {
     return this.searchWarranties({ expiringDays: daysAhead });
   }
 
-  getAllWarranties(): Warranty[] {
-    const data = readData();
-    refreshStatuses(data);
-    return data.warranties;
+  async getAllWarranties(): Promise<Warranty[]> {
+    const all = await this.loadCached();
+    await this.refreshStatuses(all);
+    return all;
   }
 
   // ---------------------------------------------------------------------------
   // Claims
   // ---------------------------------------------------------------------------
 
-  submitClaim(warrantyId: string, claimInput: {
+  async submitClaim(warrantyId: string, claimInput: {
     issueDescription: string;
     category: WarrantyClaim['category'];
     severity: WarrantyClaim['severity'];
     photos?: string[];
     notes?: string;
-  }): WarrantyClaim | null {
-    const data = readData();
-    const warranty = data.warranties.find(w => w.id === warrantyId);
+  }): Promise<WarrantyClaim | null> {
+    const warranty = await this.getWarranty(warrantyId);
     if (!warranty) return null;
 
     const now = new Date().toISOString();
@@ -418,20 +484,19 @@ class WarrantyService {
     warranty.claims.push(claim);
     warranty.status = computeStatus(warranty);
     warranty.updatedAt = now;
-    writeData(data);
+    await this.upsert(warranty);
     return claim;
   }
 
-  getClaimsForWarranty(warrantyId: string): WarrantyClaim[] {
-    const data = readData();
-    const warranty = data.warranties.find(w => w.id === warrantyId);
+  async getClaimsForWarranty(warrantyId: string): Promise<WarrantyClaim[]> {
+    const warranty = await this.getWarranty(warrantyId);
     if (!warranty) return [];
-    return warranty.claims.sort((a, b) =>
+    return [...warranty.claims].sort((a, b) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   }
 
-  updateClaimStatus(
+  async updateClaimStatus(
     warrantyId: string,
     claimId: string,
     updates: {
@@ -442,9 +507,8 @@ class WarrantyService {
       coveredByWarranty?: boolean;
       notes?: string;
     }
-  ): WarrantyClaim | null {
-    const data = readData();
-    const warranty = data.warranties.find(w => w.id === warrantyId);
+  ): Promise<WarrantyClaim | null> {
+    const warranty = await this.getWarranty(warrantyId);
     if (!warranty) return null;
 
     const claim = warranty.claims.find(c => c.id === claimId);
@@ -460,7 +524,7 @@ class WarrantyService {
 
     warranty.status = computeStatus(warranty);
     warranty.updatedAt = new Date().toISOString();
-    writeData(data);
+    await this.upsert(warranty);
     return claim;
   }
 
@@ -468,22 +532,21 @@ class WarrantyService {
   // Stats
   // ---------------------------------------------------------------------------
 
-  getWarrantyStats(): WarrantyStats {
-    const data = readData();
-    refreshStatuses(data);
+  async getWarrantyStats(): Promise<WarrantyStats> {
+    const all = await this.loadCached();
+    await this.refreshStatuses(all);
 
-    const warranties = data.warranties;
-    const allClaims = warranties.flatMap(w => w.claims);
+    const allClaims = all.flatMap(w => w.claims);
 
     return {
-      active: warranties.filter(w => w.status === 'active').length,
-      expiringSoon: warranties.filter(w => w.status === 'expiring_soon').length,
-      expired: warranties.filter(w => w.status === 'expired').length,
+      active: all.filter(w => w.status === 'active').length,
+      expiringSoon: all.filter(w => w.status === 'expiring_soon').length,
+      expired: all.filter(w => w.status === 'expired').length,
       totalClaims: allClaims.length,
       openClaims: allClaims.filter(c =>
         ['submitted', 'under_review', 'approved'].includes(c.status)
       ).length,
-      totalProtectedValue: warranties.filter(w =>
+      totalProtectedValue: all.filter(w =>
         w.status === 'active' || w.status === 'expiring_soon' || w.status === 'claimed'
       ).length * 15000, // Rough average roof value
     };

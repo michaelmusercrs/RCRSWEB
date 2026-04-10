@@ -4,11 +4,11 @@
 // Uses Nominatim (free, no API key needed, 1 req/sec rate limit)
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth-service';
+import { requireAdmin } from '@/lib/auth-service';
 import { runGeocodeSync, getSyncProgress } from '@/lib/geocode-sync';
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireAdmin();
   if (!auth.authenticated) return auth.response;
 
   try {
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireAdmin();
   if (!auth.authenticated) return auth.response;
 
   try {

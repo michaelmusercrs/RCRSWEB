@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { warrantyService } from '@/lib/warranty-service';
 
 /**
@@ -21,7 +22,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const warranty = warrantyService.getWarranty(params.id);
+    const warranty = await warrantyService.getWarranty(params.id);
     if (!warranty) {
       return NextResponse.json(
         { error: 'Warranty not found' },
@@ -29,7 +30,7 @@ export async function GET(
       );
     }
 
-    const claims = warrantyService.getClaimsForWarranty(params.id);
+    const claims = await warrantyService.getClaimsForWarranty(params.id);
 
     return NextResponse.json({
       success: true,
@@ -63,6 +64,9 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
 
     if (!body.issueDescription || body.issueDescription.trim() === '') {
@@ -88,7 +92,7 @@ export async function POST(
       );
     }
 
-    const claim = warrantyService.submitClaim(params.id, {
+    const claim = await warrantyService.submitClaim(params.id, {
       issueDescription: body.issueDescription.trim(),
       category: body.category || 'other',
       severity: body.severity || 'moderate',

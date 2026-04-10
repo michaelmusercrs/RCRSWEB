@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { customerSurveyService } from '@/lib/customer-survey-service';
 
 /**
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
 
     // Public survey by token
     if (token) {
-      const result = customerSurveyService.getSurveyByToken(token);
+      const result = await customerSurveyService.getSurveyByToken(token);
       if (!result) {
         return NextResponse.json(
           { error: 'Survey not found or already submitted' },
@@ -43,14 +44,14 @@ export async function GET(request: NextRequest) {
 
     // Specific survey
     if (surveyId) {
-      const survey = customerSurveyService.getSurvey(surveyId);
+      const survey = await customerSurveyService.getSurvey(surveyId);
       if (!survey) {
         return NextResponse.json(
           { error: 'Survey not found' },
           { status: 404 }
         );
       }
-      const responses = customerSurveyService.getResponses({ surveyId });
+      const responses = await customerSurveyService.getResponses({ surveyId });
       return NextResponse.json({
         success: true,
         survey,
@@ -59,9 +60,9 @@ export async function GET(request: NextRequest) {
     }
 
     // List all surveys with stats
-    const surveys = customerSurveyService.getSurveys();
-    const surveysWithStats = surveys.map((s) => {
-      const responses = customerSurveyService.getResponses({ surveyId: s.id });
+    const surveys = await customerSurveyService.getSurveys();
+    const surveysWithStats = await Promise.all(surveys.map(async (s) => {
+      const responses = await customerSurveyService.getResponses({ surveyId: s.id });
       const avgRating = responses.length > 0
         ? Math.round((responses.reduce((sum, r) => sum + r.overallRating, 0) / responses.length) * 100) / 100
         : 0;
@@ -70,7 +71,7 @@ export async function GET(request: NextRequest) {
         responseCount: responses.length,
         avgRating,
       };
-    });
+    }));
 
     return NextResponse.json({
       success: true,
@@ -95,6 +96,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
 
     // Submit response mode
@@ -108,7 +112,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const response = customerSurveyService.submitResponse(token, answers);
+      const response = await customerSurveyService.submitResponse(token, answers);
       return NextResponse.json({
         success: true,
         message: 'Thank you for your feedback!',
@@ -133,7 +137,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const survey = customerSurveyService.createSurvey({
+      const survey = await customerSurveyService.createSurvey({
         name: body.name,
         type: body.type,
         questions: body.questions,
@@ -147,7 +151,7 @@ export async function POST(request: NextRequest) {
 
     // Get responses list
     if (body.action === 'getResponses') {
-      const responses = customerSurveyService.getResponses({
+      const responses = await customerSurveyService.getResponses({
         surveyId: body.surveyId,
         repSlug: body.repSlug,
         startDate: body.startDate,
@@ -171,7 +175,7 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      const response = customerSurveyService.markFollowUp(
+      const response = await customerSurveyService.markFollowUp(
         body.responseId,
         body.note,
         body.completed

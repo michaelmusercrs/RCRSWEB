@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
     if (!query.trim()) {
       // Return all customers sorted by last contact when no query
-      const allCustomers = communicationHubService.getAllCustomers();
+      const allCustomers = await communicationHubService.getAllCustomers();
       return NextResponse.json({
         success: true,
         data: {
@@ -42,10 +42,12 @@ export async function GET(request: NextRequest) {
     const customers = await communicationHubService.searchCustomers(sanitizedQuery);
 
     // Enrich each customer with unread count
-    const enriched = customers.slice(0, limit).map(customer => ({
-      ...customer,
-      unreadCount: communicationHubService.getUnreadCount(customer.id),
-    }));
+    const enriched = await Promise.all(
+      customers.slice(0, limit).map(async (customer) => ({
+        ...customer,
+        unreadCount: await communicationHubService.getUnreadCount(customer.id),
+      })),
+    );
 
     return NextResponse.json({
       success: true,

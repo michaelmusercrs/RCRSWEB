@@ -22,10 +22,10 @@ export async function GET(request: NextRequest) {
     // If repSlug is provided, also return rep-specific profitability
     let repProfitability = null;
     if (repSlug) {
-      repProfitability = profitabilityService.getRepProfitability(repSlug);
+      repProfitability = await profitabilityService.getRepProfitability(repSlug);
     }
 
-    const analytics = profitabilityService.getAnalytics(startDate, endDate);
+    const analytics = await profitabilityService.getAnalytics(startDate, endDate);
 
     return NextResponse.json({
       analytics,

@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { routeTrackerService } from '@/lib/route-tracker-service';
 
 export const dynamic = 'force-dynamic';
@@ -17,12 +18,15 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
     const { routeId, stops } = body;
 
     if (routeId) {
       // Optimize an existing route
-      const route = routeTrackerService.optimizeRoute(routeId);
+      const route = await routeTrackerService.optimizeRoute(routeId);
       return NextResponse.json({ route, optimizedOrder: route.optimizedOrder });
     }
 

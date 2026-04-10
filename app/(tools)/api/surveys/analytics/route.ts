@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
       ? { start: startDate, end: endDate }
       : undefined;
 
-    const analytics = customerSurveyService.getAnalytics(surveyId, dateRange);
+    const analytics = await customerSurveyService.getAnalytics(surveyId, dateRange);
 
     return NextResponse.json({
       success: true,

@@ -18,7 +18,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const estimate = estimateCalculatorService.getEstimate(params.id);
+    const estimate = await estimateCalculatorService.getEstimate(params.id);
 
     if (!estimate) {
       return NextResponse.json(

@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { inspectionService } from '@/lib/inspection-service';
 
 export const dynamic = 'force-dynamic';
@@ -19,7 +20,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const inspection = inspectionService.getInspection(params.id);
+    const inspection = await inspectionService.getInspection(params.id);
     if (!inspection) {
       return NextResponse.json(
         { error: 'Inspection not found' },
@@ -60,11 +61,14 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
     const action = body.action || 'update';
 
     // Verify inspection exists
-    const existing = inspectionService.getInspection(params.id);
+    const existing = await inspectionService.getInspection(params.id);
     if (!existing) {
       return NextResponse.json(
         { error: 'Inspection not found' },
@@ -73,7 +77,7 @@ export async function PATCH(
     }
 
     if (action === 'share') {
-      const result = inspectionService.shareInspection(params.id);
+      const result = await inspectionService.shareInspection(params.id);
       return NextResponse.json(result);
     }
 
@@ -84,7 +88,7 @@ export async function PATCH(
           { status: 400 }
         );
       }
-      const inspection = inspectionService.completeInspection(params.id, {
+      const inspection = await inspectionService.completeInspection(params.id, {
         summary: body.summary,
         recommendations: body.recommendations || [],
         overallCondition: body.overallCondition || 'good',
@@ -97,7 +101,7 @@ export async function PATCH(
     }
 
     // Default: update
-    const inspection = inspectionService.updateInspection(params.id, {
+    const inspection = await inspectionService.updateInspection(params.id, {
       responses: body.responses,
       photos: body.photos,
       overallCondition: body.overallCondition,
@@ -130,7 +134,10 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const deleted = inspectionService.deleteInspection(params.id);
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
+    const deleted = await inspectionService.deleteInspection(params.id);
     if (!deleted) {
       return NextResponse.json(
         { error: 'Inspection not found' },

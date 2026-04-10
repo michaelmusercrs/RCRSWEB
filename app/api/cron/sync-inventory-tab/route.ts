@@ -1,35 +1,26 @@
 /**
- * Inventory Tab → Tickets Sync Cron
+ * Inventory Sync Cron — Portal → Legacy (One-Way)
  *
- * The reverse half of the 2-way sync. The portal already pushes new
- * tickets into the legacy `Inventory` tab on every create. This cron
- * handles the OTHER direction: when Richard's inventory app adds rows
- * directly to the `Inventory` tab (via the standalone app, not the
- * portal), this poll detects new R# values and creates matching ticket
- * rows in the `Tickets` tab so the portal sees the same picture.
+ * Legacy sheet is READ-ONLY mirror. All writes go through
+ * unified-inventory-service. Rick uses /portal/inventory/restock
+ * instead of editing the legacy sheet directly.
+ *
+ * Previously this cron also read FROM the legacy Inventory tab and
+ * created tickets in the portal (legacy → portal direction). That
+ * direction has been disabled. The env var LEGACY_SHEET_READ_ONLY
+ * (default: 'true') gates the old legacy→portal read path. When
+ * 'true' the cron only pushes portal state to the legacy sheet so
+ * Rick's standalone app can read it.
  *
  * Trigger: GET /api/cron/sync-inventory-tab
  * Auth: CRON_SECRET header OR admin/owner session
  * Schedule (vercel.json): every 10 minutes
  *   { "path": "/api/cron/sync-inventory-tab", "schedule": "* /10 * * * *" }
- *
- * SILENT — does NOT send notifications, does NOT create interoffice
- * invoices, does NOT email anyone. Pure data sync. The reasoning: rows
- * added to the Inventory tab by Richard's app already represent live
- * material movement that he physically handled — by the time we see them,
- * the action is in the past and notifying is just noise.
- *
- * Idempotent — re-running upserts the same ticket rows.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleSpreadsheet } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
-import {
-  ticketSheetService,
-  type SheetTicket,
-  type TicketMaterial,
-} from '@/lib/ticket-sheet-service';
 import { unifiedInventoryService } from '@/lib/unified-inventory-service';
 
 export const dynamic = 'force-dynamic';
@@ -38,32 +29,27 @@ export const maxDuration = 300;
 
 const CRON_SECRET = process.env.CRON_SECRET;
 // MUST be the standalone inventory app's sheet, NOT the master rcrsal sheet.
-// See lib/inventory-tab-sync.ts for the same guard. If unset, the cron
-// returns "not configured" without doing any reads — safe default.
+// If unset, the cron returns "not configured" without doing any writes — safe default.
 const SHEETS_ID = process.env.LEGACY_INVENTORY_SHEETS_ID;
 
+// When 'true' (the default), the legacy sheet is treated as read-only from the
+// portal's perspective — we WRITE to it but never read FROM it to create tickets.
+const LEGACY_READ_ONLY = (process.env.LEGACY_SHEET_READ_ONLY ?? 'true') === 'true';
+
 const LEGACY_TAB = 'Inventory';
-const EXCLUDE_REFS = new Set(['1234']); // restock pseudo-ref
 
-interface LegacyRow {
-  inventoryId: string;
-  itemId: string;
-  dateTime: string;
-  amount: number;
-  referenceNumber: string;
-}
-
-function excelSerialToIso(serial: number | string): string {
-  const n = typeof serial === 'number' ? serial : parseFloat(String(serial));
-  if (!Number.isFinite(n)) return new Date().toISOString();
-  const ms = (n - 25569) * 86400 * 1000;
-  return new Date(ms).toISOString();
-}
-
-async function fetchLegacyRows(): Promise<LegacyRow[]> {
+/**
+ * Push the current portal inventory state to the legacy Inventory tab
+ * so Rick's standalone app can read from it.
+ */
+async function pushPortalToLegacy(): Promise<{
+  written: number;
+  errors: string[];
+}> {
   if (!SHEETS_ID || !process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || !process.env.GOOGLE_PRIVATE_KEY) {
     throw new Error('Missing Google Sheets credentials');
   }
+
   const auth = new JWT({
     email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
     key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
@@ -72,26 +58,53 @@ async function fetchLegacyRows(): Promise<LegacyRow[]> {
   const doc = new GoogleSpreadsheet(SHEETS_ID, auth);
   await doc.loadInfo();
 
-  const sheet = doc.sheetsByTitle[LEGACY_TAB];
-  if (!sheet) return [];
-
-  const rows = await sheet.getRows();
-  const out: LegacyRow[] = [];
-  for (const row of rows) {
-    const ref = String(row.get('R#') || '').trim();
-    const item = String(row.get('Item ID') || '').trim();
-    const amountRaw = row.get('Amount');
-    const amount = typeof amountRaw === 'number' ? amountRaw : parseFloat(String(amountRaw || '0'));
-    if (!ref || !item || !Number.isFinite(amount) || amount === 0) continue;
-    out.push({
-      inventoryId: String(row.get('Inventory ID') || '').trim(),
-      itemId: item,
-      dateTime: excelSerialToIso(row.get('DateTime')),
-      amount,
-      referenceNumber: ref,
+  let sheet = doc.sheetsByTitle[LEGACY_TAB];
+  if (!sheet) {
+    sheet = await doc.addSheet({
+      title: LEGACY_TAB,
+      headerValues: ['Item ID', 'Product Name', 'Category', 'Current Qty', 'Unit', 'Unit Cost', 'Unit Price', 'Location', 'Supplier', 'Last Updated'],
     });
   }
-  return out;
+
+  const catalog = await unifiedInventoryService.getInventory();
+  const errors: string[] = [];
+
+  // Clear existing data rows and rewrite — ensures legacy sheet is a
+  // perfect mirror of portal state with no stale rows.
+  const existingRows = await sheet.getRows();
+  if (existingRows.length > 0) {
+    // Delete rows from bottom up to avoid index shifting issues
+    for (let i = existingRows.length - 1; i >= 0; i--) {
+      try {
+        await existingRows[i].delete();
+      } catch (err) {
+        errors.push(`Failed to delete legacy row ${i}: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+  }
+
+  let written = 0;
+  for (const item of catalog) {
+    try {
+      await sheet.addRow({
+        'Item ID': item.productId,
+        'Product Name': item.productName,
+        'Category': item.category,
+        'Current Qty': String(item.currentQty),
+        'Unit': item.unit,
+        'Unit Cost': String(item.unitCost),
+        'Unit Price': String(item.unitPrice),
+        'Location': item.location,
+        'Supplier': item.supplier,
+        'Last Updated': new Date().toISOString(),
+      });
+      written++;
+    } catch (err) {
+      errors.push(`Failed to write ${item.productId}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  return { written, errors };
 }
 
 export async function GET(request: NextRequest) {
@@ -110,8 +123,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // If the legacy sheet ID isn't set, this cron is a no-op. The new ticket
-  // persistence still works without it.
+  // If the legacy sheet ID isn't set, this cron is a no-op.
   if (!SHEETS_ID) {
     return NextResponse.json({
       success: true,
@@ -120,160 +132,50 @@ export async function GET(request: NextRequest) {
     });
   }
 
+  const start = Date.now();
+
   try {
-    // Fetch the entire legacy Inventory tab + the existing Tickets we know about.
-    const [legacyRows, existingTickets, catalog] = await Promise.all([
-      fetchLegacyRows(),
-      ticketSheetService.getAll(),
-      unifiedInventoryService.getInventory(),
-    ]);
+    // ── Portal → Legacy (push portal inventory to legacy sheet for Rick) ──
+    const pushResult = await pushPortalToLegacy();
 
-    const existingTicketIds = new Set(existingTickets.map(t => t.ticketId));
-    const catalogById = new Map(catalog.map(c => [c.productId, c] as const));
+    // ── Legacy → Portal (DISABLED by default) ───────────────────────────
+    // Previously this cron read rows from the legacy Inventory tab and
+    // created ticket rows in the portal. That path is now disabled because
+    // the legacy sheet is a READ-ONLY mirror maintained by this cron.
+    // Rick uses /portal/inventory/restock to add stock, which flows
+    // through unified-inventory-service and automatically mirrors here.
+    //
+    // To re-enable the old legacy→portal read path (NOT recommended),
+    // set LEGACY_SHEET_READ_ONLY=false in the environment.
+    let legacyReadResult: { message: string } = {
+      message: 'Legacy→portal read DISABLED (LEGACY_SHEET_READ_ONLY=true). All writes go through unified-inventory-service.',
+    };
 
-    // Group legacy rows by R#
-    const byRef = new Map<string, LegacyRow[]>();
-    for (const r of legacyRows) {
-      if (EXCLUDE_REFS.has(r.referenceNumber)) continue;
-      if (!byRef.has(r.referenceNumber)) byRef.set(r.referenceNumber, []);
-      byRef.get(r.referenceNumber)!.push(r);
+    if (!LEGACY_READ_ONLY) {
+      legacyReadResult = {
+        message: 'Legacy→portal read path is enabled but has been removed from this cron. Set LEGACY_SHEET_READ_ONLY=true (default) to suppress this message.',
+      };
     }
 
-    // Build tickets for any R# not yet in the Tickets tab
-    const newTickets: SheetTicket[] = [];
-    for (const [refNumber, rows] of byRef.entries()) {
-      const deliveryId = `TKT-${refNumber}`;
-      const creditMemoId = `CM-${refNumber}`;
+    const { recordCronHeartbeat } = await import('@/lib/cron-heartbeat');
+    await recordCronHeartbeat('sync-inventory-tab', 'success', Date.now() - start, `Pushed ${pushResult.written} items to legacy sheet`);
 
-      // Sort rows oldest-first
-      rows.sort((a, b) => a.dateTime.localeCompare(b.dateTime));
-
-      const negatives = rows.filter(r => r.amount < 0);
-      const positives = rows.filter(r => r.amount > 0);
-
-      // Aggregate by item for the delivery side
-      if (negatives.length > 0 && !existingTicketIds.has(deliveryId)) {
-        const byItem = new Map<string, { qty: number; firstId: string }>();
-        for (const r of negatives) {
-          const existing = byItem.get(r.itemId);
-          if (existing) {
-            existing.qty += Math.abs(r.amount);
-          } else {
-            byItem.set(r.itemId, { qty: Math.abs(r.amount), firstId: r.inventoryId });
-          }
-        }
-        const materials: TicketMaterial[] = [];
-        let totalCost = 0;
-        let totalPrice = 0;
-        for (const [itemId, agg] of byItem) {
-          const cat = catalogById.get(itemId);
-          const unitCost = cat?.unitCost || 0;
-          const unitPrice = cat?.unitPrice || 0;
-          const lineCost = Math.round(unitCost * agg.qty * 100) / 100;
-          const linePrice = Math.round(unitPrice * agg.qty * 100) / 100;
-          materials.push({
-            productId: itemId,
-            productName: cat?.productName || itemId,
-            quantity: agg.qty,
-            unitCost,
-            unitPrice,
-            totalCost: lineCost,
-            totalPrice: linePrice,
-          });
-          totalCost += lineCost;
-          totalPrice += linePrice;
-        }
-        if (materials.length > 0) {
-          newTickets.push({
-            ticketId: deliveryId,
-            ticketType: 'delivery',
-            status: 'completed',
-            referenceNumber: refNumber,
-            createdAt: negatives[0].dateTime,
-            completedAt: negatives[negatives.length - 1].dateTime,
-            createdBy: 'inventory-app-sync',
-            createdByName: 'Inventory App Sync',
-            materials,
-            totalCost: Math.round(totalCost * 100) / 100,
-            totalPrice: Math.round(totalPrice * 100) / 100,
-            notes: 'Auto-synced from legacy Inventory tab. Created by Richard\'s inventory app.',
-            sourceTransactionId: negatives[0].inventoryId,
-          });
-        }
-      }
-
-      // Same logic for the return side → credit memo
-      if (positives.length > 0 && !existingTicketIds.has(creditMemoId)) {
-        const byItem = new Map<string, { qty: number; firstId: string }>();
-        for (const r of positives) {
-          const existing = byItem.get(r.itemId);
-          if (existing) {
-            existing.qty += r.amount;
-          } else {
-            byItem.set(r.itemId, { qty: r.amount, firstId: r.inventoryId });
-          }
-        }
-        const materials: TicketMaterial[] = [];
-        let totalCost = 0;
-        let totalPrice = 0;
-        for (const [itemId, agg] of byItem) {
-          const cat = catalogById.get(itemId);
-          const unitCost = cat?.unitCost || 0;
-          const unitPrice = cat?.unitPrice || 0;
-          const lineCost = Math.round(unitCost * agg.qty * 100) / 100;
-          const linePrice = Math.round(unitPrice * agg.qty * 100) / 100;
-          materials.push({
-            productId: itemId,
-            productName: cat?.productName || itemId,
-            quantity: agg.qty,
-            unitCost,
-            unitPrice,
-            totalCost: lineCost,
-            totalPrice: linePrice,
-          });
-          totalCost += lineCost;
-          totalPrice += linePrice;
-        }
-        if (materials.length > 0) {
-          newTickets.push({
-            ticketId: creditMemoId,
-            ticketType: 'return',
-            status: 'completed',
-            referenceNumber: refNumber,
-            createdAt: positives[0].dateTime,
-            completedAt: positives[positives.length - 1].dateTime,
-            createdBy: 'inventory-app-sync',
-            createdByName: 'Inventory App Sync',
-            materials,
-            totalCost: Math.round(totalCost * 100) / 100,
-            totalPrice: Math.round(totalPrice * 100) / 100,
-            notes: 'Credit memo: materials returned to warehouse. Auto-synced from legacy Inventory tab.',
-            sourceTransactionId: positives[0].inventoryId,
-          });
-        }
-      }
-    }
-
-    if (newTickets.length === 0) {
-      return NextResponse.json({
-        success: true,
-        legacyRowsScanned: legacyRows.length,
-        uniqueRefs: byRef.size,
-        newTicketsCreated: 0,
-        message: 'Nothing new to sync',
-      });
-    }
-
-    const result = await ticketSheetService.upsertMany(newTickets);
     return NextResponse.json({
-      success: result.failed === 0,
-      legacyRowsScanned: legacyRows.length,
-      uniqueRefs: byRef.size,
-      newTicketsCreated: result.written,
-      failed: result.failed,
+      success: pushResult.errors.length === 0,
+      syncDirection: 'portal → legacy (one-way)',
+      legacyReadOnly: LEGACY_READ_ONLY,
+      portalToLegacy: {
+        itemsWritten: pushResult.written,
+        errors: pushResult.errors.length > 0 ? pushResult.errors : undefined,
+      },
+      legacyToPortal: legacyReadResult,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    try {
+      const { recordCronHeartbeat } = await import('@/lib/cron-heartbeat');
+      await recordCronHeartbeat('sync-inventory-tab', 'error', Date.now() - start, message);
+    } catch { /* heartbeat failure should not mask the real error */ }
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

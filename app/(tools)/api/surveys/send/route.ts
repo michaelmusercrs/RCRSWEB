@@ -8,6 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { customerSurveyService } from '@/lib/customer-survey-service';
 
 /**
@@ -17,6 +18,9 @@ import { customerSurveyService } from '@/lib/customer-survey-service';
  */
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
 
     const { surveyId, customerId, customerName, customerEmail } = body;
@@ -40,7 +44,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = customerSurveyService.sendSurvey(
+    const result = await customerSurveyService.sendSurvey(
       surveyId,
       customerId,
       customerName,

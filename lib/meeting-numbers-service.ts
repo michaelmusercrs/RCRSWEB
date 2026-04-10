@@ -760,18 +760,55 @@ class MeetingNumbersService {
         return a.repName.localeCompare(b.repName);
       });
 
-      // Save to JSON file
-      const dataDir = getDataDir();
-      if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true });
+      // Persist a local JSON cache copy for dev / offline use. On Vercel the
+      // filesystem is read-only at runtime so this is best-effort: we ignore
+      // any write failure because the source of truth lives in Google Sheets
+      // and the in-memory cache populated below is what serves subsequent reads.
+      try {
+        const dataDir = getDataDir();
+        if (!fs.existsSync(dataDir)) {
+          fs.mkdirSync(dataDir, { recursive: true });
+        }
+        const outPath = path.join(dataDir, `meeting-numbers-${targetYear}.json`);
+        fs.writeFileSync(outPath, JSON.stringify(allRecords, null, 2), 'utf-8');
+      } catch (cacheErr) {
+        console.warn('[MeetingNumbers] Local cache write skipped (read-only fs?):', cacheErr);
       }
-      const outPath = path.join(dataDir, `meeting-numbers-${targetYear}.json`);
-      fs.writeFileSync(outPath, JSON.stringify(allRecords, null, 2), 'utf-8');
 
-      // Invalidate in-memory cache so next read picks up fresh data
-      this.invalidateCache();
+      // CRITICAL: Populate the in-memory cache directly from the freshly fetched
+      // Sheet records. We can't rely on re-reading from disk because on Vercel
+      // the disk is read-only — the JSON file we just tried to write was
+      // silently ignored, so a disk re-read would return the stale build-time
+      // snapshot. Merging in here means leaderboards reflect Sheet edits
+      // immediately on the next request, regardless of host.
+      try {
+        const parsedRecords = allRecords
+          .filter(r => r.repName && r.repName.trim() !== '' && r.repName.toLowerCase() !== 'total')
+          .map(r => parseRawRecord(r));
 
-      // Sync complete
+        // Merge with any records from OTHER years already in cache so a
+        // single-year sync doesn't wipe historical data.
+        const otherYearRecords = this.cache.filter(r => {
+          const recYear = (r.meetingDate || '').slice(0, 4);
+          return recYear && recYear !== String(targetYear);
+        });
+
+        const merged = [...otherYearRecords, ...parsedRecords];
+        merged.sort((a, b) => {
+          const dateCmp = a.meetingDate.localeCompare(b.meetingDate);
+          if (dateCmp !== 0) return dateCmp;
+          return a.repName.localeCompare(b.repName);
+        });
+
+        this.cache = merged;
+        this.cacheLoaded = true;
+        this.lastCacheLoad = Date.now();
+      } catch (cacheBuildErr) {
+        // If parsing fails for some reason, fall back to the old invalidate
+        // path so the next read at least tries again.
+        console.error('[MeetingNumbers] Failed to populate in-memory cache from sheet records:', cacheBuildErr);
+        this.invalidateCache();
+      }
 
       return { success: true, recordCount: allRecords.length };
     } catch (err: unknown) {
@@ -1028,15 +1065,49 @@ class MeetingNumbersService {
         }
       }
 
-      // Sort and save
+      // Sort and save (best-effort dev cache write — see syncFromSheet)
       records.sort((a, b) => {
         const dateCmp = a.meetingDate.localeCompare(b.meetingDate);
         if (dateCmp !== 0) return dateCmp;
         return a.repName.localeCompare(b.repName);
       });
 
-      fs.writeFileSync(filePath, JSON.stringify(records, null, 2), 'utf-8');
-      this.invalidateCache();
+      try {
+        fs.writeFileSync(filePath, JSON.stringify(records, null, 2), 'utf-8');
+      } catch (cacheErr) {
+        console.warn('[MeetingNumbers] Local cache update skipped (read-only fs?):', cacheErr);
+      }
+
+      // CRITICAL: Also patch the in-memory cache directly so the submitted
+      // numbers show up on the next read without waiting for a full sheet
+      // re-sync. Without this, the next leaderboard call on Vercel would
+      // re-read from the (stale, read-only) disk file and miss the update.
+      try {
+        const parsedNew = parseRawRecord(existing);
+        const idx = this.cache.findIndex(
+          r => r.meetingDate === meetingDate &&
+               r.repName.toLowerCase() === existing!.repName.toLowerCase()
+        );
+        if (idx >= 0) {
+          this.cache[idx] = parsedNew;
+        } else {
+          this.cache.push(parsedNew);
+          this.cache.sort((a, b) => {
+            const dateCmp = a.meetingDate.localeCompare(b.meetingDate);
+            if (dateCmp !== 0) return dateCmp;
+            return a.repName.localeCompare(b.repName);
+          });
+        }
+        // Mark cache as loaded so reads serve the in-memory value instead of
+        // re-reading the stale disk file.
+        this.cacheLoaded = true;
+        this.lastCacheLoad = Date.now();
+      } catch (memErr) {
+        // If patching fails, fall back to invalidating so the next read tries
+        // a fresh load.
+        console.warn('[MeetingNumbers] In-memory cache patch failed; invalidating:', memErr);
+        this.invalidateCache();
+      }
     } catch (err) {
       console.error('[MeetingNumbers] Failed to update local cache:', err);
     }

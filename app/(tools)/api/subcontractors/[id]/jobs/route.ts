@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { subcontractorService } from '@/lib/subcontractor-service';
 
 /**
@@ -23,7 +24,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const sub = subcontractorService.getSubcontractor(params.id);
+    const sub = await subcontractorService.getSubcontractor(params.id);
 
     if (!sub) {
       return NextResponse.json(
@@ -82,6 +83,9 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const body = await request.json();
 
     if (!body.customerName || !body.address) {
@@ -105,7 +109,7 @@ export async function POST(
       );
     }
 
-    const job = subcontractorService.assignJob(params.id, {
+    const job = await subcontractorService.assignJob(params.id, {
       jobId: body.jobId || '',
       customerName: body.customerName,
       address: body.address,
