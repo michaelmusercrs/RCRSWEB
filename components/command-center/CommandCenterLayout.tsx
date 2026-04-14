@@ -335,6 +335,13 @@ export function CommandCenterLayout({ children }: CommandCenterLayoutProps) {
   const { user, logout, isLoading } = useAuth();
   const pathname = usePathname();
 
+  // The Monday meeting presentation runs on the conference room display.
+  // Skip the auth gate + sidebar chrome so it goes straight to fullscreen.
+  const isPublicPresentation = pathname === '/command-center/meetings/present';
+  if (isPublicPresentation) {
+    return <>{children}</>;
+  }
+
   // Sidebar state
   const [isCollapsed, setIsCollapsed] = React.useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);

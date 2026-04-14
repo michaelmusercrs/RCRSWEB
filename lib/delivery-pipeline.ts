@@ -1,6 +1,6 @@
 // ============================================================
 // 18-Stage Delivery Pipeline Configuration
-// River City Roofing & Solar - Delivery Management System
+// River City Roofing Solutions - Delivery Management System
 // ============================================================
 
 export type DeliveryStage =

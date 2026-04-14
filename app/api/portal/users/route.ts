@@ -5,7 +5,9 @@ import { portalAuthService, UserRole } from '@/lib/portal-auth';
 import { checkRequestSize } from '@/lib/request-size-limit';
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
+  // SECURITY FIX: Require admin role (not just auth) to prevent privilege escalation
+  // Any authenticated user should not be able to view all users or user details
+  const auth = await requireAdmin();
   if (!auth.authenticated) return auth.response;
 
   try {

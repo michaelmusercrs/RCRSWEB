@@ -212,7 +212,7 @@ interface WeeklyNumbersRep {
   followUpsMade: number;
 }
 
-type ViewMode = 'date-header' | 'bible-verse' | 'training' | 'weather' | 'attendance' | 'early-announcements' | 'enter-numbers' | 'weekly-numbers' | 'projections' | 'podium' | 'leaderboard' | 'competition' | 'stats' | 'sales-charts' | 'commission-charts' | 'goals' | 'milestones' | 'office-bonus' | 'late-announcements';
+type ViewMode = 'date-header' | 'bible-verse' | 'training' | 'weather' | 'attendance' | 'early-announcements' | 'enter-numbers' | 'weekly-numbers' | 'projections' | 'podium' | 'leaderboard' | 'competition' | 'stats' | 'sales-charts' | 'commission-charts' | 'goals' | 'milestones' | 'office-bonus' | 'late-announcements' | 'raise-the-roof' | 'employee-of-month' | 'closing-quote';
 
 // =============================================================================
 // Utility Functions
@@ -860,7 +860,9 @@ export default function MeetingPresentationPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const autoRotateRef = useRef<NodeJS.Timeout | null>(null);
 
-  const views: ViewMode[] = ['date-header', 'bible-verse', 'training', 'weather', 'attendance', 'early-announcements', 'enter-numbers', 'weekly-numbers', 'projections', 'podium', 'leaderboard', 'competition', 'stats', 'sales-charts', 'commission-charts', 'goals', 'milestones', 'office-bonus', 'late-announcements'];
+  // Monday meeting flow — matches the weekly pptx 1:1 (2026-04-13 onward).
+  // Order: title → verse → weather → attendance → schedule → month/YTD charts → announcements → raise-the-roof → EOM → office bonus → closing.
+  const views: ViewMode[] = ['date-header', 'bible-verse', 'weather', 'attendance', 'weekly-numbers', 'sales-charts', 'commission-charts', 'late-announcements', 'raise-the-roof', 'employee-of-month', 'office-bonus', 'closing-quote'];
 
   // Fetch data
   const fetchData = useCallback(async () => {
@@ -1099,7 +1101,7 @@ export default function MeetingPresentationPage() {
           <div className="flex flex-col items-center justify-center h-[60vh]">
             <h1 className="text-7xl font-bold text-white mb-4 animate-slideUp">Monday Meeting</h1>
             <p className="text-4xl text-lime-400 animate-slideUp" style={{ animationDelay: '0.2s' }}>{dateStr}</p>
-            <p className="text-2xl text-neutral-500 mt-4 animate-slideUp" style={{ animationDelay: '0.4s' }}>River City Roofing & Solar</p>
+            <p className="text-2xl text-neutral-500 mt-4 animate-slideUp" style={{ animationDelay: '0.4s' }}>River City Roofing Solutions</p>
           </div>
         );
       case 'bible-verse':
@@ -1204,14 +1206,17 @@ export default function MeetingPresentationPage() {
       case 'attendance':
         return (
           <div className="flex flex-col items-center justify-center h-[60vh] space-y-8 p-8">
-            <div className="w-24 h-24 bg-red-500/20 rounded-full flex items-center justify-center animate-pulse">
-              <Users className="h-14 w-14 text-red-400" />
+            <div className="w-24 h-24 bg-lime-500/20 rounded-full flex items-center justify-center">
+              <Users className="h-14 w-14 text-lime-400" />
             </div>
-            <h2 className="text-5xl font-bold text-white text-center">Attendance is MANDATORY!</h2>
-            <p className="text-3xl text-neutral-300">Meetings are Mondays at 10:00 AM</p>
-            <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-8 max-w-3xl">
-              <p className="text-2xl text-red-400 text-center font-semibold">
-                If you are late or have an unexcused absence, you will NOT be on lead rotation for that week.
+            <h2 className="text-5xl font-bold text-white text-center">Thanks for Being Here</h2>
+            <p className="text-3xl text-neutral-300">Monday Meetings · 10:00 AM</p>
+            <div className="bg-lime-500/10 border border-lime-500/30 rounded-2xl p-8 max-w-3xl">
+              <p className="text-2xl text-lime-300 text-center font-semibold">
+                Showing up gets you in the lead rotation, in the conversation, and closer to the goal.
+              </p>
+              <p className="text-xl text-neutral-300 text-center mt-4">
+                Every rep in this room today is eligible to receive leads from the office this week. Let&apos;s go sell some roofs.
               </p>
             </div>
           </div>
@@ -1383,6 +1388,69 @@ export default function MeetingPresentationPage() {
         );
       case 'late-announcements':
         return <AnnouncementsDisplay announcements={announcementsData?.late || []} type="late" />;
+      case 'raise-the-roof':
+        return (
+          <div className="flex flex-col items-center justify-center h-[70vh] space-y-6 p-6">
+            <h2 className="text-6xl font-bold text-white text-center">Raise the Roof</h2>
+            <p className="text-2xl text-lime-400 text-center">River City Roofing Solutions gives back</p>
+            <div className="flex items-center justify-center gap-10 mt-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/meeting-assets/lady-devils.jpg" alt="Lady Devils" className="h-48 w-auto rounded-xl shadow-2xl bg-white p-2" />
+              <div className="text-center">
+                <p className="text-5xl font-bold text-lime-400">$250</p>
+                <p className="text-2xl text-neutral-200 mt-2">donated per completed roof</p>
+                <p className="text-lg text-neutral-400 mt-1">to local youth sports</p>
+              </div>
+            </div>
+            <div className="bg-zinc-800/80 rounded-2xl p-6 border border-zinc-700 max-w-3xl text-center">
+              <p className="text-xl text-neutral-200">
+                Default recipient: <span className="text-lime-400 font-bold">Lady Raiders</span> &middot; Customers can redirect their donation to any local youth sports program.
+              </p>
+              <p className="text-lg text-neutral-400 mt-3">
+                This week we&apos;re highlighting the <span className="text-red-400 font-semibold">Moulton Lady Devils</span> — recent hail storm impact area.
+              </p>
+            </div>
+          </div>
+        );
+      case 'employee-of-month': {
+        const eomName = prepData?.employeeOfMonth?.name || 'Old Gregg';
+        const eomDept = prepData?.employeeOfMonth?.department || 'Sales';
+        const eomReason = prepData?.employeeOfMonth?.reason || 'Top April sales performer - leading the team by example.';
+        return (
+          <div className="flex flex-col items-center justify-center h-[70vh] space-y-6 p-6">
+            <div className="flex items-center gap-3">
+              <Award className="h-12 w-12 text-yellow-400 animate-pulse" />
+              <h2 className="text-5xl font-bold text-white">Employee of the Month</h2>
+              <Award className="h-12 w-12 text-yellow-400 animate-pulse" />
+            </div>
+            <p className="text-6xl font-bold text-lime-400 animate-slideUp">{eomName}</p>
+            <div className="flex items-center justify-center gap-6">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/meeting-assets/eom-greg-1.png" alt={eomName} className="h-56 w-auto rounded-2xl shadow-2xl object-cover" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/meeting-assets/eom-greg-2.jpg" alt={eomName} className="h-56 w-auto rounded-2xl shadow-2xl object-cover" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/meeting-assets/eom-greg-3.png" alt={eomName} className="h-56 w-auto rounded-2xl shadow-2xl object-cover" />
+            </div>
+            <div className="bg-zinc-800/80 rounded-2xl p-6 border border-zinc-700 max-w-3xl text-center">
+              <p className="text-lg text-neutral-500 uppercase tracking-wider">{eomDept}</p>
+              <p className="text-2xl text-neutral-200 mt-2">{eomReason}</p>
+            </div>
+          </div>
+        );
+      }
+      case 'closing-quote':
+        return (
+          <div className="flex flex-col items-center justify-center h-[70vh] space-y-8 p-8">
+            <div className="text-8xl text-yellow-400 font-serif leading-none">&ldquo;</div>
+            <p className="text-5xl text-white text-center max-w-4xl font-light italic leading-tight">
+              Mastering others is strength. Mastering yourself is true power.
+            </p>
+            <div className="w-32 h-1 bg-yellow-400 rounded" />
+            <p className="text-2xl text-neutral-400 tracking-widest uppercase">Lao Tzu</p>
+            <p className="text-lg text-lime-400 mt-6">Go sell some roofs.</p>
+          </div>
+        );
       default:
         return null;
     }
@@ -1495,7 +1563,7 @@ export default function MeetingPresentationPage() {
                 'bible-verse': '📖 Verse',
                 'training': '🎓 Training',
                 'weather': '🌤️ Weather',
-                'attendance': '⚠️ Attendance',
+                'attendance': '🙌 Attendance',
                 'early-announcements': '📢 Announcements',
                 'podium': '🏆 Podium',
                 'leaderboard': '📊 Leaderboard',
@@ -1510,6 +1578,9 @@ export default function MeetingPresentationPage() {
                 'enter-numbers': '✏️ Enter Numbers',
                 'projections': '🔮 Projections',
                 'late-announcements': '📣 Late Announcements',
+                'raise-the-roof': '🏠 Raise the Roof',
+                'employee-of-month': '🏅 Employee of Month',
+                'closing-quote': '💬 Closing Quote',
               };
               return (
                 <button

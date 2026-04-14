@@ -139,7 +139,7 @@ function SlideTitle() {
       <div className="animate-slideUp">
         <h1 className="text-7xl font-bold text-white mb-4">Monday Meeting</h1>
         <p className="text-4xl text-lime-400 text-center">{MEETING_DATE}</p>
-        <p className="text-2xl text-zinc-500 mt-6 text-center">River City Roofing & Solar</p>
+        <p className="text-2xl text-zinc-500 mt-6 text-center">River City Roofing Solutions</p>
         <div className="flex items-center justify-center gap-2 mt-4">
           <div className="h-1 w-24 bg-lime-500 rounded-full" />
           <div className="h-1 w-8 bg-lime-500/50 rounded-full" />
@@ -650,7 +650,7 @@ function SlideClosing() {
         Go sell some roofs!
       </p>
       <p className="text-xl text-zinc-500 animate-slideUp" style={{ animationDelay: '0.4s' }}>
-        River City Roofing & Solar &mdash; {MEETING_DATE}
+        River City Roofing Solutions &mdash; {MEETING_DATE}
       </p>
     </div>
   );
