@@ -328,7 +328,7 @@ class DeliveryPortalService {
       createdBy: data.createdBy,
       createdByName: data.createdBy,
       createdByRole: 'office',
-      priority: data.priority.toLowerCase() as 'normal' | 'rush' | 'urgent',
+      priority: (data.priority ?? 'normal').toLowerCase() as 'normal' | 'rush' | 'urgent',
       jobNumber: '',
       jobName: data.jobName,
       jobNimbusId: data.jobnimbusId,
