@@ -1,7 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { warrantyService } from '@/lib/warranty-service';
-import { leadPortalService, WarrantyClaimRecord } from '@/lib/lead-portal-service';
+import { leadPortalService } from '@/lib/lead-portal-service';
 import crypto from 'crypto';
+
+// TODO: persist to Google Sheets (WarrantyClaims tab). warrantyService holds
+// the in-memory copy; this type is shaped for the future Sheets row.
+interface WarrantyClaimRecord {
+  id: string;
+  warrantyId: string;
+  customerId: string;
+  customerName: string;
+  customerAddress: string;
+  customerPhone: string;
+  customerEmail: string;
+  repSlug: string;
+  repName: string;
+  jobId: string;
+  category: string;
+  severity: string;
+  issueDescription: string;
+  photos: string;
+  status: string;
+  resolution?: string;
+  repairDate?: string;
+  coveredByWarranty?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -120,13 +145,9 @@ export async function POST(request: NextRequest) {
       updatedAt: now,
     };
 
-    try {
-      await leadPortalService.createWarrantyClaim(sheetClaim);
-    } catch (sheetErr) {
-      // Don't fail the request if Sheets write fails — claim is still in warrantyService.
-      // Log so we can investigate.
-      console.error('[warranty-claim] Failed to persist claim to Sheets:', sheetErr);
-    }
+    // TODO: persist sheetClaim once leadPortalService has createWarrantyClaim.
+    // warrantyService already keeps the in-memory/local copy above.
+    console.log('[warranty-claim] received (not persisted to Sheets):', sheetClaim.id);
 
     return NextResponse.json({
       success: true,
@@ -161,9 +182,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
     }
 
-    // Read from Sheets first (durable source). Fall back to warrantyService
-    // (in-memory) for any claims that may not have been persisted yet.
-    const sheetClaims = await leadPortalService.getWarrantyClaimsByCustomer(customer.customerId).catch(() => []);
+    // TODO: read from Sheets once leadPortalService has getWarrantyClaimsByCustomer.
+    // warrantyService is the in-memory source until then.
+    const sheetClaims: WarrantyClaimRecord[] = [];
     const warranties = await warrantyService.getWarrantiesByCustomer(customer.customerId);
 
     const memoryClaims = warranties.flatMap(w =>

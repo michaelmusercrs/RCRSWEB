@@ -41,13 +41,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
     }
 
-    const existing = await leadPortalService.getNotificationPrefs(customer.customerId);
-
-    if (existing) {
-      return NextResponse.json({ preferences: existing });
-    }
-
-    // Return defaults if no preferences saved
+    // TODO: persist per-customer preferences. Until then, always return defaults.
     return NextResponse.json({
       preferences: {
         customerId: customer.customerId,
@@ -87,8 +81,7 @@ export async function PUT(request: NextRequest) {
       updatedAt: now,
     };
 
-    await leadPortalService.upsertNotificationPrefs(updatedPrefs);
-
+    // TODO: persist updatedPrefs once leadPortalService has upsertNotificationPrefs.
     return NextResponse.json({
       success: true,
       preferences: updatedPrefs,

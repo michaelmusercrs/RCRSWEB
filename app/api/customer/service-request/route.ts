@@ -1,6 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { leadPortalService, ServiceRequestRecord } from '@/lib/lead-portal-service';
+import { leadPortalService } from '@/lib/lead-portal-service';
 import crypto from 'crypto';
+
+// TODO: persist to Google Sheets (ServiceRequests tab). For now the route
+// accepts submissions and returns success without storing them.
+interface ServiceRequestRecord {
+  id: string;
+  customerId: string;
+  customerName: string;
+  customerAddress: string;
+  customerPhone: string;
+  customerEmail: string;
+  repSlug: string;
+  repName: string;
+  type: string;
+  description: string;
+  preferredDate: string;
+  urgency: string;
+  photos: string;
+  status: string;
+  assignedTo?: string;
+  scheduledDate?: string;
+  resolution?: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -76,7 +100,8 @@ export async function POST(request: NextRequest) {
       updatedAt: now,
     };
 
-    await leadPortalService.createServiceRequest(serviceRequest);
+    // TODO: persist serviceRequest once leadPortalService has createServiceRequest.
+    console.log('[service-request] received (not persisted):', serviceRequest.id);
 
     return NextResponse.json({
       success: true,
@@ -109,7 +134,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
     }
 
-    const records = await leadPortalService.getServiceRequestsByCustomer(customer.customerId);
+    // TODO: query records once leadPortalService has getServiceRequestsByCustomer.
+    const records: ServiceRequestRecord[] = [];
 
     const customerRequests = records.map(r => {
       let parsedPhotos: string[] = [];
