@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>RCRS 2026 H1 Trip Program — Live Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --green: #39FF14; --green-dim: #2dd010; --blue: #0066CC;
+    --bg: #0a0e14; --bg2: #131820; --bg3: #1c2330;
+    --text: #e6edf3; --text-dim: #8b95a5;
+    --warn: #ff9500; --bad: #ff453a; --gold: #ffd60a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, system-ui, "Segoe UI", Inter, sans-serif; background: var(--bg); color: var(--text); padding: 20px; line-height: 1.5; }
+  h1 { color: var(--green); margin: 0 0 4px; font-size: 28px; letter-spacing: -.5px; }
+  h2 { color: var(--green); margin: 32px 0 12px; font-size: 18px; border-bottom: 1px solid #2a3342; padding-bottom: 8px; }
+  h3 { margin: 18px 0 8px; color: var(--text); font-size: 16px; }
+  .sub { color: var(--text-dim); font-size: 13px; margin-bottom: 16px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .badge-green { background: rgba(57,255,20,.15); color: var(--green); border: 1px solid rgba(57,255,20,.3); }
+  .badge-warn { background: rgba(255,149,0,.15); color: var(--warn); border: 1px solid rgba(255,149,0,.3); }
+  .badge-bad { background: rgba(255,69,58,.15); color: var(--bad); border: 1px solid rgba(255,69,58,.3); }
+  .badge-gold { background: rgba(255,214,10,.15); color: var(--gold); border: 1px solid rgba(255,214,10,.3); }
+
+  .hero { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .stat { background: var(--bg2); padding: 16px; border-radius: 10px; border: 1px solid #2a3342; }
+  .stat-label { color: var(--text-dim); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+  .stat-value { font-size: 24px; font-weight: 700; color: var(--green); margin-top: 4px; }
+  .stat-sub { color: var(--text-dim); font-size: 12px; margin-top: 4px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+  @media (max-width: 800px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .card { background: var(--bg2); padding: 20px; border-radius: 12px; border: 1px solid #2a3342; }
+  .chart-card { background: var(--bg2); padding: 20px; border-radius: 12px; border: 1px solid #2a3342; position: relative; display: flex; flex-direction: column; }
+  .chart-card h3 { flex: 0 0 auto; }
+  .chart-card .chart-wrap { position: relative; flex: 1 1 auto; height: 320px; }
+  .chart-card canvas { max-width: 100%; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 8px 10px; text-align: right; border-bottom: 1px solid #2a3342; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--text-dim); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+  tbody tr:hover { background: var(--bg3); cursor: pointer; }
+
+  .rep-card { background: linear-gradient(135deg, var(--bg2), var(--bg3)); padding: 24px; border-radius: 14px; border: 1px solid #2a3342; transition: transform .2s, border-color .2s; }
+  .rep-card:hover { transform: translateY(-2px); border-color: var(--green); }
+  .rep-card.qualified { border-color: var(--green); box-shadow: 0 0 20px rgba(57,255,20,.1); }
+  .rep-name { font-size: 22px; font-weight: 700; color: var(--green); margin-bottom: 2px; }
+  .rep-llc { color: var(--text-dim); font-size: 12px; margin-bottom: 14px; }
+
+  .progress { background: #1a2030; height: 18px; border-radius: 9px; overflow: hidden; margin: 8px 0; position: relative; }
+  .progress-bar { background: linear-gradient(90deg, var(--green-dim), var(--green)); height: 100%; transition: width .8s; }
+  .progress-bar.warn { background: linear-gradient(90deg, #cc7a00, var(--warn)); }
+  .progress-bar.bad { background: linear-gradient(90deg, #cc2a22, var(--bad)); }
+  .progress-label { position: absolute; top: 0; left: 0; right: 0; text-align: center; font-size: 11px; line-height: 18px; color: #fff; font-weight: 600; text-shadow: 0 0 4px rgba(0,0,0,.7); }
+
+  .insight-list { margin: 8px 0; padding: 0; list-style: none; }
+  .insight-list li { padding: 6px 0 6px 22px; position: relative; font-size: 13px; }
+  .insight-list li::before { position: absolute; left: 0; top: 6px; }
+  .wins li::before { content: "✓"; color: var(--green); font-weight: 700; }
+  .gaps li::before { content: "!"; color: var(--warn); font-weight: 700; padding-left: 4px; }
+  .suggestions li::before { content: "→"; color: var(--blue); font-weight: 700; }
+  .motivation { margin-top: 14px; padding: 12px; background: rgba(57,255,20,.08); border-left: 3px solid var(--green); border-radius: 4px; font-style: italic; color: var(--green); font-size: 13px; }
+  .delta-card { margin: 10px 0 14px; padding: 12px; background: linear-gradient(135deg, rgba(255,214,10,.1), rgba(57,255,20,.08)); border-left: 3px solid var(--gold); border-radius: 4px; font-size: 13px; }
+  .section-label { color: var(--text-dim); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; margin-top: 14px; margin-bottom: 6px; }
+  .tier-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; border-bottom: 1px dotted #2a3342; }
+  .tier-row:last-child { border: 0; }
+  .tier-row .lbl { color: var(--text-dim); }
+  .tier-row .val { color: var(--green); font-weight: 600; }
+
+  .award-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  .award { background: linear-gradient(135deg, rgba(255,214,10,.08), rgba(57,255,20,.08)); padding: 14px; border-radius: 10px; border: 1px solid rgba(255,214,10,.2); }
+  .award-title { font-size: 11px; color: var(--gold); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+  .award-winner { font-size: 18px; font-weight: 700; color: var(--text); }
+  .award-detail { color: var(--text-dim); font-size: 12px; margin-top: 4px; }
+
+  .heatmap-cell { padding: 8px; text-align: center; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .heat-0 { background: #1a2030; color: var(--text-dim); }
+  .heat-1 { background: rgba(255,69,58,.2); color: var(--bad); }
+  .heat-2 { background: rgba(255,149,0,.25); color: var(--warn); }
+  .heat-3 { background: rgba(57,255,20,.2); color: var(--green); }
+  .heat-4 { background: rgba(57,255,20,.4); color: #fff; font-weight: 700; }
+  .heat-5 { background: rgba(57,255,20,.7); color: #000; font-weight: 700; }
+
+  .small-table th, .small-table td { padding: 5px 8px; }
+  .footer { color: var(--text-dim); font-size: 11px; margin-top: 32px; padding-top: 16px; border-top: 1px solid #2a3342; }
+
+  .upload-zone { border: 2px dashed #2a3342; border-radius: 12px; padding: 40px; text-align: center; transition: all .2s; cursor: pointer; background: var(--bg2); }
+  .upload-zone:hover, .upload-zone.dragover { border-color: var(--green); background: rgba(57,255,20,.04); }
+  .upload-zone input { display: none; }
+  .upload-icon { font-size: 32px; color: var(--text-dim); }
+  .upload-msg { color: var(--text-dim); font-size: 13px; margin-top: 8px; }
+
+  .toggle { display: inline-block; position: relative; width: 44px; height: 22px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #2a3342; border-radius: 22px; transition: .3s; }
+  .toggle-slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: .3s; }
+  .toggle input:checked + .toggle-slider { background: var(--green); }
+  .toggle input:checked + .toggle-slider:before { transform: translateX(22px); }
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px dotted #2a3342; }
+
+  .delta-good { color: var(--green); }
+  .delta-bad { color: var(--bad); }
+  .delta-warn { color: var(--warn); }
+  .delta-add { color: var(--green); }
+  .delta-mod { color: var(--warn); }
+  .delta-rm { color: var(--bad); }
+
+  .policy-box { background: rgba(0,102,204,.06); border-left: 3px solid var(--blue); padding: 14px 18px; border-radius: 4px; margin: 10px 0; font-size: 13px; }
+  .policy-box strong { color: var(--green); }
+  .danger-box { background: rgba(255,69,58,.06); border-left: 3px solid var(--bad); padding: 14px 18px; border-radius: 4px; margin: 10px 0; font-size: 13px; }
+  .winner-box { background: rgba(57,255,20,.06); border-left: 3px solid var(--green); padding: 14px 18px; border-radius: 4px; margin: 10px 0; font-size: 13px; font-style: italic; color: var(--green); font-weight: 600; }
+  .warn-box { background: rgba(255,149,0,.06); border-left: 3px solid var(--warn); padding: 14px 18px; border-radius: 4px; margin: 10px 0; font-size: 13px; }
+
+  .btn { display: inline-block; padding: 10px 18px; border-radius: 8px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; transition: all .15s; margin-right: 8px; }
+  .btn-primary { background: var(--green); color: #000; }
+  .btn-primary:hover { background: #5fff45; }
+  .btn-warn { background: var(--warn); color: #000; }
+  .btn-warn:hover { background: #ffaa3d; }
+  .btn-secondary { background: var(--bg3); color: var(--text); border: 1px solid #2a3342; }
+  .btn-secondary:hover { background: #252d3d; }
+
+  .diff-table td { vertical-align: top; }
+  .diff-table input[type="number"] { background: var(--bg3); border: 1px solid #2a3342; color: var(--text); padding: 4px 6px; border-radius: 4px; width: 110px; text-align: right; }
+  .diff-row-add { background: rgba(57,255,20,.05); }
+  .diff-row-mod { background: rgba(255,149,0,.05); }
+  .diff-row-rm { background: rgba(255,69,58,.05); }
+
+  .changelog-entry { padding: 12px; border-bottom: 1px solid #2a3342; font-size: 13px; }
+  .changelog-entry:last-child { border-bottom: 0; }
+  .changelog-time { color: var(--text-dim); font-size: 11px; }
+</style>
+</head>
+<body>
+
+<h1>RCRS 2026 H1 Trip Program</h1>
+<div class="sub">
+  Live dashboard · Source: <code>2026 Sales Numbers by Month (3).xlsx</code> · Generated 5/6/2026, 9:11:35 PM ·
+  55 days left in H1 (~8 weeks, 2 months) ·
+  Trip qualification = $400K cumulative Jan 1 – Jun 30
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="stat"><div class="stat-label">Team H1 YTD</div><div class="stat-value">$1,365,301</div><div class="stat-sub">across 8 reps</div></div>
+  <div class="stat"><div class="stat-label">Team Average</div><div class="stat-value">$170,663</div><div class="stat-sub">per rep YTD</div></div>
+  <div class="stat"><div class="stat-label">Qualified for Trip</div><div class="stat-value">1 / 8</div><div class="stat-sub">13% of team</div></div>
+  <div class="stat"><div class="stat-label">Total Accrued</div><div class="stat-value">$4,250</div><div class="stat-sub">$2,050 locked, $2,200 pending</div></div>
+  <div class="stat"><div class="stat-label">Top Producer</div><div class="stat-value">Greg</div><div class="stat-sub">$561,789</div></div>
+  <div class="stat"><div class="stat-label">Biggest Month</div><div class="stat-value">$261,333</div><div class="stat-sub">Greg - April</div></div>
+</div>
+
+<!-- AWARDS -->
+<h2>🏆 Superlatives</h2>
+<div class="award-grid">
+  <div class="award"><div class="award-title">👑 Top Producer</div><div class="award-winner">Greg</div><div class="award-detail">$561,789 YTD</div></div>
+  <div class="award"><div class="award-title">🔥 Biggest Single Month</div><div class="award-winner">Greg</div><div class="award-detail">April - $261,333</div></div>
+  <div class="award"><div class="award-title">🎯 Most Consistent</div><div class="award-winner">Greg</div><div class="award-detail">3 of 4 months tier hit</div></div>
+  <div class="award"><div class="award-title">💰 Highest Tier Hit</div><div class="award-winner">Greg</div><div class="award-detail">$200K in April (+$1,200)</div></div>
+  <div class="award"><div class="award-title">🚀 Best January Start</div><div class="award-winner">Aaron</div><div class="award-detail">$75,616 Jan</div></div>
+  <div class="award"><div class="award-title">🌟 April Surge</div><div class="award-winner">Greg</div><div class="award-detail">$261,333 April</div></div>
+  <div class="award"><div class="award-title">💪 Comeback Candidate</div><div class="award-winner">Hunter</div><div class="award-detail">Best month would close their gap if repeated</div></div>
+</div>
+
+<!-- CHARTS -->
+<h2>📊 Sales Charts</h2>
+<div class="grid-2">
+  <div class="chart-card"><h3>YTD Sales by Rep</h3><div class="chart-wrap"><canvas id="ytdChart"></canvas></div></div>
+  <div class="chart-card"><h3>Trip Progress (toward $400K)</h3><div class="chart-wrap"><canvas id="tripChart"></canvas></div></div>
+</div>
+<div class="grid-2" style="margin-top: 16px;">
+  <div class="chart-card"><h3>Monthly Sales Trend</h3><div class="chart-wrap"><canvas id="trendChart"></canvas></div></div>
+  <div class="chart-card"><h3>Monthly Team Total (Stacked)</h3><div class="chart-wrap"><canvas id="teamMonthChart"></canvas></div></div>
+</div>
+
+<!-- HEATMAP -->
+<h2>🔥 Tier Heatmap (highest tier reached each month)</h2>
+<div class="card">
+  <table>
+    <thead><tr><th>Rep</th><th style="text-align:center">January</th><th style="text-align:center">February</th><th style="text-align:center">March</th><th style="text-align:center">April</th><th style="text-align:center">May</th><th>Tier Hits</th><th>Pot</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Greg</strong></td><td><div class="heatmap-cell heat-1">$23K</div></td><td><div class="heatmap-cell heat-2">$50K<br>+$100</div></td><td><div class="heatmap-cell heat-3">$150K<br>+$750</div></td><td><div class="heatmap-cell heat-3">$200K<br>+$1,200</div></td><td><div class="heatmap-cell heat-1">$27K</div></td><td>3/4</td><td><strong>$2,050</strong></td></tr><tr><td><strong>Hunter</strong></td><td><div class="heatmap-cell heat-1">$1K</div></td><td><div class="heatmap-cell heat-0">—</div></td><td><div class="heatmap-cell heat-1">$20K</div></td><td><div class="heatmap-cell heat-3">$200K<br>+$1,200</div></td><td><div class="heatmap-cell heat-0">—</div></td><td>1/4</td><td><strong>$1,200</strong></td></tr><tr><td><strong>Aaron</strong></td><td><div class="heatmap-cell heat-2">$75K<br>+$250</div></td><td><div class="heatmap-cell heat-1">$40K</div></td><td><div class="heatmap-cell heat-1">$28K</div></td><td><div class="heatmap-cell heat-2">$50K<br>+$100</div></td><td><div class="heatmap-cell heat-1">$1K</div></td><td>2/4</td><td><strong>$350</strong></td></tr><tr><td><strong>Alijah</strong></td><td><div class="heatmap-cell heat-0">—</div></td><td><div class="heatmap-cell heat-0">—</div></td><td><div class="heatmap-cell heat-0">—</div></td><td><div class="heatmap-cell heat-3">$125K<br>+$550</div></td><td><div class="heatmap-cell heat-0">—</div></td><td>1/4</td><td><strong>$550</strong></td></tr><tr><td><strong>Rudy</strong></td><td><div class="heatmap-cell heat-2">$50K<br>+$100</div></td><td><div class="heatmap-cell heat-1">$42K</div></td><td><div class="heatmap-cell heat-0">—</div></td><td><div class="heatmap-cell heat-0">—</div></td><td><div class="heatmap-cell heat-0">—</div></td><td>1/4</td><td><strong>$100</strong></td></tr><tr><td><strong>Travis</strong></td><td><div class="heatmap-cell heat-0">—</div></td><td><div class="heatmap-cell heat-1">$12K</div></td><td><div class="heatmap-cell heat-1">$37K</div></td><td><div class="heatmap-cell heat-1">$23K</div></td><td><div class="heatmap-cell heat-1">$13K</div></td><td>0/4</td><td><strong>$0</strong></td></tr><tr><td><strong>Brendon</strong></td><td><div class="heatmap-cell heat-1">$19K</div></td><td><div class="heatmap-cell heat-1">$5K</div></td><td><div class="heatmap-cell heat-1">$17K</div></td><td><div class="heatmap-cell heat-1">$0K</div></td><td><div class="heatmap-cell heat-0">—</div></td><td>0/4</td><td><strong>$0</strong></td></tr><tr><td><strong>Rick</strong></td><td><div class="heatmap-cell heat-0">—</div></td><td><div class="heatmap-cell heat-0">—</div></td><td><div class="heatmap-cell heat-0">—</div></td><td><div class="heatmap-cell heat-1">$13K</div></td><td><div class="heatmap-cell heat-0">—</div></td><td>0/4</td><td><strong>$0</strong></td></tr>
+    </tbody>
+  </table>
+  <p class="sub" style="margin-top:8px">Color = pot growth that month. Highest tier reached wins — a $200K month adds $1,200 to the pot.</p>
+</div>
+
+<!-- INDIVIDUAL CARDS -->
+<h2>👤 Individual Rep Breakdown</h2>
+<div class="grid-3">
+  
+    <div class="rep-card qualified">
+      <div class="rep-name">Greg <span class="badge badge-green">QUALIFIED</span></div>
+      <div class="rep-llc">Gregory Ray Muse</div>
+
+      
+
+      <div class="section-label">Trip Progress</div>
+      <div class="progress"><div class="progress-bar " style="width: 100%"></div><div class="progress-label">100.0% to $400K</div></div>
+      <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-dim)">
+        <span>$561,789 YTD</span>
+        <span>Qualified ✓</span>
+      </div>
+
+      <div class="section-label">Stats</div>
+      <div class="tier-row"><span class="lbl">Best month</span><span class="val">April - $261,333</span></div>
+      <div class="tier-row"><span class="lbl">Active months</span><span class="val">5 of 4</span></div>
+      <div class="tier-row"><span class="lbl">Tier hits</span><span class="val">3 of 4</span></div>
+      <div class="tier-row"><span class="lbl">Avg / active month</span><span class="val">$112,358</span></div>
+      <div class="tier-row"><span class="lbl">Projected H1 finish</span><span class="val">$842,684</span></div>
+      
+      
+      <div class="tier-row"><span class="lbl">Trip fund pot</span><span class="val">$2,050</span></div>
+
+      <div class="section-label">✓ Wins</div><ul class="insight-list wins"><li>Already QUALIFIED with $561,789 sold.</li><li>Posted April at $261,333 — proves $200K+ months are in your wheelhouse.</li><li>Trip fund pot: $2,050.</li><li>3 of 4 months hit tier — elite consistency.</li></ul>
+      <div class="section-label">! Gaps</div><ul class="insight-list gaps"><li>2 active month(s) stayed under $50K — close-but-no-tier.</li></ul>
+      <div class="section-label">→ Suggestions</div><ul class="insight-list suggestions"><li>Trip locked. Now climb tiers — bigger months = bigger pot.</li><li>Push for $300K month (+$2,000) — you've shown $200K is in range.</li><li>$500K → $1M month: linear +$1,000 per additional $100K, capped at +$9,000 (max @ $1M month).</li></ul>
+      <div class="motivation">You're in. Now make the trip bigger.</div>
+    </div>
+    <div class="rep-card ">
+      <div class="rep-name">Hunter <span class="badge badge-warn">PENDING</span></div>
+      <div class="rep-llc"><em>(no LLC on file)</em></div>
+
+      
+
+      <div class="section-label">Trip Progress</div>
+      <div class="progress"><div class="progress-bar warn" style="width: 56.919705%"></div><div class="progress-label">56.9% to $400K</div></div>
+      <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-dim)">
+        <span>$227,679 YTD</span>
+        <span>Gap: $172,321</span>
+      </div>
+
+      <div class="section-label">Stats</div>
+      <div class="tier-row"><span class="lbl">Best month</span><span class="val">April - $206,601</span></div>
+      <div class="tier-row"><span class="lbl">Active months</span><span class="val">3 of 4</span></div>
+      <div class="tier-row"><span class="lbl">Tier hits</span><span class="val">1 of 4</span></div>
+      <div class="tier-row"><span class="lbl">Avg / active month</span><span class="val">$75,893</span></div>
+      <div class="tier-row"><span class="lbl">Projected H1 finish</span><span class="val">$341,518</span></div>
+      <div class="tier-row"><span class="lbl">Need / month to qualify</span><span class="val">$86,161</span></div>
+      <div class="tier-row"><span class="lbl">Need / week to qualify</span><span class="val">$21,540</span></div>
+      <div class="tier-row"><span class="lbl">Trip fund pot</span><span class="val">$1,200</span></div>
+
+      <div class="section-label">✓ Wins</div><ul class="insight-list wins"><li>Posted April at $206,601 — proves $200K+ months are in your wheelhouse.</li><li>Trip fund pot: $1,200.</li></ul>
+      <div class="section-label">! Gaps</div><ul class="insight-list gaps"><li>1 of 4 months had zero sales. Every dark month is tier money missed.</li><li>2 active month(s) stayed under $50K — close-but-no-tier.</li><li>At current pace you finish H1 at ~$341,518 — $58,482 short of the trip.</li></ul>
+      <div class="section-label">→ Suggestions</div><ul class="insight-list suggestions"><li>Average $86,161/month for May+June (~$21,540/week) to qualify.</li><li>ONE more month like April closes the gap entirely.</li></ul>
+      <div class="motivation">You've PROVEN you can do this. Repeat April.</div>
+    </div>
+    <div class="rep-card ">
+      <div class="rep-name">Aaron <span class="badge badge-warn">PENDING</span></div>
+      <div class="rep-llc">Roof Angel, LLC</div>
+
+      
+
+      <div class="section-label">Trip Progress</div>
+      <div class="progress"><div class="progress-bar warn" style="width: 52.301952500000006%"></div><div class="progress-label">52.3% to $400K</div></div>
+      <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-dim)">
+        <span>$209,208 YTD</span>
+        <span>Gap: $190,792</span>
+      </div>
+
+      <div class="section-label">Stats</div>
+      <div class="tier-row"><span class="lbl">Best month</span><span class="val">January - $75,616</span></div>
+      <div class="tier-row"><span class="lbl">Active months</span><span class="val">5 of 4</span></div>
+      <div class="tier-row"><span class="lbl">Tier hits</span><span class="val">2 of 4</span></div>
+      <div class="tier-row"><span class="lbl">Avg / active month</span><span class="val">$41,842</span></div>
+      <div class="tier-row"><span class="lbl">Projected H1 finish</span><span class="val">$313,812</span></div>
+      <div class="tier-row"><span class="lbl">Need / month to qualify</span><span class="val">$95,396</span></div>
+      <div class="tier-row"><span class="lbl">Need / week to qualify</span><span class="val">$23,849</span></div>
+      <div class="tier-row"><span class="lbl">Trip fund pot</span><span class="val">$350</span></div>
+
+      <div class="section-label">✓ Wins</div><ul class="insight-list wins"><li>Best month: January = $75,616, tier money earned.</li></ul>
+      <div class="section-label">! Gaps</div><ul class="insight-list gaps"><li>3 active month(s) stayed under $50K — close-but-no-tier.</li><li>At current pace you finish H1 at ~$313,812 — $86,188 short of the trip.</li></ul>
+      <div class="section-label">→ Suggestions</div><ul class="insight-list suggestions"><li>Average $95,396/month for May+June (~$23,849/week) to qualify.</li></ul>
+      <div class="motivation">On the board. Scale it up.</div>
+    </div>
+    <div class="rep-card ">
+      <div class="rep-name">Alijah <span class="badge badge-bad">BEHIND</span></div>
+      <div class="rep-llc"><em>(no LLC on file)</em></div>
+
+      
+
+      <div class="section-label">Trip Progress</div>
+      <div class="progress"><div class="progress-bar bad" style="width: 31.406499999999998%"></div><div class="progress-label">31.4% to $400K</div></div>
+      <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-dim)">
+        <span>$125,626 YTD</span>
+        <span>Gap: $274,374</span>
+      </div>
+
+      <div class="section-label">Stats</div>
+      <div class="tier-row"><span class="lbl">Best month</span><span class="val">April - $125,626</span></div>
+      <div class="tier-row"><span class="lbl">Active months</span><span class="val">1 of 4</span></div>
+      <div class="tier-row"><span class="lbl">Tier hits</span><span class="val">1 of 4</span></div>
+      <div class="tier-row"><span class="lbl">Avg / active month</span><span class="val">$125,626</span></div>
+      <div class="tier-row"><span class="lbl">Projected H1 finish</span><span class="val">$188,439</span></div>
+      <div class="tier-row"><span class="lbl">Need / month to qualify</span><span class="val">$137,187</span></div>
+      <div class="tier-row"><span class="lbl">Need / week to qualify</span><span class="val">$34,297</span></div>
+      <div class="tier-row"><span class="lbl">Trip fund pot</span><span class="val">$550</span></div>
+
+      <div class="section-label">✓ Wins</div><ul class="insight-list wins"><li>Best month: April = $125,626, six-figure performance.</li></ul>
+      <div class="section-label">! Gaps</div><ul class="insight-list gaps"><li>3 of 4 months had zero sales. Every dark month is tier money missed.</li><li>At current pace you finish H1 at ~$188,439 — $211,561 short of the trip.</li></ul>
+      <div class="section-label">→ Suggestions</div><ul class="insight-list suggestions"><li>Average $137,187/month for May+June (~$34,297/week) to qualify.</li></ul>
+      <div class="motivation">On the board. Scale it up.</div>
+    </div>
+    <div class="rep-card ">
+      <div class="rep-name">Rudy <span class="badge badge-bad">BEHIND</span></div>
+      <div class="rep-llc"><em>(no LLC on file)</em></div>
+
+      
+
+      <div class="section-label">Trip Progress</div>
+      <div class="progress"><div class="progress-bar bad" style="width: 25.290190000000003%"></div><div class="progress-label">25.3% to $400K</div></div>
+      <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-dim)">
+        <span>$101,161 YTD</span>
+        <span>Gap: $298,839</span>
+      </div>
+
+      <div class="section-label">Stats</div>
+      <div class="tier-row"><span class="lbl">Best month</span><span class="val">January - $59,571</span></div>
+      <div class="tier-row"><span class="lbl">Active months</span><span class="val">2 of 4</span></div>
+      <div class="tier-row"><span class="lbl">Tier hits</span><span class="val">1 of 4</span></div>
+      <div class="tier-row"><span class="lbl">Avg / active month</span><span class="val">$50,580</span></div>
+      <div class="tier-row"><span class="lbl">Projected H1 finish</span><span class="val">$151,741</span></div>
+      <div class="tier-row"><span class="lbl">Need / month to qualify</span><span class="val">$149,420</span></div>
+      <div class="tier-row"><span class="lbl">Need / week to qualify</span><span class="val">$37,355</span></div>
+      <div class="tier-row"><span class="lbl">Trip fund pot</span><span class="val">$100</span></div>
+
+      <div class="section-label">✓ Wins</div><ul class="insight-list wins"><li>Best month: January = $59,571, tier money earned.</li></ul>
+      <div class="section-label">! Gaps</div><ul class="insight-list gaps"><li>2 of 4 months had zero sales. Every dark month is tier money missed.</li><li>1 active month(s) stayed under $50K — close-but-no-tier.</li><li>At current pace you finish H1 at ~$151,741 — $248,259 short of the trip.</li></ul>
+      <div class="section-label">→ Suggestions</div><ul class="insight-list suggestions"><li>Average $149,420/month for May+June (~$37,355/week) to qualify.</li></ul>
+      <div class="motivation">On the board. Scale it up.</div>
+    </div>
+    <div class="rep-card ">
+      <div class="rep-name">Travis <span class="badge badge-bad">BEHIND</span></div>
+      <div class="rep-llc">Jeremy T. Wages</div>
+
+      
+
+      <div class="section-label">Trip Progress</div>
+      <div class="progress"><div class="progress-bar bad" style="width: 21.3311025%"></div><div class="progress-label">21.3% to $400K</div></div>
+      <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-dim)">
+        <span>$85,324 YTD</span>
+        <span>Gap: $314,676</span>
+      </div>
+
+      <div class="section-label">Stats</div>
+      <div class="tier-row"><span class="lbl">Best month</span><span class="val">March - $37,075</span></div>
+      <div class="tier-row"><span class="lbl">Active months</span><span class="val">4 of 4</span></div>
+      <div class="tier-row"><span class="lbl">Tier hits</span><span class="val">0 of 4</span></div>
+      <div class="tier-row"><span class="lbl">Avg / active month</span><span class="val">$21,331</span></div>
+      <div class="tier-row"><span class="lbl">Projected H1 finish</span><span class="val">$127,987</span></div>
+      <div class="tier-row"><span class="lbl">Need / month to qualify</span><span class="val">$157,338</span></div>
+      <div class="tier-row"><span class="lbl">Need / week to qualify</span><span class="val">$39,334</span></div>
+      <div class="tier-row"><span class="lbl">Trip fund pot</span><span class="val">$0</span></div>
+
+      
+      <div class="section-label">! Gaps</div><ul class="insight-list gaps"><li>4 active month(s) stayed under $50K — close-but-no-tier.</li><li>At current pace you finish H1 at ~$127,987 — $272,013 short of the trip.</li></ul>
+      <div class="section-label">→ Suggestions</div><ul class="insight-list suggestions"><li>Average $157,338/month for May+June (~$39,334/week) to qualify.</li><li>No month has cleared $50K yet — first $50K month puts $100 in your pot.</li></ul>
+      <div class="motivation">On the board. Scale it up.</div>
+    </div>
+    <div class="rep-card ">
+      <div class="rep-name">Brendon <span class="badge badge-bad">BEHIND</span></div>
+      <div class="rep-llc">BCM Contracting LLC</div>
+
+      
+
+      <div class="section-label">Trip Progress</div>
+      <div class="progress"><div class="progress-bar bad" style="width: 10.3695%"></div><div class="progress-label">10.4% to $400K</div></div>
+      <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-dim)">
+        <span>$41,478 YTD</span>
+        <span>Gap: $358,522</span>
+      </div>
+
+      <div class="section-label">Stats</div>
+      <div class="tier-row"><span class="lbl">Best month</span><span class="val">January - $18,799</span></div>
+      <div class="tier-row"><span class="lbl">Active months</span><span class="val">4 of 4</span></div>
+      <div class="tier-row"><span class="lbl">Tier hits</span><span class="val">0 of 4</span></div>
+      <div class="tier-row"><span class="lbl">Avg / active month</span><span class="val">$10,370</span></div>
+      <div class="tier-row"><span class="lbl">Projected H1 finish</span><span class="val">$62,217</span></div>
+      <div class="tier-row"><span class="lbl">Need / month to qualify</span><span class="val">$179,261</span></div>
+      <div class="tier-row"><span class="lbl">Need / week to qualify</span><span class="val">$44,815</span></div>
+      <div class="tier-row"><span class="lbl">Trip fund pot</span><span class="val">$0</span></div>
+
+      
+      <div class="section-label">! Gaps</div><ul class="insight-list gaps"><li>4 active month(s) stayed under $50K — close-but-no-tier.</li><li>At current pace you finish H1 at ~$62,217 — $337,783 short of the trip.</li></ul>
+      <div class="section-label">→ Suggestions</div><ul class="insight-list suggestions"><li>Average $179,261/month for May+June (~$44,815/week) to qualify.</li><li>No month has cleared $50K yet — first $50K month puts $100 in your pot.</li></ul>
+      <div class="motivation">On the board. Scale it up.</div>
+    </div>
+    <div class="rep-card ">
+      <div class="rep-name">Rick <span class="badge badge-bad">BEHIND</span></div>
+      <div class="rep-llc"><em>(no LLC on file)</em></div>
+
+      
+
+      <div class="section-label">Trip Progress</div>
+      <div class="progress"><div class="progress-bar bad" style="width: 3.2589924999999997%"></div><div class="progress-label">3.3% to $400K</div></div>
+      <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-dim)">
+        <span>$13,036 YTD</span>
+        <span>Gap: $386,964</span>
+      </div>
+
+      <div class="section-label">Stats</div>
+      <div class="tier-row"><span class="lbl">Best month</span><span class="val">April - $13,036</span></div>
+      <div class="tier-row"><span class="lbl">Active months</span><span class="val">1 of 4</span></div>
+      <div class="tier-row"><span class="lbl">Tier hits</span><span class="val">0 of 4</span></div>
+      <div class="tier-row"><span class="lbl">Avg / active month</span><span class="val">$13,036</span></div>
+      <div class="tier-row"><span class="lbl">Projected H1 finish</span><span class="val">$19,554</span></div>
+      <div class="tier-row"><span class="lbl">Need / month to qualify</span><span class="val">$193,482</span></div>
+      <div class="tier-row"><span class="lbl">Need / week to qualify</span><span class="val">$48,371</span></div>
+      <div class="tier-row"><span class="lbl">Trip fund pot</span><span class="val">$0</span></div>
+
+      
+      <div class="section-label">! Gaps</div><ul class="insight-list gaps"><li>3 of 4 months had zero sales. Every dark month is tier money missed.</li><li>1 active month(s) stayed under $50K — close-but-no-tier.</li><li>At current pace you finish H1 at ~$19,554 — $380,446 short of the trip.</li></ul>
+      <div class="section-label">→ Suggestions</div><ul class="insight-list suggestions"><li>Average $193,482/month for May+June (~$48,371/week) to qualify.</li><li>No month has cleared $50K yet — first $50K month puts $100 in your pot.</li></ul>
+      <div class="motivation">On the board. Scale it up.</div>
+    </div>
+</div>
+
+<!-- WHAT-IT-TAKES -->
+<h2>🔮 What It Would Take (May + June)</h2>
+<div class="card">
+  <p class="sub">For each pending rep: $/month and $/week needed to qualify by Jun 30.</p>
+  <table>
+    <thead><tr><th>Rep</th><th>Gap</th><th>$/month</th><th>$/week</th><th>Best month</th><th>If best repeats once</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Hunter</strong></td><td>$172,321</td><td>$86,161</td><td>$21,540</td><td>$206,601 (April)</td><td>$434,280</td><td><span class="badge badge-green">REACHABLE — 1 big month</span></td></tr><tr><td><strong>Aaron</strong></td><td>$190,792</td><td>$95,396</td><td>$23,849</td><td>$75,616 (January)</td><td>$284,823</td><td><span class="badge badge-bad">NEEDS NEW HIGH</span></td></tr><tr><td><strong>Alijah</strong></td><td>$274,374</td><td>$137,187</td><td>$34,297</td><td>$125,626 (April)</td><td>$251,252</td><td><span class="badge badge-bad">NEEDS NEW HIGH</span></td></tr><tr><td><strong>Rudy</strong></td><td>$298,839</td><td>$149,420</td><td>$37,355</td><td>$59,571 (January)</td><td>$160,732</td><td><span class="badge badge-bad">NEEDS NEW HIGH</span></td></tr><tr><td><strong>Travis</strong></td><td>$314,676</td><td>$157,338</td><td>$39,334</td><td>$37,075 (March)</td><td>$122,399</td><td><span class="badge badge-bad">NEEDS NEW HIGH</span></td></tr><tr><td><strong>Brendon</strong></td><td>$358,522</td><td>$179,261</td><td>$44,815</td><td>$18,799 (January)</td><td>$60,277</td><td><span class="badge badge-bad">NEEDS NEW HIGH</span></td></tr><tr><td><strong>Rick</strong></td><td>$386,964</td><td>$193,482</td><td>$48,371</td><td>$13,036 (April)</td><td>$26,072</td><td><span class="badge badge-bad">NEEDS NEW HIGH</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- RANKINGS -->
+<h2>🏅 Multi-Lens Rankings</h2>
+<div class="grid-3">
+  <div class="card"><h3>By YTD Total</h3><table class="small-table"><tr><td>1. Greg</td><td>$561,789</td></tr><tr><td>2. Hunter</td><td>$227,679</td></tr><tr><td>3. Aaron</td><td>$209,208</td></tr><tr><td>4. Alijah</td><td>$125,626</td></tr><tr><td>5. Rudy</td><td>$101,161</td></tr><tr><td>6. Travis</td><td>$85,324</td></tr><tr><td>7. Brendon</td><td>$41,478</td></tr><tr><td>8. Rick</td><td>$13,036</td></tr></table></div>
+  <div class="card"><h3>By Best Single Month</h3><table class="small-table"><tr><td>1. Greg</td><td>$261,333</td></tr><tr><td>2. Hunter</td><td>$206,601</td></tr><tr><td>3. Alijah</td><td>$125,626</td></tr><tr><td>4. Aaron</td><td>$75,616</td></tr><tr><td>5. Rudy</td><td>$59,571</td></tr><tr><td>6. Travis</td><td>$37,075</td></tr><tr><td>7. Brendon</td><td>$18,799</td></tr><tr><td>8. Rick</td><td>$13,036</td></tr></table></div>
+  <div class="card"><h3>By Avg per Active Month</h3><table class="small-table"><tr><td>1. Alijah</td><td>$125,626</td></tr><tr><td>2. Greg</td><td>$112,358</td></tr><tr><td>3. Hunter</td><td>$75,893</td></tr><tr><td>4. Rudy</td><td>$50,580</td></tr><tr><td>5. Aaron</td><td>$41,842</td></tr><tr><td>6. Travis</td><td>$21,331</td></tr><tr><td>7. Rick</td><td>$13,036</td></tr><tr><td>8. Brendon</td><td>$10,370</td></tr></table></div>
+  <div class="card"><h3>By Consistency %</h3><table class="small-table"><tr><td>1. Greg</td><td>75%</td></tr><tr><td>2. Aaron</td><td>50%</td></tr><tr><td>3. Hunter</td><td>25%</td></tr><tr><td>4. Alijah</td><td>25%</td></tr><tr><td>5. Rudy</td><td>25%</td></tr><tr><td>6. Travis</td><td>0%</td></tr><tr><td>7. Brendon</td><td>0%</td></tr><tr><td>8. Rick</td><td>0%</td></tr></table></div>
+  <div class="card"><h3>By Trip Fund Pot</h3><table class="small-table"><tr><td>1. Greg</td><td>$2,050</td></tr><tr><td>2. Hunter</td><td>$1,200</td></tr><tr><td>3. Alijah</td><td>$550</td></tr><tr><td>4. Aaron</td><td>$350</td></tr><tr><td>5. Rudy</td><td>$100</td></tr><tr><td>6. Travis</td><td>$0</td></tr><tr><td>7. Brendon</td><td>$0</td></tr><tr><td>8. Rick</td><td>$0</td></tr></table></div>
+  <div class="card"><h3>By % to Trip</h3><table class="small-table"><tr><td>1. Greg</td><td>100.0%</td></tr><tr><td>2. Hunter</td><td>56.9%</td></tr><tr><td>3. Aaron</td><td>52.3%</td></tr><tr><td>4. Alijah</td><td>31.4%</td></tr><tr><td>5. Rudy</td><td>25.3%</td></tr><tr><td>6. Travis</td><td>21.3%</td></tr><tr><td>7. Brendon</td><td>10.4%</td></tr><tr><td>8. Rick</td><td>3.3%</td></tr></table></div>
+</div>
+
+<!-- PROGRAM RULES (consolidated) -->
+<h2>📋 Program Rules &amp; Definitions</h2>
+<div class="card">
+  <h3>Monthly Bonus Tiers — Trip Fund Pot Growth</h3>
+  <p class="sub">Highest single tier reached in a month adds that bonus to your pot. Bigger month = bigger pot.</p>
+  <div class="tier-row"><span class="lbl">Hit $50K in a single month</span><span class="val">+$100 to pot</span></div>
+  <div class="tier-row"><span class="lbl">Hit $75K in a single month</span><span class="val">+$250 to pot</span></div>
+  <div class="tier-row"><span class="lbl">Hit $100K in a single month</span><span class="val">+$400 to pot</span></div>
+  <div class="tier-row"><span class="lbl">Hit $125K in a single month</span><span class="val">+$550 to pot</span></div>
+  <div class="tier-row"><span class="lbl">Hit $150K in a single month</span><span class="val">+$750 to pot</span></div>
+  <div class="tier-row"><span class="lbl">Hit $200K in a single month</span><span class="val">+$1,200 to pot</span></div>
+  <div class="tier-row"><span class="lbl">Hit $300K in a single month</span><span class="val">+$2,000 to pot</span></div>
+  <div class="tier-row"><span class="lbl">Hit $400K in a single month</span><span class="val">+$3,000 to pot</span></div>
+  <div class="tier-row"><span class="lbl">Hit $500K in a single month</span><span class="val">+$4,000 to pot</span></div>
+  <div class="tier-row"><span class="lbl"><strong>$500K → $1M</strong> (linear, +$1,000 per additional $100K)</span><span class="val">capped at +$9,000 (max @ $1M month)</span></div>
+  <div class="policy-box" style="margin-top:14px"><strong>Examples:</strong> $200K month = +$1,200 to pot. $700K month = $4,000 ($500K tier) + $2,000 (linear) = <strong>+$6,000 to pot</strong>. $1M month = <strong>+$9,000 (cap)</strong>. Anything above $1M in a single month still tops out at $9,000.</div>
+
+  <h3 style="margin-top:24px">Trip Rules &amp; Restrictions</h3>
+  <ul class="insight-list">
+    <li class="suggestions" style="padding-left:22px;position:relative">→ Hit <strong>$400K cumulative</strong> Jan 1 – Jun 30 to qualify. <strong>$400K total must be reached</strong> — anything below = no payout, accrued bonuses forfeited.</li>
+    <li class="suggestions" style="padding-left:22px;position:relative">→ Trip must be scheduled <strong>30–60 days following the end of the comp</strong>, unless approved by owners.</li>
+    <li class="suggestions" style="padding-left:22px;position:relative">→ RCRS books wherever rep wants. Total flexibility within budget — Frontier or first-class Delta is rep's call.</li>
+    <li class="suggestions" style="padding-left:22px;position:relative">→ Cash for small spend (excursions, on-the-ground items) issued before/during.</li>
+    <li class="suggestions" style="padding-left:22px;position:relative">→ H2 (Jul 1 – Dec 31) starts over for the next trip cycle.</li>
+    <li class="suggestions" style="padding-left:22px;position:relative">→ <strong>Sale Definition:</strong> a sale counts the month the contract is signed AND the deposit is received. The same revenue cannot be moved between months.</li>
+  </ul>
+
+  <h3 style="margin-top:24px">Cancellation / Returned Deposit</h3>
+  <div class="danger-box">If a deposit is returned (deal canceled), revenue is removed from <strong>the month the deposit was originally received</strong>. Tier bonuses recalculate. If the cancellation drops the rep below qualification, the difference is clawed back from the trip pot. Sheet-side log captures every change.</div>
+
+  <h3 style="margin-top:24px">Cash-Out Option (discretionary)</h3>
+  <p class="sub">RCRS prefers the rep takes the trip. Break + cultural energy is worth more than cash. Cash-out is available case-by-case for qualified reps who can't travel.</p>
+  <div class="tier-row"><span class="lbl">Cash payout</span><span class="val">75% of trip pot</span></div>
+  <div class="tier-row"><span class="lbl">Why discounted?</span><span class="val">Encourages taking the trip</span></div>
+  <p class="sub" style="margin-top:10px">Example: $5,400 pot → trip 100% covered up to $5,400, OR $4,050 cash. Decided 1-on-1 with leadership. Not advertised as automatic.</p>
+
+  <h3 style="margin-top:24px">Trip Spending — what's in</h3>
+  <p class="sub">Total flexibility within accrued pot:</p>
+  <ul class="insight-list">
+    <li class="wins" style="padding-left:22px;position:relative">✓ Flights (any class)</li>
+    <li class="wins" style="padding-left:22px;position:relative">✓ Hotel / accommodations (any tier)</li>
+    <li class="wins" style="padding-left:22px;position:relative">✓ Meals, drinks (any spend — $4K bottle of Bub if you want)</li>
+    <li class="wins" style="padding-left:22px;position:relative">✓ Excursions, activities</li>
+    <li class="wins" style="padding-left:22px;position:relative">✓ Ground transport (rental, Uber, etc.)</li>
+    <li class="wins" style="padding-left:22px;position:relative">✓ Cash for on-the-ground items</li>
+  </ul>
+  <p class="sub" style="font-size:11px;margin-top:8px"><em>Tax note: trip value may be reportable to rep as taxable benefit. Discuss with bookkeeper before booking.</em></p>
+</div>
+
+<!-- ADMIN-ONLY SECTIONS (visible only with ?admin=1) -->
+<div id="adminOnly" style="display:none">
+
+<!-- SNAPSHOT HISTORY -->
+<h2>📅 Snapshot History &amp; Trends</h2>
+<div class="card">
+  <p class="sub">Every change to the underlying spreadsheet creates a new snapshot. Hash-based dedup means no duplicates. 3 snapshot(s) on file.</p>
+  <table class="small-table">
+      <thead><tr><th>Captured</th><th>Team Total</th><th>Total Accrued</th><th>Qualified</th><th>vs Previous</th><th>Changes</th></tr></thead>
+      <tbody>
+        <tr><td>5/6/2026, 9:11:30 PM</td><td>$1,365,301</td><td>$4,250</td><td>1</td><td>no change</td><td>—</td></tr><tr><td>5/6/2026, 9:01:37 PM</td><td>$1,365,301</td><td>$10,500</td><td>1</td><td>no change</td><td>—</td></tr><tr><td>5/6/2026, 8:15:24 PM</td><td>$1,365,301</td><td>$0</td><td>1</td><td>—</td><td>—</td></tr>
+      </tbody>
+    </table>
+    <div class="chart-card" style="margin-top:16px"><h3>Team Total &amp; Pot Growth Over Time</h3><div class="chart-wrap"><canvas id="historyChart"></canvas></div></div>
+</div>
+
+<!-- CHANGE LOG -->
+<h2>📝 Change Log (last 0 entries)</h2>
+<div class="card">
+  <p class="sub">Every modification — including retroactive changes to past months — is logged here.</p>
+  <p class="sub">No changes logged yet. Modifications appear here when the underlying sheet changes.</p>
+</div>
+
+<!-- FILE UPLOAD -->
+<h2>📤 Upload New Spreadsheet</h2>
+<div class="card">
+  <p class="sub">Drop a new <code>2026 Sales Numbers by Month.xlsx</code> file here. The dashboard will:
+    <strong>1)</strong> parse the new file, <strong>2)</strong> compare to current data,
+    <strong>3)</strong> flag any retroactive changes (numbers that shifted for past months),
+    <strong>4)</strong> let you confirm, override individual cells, or cancel.
+    Same format expected: one tab per month, column A = rep name, column B = revenue.</p>
+  <label class="upload-zone" id="uploadZone">
+    <input type="file" id="fileInput" accept=".xlsx,.xls" />
+    <div class="upload-icon">📁</div>
+    <div><strong>Click or drop XLSX here</strong></div>
+    <div class="upload-msg">Tabs = months · Column A = rep · Column B = revenue</div>
+  </label>
+  <div id="uploadResult"></div>
+</div>
+
+<!-- NOTIFICATIONS (DISABLED) -->
+<h2>🔔 Notifications (configured, off)</h2>
+<div class="card">
+  <p class="sub">Notification infrastructure is ready but disabled. Toggle on when you're ready.</p>
+  <div class="toggle-row">
+    <div><strong>Pot growth text</strong> to each rep when their pot increases<br><span class="sub">"+$X added to your trip fund — total $Y toward a peaceful vacation."</span></div>
+    <label class="toggle"><input type="checkbox" disabled><span class="toggle-slider"></span></label>
+  </div>
+  <div class="toggle-row">
+    <div><strong>Tier-cross alert</strong> to leadership<br><span class="sub">When a rep crosses a tier mid-month</span></div>
+    <label class="toggle"><input type="checkbox" disabled><span class="toggle-slider"></span></label>
+  </div>
+  <div class="toggle-row">
+    <div><strong>Trip-qualified celebration</strong><br><span class="sub">Auto-post to GroupMe when a rep crosses $400K</span></div>
+    <label class="toggle"><input type="checkbox" disabled><span class="toggle-slider"></span></label>
+  </div>
+  <div class="toggle-row">
+    <div><strong>Retroactive change alert</strong> to leadership<br><span class="sub">When a prior-month number changes after upload</span></div>
+    <label class="toggle"><input type="checkbox" disabled><span class="toggle-slider"></span></label>
+  </div>
+  <div class="toggle-row">
+    <div><strong>End-of-month roll-up</strong> email to leadership<br><span class="sub">Standings, deltas, projection</span></div>
+    <label class="toggle"><input type="checkbox" disabled><span class="toggle-slider"></span></label>
+  </div>
+</div>
+
+</div><!-- /adminOnly -->
+
+<div class="footer">
+  Source: <code>2026 Sales Numbers by Month (3).xlsx</code> ·
+  Tier table: <code>data/competition-config.json</code> ·
+  Generators: <code>scripts/bonus-tracker-2026.mjs</code> + <code>scripts/bonus-dashboard-2026.mjs</code> ·
+  Snapshots: <code>data/history/</code> ·
+  Change log: <code>data/change-log.json</code>
+</div>
+
+<script>
+// Admin-only sections: revealed via ?admin=1 in URL
+const IS_ADMIN = (function(){
+  try {
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('admin') === '1') {
+      var el = document.getElementById('adminOnly');
+      if (el) el.style.display = 'block';
+      return true;
+    }
+  } catch(e) {}
+  return false;
+})();
+
+const PAYLOAD = {"generatedAt":"2026-05-07T02:11:35.337Z","today":"2026-05-06","daysLeftH1":55,"weeksLeftH1":8,"monthsLeftH1":2,"months":["January","February","March","April","May"],"monthsCompleted":4,"reps":[{"rep":"Greg","ytd":561789.13,"breakdown":[{"month":"January","revenue":22813.08,"tier":null,"bonus":0},{"month":"February","revenue":72481.15,"tier":"$50K","bonus":100},{"month":"March","revenue":177810.03,"tier":"$150K","bonus":750},{"month":"April","revenue":261333.12,"tier":"$200K","bonus":1200},{"month":"May","revenue":27351.75,"tier":null,"bonus":0}],"accruedTripBudget":2050,"qualifiedForTrip":true,"actualTripBudget":2050,"gapToTrip":0,"pctToTrip":100,"stats":{"activeMonths":5,"tieredMonths":3,"bestMonth":{"month":"April","revenue":261333.12,"tier":"$200K","bonus":1200},"monthlyAvg":112357.826,"monthlyAvgIncluding0":140447.2825,"projectedH1AtCurrentPace":842683.6950000001,"neededPerMonth":0,"neededPerWeek":0,"consistency":75,"bestMonthBeatGap":true,"wouldQualifyIfBestRepeats":true},"delta":{"ytdDelta":0,"accruedDelta":-3350,"isNew":false,"previousAccrued":5400,"previousYtd":561789.13},"insights":{"wins":["Already QUALIFIED with $561,789 sold.","Posted April at $261,333 — proves $200K+ months are in your wheelhouse.","Trip fund pot: $2,050.","3 of 4 months hit tier — elite consistency."],"gaps":["2 active month(s) stayed under $50K — close-but-no-tier."],"suggestions":["Trip locked. Now climb tiers — bigger months = bigger pot.","Push for $300K month (+$2,000) — you've shown $200K is in range.","$500K → $1M month: linear +$1,000 per additional $100K, capped at +$9,000 (max @ $1M month)."],"motivation":"You're in. Now make the trip bigger.","deltaMessage":null},"llc":"Gregory Ray Muse"},{"rep":"Hunter","ytd":227678.82,"breakdown":[{"month":"January","revenue":669.5,"tier":null,"bonus":0},{"month":"February","revenue":0,"tier":null,"bonus":0},{"month":"March","revenue":20408.64,"tier":null,"bonus":0},{"month":"April","revenue":206600.68,"tier":"$200K","bonus":1200},{"month":"May","revenue":0,"tier":null,"bonus":0}],"accruedTripBudget":1200,"qualifiedForTrip":false,"actualTripBudget":0,"gapToTrip":172321.18,"pctToTrip":56.919705,"stats":{"activeMonths":3,"tieredMonths":1,"bestMonth":{"month":"April","revenue":206600.68,"tier":"$200K","bonus":1200},"monthlyAvg":75892.94,"monthlyAvgIncluding0":56919.705,"projectedH1AtCurrentPace":341518.23,"neededPerMonth":86160.59,"neededPerWeek":21540.1475,"consistency":25,"bestMonthBeatGap":true,"wouldQualifyIfBestRepeats":true},"delta":{"ytdDelta":0,"accruedDelta":-2050,"isNew":false,"previousAccrued":3250,"previousYtd":227678.82},"insights":{"wins":["Posted April at $206,601 — proves $200K+ months are in your wheelhouse.","Trip fund pot: $1,200."],"gaps":["1 of 4 months had zero sales. Every dark month is tier money missed.","2 active month(s) stayed under $50K — close-but-no-tier.","At current pace you finish H1 at ~$341,518 — $58,482 short of the trip."],"suggestions":["Average $86,161/month for May+June (~$21,540/week) to qualify.","ONE more month like April closes the gap entirely."],"motivation":"You've PROVEN you can do this. Repeat April.","deltaMessage":null},"llc":null},{"rep":"Aaron","ytd":209207.81,"breakdown":[{"month":"January","revenue":75615.62,"tier":"$75K","bonus":250},{"month":"February","revenue":40183.42,"tier":null,"bonus":0},{"month":"March","revenue":27534.49,"tier":null,"bonus":0},{"month":"April","revenue":64724.28,"tier":"$50K","bonus":100},{"month":"May","revenue":1150,"tier":null,"bonus":0}],"accruedTripBudget":350,"qualifiedForTrip":false,"actualTripBudget":0,"gapToTrip":190792.19,"pctToTrip":52.301952500000006,"stats":{"activeMonths":5,"tieredMonths":2,"bestMonth":{"month":"January","revenue":75615.62,"tier":"$75K","bonus":250},"monthlyAvg":41841.562,"monthlyAvgIncluding0":52301.9525,"projectedH1AtCurrentPace":313811.71499999997,"neededPerMonth":95396.095,"neededPerWeek":23849.02375,"consistency":50,"bestMonthBeatGap":false,"wouldQualifyIfBestRepeats":false},"delta":{"ytdDelta":0,"accruedDelta":-100,"isNew":false,"previousAccrued":450,"previousYtd":209207.81},"insights":{"wins":["Best month: January = $75,616, tier money earned."],"gaps":["3 active month(s) stayed under $50K — close-but-no-tier.","At current pace you finish H1 at ~$313,812 — $86,188 short of the trip."],"suggestions":["Average $95,396/month for May+June (~$23,849/week) to qualify."],"motivation":"On the board. Scale it up.","deltaMessage":null},"llc":"Roof Angel, LLC"},{"rep":"Alijah","ytd":125626,"breakdown":[{"month":"January","revenue":0,"tier":null,"bonus":0},{"month":"February","revenue":0,"tier":null,"bonus":0},{"month":"March","revenue":0,"tier":null,"bonus":0},{"month":"April","revenue":125626,"tier":"$125K","bonus":550},{"month":"May","revenue":0,"tier":null,"bonus":0}],"accruedTripBudget":550,"qualifiedForTrip":false,"actualTripBudget":0,"gapToTrip":274374,"pctToTrip":31.406499999999998,"stats":{"activeMonths":1,"tieredMonths":1,"bestMonth":{"month":"April","revenue":125626,"tier":"$125K","bonus":550},"monthlyAvg":125626,"monthlyAvgIncluding0":31406.5,"projectedH1AtCurrentPace":188439,"neededPerMonth":137187,"neededPerWeek":34296.75,"consistency":25,"bestMonthBeatGap":false,"wouldQualifyIfBestRepeats":false},"delta":{"ytdDelta":0,"accruedDelta":-750,"isNew":false,"previousAccrued":1300,"previousYtd":125626},"insights":{"wins":["Best month: April = $125,626, six-figure performance."],"gaps":["3 of 4 months had zero sales. Every dark month is tier money missed.","At current pace you finish H1 at ~$188,439 — $211,561 short of the trip."],"suggestions":["Average $137,187/month for May+June (~$34,297/week) to qualify."],"motivation":"On the board. Scale it up.","deltaMessage":null},"llc":null},{"rep":"Rudy","ytd":101160.76000000001,"breakdown":[{"month":"January","revenue":59571.48,"tier":"$50K","bonus":100},{"month":"February","revenue":41589.28,"tier":null,"bonus":0},{"month":"March","revenue":0,"tier":null,"bonus":0},{"month":"April","revenue":0,"tier":null,"bonus":0},{"month":"May","revenue":0,"tier":null,"bonus":0}],"accruedTripBudget":100,"qualifiedForTrip":false,"actualTripBudget":0,"gapToTrip":298839.24,"pctToTrip":25.290190000000003,"stats":{"activeMonths":2,"tieredMonths":1,"bestMonth":{"month":"January","revenue":59571.48,"tier":"$50K","bonus":100},"monthlyAvg":50580.380000000005,"monthlyAvgIncluding0":25290.190000000002,"projectedH1AtCurrentPace":151741.14,"neededPerMonth":149419.62,"neededPerWeek":37354.905,"consistency":25,"bestMonthBeatGap":false,"wouldQualifyIfBestRepeats":false},"delta":{"ytdDelta":0,"accruedDelta":0,"isNew":false,"previousAccrued":100,"previousYtd":101160.76000000001},"insights":{"wins":["Best month: January = $59,571, tier money earned."],"gaps":["2 of 4 months had zero sales. Every dark month is tier money missed.","1 active month(s) stayed under $50K — close-but-no-tier.","At current pace you finish H1 at ~$151,741 — $248,259 short of the trip."],"suggestions":["Average $149,420/month for May+June (~$37,355/week) to qualify."],"motivation":"On the board. Scale it up.","deltaMessage":null},"llc":null},{"rep":"Travis","ytd":85324.41,"breakdown":[{"month":"January","revenue":0,"tier":null,"bonus":0},{"month":"February","revenue":12120.52,"tier":null,"bonus":0},{"month":"March","revenue":37074.81,"tier":null,"bonus":0},{"month":"April","revenue":22999.46,"tier":null,"bonus":0},{"month":"May","revenue":13129.62,"tier":null,"bonus":0}],"accruedTripBudget":0,"qualifiedForTrip":false,"actualTripBudget":0,"gapToTrip":314675.58999999997,"pctToTrip":21.3311025,"stats":{"activeMonths":4,"tieredMonths":0,"bestMonth":{"month":"March","revenue":37074.81,"tier":null,"bonus":0},"monthlyAvg":21331.1025,"monthlyAvgIncluding0":21331.1025,"projectedH1AtCurrentPace":127986.615,"neededPerMonth":157337.79499999998,"neededPerWeek":39334.448749999996,"consistency":0,"bestMonthBeatGap":false,"wouldQualifyIfBestRepeats":false},"delta":{"ytdDelta":0,"accruedDelta":0,"isNew":false,"previousAccrued":0,"previousYtd":85324.41},"insights":{"wins":[],"gaps":["4 active month(s) stayed under $50K — close-but-no-tier.","At current pace you finish H1 at ~$127,987 — $272,013 short of the trip."],"suggestions":["Average $157,338/month for May+June (~$39,334/week) to qualify.","No month has cleared $50K yet — first $50K month puts $100 in your pot."],"motivation":"On the board. Scale it up.","deltaMessage":null},"llc":"Jeremy T. Wages"},{"rep":"Brendon","ytd":41478,"breakdown":[{"month":"January","revenue":18799.28,"tier":null,"bonus":0},{"month":"February","revenue":5498.89,"tier":null,"bonus":0},{"month":"March","revenue":16729.83,"tier":null,"bonus":0},{"month":"April","revenue":450,"tier":null,"bonus":0},{"month":"May","revenue":0,"tier":null,"bonus":0}],"accruedTripBudget":0,"qualifiedForTrip":false,"actualTripBudget":0,"gapToTrip":358522,"pctToTrip":10.3695,"stats":{"activeMonths":4,"tieredMonths":0,"bestMonth":{"month":"January","revenue":18799.28,"tier":null,"bonus":0},"monthlyAvg":10369.5,"monthlyAvgIncluding0":10369.5,"projectedH1AtCurrentPace":62217,"neededPerMonth":179261,"neededPerWeek":44815.25,"consistency":0,"bestMonthBeatGap":false,"wouldQualifyIfBestRepeats":false},"delta":{"ytdDelta":0,"accruedDelta":0,"isNew":false,"previousAccrued":0,"previousYtd":41478},"insights":{"wins":[],"gaps":["4 active month(s) stayed under $50K — close-but-no-tier.","At current pace you finish H1 at ~$62,217 — $337,783 short of the trip."],"suggestions":["Average $179,261/month for May+June (~$44,815/week) to qualify.","No month has cleared $50K yet — first $50K month puts $100 in your pot."],"motivation":"On the board. Scale it up.","deltaMessage":null},"llc":"BCM Contracting LLC"},{"rep":"Rick","ytd":13035.97,"breakdown":[{"month":"January","revenue":0,"tier":null,"bonus":0},{"month":"February","revenue":0,"tier":null,"bonus":0},{"month":"March","revenue":0,"tier":null,"bonus":0},{"month":"April","revenue":13035.97,"tier":null,"bonus":0},{"month":"May","revenue":0,"tier":null,"bonus":0}],"accruedTripBudget":0,"qualifiedForTrip":false,"actualTripBudget":0,"gapToTrip":386964.03,"pctToTrip":3.2589924999999997,"stats":{"activeMonths":1,"tieredMonths":0,"bestMonth":{"month":"April","revenue":13035.97,"tier":null,"bonus":0},"monthlyAvg":13035.97,"monthlyAvgIncluding0":3258.9925,"projectedH1AtCurrentPace":19553.954999999998,"neededPerMonth":193482.015,"neededPerWeek":48370.50375,"consistency":0,"bestMonthBeatGap":false,"wouldQualifyIfBestRepeats":false},"delta":{"ytdDelta":0,"accruedDelta":0,"isNew":false,"previousAccrued":0,"previousYtd":13035.97},"insights":{"wins":[],"gaps":["3 of 4 months had zero sales. Every dark month is tier money missed.","1 active month(s) stayed under $50K — close-but-no-tier.","At current pace you finish H1 at ~$19,554 — $380,446 short of the trip."],"suggestions":["Average $193,482/month for May+June (~$48,371/week) to qualify.","No month has cleared $50K yet — first $50K month puts $100 in your pot."],"motivation":"On the board. Scale it up.","deltaMessage":null},"llc":null}],"awards":{"topProducer":{"rep":"Greg","ytd":561789.13,"breakdown":[{"month":"January","revenue":22813.08,"tier":null,"bonus":0},{"month":"February","revenue":72481.15,"tier":"$50K","bonus":100},{"month":"March","revenue":177810.03,"tier":"$150K","bonus":750},{"month":"April","revenue":261333.12,"tier":"$200K","bonus":1200},{"month":"May","revenue":27351.75,"tier":null,"bonus":0}],"accruedTripBudget":2050,"qualifiedForTrip":true,"actualTripBudget":2050,"gapToTrip":0,"pctToTrip":100,"stats":{"activeMonths":5,"tieredMonths":3,"bestMonth":{"month":"April","revenue":261333.12,"tier":"$200K","bonus":1200},"monthlyAvg":112357.826,"monthlyAvgIncluding0":140447.2825,"projectedH1AtCurrentPace":842683.6950000001,"neededPerMonth":0,"neededPerWeek":0,"consistency":75,"bestMonthBeatGap":true,"wouldQualifyIfBestRepeats":true},"delta":{"ytdDelta":0,"accruedDelta":-3350,"isNew":false,"previousAccrued":5400,"previousYtd":561789.13},"insights":{"wins":["Already QUALIFIED with $561,789 sold.","Posted April at $261,333 — proves $200K+ months are in your wheelhouse.","Trip fund pot: $2,050.","3 of 4 months hit tier — elite consistency."],"gaps":["2 active month(s) stayed under $50K — close-but-no-tier."],"suggestions":["Trip locked. Now climb tiers — bigger months = bigger pot.","Push for $300K month (+$2,000) — you've shown $200K is in range.","$500K → $1M month: linear +$1,000 per additional $100K, capped at +$9,000 (max @ $1M month)."],"motivation":"You're in. Now make the trip bigger.","deltaMessage":null}},"biggestMonth":{"rep":"Greg","month":"April","revenue":261333.12,"tier":"$200K","bonus":1200},"mostConsistent":{"rep":"Greg","ytd":561789.13,"breakdown":[{"month":"January","revenue":22813.08,"tier":null,"bonus":0},{"month":"February","revenue":72481.15,"tier":"$50K","bonus":100},{"month":"March","revenue":177810.03,"tier":"$150K","bonus":750},{"month":"April","revenue":261333.12,"tier":"$200K","bonus":1200},{"month":"May","revenue":27351.75,"tier":null,"bonus":0}],"accruedTripBudget":2050,"qualifiedForTrip":true,"actualTripBudget":2050,"gapToTrip":0,"pctToTrip":100,"stats":{"activeMonths":5,"tieredMonths":3,"bestMonth":{"month":"April","revenue":261333.12,"tier":"$200K","bonus":1200},"monthlyAvg":112357.826,"monthlyAvgIncluding0":140447.2825,"projectedH1AtCurrentPace":842683.6950000001,"neededPerMonth":0,"neededPerWeek":0,"consistency":75,"bestMonthBeatGap":true,"wouldQualifyIfBestRepeats":true},"delta":{"ytdDelta":0,"accruedDelta":-3350,"isNew":false,"previousAccrued":5400,"previousYtd":561789.13},"insights":{"wins":["Already QUALIFIED with $561,789 sold.","Posted April at $261,333 — proves $200K+ months are in your wheelhouse.","Trip fund pot: $2,050.","3 of 4 months hit tier — elite consistency."],"gaps":["2 active month(s) stayed under $50K — close-but-no-tier."],"suggestions":["Trip locked. Now climb tiers — bigger months = bigger pot.","Push for $300K month (+$2,000) — you've shown $200K is in range.","$500K → $1M month: linear +$1,000 per additional $100K, capped at +$9,000 (max @ $1M month)."],"motivation":"You're in. Now make the trip bigger.","deltaMessage":null}},"highestSingleTier":{"rep":"Greg","month":"April","revenue":261333.12,"tier":"$200K","bonus":1200},"fastestStarter":{"rep":"Aaron","ytd":209207.81,"breakdown":[{"month":"January","revenue":75615.62,"tier":"$75K","bonus":250},{"month":"February","revenue":40183.42,"tier":null,"bonus":0},{"month":"March","revenue":27534.49,"tier":null,"bonus":0},{"month":"April","revenue":64724.28,"tier":"$50K","bonus":100},{"month":"May","revenue":1150,"tier":null,"bonus":0}],"accruedTripBudget":350,"qualifiedForTrip":false,"actualTripBudget":0,"gapToTrip":190792.19,"pctToTrip":52.301952500000006,"stats":{"activeMonths":5,"tieredMonths":2,"bestMonth":{"month":"January","revenue":75615.62,"tier":"$75K","bonus":250},"monthlyAvg":41841.562,"monthlyAvgIncluding0":52301.9525,"projectedH1AtCurrentPace":313811.71499999997,"neededPerMonth":95396.095,"neededPerWeek":23849.02375,"consistency":50,"bestMonthBeatGap":false,"wouldQualifyIfBestRepeats":false},"delta":{"ytdDelta":0,"accruedDelta":-100,"isNew":false,"previousAccrued":450,"previousYtd":209207.81},"insights":{"wins":["Best month: January = $75,616, tier money earned."],"gaps":["3 active month(s) stayed under $50K — close-but-no-tier.","At current pace you finish H1 at ~$313,812 — $86,188 short of the trip."],"suggestions":["Average $95,396/month for May+June (~$23,849/week) to qualify."],"motivation":"On the board. Scale it up.","deltaMessage":null}},"bestAprilSurge":{"rep":"Greg","ytd":561789.13,"breakdown":[{"month":"January","revenue":22813.08,"tier":null,"bonus":0},{"month":"February","revenue":72481.15,"tier":"$50K","bonus":100},{"month":"March","revenue":177810.03,"tier":"$150K","bonus":750},{"month":"April","revenue":261333.12,"tier":"$200K","bonus":1200},{"month":"May","revenue":27351.75,"tier":null,"bonus":0}],"accruedTripBudget":2050,"qualifiedForTrip":true,"actualTripBudget":2050,"gapToTrip":0,"pctToTrip":100,"stats":{"activeMonths":5,"tieredMonths":3,"bestMonth":{"month":"April","revenue":261333.12,"tier":"$200K","bonus":1200},"monthlyAvg":112357.826,"monthlyAvgIncluding0":140447.2825,"projectedH1AtCurrentPace":842683.6950000001,"neededPerMonth":0,"neededPerWeek":0,"consistency":75,"bestMonthBeatGap":true,"wouldQualifyIfBestRepeats":true},"delta":{"ytdDelta":0,"accruedDelta":-3350,"isNew":false,"previousAccrued":5400,"previousYtd":561789.13},"insights":{"wins":["Already QUALIFIED with $561,789 sold.","Posted April at $261,333 — proves $200K+ months are in your wheelhouse.","Trip fund pot: $2,050.","3 of 4 months hit tier — elite consistency."],"gaps":["2 active month(s) stayed under $50K — close-but-no-tier."],"suggestions":["Trip locked. Now climb tiers — bigger months = bigger pot.","Push for $300K month (+$2,000) — you've shown $200K is in range.","$500K → $1M month: linear +$1,000 per additional $100K, capped at +$9,000 (max @ $1M month)."],"motivation":"You're in. Now make the trip bigger.","deltaMessage":null}},"comebackKid":{"rep":"Hunter","ytd":227678.82,"breakdown":[{"month":"January","revenue":669.5,"tier":null,"bonus":0},{"month":"February","revenue":0,"tier":null,"bonus":0},{"month":"March","revenue":20408.64,"tier":null,"bonus":0},{"month":"April","revenue":206600.68,"tier":"$200K","bonus":1200},{"month":"May","revenue":0,"tier":null,"bonus":0}],"accruedTripBudget":1200,"qualifiedForTrip":false,"actualTripBudget":0,"gapToTrip":172321.18,"pctToTrip":56.919705,"stats":{"activeMonths":3,"tieredMonths":1,"bestMonth":{"month":"April","revenue":206600.68,"tier":"$200K","bonus":1200},"monthlyAvg":75892.94,"monthlyAvgIncluding0":56919.705,"projectedH1AtCurrentPace":341518.23,"neededPerMonth":86160.59,"neededPerWeek":21540.1475,"consistency":25,"bestMonthBeatGap":true,"wouldQualifyIfBestRepeats":true},"delta":{"ytdDelta":0,"accruedDelta":-2050,"isNew":false,"previousAccrued":3250,"previousYtd":227678.82},"insights":{"wins":["Posted April at $206,601 — proves $200K+ months are in your wheelhouse.","Trip fund pot: $1,200."],"gaps":["1 of 4 months had zero sales. Every dark month is tier money missed.","2 active month(s) stayed under $50K — close-but-no-tier.","At current pace you finish H1 at ~$341,518 — $58,482 short of the trip."],"suggestions":["Average $86,161/month for May+June (~$21,540/week) to qualify.","ONE more month like April closes the gap entirely."],"motivation":"You've PROVEN you can do this. Repeat April.","deltaMessage":null}}},"team":{"totalTeam":1365300.9,"teamAvg":170662.6125,"qualifiedCount":1,"totalAccrued":4250,"totalToBePaid":2050,"totalForfeitedSoFar":2200},"config":{"source":"C:/Users/Michael/Downloads/2026 Sales Numbers by Month (3).xlsx","generatedAt":"2026-05-07T02:11:30.677Z","period":{"start":"2026-01-01","end":"2026-06-30","name":"H1 2026"},"tripThreshold":400000,"bonusModel":"replacement","monthlyTiers":[{"threshold":50000,"bonus":100,"label":"$50K"},{"threshold":75000,"bonus":250,"label":"$75K"},{"threshold":100000,"bonus":400,"label":"$100K"},{"threshold":125000,"bonus":550,"label":"$125K"},{"threshold":150000,"bonus":750,"label":"$150K"},{"threshold":200000,"bonus":1200,"label":"$200K"},{"threshold":300000,"bonus":2000,"label":"$300K"},{"threshold":400000,"bonus":3000,"label":"$400K"},{"threshold":500000,"bonus":4000,"label":"$500K"}],"aboveCapRate":{"perStep":100000,"bonusPerStep":1000,"startsAbove":500000},"reps":[{"rep":"Greg","ytd":561789.13,"breakdown":[{"month":"January","revenue":22813.08,"tier":null,"bonus":0},{"month":"February","revenue":72481.15,"tier":"$50K","bonus":100},{"month":"March","revenue":177810.03,"tier":"$150K","bonus":750},{"month":"April","revenue":261333.12,"tier":"$200K","bonus":1200},{"month":"May","revenue":27351.75,"tier":null,"bonus":0}],"accruedTripBudget":2050,"qualifiedForTrip":true,"actualTripBudget":2050,"gapToTrip":0,"pctToTrip":100,"stats":{"activeMonths":5,"tieredMonths":3,"bestMonth":{"month":"April","revenue":261333.12,"tier":"$200K","bonus":1200},"monthlyAvg":112357.826,"monthlyAvgIncluding0":140447.2825,"projectedH1AtCurrentPace":842683.6950000001,"neededPerMonth":0,"neededPerWeek":0,"consistency":75,"bestMonthBeatGap":true,"wouldQualifyIfBestRepeats":true},"delta":{"ytdDelta":0,"accruedDelta":-3350,"isNew":false,"previousAccrued":5400,"previousYtd":561789.13},"insights":{"wins":["Already QUALIFIED with $561,789 sold.","Posted April at $261,333 — proves $200K+ months are in your wheelhouse.","Trip fund pot: $2,050.","3 of 4 months hit tier — elite consistency."],"gaps":["2 active month(s) stayed under $50K — close-but-no-tier."],"suggestions":["Trip locked. Now climb tiers — bigger months = bigger pot.","Push for $300K month (+$2,000) — you've shown $200K is in range.","$500K → $1M month: linear +$1,000 per additional $100K, capped at +$9,000 (max @ $1M month)."],"motivation":"You're in. Now make the trip bigger.","deltaMessage":null}},{"rep":"Hunter","ytd":227678.82,"breakdown":[{"month":"January","revenue":669.5,"tier":null,"bonus":0},{"month":"February","revenue":0,"tier":null,"bonus":0},{"month":"March","revenue":20408.64,"tier":null,"bonus":0},{"month":"April","revenue":206600.68,"tier":"$200K","bonus":1200},{"month":"May","revenue":0,"tier":null,"bonus":0}],"accruedTripBudget":1200,"qualifiedForTrip":false,"actualTripBudget":0,"gapToTrip":172321.18,"pctToTrip":56.919705,"stats":{"activeMonths":3,"tieredMonths":1,"bestMonth":{"month":"April","revenue":206600.68,"tier":"$200K","bonus":1200},"monthlyAvg":75892.94,"monthlyAvgIncluding0":56919.705,"projectedH1AtCurrentPace":341518.23,"neededPerMonth":86160.59,"neededPerWeek":21540.1475,"consistency":25,"bestMonthBeatGap":true,"wouldQualifyIfBestRepeats":true},"delta":{"ytdDelta":0,"accruedDelta":-2050,"isNew":false,"previousAccrued":3250,"previousYtd":227678.82},"insights":{"wins":["Posted April at $206,601 — proves $200K+ months are in your wheelhouse.","Trip fund pot: $1,200."],"gaps":["1 of 4 months had zero sales. Every dark month is tier money missed.","2 active month(s) stayed under $50K — close-but-no-tier.","At current pace you finish H1 at ~$341,518 — $58,482 short of the trip."],"suggestions":["Average $86,161/month for May+June (~$21,540/week) to qualify.","ONE more month like April closes the gap entirely."],"motivation":"You've PROVEN you can do this. Repeat April.","deltaMessage":null}},{"rep":"Aaron","ytd":209207.81,"breakdown":[{"month":"January","revenue":75615.62,"tier":"$75K","bonus":250},{"month":"February","revenue":40183.42,"tier":null,"bonus":0},{"month":"March","revenue":27534.49,"tier":null,"bonus":0},{"month":"April","revenue":64724.28,"tier":"$50K","bonus":100},{"month":"May","revenue":1150,"tier":null,"bonus":0}],"accruedTripBudget":350,"qualifiedForTrip":false,"actualTripBudget":0,"gapToTrip":190792.19,"pctToTrip":52.301952500000006,"stats":{"activeMonths":5,"tieredMonths":2,"bestMonth":{"month":"January","revenue":75615.62,"tier":"$75K","bonus":250},"monthlyAvg":41841.562,"monthlyAvgIncluding0":52301.9525,"projectedH1AtCurrentPace":313811.71499999997,"neededPerMonth":95396.095,"neededPerWeek":23849.02375,"consistency":50,"bestMonthBeatGap":false,"wouldQualifyIfBestRepeats":false},"delta":{"ytdDelta":0,"accruedDelta":-100,"isNew":false,"previousAccrued":450,"previousYtd":209207.81},"insights":{"wins":["Best month: January = $75,616, tier money earned."],"gaps":["3 active month(s) stayed under $50K — close-but-no-tier.","At current pace you finish H1 at ~$313,812 — $86,188 short of the trip."],"suggestions":["Average $95,396/month for May+June (~$23,849/week) to qualify."],"motivation":"On the board. Scale it up.","deltaMessage":null}},{"rep":"Alijah","ytd":125626,"breakdown":[{"month":"January","revenue":0,"tier":null,"bonus":0},{"month":"February","revenue":0,"tier":null,"bonus":0},{"month":"March","revenue":0,"tier":null,"bonus":0},{"month":"April","revenue":125626,"tier":"$125K","bonus":550},{"month":"May","revenue":0,"tier":null,"bonus":0}],"accruedTripBudget":550,"qualifiedForTrip":false,"actualTripBudget":0,"gapToTrip":274374,"pctToTrip":31.406499999999998,"stats":{"activeMonths":1,"tieredMonths":1,"bestMonth":{"month":"April","revenue":125626,"tier":"$125K","bonus":550},"monthlyAvg":125626,"monthlyAvgIncluding0":31406.5,"projectedH1AtCurrentPace":188439,"neededPerMonth":137187,"neededPerWeek":34296.75,"consistency":25,"bestMonthBeatGap":false,"wouldQualifyIfBestRepeats":false},"delta":{"ytdDelta":0,"accruedDelta":-750,"isNew":false,"previousAccrued":1300,"previousYtd":125626},"insights":{"wins":["Best month: April = $125,626, six-figure performance."],"gaps":["3 of 4 months had zero sales. Every dark month is tier money missed.","At current pace you finish H1 at ~$188,439 — $211,561 short of the trip."],"suggestions":["Average $137,187/month for May+June (~$34,297/week) to qualify."],"motivation":"On the board. Scale it up.","deltaMessage":null}},{"rep":"Rudy","ytd":101160.76000000001,"breakdown":[{"month":"January","revenue":59571.48,"tier":"$50K","bonus":100},{"month":"February","revenue":41589.28,"tier":null,"bonus":0},{"month":"March","revenue":0,"tier":null,"bonus":0},{"month":"April","revenue":0,"tier":null,"bonus":0},{"month":"May","revenue":0,"tier":null,"bonus":0}],"accruedTripBudget":100,"qualifiedForTrip":false,"actualTripBudget":0,"gapToTrip":298839.24,"pctToTrip":25.290190000000003,"stats":{"activeMonths":2,"tieredMonths":1,"bestMonth":{"month":"January","revenue":59571.48,"tier":"$50K","bonus":100},"monthlyAvg":50580.380000000005,"monthlyAvgIncluding0":25290.190000000002,"projectedH1AtCurrentPace":151741.14,"neededPerMonth":149419.62,"neededPerWeek":37354.905,"consistency":25,"bestMonthBeatGap":false,"wouldQualifyIfBestRepeats":false},"delta":{"ytdDelta":0,"accruedDelta":0,"isNew":false,"previousAccrued":100,"previousYtd":101160.76000000001},"insights":{"wins":["Best month: January = $59,571, tier money earned."],"gaps":["2 of 4 months had zero sales. Every dark month is tier money missed.","1 active month(s) stayed under $50K — close-but-no-tier.","At current pace you finish H1 at ~$151,741 — $248,259 short of the trip."],"suggestions":["Average $149,420/month for May+June (~$37,355/week) to qualify."],"motivation":"On the board. Scale it up.","deltaMessage":null}},{"rep":"Travis","ytd":85324.41,"breakdown":[{"month":"January","revenue":0,"tier":null,"bonus":0},{"month":"February","revenue":12120.52,"tier":null,"bonus":0},{"month":"March","revenue":37074.81,"tier":null,"bonus":0},{"month":"April","revenue":22999.46,"tier":null,"bonus":0},{"month":"May","revenue":13129.62,"tier":null,"bonus":0}],"accruedTripBudget":0,"qualifiedForTrip":false,"actualTripBudget":0,"gapToTrip":314675.58999999997,"pctToTrip":21.3311025,"stats":{"activeMonths":4,"tieredMonths":0,"bestMonth":{"month":"March","revenue":37074.81,"tier":null,"bonus":0},"monthlyAvg":21331.1025,"monthlyAvgIncluding0":21331.1025,"projectedH1AtCurrentPace":127986.615,"neededPerMonth":157337.79499999998,"neededPerWeek":39334.448749999996,"consistency":0,"bestMonthBeatGap":false,"wouldQualifyIfBestRepeats":false},"delta":{"ytdDelta":0,"accruedDelta":0,"isNew":false,"previousAccrued":0,"previousYtd":85324.41},"insights":{"wins":[],"gaps":["4 active month(s) stayed under $50K — close-but-no-tier.","At current pace you finish H1 at ~$127,987 — $272,013 short of the trip."],"suggestions":["Average $157,338/month for May+June (~$39,334/week) to qualify.","No month has cleared $50K yet — first $50K month puts $100 in your pot."],"motivation":"On the board. Scale it up.","deltaMessage":null}},{"rep":"Brendon","ytd":41478,"breakdown":[{"month":"January","revenue":18799.28,"tier":null,"bonus":0},{"month":"February","revenue":5498.89,"tier":null,"bonus":0},{"month":"March","revenue":16729.83,"tier":null,"bonus":0},{"month":"April","revenue":450,"tier":null,"bonus":0},{"month":"May","revenue":0,"tier":null,"bonus":0}],"accruedTripBudget":0,"qualifiedForTrip":false,"actualTripBudget":0,"gapToTrip":358522,"pctToTrip":10.3695,"stats":{"activeMonths":4,"tieredMonths":0,"bestMonth":{"month":"January","revenue":18799.28,"tier":null,"bonus":0},"monthlyAvg":10369.5,"monthlyAvgIncluding0":10369.5,"projectedH1AtCurrentPace":62217,"neededPerMonth":179261,"neededPerWeek":44815.25,"consistency":0,"bestMonthBeatGap":false,"wouldQualifyIfBestRepeats":false},"delta":{"ytdDelta":0,"accruedDelta":0,"isNew":false,"previousAccrued":0,"previousYtd":41478},"insights":{"wins":[],"gaps":["4 active month(s) stayed under $50K — close-but-no-tier.","At current pace you finish H1 at ~$62,217 — $337,783 short of the trip."],"suggestions":["Average $179,261/month for May+June (~$44,815/week) to qualify.","No month has cleared $50K yet — first $50K month puts $100 in your pot."],"motivation":"On the board. Scale it up.","deltaMessage":null}},{"rep":"Rick","ytd":13035.97,"breakdown":[{"month":"January","revenue":0,"tier":null,"bonus":0},{"month":"February","revenue":0,"tier":null,"bonus":0},{"month":"March","revenue":0,"tier":null,"bonus":0},{"month":"April","revenue":13035.97,"tier":null,"bonus":0},{"month":"May","revenue":0,"tier":null,"bonus":0}],"accruedTripBudget":0,"qualifiedForTrip":false,"actualTripBudget":0,"gapToTrip":386964.03,"pctToTrip":3.2589924999999997,"stats":{"activeMonths":1,"tieredMonths":0,"bestMonth":{"month":"April","revenue":13035.97,"tier":null,"bonus":0},"monthlyAvg":13035.97,"monthlyAvgIncluding0":3258.9925,"projectedH1AtCurrentPace":19553.954999999998,"neededPerMonth":193482.015,"neededPerWeek":48370.50375,"consistency":0,"bestMonthBeatGap":false,"wouldQualifyIfBestRepeats":false},"delta":{"ytdDelta":0,"accruedDelta":0,"isNew":false,"previousAccrued":0,"previousYtd":13035.97},"insights":{"wins":[],"gaps":["3 of 4 months had zero sales. Every dark month is tier money missed.","1 active month(s) stayed under $50K — close-but-no-tier.","At current pace you finish H1 at ~$19,554 — $380,446 short of the trip."],"suggestions":["Average $193,482/month for May+June (~$48,371/week) to qualify.","No month has cleared $50K yet — first $50K month puts $100 in your pot."],"motivation":"On the board. Scale it up.","deltaMessage":null}}],"totalAccrued":4250,"totalToBePaid":2050},"snapshots":[{"capturedAt":"2026-05-07T01:15:24.679Z","capturedDate":"2026-05-07","hash":"4afeb4b5a9d2b30b","teamTotal":1365300.9,"qualifiedCount":1,"retroactiveCount":0,"additionCount":0},{"capturedAt":"2026-05-07T02:01:37.385Z","capturedDate":"2026-05-07","hash":"e21e5a52a76df6de","teamTotal":1365300.9,"qualifiedCount":1,"totalAccrued":10500,"retroactiveCount":0,"additionCount":0},{"capturedAt":"2026-05-07T02:11:30.678Z","capturedDate":"2026-05-07","hash":"44d855336a1283c9","teamTotal":1365300.9,"qualifiedCount":1,"totalAccrued":4250,"retroactiveCount":0,"additionCount":0}],"changeLog":[],"cashOutPct":0.75,"currentDataMap":{"Greg":{"January":22813.08,"February":72481.15,"March":177810.03,"April":261333.12,"May":27351.75},"Hunter":{"January":669.5,"February":0,"March":20408.64,"April":206600.68,"May":0},"Aaron":{"January":75615.62,"February":40183.42,"March":27534.49,"April":64724.28,"May":1150},"Alijah":{"January":0,"February":0,"March":0,"April":125626,"May":0},"Rudy":{"January":59571.48,"February":41589.28,"March":0,"April":0,"May":0},"Travis":{"January":0,"February":12120.52,"March":37074.81,"April":22999.46,"May":13129.62},"Brendon":{"January":18799.28,"February":5498.89,"March":16729.83,"April":450,"May":0},"Rick":{"January":0,"February":0,"March":0,"April":13035.97,"May":0}}};
+
+Chart.defaults.color = '#8b95a5';
+Chart.defaults.borderColor = '#2a3342';
+Chart.defaults.font.family = "-apple-system, system-ui, 'Segoe UI', Inter, sans-serif";
+
+const repNames = PAYLOAD.reps.map(r => r.rep);
+const repColors = PAYLOAD.reps.map(r => r.qualifiedForTrip ? '#39FF14' : r.pctToTrip >= 50 ? '#ff9500' : '#ff453a');
+const palette = ['#39FF14', '#0066CC', '#ff9500', '#ffd60a', '#ff453a', '#bf5af2', '#64d2ff', '#ff6482'];
+
+const COMMON = { responsive: true, maintainAspectRatio: false };
+
+new Chart(document.getElementById('ytdChart'), {
+  type: 'bar',
+  data: { labels: repNames, datasets: [{ label: 'YTD', data: PAYLOAD.reps.map(r => Math.round(r.ytd)), backgroundColor: repColors }] },
+  options: { ...COMMON, indexAxis: 'y', plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => '$' + c.raw.toLocaleString() } } }, scales: { x: { ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'K' }, grid: { color: '#1c2330' } }, y: { grid: { display: false } } } }
+});
+
+new Chart(document.getElementById('tripChart'), {
+  type: 'bar',
+  data: { labels: repNames, datasets: [{ label: '%', data: PAYLOAD.reps.map(r => r.pctToTrip.toFixed(1)), backgroundColor: repColors }] },
+  options: { ...COMMON, indexAxis: 'y', plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.raw + '% to $400K' } } }, scales: { x: { max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#1c2330' } }, y: { grid: { display: false } } } }
+});
+
+new Chart(document.getElementById('trendChart'), {
+  type: 'line',
+  data: { labels: PAYLOAD.months, datasets: PAYLOAD.reps.map((r, i) => ({ label: r.rep, data: r.breakdown.map(b => Math.round(b.revenue)), borderColor: palette[i % palette.length], backgroundColor: palette[i % palette.length] + '22', tension: .3, pointRadius: 4 })) },
+  options: { ...COMMON, interaction: { mode: 'index', intersect: false }, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } }, tooltip: { callbacks: { label: c => c.dataset.label + ': $' + c.raw.toLocaleString() } } }, scales: { y: { ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'K' }, grid: { color: '#1c2330' } } } }
+});
+
+new Chart(document.getElementById('teamMonthChart'), {
+  type: 'bar',
+  data: { labels: PAYLOAD.months, datasets: PAYLOAD.reps.map((r, i) => ({ label: r.rep, data: r.breakdown.map(b => Math.round(b.revenue)), backgroundColor: palette[i % palette.length] })) },
+  options: { ...COMMON, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } }, tooltip: { callbacks: { label: c => c.dataset.label + ': $' + c.raw.toLocaleString() } } }, scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'K' }, grid: { color: '#1c2330' } } } }
+});
+
+if (IS_ADMIN && PAYLOAD.snapshots && PAYLOAD.snapshots.length > 0 && document.getElementById('historyChart')) {
+  new Chart(document.getElementById('historyChart'), {
+    type: 'line',
+    data: {
+      labels: PAYLOAD.snapshots.map(h => new Date(h.capturedAt).toLocaleDateString() + ' ' + new Date(h.capturedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})),
+      datasets: [
+        { label: 'Team Total Sales', data: PAYLOAD.snapshots.map(h => Math.round(h.teamTotal)), borderColor: '#39FF14', backgroundColor: 'rgba(57,255,20,.1)', fill: true, tension: .3, yAxisID: 'y' },
+        { label: 'Total Accrued Pot', data: PAYLOAD.snapshots.map(h => Math.round(h.totalAccrued || 0)), borderColor: '#ffd60a', backgroundColor: 'rgba(255,214,10,.1)', fill: false, tension: .3, yAxisID: 'y1' }
+      ]
+    },
+    options: { ...COMMON, plugins: { legend: { position: 'bottom' } }, scales: { y: { type: 'linear', position: 'left', ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'K' }, grid: { color: '#1c2330' } }, y1: { type: 'linear', position: 'right', ticks: { callback: v => '$' + v.toLocaleString() }, grid: { drawOnChartArea: false } } } }
+  });
+}
+
+// ---------- File upload with diff detection ----------
+const zone = document.getElementById('uploadZone');
+const input = document.getElementById('fileInput');
+const result = document.getElementById('uploadResult');
+let pendingUpload = null;
+
+['dragenter', 'dragover'].forEach(e => zone.addEventListener(e, ev => { ev.preventDefault(); zone.classList.add('dragover'); }));
+['dragleave', 'drop'].forEach(e => zone.addEventListener(e, ev => { ev.preventDefault(); zone.classList.remove('dragover'); }));
+zone.addEventListener('drop', ev => { if (ev.dataTransfer.files.length) handleFile(ev.dataTransfer.files[0]); });
+input.addEventListener('change', ev => { if (ev.target.files.length) handleFile(ev.target.files[0]); });
+
+function handleFile(file) {
+  result.innerHTML = '<p class="sub">Reading ' + file.name + '...</p>';
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const newMonths = wb.SheetNames.map(s => s.trim());
+      const newData = {};
+      for (const sheetName of wb.SheetNames) {
+        const month = sheetName.trim();
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: '' });
+        for (const row of rows) {
+          const rep = String(row[0] || '').trim();
+          const rev = Number(row[1]) || 0;
+          if (!rep || rev <= 0) continue;
+          if (!newData[rep]) newData[rep] = {};
+          newData[rep][month] = (newData[rep][month] || 0) + rev;
+        }
+      }
+      pendingUpload = { fileName: file.name, newData, newMonths };
+      renderDiff(file.name, newData, newMonths);
+    } catch (err) {
+      result.innerHTML = '<div class="danger-box">Error parsing file: ' + err.message + '</div>';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function renderDiff(fileName, newData, newMonths) {
+  const current = PAYLOAD.currentDataMap;
+  const allReps = new Set([...Object.keys(current), ...Object.keys(newData)]);
+  const allMonths = new Set([...PAYLOAD.months, ...newMonths]);
+
+  const adds = [], mods = [], rms = [], unchanged = [];
+  for (const rep of allReps) {
+    const cur = current[rep] || {};
+    const nw = newData[rep] || {};
+    for (const m of allMonths) {
+      const oldV = cur[m] || 0;
+      const newV = nw[m] || 0;
+      if (Math.abs(oldV - newV) < 0.01) { if (oldV > 0) unchanged.push({rep, m, val: oldV}); continue; }
+      if (oldV === 0 && newV > 0) adds.push({ rep, m, oldV, newV });
+      else if (oldV > 0 && newV === 0) rms.push({ rep, m, oldV, newV });
+      else mods.push({ rep, m, oldV, newV });
+    }
+  }
+
+  const totalCur = Object.values(current).reduce((s, r) => s + Object.values(r).reduce((a,b) => a+b, 0), 0);
+  const totalNew = Object.values(newData).reduce((s, r) => s + Object.values(r).reduce((a,b) => a+b, 0), 0);
+
+  let html = '<div class="card" style="margin-top:14px">';
+  html += '<h3>Diff Analysis: ' + fileName + '</h3>';
+  html += '<p class="sub">Current team total: $' + Math.round(totalCur).toLocaleString() + ' &nbsp;→&nbsp; New: $' + Math.round(totalNew).toLocaleString() + ' (delta: ' + (totalNew-totalCur >= 0 ? '+' : '') + '$' + Math.round(totalNew-totalCur).toLocaleString() + ')</p>';
+
+  if (rms.length > 0) {
+    html += '<div class="danger-box"><strong>⚠ ' + rms.length + ' entry/entries DELETED</strong> (revenue removed from previously-recorded months). This may indicate cancellations or sheet errors.</div>';
+  }
+  if (mods.length > 0) {
+    html += '<div class="warn-box"><strong>⚠ ' + mods.length + ' RETROACTIVE change(s)</strong> — numbers shifted for previously-recorded months. Review carefully:</div>';
+  }
+  if (adds.length === 0 && mods.length === 0 && rms.length === 0) {
+    html += '<div class="winner-box">✓ No changes detected. New file is identical to current data.</div>';
+  }
+
+  if (adds.length || mods.length || rms.length) {
+    html += '<table class="diff-table" style="margin-top:14px">';
+    html += '<thead><tr><th>Type</th><th>Rep</th><th>Month</th><th>Current</th><th>New (editable)</th><th>Delta</th></tr></thead><tbody>';
+    const all = [...mods.map(x => ({...x, type: 'mod'})), ...rms.map(x => ({...x, type: 'rm'})), ...adds.map(x => ({...x, type: 'add'}))];
+    for (let i = 0; i < all.length; i++) {
+      const x = all[i];
+      const cls = x.type === 'add' ? 'diff-row-add' : x.type === 'mod' ? 'diff-row-mod' : 'diff-row-rm';
+      const lbl = x.type === 'add' ? '<span class="delta-add">+ NEW</span>' : x.type === 'mod' ? '<span class="delta-mod">~ MODIFIED</span>' : '<span class="delta-rm">- REMOVED</span>';
+      const delta = x.newV - x.oldV;
+      html += '<tr class="' + cls + '"><td>' + lbl + '</td><td><strong>' + x.rep + '</strong></td><td>' + x.m + '</td><td>$' + x.oldV.toLocaleString() + '</td><td><input type="number" id="cell-' + i + '" value="' + x.newV + '" data-rep="' + x.rep + '" data-month="' + x.m + '" data-orig="' + x.oldV + '"></td><td class="' + (delta>=0?'delta-good':'delta-bad') + '">' + (delta>=0?'+':'') + '$' + Math.round(delta).toLocaleString() + '</td></tr>';
+    }
+    html += '</tbody></table>';
+    html += '<div style="margin-top:16px">';
+    html += '<button class="btn btn-primary" onclick="confirmUpload()">Accept &amp; Save Changes</button>';
+    html += '<button class="btn btn-secondary" onclick="cancelUpload()">Cancel</button>';
+    html += '<p class="sub" style="margin-top:10px">Edit individual cells above to override. Then "Accept" downloads a corrected XLSX you can drop in <code>Downloads/</code> + run the tracker scripts to persist. Either way, this action will be entered in the change log.</p>';
+    html += '</div>';
+  }
+  html += '</div>';
+  result.innerHTML = html;
+}
+
+function logAction(action, details) {
+  const log = JSON.parse(localStorage.getItem('rcrs_dashboard_log') || '[]');
+  log.push({ timestamp: new Date().toISOString(), action, details });
+  localStorage.setItem('rcrs_dashboard_log', JSON.stringify(log));
+  console.log('[Dashboard Log]', action, details);
+}
+
+function confirmUpload() {
+  if (!pendingUpload) return;
+
+  // Collect any user-overridden values
+  const overrides = {};
+  document.querySelectorAll('.diff-table input[type="number"]').forEach(inp => {
+    const rep = inp.dataset.rep;
+    const month = inp.dataset.month;
+    const orig = parseFloat(inp.dataset.orig);
+    const value = parseFloat(inp.value);
+    if (!overrides[rep]) overrides[rep] = {};
+    overrides[rep][month] = value;
+  });
+
+  // Build corrected dataset = newData + overrides
+  const corrected = JSON.parse(JSON.stringify(pendingUpload.newData));
+  for (const rep in overrides) {
+    if (!corrected[rep]) corrected[rep] = {};
+    for (const m in overrides[rep]) {
+      const v = overrides[rep][m];
+      if (v > 0) corrected[rep][m] = v;
+      else delete corrected[rep][m];
+    }
+  }
+
+  // Build new XLSX with corrected data
+  const wb = XLSX.utils.book_new();
+  const allMonths = new Set();
+  for (const rep in corrected) for (const m in corrected[rep]) allMonths.add(m);
+  for (const m of [...allMonths].sort((a, b) => {
+    const monthOrder = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    return monthOrder.indexOf(a) - monthOrder.indexOf(b);
+  })) {
+    const rows = [];
+    for (const rep in corrected) {
+      if (corrected[rep][m]) rows.push([rep, corrected[rep][m]]);
+    }
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb, ws, m);
+  }
+  XLSX.writeFile(wb, '2026 Sales Numbers by Month (3).xlsx');
+
+  logAction('upload-confirmed', { fileName: pendingUpload.fileName, overrideCount: Object.keys(overrides).length });
+  result.innerHTML = '<div class="winner-box">✓ Corrected file downloaded as <strong>2026 Sales Numbers by Month (3).xlsx</strong>.<br><br>To persist:<br>1. Move it to <code>C:\\Users\\Michael\\Downloads\\</code> (replace existing).<br>2. Run: <code>node scripts/bonus-tracker-2026.mjs &amp;&amp; node scripts/bonus-dashboard-2026.mjs</code><br>3. Refresh this page.<br><br>Action logged to localStorage.</div>';
+  pendingUpload = null;
+}
+
+function cancelUpload() {
+  logAction('upload-cancelled', { fileName: pendingUpload ? pendingUpload.fileName : null });
+  result.innerHTML = '<div class="warn-box">Upload cancelled. Action logged.</div>';
+  pendingUpload = null;
+}
+</script>
+</body>
+</html>

@@ -18,7 +18,9 @@ import path from 'path';
 
 const DATA_PATH = 'data/bonus-tracker-2026.json';
 // Write directly to public/ so /trip serves the latest dashboard.
-const OUT_PATH = 'public/trip-dashboard.html';
+const OUT_PATH = 'public/trip.html';
+// Also keep the legacy trip-dashboard.html in sync for direct-link compat.
+const LEGACY_OUT_PATH = 'public/trip-dashboard.html';
 const TODAY = new Date('2026-05-06');
 const H1_END = new Date('2026-06-30');
 const CASH_OUT_PCT = 0.75;
@@ -826,6 +828,7 @@ function cancelUpload() {
 const outDir = path.dirname(OUT_PATH);
 if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 fs.writeFileSync(OUT_PATH, html);
+fs.writeFileSync(LEGACY_OUT_PATH, html);
 console.log('Dashboard written to: ' + OUT_PATH);
 console.log('File size: ' + (fs.statSync(OUT_PATH).size / 1024).toFixed(1) + ' KB');
 console.log('Snapshots: ' + snapshots.length);

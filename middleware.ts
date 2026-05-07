@@ -363,9 +363,10 @@ export function middleware(request: NextRequest) {
     }
 
     // Public-on-portal pages (no login required, shareable links)
-    // /trip is the canonical short URL; /trip-dashboard 307-redirects to /trip.
+    // /trip is the canonical short URL — served directly from public/trip.html.
+    // /trip-dashboard (legacy) 307-redirects to /trip.
     if (pathname === '/trip' || pathname === '/trip.html') {
-      return NextResponse.rewrite(new URL('/trip-dashboard.html', request.url));
+      return NextResponse.next();
     }
     if (pathname === '/trip-dashboard' || pathname === '/trip-dashboard.html') {
       return NextResponse.redirect(new URL('/trip' + request.nextUrl.search, request.url), 307);
