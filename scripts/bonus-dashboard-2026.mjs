@@ -200,6 +200,32 @@ const html = `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <title>RCRS 2026 H1 Trip Program — Live Dashboard</title>
+<script>
+// Unregister any old service worker that may be intercepting /trip and serving
+// a cached portal page from before this route existed. Runs once per session.
+(function(){
+  try {
+    var key = '__trip_sw_nuked_v1';
+    if (sessionStorage.getItem(key)) return;
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(regs){
+        var had = regs.length > 0;
+        Promise.all(regs.map(function(r){ return r.unregister(); })).then(function(){
+          var clearCaches = window.caches
+            ? caches.keys().then(function(keys){
+                return Promise.all(keys.map(function(k){ return caches.delete(k); }));
+              })
+            : Promise.resolve();
+          clearCaches.then(function(){
+            sessionStorage.setItem(key, '1');
+            if (had) location.reload();
+          });
+        });
+      });
+    }
+  } catch(e) {}
+})();
+</script>
 <script src="/vendor/chart.umd.min.js"></script>
 <script src="/vendor/xlsx.full.min.js"></script>
 <style>
