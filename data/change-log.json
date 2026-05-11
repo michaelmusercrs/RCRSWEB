@@ -1,0 +1,67 @@
+[
+  {
+    "timestamp": "2026-05-11T15:04:01.166Z",
+    "snapshotHash": "c2589843827cdbf1",
+    "previousHash": "44d855336a1283c9",
+    "additions": 3,
+    "modifications": 4,
+    "changes": [
+      {
+        "rep": "Greg",
+        "month": "February",
+        "oldValue": 72481.15,
+        "newValue": 6474.45,
+        "delta": -66006.7,
+        "type": "modified"
+      },
+      {
+        "rep": "Greg",
+        "month": "May",
+        "oldValue": 27351.75,
+        "newValue": 73292.27,
+        "delta": 45940.520000000004,
+        "type": "modified"
+      },
+      {
+        "rep": "Hunter",
+        "month": "February",
+        "oldValue": 0,
+        "newValue": 72481.15,
+        "delta": 72481.15,
+        "type": "added"
+      },
+      {
+        "rep": "Hunter",
+        "month": "May",
+        "oldValue": 0,
+        "newValue": 1447,
+        "delta": 1447,
+        "type": "added"
+      },
+      {
+        "rep": "Brendon",
+        "month": "January",
+        "oldValue": 18799.28,
+        "newValue": 17753.88,
+        "delta": -1045.3999999999978,
+        "type": "modified"
+      },
+      {
+        "rep": "Brendon",
+        "month": "March",
+        "oldValue": 16729.83,
+        "newValue": 16843.12,
+        "delta": 113.28999999999724,
+        "type": "modified"
+      },
+      {
+        "rep": "Brendon",
+        "month": "May",
+        "oldValue": 0,
+        "newValue": 1200,
+        "delta": 1200,
+        "type": "added"
+      }
+    ]
+  }
+]

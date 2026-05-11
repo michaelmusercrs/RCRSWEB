@@ -21,14 +21,14 @@ const DATA_PATH = 'data/bonus-tracker-2026.json';
 const OUT_PATH = 'public/trip.html';
 // Also keep the legacy trip-dashboard.html in sync for direct-link compat.
 const LEGACY_OUT_PATH = 'public/trip-dashboard.html';
-const TODAY = new Date('2026-05-06');
+const TODAY = new Date('2026-05-11');
 const H1_END = new Date('2026-06-30');
 const CASH_OUT_PCT = 0.75;
 
 const data = JSON.parse(fs.readFileSync(DATA_PATH, 'utf8'));
 const cfg = JSON.parse(fs.readFileSync('data/competition-config.json', 'utf8'));
 const months = ['January', 'February', 'March', 'April', 'May'];
-const monthsCompleted = 4;
+const monthsCompleted = 5;
 const daysLeftH1 = Math.ceil((H1_END - TODAY) / (1000 * 60 * 60 * 24));
 const weeksLeftH1 = Math.round(daysLeftH1 / 7);
 const monthsLeftH1 = 2;
