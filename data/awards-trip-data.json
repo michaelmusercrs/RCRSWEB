@@ -1,0 +1,77 @@
+{
+  "rules": {
+    "qualifyingThreshold": 400000,
+    "tiers": [
+      { "min": 50000, "bonus": 100, "label": "$50K" },
+      { "min": 75000, "bonus": 250, "label": "$75K" },
+      { "min": 100000, "bonus": 400, "label": "$100K" },
+      { "min": 125000, "bonus": 550, "label": "$125K" },
+      { "min": 150000, "bonus": 750, "label": "$150K" },
+      { "min": 200000, "bonus": 1200, "label": "$200K" },
+      { "min": 300000, "bonus": 2000, "label": "$300K" },
+      { "min": 400000, "bonus": 3000, "label": "$400K" },
+      { "min": 500000, "bonus": 4000, "label": "$500K" }
+    ],
+    "periods": [
+      { "name": "H1 2026", "start": "2026-01", "end": "2026-06", "tripWindow": "Aug 2026" },
+      { "name": "H2 2026", "start": "2026-07", "end": "2026-12", "tripWindow": "Feb 2027" }
+    ],
+    "reps": [
+      "Aaron Lussi",
+      "Adam Rudell",
+      "Alijah",
+      "Brendon Muse",
+      "Greg Muse",
+      "Hunter Rivers",
+      "Rick",
+      "Travis Wages"
+    ]
+  },
+  "monthlySales": {
+    "2026-01": {
+      "Aaron Lussi": 75615.62,
+      "Adam Rudell": 59571.48,
+      "Brendon Muse": 17753.88,
+      "Greg Muse": 22813.08,
+      "Hunter Rivers": 669.50
+    },
+    "2026-02": {
+      "Aaron Lussi": 40183.42,
+      "Adam Rudell": 41589.28,
+      "Brendon Muse": 5498.89,
+      "Greg Muse": 6474.45,
+      "Hunter Rivers": 72481.15,
+      "Travis Wages": 12120.52
+    },
+    "2026-03": {
+      "Aaron Lussi": 27534.49,
+      "Brendon Muse": 16843.12,
+      "Greg Muse": 177810.03,
+      "Hunter Rivers": 20408.64,
+      "Travis Wages": 37074.81
+    },
+    "2026-04": {
+      "Aaron Lussi": 64724.28,
+      "Alijah": 125626.00,
+      "Brendon Muse": 450.00,
+      "Greg Muse": 261333.12,
+      "Hunter Rivers": 206600.68,
+      "Rick": 13035.97,
+      "Travis Wages": 22999.46
+    },
+    "2026-05": {
+      "Aaron Lussi": 1150.00,
+      "Brendon Muse": 1200.00,
+      "Greg Muse": 73292.27,
+      "Hunter Rivers": 1447.00,
+      "Travis Wages": 13129.62
+    },
+    "2026-06": {},
+    "2026-07": {},
+    "2026-08": {},
+    "2026-09": {},
+    "2026-10": {},
+    "2026-11": {},
+    "2026-12": {}
+  }
+}
