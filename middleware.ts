@@ -363,9 +363,9 @@ export function middleware(request: NextRequest) {
     }
 
     // Public-on-portal pages (no login required, shareable links)
-    // /trip is the canonical short URL — served directly from public/trip.html.
-    // /trip-dashboard (legacy) 307-redirects to /trip.
-    if (pathname === '/trip' || pathname === '/trip.html') {
+    // /trip is dynamic via app/trip/route.ts (reads from Vercel Blob).
+    // /trip/update is the upload page. Allow both, plus /api/trip/*.
+    if (pathname === '/trip' || pathname.startsWith('/trip/') || pathname.startsWith('/api/trip/')) {
       return NextResponse.next();
     }
     if (pathname === '/trip-dashboard' || pathname === '/trip-dashboard.html') {
