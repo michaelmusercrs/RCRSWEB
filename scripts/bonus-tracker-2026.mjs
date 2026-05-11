@@ -19,7 +19,8 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 
-const XLSX_PATH = process.env.XLSX_PATH || 'C:/Users/Michael/Downloads/2026 Sales Numbers by Month (3).xlsx';
+const XLSX_PATH = process.env.XLSX_PATH || 'C:/Users/Michael/Downloads/2026 Sales Numbers - with Totals.xlsx';
+const MONTH_NAMES = new Set(['January','February','March','April','May','June','July','August','September','October','November','December']);
 const cfg = JSON.parse(fs.readFileSync('data/competition-config.json', 'utf8'));
 const tiers = cfg.monthlyBonusTiers;
 const TRIP_THRESHOLD = cfg.awardsTrip.threshold;
@@ -53,9 +54,10 @@ function bonusReplacement(amount) {
 
 // ---------- Load spreadsheet ----------
 const wb = XLSX.readFile(XLSX_PATH);
-const months = wb.SheetNames.map(s => s.trim());
+const monthSheets = wb.SheetNames.filter(s => MONTH_NAMES.has(s.trim()));
+const months = monthSheets.map(s => s.trim());
 const reps = {};
-for (const sheetName of wb.SheetNames) {
+for (const sheetName of monthSheets) {
   const month = sheetName.trim();
   const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: '' });
   for (const row of rows) {

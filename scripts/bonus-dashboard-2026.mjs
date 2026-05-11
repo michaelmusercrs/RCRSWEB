@@ -1,5 +1,5 @@
 // Generates an interactive HTML dashboard from data/bonus-tracker-2026.json
-// Source data comes ONLY from "2026 Sales Numbers by Month (3).xlsx" via the
+// Source data comes ONLY from "2026 Sales Numbers - with Totals.xlsx" via the
 // upstream bonus-tracker-2026.mjs script.
 //
 // Bonus model: REPLACEMENT (highest single tier wins per month). Linear above $500K.
@@ -362,7 +362,7 @@ const html = `<!DOCTYPE html>
 
 <h1>RCRS 2026 H1 Trip Program</h1>
 <div class="sub">
-  Live dashboard · Source: <code>2026 Sales Numbers by Month (3).xlsx</code> · Generated ${new Date().toLocaleString()} ·
+  Live dashboard · Source: <code>2026 Sales Numbers - with Totals.xlsx</code> · Generated ${new Date().toLocaleString()} ·
   ${daysLeftH1} days left in H1 (~${weeksLeftH1} weeks, ${monthsLeftH1} months) ·
   Trip qualification = $400K cumulative Jan 1 – Jun 30
 </div>
@@ -620,7 +620,7 @@ const html = `<!DOCTYPE html>
 </div><!-- /adminOnly -->
 
 <div class="footer">
-  Source: <code>2026 Sales Numbers by Month (3).xlsx</code> ·
+  Source: <code>2026 Sales Numbers - with Totals.xlsx</code> ·
   Tier table: <code>data/competition-config.json</code> ·
   Generators: <code>scripts/bonus-tracker-2026.mjs</code> + <code>scripts/bonus-dashboard-2026.mjs</code> ·
   Snapshots: <code>data/history/</code> ·
@@ -835,10 +835,10 @@ function confirmUpload() {
     const ws = XLSX.utils.aoa_to_sheet(rows);
     XLSX.utils.book_append_sheet(wb, ws, m);
   }
-  XLSX.writeFile(wb, '2026 Sales Numbers by Month (3).xlsx');
+  XLSX.writeFile(wb, '2026 Sales Numbers - with Totals.xlsx');
 
   logAction('upload-confirmed', { fileName: pendingUpload.fileName, overrideCount: Object.keys(overrides).length });
-  result.innerHTML = '<div class="winner-box">✓ Corrected file downloaded as <strong>2026 Sales Numbers by Month (3).xlsx</strong>.<br><br>To persist:<br>1. Move it to <code>C:\\\\Users\\\\Michael\\\\Downloads\\\\</code> (replace existing).<br>2. Run: <code>node scripts/bonus-tracker-2026.mjs &amp;&amp; node scripts/bonus-dashboard-2026.mjs</code><br>3. Refresh this page.<br><br>Action logged to localStorage.</div>';
+  result.innerHTML = '<div class="winner-box">✓ Corrected file downloaded as <strong>2026 Sales Numbers - with Totals.xlsx</strong>.<br><br>To persist:<br>1. Move it to <code>C:\\\\Users\\\\Michael\\\\Downloads\\\\</code> (replace existing).<br>2. Run: <code>node scripts/bonus-tracker-2026.mjs &amp;&amp; node scripts/bonus-dashboard-2026.mjs</code><br>3. Refresh this page.<br><br>Action logged to localStorage.</div>';
   pendingUpload = null;
 }
 
