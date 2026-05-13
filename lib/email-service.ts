@@ -229,7 +229,7 @@ class EmailService {
     notes?: string;
   }): Promise<{ success: boolean; error?: string }> {
     // Default to Sara per the team-roles.ts entry
-    const recipient = data.officeEmail || process.env.OFFICE_NOTIFY_EMAIL || 'sara@rcrsal.com';
+    const recipient = data.officeEmail || process.env.OFFICE_NOTIFY_EMAIL || 'rcrs@rcrsal.com';
 
     const isReturn = data.ticketType === 'return';
     const subject = isReturn
@@ -300,6 +300,167 @@ class EmailService {
     });
   }
 
+  // Office-facing invoice that fires AT load_verified (truck loaded, about
+  // to leave warehouse). This is the office's "materials issued" notification
+  // and serves as the invoice record. PRICE ONLY — no cost. Safe to attach
+  // to JobNimbus or share with sales rep. Cost-bearing data only lives in
+  // admin / office / manager reports, never on this email.
+  async sendLoadVerifiedInvoice(data: {
+    officeEmail?: string;
+    ticketId: string;
+    invoiceId: string;
+    jobNumber: string;
+    customerName: string;
+    address: string;
+    salesRepName: string;
+    verifiedByName: string;
+    verifiedAt: string;
+    materials: Array<{ name: string; qty: number; unit?: string; unitPrice: number; linePrice: number }>;
+    totalPrice: number;
+    notes?: string;
+  }): Promise<{ success: boolean; error?: string }> {
+    const recipient = data.officeEmail || process.env.OFFICE_NOTIFY_EMAIL || 'rcrs@rcrsal.com';
+
+    const subject = `Invoice ${data.invoiceId}: ${data.jobNumber} — ${data.customerName}`;
+
+    const fmt = (n: number) => `$${n.toFixed(2)}`;
+    const tableRows = data.materials.map(m => `
+      <tr>
+        <td style="padding: 6px 8px; border-bottom: 1px solid #eee;">${m.qty} ${m.unit || ''}</td>
+        <td style="padding: 6px 8px; border-bottom: 1px solid #eee;">${m.name}</td>
+        <td style="padding: 6px 8px; border-bottom: 1px solid #eee; text-align: right;">${fmt(m.unitPrice)}</td>
+        <td style="padding: 6px 8px; border-bottom: 1px solid #eee; text-align: right;">${fmt(m.linePrice)}</td>
+      </tr>
+    `).join('');
+
+    const verifiedDate = (() => {
+      try { return new Date(data.verifiedAt).toLocaleString('en-US', { timeZone: 'America/Chicago' }); }
+      catch { return data.verifiedAt; }
+    })();
+
+    const body = `
+      <div style="font-family: Arial, sans-serif; max-width: 720px; margin: 0 auto;">
+        <div style="background: #000; padding: 20px; text-align: center;">
+          <h1 style="color: #39FF14; margin: 0;">Invoice — Materials Loaded</h1>
+        </div>
+        <div style="padding: 30px; background: #fff;">
+          <p style="font-size: 14px; color: #555;">
+            Materials have been loaded and verified at the warehouse for the job below.
+            Stock has been deducted. This invoice records the materials issued.
+          </p>
+
+          <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+            <tr><td style="padding: 4px 8px;"><strong>Invoice:</strong></td><td style="padding: 4px 8px;">${data.invoiceId}</td></tr>
+            <tr><td style="padding: 4px 8px;"><strong>Ticket:</strong></td><td style="padding: 4px 8px;">${data.ticketId}</td></tr>
+            <tr><td style="padding: 4px 8px;"><strong>Job:</strong></td><td style="padding: 4px 8px;">${data.jobNumber} — ${data.customerName}</td></tr>
+            <tr><td style="padding: 4px 8px;"><strong>Address:</strong></td><td style="padding: 4px 8px;">${data.address}</td></tr>
+            <tr><td style="padding: 4px 8px;"><strong>Sales Rep:</strong></td><td style="padding: 4px 8px;">${data.salesRepName || '—'}</td></tr>
+            <tr><td style="padding: 4px 8px;"><strong>Verified by:</strong></td><td style="padding: 4px 8px;">${data.verifiedByName} at ${verifiedDate}</td></tr>
+          </table>
+
+          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+            <thead>
+              <tr style="background: #f5f5f5;">
+                <th style="padding: 8px; text-align: left;">Qty</th>
+                <th style="padding: 8px; text-align: left;">Item</th>
+                <th style="padding: 8px; text-align: right;">Unit Price</th>
+                <th style="padding: 8px; text-align: right;">Line Total</th>
+              </tr>
+            </thead>
+            <tbody>${tableRows}</tbody>
+            <tfoot>
+              <tr style="font-weight: bold; background: #f5f5f5;">
+                <td colspan="3" style="padding: 8px; text-align: right;">TOTAL</td>
+                <td style="padding: 8px; text-align: right;">${fmt(data.totalPrice)}</td>
+              </tr>
+            </tfoot>
+          </table>
+
+          ${data.notes ? `<div style="background: #fffbe6; border-left: 3px solid #f0ad4e; padding: 12px; margin: 16px 0;"><strong>Notes:</strong><br>${data.notes.replace(/\n/g, '<br>')}</div>` : ''}
+
+          <p style="font-size: 12px; color: #888; margin-top: 20px;">
+            Cost-side material consumption is recorded separately in the
+            admin / office / manager reports and is not shown on this invoice.
+          </p>
+        </div>
+      </div>
+    `;
+
+    return this.send({
+      to: recipient,
+      subject,
+      body,
+      fromName: 'RCRS Inventory',
+    });
+  }
+
+  // Notify the driver (Rick) when a new material-order ticket lands. Driver
+  // view — NO cost or pricing data (per lib/cost-visibility.ts). Tells him
+  // what to load and where to take it. Sent at ticket-create time so Rick
+  // sees the load before he starts pulling.
+  async sendDriverMaterialOrderNotification(data: {
+    driverEmail?: string;
+    ticketId: string;
+    jobNumber: string;
+    customerName: string;
+    address: string;
+    salesRepName: string;
+    materials: Array<{ name: string; qty: number; unit?: string }>;
+    notes?: string;
+  }): Promise<{ success: boolean; error?: string }> {
+    const recipient = data.driverEmail || process.env.DRIVER_NOTIFY_EMAIL || 'rick@RiverCityRoofingSolutions.com';
+
+    const subject = `New Delivery: ${data.jobNumber} — ${data.customerName}`;
+
+    const tableRows = data.materials.map(m => `
+      <tr>
+        <td style="padding: 8px 10px; border-bottom: 1px solid #eee;">${m.qty} ${m.unit || ''}</td>
+        <td style="padding: 8px 10px; border-bottom: 1px solid #eee;">${m.name}</td>
+      </tr>
+    `).join('');
+
+    const body = `
+      <div style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto;">
+        <div style="background: #000; padding: 20px; text-align: center;">
+          <h1 style="color: #39FF14; margin: 0;">New Material Delivery</h1>
+        </div>
+        <div style="padding: 30px; background: #fff;">
+          <table style="width: 100%; border-collapse: collapse; margin: 12px 0;">
+            <tr><td style="padding: 4px 8px;"><strong>Ticket:</strong></td><td style="padding: 4px 8px;">${data.ticketId}</td></tr>
+            <tr><td style="padding: 4px 8px;"><strong>Job:</strong></td><td style="padding: 4px 8px;">${data.jobNumber} — ${data.customerName}</td></tr>
+            <tr><td style="padding: 4px 8px;"><strong>Address:</strong></td><td style="padding: 4px 8px;">${data.address}</td></tr>
+            <tr><td style="padding: 4px 8px;"><strong>Sales Rep:</strong></td><td style="padding: 4px 8px;">${data.salesRepName || '—'}</td></tr>
+          </table>
+
+          <h3 style="margin: 20px 0 8px;">Materials to Load</h3>
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="background: #f5f5f5;">
+                <th style="padding: 8px 10px; text-align: left;">Qty</th>
+                <th style="padding: 8px 10px; text-align: left;">Item</th>
+              </tr>
+            </thead>
+            <tbody>${tableRows}</tbody>
+          </table>
+
+          ${data.notes ? `<div style="background: #fffbe6; border-left: 3px solid #f0ad4e; padding: 12px; margin: 16px 0;"><strong>Special Instructions:</strong><br>${data.notes.replace(/\n/g, '<br>')}</div>` : ''}
+
+          <p style="font-size: 14px; color: #555; margin-top: 24px;">
+            Open the ticket in the portal to mark materials pulled and load verified.
+            Stock deducts when you verify the load.
+          </p>
+        </div>
+      </div>
+    `;
+
+    return this.send({
+      to: recipient,
+      subject,
+      body,
+      fromName: 'RCRS Deliveries',
+    });
+  }
+
   // Notify Sara about a vendor return — Rick picked up materials from a
   // job that came from an outside supplier (SRS, ABC, etc.). Sara needs to
   // chase the vendor credit and post it against the job. INTERNAL ONLY —
@@ -318,7 +479,7 @@ class EmailService {
     notes?: string;
     photoUrl?: string;
   }): Promise<{ success: boolean; error?: string }> {
-    const recipient = data.officeEmail || process.env.OFFICE_NOTIFY_EMAIL || 'sara@rcrsal.com';
+    const recipient = data.officeEmail || process.env.OFFICE_NOTIFY_EMAIL || 'rcrs@rcrsal.com';
 
     const subject = `Vendor Return: ${data.vendorName} — ${data.jobNumber} ${data.customerName}`;
 

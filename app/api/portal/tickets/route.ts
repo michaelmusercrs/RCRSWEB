@@ -291,31 +291,9 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Step 6: notify Sara (office) — INCLUDES cost because she handles
-        // invoicing/accounting. This email never reaches customer or sales rep.
-        try {
-          await emailService.sendOfficeMaterialOrderNotification({
-            ticketId: ticket.ticketId,
-            ticketType: isReturn ? 'return' : 'delivery',
-            jobNumber: normalizedJobNumber,
-            customerName: data.customerName || '',
-            address: [data.jobAddress, data.city, data.state, data.zip].filter(Boolean).join(', '),
-            salesRepName: data.salesRepName || data.projectManager || '',
-            materials: sheetMaterials.map(m => ({
-              name: m.productName,
-              qty: m.quantity,
-              unit: formMaterials.find(f => f.productId === m.productId)?.unit,
-              lineCost: m.totalCost,
-              linePrice: m.totalPrice,
-            })),
-            totalCost: Math.round(totalCost * 100) / 100,
-            totalPrice: Math.round(totalPrice * 100) / 100,
-            interofficeInvoiceId,
-            notes: data.specialInstructions || data.workOrderBody,
-          });
-        } catch (saraErr) {
-          console.warn('[tickets] Failed to send office notification:', saraErr);
-        }
+        // No office email on ticket creation — the order is already saved
+        // against the job in JobNimbus, and the office invoice fires later
+        // at load_verified (price-only, sent from delivery-workflow-service).
 
         return NextResponse.json({
           success: true,
@@ -381,32 +359,8 @@ export async function POST(request: NextRequest) {
             console.warn('[verify-load] Failed to push to legacy Inventory tab:', err);
           }
 
-          // Step 3: notify Sara that the load is verified and outbound
-          try {
-            const sheetTicket = await ticketSheetService.getById(ticket.ticketId);
-            if (sheetTicket) {
-              await emailService.sendOfficeMaterialOrderNotification({
-                ticketId: ticket.ticketId,
-                ticketType: 'delivery',
-                jobNumber: sheetTicket.referenceNumber,
-                customerName: sheetTicket.customerName || '',
-                address: [sheetTicket.jobAddress, sheetTicket.city, sheetTicket.state].filter(Boolean).join(', '),
-                salesRepName: sheetTicket.createdByName || '',
-                materials: sheetTicket.materials.map(m => ({
-                  name: m.productName,
-                  qty: m.quantity,
-                  lineCost: m.totalCost,
-                  linePrice: m.totalPrice,
-                })),
-                totalCost: sheetTicket.totalCost,
-                totalPrice: sheetTicket.totalPrice,
-                interofficeInvoiceId: '',
-                notes: `LOAD VERIFIED — materials are on the truck. Verified by ${data.verifiedBy || 'driver'}. ${sheetTicket.notes || ''}`.trim(),
-              });
-            }
-          } catch (err) {
-            console.warn('[verify-load] Failed to notify Sara:', err);
-          }
+          // Office invoice (PRICE ONLY) is fired from inside verifyLoad in
+          // delivery-workflow-service — single source. Do not re-send here.
         }
 
         return NextResponse.json({ success: true, ticket });

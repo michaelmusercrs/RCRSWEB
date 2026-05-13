@@ -211,29 +211,25 @@ export async function POST(request: NextRequest) {
     console.warn('[material-order-webhook] Failed to create interoffice invoice:', err);
   }
 
-  // Step 4: notify Sara (office) — INCLUDES cost. INTERNAL ONLY.
+  // Step 4: notify the driver only. The order is already saved against the
+  // job in JobNimbus, so the office does NOT get a create-time email — the
+  // office invoice fires later, at load_verified, with price-only data.
+  const fullAddress = [parsed.jobAddress, parsed.city, parsed.state, parsed.zip].filter(Boolean).join(', ');
   try {
-    await emailService.sendOfficeMaterialOrderNotification({
+    await emailService.sendDriverMaterialOrderNotification({
       ticketId,
-      ticketType: 'delivery',
       jobNumber: parsed.jobNumber,
       customerName: parsed.customerName,
-      address: [parsed.jobAddress, parsed.city, parsed.state, parsed.zip].filter(Boolean).join(', '),
+      address: fullAddress,
       salesRepName: parsed.salesRepName,
       materials: sheetMaterials.map(m => ({
         name: m.productName,
         qty: m.quantity,
-        unit: '',
-        lineCost: m.totalCost,
-        linePrice: m.totalPrice,
       })),
-      totalCost: Math.round(totalCost * 100) / 100,
-      totalPrice: Math.round(totalPrice * 100) / 100,
-      interofficeInvoiceId,
       notes: parsed.specialInstructions,
     });
   } catch (err) {
-    console.warn('[material-order-webhook] Failed to notify office:', err);
+    console.warn('[material-order-webhook] Failed to notify driver:', err);
   }
 
   // NOTE: stock@rcrsal.com already received the email — that's how we got
