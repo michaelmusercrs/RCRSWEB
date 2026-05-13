@@ -732,69 +732,20 @@ class DeliveryWorkflowService {
   }
 
   async verifyLoad(ticketId: string, verifiedBy: string, gpsLocation?: string): Promise<DeliveryTicket | null> {
+    // Sheet write only. The deduction and invoice email are owned by the
+    // route handler so they fire even for tickets that only exist in the
+    // master Tickets sheet (e.g. webhook-created from a Material Order email)
+    // and not in this service's `Delivery Tickets` sheet.
     const row = await this.getTicketRow(ticketId);
     if (!row) return null;
 
-    // Idempotency: if load was already verified, do not re-deduct stock or
-    // re-send the invoice. Re-running verifyLoad just refreshes the GPS.
-    const previouslyVerifiedAt = row.get('loadVerifiedAt');
-
-    const verifiedAtIso = new Date().toISOString();
     row.set('status', 'load_verified');
-    row.set('loadVerifiedAt', verifiedAtIso);
+    row.set('loadVerifiedAt', new Date().toISOString());
     row.set('loadVerifiedBy', verifiedBy);
     if (gpsLocation) row.set('gpsLoadLocation', gpsLocation);
     await row.save();
 
     await this.updateChecklistStep(ticketId, 'verify_load', verifiedBy);
-
-    const ticket = this.rowToTicket(row);
-
-    if (!previouslyVerifiedAt && !ticket.pipelineOrderId) {
-      // Deduct stock now (truck loaded, about to leave warehouse).
-      try {
-        await this.deductInventory(ticket.materials);
-      } catch (err) {
-        console.error('[delivery] Stock deduction at load_verified failed:', err);
-      }
-
-      // Fire the office invoice (PRICE ONLY — no cost). Fire-and-log; if
-      // email fails the deduction must still stand.
-      try {
-        const { emailService } = await import('./email-service');
-        const { jobMaterialCostService } = await import('./job-material-cost-service');
-        const invoiceRecords = await jobMaterialCostService.getByTicket(ticketId);
-        const interofficeInvoice = invoiceRecords.find(r => r.type === 'invoice');
-        const invoiceId = interofficeInvoice?.invoiceId || ticketId;
-
-        const fullAddress = [ticket.jobAddress, ticket.city, ticket.state, ticket.zip]
-          .filter(Boolean).join(', ');
-        const materialsForEmail = ticket.materials.map(m => ({
-          name: m.productName,
-          qty: m.quantity,
-          unit: (m as { unit?: string }).unit,
-          unitPrice: m.unitPrice || 0,
-          linePrice: m.totalPrice ?? (m.unitPrice || 0) * m.quantity,
-        }));
-        const totalPrice = materialsForEmail.reduce((sum, m) => sum + m.linePrice, 0);
-
-        await emailService.sendLoadVerifiedInvoice({
-          ticketId,
-          invoiceId,
-          jobNumber: ticket.jobId || '',
-          customerName: ticket.customerName || '',
-          address: fullAddress,
-          salesRepName: (ticket as { salesRepName?: string }).salesRepName || '',
-          verifiedByName: verifiedBy,
-          verifiedAt: verifiedAtIso,
-          materials: materialsForEmail,
-          totalPrice: Math.round(totalPrice * 100) / 100,
-          notes: ticket.specialInstructions,
-        });
-      } catch (err) {
-        console.error('[delivery] Failed to send load-verified invoice:', err);
-      }
-    }
 
     const gpsParts = gpsLocation?.split(',').map(Number);
     this.advancePipelineIfLinked(ticketId, 'LOAD_VERIFIED',
@@ -805,7 +756,7 @@ class DeliveryWorkflowService {
       }
     ).catch(() => {});
 
-    return ticket;
+    return this.rowToTicket(row);
   }
 
   async startDelivery(ticketId: string): Promise<DeliveryTicket | null> {

@@ -320,50 +320,55 @@ export async function POST(request: NextRequest) {
       }
 
       case 'verify-load': {
-        const ticket = await deliveryWorkflowService.verifyLoad(
-          data.ticketId,
-          data.verifiedBy,
-          data.gpsLocation
-        );
-
-        // POST-LOAD TRIGGER: the ticket is now physically loaded on the truck.
-        // Per the rules, this is the moment we:
-        //   1. Update the Tickets sheet status
-        //   2. Push transactions to legacy Inventory tab (records the actual outbound movement)
-        //   3. Email Sara confirming the load is verified + interoffice invoice is final
-        // The interoffice invoice was already CREATED at ticket-create time.
-        // Here we just flip its visibility and notify.
-        if (ticket) {
-          // Step 1: status update on the unified Tickets tab
-          try {
-            await ticketSheetService.updateStatus(ticket.ticketId, 'load_verified');
-          } catch (err) {
-            console.warn('[verify-load] Failed to update Tickets tab status:', err);
-          }
-
-          // Step 2: push to legacy Inventory tab
-          try {
-            const sheetTicket = await ticketSheetService.getById(ticket.ticketId);
-            if (sheetTicket && sheetTicket.materials.length > 0) {
-              await inventoryTabSync.pushTransactions({
-                referenceNumber: sheetTicket.referenceNumber,
-                timestamp: new Date().toISOString(),
-                lines: sheetTicket.materials.map(m => ({
-                  itemId: m.productId,
-                  amount: -Math.abs(m.quantity),
-                  unitPrice: m.unitPrice,
-                })),
-              });
-            }
-          } catch (err) {
-            console.warn('[verify-load] Failed to push to legacy Inventory tab:', err);
-          }
-
-          // Office invoice (PRICE ONLY) is fired from inside verifyLoad in
-          // delivery-workflow-service — single source. Do not re-send here.
+        // Use the master Tickets sheet as source of truth so this works for
+        // BOTH webhook-created tickets (Tickets only) AND portal-created
+        // tickets (Tickets + Delivery Tickets).
+        const sheetTicket = await ticketSheetService.getById(data.ticketId);
+        if (!sheetTicket) {
+          return NextResponse.json({ success: false, error: 'Ticket not found' }, { status: 404 });
         }
 
-        return NextResponse.json({ success: true, ticket });
+        // Idempotency: skip the aftermath if this ticket has already been
+        // verified. Status reflects the prior state because we haven't
+        // updated it yet.
+        const alreadyVerified = sheetTicket.status !== 'created';
+        const verifiedAtIso = new Date().toISOString();
+
+        // Always update Tickets-sheet status + best-effort write to Delivery
+        // Tickets sheet (returns null for webhook tickets, that's fine).
+        let dtTicket = null;
+        try {
+          dtTicket = await deliveryWorkflowService.verifyLoad(
+            data.ticketId,
+            data.verifiedBy,
+            data.gpsLocation,
+          );
+        } catch (err) {
+          console.warn('[verify-load] Delivery Tickets sheet update skipped:', err);
+        }
+        try {
+          await ticketSheetService.updateStatus(data.ticketId, 'load_verified');
+        } catch (err) {
+          console.warn('[verify-load] Failed to update Tickets tab status:', err);
+        }
+
+        // Run deduction + legacy mirror + office invoice exactly once per
+        // ticket, regardless of which sheet the ticket originated in.
+        let aftermath = null;
+        if (!alreadyVerified) {
+          try {
+            const { runLoadVerifiedAftermath } = await import('@/lib/load-verified-aftermath');
+            aftermath = await runLoadVerifiedAftermath({
+              ticket: sheetTicket,
+              verifiedAtIso,
+              verifiedByName: data.verifiedBy || 'driver',
+            });
+          } catch (err) {
+            console.error('[verify-load] Aftermath threw:', err);
+          }
+        }
+
+        return NextResponse.json({ success: true, ticket: dtTicket || sheetTicket, aftermath });
       }
 
       case 'start-delivery': {

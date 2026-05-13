@@ -26,13 +26,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { JWT } from 'google-auth-library';
-import { GoogleSpreadsheet } from 'google-spreadsheet';
 import { requireAdmin } from '@/lib/auth-service';
 import { ticketSheetService, type SheetTicket } from '@/lib/ticket-sheet-service';
-import { inventoryTabSync } from '@/lib/inventory-tab-sync';
-import { emailService } from '@/lib/email-service';
-import { jobMaterialCostService } from '@/lib/job-material-cost-service';
+import { runLoadVerifiedAftermath } from '@/lib/load-verified-aftermath';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -45,53 +41,6 @@ interface BackfillResult {
   totalPrice: number;
   status: 'processed' | 'skipped' | 'failed';
   reason?: string;
-}
-
-/**
- * Deduct material quantities from the master Sheet's `Inventory` tab.
- * Standalone (does not depend on delivery-workflow-service.getTicketRow,
- * which reads a different tab). Mirrors the deductInventory logic from
- * that service so backfilled tickets land in the same place as live ones.
- */
-async function deductFromMasterInventory(
-  materials: SheetTicket['materials'],
-): Promise<{ deducted: number; missing: string[] }> {
-  const sheetsId = process.env.DELIVERY_SHEETS_ID || process.env.GOOGLE_SHEETS_ID;
-  const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-  if (!sheetsId || !process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || !privateKey) {
-    return { deducted: 0, missing: materials.map(m => m.productId) };
-  }
-
-  const auth = new JWT({
-    email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-    key: privateKey,
-    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-  });
-  const doc = new GoogleSpreadsheet(sheetsId, auth);
-  await doc.loadInfo();
-  const invSheet = doc.sheetsByTitle['Inventory'];
-  if (!invSheet) {
-    return { deducted: 0, missing: materials.map(m => m.productId) };
-  }
-  const rows = await invSheet.getRows();
-
-  const missing: string[] = [];
-  let deducted = 0;
-  for (const m of materials) {
-    const row = rows.find(r => r.get('productId') === m.productId);
-    if (!row) {
-      missing.push(m.productId);
-      continue;
-    }
-    const currentQty = parseFloat(row.get('currentQty')) || 0;
-    const newQty = Math.max(0, currentQty - m.quantity);
-    const unitCost = parseFloat(row.get('unitCost')) || 0;
-    row.set('currentQty', newQty.toString());
-    row.set('totalValue', (newQty * unitCost).toFixed(2));
-    await row.save();
-    deducted++;
-  }
-  return { deducted, missing };
 }
 
 async function getPendingTickets(specificIds?: string[]): Promise<SheetTicket[]> {
@@ -159,67 +108,28 @@ export async function POST(request: NextRequest) {
       };
 
       try {
-        const verifiedAt = new Date().toISOString();
+        const verifiedAtIso = new Date().toISOString();
 
-        // 1. Deduct from master Inventory tab
-        const { deducted, missing } = await deductFromMasterInventory(ticket.materials);
-
-        // 2. Mark Tickets row as load_verified (idempotent — updateStatus
-        //    is safe to call repeatedly; this is also what writes
-        //    loadVerifiedAt / loadVerifiedBy on the sheet)
-        await ticketSheetService.updateStatus(
-          ticket.ticketId,
-          'load_verified',
-        );
-
-        // 3. Mirror to the legacy external inventory app (no-op if env unset)
-        try {
-          await inventoryTabSync.pushTransactions({
-            referenceNumber: ticket.referenceNumber,
-            timestamp: verifiedAt,
-            lines: ticket.materials
-              .filter(m => m.productId.startsWith('item-'))
-              .map(m => ({
-                itemId: m.productId,
-                amount: -Math.abs(m.quantity),
-                unitPrice: m.unitPrice,
-              })),
-          });
-        } catch (legacyErr) {
-          console.warn('[stock-backfill] Legacy mirror skipped:', legacyErr);
-        }
-
-        // 4. Send price-only invoice to office (rcrs@rcrsal.com)
-        const invoiceRecords = await jobMaterialCostService.getByTicket(ticket.ticketId);
-        const interofficeInvoice = invoiceRecords.find(r => r.type === 'invoice');
-        const invoiceId = interofficeInvoice?.invoiceId || ticket.ticketId;
-
-        const fullAddress = [ticket.jobAddress, ticket.city, ticket.state].filter(Boolean).join(', ');
-        const materialsForEmail = ticket.materials.map(m => ({
-          name: m.productName,
-          qty: m.quantity,
-          unitPrice: m.unitPrice || 0,
-          linePrice: m.totalPrice ?? (m.unitPrice || 0) * m.quantity,
-        }));
-        const totalPriceCalc = materialsForEmail.reduce((sum, m) => sum + m.linePrice, 0);
-
-        await emailService.sendLoadVerifiedInvoice({
-          ticketId: ticket.ticketId,
-          invoiceId,
-          jobNumber: ticket.referenceNumber,
-          customerName: ticket.customerName || '',
-          address: fullAddress,
-          salesRepName: ticket.createdByName || '',
+        // Run the standard load-verified aftermath: deduct + legacy mirror +
+        // price-only office invoice. Same code path the live verify-load
+        // handler uses — single source of truth.
+        const aftermath = await runLoadVerifiedAftermath({
+          ticket,
+          verifiedAtIso,
           verifiedByName: performedByName,
-          verifiedAt,
-          materials: materialsForEmail,
-          totalPrice: Math.round(totalPriceCalc * 100) / 100,
-          notes: ticket.notes ? `BACKFILL: ${ticket.notes}` : 'Historical backfill — materials delivered prior to this app going live.',
+          notesPrefix: 'BACKFILL — historical Material Order email processed after the fact.',
         });
 
-        if (missing.length > 0) {
-          baseResult.reason = `Deducted ${deducted}/${ticket.materials.length}; missing in catalog: ${missing.join(', ')}`;
+        // Mark the ticket as load_verified so the next backfill run skips it.
+        await ticketSheetService.updateStatus(ticket.ticketId, 'load_verified');
+
+        const reasons: string[] = [];
+        if (aftermath.missingFromCatalog.length > 0) {
+          reasons.push(`missing in catalog: ${aftermath.missingFromCatalog.join(', ')}`);
         }
+        if (!aftermath.invoiceSent) reasons.push('invoice email failed');
+        if (aftermath.errors.length > 0) reasons.push(...aftermath.errors);
+        if (reasons.length > 0) baseResult.reason = reasons.join(' | ');
         results.push(baseResult);
       } catch (err) {
         baseResult.status = 'failed';
