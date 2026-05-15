@@ -181,50 +181,73 @@ export function parseMaterialOrderEmail(body: string): ParsedMaterialOrder {
   }
 
   // ── Materials table ───────────────────────────────────────────────────
-  // Find the header row (Item / Description / Unit / Qty / Cost) and parse
-  // every line after it until we hit "Total Cost".
+  // Drive's PDF -> Doc conversion flattens the table into a single chunk
+  // where MULTIPLE items can be concatenated onto one line, e.g.:
+  //   "1 1/4 Coil Nails 2 boxes Box 2.00 64.90 Button Caps 1 bucket Bucke 1.00 29.15"
+  // So we can't parse line-by-line. Instead: find the materials section
+  // (between an "Item" or "Materials" header and "Total Cost"), join it to
+  // one big string, then run a global regex that matches the trailing
+  // "<unit-token> <qty> <unit-cost>" of each line item. The text between
+  // matches becomes the item name + description.
   const materials: ParsedMaterialLine[] = [];
-  const headerIdx = lines.findIndex(l =>
-    /\bItem\b/i.test(l) && /\bQty\b/i.test(l) && /\bCost\b/i.test(l)
-  );
-  if (headerIdx >= 0) {
-    for (let i = headerIdx + 1; i < lines.length; i++) {
-      const line = lines[i];
-      if (TOTAL_RE.test(line)) break;
-      if (/^Materials?$/i.test(line)) continue; // section sublabel
-      // Match: <name> <description...> <unit> <qty> <cost>
-      // Strategy: pull qty + cost from end (last two numeric tokens), unit before qty
-      const parts = line.split(/\s{2,}|\t/).map(s => s.trim()).filter(Boolean);
-      // Try a regex that captures the trailing "<unit> <qty> <cost>" pattern
-      const tail = line.match(/^(.+?)\s+(\S+)\s+([\d,]+\.\d{1,2})\s+([\d,]+\.\d{1,2})\s*$/);
-      if (tail) {
-        const [, head, unit, qtyStr, costStr] = tail;
-        // The "head" is "<item name> <description>" — we don't know where the
-        // boundary is without a catalog lookup. Caller does the fuzzy match.
-        const headParts = head.trim().split(/\s+/);
-        // Simple heuristic: first 1-3 words are the item name, rest is description
-        const itemName = headParts.slice(0, Math.min(3, headParts.length)).join(' ');
-        const description = headParts.slice(Math.min(3, headParts.length)).join(' ');
-        materials.push({
-          itemName: itemName || head.trim(),
-          description: description || '',
-          unit,
-          quantity: parseDollar(qtyStr),
-          unitCost: parseDollar(costStr),
-        });
-      } else if (parts.length >= 4) {
-        // Fallback: tab-separated layout
-        const last = parts[parts.length - 1];
-        const secondLast = parts[parts.length - 2];
-        const thirdLast = parts[parts.length - 3];
-        materials.push({
-          itemName: parts[0] || '',
-          description: parts.slice(1, parts.length - 3).join(' '),
-          unit: thirdLast,
-          quantity: parseDollar(secondLast),
-          unitCost: parseDollar(last),
-        });
-      }
+
+  // Find section bounds. Anchor end on "Total Cost", start on the
+  // "Materials" sublabel OR a line containing "Item ... Description"
+  // OR the "Qty Cost" header line. Fallback: start after the
+  // "Material Order #" line.
+  let startIdx = lines.findIndex(l => /^Materials?$/i.test(l.trim()));
+  if (startIdx < 0) {
+    startIdx = lines.findIndex(l =>
+      /\bItem\b/i.test(l) && /\bDescription\b/i.test(l)
+    );
+  }
+  if (startIdx < 0) {
+    startIdx = lines.findIndex(l => /^Qty\s+Cost\s*$/i.test(l.trim()));
+  }
+  if (startIdx < 0) {
+    startIdx = lines.findIndex(l => MATERIAL_ORDER_RE.test(l));
+  }
+  let endIdx = lines.findIndex((l, i) => i > startIdx && TOTAL_RE.test(l));
+  if (endIdx < 0) endIdx = lines.length;
+
+  if (startIdx >= 0 && endIdx > startIdx + 1) {
+    // Flatten the section, skip header-ish lines, then strip the inline
+    // "Item Description Unit of Measure" column header (it lives ON the
+    // same line as the first item after Drive's PDF -> Doc conversion).
+    const sectionText = lines
+      .slice(startIdx + 1, endIdx)
+      .filter(l => !/^(Item|Description|Unit of Measure|Materials?|Qty\s+Cost)\s*$/i.test(l.trim()))
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .replace(/^\s*Item\s+Description\s+Unit\s+of\s+Measure\s+/i, '')
+      .trim();
+
+    // Greedy scan with one strong anchor + one strong constraint:
+    //   - cost (3rd group) requires a decimal point — prevents matching
+    //     integer-looking "X Y Z" triples inside descriptions
+    //   - lookahead requires either the start of the next item (space + capital
+    //     letter, since each item name starts with one) or end of string —
+    //     this stops us from locking onto sub-patterns mid-line
+    // The unit token can be any short word-ish thing (digits allowed because
+    // JN sometimes emits a bare "1" as the unit slot).
+    const itemEndRe = /([\w.]{1,16})\s+([\d,]+(?:\.\d{1,2})?)\s+([\d,]+\.\d{1,2})(?=\s+[A-Z]|\s*$)/g;
+    let cursor = 0;
+    let match: RegExpExecArray | null;
+    while ((match = itemEndRe.exec(sectionText)) !== null) {
+      const [whole, unit, qtyStr, costStr] = match;
+      const matchStart = match.index;
+      const head = sectionText.slice(cursor, matchStart).trim();
+      cursor = matchStart + whole.length;
+      if (!head) continue;
+      // Caller does fuzzy catalog match on itemName — give it the whole
+      // pre-unit chunk; don't truncate at an arbitrary word boundary.
+      materials.push({
+        itemName: head,
+        description: '',
+        unit,
+        quantity: parseDollar(qtyStr),
+        unitCost: parseDollar(costStr),
+      });
     }
   }
 

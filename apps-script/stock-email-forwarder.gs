@@ -239,6 +239,33 @@ function resetAllLabels() {
   Logger.log('Labels deleted. Next run will re-process all material order threads.');
 }
 
+// Dump the raw extracted PDF text for the most recent RCRS Stock email so
+// we can see what the parser is actually receiving. Helps when the
+// materials table isn't parsing.
+function debugLatestPdfText() {
+  const testQuery = 'subject:' + Q + 'RCRS Stock' + Q + ' has:attachment newer_than:30d';
+  const threads = GmailApp.search(testQuery, 0, 1);
+  if (threads.length === 0) {
+    Logger.log('No RCRS Stock emails found.');
+    return;
+  }
+  const msg = threads[0].getMessages()[0];
+  Logger.log('Subject: ' + msg.getSubject());
+  const attachments = msg.getAttachments();
+  for (const att of attachments) {
+    if (att.getContentType() === 'application/pdf') {
+      Logger.log('--- PDF: ' + att.getName() + ' ---');
+      const text = extractPdfText(att);
+      Logger.log('CHAR COUNT: ' + text.length);
+      Logger.log('--- BEGIN ---');
+      Logger.log(text);
+      Logger.log('--- END ---');
+      return;
+    }
+  }
+  Logger.log('No PDF attachment found.');
+}
+
 function debugProperties() {
   const props = PropertiesService.getScriptProperties().getProperties();
   const keys = Object.keys(props);
