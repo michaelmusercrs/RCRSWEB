@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { put } from '@vercel/blob';
 import { requireAuth } from '@/lib/auth-service';
 
-// POST - Upload delivery photo for a pipeline stage
 export async function POST(req: NextRequest) {
   const auth = await requireAuth();
   if (!auth.authenticated) return auth.response;
@@ -17,7 +17,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields: photo, ticketId, stage' }, { status: 400 });
     }
 
-    // SECURITY: Validate file type
     const allowedPhotoTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic'];
     if (!allowedPhotoTypes.includes(photo.type)) {
       return NextResponse.json(
@@ -26,7 +25,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // SECURITY: Validate file size (max 15MB for delivery photos)
     const maxPhotoSize = 15 * 1024 * 1024;
     if (photo.size > maxPhotoSize) {
       return NextResponse.json(
@@ -35,31 +33,36 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // SECURITY: Sanitize ticketId and stage to prevent path traversal
     const safeTicketId = ticketId.replace(/[^a-zA-Z0-9_-]/g, '');
     const safeStage = stage.replace(/[^a-zA-Z0-9_-]/g, '');
+    const safeName = photo.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const path = `delivery-photos/${safeTicketId}/${safeStage}/${Date.now()}-${safeName}`;
 
-    // In production: upload to cloud storage (S3, GCS, etc.)
-    // For now, log the upload and return success
-    const metadata = {
-      ticketId,
-      stage,
-      filename: photo.name,
-      size: photo.size,
-      type: photo.type,
-      gpsLocation: gpsLocation || null,
-      uploadedAt: new Date().toISOString(),
-    };
+    const blob = await put(path, photo, {
+      access: 'public',
+      addRandomSuffix: false,
+      allowOverwrite: true,
+    });
+
     return NextResponse.json({
       success: true,
       photo: {
         id: `photo-${Date.now()}`,
-        ...metadata,
-        url: `/uploads/delivery/${safeTicketId}/${safeStage}/${photo.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`,
+        ticketId,
+        stage,
+        filename: photo.name,
+        size: photo.size,
+        type: photo.type,
+        gpsLocation: gpsLocation || null,
+        uploadedAt: new Date().toISOString(),
+        url: blob.url,
       },
     });
   } catch (error) {
     console.error('Photo upload error:', error);
-    return NextResponse.json({ error: 'Failed to upload photo' }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to upload photo' },
+      { status: 500 }
+    );
   }
 }

@@ -334,6 +334,28 @@ export async function POST(request: NextRequest) {
         const alreadyVerified = sheetTicket.status !== 'created';
         const verifiedAtIso = new Date().toISOString();
 
+        // Assemble a driver-report string from the loading-checklist
+        // submission. Persisted on the ticket and surfaced on the office
+        // invoice so flagged damage / returns / photos are visible.
+        const driverReportLines: string[] = [];
+        if (typeof data.notes === 'string' && data.notes.trim()) {
+          driverReportLines.push(`Driver: ${data.notes.trim()}`);
+        }
+        if (Array.isArray(data.damageReports) && data.damageReports.length > 0) {
+          driverReportLines.push(
+            `Damage flagged (${data.damageReports.length}): ${data.damageReports.join('; ')}`,
+          );
+        }
+        if (Array.isArray(data.returnItems) && data.returnItems.length > 0) {
+          driverReportLines.push(
+            `Returns flagged (${data.returnItems.length}): ${data.returnItems.join('; ')}`,
+          );
+        }
+        if (Array.isArray(data.photoUrls) && data.photoUrls.length > 0) {
+          driverReportLines.push(`Photos (${data.photoUrls.length}): ${data.photoUrls.join(' | ')}`);
+        }
+        const driverReport = driverReportLines.join('\n');
+
         // Always update Tickets-sheet status + best-effort write to Delivery
         // Tickets sheet (returns null for webhook tickets, that's fine).
         let dtTicket = null;
@@ -352,6 +374,18 @@ export async function POST(request: NextRequest) {
           console.warn('[verify-load] Failed to update Tickets tab status:', err);
         }
 
+        // Persist driver-report onto the ticket notes column.
+        if (driverReport) {
+          const merged = sheetTicket.notes
+            ? `${sheetTicket.notes}\n${driverReport}`
+            : driverReport;
+          try {
+            await ticketSheetService.patch(data.ticketId, { notes: merged });
+          } catch (err) {
+            console.warn('[verify-load] Failed to persist driver report:', err);
+          }
+        }
+
         // Run deduction + legacy mirror + office invoice exactly once per
         // ticket, regardless of which sheet the ticket originated in.
         let aftermath = null;
@@ -359,7 +393,7 @@ export async function POST(request: NextRequest) {
           try {
             const { runLoadVerifiedAftermath } = await import('@/lib/load-verified-aftermath');
             aftermath = await runLoadVerifiedAftermath({
-              ticket: sheetTicket,
+              ticket: { ...sheetTicket, notes: driverReport || sheetTicket.notes },
               verifiedAtIso,
               verifiedByName: data.verifiedBy || 'driver',
             });

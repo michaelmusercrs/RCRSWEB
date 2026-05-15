@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/lib/auth-context';
 import {
   ArrowLeft,
   Package,
@@ -84,12 +85,14 @@ interface PhotoUpload {
 // ============================================
 
 export default function LoadingChecklistPage() {
+  const { user } = useAuth();
   // API data state — starts empty, populated by fetchDeliveries() below
   const [allDeliveries, setAllDeliveries] = useState<DeliveryForToday[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   // Always false — mock fallback removed per no-fake-data rule
   const isUsingMockData = false;
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDeliveries();
@@ -250,18 +253,80 @@ export default function LoadingChecklistPage() {
 
   const handleSubmit = async () => {
     setSubmitting(true);
+    setSubmitError(null);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      if (!selectedDelivery?.ticketId) {
+        throw new Error('No ticket selected');
+      }
 
-    // In production, this would:
-    // 1. Upload photos to Vercel Blob
-    // 2. Update delivery ticket status to 'load_verified'
-    // 3. Log the checklist completion
-    // 4. Trigger IoT (green bay light)
+      // 1. Capture GPS (best effort — driver may have denied permission)
+      let gpsLocation: string | undefined;
+      if (typeof navigator !== 'undefined' && navigator.geolocation) {
+        try {
+          const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true,
+              timeout: 8000,
+              maximumAge: 60000,
+            });
+          });
+          gpsLocation = `${pos.coords.latitude},${pos.coords.longitude}`;
+        } catch (geoErr) {
+          console.warn('GPS unavailable for verify-load:', geoErr);
+        }
+      }
 
-    setSubmitting(false);
-    setSubmitted(true);
+      // 2. Upload photos to Vercel Blob via the delivery photos endpoint
+      const uploadedUrls: string[] = [];
+      for (const p of photos) {
+        const fd = new FormData();
+        fd.append('photo', p.file);
+        fd.append('ticketId', selectedDelivery.ticketId);
+        fd.append('stage', 'LOAD_VERIFIED');
+        if (gpsLocation) fd.append('gpsLocation', gpsLocation);
+
+        const upRes = await fetch('/api/portal/delivery/photos', {
+          method: 'POST',
+          body: fd,
+        });
+        const upJson = await upRes.json().catch(() => ({}));
+        if (!upRes.ok || !upJson.success) {
+          throw new Error(`Photo upload failed: ${upJson.error || upRes.status}`);
+        }
+        uploadedUrls.push(upJson.photo.url);
+      }
+
+      // 3. Call verify-load — runs the load-verified aftermath:
+      //    deducts inventory, sends price-only office invoice
+      const verifiedBy = user?.name || user?.email || 'driver';
+      const res = await fetch('/api/portal/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'verify-load',
+          ticketId: selectedDelivery.ticketId,
+          verifiedBy,
+          gpsLocation,
+          photoUrls: uploadedUrls,
+          notes: driverNotes || undefined,
+          damageReports: damageReports.length > 0 ? damageReports : undefined,
+          returnItems: returnItems.size > 0 ? Array.from(returnItems) : undefined,
+        }),
+      });
+
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || `Verify-load failed (${res.status})`);
+      }
+
+      setSubmitted(true);
+    } catch (err) {
+      console.error('Loading checklist submit failed:', err);
+      setSubmitError(err instanceof Error ? err.message : 'Submit failed');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleTicketChange = (ticketId: string) => {
@@ -740,6 +805,17 @@ export default function LoadingChecklistPage() {
             className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-600 focus:outline-none focus:border-[#39FF14]/50 focus:ring-1 focus:ring-[#39FF14]/30 text-sm resize-none"
           />
         </div>
+
+        {/* Submit error */}
+        {submitError && !submitted && (
+          <div className="flex items-start gap-3 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-xl">
+            <AlertOctagon className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-red-400">Verify-load failed</p>
+              <p className="text-xs text-red-400/80 mt-0.5">{submitError}</p>
+            </div>
+          </div>
+        )}
 
         {/* Submit Button */}
         {!submitted ? (

@@ -258,6 +258,20 @@ class TicketSheetService {
       },
     );
   }
+
+  /** Patch arbitrary columns on a ticket row. */
+  async patch(
+    ticketId: string,
+    patch: Partial<Record<(typeof TICKET_HEADERS)[number], string>>,
+  ): Promise<boolean> {
+    return googleSheetsService.updateGenericRow(
+      SHEET_NAMES.TICKETS,
+      TICKET_HEADERS,
+      'ticketId',
+      ticketId,
+      patch as Record<string, string>,
+    );
+  }
 }
 
 export const ticketSheetService = new TicketSheetService();
