@@ -1,0 +1,166 @@
+{
+  "quizId": "operations",
+  "title": "Michael's Role: Operations & Leadership",
+  "description": "How well do you understand how RCRS actually runs? Test your knowledge of business operations, metrics, team management, and CRM workflows.",
+  "icon": "BarChart3",
+  "passingScore": 75,
+  "timeLimit": null,
+  "questions": [
+    {
+      "id": "op-1",
+      "question": "What CRM does RCRS use to manage leads, jobs, and the sales pipeline?",
+      "options": [
+        "Salesforce",
+        "HubSpot",
+        "JobNimbus",
+        "AccuLynx"
+      ],
+      "correct": 2,
+      "explanation": "JobNimbus is our CRM. Everything flows through it — leads, inspections, contingencies, approvals, closed jobs. If it's not in JobNimbus, it didn't happen.",
+      "category": "CRM"
+    },
+    {
+      "id": "op-2",
+      "question": "What's the correct JobNimbus pipeline order for a typical insurance restoration job?",
+      "options": [
+        "Lead → Closed → Inspection → Approved",
+        "Lead → Inspection → Contingency → Approved → Closed",
+        "Inspection → Lead → Contingency → Closed",
+        "Contingency → Inspection → Approved → Lead"
+      ],
+      "correct": 1,
+      "explanation": "The pipeline flows: Lead → Inspection → Contingency → Approved → Closed. Each stage has specific actions and documentation requirements. Skipping stages means lost data and messy tracking.",
+      "category": "CRM"
+    },
+    {
+      "id": "op-3",
+      "question": "How often are team sales meetings held?",
+      "options": [
+        "Daily",
+        "Weekly",
+        "Bi-weekly",
+        "Monthly"
+      ],
+      "correct": 1,
+      "explanation": "Weekly sales meetings. This is where the team shares strategies, reviews numbers, discusses challenges, and stays aligned. Attendance isn't optional — it's how top teams stay top teams.",
+      "category": "Team Management"
+    },
+    {
+      "id": "op-4",
+      "question": "What was RCRS's total team revenue in 2024?",
+      "options": [
+        "$1,750,000",
+        "$2,500,000",
+        "$3,631,862",
+        "$5,000,000"
+      ],
+      "correct": 2,
+      "explanation": "$3,631,861.60 across 1,778 inspections. The top 3 reps alone generated $1.75 million (48.2% of total). Knowing the numbers helps you understand the business and set realistic goals.",
+      "category": "Metrics"
+    },
+    {
+      "id": "op-5",
+      "question": "How are sales rep commissions classified for tax purposes?",
+      "options": [
+        "W-2 wages",
+        "1099-NEC (Non-Employee Compensation)",
+        "1099-MISC",
+        "K-1 distributions"
+      ],
+      "correct": 1,
+      "explanation": "All sales reps are 1099 independent contractors, and payments are classified as 1099-NEC. This means reps handle their own taxes, but their earning potential is uncapped.",
+      "category": "Operations"
+    },
+    {
+      "id": "op-6",
+      "question": "How often are commissions paid out?",
+      "options": [
+        "Monthly",
+        "Bi-weekly",
+        "Weekly",
+        "Per job as it closes"
+      ],
+      "correct": 2,
+      "explanation": "Weekly payouts based on week-ending dates. Commissions are triggered when jobs are paid and closed in the system. The portal and JobNimbus both track commission status.",
+      "category": "Operations"
+    },
+    {
+      "id": "op-7",
+      "question": "What does a Division Leader earn in addition to standard commission?",
+      "options": [
+        "Nothing extra — it's just a title",
+        "A monthly bonus payment",
+        "Double commission on all deals",
+        "A company vehicle"
+      ],
+      "correct": 1,
+      "explanation": "Division Leaders receive a monthly bonus payment on top of standard commission. It's an additional leadership role for senior reps who mentor the team and drive results in their territory.",
+      "category": "Team Management"
+    },
+    {
+      "id": "op-8",
+      "question": "What tool does RCRS use for aerial roof measurements?",
+      "options": [
+        "Google Earth",
+        "EagleView",
+        "A tape measure from the ground",
+        "Drone footage only"
+      ],
+      "correct": 1,
+      "explanation": "EagleView provides accurate aerial measurements for estimating. It's used for getting roof dimensions, creating estimates, verifying insurance company measurements, and planning material orders.",
+      "category": "Tools"
+    },
+    {
+      "id": "op-9",
+      "question": "Which lead source had the HIGHEST conversion rate in 2024?",
+      "options": [
+        "Google (23.3%)",
+        "Door Knock (33.3%)",
+        "Previous Customer (75.0%)",
+        "Referral (32.4%)"
+      ],
+      "correct": 2,
+      "explanation": "Previous customers converted at 75%! They already trust you. This is why customer follow-up and post-job communication matter so much. Never forget a past client.",
+      "category": "Metrics"
+    },
+    {
+      "id": "op-10",
+      "question": "The referral ecosystem (Referral + Personal + BNI + Insurance Agent + Realtor) generated how much in 2024?",
+      "options": [
+        "$500,000",
+        "$1,000,000",
+        "$1,600,000+",
+        "$2,500,000"
+      ],
+      "correct": 2,
+      "explanation": "Over $1.6 million came from the referral ecosystem. This is why RCRS pushes relationship-building so hard. Every closed deal should generate at least one referral ask.",
+      "category": "Metrics"
+    },
+    {
+      "id": "op-11",
+      "question": "What's the RCRS portal used for? (Select the BEST answer)",
+      "options": [
+        "Only commission tracking",
+        "Commission tracking, training, storm reports, roof measurements, team performance, scheduling",
+        "Just scheduling deliveries",
+        "Social media management"
+      ],
+      "correct": 1,
+      "explanation": "The portal (RoofStack) is the central hub — commissions, training modules, storm reports/hail maps, roof measurements, team performance dashboards, and scheduling. It's not just a payroll tool.",
+      "category": "Tools"
+    },
+    {
+      "id": "op-12",
+      "question": "What separates the top 3 reps' revenue from each other in 2024?",
+      "options": [
+        "Less than $8,000",
+        "About $50,000",
+        "Over $100,000",
+        "They were tied"
+      ],
+      "correct": 0,
+      "explanation": "Less than $8,000 separated the top 3 reps ($587K, $584K, $580K). The difference between #1 and #3 was razor thin. Consistency and one or two extra deals can mean the difference between first and third.",
+      "category": "Metrics"
+    }
+  ]
+}

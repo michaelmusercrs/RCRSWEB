@@ -1,0 +1,205 @@
+{
+  "quizId": "sales-rep",
+  "title": "Sales Rep Knowledge Check",
+  "description": "Think you know the RCRS sales game? Prove it. This quiz covers insurance restoration, objection handling, products, estimates, financing, and inspections.",
+  "icon": "Target",
+  "passingScore": 80,
+  "timeLimit": null,
+  "questions": [
+    {
+      "id": "sr-1",
+      "question": "A homeowner says \"I already had someone look at my roof and they said it was fine.\" What's your best response?",
+      "options": [
+        "\"Okay, have a great day!\"",
+        "\"They were probably wrong — let me prove it.\"",
+        "\"That's actually common. Let me take a fresh look — things change with each storm, and a second opinion never hurts.\"",
+        "\"Who was the company? They're terrible.\""
+      ],
+      "correct": 2,
+      "explanation": "Never trash-talk other contractors or give up immediately. The 'fresh look' approach acknowledges their experience while positioning you as helpful, not pushy. Every storm is different, and damage can be missed.",
+      "category": "Objection Handling"
+    },
+    {
+      "id": "sr-2",
+      "question": "You're at the door. What's the FIRST qualifying question you ask?",
+      "options": [
+        "\"Who is your insurance company?\"",
+        "\"How long have you owned the home?\"",
+        "\"Have you noticed any leaks?\"",
+        "\"When was your roof last replaced?\""
+      ],
+      "correct": 1,
+      "explanation": "\"How long have you owned the home?\" is the opener. It screens renters from owners — renters can't file insurance claims, so this saves everyone's time. Never lead with insurance questions; that puts people on guard.",
+      "category": "Sales Process"
+    },
+    {
+      "id": "sr-3",
+      "question": "Which IKO shingle does RCRS install MOST often?",
+      "options": [
+        "Marathon Plus AR",
+        "Cambridge",
+        "Dynasty",
+        "Nordic"
+      ],
+      "correct": 2,
+      "explanation": "Dynasty is our bread and butter. 130 mph wind warranty, Class 3 impact resistance, ArmourZone reinforced nailing area. It's the sweet spot between performance and value — perfect for insurance restoration.",
+      "category": "Product Knowledge"
+    },
+    {
+      "id": "sr-4",
+      "question": "What makes RCRS's warranty different from most roofing contractors?",
+      "options": [
+        "We offer a lifetime warranty on everything",
+        "We're Craftsman Premier — the highest IKO tier — so we offer the 25-year Iron Clad Protection warranty",
+        "We match any competitor's warranty",
+        "IKO gives every contractor the same warranty"
+      ],
+      "correct": 1,
+      "explanation": "RCRS is a Craftsman Premier contractor (requires 5,000+ squares/year, 70%+ IKO products). This unlocks the Iron Clad Protection warranty: 25 years, non-prorated, covering BOTH materials AND labor. Most contractors are stuck at the basic tier.",
+      "category": "Product Knowledge"
+    },
+    {
+      "id": "sr-5",
+      "question": "What's the impact resistance class of IKO Nordic shingles?",
+      "options": [
+        "Class 1",
+        "Class 2",
+        "Class 3",
+        "Class 4"
+      ],
+      "correct": 3,
+      "explanation": "Nordic is Class 4 — the highest impact resistance rating available. This is your premium upsell. Bonus: some insurance companies offer premium discounts for Class 4 shingles, which practically sells itself.",
+      "category": "Product Knowledge"
+    },
+    {
+      "id": "sr-6",
+      "question": "When do you ask \"Who is your insurance company?\"",
+      "options": [
+        "First thing at the door — you need to know right away",
+        "During the folder presentation",
+        "As you turn to walk to your truck — the casual 'Oh By The Way'",
+        "After you come down from the roof"
+      ],
+      "correct": 2,
+      "explanation": "The 'Oh By The Way' technique. You ask casually while turning to get your ladder. It feels natural and conversational, not interrogative. If you lead with insurance questions, homeowners get defensive.",
+      "category": "Sales Process"
+    },
+    {
+      "id": "sr-7",
+      "question": "In the Good/Better/Best estimate structure, what's the \"Good\" option?",
+      "options": [
+        "Dynasty shingles with full upgrades",
+        "Nordic shingles with premium everything",
+        "Marathon Plus AR (3-tab) — basic, affordable",
+        "Cambridge with standard accessories"
+      ],
+      "correct": 2,
+      "explanation": "Marathon Plus AR is the 'Good' (budget) option — a basic 3-tab shingle for budget-conscious homeowners or rental properties. Cambridge is 'Better,' Dynasty is 'Best.' Always present all three so the homeowner feels in control.",
+      "category": "Estimates"
+    },
+    {
+      "id": "sr-8",
+      "question": "What financing partner does RCRS use?",
+      "options": [
+        "GreenSky",
+        "Sunlight Financial",
+        "Mosaic",
+        "We don't offer financing"
+      ],
+      "correct": 1,
+      "explanation": "Sunlight Financial is our financing partner. Always mention financing as an option — it removes the 'I can't afford it' objection. Even homeowners filing insurance claims sometimes need financing for upgrades or deductibles.",
+      "category": "Financing"
+    },
+    {
+      "id": "sr-9",
+      "question": "What should you do with JobNimbus IMMEDIATELY after a roof inspection?",
+      "options": [
+        "Wait until you get home to enter everything",
+        "Have the office do it at the weekly meeting",
+        "Create the job and upload photos while still on-site",
+        "Write it on paper and enter it later that week"
+      ],
+      "correct": 2,
+      "explanation": "Create the job in JobNimbus while you're still on the roof or at the homeowner's kitchen table. Upload photos and notes immediately. If you wait, details get fuzzy, photos get lost, and leads slip through the cracks.",
+      "category": "CRM & Process"
+    },
+    {
+      "id": "sr-10",
+      "question": "A homeowner says \"Insurance will just deny it anyway.\" Your move?",
+      "options": [
+        "\"Yeah, they probably will. Sorry.\"",
+        "\"Not with us — we ALWAYS get claims approved.\"",
+        "\"I completely understand that concern. Here's the thing — we document everything with photos, and we've been through this process thousands of times. Even if there's a chance of denial, the inspection is free, and you'll know exactly where you stand.\"",
+        "\"Just sign the contingency and we'll handle everything.\""
+      ],
+      "correct": 2,
+      "explanation": "Acknowledge the concern, don't over-promise. Never guarantee approval — that's illegal and unethical. Instead, emphasize your documentation process, experience, and that the inspection is free. Remove the risk for the homeowner.",
+      "category": "Objection Handling"
+    },
+    {
+      "id": "sr-11",
+      "question": "What's the RCRS approach when you inspect a roof and find NO legitimate damage?",
+      "options": [
+        "Find something to claim anyway — every roof has damage",
+        "Document it honestly, tell the homeowner there's no claimable damage, and leave your card",
+        "Don't tell them and just move on to the next house",
+        "File the claim anyway and see what happens"
+      ],
+      "correct": 1,
+      "explanation": "Integrity first. RCRS documents honestly — including when there IS no damage. This builds trust and reputation. That homeowner will remember you when they DO have damage, or refer you to neighbors. Fabricating damage is fraud.",
+      "category": "Ethics & Values"
+    },
+    {
+      "id": "sr-12",
+      "question": "What lead source has the HIGHEST average deal size based on RCRS 2024 data?",
+      "options": [
+        "Google leads",
+        "Door knocking",
+        "BNI/Networking",
+        "Referrals"
+      ],
+      "correct": 2,
+      "explanation": "BNI/Networking leads averaged $23,288 per deal in 2024 — the highest of any source. Door knocking was second at $20,363. Build your professional network; the payoff is massive.",
+      "category": "Lead Sources"
+    },
+    {
+      "id": "sr-13",
+      "question": "What's the minimum weekly goal for signed contingencies?",
+      "options": [
+        "1 per week",
+        "2 per week",
+        "3 per week",
+        "5 per week"
+      ],
+      "correct": 2,
+      "explanation": "3 contingencies signed per week is the baseline. Top performers blow past this regularly, but 3 is the minimum to stay on track. Combined with 3-4 complete processes per day, this keeps your pipeline healthy.",
+      "category": "Goals & Metrics"
+    },
+    {
+      "id": "sr-14",
+      "question": "What is LeafX?",
+      "options": [
+        "A type of IKO shingle",
+        "A gutter guard system RCRS installs",
+        "A roofing adhesive",
+        "A leaf blower rental service"
+      ],
+      "correct": 1,
+      "explanation": "LeafX is a gutter guard system. It's an excellent add-on sale during any roofing job — while you're already up there, pitch gutter protection. It increases your deal size and provides real value to the homeowner.",
+      "category": "Product Knowledge"
+    },
+    {
+      "id": "sr-15",
+      "question": "What's the team-wide inspection-to-repair conversion rate from 2024?",
+      "options": [
+        "25.0%",
+        "33.3%",
+        "39.7%",
+        "53.5%"
+      ],
+      "correct": 2,
+      "explanation": "The team converted 39.7% of inspections to signed repairs (705 out of 1,778). Top individual performers hit 53.5%. Know your numbers — track your personal conversion rate and work to beat the team average.",
+      "category": "Goals & Metrics"
+    }
+  ]
+}

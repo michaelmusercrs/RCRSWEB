@@ -1,0 +1,205 @@
+{
+  "quizId": "company",
+  "title": "RCRS Company Knowledge",
+  "description": "Every team member should know this stuff cold. Company values, service areas, safety, and what makes River City Roofing tick.",
+  "icon": "Building2",
+  "passingScore": 80,
+  "timeLimit": null,
+  "questions": [
+    {
+      "id": "co-1",
+      "question": "Where is RCRS headquartered?",
+      "options": [
+        "Huntsville, AL",
+        "Decatur, AL",
+        "Birmingham, AL",
+        "Nashville, TN"
+      ],
+      "correct": 1,
+      "explanation": "3325 Central Pkwy SW, Decatur, AL 35603. Decatur is home base. We're expanding, but Decatur is where it all started and where the heart of the company lives.",
+      "category": "Company Basics"
+    },
+    {
+      "id": "co-2",
+      "question": "What are RCRS's current primary service areas?",
+      "options": [
+        "Just Decatur",
+        "North Alabama — Huntsville, Madison, Decatur, Athens, Owens Crossroads",
+        "All of Alabama and Tennessee",
+        "Southeast United States"
+      ],
+      "correct": 1,
+      "explanation": "Our core market is North Alabama — Huntsville, Madison, Decatur, Athens, and Owens Crossroads. We're expanding into Birmingham and Nashville, but North Alabama is the foundation.",
+      "category": "Service Areas"
+    },
+    {
+      "id": "co-3",
+      "question": "Which cities is RCRS expanding into?",
+      "options": [
+        "Atlanta and Memphis",
+        "Birmingham and Nashville",
+        "Mobile and Pensacola",
+        "Chattanooga and Knoxville"
+      ],
+      "correct": 1,
+      "explanation": "Birmingham and Nashville are the expansion targets. Birmingham extends our Alabama footprint, and Nashville opens the Tennessee market. Future markets are on the horizon too.",
+      "category": "Service Areas"
+    },
+    {
+      "id": "co-4",
+      "question": "What's the company's BBB rating?",
+      "options": [
+        "B+",
+        "A",
+        "A+",
+        "Not BBB rated"
+      ],
+      "correct": 2,
+      "explanation": "A+ BBB rating. We're also Decatur Daily's 'Best of the Best.' These aren't just badges — they're trust signals that close deals. Always mention them in your pitch.",
+      "category": "Company Basics"
+    },
+    {
+      "id": "co-5",
+      "question": "How many combined years of experience do RCRS's owners have?",
+      "options": [
+        "10 years",
+        "20 years",
+        "30-40+ years",
+        "50+ years"
+      ],
+      "correct": 2,
+      "explanation": "The owners bring 30-40+ combined years of roofing experience. This isn't a startup figuring things out — it's a company built on decades of hands-on knowledge.",
+      "category": "Company Basics"
+    },
+    {
+      "id": "co-6",
+      "question": "RCRS is what kind of company?",
+      "options": [
+        "Publicly traded corporation",
+        "Private equity-backed franchise",
+        "Family-owned business",
+        "Non-profit cooperative"
+      ],
+      "correct": 2,
+      "explanation": "Family-owned. This matters because it shapes the culture — we treat customers like neighbors, not account numbers. It also means decisions are made by people who care, not a corporate board.",
+      "category": "Company Values"
+    },
+    {
+      "id": "co-7",
+      "question": "What does \"integrity first\" mean at RCRS in practice?",
+      "options": [
+        "Always find damage on every roof, no matter what",
+        "Document honestly — including when there IS no damage",
+        "Only work with customers who have good insurance",
+        "Never give free inspections"
+      ],
+      "correct": 1,
+      "explanation": "Integrity means documenting the truth. If there's no damage, we say so. We don't fabricate claims. This builds trust, generates referrals, and keeps us on the right side of the law. Short-term honesty = long-term revenue.",
+      "category": "Company Values"
+    },
+    {
+      "id": "co-8",
+      "question": "What does \"underpromise, overdeliver\" look like in RCRS's sales process?",
+      "options": [
+        "Tell homeowners their claim will definitely be approved",
+        "Always prep the homeowner for a potential denial",
+        "Promise the fastest turnaround in the industry",
+        "Guarantee the lowest price"
+      ],
+      "correct": 1,
+      "explanation": "Always prepare homeowners for the possibility of denial. That way, if the claim IS approved, they're thrilled. If it's denied, they're not blindsided. Managing expectations builds trust and reduces complaints.",
+      "category": "Company Values"
+    },
+    {
+      "id": "co-9",
+      "question": "What are RCRS's operating hours?",
+      "options": [
+        "8 AM - 5 PM, Monday to Friday",
+        "7 AM - 7 PM, Monday to Saturday",
+        "Open 24/7",
+        "9 AM - 6 PM, Monday to Friday"
+      ],
+      "correct": 2,
+      "explanation": "RCRS is open 24/7. Storm damage doesn't wait for business hours, and neither do we. Emergency tarping, urgent inspections, or just answering a homeowner's late-night question — we're available.",
+      "category": "Company Basics"
+    },
+    {
+      "id": "co-10",
+      "question": "Before getting on any roof, what's the FIRST safety consideration?",
+      "options": [
+        "Check if the homeowner has coffee ready",
+        "Assess the roof pitch, surface conditions, and ensure your ladder is properly secured",
+        "Make sure you have good cell signal for photos",
+        "Check that JobNimbus is loaded"
+      ],
+      "correct": 1,
+      "explanation": "Safety first, always. Assess the pitch (is it walkable?), check for wet/icy surfaces, and make sure your ladder is on stable, level ground with proper angle. No deal is worth a fall. Use cougar balls on steep roofs.",
+      "category": "Safety"
+    },
+    {
+      "id": "co-11",
+      "question": "What should you ALWAYS have when working on a roof?",
+      "options": [
+        "Just your phone — that's all you need",
+        "Proper footwear, ladder secured, cougar balls for steep pitches, and someone who knows you're up there",
+        "A hard hat and safety harness every single time",
+        "Nothing special — roofs are safe"
+      ],
+      "correct": 1,
+      "explanation": "Proper footwear with grip, a secured ladder at the right angle, cougar balls for steep roofs, and always let someone know you're going up. Falls are the #1 cause of roofing injuries. Don't be a statistic.",
+      "category": "Safety"
+    },
+    {
+      "id": "co-12",
+      "question": "What's RCRS's phone number?",
+      "options": [
+        "(256) 274-5830",
+        "(256) 274-8530",
+        "(256) 274-3058",
+        "(205) 274-8530"
+      ],
+      "correct": 1,
+      "explanation": "(256) 274-8530. Know it by heart. But remember — tell homeowners to call YOU directly, not the office. That personal connection is what builds relationships and repeat business.",
+      "category": "Company Basics"
+    },
+    {
+      "id": "co-13",
+      "question": "Why does it matter that IKO is also a family-owned company?",
+      "options": [
+        "It doesn't matter at all",
+        "Shared values — family-owned companies understand quality, relationships, and long-term thinking",
+        "They give us cheaper shingles",
+        "They're required to sponsor us"
+      ],
+      "correct": 1,
+      "explanation": "Shared values. RCRS and IKO are both family-owned, which means both companies prioritize quality, relationships, and doing right by customers over quarterly earnings reports. It's a genuine alignment that homeowners appreciate.",
+      "category": "Company Values"
+    },
+    {
+      "id": "co-14",
+      "question": "What services does RCRS offer beyond roofing?",
+      "options": [
+        "Only roofing — nothing else",
+        "Roofing, gutter guards (LeafX), and related exterior services",
+        "Roofing and interior remodeling",
+        "Roofing, plumbing, and HVAC"
+      ],
+      "correct": 1,
+      "explanation": "We're not just roofers. LeafX gutter guards are a strong add-on service, and we handle related exterior work. Diversification increases deal sizes and gives customers more reasons to choose us.",
+      "category": "Services"
+    },
+    {
+      "id": "co-15",
+      "question": "What's the best way to describe RCRS's culture in one phrase?",
+      "options": [
+        "Corporate and professional",
+        "Every man for himself",
+        "Team-driven hustle with integrity",
+        "Slow and steady wins the race"
+      ],
+      "correct": 2,
+      "explanation": "Team-driven hustle with integrity. Weekly meetings, shared strategies, referral cooperation, AND honest documentation. We hustle hard but we do it right. Top performers earn six figures because they embody both.",
+      "category": "Company Values"
+    }
+  ]
+}

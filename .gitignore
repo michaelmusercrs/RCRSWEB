@@ -41,6 +41,7 @@ data/roof-calibration.json
 !tailwind.config.json
 !vercel.json
 !data/*.json
+!data/**/*.json
 gen-lang-client-*.json
 *-service-account*.json
 *credentials*.json
