@@ -387,6 +387,25 @@ export function getClientIP(request: Request): string {
 export async function requireAuth(): Promise<
   { authenticated: true; user: AuthUser } | { authenticated: false; response: Response }
 > {
+  // Dev-only auth bypass. Triple-gated so this can never activate in
+  // production: NODE_ENV must NOT be 'production' AND the explicit env
+  // flag must be set AND we must not be on a Vercel deployment.
+  if (
+    process.env.NODE_ENV !== 'production' &&
+    process.env.DEV_AUTH_BYPASS === '1' &&
+    !process.env.VERCEL
+  ) {
+    return {
+      authenticated: true,
+      user: {
+        userId: 'dev-bypass',
+        email: 'dev@local',
+        name: 'Dev Bypass',
+        role: 'admin',
+      } as AuthUser,
+    };
+  }
+
   const session = await validateSession();
   if (!session.valid || !session.user) {
     const { NextResponse } = await import('next/server');

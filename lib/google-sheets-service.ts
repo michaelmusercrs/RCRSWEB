@@ -410,6 +410,23 @@ class GoogleSheetsService {
   private lastInitAttempt = 0;
   private initCooldown = 5000; // 5 seconds between init attempts
 
+  // Per-tab write queue. Serializes upserts to the same tab so two
+  // concurrent webhook calls can't both "find no existing row" and both
+  // addRow → duplicate. Within a single container only — multi-container
+  // races still possible but rare and the dedupe sweep below covers them.
+  private writeQueue: Map<string, Promise<unknown>> = new Map();
+
+  private serializeTabWrite<T>(tabName: string, op: () => Promise<T>): Promise<T> {
+    const prev = this.writeQueue.get(tabName) || Promise.resolve();
+    const next = prev.catch(() => undefined).then(op);
+    this.writeQueue.set(tabName, next);
+    // Clean up when this op settles so the map doesn't grow unbounded
+    next.finally(() => {
+      if (this.writeQueue.get(tabName) === next) this.writeQueue.delete(tabName);
+    });
+    return next;
+  }
+
   /**
    * Initialize connection to Google Sheets
    */
@@ -3506,34 +3523,49 @@ class GoogleSheetsService {
     idField: string,
     data: Record<string, unknown>,
   ): Promise<boolean> {
-    const ready = await this.init();
-    if (!ready || !this.doc) return false;
+    // Serialize per-tab so concurrent calls can't race past each other's
+    // existence check and create duplicates. After write, sweep for any
+    // duplicate rows by idField (covers cross-container races).
+    return this.serializeTabWrite(tabName, async () => {
+      const ready = await this.init();
+      if (!ready || !this.doc) return false;
 
-    try {
-      const sheet = await this.getOrCreateSheet(tabName, headers);
-      const rows = await sheet.getRows();
-      const idValue = String(data[idField] ?? '');
-      if (!idValue) {
-        console.warn(`upsertGenericRow("${tabName}"): missing ${idField}`);
+      try {
+        const sheet = await this.getOrCreateSheet(tabName, headers);
+        const rows = await sheet.getRows();
+        const idValue = String(data[idField] ?? '');
+        if (!idValue) {
+          console.warn(`upsertGenericRow("${tabName}"): missing ${idField}`);
+          return false;
+        }
+        const matches = rows.filter(r => String(r.get(idField) || '') === idValue);
+
+        if (matches.length > 0) {
+          // Update the first match
+          const existing = matches[0];
+          for (const h of headers) {
+            if (h in data) {
+              existing.set(h, this.toCellValue(data[h]));
+            }
+          }
+          await existing.save();
+          // Delete extras (cross-container race cleanup)
+          for (let i = 1; i < matches.length; i++) {
+            try {
+              await matches[i].delete();
+            } catch (err) {
+              console.warn(`upsertGenericRow("${tabName}"): failed to dedupe row for ${idField}=${idValue}:`, err);
+            }
+          }
+        } else {
+          await sheet.addRow(this.toRow(headers, data));
+        }
+        return true;
+      } catch (error) {
+        console.error(`Error upserting row in "${tabName}":`, error);
         return false;
       }
-      const existing = rows.find((r) => String(r.get(idField) || '') === idValue);
-
-      if (existing) {
-        for (const h of headers) {
-          if (h in data) {
-            existing.set(h, this.toCellValue(data[h]));
-          }
-        }
-        await existing.save();
-      } else {
-        await sheet.addRow(this.toRow(headers, data));
-      }
-      return true;
-    } catch (error) {
-      console.error(`Error upserting row in "${tabName}":`, error);
-      return false;
-    }
+    });
   }
 
   /**

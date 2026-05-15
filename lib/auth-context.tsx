@@ -184,6 +184,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Load user from session on mount — check persistent session first
   useEffect(() => {
+    // DEV-ONLY bypass. Triple-gated: NEXT_PUBLIC_DEV_AUTH_BYPASS must be
+    // explicitly set AND NODE_ENV !== production AND we're not on Vercel.
+    // Populates a synthetic admin user so the portal renders without login.
+    if (
+      process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === '1' &&
+      process.env.NODE_ENV !== 'production' &&
+      typeof window !== 'undefined' &&
+      !window.location.hostname.endsWith('.vercel.app') &&
+      window.location.hostname !== 'rcrsal.com' &&
+      window.location.hostname !== 'rivercityroofingsolutions.com'
+    ) {
+      setUser({
+        userId: 'dev-bypass',
+        name: 'Dev Bypass',
+        email: 'dev@local',
+        role: 'admin',
+        permissions: [],
+        mustChangePassword: false,
+        loginSetupComplete: true,
+      } as AuthUser);
+      setIsLoading(false);
+      return;
+    }
+
     const loadSession = async () => {
       try {
         // Check persistent (stay-signed-in) session first, then regular session

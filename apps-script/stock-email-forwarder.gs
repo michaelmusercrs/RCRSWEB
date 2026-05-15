@@ -24,9 +24,11 @@ const Q = String.fromCharCode(34);
 // Subjects look like "R10997 RCRS Stock - Greg is salesman..." or
 // "R10923 RCRS stock Corrected - ...". Match the RCRS Stock phrase and
 // require a Material Order PDF attachment (has:attachment) so test/junk
-// threads don't get picked up.
+// threads don't get picked up. No time window — idempotency comes from
+// the label exclusion alone, so the initial run picks up the historical
+// backlog and subsequent runs only see new arrivals.
 const SEARCH_QUERY = 'subject:' + Q + 'RCRS Stock' + Q + ' has:attachment -label:RCRS-Forwarded -label:RCRS-Error';
-const MAX_THREADS_PER_RUN = 10;
+const MAX_THREADS_PER_RUN = 25;
 
 function forwardNewMaterialOrders() {
   const props = PropertiesService.getScriptProperties();
@@ -141,12 +143,11 @@ function getOrCreateLabel(name) {
   return label;
 }
 
-// Extract text from a PDF blob by uploading it to Drive as a Google Doc
-// (which auto-converts text-searchable PDFs to selectable text), reading
-// the doc, then trashing the temp Doc. Requires the Drive advanced
-// service to be enabled (Services + -> Drive API -> Add). Uses Drive v3
-// — Drive.Files.create with target mimeType = google-apps.document
-// triggers PDF -> Doc conversion server-side.
+// Extract text from a PDF by uploading to Drive as a Google Doc, walking
+// the body in document order, and serializing TABLE cells with tab
+// separators so the parser can see the materials table as
+// "<item> <unit> <qty> <cost>" rows. Plain getText() flattens columns
+// and the parser can't recover the layout from that.
 function extractPdfText(pdfAttachment) {
   const blob = pdfAttachment.copyBlob();
   const file = Drive.Files.create(
@@ -155,11 +156,45 @@ function extractPdfText(pdfAttachment) {
   );
   let text = '';
   try {
-    text = DocumentApp.openById(file.id).getBody().getText();
+    text = serializeDocBody(DocumentApp.openById(file.id).getBody());
   } finally {
     DriveApp.getFileById(file.id).setTrashed(true);
   }
   return text;
+}
+
+// Walk body elements in order. Paragraphs become single lines; tables
+// become one row per line with cell text joined by 2 spaces (matches the
+// parser's split-on-double-space heuristic).
+function serializeDocBody(body) {
+  const lines = [];
+  const n = body.getNumChildren();
+  for (let i = 0; i < n; i++) {
+    const child = body.getChild(i);
+    const type = child.getType();
+    if (type === DocumentApp.ElementType.PARAGRAPH) {
+      const t = child.asParagraph().getText();
+      if (t && t.trim()) lines.push(t);
+    } else if (type === DocumentApp.ElementType.TABLE) {
+      const tbl = child.asTable();
+      const rows = tbl.getNumRows();
+      for (let r = 0; r < rows; r++) {
+        const row = tbl.getRow(r);
+        const cells = [];
+        const numCells = row.getNumCells();
+        for (let c = 0; c < numCells; c++) {
+          cells.push(row.getCell(c).getText().trim());
+        }
+        // Join with 2+ spaces so split(/\s{2,}|\t/) sees them as separate
+        // columns. Also include a tab between key columns to be safe.
+        lines.push(cells.join('\t'));
+      }
+    } else if (type === DocumentApp.ElementType.LIST_ITEM) {
+      const t = child.asListItem().getText();
+      if (t && t.trim()) lines.push(t);
+    }
+  }
+  return lines.join('\n');
 }
 
 function testWebhookOnLatestMaterialOrder() {
@@ -177,6 +212,23 @@ function testWebhookOnLatestMaterialOrder() {
   Logger.log('Testing with: ' + msg.getSubject());
   const result = forwardMessage(msg, webhookUrl, webhookSecret);
   Logger.log('Result: ' + JSON.stringify(result));
+}
+
+// Remove only the RCRS-Error label so the next forwardNewMaterialOrders
+// run retries previously-errored threads (without re-processing the
+// successful ones that have RCRS-Forwarded).
+function retryErroredThreads() {
+  const errorLabel = GmailApp.getUserLabelByName(ERROR_LABEL_NAME);
+  if (!errorLabel) {
+    Logger.log('No RCRS-Error label exists — nothing to retry.');
+    return;
+  }
+  const threads = errorLabel.getThreads(0, 100);
+  Logger.log('Clearing RCRS-Error from ' + threads.length + ' threads');
+  for (const thread of threads) {
+    thread.removeLabel(errorLabel);
+  }
+  Logger.log('Done. Re-run forwardNewMaterialOrders to retry them.');
 }
 
 function resetAllLabels() {
