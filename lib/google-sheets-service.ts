@@ -19,13 +19,21 @@ import { JWT } from 'google-auth-library';
 // CONFIGURATION
 // =============================================================================
 
-// Handle private key - works with both escaped \n and actual newlines
+// Handle private key - works with both escaped \n and actual newlines.
+// Also strip leading/trailing whitespace so a stray newline pasted into
+// the Vercel dashboard can't corrupt the PEM block.
 const privateKey = process.env.GOOGLE_PRIVATE_KEY
   ?.replace(/\\n/g, '\n')
-  ?.replace(/\r\n/g, '\n');
+  ?.replace(/\r\n/g, '\n')
+  ?.trim();
+
+// Trim the SA email too — `\r\n` here corrupts the JWT iss claim and
+// makes every auth fail with no useful error message (Google just
+// rejects the token).
+const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL?.trim();
 
 const serviceAccountAuth = new JWT({
-  email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+  email: serviceAccountEmail,
   key: privateKey,
   scopes: ['https://www.googleapis.com/auth/spreadsheets'],
 });
