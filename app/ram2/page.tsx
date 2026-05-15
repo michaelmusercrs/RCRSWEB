@@ -392,7 +392,53 @@ export default function RamDiagnosticFlowchart() {
         </div>
       </header>
 
-      <section className="findings">
+      <section className="tools">
+        <h2>All diagnostic tools & data</h2>
+        <div className="tools-grid">
+          <a className="tool primary" href="#wizard-anchor" onClick={() => setViewMode('wizard')}>
+            <div className="t-icon">🧭</div>
+            <div className="t-title">Interactive Wizard</div>
+            <div className="t-desc">Step-by-step decision tree (you are here). Click answers, get the next test.</div>
+          </a>
+          <a className="tool primary" href="/ram2/dashboard.html" target="_blank" rel="noopener">
+            <div className="t-icon">📊</div>
+            <div className="t-title">Full Dashboard</div>
+            <div className="t-desc">5-tab interactive dashboard — overview, issues, fixes, cost, action checklist.</div>
+          </a>
+          <a className="tool" href="/ram2/old-flowchart.html" target="_blank" rel="noopener">
+            <div className="t-icon">🔍</div>
+            <div className="t-title">Original Flowchart</div>
+            <div className="t-desc">First-generation 12-point decision flowchart from the 2026-05-14 session.</div>
+          </a>
+          <a className="tool" href="/ram2/reference.txt" target="_blank" rel="noopener">
+            <div className="t-icon">⚡</div>
+            <div className="t-title">Quick Reference</div>
+            <div className="t-desc">Cheat sheet: part numbers, prices, cyl-8 location, cost matrix A-E.</div>
+          </a>
+          <a className="tool" href="/ram2/report.md" target="_blank" rel="noopener">
+            <div className="t-icon">📋</div>
+            <div className="t-title">Full Report (MD)</div>
+            <div className="t-desc">Comprehensive markdown writeup of all 7 scans with severity ratings.</div>
+          </a>
+          <a className="tool" href="/ram2/all-scans.txt" target="_blank" rel="noopener">
+            <div className="t-icon">📈</div>
+            <div className="t-title">All Scans Consolidated</div>
+            <div className="t-desc">Aggregated stats across 7 D7 scans — fuel trim, misfires, O2, MAF, RPM.</div>
+          </a>
+          <a className="tool" href="/ram2/data/" target="_blank" rel="noopener">
+            <div className="t-icon">📂</div>
+            <div className="t-title">Raw CSV Data</div>
+            <div className="t-desc">16 CSVs: per-scan summary + frame-by-frame timeseries.</div>
+          </a>
+          <a className="tool" href="/ram2/screenshots/" target="_blank" rel="noopener">
+            <div className="t-icon">📷</div>
+            <div className="t-title">D7 Screenshots</div>
+            <div className="t-desc">XTOOL D7 scanner screenshots captured during the diagnostic session.</div>
+          </a>
+        </div>
+      </section>
+
+      <section id="wizard-anchor" className="findings">
         <h2>Known findings from prior scan</h2>
         <div className="findings-grid">
           <div className="finding bad">
@@ -407,13 +453,23 @@ export default function RamDiagnosticFlowchart() {
           </div>
           <div className="finding warn">
             <div className="f-tag">CONSISTENT</div>
-            <div className="f-title">Bank 2 LTFT high</div>
-            <div className="f-body">+6.6% mean / +16% max on bank 2 (cyl 8 is on bank 2). Bank 1 normal. Matches a weak cyl 8.</div>
+            <div className="f-title">Bank 2 LTFT +6.6% to +9%</div>
+            <div className="f-body">ECU adding fuel on bank 2 (cyl 8 is on bank 2). Bank 1 normal at idle. Matches a weak cyl 8.</div>
+          </div>
+          <div className="finding bad">
+            <div className="f-tag">NEW DATA</div>
+            <div className="f-title">Cyl-8 injector pulse 20× normal</div>
+            <div className="f-body">Cyl 8 pulse width 3,010 µs vs cyls 3-5 at ~150 µs. Cyls 1, 2, 6, 7 also high (~2,500-2,900 µs). ECU dumping fuel to compensate for misread O2.</div>
+          </div>
+          <div className="finding bad">
+            <div className="f-tag">NEW DATA</div>
+            <div className="f-title">O2 sensors stuck high</div>
+            <div className="f-body">Bank 1/1 at 3.47 V, 1/2 at 3.34 V (should be 0.1-0.9 V swinging). Sensor failure or wiring fault. Skews fuel trim across the engine.</div>
           </div>
           <div className="finding good">
             <div className="f-tag">RULED OUT</div>
-            <div className="f-title">No lifter tick · 0° knock retard</div>
-            <div className="f-body">Mechanical cam/lifter failure ruled out by audio. PCM logs no knock retard. Misfire is ignition or fuel first.</div>
+            <div className="f-title">No lifter tick · 0° knock retard · no vacuum leak</div>
+            <div className="f-body">Cam/lifter ruled out audibly. PCM logs no knock retard. MAP 18-21 inHg normal — intake is sealed.</div>
           </div>
         </div>
       </section>
@@ -502,7 +558,8 @@ export default function RamDiagnosticFlowchart() {
       )}
 
       <footer className="ram-foot">
-        <div>Prior data files (local): <code>2013_RAM_DIAGNOSTIC_DASHBOARD.html</code> · <code>2013-RAM_diagnostic-report_2026-05-14.md</code></div>
+        <div>Source data: XTOOL D7 .cds recordings from 2026-05-14 · 7 Dodge scans · 319,774 mi at scan time</div>
+        <div>All assets at <code>/ram2/</code> · raw CSVs at <code>/ram2/data/</code> · scanner screenshots at <code>/ram2/screenshots/</code></div>
       </footer>
     </div>
   );
@@ -518,6 +575,16 @@ const styles = `
 .ram-modes { display:flex; gap:6px; }
 .ram-modes button { background:#161b22; border:1px solid #30363d; color:#e6edf3; padding:8px 14px; border-radius:6px; cursor:pointer; font-size:12px; }
 .ram-modes button.on { background:#39FF14; color:#0b0f14; border-color:#39FF14; font-weight:600; }
+
+.tools { max-width:1100px; margin:24px auto 0; padding:0 24px; }
+.tools h2 { font-size:13px; color:#8b949e; text-transform:uppercase; letter-spacing:1px; margin:0 0 12px; font-weight:500; }
+.tools-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px; }
+.tool { display:flex; flex-direction:column; background:#161b22; border:1px solid #30363d; border-radius:8px; padding:14px; cursor:pointer; text-decoration:none; color:#e6edf3; transition:all .15s; }
+.tool:hover { transform:translateY(-2px); border-color:#39FF14; box-shadow:0 4px 12px rgba(57,255,20,.1); }
+.tool.primary { border-color:#39FF14; background:linear-gradient(135deg,#0e2818 0%,#161b22 60%); }
+.t-icon { font-size:24px; margin-bottom:6px; }
+.t-title { font-size:14px; font-weight:600; margin-bottom:4px; color:#fff; }
+.t-desc { font-size:11px; color:#8b949e; line-height:1.4; }
 
 .findings { max-width:1100px; margin:24px auto 0; padding:0 24px; }
 .findings h2 { font-size:13px; color:#8b949e; text-transform:uppercase; letter-spacing:1px; margin:0 0 12px; font-weight:500; }

@@ -1,0 +1,109 @@
+# 2013 Ram 5.7L HEMI — Diagnostic Report
+
+**Vehicle:** 2013 Ram, **5.7L HEMI V8 w/ MDS** (8 cyl + MDS solenoids confirmed in data) — **~319,774 miles** (PCM odometer)
+**Data:** XTOOL D7 (S/N D7-027522), 2026-05-14 — 6 datastream recordings + 3 CSV exports
+**Reported symptoms:** loss of power · oil pressure light · small vibration at idle
+**Companion file:** `2013-RAM_consolidated-data_2026-05-14.md` (all raw stats)
+
+> **What the data can't tell us:** the trace logs are encrypted and no VIN/DTC record was
+> in the captures. The engine (5.7 HEMI + MDS) is confirmed from the PID set, but the **year,
+> Ram model (1500 vs 2500/3500), and exact build are not** — those came from you, not the data.
+> **Pull the VIN + stored/pending DTCs off the D7 before spending money** — expect codes in the
+> P052x (oil pressure circuit) and P030x (misfire) families.
+
+---
+
+## Summary table
+
+| # | Issue | Severity | Most likely fix | Parts $ (DIY) | Difficulty | Time (DIY) |
+|---|-------|----------|-----------------|---------------|------------|------------|
+| 1 | Oil pressure sensor circuit reads dead 0.000 V | **High** (but likely electrical) | Replace oil pressure sensor + verify real pressure with mechanical gauge | $20–90 | Easy | 1–2 hrs |
+| 2 | Cylinder 8 misfire | **High** | Coil/plug → injector (ignition/fuel — zero tick rules out mechanical) | $5–120 | Easy → Moderate | 15 min–3 hrs |
+| 3 | Bank 2 long-term fuel trim high (+6–16%) | Medium | Usually clears when #2 is fixed; else check intake/vacuum leak on bank 2 | $0–40 | Moderate | 30–60 min |
+| 4 | Low / slightly unstable idle (~585–600 rpm) | Low–Medium | Likely a symptom of #2; if not, clean throttle body | $0–15 | Easy | 20–30 min |
+
+> **Confirmed: zero lifter tick.** No valvetrain noise means the high-mileage HEMI lifter/cam failure path is **off the table** — the cylinder 8 misfire is almost certainly ignition or fuel (coil, plug, injector). The data agrees: the PCM logged **0° knock retard**, so it isn't fighting detonation.
+
+**Bottom line:** two real, separate problems, both pointing to cheap fixes. The oil light is almost certainly a **dead sensor circuit**, not a blown engine — but that has to be *proven* with a mechanical gauge before you trust it on a 320k motor. The power loss + idle shake is a **cylinder 8 misfire** — work it cheap-to-expensive, a $5 spark plug first.
+
+---
+
+## Issue 1 — Oil pressure sensor circuit is dead
+
+**Evidence:** Across three separate recordings — the stationary capture and both driving loops, engine running and revved to 4,000 rpm:
+- `Oil Pressure` = flat **0.000** psi / kPa, every sample
+- `Oil Pressure Sensor Voltage` = flat **0.000 V**
+- `VVT Oil Pressure` = flat **0.000 kPa**
+
+A working Mopar oil pressure sensor is a 0.5–4.5 V ratiometric sender — it **never** outputs 0.000 V, not even at zero real pressure. A dead-flat 0.000 V means the PCM sees the signal wire **open or shorted to ground**. So the dash light is being driven by a **sensor/wiring fault**, not necessarily by real low oil pressure.
+
+**The catch:** because the sensor is dead, the scanner *cannot* read real oil pressure. On a 320k engine you cannot assume the pump and bearings are fine — you have to measure it.
+
+**Fix / steps:**
+1. **Mechanical oil pressure gauge** at the sender port — *do this first, it's the test that matters.* Parts stores loan these free.
+   - Normal hot idle ≈ 25–45 psi, ~2,000 rpm ≈ 45–75 psi → real pressure is fine, just replace the sensor.
+   - Low/zero → stop driving it; that's a pump/pickup/bearing problem (big job).
+2. Inspect the oil pressure sensor connector and wiring for corrosion/damage/rodent chew.
+3. Replace the oil pressure sensor — look up the exact Mopar part number by VIN before ordering (don't trust a generic listing on a 320k truck).
+
+**Cost:** sensor ≈ $20–50 aftermarket / $50–90 OEM (confirm by VIN). Mechanical gauge $0 (loaner) – $40. Shop labor if not DIY ≈ $60–140.
+**Difficulty:** Easy. The sensor is engine-mounted and generally accessible — confirm its exact location for this engine before you start.
+**Time:** gauge test 30–45 min · sensor replacement 30–60 min → **~1–2 hrs total** DIY.
+
+---
+
+## Issue 2 — Cylinder 8 misfire
+
+**Evidence:** The dedicated misfire capture (598 frames):
+- Per-cylinder misfire counters: cylinders 1–7 sit flat at **0.000** — **only Cylinder 8 logs any misfires** (range 0→1, mean 0.196). That's the key finding: the misfire localizes to one cylinder.
+- `Mis-Fire Counter-200 REV` was non-zero throughout (range 1–798) — the misfire monitor is actively counting events. (The exact scaling of this counter isn't certain, so treat it as "misfire present and being counted," not a precise rate.)
+- `Mis-Fire Counter CAT 200` maxed at 1 — the catalyst-damaging counter is low, so this isn't (yet) the cat-melting kind of misfire.
+
+A single dead/weak cylinder is a textbook cause of **both** the idle vibration **and** the loss of power. Cylinder 8 is on **bank 2** — see Issue 3. With **zero lifter tick**, this is almost certainly ignition or fuel, not mechanical.
+
+**Fix / steps (cheapest → most expensive — stop when you find it):**
+1. **Swap the ignition coil** from #8 to another cylinder. If the misfire follows the coil → bad coil (~$30).
+2. **Spark plugs** — the 5.7 Hemi has **16 plugs (2 per cylinder)**. At 320k, if they're old, just do all 16. Pull #8's plugs and read them.
+3. **Swap/test the #8 fuel injector** — if coil + plugs are good.
+4. **Compression / leak-down test on #8** — final check only if ignition and fuel both come back good. With no tick a mechanical cause is unlikely, but this still catches a burnt valve.
+
+**Cost:** coil $25–50 ea · 16 plugs $50–100 · injector $40–100 · compression tester $0 (loaner)–50.
+**Difficulty:** Easy (coil/plug) → Moderate (injector, compression test).
+**Time:** coil swap ~15 min · all 16 plugs 1.5–2.5 hrs · injector test 30–60 min · compression/leak-down on #8 ~1 hr.
+
+---
+
+## Issue 3 — Bank 2 long-term fuel trim running positive
+
+**Evidence:** Drive loops B and C logged `2/1 Long Term ADAP` (bank 2 long-term) at mean **+6.6%**, peak **+16.4%**. Bank-1 *short-term* trim in the same captures was near zero (mean ≈ ±1%), and in the earlier loop both banks' short-term trims were normal.
+
+**Caveat — don't over-read this:** those captures logged bank-1 *short-term* and bank-2 *long-term* — different trim types, so I can't cleanly prove the positive trim is bank-specific without bank-1 long-term data. A +6.6% mean long-term trim is also within the normally-acceptable band on its own; the +16% peak is what's worth a look. Positive trim = PCM adding fuel to compensate for a lean or weak bank — and a misfiring/weak cylinder 8 (bank 2) would do exactly that.
+
+**Most likely this clears once Issue 2 is fixed.** If it doesn't, and you can capture bank-1 *and* bank-2 long-term trim together to confirm it's bank-specific:
+- Check for an intake/vacuum leak on the bank 2 side
+- Check the bank 2 injectors for flow balance
+
+**Cost:** $0–40 (vacuum line / intake gasket) if a leak is found. **Difficulty:** Moderate (diagnostic). **Time:** 30–60 min to smoke-test / inspect; re-check trims after a drive cycle.
+
+---
+
+## Issue 4 — Low, slightly unstable idle
+
+**Evidence:** `boss1` CSV — idle settles around **585–600 rpm** and dips into the 580s; a healthy Hemi idles ~650 rpm in neutral. MAP vacuum at idle ~18.7 inHg is decent, so it's not a big vacuum leak.
+
+Two caveats: that capture didn't log coolant temp, so I can't confirm the engine was fully warmed up (a not-fully-warm engine idling a bit low is normal); and idle was read in neutral/park, not in gear. Most likely it's a **symptom of the cylinder 8 misfire** dragging the idle down. If idle is still low/rough after Issue 2 is fixed: clean the throttle body and re-check.
+
+**Cost:** $0–15 (can of throttle body cleaner). **Difficulty:** Easy. **Time:** 20–30 min.
+
+---
+
+## Recommended order of attack
+
+1. **Pull DTCs + VIN off the D7** — confirms the codes behind both symptoms and the exact vehicle. (Free · 5 min)
+2. **Mechanical oil pressure gauge test.** This single test either clears the engine's bottom end or condemns it — do it before anything else. (Free–$40 · 30–45 min)
+3. If oil pressure is good → **replace the oil pressure sensor**, light goes out. ($20–90 · 30–60 min)
+4. **Cylinder 8: swap coil, read/replace plugs, test injector.** Most likely fixes the misfire, vibration, power loss, and bank-2 trim together. ($5–150 · 30 min–2.5 hrs)
+5. Only if #8 still misfires → **compression / leak-down on #8** to rule out a burnt valve. Unlikely with zero tick. (Free–$50 · ~1 hr)
+6. Re-drive and re-record a loop to confirm: misfire counter at 0, bank-2 trim back to ±5%, idle ~650. (~30 min)
+
+**Realistic total:** if it's the common stuff (oil pressure sensor + coil/plugs), budget **~$100–250 in parts** and **~3–5 hrs** of DIY work, all Easy–Moderate. With **zero lifter tick**, the expensive engine-internal path is essentially ruled out.
