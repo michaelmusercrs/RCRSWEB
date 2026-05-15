@@ -1,8 +1,13 @@
 // River City Roofing Solutions - Service Worker
-// Version: 1.0.0
+// Version: 1.0.1 (ram2 bypass + cache bust)
 
-const CACHE_NAME = 'rcrs-cache-v2';
+const CACHE_NAME = 'rcrs-cache-v3';
 const OFFLINE_URL = '/offline';
+
+// Paths the SW must NEVER intercept — always go direct to network.
+// /ram2/* is a public diagnostic page; the SW was incorrectly serving
+// stale cached portal-login HTML for these requests.
+const BYPASS_PREFIXES = ['/ram2'];
 
 // Static assets to pre-cache on install
 const PRECACHE_ASSETS = [
@@ -65,6 +70,12 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (request.method !== 'GET') {
     return;
+  }
+
+  // Hard bypass: paths that must always hit the network directly with no SW
+  // interception or cache fallback (avoids stale-login bug on /ram2).
+  if (BYPASS_PREFIXES.some((p) => url.pathname === p || url.pathname.startsWith(p + '/'))) {
+    return; // let the browser fetch normally
   }
 
   // API routes and dynamic data: Network-first strategy
