@@ -362,12 +362,6 @@ export function middleware(request: NextRequest) {
       return NextResponse.next();
     }
 
-    // Public-on-portal: diagnostic/technical pages (no auth, standalone)
-    if (pathname === '/ram1' || pathname.startsWith('/ram1/') ||
-        pathname === '/ram2' || pathname.startsWith('/ram2/')) {
-      return NextResponse.next();
-    }
-
     // Public-on-portal pages (no login required, shareable links)
     // /trip is dynamic via app/trip/route.ts (reads from Vercel Blob).
     // /trip/update is the upload page. Allow both, plus /api/trip/*.
