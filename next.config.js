@@ -125,17 +125,6 @@ const nextConfig = {
   async redirects() {
     return [];
   },
-  async rewrites() {
-    return {
-      beforeFiles: [
-        // Serve /ram1/* as static files from public/ram1/
-        {
-          source: '/ram1/:path*',
-          destination: '/ram1/:path*',
-        },
-      ],
-    };
-  },
   images: {
     remotePatterns: [
       {
