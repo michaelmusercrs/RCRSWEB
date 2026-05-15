@@ -343,6 +343,21 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(order);
       }
 
+      case 'receiveAndVerifyRestock': {
+        // Preferred path: receivedItems entries may include actualUnitCost.
+        // When actualUnitCost ≠ the quoted unitCost, inventory cost basis is
+        // updated and a PricingRecord is written for audit.
+        const order = await unifiedInventoryService.receiveAndVerifyRestock(
+          body.orderId,
+          body.receivedItems,
+          auth.user.userId,
+          auth.user.name,
+          body.notes,
+        );
+        if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+        return NextResponse.json(order);
+      }
+
       case 'createReturnTicket': {
         const ticket = await unifiedInventoryService.createReturnTicket({
           ...body,

@@ -344,6 +344,7 @@ export default function InventoryManagementPage() {
   const [restockStatusFilter, setRestockStatusFilter] = useState('all');
   const [receiveModal, setReceiveModal] = useState<RestockOrder | null>(null);
   const [receiveInputs, setReceiveInputs] = useState<Record<string, string>>({});
+  const [receiveCostInputs, setReceiveCostInputs] = useState<Record<string, string>>({});
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
 
   // --- Pricing Data ---
@@ -359,7 +360,7 @@ export default function InventoryManagementPage() {
 
   // General
   const [actionLoading, setActionLoading] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
 
   // ============================================
   // DATA FETCHING
@@ -478,9 +479,9 @@ export default function InventoryManagementPage() {
   // API ACTIONS
   // ============================================
 
-  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+  const showToast = (message: string, type: 'success' | 'error' | 'warning' = 'success') => {
     setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
+    setTimeout(() => setToast(null), type === 'warning' ? 6000 : 3000);
   };
 
   const apiPost = async (body: any) => {
@@ -599,16 +600,43 @@ export default function InventoryManagementPage() {
   const receiveOrder = async (orderId: string) => {
     if (!receiveModal) return;
     setActionLoading(true);
-    const receivedItems = receiveModal.items.map(item => ({
-      productId: item.productId,
-      receivedQty: parseInt(receiveInputs[item.productId] || String(item.orderQty)),
-    }));
+    const receivedItems = receiveModal.items.map(item => {
+      const costRaw = receiveCostInputs[item.productId];
+      const parsedCost = costRaw && costRaw.trim() !== '' ? parseFloat(costRaw) : NaN;
+      return {
+        productId: item.productId,
+        receivedQty: parseInt(receiveInputs[item.productId] || String(item.orderQty)),
+        // Only include actualUnitCost when the receiver entered one. Blank
+        // means "trust the quoted cost" — no PricingRecord written.
+        ...(Number.isFinite(parsedCost) ? { actualUnitCost: parsedCost } : {}),
+      };
+    });
     try {
-      const data = await apiPost({ action: 'receive-restock', orderId, receivedItems });
+      const data = await apiPost({
+        action: 'receive-and-verify-restock',
+        orderId,
+        receivedItems,
+      });
       if (data.success) {
-        showToast(`PO ${orderId} received`);
+        const discrepancies = (data.discrepancies || []) as Array<{
+          productName: string;
+          countMatchesOrder?: boolean;
+          costMatchesQuote?: boolean;
+        }>;
+        if (discrepancies.length > 0) {
+          const lines = discrepancies.map(d => {
+            const issues: string[] = [];
+            if (d.countMatchesOrder === false) issues.push('qty');
+            if (d.costMatchesQuote === false) issues.push('cost');
+            return `${d.productName} (${issues.join(' + ')})`;
+          });
+          showToast(`PO ${orderId} received with discrepancies: ${lines.join('; ')}`, 'warning');
+        } else {
+          showToast(`PO ${orderId} received — counts and costs verified`);
+        }
         setReceiveModal(null);
         setReceiveInputs({});
+        setReceiveCostInputs({});
         await fetchRestockData();
         await fetchData();
       } else {
@@ -764,7 +792,11 @@ export default function InventoryManagementPage() {
     <div className="min-h-screen bg-zinc-950 text-white">
       {/* Toast */}
       {toast && (
-        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg border ${toast.type === 'success' ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400' : 'bg-red-500/20 border-red-500/30 text-red-400'}`}>
+        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg border max-w-md ${
+          toast.type === 'success' ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400' :
+          toast.type === 'warning' ? 'bg-amber-500/20 border-amber-500/30 text-amber-400' :
+          'bg-red-500/20 border-red-500/30 text-red-400'
+        }`}>
           <div className="flex items-center gap-2">
             {toast.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
             <span className="text-sm">{toast.message}</span>
@@ -1724,26 +1756,49 @@ export default function InventoryManagementPage() {
                     <h3 className="font-semibold">Receive Goods - {receiveModal.orderId}</h3>
                     <button onClick={() => setReceiveModal(null)} className="text-zinc-400 hover:text-white"><X className="w-5 h-5" /></button>
                   </div>
-                  <p className="text-xs text-zinc-500 mb-4">Enter actual quantities received for each item.</p>
+                  <p className="text-xs text-zinc-500 mb-4">
+                    Enter the actual quantity received and, if different from the quoted unit
+                    cost, the supplier-invoiced cost. Leave cost blank to keep the quoted cost.
+                  </p>
                   <div className="space-y-3 mb-4">
                     {receiveModal.items.map(item => (
-                      <div key={item.productId} className="flex items-center justify-between bg-zinc-800 rounded-lg p-3">
-                        <div>
+                      <div key={item.productId} className="bg-zinc-800 rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-2">
                           <p className="text-sm text-zinc-300">{item.productName}</p>
-                          <p className="text-xs text-zinc-500">Ordered: {item.orderQty}</p>
+                          <p className="text-xs text-zinc-500">
+                            Ordered: {item.orderQty} @ ${item.unitCost.toFixed(2)}
+                          </p>
                         </div>
-                        <input
-                          type="number"
-                          min="0"
-                          value={receiveInputs[item.productId] || ''}
-                          onChange={e => setReceiveInputs(prev => ({ ...prev, [item.productId]: e.target.value }))}
-                          className="w-20 bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-sm text-center focus:outline-none focus:border-[#39FF14]/50"
-                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <label className="flex items-center gap-2">
+                            <span className="text-xs text-zinc-500 w-16">Received</span>
+                            <input
+                              type="number"
+                              min="0"
+                              placeholder={String(item.orderQty)}
+                              value={receiveInputs[item.productId] || ''}
+                              onChange={e => setReceiveInputs(prev => ({ ...prev, [item.productId]: e.target.value }))}
+                              className="w-full bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-[#39FF14]/50"
+                            />
+                          </label>
+                          <label className="flex items-center gap-2">
+                            <span className="text-xs text-zinc-500 w-16">Cost $</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              placeholder={item.unitCost.toFixed(2)}
+                              value={receiveCostInputs[item.productId] || ''}
+                              onChange={e => setReceiveCostInputs(prev => ({ ...prev, [item.productId]: e.target.value }))}
+                              className="w-full bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-[#39FF14]/50"
+                            />
+                          </label>
+                        </div>
                       </div>
                     ))}
                   </div>
                   <div className="flex gap-3">
-                    <button onClick={() => setReceiveModal(null)} className="flex-1 px-4 py-2 bg-zinc-800 text-zinc-300 rounded-lg hover:bg-zinc-700 transition">Cancel</button>
+                    <button onClick={() => { setReceiveModal(null); setReceiveInputs({}); setReceiveCostInputs({}); }} className="flex-1 px-4 py-2 bg-zinc-800 text-zinc-300 rounded-lg hover:bg-zinc-700 transition">Cancel</button>
                     <button
                       onClick={() => receiveOrder(receiveModal.orderId)}
                       disabled={actionLoading}

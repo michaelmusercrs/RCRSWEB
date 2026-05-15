@@ -135,6 +135,35 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ order });
       }
 
+      case 'receive-and-verify-restock': {
+        // Preferred receive path. Each line:
+        // { productId, receivedQty, actualUnitCost? }
+        // Cost mismatches update inventory cost basis + write PricingRecord.
+        const order = await unifiedInventoryService.receiveAndVerifyRestock(
+          body.orderId,
+          body.receivedItems,
+          auth.user.userId,
+          auth.user.name,
+          body.notes,
+        );
+        if (!order) {
+          return NextResponse.json({ error: 'Restock order not found' }, { status: 404 });
+        }
+        const discrepancies = order.items
+          .filter(i => i.receivedQty !== undefined && (!i.countMatchesOrder || !i.costMatchesQuote))
+          .map(i => ({
+            productId: i.productId,
+            productName: i.productName,
+            orderedQty: i.orderQty,
+            receivedQty: i.receivedQty,
+            quotedUnitCost: i.unitCost,
+            actualUnitCost: i.actualUnitCost,
+            countMatchesOrder: i.countMatchesOrder,
+            costMatchesQuote: i.costMatchesQuote,
+          }));
+        return NextResponse.json({ order, discrepancies });
+      }
+
       case 'update-pricing': {
         const item = await unifiedInventoryService.updatePricing(
           body.productId, body.newCost, body.newPrice, auth.user.name, body.reason

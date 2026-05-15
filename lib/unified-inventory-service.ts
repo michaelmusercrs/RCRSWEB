@@ -180,6 +180,16 @@ export interface RestockOrder {
   orderedAt?: string;
   shippedAt?: string;
   receivedAt?: string;
+  receivedBy?: string;
+  receivedByName?: string;
+  /** Count-verification step: warehouse confirmed physical counts. */
+  countVerifiedAt?: string;
+  countVerifiedBy?: string;
+  /** Cost-verification step: supplier invoice reconciled against quoted costs. */
+  costVerifiedAt?: string;
+  costVerifiedBy?: string;
+  /** Sum of (actualUnitCost ?? unitCost) * receivedQty across items. */
+  actualTotalCost?: number;
   expectedDelivery?: string;
   notes?: string;
 }
@@ -193,6 +203,13 @@ export interface RestockOrderItem {
   totalCost: number;
   receivedQty?: number;
   receivedAt?: string;
+  /** Actual unit cost from supplier invoice. When set and ≠ unitCost,
+   *  inventory.unitCost is updated and a PricingRecord is written. */
+  actualUnitCost?: number;
+  /** True when receivedQty === orderQty at receive time. */
+  countMatchesOrder?: boolean;
+  /** True when actualUnitCost === unitCost (or actualUnitCost not provided). */
+  costMatchesQuote?: boolean;
 }
 
 export interface PricingRecord {
@@ -1776,21 +1793,107 @@ class UnifiedInventoryService {
   }
 
   async receiveRestock(orderId: string, receivedItems: { productId: string; receivedQty: number }[], receivedBy: string, receivedByName: string): Promise<RestockOrder | null> {
+    // Legacy fast-path: trusts quoted unit cost. New code should call
+    // receiveAndVerifyRestock to capture actual invoice costs.
+    return this.receiveAndVerifyRestock(
+      orderId,
+      receivedItems.map(r => ({ productId: r.productId, receivedQty: r.receivedQty })),
+      receivedBy,
+      receivedByName,
+    );
+  }
+
+  /**
+   * Receive a restock order with explicit count + cost verification.
+   *
+   * Each line carries:
+   *   - receivedQty: physical count taken at the warehouse
+   *   - actualUnitCost?: supplier-invoiced cost. When provided AND ≠ the
+   *     quoted unitCost on the order, inventory.unitCost is updated to the
+   *     actual cost and a PricingRecord is written for audit. When omitted,
+   *     the quoted cost is trusted.
+   *
+   * Sets the order's countVerifiedAt/By and costVerifiedAt/By markers so
+   * downstream reporting can show both gates were passed. Discrepancies are
+   * captured per-line (countMatchesOrder, costMatchesQuote) and returned to
+   * the caller so admin UIs can highlight them.
+   */
+  async receiveAndVerifyRestock(
+    orderId: string,
+    receivedItems: { productId: string; receivedQty: number; actualUnitCost?: number }[],
+    receivedBy: string,
+    receivedByName: string,
+    notes?: string,
+  ): Promise<RestockOrder | null> {
     await this.ensureLoaded();
     const order = this.restockOrders.find(o => o.orderId === orderId);
     if (!order) return null;
 
+    const now = new Date().toISOString();
+    let actualTotalCost = 0;
+
     for (const received of receivedItems) {
-      const orderItem = order.items.find(i => i.productId === resolveProductId(received.productId));
-      if (orderItem) {
-        orderItem.receivedQty = received.receivedQty;
-        orderItem.receivedAt = new Date().toISOString();
+      const resolved = resolveProductId(received.productId);
+      const orderItem = order.items.find(i => i.productId === resolved);
+      if (!orderItem) {
+        // Line was received but not on the original order — log + continue;
+        // do not silently drop, and do not increment inventory for it here.
+        console.warn(`[restock] Received item not on order ${orderId}: ${resolved}`);
+        continue;
       }
-      await this.addStock(received.productId, received.receivedQty, 'restock', orderId, 'restock_order', receivedBy, receivedByName, `Restock from PO ${orderId}`);
+
+      orderItem.receivedQty = received.receivedQty;
+      orderItem.receivedAt = now;
+      orderItem.countMatchesOrder = received.receivedQty === orderItem.orderQty;
+
+      if (typeof received.actualUnitCost === 'number') {
+        orderItem.actualUnitCost = received.actualUnitCost;
+        orderItem.costMatchesQuote =
+          Math.abs(received.actualUnitCost - orderItem.unitCost) < 0.005;
+
+        if (!orderItem.costMatchesQuote) {
+          // Cost basis change. Carry forward existing unitPrice (selling
+          // price) unchanged — that's a separate margin decision.
+          const inv = this.inventory.find(i => i.productId === resolved);
+          if (inv) {
+            await this.updatePricing(
+              resolved,
+              received.actualUnitCost,
+              inv.unitPrice,
+              receivedByName,
+              `Restock PO ${orderId}: supplier-invoiced cost ${received.actualUnitCost.toFixed(2)} ≠ quoted ${orderItem.unitCost.toFixed(2)}`,
+            );
+          }
+        }
+        actualTotalCost += received.actualUnitCost * received.receivedQty;
+      } else {
+        orderItem.costMatchesQuote = true;
+        actualTotalCost += orderItem.unitCost * received.receivedQty;
+      }
+
+      await this.addStock(
+        resolved,
+        received.receivedQty,
+        'restock',
+        orderId,
+        'restock_order',
+        receivedBy,
+        receivedByName,
+        `Restock from PO ${orderId}` + (notes ? ` — ${notes}` : ''),
+      );
     }
 
     order.status = 'received';
-    order.receivedAt = new Date().toISOString();
+    order.receivedAt = now;
+    order.receivedBy = receivedBy;
+    order.receivedByName = receivedByName;
+    order.countVerifiedAt = now;
+    order.countVerifiedBy = receivedByName;
+    order.costVerifiedAt = now;
+    order.costVerifiedBy = receivedByName;
+    order.actualTotalCost = Math.round(actualTotalCost * 100) / 100;
+    if (notes) order.notes = order.notes ? `${order.notes}\n${notes}` : notes;
+
     return order;
   }
 
