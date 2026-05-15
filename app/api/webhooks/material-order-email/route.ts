@@ -156,7 +156,16 @@ export async function POST(request: NextRequest) {
   };
 
   try {
-    await ticketSheetService.upsert(sheetTicket);
+    const ok = await ticketSheetService.upsert(sheetTicket);
+    if (!ok) {
+      // upsertGenericRow swallows errors and returns false. Surface that as
+      // a 500 so the caller (Apps Script) doesn't think the write succeeded.
+      console.error('[material-order-webhook] ticketSheetService.upsert returned false (Sheets init or write failed silently)');
+      return NextResponse.json(
+        { error: 'Failed to persist ticket (sheets write returned false — check GOOGLE_SHEETS_ID and credentials)' },
+        { status: 500 },
+      );
+    }
   } catch (err) {
     console.error('[material-order-webhook] Failed to upsert ticket:', err);
     return NextResponse.json(

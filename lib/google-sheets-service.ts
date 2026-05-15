@@ -30,7 +30,10 @@ const serviceAccountAuth = new JWT({
   scopes: ['https://www.googleapis.com/auth/spreadsheets'],
 });
 
-const SHEETS_ID = process.env.GOOGLE_SHEETS_ID;
+// Trim env value — Vercel env entries can carry trailing whitespace/\r\n
+// if the value was pasted into the dashboard with a stray newline. An
+// untrimmed sheet ID corrupts the API URL and makes init() silently fail.
+const SHEETS_ID = process.env.GOOGLE_SHEETS_ID?.trim();
 
 // Check if Google Sheets is properly configured
 export function isGoogleSheetsConfigured(): boolean {
