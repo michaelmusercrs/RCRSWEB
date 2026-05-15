@@ -8,6 +8,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { meetingNumbersService } from '@/lib/meeting-numbers-service';
 
+// Cron uses request.headers and external IO — opt out of static generation
+// so the build doesn't time out trying to prerender it.
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 // Verify the request is from Vercel Cron or has the correct secret
 function verifyCronAuth(request: NextRequest): boolean {
   const cronSecret = process.env.CRON_SECRET;
