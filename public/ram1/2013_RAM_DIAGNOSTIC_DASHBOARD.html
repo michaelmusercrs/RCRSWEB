@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2013 Ram 5.7L HEMI — Diagnostic Report</title>
+<style>
+  :root{
+    --bg:#f1f5f9; --card:#ffffff; --ink:#0f172a; --muted:#64748b;
+    --line:#e2e8f0; --accent:#2563eb; --accent-dk:#1e3a8a;
+    --hi:#dc2626; --hi-bg:#fef2f2; --med:#ea580c; --med-bg:#fff7ed;
+    --lo:#0891b2; --lo-bg:#ecfeff; --ok:#16a34a; --ok-bg:#f0fdf4;
+    --shadow:0 1px 3px rgba(15,23,42,.08),0 8px 24px rgba(15,23,42,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px 60px}
+
+  /* ---- header ---- */
+  header{
+    background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%);
+    color:#fff;padding:34px 0 0;border-bottom:3px solid var(--accent);
+  }
+  .hd-inner{max-width:1080px;margin:0 auto;padding:0 20px}
+  .eyebrow{color:#7dd3fc;font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+  h1{font-size:30px;font-weight:750;margin:6px 0 4px;letter-spacing:-.02em}
+  .sub{color:#94a3b8;font-size:14.5px;margin-bottom:22px}
+  .stats{display:flex;flex-wrap:wrap;gap:10px;padding-bottom:26px}
+  .stat{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+    border-radius:10px;padding:10px 15px;min-width:120px}
+  .stat .k{font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+  .stat .v{font-size:18px;font-weight:700;margin-top:2px}
+  .stat .v.warn{color:#fca5a5}
+
+  /* ---- tabs ---- */
+  .tabs{display:flex;gap:4px;max-width:1080px;margin:0 auto;padding:0 20px;
+    overflow-x:auto;background:linear-gradient(135deg,#1e293b,#0f172a)}
+  .tab{
+    background:none;border:none;color:#94a3b8;font-size:14.5px;font-weight:600;
+    padding:14px 18px;cursor:pointer;border-bottom:3px solid transparent;
+    white-space:nowrap;font-family:inherit;transition:.15s;
+  }
+  .tab:hover{color:#e2e8f0}
+  .tab.active{color:#fff;border-bottom-color:var(--accent)}
+
+  .panel{display:none;padding-top:30px}
+  .panel.active{display:block;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* ---- cards / blocks ---- */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    box-shadow:var(--shadow);padding:22px 24px;margin-bottom:18px}
+  h2{font-size:20px;font-weight:700;margin-bottom:4px;letter-spacing:-.01em}
+  h3{font-size:16.5px;font-weight:700;margin:0 0 8px}
+  .lead{color:var(--muted);font-size:14px;margin-bottom:18px}
+  p{margin-bottom:10px;font-size:14.5px}
+  ul,ol{margin:6px 0 12px 20px;font-size:14.5px}
+  li{margin-bottom:5px}
+  .mut{color:var(--muted)}
+  strong{font-weight:700}
+
+  /* callouts */
+  .callout{border-radius:12px;padding:16px 18px;margin-bottom:18px;border:1px solid;font-size:14.5px}
+  .callout.good{background:var(--ok-bg);border-color:#bbf7d0}
+  .callout.good .ct{color:var(--ok)}
+  .callout.warn{background:var(--med-bg);border-color:#fed7aa}
+  .callout.warn .ct{color:var(--med)}
+  .callout.info{background:#eff6ff;border-color:#bfdbfe}
+  .callout.info .ct{color:var(--accent)}
+  .ct{font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:4px}
+
+  /* badges */
+  .badge{display:inline-block;font-size:11.5px;font-weight:700;padding:3px 10px;
+    border-radius:999px;text-transform:uppercase;letter-spacing:.03em}
+  .b-hi{background:var(--hi-bg);color:var(--hi)}
+  .b-med{background:var(--med-bg);color:var(--med)}
+  .b-lo{background:var(--lo-bg);color:var(--lo)}
+  .b-ok{background:var(--ok-bg);color:var(--ok)}
+
+  /* tables */
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+  th{text-align:left;background:#f8fafc;color:var(--muted);font-size:11.5px;
+    text-transform:uppercase;letter-spacing:.04em;padding:9px 11px;border-bottom:2px solid var(--line)}
+  td{padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:#f8fafc}
+  td.num{font-variant-numeric:tabular-nums;font-weight:600}
+  .flat{color:var(--hi);font-weight:700}
+
+  /* issue cards */
+  .issue{border-left:4px solid var(--line)}
+  .issue.hi{border-left-color:var(--hi)}
+  .issue.med{border-left-color:var(--med)}
+  .issue.lo{border-left-color:var(--lo)}
+  .issue-hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .issue-hd .n{background:var(--ink);color:#fff;width:26px;height:26px;border-radius:7px;
+    display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0}
+  .meta{display:flex;flex-wrap:wrap;gap:0;margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
+  .meta div{flex:1;min-width:110px;padding:2px 14px;border-right:1px solid var(--line)}
+  .meta div:last-child{border-right:none}
+  .meta .ml{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+  .meta .mv{font-size:15px;font-weight:700;margin-top:2px}
+
+  /* steps */
+  .step{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--line)}
+  .step:last-child{border-bottom:none}
+  .step .sn{background:var(--accent);color:#fff;width:30px;height:30px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0}
+  .step .sb{flex:1}
+  .step .sc{font-size:12.5px;color:var(--muted);font-weight:600;margin-top:3px}
+  .step .sc b{color:var(--ink)}
+
+  /* ---- flowchart ---- */
+  .fc{max-width:720px;margin:0 auto}
+  .fc-head{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;
+    color:#fff;background:var(--ink);border-radius:10px;padding:10px 16px;text-align:center;margin-bottom:16px}
+  .fc-node{border-radius:12px;padding:12px 16px;font-size:14px;position:relative;
+    border:1px solid var(--line);background:#fff;box-shadow:var(--shadow)}
+  .fc-node .lbl{font-weight:700;display:block}
+  .fc-node .sub{font-size:12.5px;color:var(--muted);display:block;margin-top:3px}
+  .fc-start{background:linear-gradient(135deg,#1e293b,#0f172a);color:#fff;border:none;
+    text-align:center;border-radius:999px;font-weight:700;max-width:420px;margin:0 auto;padding:13px 20px}
+  .fc-start .sub{color:#94a3b8}
+  .fc-process{border-left:4px solid var(--accent)}
+  .fc-decision{background:var(--med-bg);border-color:#fed7aa;border-left:4px solid var(--med)}
+  .fc-decision .lbl{color:#9a3412}
+  .fc-decision .qtag{font-size:10.5px;font-weight:800;letter-spacing:.08em;color:var(--med);
+    text-transform:uppercase;display:block;margin-bottom:3px}
+  .fc-good{background:var(--ok-bg);border-color:#bbf7d0;border-left:4px solid var(--ok)}
+  .fc-good .lbl{color:#166534}
+  .fc-bad{background:var(--hi-bg);border-color:#fecaca;border-left:4px solid var(--hi)}
+  .fc-bad .lbl{color:#991b1b}
+  .fc-skip{background:#f8fafc;border-left:4px solid var(--muted)}
+  .fc-skip .sub{margin-top:0;font-weight:600}
+  .fc-arrow{width:2px;height:20px;background:#cbd5e1;margin:0 auto;position:relative}
+  .fc-arrow::after{content:"";position:absolute;bottom:-1px;left:50%;transform:translateX(-50%);
+    border:5px solid transparent;border-top-color:#cbd5e1;border-bottom:none}
+  .fc-split{display:flex;gap:16px;align-items:flex-start}
+  .fc-branch{flex:1;display:flex;flex-direction:column}
+  .fc-branch .tag{align-self:center;font-size:11px;font-weight:800;padding:3px 13px;
+    border-radius:999px;letter-spacing:.04em;margin-bottom:0}
+  .tag-yes{background:var(--ok-bg);color:var(--ok)}
+  .tag-no{background:var(--hi-bg);color:var(--hi)}
+  .fc-branch .fc-arrow{height:14px}
+  .fc-legend{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;font-size:12px;
+    color:var(--muted);margin-top:6px}
+  .fc-legend span{display:flex;align-items:center;gap:6px}
+  .fc-legend i{width:13px;height:13px;border-radius:4px;display:inline-block}
+  @media(max-width:560px){.fc-split{flex-direction:column;gap:10px}}
+
+  footer{text-align:center;color:var(--muted);font-size:12.5px;margin-top:30px}
+  .filerow{font-size:12px;color:var(--muted);background:#f8fafc;border:1px dashed var(--line);
+    border-radius:8px;padding:8px 12px;margin-top:6px;font-family:ui-monospace,Menlo,Consolas,monospace}
+  @media(max-width:640px){
+    h1{font-size:23px} .meta div{flex-basis:50%;border-right:none}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hd-inner">
+    <div class="eyebrow">XTOOL D7 Datastream Analysis &nbsp;·&nbsp; 2026-05-14</div>
+    <h1>2013 Ram 5.7L HEMI — Diagnostic Report</h1>
+    <div class="sub">Loss of power &nbsp;·&nbsp; oil pressure light &nbsp;·&nbsp; small vibration at idle</div>
+    <div class="stats">
+      <div class="stat"><div class="k">Engine</div><div class="v">5.7 HEMI V8 · MDS</div></div>
+      <div class="stat"><div class="k">Odometer</div><div class="v warn">319,774 mi</div></div>
+      <div class="stat"><div class="k">Recordings</div><div class="v">9 captures</div></div>
+      <div class="stat"><div class="k">Open Issues</div><div class="v">4</div></div>
+      <div class="stat"><div class="k">Likely Fix Cost</div><div class="v">$100–250</div></div>
+      <div class="stat"><div class="k">Lifter Tick</div><div class="v" style="color:#86efac">None ✓</div></div>
+    </div>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" data-tab="overview">Overview</button>
+  <button class="tab" data-tab="issues">Issues &amp; Fixes</button>
+  <button class="tab" data-tab="plan">Action Plan</button>
+  <button class="tab" data-tab="flow">Flowchart</button>
+  <button class="tab" data-tab="data">Recordings &amp; Data</button>
+</div>
+
+<div class="wrap">
+
+  <!-- ===================== OVERVIEW ===================== -->
+  <section class="panel active" id="overview">
+    <div class="card">
+      <h2>Bottom line</h2>
+      <p class="lead">Two real, separate problems — both point to inexpensive fixes.</p>
+      <p>The <strong>oil pressure light</strong> is almost certainly a <strong>dead sensor circuit</strong>, not a
+      blown engine — but that has to be <em>proven</em> with a mechanical gauge before you trust it on a 320k motor.
+      The <strong>power loss + idle shake</strong> is a <strong>cylinder&nbsp;8 misfire</strong>. Work it
+      cheap-to-expensive: a $5 spark plug before anything bigger.</p>
+    </div>
+
+    <div class="callout good">
+      <span class="ct">Good news — zero lifter tick</span>
+      No valvetrain tick or knock means the dreaded high-mileage HEMI lifter/cam failure path is
+      <strong>off the table</strong>. The cylinder&nbsp;8 misfire is almost certainly <strong>ignition or fuel</strong>
+      (coil, plug, injector) — the cheap, easy stuff. The data backs this up: the PCM logged <strong>0° knock retard</strong>,
+      so it isn't fighting detonation.
+    </div>
+
+    <div class="callout info">
+      <span class="ct">Before you spend money</span>
+      The scanner trace logs are encrypted and no VIN/DTC was in the captures. <strong>Pull the VIN and stored/pending
+      DTCs straight off the D7</strong> — expect codes in the <strong>P052x</strong> (oil pressure circuit) and
+      <strong>P030x</strong> (misfire) families. Engine type is confirmed from the data; year/model/trim came from you, not the data.
+    </div>
+
+    <div class="card">
+      <h3>Symptom → cause map</h3>
+      <table>
+        <thead><tr><th>Reported symptom</th><th>What the data shows</th><th>Most likely cause</th></tr></thead>
+        <tbody>
+          <tr><td>Oil pressure light</td><td>Oil Pressure &amp; sensor voltage flat <span class="flat">0.000</span> with engine running to 4,000 rpm</td><td>Dead oil pressure sensor / wiring — <em>not</em> proven low oil</td></tr>
+          <tr><td>Small vibration at idle</td><td>Cylinder&nbsp;8 is the only cylinder logging misfires</td><td>Cyl 8 ignition or fuel fault</td></tr>
+          <tr><td>Loss of power</td><td>Misfire counter active; bank-2 long-term trim positive</td><td>Same cyl 8 misfire robbing power</td></tr>
+        </tbody>
+      </table>
+      <p class="mut" style="font-size:13px;margin-top:8px">Note: the scanner labels some temps "deg C" that are actually °F (coolant ~203, oil ~188) — display quirk, not a fault.</p>
+    </div>
+  </section>
+
+  <!-- ===================== ISSUES ===================== -->
+  <section class="panel" id="issues">
+
+    <div class="card issue hi">
+      <div class="issue-hd"><span class="n">1</span><h3>Oil pressure sensor circuit is dead</h3><span class="badge b-hi">High</span></div>
+      <p><strong>Evidence:</strong> across three separate recordings — the stationary capture and both driving loops,
+      engine running and revved to 4,000 rpm — <code>Oil Pressure</code> reads a flat <span class="flat">0.000</span>,
+      and <code>Oil Pressure Sensor Voltage</code> reads a flat <span class="flat">0.000&nbsp;V</span>.</p>
+      <p>A working ratiometric oil pressure sensor never outputs 0.000&nbsp;V — not even at zero real pressure. A dead-flat
+      0&nbsp;V means the PCM sees the signal wire <strong>open or shorted to ground</strong>. So the dash light is being
+      driven by a <strong>sensor/wiring fault</strong>, not necessarily real low oil pressure.</p>
+      <div class="callout warn" style="margin:14px 0 4px">
+        <span class="ct">The catch</span>
+        Because the sensor is dead, the scanner <em>can't</em> read real oil pressure. On a 320k engine you must
+        confirm it with a mechanical gauge before assuming the pump &amp; bearings are fine.
+      </div>
+      <p><strong>Fix:</strong></p>
+      <ol>
+        <li><strong>Mechanical oil pressure gauge</strong> at the sender port — do this first. Parts stores loan them free.
+          Normal hot idle ≈ 25–45 psi, ~2,000 rpm ≈ 45–75 psi → pressure is fine, just replace the sensor. Low/zero → stop driving it.</li>
+        <li>Inspect the sensor connector &amp; wiring for corrosion / damage / rodent chew.</li>
+        <li>Replace the oil pressure sensor — look up the exact Mopar part number by VIN before ordering.</li>
+      </ol>
+      <div class="meta">
+        <div><div class="ml">Severity</div><div class="mv" style="color:var(--hi)">High</div></div>
+        <div><div class="ml">Parts $ (DIY)</div><div class="mv">$20–90</div></div>
+        <div><div class="ml">Difficulty</div><div class="mv">Easy</div></div>
+        <div><div class="ml">Time</div><div class="mv">1–2 hrs</div></div>
+      </div>
+    </div>
+
+    <div class="card issue hi">
+      <div class="issue-hd"><span class="n">2</span><h3>Cylinder 8 misfire</h3><span class="badge b-hi">High</span></div>
+      <p><strong>Evidence:</strong> in the dedicated misfire capture, the per-cylinder counters for cylinders 1–7 sit
+      flat at <strong>0.000</strong> — <strong>only cylinder&nbsp;8 logs any misfires</strong>. The misfire monitor was
+      actively counting throughout, but the catalyst-damaging counter stayed low — so it's not (yet) the cat-melting kind.</p>
+      <p>A single weak cylinder is a textbook cause of <strong>both</strong> the idle vibration <strong>and</strong> the
+      power loss. With <strong>zero lifter tick</strong>, this is almost certainly ignition or fuel — not mechanical.</p>
+      <p><strong>Fix — cheapest to most expensive, stop when you find it:</strong></p>
+      <ol>
+        <li><strong>Swap the ignition coil</strong> from #8 to another cylinder. If the misfire follows the coil → bad coil (~$30).</li>
+        <li><strong>Spark plugs</strong> — the 5.7 HEMI has <strong>16 plugs (2 per cylinder)</strong>. At 320k, if they're old, do all 16. Pull #8's and read them.</li>
+        <li><strong>Swap / test the #8 fuel injector</strong> — if coil and plugs are good.</li>
+        <li><strong>Compression / leak-down on #8</strong> — final check. With no tick this is unlikely, but it still catches a burnt valve.</li>
+      </ol>
+      <div class="meta">
+        <div><div class="ml">Severity</div><div class="mv" style="color:var(--hi)">High</div></div>
+        <div><div class="ml">Parts $ (DIY)</div><div class="mv">$5–120</div></div>
+        <div><div class="ml">Difficulty</div><div class="mv">Easy → Moderate</div></div>
+        <div><div class="ml">Time</div><div class="mv">15 min–3 hrs</div></div>
+      </div>
+    </div>
+
+    <div class="card issue med">
+      <div class="issue-hd"><span class="n">3</span><h3>Bank 2 long-term fuel trim running positive</h3><span class="badge b-med">Medium</span></div>
+      <p><strong>Evidence:</strong> drive loops B and C logged bank-2 long-term trim at mean <strong>+6.6%</strong>,
+      peak <strong>+16.4%</strong>. Positive trim = the PCM adding fuel to compensate for a lean or weak bank — and a
+      weak cylinder&nbsp;8 (which lives on bank&nbsp;2) would do exactly that.</p>
+      <p class="mut"><strong>Don't over-read it:</strong> those captures logged bank-1 <em>short-term</em> and bank-2
+      <em>long-term</em> — different metrics — so I can't fully prove it's bank-specific. A +6.6% mean is within the
+      normal band on its own; the +16% peak is what's worth a look. Most likely this <strong>clears once Issue&nbsp;2 is fixed</strong>.</p>
+      <p>If it doesn't: check for an intake/vacuum leak on the bank&nbsp;2 side, and check bank-2 injector flow balance.</p>
+      <div class="meta">
+        <div><div class="ml">Severity</div><div class="mv" style="color:var(--med)">Medium</div></div>
+        <div><div class="ml">Parts $ (DIY)</div><div class="mv">$0–40</div></div>
+        <div><div class="ml">Difficulty</div><div class="mv">Moderate</div></div>
+        <div><div class="ml">Time</div><div class="mv">30–60 min</div></div>
+      </div>
+    </div>
+
+    <div class="card issue lo">
+      <div class="issue-hd"><span class="n">4</span><h3>Low, slightly unstable idle</h3><span class="badge b-lo">Low–Med</span></div>
+      <p><strong>Evidence:</strong> idle settles around <strong>585–600 rpm</strong> and dips into the 580s; a healthy
+      HEMI idles ~650 rpm in neutral. MAP vacuum at idle ~18.7 inHg is decent, so it's not a big vacuum leak.</p>
+      <p class="mut">Caveats: that capture didn't log coolant temp (can't confirm full warm-up), and idle was read in
+      neutral. Most likely it's a <strong>symptom of the cylinder&nbsp;8 misfire</strong>. If idle is still low/rough
+      after Issue&nbsp;2 is fixed, clean the throttle body and re-check.</p>
+      <div class="meta">
+        <div><div class="ml">Severity</div><div class="mv" style="color:var(--lo)">Low–Med</div></div>
+        <div><div class="ml">Parts $ (DIY)</div><div class="mv">$0–15</div></div>
+        <div><div class="ml">Difficulty</div><div class="mv">Easy</div></div>
+        <div><div class="ml">Time</div><div class="mv">20–30 min</div></div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ===================== PLAN ===================== -->
+  <section class="panel" id="plan">
+    <div class="card">
+      <h2>Recommended order of attack</h2>
+      <p class="lead">Cheapest, most decisive tests first — don't buy a part before a test points at it.</p>
+
+      <div class="step"><span class="sn">1</span><div class="sb">
+        <strong>Pull DTCs + VIN off the D7.</strong> Confirms the codes behind both symptoms and the exact vehicle.
+        <div class="sc">Cost: <b>Free</b> &nbsp;·&nbsp; Time: <b>5 min</b></div></div></div>
+
+      <div class="step"><span class="sn">2</span><div class="sb">
+        <strong>Mechanical oil pressure gauge test.</strong> This single test either clears the engine's bottom end
+        or condemns it — do it before anything else.
+        <div class="sc">Cost: <b>Free–$40</b> &nbsp;·&nbsp; Time: <b>30–45 min</b></div></div></div>
+
+      <div class="step"><span class="sn">3</span><div class="sb">
+        <strong>If oil pressure is good → replace the oil pressure sensor.</strong> Light goes out.
+        <div class="sc">Cost: <b>$20–90</b> &nbsp;·&nbsp; Time: <b>30–60 min</b></div></div></div>
+
+      <div class="step"><span class="sn">4</span><div class="sb">
+        <strong>Cylinder 8: swap coil, read/replace plugs, test injector.</strong> Most likely fixes the misfire,
+        vibration, power loss, and bank-2 trim all at once.
+        <div class="sc">Cost: <b>$5–150</b> &nbsp;·&nbsp; Time: <b>30 min–2.5 hrs</b></div></div></div>
+
+      <div class="step"><span class="sn">5</span><div class="sb">
+        <strong>Only if #8 still misfires → compression / leak-down on #8.</strong> Catches a burnt valve. Unlikely with zero tick.
+        <div class="sc">Cost: <b>Free–$50</b> &nbsp;·&nbsp; Time: <b>~1 hr</b></div></div></div>
+
+      <div class="step"><span class="sn">6</span><div class="sb">
+        <strong>Re-drive and re-record a loop to confirm.</strong> Misfire counter at 0, bank-2 trim back to ±5%, idle ~650.
+        <div class="sc">Cost: <b>Free</b> &nbsp;·&nbsp; Time: <b>~30 min</b></div></div></div>
+    </div>
+
+    <div class="callout good">
+      <span class="ct">Realistic total</span>
+      If it's the common stuff — oil pressure sensor + coil/plugs — budget <strong>~$100–250 in parts</strong> and
+      <strong>~3–5 hrs</strong> of DIY work, all Easy–Moderate. With <strong>zero lifter tick</strong>, the expensive
+      engine-internal path is essentially ruled out.
+    </div>
+  </section>
+
+  <!-- ===================== FLOWCHART ===================== -->
+  <section class="panel" id="flow">
+    <div class="card">
+      <h2>Step-by-step decision tree</h2>
+      <p class="lead">Two independent problems — work them in either order. At each
+      <span style="color:var(--med);font-weight:700">orange decision box</span>, follow the
+      <span style="color:var(--ok);font-weight:700">YES</span> /
+      <span style="color:var(--hi);font-weight:700">NO</span> branch. Stop the moment a green box says fixed.</p>
+      <div class="callout info" style="margin-bottom:0">
+        <span class="ct">Do this first</span>
+        Pull <strong>DTCs + VIN off the D7</strong> (free, 5 min) before either flow — the codes confirm
+        which circuit set the light and which cylinder flagged the misfire.
+      </div>
+    </div>
+
+    <!-- ---- Flow A: Oil pressure light ---- -->
+    <div class="card">
+      <div class="fc">
+        <div class="fc-head">Flow A &nbsp;·&nbsp; Oil Pressure Light</div>
+
+        <div class="fc-node fc-start">
+          <span class="lbl">Oil pressure light on</span>
+          <span class="sub">Scanner reads sensor voltage flat 0.000 V — engine running</span>
+        </div>
+        <div class="fc-arrow"></div>
+
+        <div class="fc-node fc-process">
+          <span class="lbl">Connect a mechanical oil pressure gauge</span>
+          <span class="sub">At the sender port. Warm the engine fully, then read at hot idle and at ~2,000 rpm. (Parts stores loan the gauge free.)</span>
+        </div>
+        <div class="fc-arrow"></div>
+
+        <div class="fc-node fc-decision">
+          <span class="qtag">Decision</span>
+          <span class="lbl">What does the mechanical gauge read at hot idle?</span>
+        </div>
+        <div class="fc-arrow"></div>
+
+        <div class="fc-split">
+          <div class="fc-branch">
+            <span class="tag tag-yes">≥ 25 PSI</span>
+            <div class="fc-arrow"></div>
+            <div class="fc-node fc-good">
+              <span class="lbl">Oil pressure is FINE</span>
+              <span class="sub">(and ~45–75 psi at 2,000 rpm). The light is an electrical fault, not the engine.</span>
+            </div>
+            <div class="fc-arrow"></div>
+            <div class="fc-node fc-process">
+              <span class="lbl">Inspect connector &amp; wiring, then replace the sensor</span>
+              <span class="sub">Check the sensor plug for corrosion / damage / rodent chew. Replace the oil pressure sensor — look up the exact Mopar part by VIN.</span>
+            </div>
+            <div class="fc-arrow"></div>
+            <div class="fc-node fc-good">
+              <span class="lbl">✓ Light out — done</span>
+              <span class="sub">$20–90 · Easy · ~1–2 hrs</span>
+            </div>
+          </div>
+
+          <div class="fc-branch">
+            <span class="tag tag-no">&lt; 25 PSI / near 0</span>
+            <div class="fc-arrow"></div>
+            <div class="fc-node fc-bad">
+              <span class="lbl">STOP DRIVING IT</span>
+              <span class="sub">Real low oil pressure — the gauge confirms a mechanical problem.</span>
+            </div>
+            <div class="fc-arrow"></div>
+            <div class="fc-node fc-process">
+              <span class="lbl">Diagnose oil pump / pickup tube / bearing wear</span>
+              <span class="sub">Check oil level &amp; condition first, then pump and pickup. Sludge or worn bearings on a 320k motor are in play here.</span>
+            </div>
+            <div class="fc-arrow"></div>
+            <div class="fc-node fc-bad">
+              <span class="lbl">⚠ Major repair</span>
+              <span class="sub">Weigh the cost against the truck's value at 319,774 mi.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---- Flow B: Cylinder 8 misfire ---- -->
+    <div class="card">
+      <div class="fc">
+        <div class="fc-head">Flow B &nbsp;·&nbsp; Cylinder 8 Misfire &nbsp;(power loss + idle shake)</div>
+
+        <div class="fc-node fc-start">
+          <span class="lbl">Cylinder 8 misfire confirmed</span>
+          <span class="sub">Only cyl 8 logs misfires · zero lifter tick · 0° knock retard → ignition or fuel, not mechanical</span>
+        </div>
+        <div class="fc-arrow"></div>
+
+        <!-- Step 1: coil -->
+        <div class="fc-node fc-process">
+          <span class="lbl">1 — Swap the #8 ignition coil with another cylinder's</span>
+          <span class="sub">Clear codes, drive a loop, re-scan. See if the misfire moves.</span>
+        </div>
+        <div class="fc-arrow"></div>
+        <div class="fc-node fc-decision">
+          <span class="qtag">Decision</span>
+          <span class="lbl">Did the misfire follow the coil to the other cylinder?</span>
+        </div>
+        <div class="fc-arrow"></div>
+        <div class="fc-split">
+          <div class="fc-branch">
+            <span class="tag tag-yes">YES</span>
+            <div class="fc-arrow"></div>
+            <div class="fc-node fc-good">
+              <span class="lbl">✓ Bad coil — replace #8 coil</span>
+              <span class="sub">~$30 · Easy · 15 min. Misfire fixed.</span>
+            </div>
+          </div>
+          <div class="fc-branch">
+            <span class="tag tag-no">NO</span>
+            <div class="fc-arrow"></div>
+            <div class="fc-node fc-skip"><span class="sub">↓ Coil is good — continue to step 2</span></div>
+          </div>
+        </div>
+        <div class="fc-arrow"></div>
+
+        <!-- Step 2: plugs -->
+        <div class="fc-node fc-process">
+          <span class="lbl">2 — Pull both #8 spark plugs and inspect</span>
+          <span class="sub">The 5.7 HEMI runs 16 plugs (2 per cylinder). Look for fouling, oil, cracks, a wide gap, worn electrodes.</span>
+        </div>
+        <div class="fc-arrow"></div>
+        <div class="fc-node fc-decision">
+          <span class="qtag">Decision</span>
+          <span class="lbl">Are the #8 plugs fouled, worn, or damaged?</span>
+        </div>
+        <div class="fc-arrow"></div>
+        <div class="fc-split">
+          <div class="fc-branch">
+            <span class="tag tag-yes">YES</span>
+            <div class="fc-arrow"></div>
+            <div class="fc-node fc-good">
+              <span class="lbl">✓ Replace plugs — do all 16 at 320k</span>
+              <span class="sub">$50–100 · Easy → Moderate · 1.5–2.5 hrs. Re-scan to confirm.</span>
+            </div>
+          </div>
+          <div class="fc-branch">
+            <span class="tag tag-no">NO</span>
+            <div class="fc-arrow"></div>
+            <div class="fc-node fc-skip"><span class="sub">↓ Plugs are good — continue to step 3</span></div>
+          </div>
+        </div>
+        <div class="fc-arrow"></div>
+
+        <!-- Step 3: injector -->
+        <div class="fc-node fc-process">
+          <span class="lbl">3 — Swap / test the #8 fuel injector</span>
+          <span class="sub">Swap with another cylinder's injector (or test flow/resistance). Clear codes, re-scan.</span>
+        </div>
+        <div class="fc-arrow"></div>
+        <div class="fc-node fc-decision">
+          <span class="qtag">Decision</span>
+          <span class="lbl">Did the misfire follow the injector?</span>
+        </div>
+        <div class="fc-arrow"></div>
+        <div class="fc-split">
+          <div class="fc-branch">
+            <span class="tag tag-yes">YES</span>
+            <div class="fc-arrow"></div>
+            <div class="fc-node fc-good">
+              <span class="lbl">✓ Bad injector — replace #8 injector</span>
+              <span class="sub">$40–100 · Moderate · 30–60 min. Misfire fixed.</span>
+            </div>
+          </div>
+          <div class="fc-branch">
+            <span class="tag tag-no">NO</span>
+            <div class="fc-arrow"></div>
+            <div class="fc-node fc-skip"><span class="sub">↓ Injector is good — continue to step 4</span></div>
+          </div>
+        </div>
+        <div class="fc-arrow"></div>
+
+        <!-- Step 4: compression -->
+        <div class="fc-node fc-process">
+          <span class="lbl">4 — Compression / leak-down test on cylinder 8</span>
+          <span class="sub">Final check. With zero tick a mechanical cause is unlikely — but this catches a burnt valve.</span>
+        </div>
+        <div class="fc-arrow"></div>
+        <div class="fc-node fc-decision">
+          <span class="qtag">Decision</span>
+          <span class="lbl">Is #8 compression within ~10% of the other cylinders?</span>
+        </div>
+        <div class="fc-arrow"></div>
+        <div class="fc-split">
+          <div class="fc-branch">
+            <span class="tag tag-yes">YES — in spec</span>
+            <div class="fc-arrow"></div>
+            <div class="fc-node fc-process">
+              <span class="lbl">Re-check wiring &amp; PCM connector to #8</span>
+              <span class="sub">Mechanically sound — the fault is electrical upstream. Inspect the #8 coil/injector harness and PCM connector pins; re-confirm the misfire code.</span>
+            </div>
+          </div>
+          <div class="fc-branch">
+            <span class="tag tag-no">NO — low</span>
+            <div class="fc-arrow"></div>
+            <div class="fc-node fc-bad">
+              <span class="lbl">⚠ Mechanical — likely a burnt valve</span>
+              <span class="sub">Bigger job. Weigh the repair against the truck's value at 319,774 mi.</span>
+            </div>
+          </div>
+        </div>
+        <div class="fc-arrow"></div>
+
+        <div class="fc-node fc-good" style="max-width:480px;margin:0 auto;text-align:center">
+          <span class="lbl">Finish — re-drive &amp; re-record a loop</span>
+          <span class="sub">Confirm: misfire counter at 0 · bank-2 trim back to ±5% · idle ~650 rpm</span>
+        </div>
+
+        <div class="fc-legend">
+          <span><i style="background:#1e293b"></i> Start</span>
+          <span><i style="background:var(--accent)"></i> Do this</span>
+          <span><i style="background:var(--med)"></i> Decision</span>
+          <span><i style="background:var(--ok)"></i> Fixed / good</span>
+          <span><i style="background:var(--hi)"></i> Escalate</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== DATA ===================== -->
+  <section class="panel" id="data">
+    <div class="card">
+      <h2>Recordings analyzed</h2>
+      <p class="lead">9 captures from the 2013 Ram on 2026-05-14 (the two 2004 Dodge captures from the same session are excluded).</p>
+      <table>
+        <thead><tr><th>Time</th><th>Recording</th><th>Type</th><th class="num">Samples</th><th>PIDs</th></tr></thead>
+        <tbody>
+          <tr><td>16:49</td><td>Drive loop A</td><td>.cds</td><td class="num">1,455</td><td>8</td></tr>
+          <tr><td>16:54</td><td>Drive loop A — CSV export</td><td>.csv</td><td class="num">132</td><td>8</td></tr>
+          <tr><td>16:54</td><td>Long drive recording (~44 min)</td><td>.csv</td><td class="num">26,411</td><td>8</td></tr>
+          <tr><td>18:53</td><td>Misfire capture</td><td>.cds</td><td class="num">598</td><td>11</td></tr>
+          <tr><td>18:59</td><td>Full stationary capture</td><td>.cds</td><td class="num">1,012</td><td>215</td></tr>
+          <tr><td>19:16</td><td>Injector + knock capture</td><td>.cds</td><td class="num">78</td><td>8</td></tr>
+          <tr><td>19:16</td><td>Injector/knock clip (~3 s)</td><td>.csv</td><td class="num">52</td><td>9</td></tr>
+          <tr><td>19:21</td><td>Drive loop B</td><td>.cds</td><td class="num">941</td><td>8</td></tr>
+          <tr><td>19:26</td><td>Drive loop C — short</td><td>.cds</td><td class="num">38</td><td>8</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Key data points</h2>
+      <p class="lead">The specific readings the diagnosis is built on.</p>
+      <table>
+        <thead><tr><th>Reading</th><th>Value</th><th>What it means</th></tr></thead>
+        <tbody>
+          <tr><td>Oil Pressure</td><td class="num flat">0.000 (flat, 3 recordings)</td><td>Sensor circuit dead — see Issue 1</td></tr>
+          <tr><td>Oil Pressure Sensor Voltage</td><td class="num flat">0.000 V (flat)</td><td>Signal wire open or shorted to ground</td></tr>
+          <tr><td>Cyl 1–7 misfire counters</td><td class="num">0.000 (flat)</td><td>Those cylinders are clean</td></tr>
+          <tr><td>Cyl 8 misfire counter</td><td class="num" style="color:var(--med)">0 → 1 (mean 0.196)</td><td>Misfire localizes to cylinder 8 — see Issue 2</td></tr>
+          <tr><td>Bank 2 long-term fuel trim</td><td class="num" style="color:var(--med)">+6.6% mean / +16.4% peak</td><td>PCM adding fuel for a weak bank — see Issue 3</td></tr>
+          <tr><td>Idle speed</td><td class="num">~585–600 rpm</td><td>Slightly low (HEMI norm ~650) — see Issue 4</td></tr>
+          <tr><td>Knock retard</td><td class="num" style="color:var(--ok)">0°</td><td>PCM not pulling timing — no detonation, supports "zero tick"</td></tr>
+          <tr><td>MAP vacuum at idle</td><td class="num" style="color:var(--ok)">~18.7 inHg</td><td>Decent — rules out a large vacuum leak</td></tr>
+          <tr><td>PCM odometer</td><td class="num">319,774 mi</td><td>High mileage — weigh fixes against truck value</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Source files</h2>
+      <p class="lead mut">All raw data, decoded CSVs, and the parser scripts live in the project folder.</p>
+      <div class="filerow">C:\Users\Michael\Downloads\XTOOL-D7-tests-2026-05-15\</div>
+      <div class="filerow">2013-RAM_consolidated-data_2026-05-14.md &nbsp;— full per-PID stats for all 9 recordings</div>
+      <div class="filerow">cds_records\ · csv_records\ · analysis\ &nbsp;— raw captures + decoded time-series CSVs</div>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  Built from XTOOL D7 (S/N D7-027522) datastream captures · 2026-05-14 ·
+  Engine confirmed from data; VIN / DTCs pending scanner read.
+</footer>
+
+<script>
+  const tabs=document.querySelectorAll('.tab');
+  const panels=document.querySelectorAll('.panel');
+  tabs.forEach(t=>t.addEventListener('click',()=>{
+    tabs.forEach(x=>x.classList.remove('active'));
+    panels.forEach(p=>p.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById(t.dataset.tab).classList.add('active');
+    window.scrollTo({top:0,behavior:'smooth'});
+  }));
+</script>
+</body>
+</html>

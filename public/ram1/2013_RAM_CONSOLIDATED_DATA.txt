@@ -1,0 +1,3263 @@
+================================================================================
+2013 RAM DIAGNOSTIC DATA - ALL SCANS FROM 2026-05-14/15
+================================================================================
+
+Total Scans: 7
+Data Source: X-Tool D7
+Report Generated: 2026-05-14 20:48:26
+
+SCAN FILENAMES AND TIMESTAMPS:
+--------------------------------------------------------------------------------
+1. DODGE_1778793304091.cds.summary.csv
+   Timestamp ID: 1778793304091
+
+2. DODGE_1778794815538.cds.summary.csv
+   Timestamp ID: 1778794815538
+
+3. DODGE_1778802834193.cds.summary.csv
+   Timestamp ID: 1778802834193
+
+4. DODGE_1778803156684.cds.summary.csv
+   Timestamp ID: 1778803156684
+
+5. DODGE_1778804187496.cds.summary.csv
+   Timestamp ID: 1778804187496
+
+6. DODGE_1778804467376.cds.summary.csv
+   Timestamp ID: 1778804467376
+
+7. DODGE_1778804776872.cds.summary.csv
+   Timestamp ID: 1778804776872
+
+
+================================================================================
+DETAILED SCAN DATA:
+================================================================================
+
+
+================================================================================
+SCAN #1: DODGE_1778793304091.cds.summary.csv
+================================================================================
+
+Parameter: MAP VACUUM
+  Unit: inHgV
+  Samples: 62
+  Min: 2.065
+  Max: 23.128
+  Mean: 18.213870967741936
+  Std Dev: 3.4462847526363665
+  First: 18.349
+  Last: 18.762
+  Range: 21.063
+  Flag: 
+
+Parameter: TPS VOLTS
+  Unit: V
+  Samples: 62
+  Min: 0.595
+  Max: 2.105
+  Mean: 0.6758064516129032
+  Std Dev: 0.291251738951457
+  First: 0.6
+  Last: 0.6
+  Range: 1.51
+  Flag: 
+
+Parameter: ENGINE RPM
+  Unit: rpm
+  Samples: 62
+  Min: 653.0
+  Max: 2631.0
+  Mean: 891.6129032258065
+  Std Dev: 399.3019051374661
+  First: 675.0
+  Last: 653.0
+  Range: 1978.0
+  Flag: 
+
+Parameter: EGR SENSE VOLTS
+  Unit: V
+  Samples: 62
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: CAT MODELED TEMP DEG
+  Unit: deg F
+  Samples: 62
+  Min: 838.4
+  Max: 987.8
+  Mean: 948.6354838709677
+  Std Dev: 45.382397101754684
+  First: 838.4
+  Last: 978.8
+  Range: 149.39999999999998
+  Flag: 
+
+Parameter: 2/1 SHORT TERM ADAP
+  Unit: %
+  Samples: 62
+  Min: -20.245
+  Max: -3.865
+  Mean: -10.230806451612903
+  Std Dev: 3.1085969754999456
+  First: -12.445
+  Last: -11.08
+  Range: 16.380000000000003
+  Flag: 
+
+Parameter: 1/2 PWM O2 HEATER
+  Unit: %
+  Samples: 62
+  Min: 69.776
+  Max: 99.96
+  Mean: 85.50025806451612
+  Std Dev: 7.064111016223607
+  First: 89.768
+  Last: 79.968
+  Range: 30.183999999999997
+  Flag: 
+
+Parameter: TPS 1 VOLTS
+  Unit: V
+  Samples: 62
+  Min: 0.68
+  Max: 0.68
+  Mean: 0.68
+  Std Dev: 0.0
+  First: 0.68
+  Last: 0.68
+  Range: 0.0
+  Flag: FLAT
+
+
+================================================================================
+SCAN #2: DODGE_1778794815538.cds.summary.csv
+================================================================================
+
+Parameter: MAP VACUUM
+  Unit: inHgV
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: TPS VOLTS
+  Unit: V
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: ENGINE RPM
+  Unit: rpm
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: EGR SENSE VOLTS
+  Unit: V
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: CAT MODELED TEMP DEG
+  Unit: deg F
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: 2/1 SHORT TERM ADAP
+  Unit: %
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: 1/2 PWM O2 HEATER
+  Unit: %
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: TPS 1 VOLTS
+  Unit: V
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+
+================================================================================
+SCAN #3: DODGE_1778802834193.cds.summary.csv
+================================================================================
+
+Parameter: Mis-Fire Monitor Status
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: Mis-Fire Counter-200 REV
+  Unit: 
+  Samples: 598
+  Min: 1.0
+  Max: 798.0
+  Mean: 417.39297658862876
+  Std Dev: 235.3120345332058
+  First: 675.0
+  Last: 443.0
+  Range: 797.0
+  Flag: 
+
+Parameter: Mis-Fire Counter CAT 200 Rev
+  Unit: 
+  Samples: 598
+  Min: 0.0
+  Max: 1.0
+  Mean: 0.033444816053511704
+  Std Dev: 0.17979505091258344
+  First: 0.0
+  Last: 0.0
+  Range: 1.0
+  Flag: 
+
+Parameter: Cylinder 1 FTP Mis-Fire Counter
+  Unit: 
+  Samples: 598
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Cylinder 2 FTP Mis-Fire Counter
+  Unit: 
+  Samples: 598
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Cylinder 3 FTP Mis-Fire Counter
+  Unit: 
+  Samples: 598
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Cylinder 4 FTP Mis-Fire Counter
+  Unit: 
+  Samples: 598
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Cylinder 5 FTP Mis-Fire Counter
+  Unit: 
+  Samples: 598
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Cylinder 6 FTP Mis-Fire Counter
+  Unit: 
+  Samples: 598
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Cylinder 7 FTP Mis-Fire Counter
+  Unit: 
+  Samples: 598
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Cylinder 8 FTP Mis-Fire Counter
+  Unit: 
+  Samples: 598
+  Min: 0.0
+  Max: 1.0
+  Mean: 0.1956521739130435
+  Std Dev: 0.3967019041498839
+  First: 0.0
+  Last: 0.0
+  Range: 1.0
+  Flag: 
+
+
+================================================================================
+SCAN #4: DODGE_1778803156684.cds.summary.csv
+================================================================================
+
+Parameter: Mis-Fire Monitor Status
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: Mis-Fire Counter-200 REV
+  Unit: 
+  Samples: 14
+  Min: 447.0
+  Max: 800.0
+  Mean: 611.9285714285714
+  Std Dev: 128.55763814931655
+  First: 627.0
+  Last: 800.0
+  Range: 353.0
+  Flag: 
+
+Parameter: Mis-Fire Counter CAT 200 Rev
+  Unit: 
+  Samples: 14
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Cylinder 1 FTP Mis-Fire Counter
+  Unit: 
+  Samples: 14
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Cylinder 2 FTP Mis-Fire Counter
+  Unit: 
+  Samples: 14
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Cylinder 3 FTP Mis-Fire Counter
+  Unit: 
+  Samples: 14
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Cylinder 4 FTP Mis-Fire Counter
+  Unit: 
+  Samples: 14
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Cylinder 5 FTP Mis-Fire Counter
+  Unit: 
+  Samples: 14
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Cylinder 6 FTP Mis-Fire Counter
+  Unit: 
+  Samples: 14
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Cylinder 7 FTP Mis-Fire Counter
+  Unit: 
+  Samples: 14
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Cylinder 8 FTP Mis-Fire Counter
+  Unit: 
+  Samples: 14
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: SKIM VTA Invalid Key Received Fault Posted
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: NGC Should Shut Off Fuel
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: SKIM/VTA Has Completed
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: IGN OFF RUN START SW
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: IGN RUN START SW
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: IGN START SW
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: Ignition Start Switch Filtered Switch State
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: MAP Vacuum
+  Unit: inHg
+  Samples: 176
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Map Volts
+  Unit: V
+  Samples: 176
+  Min: 4.39
+  Max: 4.4
+  Mean: 4.390056818181818
+  Std Dev: 0.0007516338951888549
+  First: 4.39
+  Last: 4.39
+  Range: 0.010000000000000675
+  Flag: FLAT
+
+Parameter: Barometric Pressure
+  Unit: inHg
+  Samples: 167
+  Min: 29.26
+  Max: 29.26
+  Mean: 29.26
+  Std Dev: 0.0
+  First: 29.26
+  Last: 29.26
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: APP 1 Volts
+  Unit: V
+  Samples: 167
+  Min: 0.43
+  Max: 0.43
+  Mean: 0.43
+  Std Dev: 0.0
+  First: 0.43
+  Last: 0.43
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: APP 2 Volts
+  Unit: V
+  Samples: 166
+  Min: 0.0
+  Max: 0.22
+  Mean: 0.21626506024096384
+  Std Dev: 0.024083731617231346
+  First: 0.21
+  Last: 0.22
+  Range: 0.22
+  Flag: 
+
+Parameter: TPS 1 Minimum Volts
+  Unit: V
+  Samples: 165
+  Min: 0.51
+  Max: 0.51
+  Mean: 0.51
+  Std Dev: 0.0
+  First: 0.51
+  Last: 0.51
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: TPS 1 Volts
+  Unit: V
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: TPS 2 Minimum Volts
+  Unit: V
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: TPS 2 Volts
+  Unit: V
+  Samples: 15
+  Min: 4.29
+  Max: 4.29
+  Mean: 4.29
+  Std Dev: 0.0
+  First: 4.29
+  Last: 4.29
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Throttle Blade Position
+  Unit: %
+  Samples: 124
+  Min: 4.09
+  Max: 8.58
+  Mean: 8.035645161290322
+  Std Dev: 1.4637062116727833
+  First: 8.55
+  Last: 4.09
+  Range: 4.49
+  Flag: 
+
+Parameter: ETC Directional Duty Cycle
+  Unit: %
+  Samples: 124
+  Min: -19.42
+  Max: 0.0
+  Mean: -2.3491935483870967
+  Std Dev: 6.332663608774262
+  First: 0.0
+  Last: -19.42
+  Range: 19.42
+  Flag: 
+
+Parameter: Engine Speed
+  Unit: rpm
+  Samples: 944
+  Min: 0.0
+  Max: 3944.0
+  Mean: 1060.165254237288
+  Std Dev: 586.4453391635321
+  First: 0.0
+  Last: 611.0
+  Range: 3944.0
+  Flag: 
+
+Parameter: Target Idle Speed
+  Unit: rpm
+  Samples: 124
+  Min: 624.0
+  Max: 1104.0
+  Mean: 1045.9354838709678
+  Std Dev: 156.52309640636693
+  First: 1104.0
+  Last: 624.0
+  Range: 480.0
+  Flag: 
+
+Parameter: Time From Start Run
+  Unit: ms
+  Samples: 124
+  Min: 0.0
+  Max: 83.87
+  Mean: 10.145564516129033
+  Std Dev: 27.349150199170822
+  First: 0.0
+  Last: 83.87
+  Range: 83.87
+  Flag: 
+
+Parameter: Time Fuel System in Run Mode
+  Unit: ms
+  Samples: 124
+  Min: 0.0
+  Max: 81.92
+  Mean: 9.90967741935484
+  Std Dev: 26.713275120019958
+  First: 0.0
+  Last: 81.92
+  Range: 81.92
+  Flag: 
+
+Parameter: Ignition Off Time
+  Unit: minutes
+  Samples: 124
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Engine Runtime
+  Unit: ms
+  Samples: 118
+  Min: 0.0
+  Max: 88.35
+  Mean: 10.44194915254237
+  Std Dev: 28.461618528320763
+  First: 0.0
+  Last: 88.35
+  Range: 88.35
+  Flag: 
+
+Parameter: Purge Duty Cycle
+  Unit: %
+  Samples: 118
+  Min: 0.0
+  Max: 30.43
+  Mean: 3.589915254237288
+  Std Dev: 9.784680736307251
+  First: 0.0
+  Last: 30.3
+  Range: 30.43
+  Flag: 
+
+Parameter: Desired Purge Current
+  Unit: mA
+  Samples: 118
+  Min: 0.0
+  Max: 192.47
+  Mean: 22.79398305084746
+  Std Dev: 62.12744008971726
+  First: 0.0
+  Last: 192.47
+  Range: 192.47
+  Flag: 
+
+Parameter: Actual Purge Current
+  Unit: mA
+  Samples: 117
+  Min: 0.0
+  Max: 195.4
+  Mean: 23.205555555555552
+  Std Dev: 62.94685353526817
+  First: 0.0
+  Last: 194.42
+  Range: 195.4
+  Flag: 
+
+Parameter: Purge AirFlow
+  Unit: g/s
+  Samples: 113
+  Min: 0.0
+  Max: 0.16
+  Mean: 0.019823008849557525
+  Std Dev: 0.052713657965270895
+  First: 0.0
+  Last: 0.16
+  Range: 0.16
+  Flag: 
+
+Parameter: Purge Mode
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: Purge Vapor Ratio
+  Unit: 
+  Samples: 113
+  Min: 0.1
+  Max: 0.27
+  Mean: 0.24911504424778763
+  Std Dev: 0.055551260265033056
+  First: 0.27
+  Last: 0.1
+  Range: 0.17
+  Flag: 
+
+Parameter: Purge Adaptive
+  Unit: 
+  Samples: 113
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Actual Torque
+  Unit: Nm
+  Samples: 112
+  Min: -1.51
+  Max: 434.92
+  Mean: 391.3688392857143
+  Std Dev: 129.65652016375486
+  First: 434.92
+  Last: -1.51
+  Range: 436.43
+  Flag: 
+
+Parameter: ETC Starter Inhibit
+  Unit: mile
+  Samples: 112
+  Min: 315351.04
+  Max: 315351.04
+  Mean: 315351.04
+  Std Dev: 0.0
+  First: 315351.04
+  Last: 315351.04
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Injector Pulse Width Cylinder 1
+  Unit: us
+  Samples: 932
+  Min: 0.0
+  Max: 10832.0
+  Mean: 2761.0557939914165
+  Std Dev: 2408.811047409714
+  First: 0.0
+  Last: 2056.0
+  Range: 10832.0
+  Flag: 
+
+Parameter: Injector Pulse Width Cylinder 2
+  Unit: us
+  Samples: 931
+  Min: 0.0
+  Max: 10248.0
+  Mean: 2677.3190118152525
+  Std Dev: 2347.4430883205364
+  First: 0.0
+  Last: 2000.0
+  Range: 10248.0
+  Flag: 
+
+Parameter: Injector Pulse Width Cylinder 3
+  Unit: us
+  Samples: 111
+  Min: 0.0
+  Max: 1840.0
+  Mean: 150.63063063063063
+  Std Dev: 456.0017371534781
+  First: 0.0
+  Last: 1536.0
+  Range: 1840.0
+  Flag: 
+
+Parameter: Injector Pulse Width Cylinder 4
+  Unit: us
+  Samples: 111
+  Min: 0.0
+  Max: 1896.0
+  Mean: 148.25225225225225
+  Std Dev: 448.95756071566075
+  First: 0.0
+  Last: 1472.0
+  Range: 1896.0
+  Flag: 
+
+Parameter: Injector Pulse Width Cylinder 5
+  Unit: us
+  Samples: 111
+  Min: 0.0
+  Max: 1608.0
+  Mean: 132.03603603603602
+  Std Dev: 420.25526193956284
+  First: 0.0
+  Last: 1480.0
+  Range: 1608.0
+  Flag: 
+
+Parameter: Injector Pulse Width Cylinder 6
+  Unit: us
+  Samples: 5
+  Min: 1184.0
+  Max: 6760.0
+  Mean: 2460.8
+  Std Dev: 2152.613146851984
+  First: 6760.0
+  Last: 1384.0
+  Range: 5576.0
+  Flag: 
+
+Parameter: Injector Pulse Width Cylinder 7
+  Unit: us
+  Samples: 826
+  Min: 0.0
+  Max: 10992.0
+  Mean: 2916.319612590799
+  Std Dev: 2189.6489606718424
+  First: 1416.0
+  Last: 1952.0
+  Range: 10992.0
+  Flag: 
+
+Parameter: Injector Pulse Width Cylinder 8
+  Unit: us
+  Samples: 826
+  Min: 0.0
+  Max: 10800.0
+  Mean: 3009.782082324455
+  Std Dev: 2283.5009018997075
+  First: 1424.0
+  Last: 2056.0
+  Range: 10800.0
+  Flag: 
+
+Parameter: Cranking Injector Pulse Width
+  Unit: us
+  Samples: 6
+  Min: 7064.0
+  Max: 7064.0
+  Mean: 7064.0
+  Std Dev: 0.0
+  First: 7064.0
+  Last: 7064.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: 1/1 O2 Sensor Level
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: 2/1 O2 Sensor Level
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: 1/1 O2 Goal(0-1)
+  Unit: V
+  Samples: 6
+  Min: 0.67
+  Max: 0.67
+  Mean: 0.67
+  Std Dev: 0.0
+  First: 0.67
+  Last: 0.67
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: 2/1 O2 Goal(0-1)
+  Unit: V
+  Samples: 110
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: 1/1 O2 Volts(0-1)
+  Unit: V
+  Samples: 110
+  Min: 0.96
+  Max: 0.96
+  Mean: 0.96
+  Std Dev: 0.0
+  First: 0.96
+  Last: 0.96
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: 1/1 O2 Sensor Volts
+  Unit: V
+  Samples: 110
+  Min: 3.47
+  Max: 3.47
+  Mean: 3.47
+  Std Dev: 0.0
+  First: 3.47
+  Last: 3.47
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: 1/2 O2 Volts(0-1)
+  Unit: V
+  Samples: 110
+  Min: 0.82
+  Max: 0.82
+  Mean: 0.82
+  Std Dev: 0.0
+  First: 0.82
+  Last: 0.82
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: 1/2 O2 Sensor Volts
+  Unit: V
+  Samples: 110
+  Min: 3.34
+  Max: 3.34
+  Mean: 3.34
+  Std Dev: 0.0
+  First: 3.34
+  Last: 3.34
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: 2/1 O2 Volts(0-1)
+  Unit: V
+  Samples: 110
+  Min: 1.08
+  Max: 1.08
+  Mean: 1.08
+  Std Dev: 0.0
+  First: 1.08
+  Last: 1.08
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: 2/1 O2 Sensor Volts
+  Unit: V
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: 2/2 O2 Volts(0-1)
+  Unit: V
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: 2/2 O2 Sensor Volts
+  Unit: V
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: 1/1 O2 Fuel Feedback
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: 2/1 O2 Fuel Feedback
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: 1/1 Pulse Width O2 Heater
+  Unit: %
+  Samples: 109
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: 1/2 Pulse Width O2 Heater
+  Unit: %
+  Samples: 109
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: 2/1 Pulse Width O2 Heater
+  Unit: %
+  Samples: 109
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: 2/2 Pulse Width O2 Heater
+  Unit: %
+  Samples: 109
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: 1/1 O2 Heater Temp
+  Unit: deg C
+  Samples: 108
+  Min: 1122.8
+  Max: 1122.8
+  Mean: 1122.8
+  Std Dev: 0.0
+  First: 1122.8
+  Last: 1122.8
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: 1/2 O2 Heater Temp
+  Unit: deg C
+  Samples: 108
+  Min: 1086.8
+  Max: 1086.8
+  Mean: 1086.8
+  Std Dev: 0.0
+  First: 1086.8
+  Last: 1086.8
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: 2/1 O2 Heater Temp
+  Unit: deg C
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: 2/2 O2 Heater Temp
+  Unit: deg C
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: 1/1 Short Term ADAP
+  Unit: %
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: 2/1 Short Term ADAP
+  Unit: %
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: 1/1 Long Term ADAP
+  Unit: %
+  Samples: 107
+  Min: 8.2
+  Max: 8.2
+  Mean: 8.2
+  Std Dev: 0.0
+  First: 8.2
+  Last: 8.2
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: 2/1 Long Term ADAP
+  Unit: %
+  Samples: 107
+  Min: 8.79
+  Max: 8.79
+  Mean: 8.79
+  Std Dev: 0.0
+  First: 8.79
+  Last: 8.79
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Closed Loop Timer
+  Unit: ms
+  Samples: 107
+  Min: 10.24
+  Max: 10.24
+  Mean: 10.24
+  Std Dev: 0.0
+  First: 10.24
+  Last: 10.24
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Current ADAP Cell ID
+  Unit: 
+  Samples: 107
+  Min: 24.0
+  Max: 24.0
+  Mean: 24.0
+  Std Dev: 0.0
+  First: 24.0
+  Last: 24.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Engine Coolant Temp
+  Unit: deg C
+  Samples: 107
+  Min: 203.0
+  Max: 203.0
+  Mean: 203.0
+  Std Dev: 0.0
+  First: 203.0
+  Last: 203.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Engine Coolant Temp Volt
+  Unit: V
+  Samples: 107
+  Min: 0.85
+  Max: 0.85
+  Mean: 0.85
+  Std Dev: 0.0
+  First: 0.85
+  Last: 0.85
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Intake Air Temp
+  Unit: deg C
+  Samples: 105
+  Min: 120.2
+  Max: 120.2
+  Mean: 120.2
+  Std Dev: 0.0
+  First: 120.2
+  Last: 120.2
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Intake Air Temp Volt
+  Unit: V
+  Samples: 105
+  Min: 2.42
+  Max: 2.42
+  Mean: 2.42
+  Std Dev: 0.0
+  First: 2.42
+  Last: 2.42
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Ambient Temp
+  Unit: deg C
+  Samples: 105
+  Min: 71.6
+  Max: 71.6
+  Mean: 71.6
+  Std Dev: 0.0
+  First: 71.6
+  Last: 71.6
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Ambient Temp Voltage
+  Unit: V
+  Samples: 105
+  Min: 2.63
+  Max: 2.63
+  Mean: 2.63
+  Std Dev: 0.0
+  First: 2.63
+  Last: 2.63
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Fuel Level Percent
+  Unit: %
+  Samples: 105
+  Min: 9.0
+  Max: 9.0
+  Mean: 9.0
+  Std Dev: 0.0
+  First: 9.0
+  Last: 9.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Fuel Tank Vapor Volume
+  Unit: gal
+  Samples: 105
+  Min: 26.88
+  Max: 26.88
+  Mean: 26.880000000000003
+  Std Dev: 0.0
+  First: 26.88
+  Last: 26.88
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Fuel Tank Size
+  Unit: gal
+  Samples: 104
+  Min: 26.0
+  Max: 26.0
+  Mean: 26.0
+  Std Dev: 0.0
+  First: 26.0
+  Last: 26.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Fuel Level Sensor/#1 Volts
+  Unit: V
+  Samples: 104
+  Min: 3.8
+  Max: 3.8
+  Mean: 3.8
+  Std Dev: 0.0
+  First: 3.8
+  Last: 3.8
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: CAT Modeled Temp
+  Unit: deg C
+  Samples: 104
+  Min: 1322.6
+  Max: 1322.6
+  Mean: 1322.6
+  Std Dev: 0.0
+  First: 1322.6
+  Last: 1322.6
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Oil Pressure
+  Unit: kPa
+  Samples: 104
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: VVT Oil Pressure
+  Unit: kPa
+  Samples: 104
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Engine Oil Temperature
+  Unit: deg C
+  Samples: 102
+  Min: 188.6
+  Max: 190.4
+  Mean: 188.61764705882354
+  Std Dev: 0.17735074625507566
+  First: 190.4
+  Last: 188.6
+  Range: 1.8000000000000114
+  Flag: FLAT
+
+Parameter: Oil Pressure Sensor Voltage
+  Unit: V
+  Samples: 102
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Voltage Sense
+  Unit: V
+  Samples: 102
+  Min: 12.27
+  Max: 12.27
+  Mean: 12.27
+  Std Dev: 0.0
+  First: 12.27
+  Last: 12.27
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: VVT Oil Temp
+  Unit: deg C
+  Samples: 102
+  Min: 188.6
+  Max: 190.4
+  Mean: 188.61764705882354
+  Std Dev: 0.17735074625507566
+  First: 190.4
+  Last: 188.6
+  Range: 1.8000000000000114
+  Flag: FLAT
+
+Parameter: Target Charging Voltage
+  Unit: V
+  Samples: 100
+  Min: 13.77
+  Max: 13.77
+  Mean: 13.77
+  Std Dev: 0.0
+  First: 13.77
+  Last: 13.77
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Generator Duty Cycle
+  Unit: %DC
+  Samples: 100
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Mass Airflow
+  Unit: g/s
+  Samples: 920
+  Min: 1.96
+  Max: 176.21
+  Mean: 19.981217391304348
+  Std Dev: 22.484324477591283
+  First: 2.89
+  Last: 6.94
+  Range: 174.25
+  Flag: 
+
+Parameter: Knock Sensor 1 Volts
+  Unit: V
+  Samples: 920
+  Min: 0.0
+  Max: 3.64
+  Mean: 0.32040217391304343
+  Std Dev: 0.21251943950892385
+  First: 0.0
+  Last: 0.23
+  Range: 3.64
+  Flag: 
+
+Parameter: Knock Sensor 2 Volts
+  Unit: V
+  Samples: 920
+  Min: 0.0
+  Max: 4.3
+  Mean: 0.34782608695652173
+  Std Dev: 0.3109680749969308
+  First: 0.0
+  Last: 0.23
+  Range: 4.3
+  Flag: 
+
+Parameter: ST Knock Retard
+  Unit: Degree
+  Samples: 98
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Base Spark
+  Unit: Degree
+  Samples: 98
+  Min: -64.0
+  Max: -64.0
+  Mean: -64.0
+  Std Dev: 0.0
+  First: -64.0
+  Last: -64.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Spark Advance
+  Unit: EngineDeg
+  Samples: 91
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: ESIM Switch
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: AC Hi-Side Voltage
+  Unit: V
+  Samples: 91
+  Min: 1.22
+  Max: 1.24
+  Mean: 1.2393406593406593
+  Std Dev: 0.003571005892147678
+  First: 1.22
+  Last: 1.24
+  Range: 0.020000000000000018
+  Flag: 
+
+Parameter: AC Hi-Side Pressure
+  Unit: kPa
+  Samples: 89
+  Min: 113.68
+  Max: 113.68
+  Mean: 113.68
+  Std Dev: 0.0
+  First: 113.68
+  Last: 113.68
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: PCM Odometer
+  Unit: mile
+  Samples: 89
+  Min: 319774.72
+  Max: 319774.72
+  Mean: 319774.72
+  Std Dev: 0.0
+  First: 319774.72
+  Last: 319774.72
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Vehicle Speed
+  Unit: mph
+  Samples: 89
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Cam Sync State
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: Crank Signal Missing
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: Crank Sync State
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: Crank System Fault and in Limp-Home Mode
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: Exhaust Cam 1/Crank Difference
+  Unit: EngineDeg
+  Samples: 87
+  Min: -0.9
+  Max: -0.8
+  Mean: -0.8275862068965517
+  Std Dev: 0.04469476343729558
+  First: -0.9
+  Last: -0.8
+  Range: 0.09999999999999998
+  Flag: 
+
+Parameter: Exhaust Cam 1 Duty Cycle
+  Unit: %DC
+  Samples: 87
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Exhaust Cam 1 Desired Position
+  Unit: EngineDeg
+  Samples: 71
+  Min: 127.8
+  Max: 127.8
+  Mean: 127.79999999999998
+  Std Dev: 0.0
+  First: 127.8
+  Last: 127.8
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Exhaust Cam 1 Actual Position
+  Unit: EngineDeg
+  Samples: 71
+  Min: 127.6
+  Max: 127.7
+  Mean: 127.6112676056338
+  Std Dev: 0.031619639888233186
+  First: 127.7
+  Last: 127.6
+  Range: 0.10000000000000853
+  Flag: FLAT
+
+Parameter: Brake Switch Filtered Switch State
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: Brake Switch 2 Filtered Switch State
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: Park Neutral Switch Filtered Switch State
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: AC Select Switch Filtered Switch State
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: AC Request Switch Filtered Switch State
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: AC Clutch  RLY DES State
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: Lo Spd Fan Rly Des State
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: Hi Spd Fan Des State
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: ASD Sense Switch Filtered Switch State
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: ASD Relay DES State
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: SRV Output State
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: SRV PWM Feedback
+  Unit: %
+  Samples: 55
+  Min: 44.0
+  Max: 44.0
+  Mean: 44.0
+  Std Dev: 0.0
+  First: 44.0
+  Last: 44.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Fuel Pump  RLY DES State
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: Desired Malfunction Lamp
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: MDS Has Been Activated
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: MDS In V4 State
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: MDS Status
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: MDS Transition Status
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: 4 To 8 Transition or Torque Reserve Requested
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: MDS Enabling Conditions Have Been Met
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: MDS Solenoid/#1(Cyl/#1)Status
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: MDS Solenoid/#2(Cyl/#4)Status
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: MDS Solenoid/#3(Cyl/#6)Status
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: MDS Solenoid/#4(Cyl/#7)Status
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: EVP ACTIVATIONS
+  Unit: count
+  Samples: 45
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: EVP COOL DOWN TIME
+  Unit: ms
+  Samples: 45
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: S/C Set Speed
+  Unit: mph
+  Samples: 45
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: S/C Switch Voltage
+  Unit: V
+  Samples: 45
+  Min: 1.8
+  Max: 1.82
+  Mean: 1.8186666666666667
+  Std Dev: 0.004988876515698593
+  First: 1.8
+  Last: 1.82
+  Range: 0.020000000000000018
+  Flag: 
+
+Parameter: S/C Switch Voltage 2
+  Unit: V
+  Samples: 45
+  Min: 2.27
+  Max: 2.41
+  Mean: 2.385555555555556
+  Std Dev: 0.023051204408693248
+  First: 2.27
+  Last: 2.39
+  Range: 0.14000000000000012
+  Flag: 
+
+Parameter: Cruise Lamp Status
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: S/C Working Status
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: S/C Denied Status
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: S/C Disenable Reason
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: S/C Disengage Reason
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: S/C Switch State 1
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: S/C Switch State 2
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: Limp-in Status
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: Turbine Speed
+  Unit: rpm
+  Samples: 41
+  Min: 634.0
+  Max: 664.0
+  Mean: 636.4146341463414
+  Std Dev: 6.9702350093568075
+  First: 649.0
+  Last: 634.0
+  Range: 30.0
+  Flag: 
+
+Parameter: Output Speed
+  Unit: rpm
+  Samples: 41
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Torque Converter Slip
+  Unit: rpm
+  Samples: 41
+  Min: 11.0
+  Max: 18.0
+  Mean: 17.21951219512195
+  Std Dev: 2.042382577117885
+  First: 11.0
+  Last: 18.0
+  Range: 7.0
+  Flag: 
+
+Parameter: Trans Oil Temperature
+  Unit: deg F
+  Samples: 40
+  Min: 135.02
+  Max: 135.02
+  Mean: 135.02
+  Std Dev: 0.0
+  First: 135.02
+  Last: 135.02
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Calculate Trans Oil Temp
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: Trans Temperature Voltage
+  Unit: V
+  Samples: 35
+  Min: 2.02
+  Max: 2.02
+  Mean: 2.02
+  Std Dev: 0.0
+  First: 2.02
+  Last: 2.02
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: LR Pressure Switch
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: 2C Pressure Switch
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: 4C Pressure Switch
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: UD Pressure Switch
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: OD Pressure Switch
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: Pressure Switch Error Counter
+  Unit: 
+  Samples: 32
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Tow/Haul/OD Switch
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: Autostick Upshift
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: Autostick Downshift
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: Autostick Position
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: PRNDL Display Request
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: T41/C1 Switch
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: T42/C2 Switch
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: T3/C3 Switch
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: T1/C4 Switch
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: Line Pressure Sensor
+  Unit: V
+  Samples: 30
+  Min: 0.98
+  Max: 1.0
+  Mean: 0.9806666666666666
+  Std Dev: 0.003590109871423006
+  First: 1.0
+  Last: 0.98
+  Range: 0.020000000000000018
+  Flag: 
+
+Parameter: T2/C5 Switch
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: Actual Line Pressure 1
+  Unit: psi
+  Samples: 30
+  Min: 50.0
+  Max: 50.0
+  Mean: 50.0
+  Std Dev: 0.0
+  First: 50.0
+  Last: 50.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Desired Line Pressure
+  Unit: psi
+  Samples: 30
+  Min: 50.0
+  Max: 50.0
+  Mean: 50.0
+  Std Dev: 0.0
+  First: 50.0
+  Last: 50.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Line Pressure Duty-Cycle(RFE)
+  Unit: %
+  Samples: 28
+  Min: 28.24
+  Max: 28.24
+  Mean: 28.24
+  Std Dev: 0.0
+  First: 28.24
+  Last: 28.24
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: 2C Clutch Fill Volume Index
+  Unit: 
+  Samples: 28
+  Min: 34.0
+  Max: 34.0
+  Mean: 34.0
+  Std Dev: 0.0
+  First: 34.0
+  Last: 34.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: LR Clutch Fill Volume Index
+  Unit: 
+  Samples: 28
+  Min: 79.0
+  Max: 79.0
+  Mean: 79.0
+  Std Dev: 0.0
+  First: 79.0
+  Last: 79.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Alternate 2C Clutch Fill Volume Index
+  Unit: 
+  Samples: 28
+  Min: 52.0
+  Max: 52.0
+  Mean: 52.0
+  Std Dev: 0.0
+  First: 52.0
+  Last: 52.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: 4C Clutch Fill Volume Index
+  Unit: 
+  Samples: 27
+  Min: 39.0
+  Max: 39.0
+  Mean: 39.0
+  Std Dev: 0.0
+  First: 39.0
+  Last: 39.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: UD Clutch Fill Volume Index
+  Unit: 
+  Samples: 27
+  Min: 35.0
+  Max: 35.0
+  Mean: 35.0
+  Std Dev: 0.0
+  First: 35.0
+  Last: 35.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: 1st N-D UD Clutch Fill Volume Index
+  Unit: 
+  Samples: 27
+  Min: 82.0
+  Max: 82.0
+  Mean: 82.0
+  Std Dev: 0.0
+  First: 82.0
+  Last: 82.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: Norm N-D UD Clutch Fill Volume Index
+  Unit: 
+  Samples: 27
+  Min: 53.0
+  Max: 53.0
+  Mean: 53.0
+  Std Dev: 0.0
+  First: 53.0
+  Last: 53.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: OD Clutch Fill Volume Index
+  Unit: 
+  Samples: 27
+  Min: 59.0
+  Max: 59.0
+  Mean: 59.0
+  Std Dev: 0.0
+  First: 59.0
+  Last: 59.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: 1st 2-3 OD Clutch Fill Volume Index
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: Present Gear
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: Present Gear TCC State
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: Target Gear
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: Target Gear TCC State
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: PRNDL Code(RFE)
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: LR Clutch
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: 2C Clutch
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: OD Clutch
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: 4C Clutch
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: UD Clutch
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: Current/Last Shift Performed
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: Fuel Tank Pressure
+  Unit: Pa
+  Samples: 25
+  Min: -2.37
+  Max: -2.37
+  Mean: -2.37
+  Std Dev: 0.0
+  First: -2.37
+  Last: -2.37
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: CNG Rail Temperature
+  Unit: deg C
+  Samples: 25
+  Min: -83.2
+  Max: -83.2
+  Mean: -83.2
+  Std Dev: 0.0
+  First: -83.2
+  Last: -83.2
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: CNG Tank Pressure
+  Unit: MPa
+  Samples: 25
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: CNG Tank Level Percent
+  Unit: %
+  Samples: 25
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: CNG Fuel Volume Used
+  Unit: gal
+  Samples: 25
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: CNG Tank Pressure Volts
+  Unit: V
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: Gasoline/CNG Switch State
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: CNG Transition in Progress
+  Unit: 
+  Samples: 0
+  Min: 
+  Max: 
+  Mean: 
+  Std Dev: 
+  First: 
+  Last: 
+  Range: 
+  Flag: NO-DATA
+
+Parameter: Variable Speed Fuel Pump Volts
+  Unit: V
+  Samples: 24
+  Min: 2.8
+  Max: 2.82
+  Mean: 2.8179166666666666
+  Std Dev: 0.0057584479004521814
+  First: 2.8
+  Last: 2.82
+  Range: 0.020000000000000018
+  Flag: 
+
+Parameter: Variable Speed Fuel Pump Actual Rail Pressure
+  Unit: kPa
+  Samples: 24
+  Min: 57.79
+  Max: 58.03
+  Mean: 57.805
+  Std Dev: 0.05267826876426383
+  First: 57.91
+  Last: 57.79
+  Range: 0.240000000000002
+  Flag: FLAT
+
+Parameter: Variable Speed Fuel Pump Duty Cycle
+  Unit: %DC
+  Samples: 24
+  Min: 67.85
+  Max: 67.93
+  Mean: 67.89875
+  Std Dev: 0.012011279421168513
+  First: 67.93
+  Last: 67.9
+  Range: 0.0800000000000125
+  Flag: FLAT
+
+Parameter: Variable Speed Fuel Pump Desired Rail Pressure
+  Unit: kPa
+  Samples: 24
+  Min: 58.0
+  Max: 58.0
+  Mean: 58.0
+  Std Dev: 0.0
+  First: 58.0
+  Last: 58.0
+  Range: 0.0
+  Flag: FLAT
+
+Parameter: STARTER_CNTRL_AUTO_RESTART_CNTR
+  Unit: count
+  Samples: 24
+  Min: 40448.0
+  Max: 40448.0
+  Mean: 40448.0
+  Std Dev: 0.0
+  First: 40448.0
+  Last: 40448.0
+  Range: 0.0
+  Flag: FLAT
+
+
+================================================================================
+SCAN #5: DODGE_1778804187496.cds.summary.csv
+================================================================================
+
+Parameter: Engine Speed
+  Unit: rpm
+  Samples: 78
+  Min: 581.0
+  Max: 3246.0
+  Mean: 1497.1153846153845
+  Std Dev: 715.8540350566611
+  First: 657.0
+  Last: 601.0
+  Range: 2665.0
+  Flag: 
+
+Parameter: Injector Pulse Width Cylinder 1
+  Unit: us
+  Samples: 78
+  Min: 592.0
+  Max: 8400.0
+  Mean: 1596.6153846153845
+  Std Dev: 1486.8319204817044
+  First: 1272.0
+  Last: 1448.0
+  Range: 7808.0
+  Flag: 
+
+Parameter: Injector Pulse Width Cylinder 2
+  Unit: us
+  Samples: 78
+  Min: 568.0
+  Max: 8696.0
+  Mean: 1522.4615384615386
+  Std Dev: 1416.5563488779228
+  First: 1280.0
+  Last: 1368.0
+  Range: 8128.0
+  Flag: 
+
+Parameter: Injector Pulse Width Cylinder 7
+  Unit: us
+  Samples: 78
+  Min: 512.0
+  Max: 8616.0
+  Mean: 1485.025641025641
+  Std Dev: 1353.2090536691962
+  First: 1216.0
+  Last: 1384.0
+  Range: 8104.0
+  Flag: 
+
+Parameter: Injector Pulse Width Cylinder 8
+  Unit: us
+  Samples: 78
+  Min: 552.0
+  Max: 8504.0
+  Mean: 1566.051282051282
+  Std Dev: 1399.569273461055
+  First: 1304.0
+  Last: 1416.0
+  Range: 7952.0
+  Flag: 
+
+Parameter: Mass Airflow
+  Unit: g/s
+  Samples: 78
+  Min: 3.94
+  Max: 85.2
+  Mean: 13.94602564102564
+  Std Dev: 12.86130873626782
+  First: 5.18
+  Last: 5.16
+  Range: 81.26
+  Flag: 
+
+Parameter: Knock Sensor 1 Volts
+  Unit: V
+  Samples: 78
+  Min: 0.22
+  Max: 0.96
+  Mean: 0.35448717948717945
+  Std Dev: 0.12217733471346366
+  First: 0.24
+  Last: 0.26
+  Range: 0.74
+  Flag: 
+
+Parameter: Knock Sensor 2 Volts
+  Unit: V
+  Samples: 78
+  Min: 0.22
+  Max: 0.8
+  Mean: 0.3408974358974359
+  Std Dev: 0.12778373053052244
+  First: 0.22
+  Last: 0.23
+  Range: 0.5800000000000001
+  Flag: 
+
+
+================================================================================
+SCAN #6: DODGE_1778804467376.cds.summary.csv
+================================================================================
+
+Parameter: MAP Vacuum
+  Unit: inHg
+  Samples: 941
+  Min: 1.42
+  Max: 23.72
+  Mean: 17.14962805526036
+  Std Dev: 5.323498043939249
+  First: 20.53
+  Last: 20.83
+  Range: 22.299999999999997
+  Flag: 
+
+Parameter: TPS 1 Volts
+  Unit: V
+  Samples: 941
+  Min: 0.69
+  Max: 2.39
+  Mean: 0.9290648246546227
+  Std Dev: 0.2834705536340113
+  First: 0.7
+  Last: 0.69
+  Range: 1.7000000000000002
+  Flag: 
+
+Parameter: TPS 2 Volts
+  Unit: V
+  Samples: 941
+  Min: 2.6
+  Max: 4.31
+  Mean: 4.071753453772582
+  Std Dev: 0.28470580076201485
+  First: 4.3
+  Last: 4.31
+  Range: 1.7099999999999995
+  Flag: 
+
+Parameter: ETC Directional Duty Cycle
+  Unit: %
+  Samples: 941
+  Min: -25.37
+  Max: 31.53
+  Mean: -2.301424017003188
+  Std Dev: 13.987435742562075
+  First: -14.03
+  Last: -14.52
+  Range: 56.900000000000006
+  Flag: 
+
+Parameter: Engine Speed
+  Unit: rpm
+  Samples: 941
+  Min: 546.0
+  Max: 4000.0
+  Mean: 1166.1997874601489
+  Std Dev: 472.6510334325349
+  First: 591.0
+  Last: 597.0
+  Range: 3454.0
+  Flag: 
+
+Parameter: 1/1 Short Term ADAP
+  Unit: %
+  Samples: 941
+  Min: -12.11
+  Max: 21.09
+  Mean: 0.49919234856535594
+  Std Dev: 4.6953600206900745
+  First: -1.37
+  Last: -1.18
+  Range: 33.2
+  Flag: 
+
+Parameter: 2/1 Long Term ADAP
+  Unit: %
+  Samples: 941
+  Min: 0.0
+  Max: 16.41
+  Mean: 6.600743889479277
+  Std Dev: 4.988397215464433
+  First: 8.79
+  Last: 8.79
+  Range: 16.41
+  Flag: 
+
+Parameter: Oil Pressure
+  Unit: psi
+  Samples: 941
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+
+
+================================================================================
+SCAN #7: DODGE_1778804776872.cds.summary.csv
+================================================================================
+
+Parameter: MAP Vacuum
+  Unit: inHg
+  Samples: 38
+  Min: 8.32
+  Max: 23.36
+  Mean: 20.681578947368422
+  Std Dev: 3.328031286476633
+  First: 20.65
+  Last: 22.54
+  Range: 15.04
+  Flag: 
+
+Parameter: TPS 1 Volts
+  Unit: V
+  Samples: 38
+  Min: 0.69
+  Max: 1.52
+  Mean: 0.7978947368421053
+  Std Dev: 0.150633013344158
+  First: 0.69
+  Last: 0.75
+  Range: 0.8300000000000001
+  Flag: 
+
+Parameter: TPS 2 Volts
+  Unit: V
+  Samples: 38
+  Min: 3.56
+  Max: 4.31
+  Mean: 4.199736842105263
+  Std Dev: 0.15018386699581662
+  First: 4.31
+  Last: 4.26
+  Range: 0.7499999999999996
+  Flag: 
+
+Parameter: ETC Directional Duty Cycle
+  Unit: %
+  Samples: 38
+  Min: -31.88
+  Max: 24.77
+  Mean: -10.259473684210526
+  Std Dev: 12.238033026371951
+  First: -13.18
+  Last: -13.24
+  Range: 56.65
+  Flag: 
+
+Parameter: Engine Speed
+  Unit: rpm
+  Samples: 38
+  Min: 574.0
+  Max: 2259.0
+  Mean: 1257.3947368421052
+  Std Dev: 565.7207112438026
+  First: 585.0
+  Last: 868.0
+  Range: 1685.0
+  Flag: 
+
+Parameter: 1/1 Short Term ADAP
+  Unit: %
+  Samples: 38
+  Min: -11.14
+  Max: 6.44
+  Mean: -2.3236842105263156
+  Std Dev: 4.50888504192884
+  First: -2.35
+  Last: 6.44
+  Range: 17.580000000000002
+  Flag: 
+
+Parameter: 2/1 Long Term ADAP
+  Unit: %
+  Samples: 38
+  Min: 5.47
+  Max: 16.41
+  Mean: 9.016315789473683
+  Std Dev: 1.8933907499129587
+  First: 8.79
+  Last: 8.79
+  Range: 10.940000000000001
+  Flag: 
+
+Parameter: Oil Pressure
+  Unit: psi
+  Samples: 38
+  Min: 0.0
+  Max: 0.0
+  Mean: 0.0
+  Std Dev: 0.0
+  First: 0.0
+  Last: 0.0
+  Range: 0.0
+  Flag: FLAT
+

@@ -1,0 +1,9 @@
+pid,unit,n,na,min,max,mean,sd,first,last,range,flag
+MAP VACUUM,inHgV,0,2,,,,,,,,NO-DATA
+TPS VOLTS,V,0,2,,,,,,,,NO-DATA
+ENGINE RPM,rpm,0,2,,,,,,,,NO-DATA
+EGR SENSE VOLTS,V,0,2,,,,,,,,NO-DATA
+CAT MODELED TEMP DEG,deg F,0,2,,,,,,,,NO-DATA
+2/1 SHORT TERM ADAP,%,0,2,,,,,,,,NO-DATA
+1/2 PWM O2 HEATER,%,0,2,,,,,,,,NO-DATA
+TPS 1 VOLTS,V,0,2,,,,,,,,NO-DATA

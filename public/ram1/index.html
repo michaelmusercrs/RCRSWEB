@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2013 RAM 1500 Diagnostic Hub</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 50px 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+
+        .header .badge {
+            display: inline-block;
+            background: #10b981;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+            margin: 0 5px;
+        }
+
+        .content {
+            padding: 50px 40px;
+        }
+
+        .section-title {
+            font-size: 1.8em;
+            color: #333;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #2a5298;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 50px;
+        }
+
+        .tool-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 25px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tool-card:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            border-color: #2a5298;
+            transform: translateY(-4px);
+        }
+
+        .tool-card.primary {
+            border: 2px solid #2a5298;
+            background: linear-gradient(135deg, #f0f4ff 0%, #ffffff 100%);
+        }
+
+        .tool-card.primary:hover {
+            box-shadow: 0 8px 24px rgba(42, 82, 152, 0.3);
+        }
+
+        .tool-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        .tool-title {
+            font-size: 1.3em;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #1e3c72;
+        }
+
+        .tool-description {
+            font-size: 0.95em;
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.6;
+            flex-grow: 1;
+        }
+
+        .tool-button {
+            display: inline-block;
+            background: #2a5298;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            text-align: center;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .tool-card:hover .tool-button {
+            background: #1e3c72;
+        }
+
+        .files-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 50px;
+        }
+
+        .file-card {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .file-card:hover {
+            background: #fff;
+            border-color: #2a5298;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .file-icon {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.95em;
+            margin-bottom: 5px;
+            word-break: break-word;
+        }
+
+        .file-type {
+            font-size: 0.8em;
+            color: #999;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-bottom: 50px;
+            padding: 30px;
+            background: #f0f4ff;
+            border-radius: 12px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: #2a5298;
+        }
+
+        .stat-label {
+            font-size: 0.95em;
+            color: #666;
+            margin-top: 10px;
+        }
+
+        .quick-start {
+            background: #ecfdf5;
+            border: 2px solid #10b981;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 50px;
+        }
+
+        .quick-start h2 {
+            color: #065f46;
+            margin-bottom: 15px;
+        }
+
+        .quick-start ol {
+            color: #047857;
+            line-height: 2;
+            margin-left: 20px;
+        }
+
+        .quick-start li {
+            margin-bottom: 10px;
+        }
+
+        .footer {
+            background: #f8f9fa;
+            padding: 30px 40px;
+            border-top: 1px solid #e0e0e0;
+            text-align: center;
+            color: #999;
+        }
+
+        .footer p {
+            margin: 5px 0;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .tools-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚙 2013 RAM 1500 5.7L HEMI</h1>
+            <p>Complete Diagnostic Hub</p>
+            <div>
+                <span class="badge">✓ NO MECHANICAL FAILURE</span>
+                <span class="badge">319,774 MILES</span>
+                <span class="badge">X-Tool D7</span>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- QUICK START -->
+            <div class="quick-start">
+                <h2>⚡ Quick Start (First Time Here?)</h2>
+                <ol>
+                    <li><strong>Start here:</strong> Open the <strong>Interactive Dashboard</strong> for overview</li>
+                    <li><strong>Diagnose step-by-step:</strong> Follow the <strong>Decision Flowchart</strong></li>
+                    <li><strong>Reference during repair:</strong> Use the <strong>Quick Reference Guide</strong> (text file)</li>
+                    <li><strong>Need details?</strong> Read the <strong>Full Diagnostic Report</strong> (markdown)</li>
+                    <li><strong>Raw data?</strong> Check <strong>CSV/CDS files</strong> for all sensor readings</li>
+                </ol>
+            </div>
+
+            <!-- STATS -->
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-value">417</div>
+                    <div class="stat-label">Misfires per 200 rev</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">70%</div>
+                    <div class="stat-label">Likely: Spark Plug</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">$20-50</div>
+                    <div class="stat-label">Most Likely Cost</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">1-2 hrs</div>
+                    <div class="stat-label">DIY Time</div>
+                </div>
+            </div>
+
+            <!-- PRIMARY TOOLS -->
+            <h2 class="section-title">🎯 Main Tools</h2>
+            <div class="tools-grid">
+                <a href="2013_RAM_DIAGNOSTIC_DASHBOARD_UPDATED.html" class="tool-card primary">
+                    <div class="tool-icon">📊</div>
+                    <div class="tool-title">Interactive Dashboard</div>
+                    <div class="tool-description">
+                        Full diagnostic overview with 5 tabs: Overview, Issues, Fixes, Cost & Timeline, Action Checklist. Color-coded severity, interactive charts, and cost analysis.
+                    </div>
+                    <div class="tool-button">Open Dashboard →</div>
+                </a>
+
+                <a href="2013_RAM_DIAGNOSTIC_FLOWCHART.html" class="tool-card primary">
+                    <div class="tool-icon">🔍</div>
+                    <div class="tool-title">Decision Flowchart</div>
+                    <div class="tool-description">
+                        Step-by-step diagnostic tree with IF/THEN logic. Follow the branches based on your test results. 12 decision points with success/failure paths.
+                    </div>
+                    <div class="tool-button">Follow Flowchart →</div>
+                </a>
+            </div>
+
+            <!-- REFERENCE DOCUMENTS -->
+            <h2 class="section-title">📚 Reference Documents</h2>
+            <div class="tools-grid">
+                <a href="QUICK_REFERENCE_GUIDE.txt" target="_blank" class="tool-card">
+                    <div class="tool-icon">⚡</div>
+                    <div class="tool-title">Quick Reference</div>
+                    <div class="tool-description">
+                        Technician cheat sheet. Part numbers, pricing, cylinder locations, today's checklist. Print this for the garage.
+                    </div>
+                    <div class="tool-button">View →</div>
+                </a>
+
+                <a href="2013_RAM_DIAGNOSTIC_REPORT.md" target="_blank" class="tool-card">
+                    <div class="tool-icon">📋</div>
+                    <div class="tool-title">Full Report</div>
+                    <div class="tool-description">
+                        Comprehensive markdown report with all findings, cost analysis, difficulty ratings, and detailed explanations. Professional documentation.
+                    </div>
+                    <div class="tool-button">View →</div>
+                </a>
+
+                <a href="2013_RAM_ALL_SCANS_CONSOLIDATED.txt" target="_blank" class="tool-card">
+                    <div class="tool-icon">📊</div>
+                    <div class="tool-title">Data Summary</div>
+                    <div class="tool-description">
+                        Consolidated data from all 7 D7 scans. Misfire data, fuel trim, oil pressure, MAF variance, fuel injector pulse widths, and more.
+                    </div>
+                    <div class="tool-button">View →</div>
+                </a>
+            </div>
+
+            <!-- DATA FILES -->
+            <h2 class="section-title">📁 Raw Data Files</h2>
+            <p style="color: #666; margin-bottom: 20px;">
+                All sensor readings, timeseries data, and X-Tool D7 exports for detailed analysis.
+            </p>
+            <div class="files-grid">
+                <div class="file-card">
+                    <div class="file-icon">📊</div>
+                    <div class="file-name">DODGE_*.cds files</div>
+                    <div class="file-type">Binary scan data (7 scans)</div>
+                </div>
+
+                <div class="file-card">
+                    <div class="file-icon">📈</div>
+                    <div class="file-name">*.summary.csv</div>
+                    <div class="file-type">Summary statistics (7 files)</div>
+                </div>
+
+                <div class="file-card">
+                    <div class="file-icon">📉</div>
+                    <div class="file-name">*.timeseries.csv</div>
+                    <div class="file-type">Frame-by-frame data (7 files)</div>
+                </div>
+
+                <div class="file-card">
+                    <div class="file-icon">🔧</div>
+                    <div class="file-name">build_2013ram.py</div>
+                    <div class="file-type">Data analysis script</div>
+                </div>
+
+                <div class="file-card">
+                    <div class="file-icon">🎬</div>
+                    <div class="file-name">screenshots/</div>
+                    <div class="file-type">D7 app screenshots</div>
+                </div>
+
+                <div class="file-card">
+                    <div class="file-icon">📝</div>
+                    <div class="file-name">analysis/</div>
+                    <div class="file-type">Extracted analysis files</div>
+                </div>
+            </div>
+
+            <!-- HOW TO USE -->
+            <h2 class="section-title">❓ How to Use This Hub</h2>
+            <div style="background: #f8f9fa; padding: 30px; border-radius: 12px; line-height: 1.8; color: #666;">
+                <p><strong>👤 For You (DIY):</strong></p>
+                <ul style="margin-left: 20px; margin-bottom: 20px;">
+                    <li>Start with the <strong>Interactive Dashboard</strong> to understand the problem</li>
+                    <li>Follow the <strong>Decision Flowchart</strong> step-by-step during diagnosis</li>
+                    <li>Reference the <strong>Quick Guide</strong> for part numbers and times</li>
+                    <li>Print the <strong>Action Checklist</strong> from the dashboard for your workbench</li>
+                </ul>
+
+                <p><strong>🔧 For Your Mechanic:</strong></p>
+                <ul style="margin-left: 20px; margin-bottom: 20px;">
+                    <li>Show them the <strong>Full Report</strong> with all data points</li>
+                    <li>Share the <strong>Raw CSV files</strong> for independent analysis</li>
+                    <li>Provide the <strong>Flowchart</strong> as a diagnostic roadmap</li>
+                </ul>
+
+                <p><strong>📱 Access Anywhere:</strong></p>
+                <ul style="margin-left: 20px;">
+                    <li>All HTML files work offline (no internet needed)</li>
+                    <li>Share the folder via cloud, email, or USB drive</li>
+                    <li>Open in any modern web browser (Chrome, Firefox, Edge, Safari)</li>
+                    <li>Mobile-friendly (responsive design)</li>
+                </ul>
+            </div>
+
+            <!-- SYSTEM INFO -->
+            <h2 class="section-title" style="margin-top: 50px;">ℹ️ System Information</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                <div style="background: #f0f4ff; padding: 20px; border-radius: 8px;">
+                    <strong style="color: #2a5298;">Vehicle</strong>
+                    <p style="color: #666; margin-top: 10px;">2013 RAM 1500 5.7L HEMI V8 · 319,774 miles</p>
+                </div>
+
+                <div style="background: #f0f4ff; padding: 20px; border-radius: 8px;">
+                    <strong style="color: #2a5298;">Diagnostic Tool</strong>
+                    <p style="color: #666; margin-top: 10px;">X-Tool D7 (S/N D7-027522) · 7 scans</p>
+                </div>
+
+                <div style="background: #f0f4ff; padding: 20px; border-radius: 8px;">
+                    <strong style="color: #2a5298;">Scan Date</strong>
+                    <p style="color: #666; margin-top: 10px;">May 14-15, 2026</p>
+                </div>
+
+                <div style="background: #f0f4ff; padding: 20px; border-radius: 8px;">
+                    <strong style="color: #2a5298;">Symptoms</strong>
+                    <p style="color: #666; margin-top: 10px;">Loss of power, vibration at idle, oil pressure light</p>
+                </div>
+
+                <div style="background: #f0f4ff; padding: 20px; border-radius: 8px;">
+                    <strong style="color: #2a5298;">Root Cause</strong>
+                    <p style="color: #666; margin-top: 10px;">Cylinder 8 misfire (70% = spark plug)</p>
+                </div>
+
+                <div style="background: #f0f4ff; padding: 20px; border-radius: 8px;">
+                    <strong style="color: #2a5298;">Cost Estimate</strong>
+                    <p style="color: #666; margin-top: 10px;">$20-50 most likely, $200-400 worst case</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p><strong>2013 RAM 1500 5.7L HEMI — Complete Diagnostic Hub</strong></p>
+            <p>X-Tool D7 Data Analysis · May 2026</p>
+            <p style="margin-top: 15px; font-size: 0.85em; color: #bbb;">
+                All files © 2026. Diagnostic data for personal use only.
+            </p>
+        </div>
+    </div>
+</body>
+</html>
