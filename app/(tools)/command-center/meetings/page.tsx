@@ -131,6 +131,36 @@ type PeriodType = 'week' | 'month' | 'ytd';
 //   - activity:   self-reported activity from RepWeeklyNumbers (doors, appts, etc.)
 type LeaderboardView = 'sales' | 'commission' | 'activity';
 
+// Shape returned by /api/command-center/meetings/activity-leaderboard
+interface ActivityRep {
+  rank: number;
+  repName: string;
+  initials: string;
+  doorsKnocked: number;
+  appointmentsSet: number;
+  inspectionsCompleted: number;
+  estimatesGiven: number;
+  contractsSigned: number;
+  revenueClosed: number;
+  leadsGenerated: number;
+  followUpsMade: number;
+  weeksReporting: number;
+}
+interface ActivitySummary {
+  totalReps: number;
+  totalWeeksReporting: number;
+  totalDoorsKnocked: number;
+  totalAppointments: number;
+  totalContractsSigned: number;
+  totalRevenueClosed: number;
+}
+interface ActivityResponse {
+  success: boolean;
+  data: { leaderboard: ActivityRep[]; summary: ActivitySummary };
+  period?: string;
+  recordsInPeriod?: number;
+}
+
 // =============================================================================
 // Icon Mapping
 // =============================================================================
@@ -649,6 +679,8 @@ export default function MeetingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [period, setPeriod] = useState<PeriodType>('week');
   const [view, setView] = useState<LeaderboardView>('sales');
+  const [activityData, setActivityData] = useState<ActivityResponse | null>(null);
+  const [activityLoading, setActivityLoading] = useState(false);
 
   // Fetch meeting configuration
   useEffect(() => {
@@ -699,6 +731,32 @@ export default function MeetingsPage() {
     const interval = setInterval(fetchLeaderboard, 120000);
     return () => clearInterval(interval);
   }, [fetchLeaderboard]);
+
+  // Activity leaderboard — separate endpoint, fetched on demand when the
+  // 'activity' view is selected (or when period changes while it's selected)
+  const fetchActivity = useCallback(async (selectedPeriod: PeriodType) => {
+    try {
+      setActivityLoading(true);
+      const apiPeriod =
+        selectedPeriod === 'week' ? 'thisWeek'
+        : selectedPeriod === 'month' ? 'thisMonth'
+        : 'thisYear';
+      const res = await fetch(
+        `/api/command-center/meetings/activity-leaderboard?period=${apiPeriod}`
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      const json: ActivityResponse = await res.json();
+      if (json.success) setActivityData(json);
+    } catch (err) {
+      console.error('Failed to fetch activity leaderboard:', err);
+    } finally {
+      setActivityLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (view === 'activity') fetchActivity(period);
+  }, [view, period, fetchActivity]);
 
   // Format date for display
   const formatDate = (dateStr: string | null) => {
@@ -877,7 +935,7 @@ export default function MeetingsPage() {
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             <ViewToggle selected={view} onChange={setView} />
-            {view === 'sales' && <PeriodToggle selected={period} onChange={setPeriod} />}
+            {(view === 'sales' || view === 'activity') && <PeriodToggle selected={period} onChange={setPeriod} />}
             <button
               onClick={fetchLeaderboard}
               className={cn(
@@ -892,17 +950,69 @@ export default function MeetingsPage() {
         </div>
         <div className="p-4">
           {view === 'activity' ? (
-            <div className="text-center py-12 text-zinc-500">
-              <Trophy className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p className="text-sm font-medium text-zinc-300">
-                Activity leaderboard coming soon
-              </p>
-              <p className="text-xs mt-2 max-w-md mx-auto">
-                Will aggregate the <code className="text-zinc-400">RepWeeklyNumbers</code> sheet
-                tab (doors knocked, appointments, inspections, estimates) per rep. Needs a new
-                aggregation endpoint — separate ticket.
-              </p>
-            </div>
+            activityLoading && !activityData ? (
+              <div className="flex items-center justify-center py-12">
+                <LoadingSpinner size="lg" />
+              </div>
+            ) : activityData && activityData.data.leaderboard.length > 0 ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                  <div className="p-3 bg-zinc-800/50 rounded-lg">
+                    <p className="text-xs text-zinc-500 uppercase tracking-wider">Doors</p>
+                    <p className="text-xl font-bold text-lime-400 mt-1">{activityData.data.summary.totalDoorsKnocked.toLocaleString()}</p>
+                  </div>
+                  <div className="p-3 bg-zinc-800/50 rounded-lg">
+                    <p className="text-xs text-zinc-500 uppercase tracking-wider">Appts</p>
+                    <p className="text-xl font-bold text-cyan-400 mt-1">{activityData.data.summary.totalAppointments.toLocaleString()}</p>
+                  </div>
+                  <div className="p-3 bg-zinc-800/50 rounded-lg">
+                    <p className="text-xs text-zinc-500 uppercase tracking-wider">Signed</p>
+                    <p className="text-xl font-bold text-purple-400 mt-1">{activityData.data.summary.totalContractsSigned.toLocaleString()}</p>
+                  </div>
+                  <div className="p-3 bg-zinc-800/50 rounded-lg">
+                    <p className="text-xs text-zinc-500 uppercase tracking-wider">Closed Rev</p>
+                    <p className="text-xl font-bold text-emerald-400 mt-1">${(activityData.data.summary.totalRevenueClosed / 1000).toFixed(1)}K</p>
+                  </div>
+                </div>
+                <table className="w-full text-sm">
+                  <thead className="text-xs text-zinc-500 uppercase">
+                    <tr>
+                      <th className="text-left py-2">Rank</th>
+                      <th className="text-left py-2">Rep</th>
+                      <th className="text-right py-2">Doors</th>
+                      <th className="text-right py-2">Appts</th>
+                      <th className="text-right py-2">Inspect</th>
+                      <th className="text-right py-2">Signed</th>
+                      <th className="text-right py-2">Rev</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activityData.data.leaderboard.slice(0, 10).map(rep => (
+                      <tr key={rep.repName} className="border-t border-zinc-800 hover:bg-zinc-800/30">
+                        <td className="py-2 font-mono text-zinc-400">#{rep.rank}</td>
+                        <td className="py-2 text-white font-medium">{rep.repName}</td>
+                        <td className="py-2 text-right text-zinc-300">{rep.doorsKnocked}</td>
+                        <td className="py-2 text-right text-zinc-300">{rep.appointmentsSet}</td>
+                        <td className="py-2 text-right text-zinc-300">{rep.inspectionsCompleted}</td>
+                        <td className="py-2 text-right text-purple-400 font-semibold">{rep.contractsSigned}</td>
+                        <td className="py-2 text-right text-emerald-400">${(rep.revenueClosed / 1000).toFixed(0)}K</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="text-xs text-zinc-500 text-center pt-2 border-t border-zinc-800">
+                  Self-reported via <code className="text-zinc-400">/portal/sales/weekly-numbers</code> form ·
+                  {activityData.recordsInPeriod ?? 0} submissions in period ·
+                  Top 10 of {activityData.data.summary.totalReps} reps
+                </p>
+              </div>
+            ) : (
+              <div className="text-center py-12 text-zinc-500">
+                <Trophy className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p className="text-sm">No self-reported activity in this period yet.</p>
+                <p className="text-xs mt-1">Reps submit via the Weekly Numbers form.</p>
+              </div>
+            )
           ) : leaderboardLoading && !leaderboardData ? (
             <div className="flex items-center justify-center py-12">
               <LoadingSpinner size="lg" />
