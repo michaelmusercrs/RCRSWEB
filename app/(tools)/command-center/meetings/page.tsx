@@ -78,6 +78,14 @@ interface LeaderboardRep {
   name: string;
   initials: string;
   avatarColor: string;
+  // Sales (accrual from Monday meeting $$$$$ column)
+  estimatedSalesAllTime?: number;
+  estimatedSalesWeekly?: number;
+  estimatedSalesMonthly?: number;
+  estimatedSalesYTD?: number;
+  // Commission (real QB 1099 payouts)
+  actualCommissionsYTD?: number;
+  // Backward-compat (deprecated — these mirror estimatedSales*)
   totalCommissions: number;
   weeklyCommissions: number;
   monthlyCommissions: number;
@@ -98,6 +106,14 @@ interface LeaderboardRep {
 interface LeaderboardData {
   leaderboard: LeaderboardRep[];
   summary: {
+    // Sales (accrual) totals
+    estimatedSalesAllTime?: number;
+    estimatedSalesWeekly?: number;
+    estimatedSalesMonthly?: number;
+    estimatedSalesYTD?: number;
+    // Commission (QB cash) totals
+    actualCommissionsYTD?: number;
+    // Backward-compat
     totalTeamCommissions: number;
     totalTransactions: number;
     weeklyTotal: number;
@@ -108,6 +124,12 @@ interface LeaderboardData {
 }
 
 type PeriodType = 'week' | 'month' | 'ytd';
+
+// Three Separate Leaderboards (hard rule — never combine these):
+//   - sales:      accrual from Monday meeting $$$$$ column (what was sold/approved)
+//   - commission: 1099 cash from QuickBooks (what reps actually got paid)
+//   - activity:   self-reported activity from RepWeeklyNumbers (doors, appts, etc.)
+type LeaderboardView = 'sales' | 'commission' | 'activity';
 
 // =============================================================================
 // Icon Mapping
@@ -404,22 +426,32 @@ function PeriodToggle({ selected, onChange }: PeriodToggleProps) {
 interface MiniLeaderboardProps {
   leaderboard: LeaderboardRep[];
   period: PeriodType;
+  view: LeaderboardView;
   onViewFull: () => void;
 }
 
-function MiniLeaderboard({ leaderboard, period, onViewFull }: MiniLeaderboardProps) {
+function MiniLeaderboard({ leaderboard, period, view, onViewFull }: MiniLeaderboardProps) {
   const top5 = leaderboard.slice(0, 5);
 
-  const getValue = (rep: LeaderboardRep) => {
+  // Pick the right value for each rep based on the active view + period.
+  // - Sales: Monday meeting accrual (estimatedSales* with fallback to deprecated *Commissions)
+  // - Commission: QB 1099 cash (only YTD has data today)
+  // - Activity: not yet wired (handled at the section level — this won't be called)
+  const getValue = (rep: LeaderboardRep): number => {
+    if (view === 'commission') {
+      // QB commission data only available YTD right now
+      return rep.actualCommissionsYTD ?? 0;
+    }
+    // Sales (accrual) view
     switch (period) {
       case 'week':
-        return rep.weeklyCommissions;
+        return rep.estimatedSalesWeekly ?? rep.weeklyCommissions;
       case 'month':
-        return rep.monthlyCommissions;
+        return rep.estimatedSalesMonthly ?? rep.monthlyCommissions;
       case 'ytd':
-        return rep.ytdCommissions;
+        return rep.estimatedSalesYTD ?? rep.ytdCommissions;
       default:
-        return rep.totalCommissions;
+        return rep.estimatedSalesAllTime ?? rep.totalCommissions;
     }
   };
 
@@ -502,12 +534,13 @@ function MiniLeaderboard({ leaderboard, period, onViewFull }: MiniLeaderboardPro
 // Commission Summary Stats Component
 // =============================================================================
 
-interface CommissionSummaryProps {
+interface LeaderboardSummaryProps {
   summary: LeaderboardData['summary'];
   period: PeriodType;
+  view: LeaderboardView;
 }
 
-function CommissionSummary({ summary, period }: CommissionSummaryProps) {
+function LeaderboardSummary({ summary, period, view }: LeaderboardSummaryProps) {
   const formatCurrency = (amount: number): string => {
     if (amount >= 1000000) {
       return `$${(amount / 1000000).toFixed(2)}M`;
@@ -518,28 +551,88 @@ function CommissionSummary({ summary, period }: CommissionSummaryProps) {
     return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
   };
 
-  const periodValue = period === 'week'
-    ? summary.weeklyTotal
-    : period === 'month'
-      ? summary.monthlyTotal
-      : summary.ytdTotal;
+  if (view === 'commission') {
+    // QB commission: only YTD available today
+    return (
+      <div className="grid grid-cols-3 gap-4">
+        <div className="text-center p-3 bg-zinc-800/50 rounded-lg">
+          <p className="text-xs text-zinc-500 uppercase tracking-wider">YTD Paid (QB)</p>
+          <p className="text-2xl font-bold text-emerald-400 mt-1">
+            {formatCurrency(summary.actualCommissionsYTD ?? 0)}
+          </p>
+        </div>
+        <div className="text-center p-3 bg-zinc-800/50 rounded-lg col-span-2">
+          <p className="text-xs text-zinc-500 uppercase tracking-wider">Source</p>
+          <p className="text-sm font-medium text-zinc-300 mt-1">
+            QuickBooks 1099 export · cash paid out, not accrual
+          </p>
+        </div>
+      </div>
+    );
+  }
 
+  // Sales view (accrual)
+  const periodValueAccrual =
+    period === 'week'
+      ? summary.estimatedSalesWeekly ?? summary.weeklyTotal
+      : period === 'month'
+        ? summary.estimatedSalesMonthly ?? summary.monthlyTotal
+        : summary.estimatedSalesYTD ?? summary.ytdTotal;
+  const allTimeAccrual = summary.estimatedSalesAllTime ?? summary.totalTeamCommissions;
   const periodLabel = period === 'week' ? 'This Week' : period === 'month' ? 'This Month' : 'Year to Date';
 
   return (
     <div className="grid grid-cols-3 gap-4">
       <div className="text-center p-3 bg-zinc-800/50 rounded-lg">
-        <p className="text-xs text-zinc-500 uppercase tracking-wider">{periodLabel}</p>
-        <p className="text-2xl font-bold text-lime-400 mt-1">{formatCurrency(periodValue)}</p>
+        <p className="text-xs text-zinc-500 uppercase tracking-wider">{periodLabel} (Sales)</p>
+        <p className="text-2xl font-bold text-lime-400 mt-1">{formatCurrency(periodValueAccrual)}</p>
       </div>
       <div className="text-center p-3 bg-zinc-800/50 rounded-lg">
-        <p className="text-xs text-zinc-500 uppercase tracking-wider">All-Time Total</p>
-        <p className="text-2xl font-bold text-white mt-1">{formatCurrency(summary.totalTeamCommissions)}</p>
+        <p className="text-xs text-zinc-500 uppercase tracking-wider">All-Time Sales</p>
+        <p className="text-2xl font-bold text-white mt-1">{formatCurrency(allTimeAccrual)}</p>
       </div>
       <div className="text-center p-3 bg-zinc-800/50 rounded-lg">
         <p className="text-xs text-zinc-500 uppercase tracking-wider">Total Transactions</p>
         <p className="text-2xl font-bold text-blue-400 mt-1">{summary.totalTransactions.toLocaleString()}</p>
       </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// View Toggle (Sales / Commission / Activity)
+// =============================================================================
+
+interface ViewToggleProps {
+  selected: LeaderboardView;
+  onChange: (view: LeaderboardView) => void;
+}
+
+function ViewToggle({ selected, onChange }: ViewToggleProps) {
+  const views: Array<{ key: LeaderboardView; label: string; tooltip: string }> = [
+    { key: 'sales', label: 'Sales', tooltip: 'Accrual revenue from Monday meeting numbers' },
+    { key: 'commission', label: 'Commission', tooltip: 'Actual 1099 payouts from QuickBooks' },
+    { key: 'activity', label: 'Activity', tooltip: 'Self-reported activity (doors, appts, etc.)' },
+  ];
+  return (
+    <div className="inline-flex rounded-lg bg-zinc-800 p-1" role="tablist" aria-label="Leaderboard view">
+      {views.map(v => (
+        <button
+          key={v.key}
+          role="tab"
+          aria-selected={selected === v.key}
+          title={v.tooltip}
+          onClick={() => onChange(v.key)}
+          className={cn(
+            'px-3 py-1.5 text-xs font-medium rounded-md transition-colors',
+            selected === v.key
+              ? 'bg-lime-500/20 text-lime-300'
+              : 'text-zinc-400 hover:text-zinc-200',
+          )}
+        >
+          {v.label}
+        </button>
+      ))}
     </div>
   );
 }
@@ -555,6 +648,7 @@ export default function MeetingsPage() {
   const [leaderboardLoading, setLeaderboardLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [period, setPeriod] = useState<PeriodType>('week');
+  const [view, setView] = useState<LeaderboardView>('sales');
 
   // Fetch meeting configuration
   useEffect(() => {
@@ -763,18 +857,27 @@ export default function MeetingsPage() {
         />
       </div>
 
-      {/* Sales Leaderboard Section */}
+      {/* Leaderboards — three separate views per hard rule */}
       <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
-        <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
+        <div className="p-4 border-b border-zinc-800 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
             <Trophy className="h-6 w-6 text-lime-400" />
             <div>
-              <h2 className="text-lg font-semibold text-white">Sales Leaderboard</h2>
-              <p className="text-sm text-zinc-500">Commission rankings - $2.6M+ total</p>
+              <h2 className="text-lg font-semibold text-white">
+                {view === 'sales' && 'Sales Leaderboard'}
+                {view === 'commission' && 'Commission Leaderboard'}
+                {view === 'activity' && 'Activity Leaderboard'}
+              </h2>
+              <p className="text-sm text-zinc-500">
+                {view === 'sales' && 'Accrual revenue from Monday meeting $$$$$ column (not cash)'}
+                {view === 'commission' && 'Actual 1099 cash paid out — from QuickBooks'}
+                {view === 'activity' && 'Self-reported activity from RepWeeklyNumbers'}
+              </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <PeriodToggle selected={period} onChange={setPeriod} />
+          <div className="flex items-center gap-3 flex-wrap">
+            <ViewToggle selected={view} onChange={setView} />
+            {view === 'sales' && <PeriodToggle selected={period} onChange={setPeriod} />}
             <button
               onClick={fetchLeaderboard}
               className={cn(
@@ -788,18 +891,41 @@ export default function MeetingsPage() {
           </div>
         </div>
         <div className="p-4">
-          {leaderboardLoading && !leaderboardData ? (
+          {view === 'activity' ? (
+            <div className="text-center py-12 text-zinc-500">
+              <Trophy className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p className="text-sm font-medium text-zinc-300">
+                Activity leaderboard coming soon
+              </p>
+              <p className="text-xs mt-2 max-w-md mx-auto">
+                Will aggregate the <code className="text-zinc-400">RepWeeklyNumbers</code> sheet
+                tab (doors knocked, appointments, inspections, estimates) per rep. Needs a new
+                aggregation endpoint — separate ticket.
+              </p>
+            </div>
+          ) : leaderboardLoading && !leaderboardData ? (
             <div className="flex items-center justify-center py-12">
               <LoadingSpinner size="lg" />
             </div>
           ) : leaderboardData ? (
             <div className="space-y-6">
-              <CommissionSummary summary={leaderboardData.summary} period={period} />
+              <LeaderboardSummary
+                summary={leaderboardData.summary}
+                period={period}
+                view={view}
+              />
               <MiniLeaderboard
                 leaderboard={leaderboardData.leaderboard}
                 period={period}
+                view={view}
                 onViewFull={() => window.open('/command-center/meetings/present', '_blank')}
               />
+              {view === 'commission' && (
+                <p className="text-xs text-zinc-500 text-center pt-2 border-t border-zinc-800">
+                  Weekly / monthly commission breakdowns not yet available — QuickBooks
+                  exports are monthly. YTD only for now.
+                </p>
+              )}
             </div>
           ) : (
             <div className="text-center py-12 text-zinc-500">
