@@ -56,6 +56,9 @@ export default function StockBackfillPage() {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [response, setResponse] = useState<BackfillResponse | null>(null);
+  // Silent mode = no office email. Use for historical emails where the
+  // materials were already physically delivered weeks/months ago.
+  const [silent, setSilent] = useState(true);
 
   const loadPending = useCallback(async () => {
     setLoading(true);
@@ -74,7 +77,10 @@ export default function StockBackfillPage() {
 
   const processAll = useCallback(async () => {
     if (!pending || pending.length === 0) return;
-    if (!confirm(`Process ${pending.length} ticket${pending.length === 1 ? '' : 's'}? This will deduct stock and email invoices to rcrs@rcrsal.com.`)) return;
+    const emailNote = silent
+      ? 'NO email will be sent (silent mode).'
+      : 'A price-only invoice email will be sent to rcrs@rcrsal.com per ticket.';
+    if (!confirm(`Process ${pending.length} ticket${pending.length === 1 ? '' : 's'}? This will deduct stock. ${emailNote}`)) return;
 
     setProcessing(true);
     setError(null);
@@ -84,7 +90,7 @@ export default function StockBackfillPage() {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ silent }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
@@ -98,7 +104,7 @@ export default function StockBackfillPage() {
     } finally {
       setProcessing(false);
     }
-  }, [pending, loadPending]);
+  }, [pending, loadPending, silent]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
@@ -183,6 +189,23 @@ export default function StockBackfillPage() {
               Process {pending?.length || 0} ticket{pending?.length === 1 ? '' : 's'}
             </button>
           </div>
+
+          <label className="flex items-start gap-2 mb-4 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={silent}
+              onChange={e => setSilent(e.target.checked)}
+              className="mt-0.5"
+            />
+            <span className="text-sm">
+              <span className="font-medium">Silent mode — no office email</span>
+              <span className="block text-xs text-gray-600 mt-0.5">
+                Use for historical/catch-up batches where materials were already delivered.
+                Stock is still deducted and invoice records still written; only the
+                outbound email to rcrs@rcrsal.com is suppressed.
+              </span>
+            </span>
+          </label>
 
           {error && (
             <div className="bg-red-50 border border-red-200 rounded p-3 text-sm text-red-800 flex items-start gap-2">

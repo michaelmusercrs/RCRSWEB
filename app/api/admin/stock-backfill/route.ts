@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
   const auth = await requireAdmin();
   if (!auth.authenticated) return auth.response;
 
-  let body: { ticketIds?: string[] } = {};
+  let body: { ticketIds?: string[]; silent?: boolean } = {};
   try {
     body = await request.json();
   } catch {
@@ -92,6 +92,7 @@ export async function POST(request: NextRequest) {
 
   const performedBy = auth.user?.userId || 'system-backfill';
   const performedByName = auth.user?.name || 'Stock Backfill';
+  const silent = body.silent === true;
 
   try {
     const pending = await getPendingTickets(body.ticketIds);
@@ -117,7 +118,10 @@ export async function POST(request: NextRequest) {
           ticket,
           verifiedAtIso,
           verifiedByName: performedByName,
-          notesPrefix: 'BACKFILL — historical Material Order email processed after the fact.',
+          notesPrefix: silent
+            ? 'BACKFILL (silent — no email) — historical Material Order email processed after the fact.'
+            : 'BACKFILL — historical Material Order email processed after the fact.',
+          silent,
         });
 
         // Mark the ticket as load_verified so the next backfill run skips it.

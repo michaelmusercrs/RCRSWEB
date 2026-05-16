@@ -95,8 +95,13 @@ export async function runLoadVerifiedAftermath(input: {
   verifiedAtIso: string;
   verifiedByName: string;
   notesPrefix?: string;
+  // When true, skip the office-invoice email. Used for historical backfill
+  // where materials were physically delivered months ago and an email today
+  // would be noise. Inventory is still deducted and invoice records still
+  // written — only the outbound email is suppressed.
+  silent?: boolean;
 }): Promise<AftermathResult> {
-  const { ticket, verifiedAtIso, verifiedByName, notesPrefix } = input;
+  const { ticket, verifiedAtIso, verifiedByName, notesPrefix, silent } = input;
   const errors: string[] = [];
 
   // 1. Deduct from master Inventory tab
@@ -132,6 +137,9 @@ export async function runLoadVerifiedAftermath(input: {
   }
 
   // 3. Resolve invoice ID then send the price-only office email
+  //    Skip the email entirely when silent=true (historical backfill mode).
+  //    Inventory deduction + invoice record still happen — only the outbound
+  //    email is suppressed.
   let invoiceSent = false;
   let invoiceId = ticket.ticketId;
   try {
@@ -139,36 +147,42 @@ export async function runLoadVerifiedAftermath(input: {
     const interofficeInvoice = invoiceRecords.find(r => r.type === 'invoice');
     if (interofficeInvoice?.invoiceId) invoiceId = interofficeInvoice.invoiceId;
 
-    const fullAddress = [ticket.jobAddress, ticket.city, ticket.state]
-      .filter(Boolean)
-      .join(', ');
-    const materialsForEmail = ticket.materials.map(m => ({
-      name: m.productName,
-      qty: m.quantity,
-      unitPrice: m.unitPrice || 0,
-      linePrice: m.totalPrice ?? (m.unitPrice || 0) * m.quantity,
-    }));
-    const totalPrice = materialsForEmail.reduce((sum, m) => sum + m.linePrice, 0);
+    if (silent) {
+      // Silent mode: invoice record exists (or will be created by job-material-cost-service
+      // elsewhere); we just don't email the office. Mark "sent" as false but no error.
+      invoiceSent = false;
+    } else {
+      const fullAddress = [ticket.jobAddress, ticket.city, ticket.state]
+        .filter(Boolean)
+        .join(', ');
+      const materialsForEmail = ticket.materials.map(m => ({
+        name: m.productName,
+        qty: m.quantity,
+        unitPrice: m.unitPrice || 0,
+        linePrice: m.totalPrice ?? (m.unitPrice || 0) * m.quantity,
+      }));
+      const totalPrice = materialsForEmail.reduce((sum, m) => sum + m.linePrice, 0);
 
-    const notes = notesPrefix
-      ? `${notesPrefix}${ticket.notes ? ' — ' + ticket.notes : ''}`
-      : ticket.notes;
+      const notes = notesPrefix
+        ? `${notesPrefix}${ticket.notes ? ' — ' + ticket.notes : ''}`
+        : ticket.notes;
 
-    const res = await emailService.sendLoadVerifiedInvoice({
-      ticketId: ticket.ticketId,
-      invoiceId,
-      jobNumber: ticket.referenceNumber,
-      customerName: ticket.customerName || '',
-      address: fullAddress,
-      salesRepName: ticket.createdByName || '',
-      verifiedByName,
-      verifiedAt: verifiedAtIso,
-      materials: materialsForEmail,
-      totalPrice: Math.round(totalPrice * 100) / 100,
-      notes,
-    });
-    invoiceSent = res.success;
-    if (!res.success && res.error) errors.push(`Invoice email: ${res.error}`);
+      const res = await emailService.sendLoadVerifiedInvoice({
+        ticketId: ticket.ticketId,
+        invoiceId,
+        jobNumber: ticket.referenceNumber,
+        customerName: ticket.customerName || '',
+        address: fullAddress,
+        salesRepName: ticket.createdByName || '',
+        verifiedByName,
+        verifiedAt: verifiedAtIso,
+        materials: materialsForEmail,
+        totalPrice: Math.round(totalPrice * 100) / 100,
+        notes,
+      });
+      invoiceSent = res.success;
+      if (!res.success && res.error) errors.push(`Invoice email: ${res.error}`);
+    }
   } catch (err) {
     errors.push(`Invoice email threw: ${String(err)}`);
   }
