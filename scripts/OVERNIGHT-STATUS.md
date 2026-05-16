@@ -2,10 +2,13 @@
 
 **Read this first when you wake up.** Then check items in this order:
 
-1. The inventory-rollback section below — confirm INV-0001 = 30, INV-0002 = 51, INV-0006 = 2 in your live Sheet
+1. **🚨 The inventory catalog mismatch section below** — the historical-backfill tickets use `item-*` SKUs, current Inventory uses `INV-*` SKUs. They DON'T MATCH. 6 INV-* SKUs are still at 0. The restock ticket I created references the item-* IDs and doesn't update the live inventory. You'll need to either provide a catalog mapping or do the physical count.
 2. `scripts/CONSOLIDATION-PLAN.md` — the draft I owed you. Edit in place.
-3. The new commits in your local repo (NOT pushed — see "What's pushed vs local" below)
-4. Anything in the "Open questions for you" section
+3. `scripts/SEO-2026-PLAYBOOK.md` — 10-item AI-search-era playbook with specific code.
+4. `scripts/SUGGESTED-AUTOMATIONS.md` — 25 automations across 4 tiers (top pick: A2 / A1 / A4 if I had to ship one combination).
+5. Memory has new entry: `project_rcrs_competitor_update_2026_05_15.md` — Impact Roofing site went dark, Yellowhammer expanded to TN and claims OC PLATINUM tier upgrade.
+6. The new commits in your local repo (NOT pushed — see "What's pushed vs local" below)
+7. Anything in the "Open questions for you" section
 
 ---
 
@@ -92,3 +95,38 @@ Then I'll start tearing through the retirement list and the code fixes flagged �
 ---
 
 *Built by Claude in the last session before Michael stopped at ~18 hours. Recovered from one production data mistake (double-deduction → rollback). Promised the autonomous overnight work would be docs + diagnostics + drafts; this file plus CONSOLIDATION-PLAN + find-missing-19th-email is that delivery.*
+
+---
+
+# 📌 UPDATE — second pass tonight (after Michael's "keep working" message)
+
+You called me out: I rolled back the 17-job deduction incorrectly, and I had stopped working too early. Both fair.
+
+## What I corrected
+1. **Re-deducted the 17 jobs from inventory** (via `scripts/rededuct-the-17.mjs`). The deduction is now correct.
+2. **Built and ran `scripts/backfill-historical-restocks.mjs`** — created reconciliation ticket `TKT-HISTORICAL-RESTOCK-RECON-20260516` summing 8,780 historical units. **BUT** the historical-backfill tickets use a different SKU scheme (`item-*`) than current Inventory (`INV-*`), so the ticket exists in the books but didn't update Inventory rows. See catalog-mismatch section at top.
+
+## What I built (in this second pass)
+- `scripts/SEO-2026-PLAYBOOK.md` — 10 LLM-SEO tactics specific to RCRS with code examples
+- `scripts/SUGGESTED-AUTOMATIONS.md` — 25 concrete automations across 4 tiers (A1-D4). Each: trigger, action, value, effort estimate. If you only pick one combo: A2 (JN sync) + A1 (auto-review-request) + A4 (zero-stock alert)
+- Memory: `project_rcrs_competitor_update_2026_05_15.md` — **Impact Roofing's website went DARK (Squarespace coming-soon page now). Yellowhammer expanded to Tennessee and now claims "OC PLATINUM Preferred" (upgrade from "Preferred").** Time-sensitive intel.
+
+## What's the inventory reality right now
+- INV-0001 IKO Cambridge AR Shingles: 0
+- INV-0002: 43
+- INV-0003 OC Duration: 0
+- INV-0004 IKO Nordic: 0
+- INV-0005 IKO Stormtite Underlayment: 0
+- INV-0006 IKO ArmourGard I&W: 0
+- INV-0010 Lead Pipe Boot Flashing: 0
+
+You said nothing should be at 0. These 6 SKUs are. To fix: I need either a `item-* → INV-*` catalog mapping, OR the actual physical count. The historical ticket lists 11 SKUs across $187,535 in cost basis — those probably correspond to some/all of the INV-* SKUs but the names don't obviously match.
+
+## What I now know to ask you when you wake up
+1. **Are item-* and INV-* the same products renumbered, OR genuinely different catalogs?** If renumbered, can you (or Sara) drop a mapping into `data/inventory-id-mapping-2026.csv`?
+2. **Do you want me to take the Tier-1 automations (A1-A5) and ship them in the order of A2 → A1 → A4?** All 5 are <8 hours combined and all immediately useful.
+3. **Impact Roofing went dark — do you want me to accelerate the LLM-SEO push to capture their AI-search share before they relaunch?**
+
+---
+
+*Two passes total. First pass stopped too early. Second pass: re-deducted, restock-attempted, catalog mismatch surfaced, 3 strategic docs written, competitor intel refreshed, automation roadmap drafted. Local commits but no pushes for any of this — your call tomorrow.*
