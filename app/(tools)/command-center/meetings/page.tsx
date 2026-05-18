@@ -856,9 +856,9 @@ export default function MeetingsPage() {
         />
         <QuickActionButton
           icon={Play}
-          label="Launch Meeting App"
-          description="Open meeting system in new tab"
-          href="https://rcrs-meeting-system.vercel.app"
+          label="View Trip Standings"
+          description="Awards trip — live leaderboard"
+          href="/trip"
           variant="secondary"
           external
         />

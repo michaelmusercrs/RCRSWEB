@@ -41,6 +41,10 @@ interface ArchivedMeeting {
   status: 'presented' | 'ready' | 'draft';
   preparedBy: string;
   hasNotes: boolean;
+  // Extra fields from the real API for the detail panel / search
+  bibleVerseRef?: string;
+  employeeOfMonth?: string;
+  trainingTopic?: string;
 }
 
 // =============================================================================
@@ -53,37 +57,48 @@ export default function MeetingArchivesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
-  // Load archived meetings - generate from known Monday meetings this year
+  // Load archived meetings from the real MeetingPrep sheet via /api/.../meetings?action=list
+  // Per the no-fake-data hard rule: never generate synthetic records here.
+  // Previous version of this file fabricated past meetings from `meetings.length % 3` —
+  // that has been removed.
   useEffect(() => {
     const loadArchives = async () => {
       try {
-        // Generate archive records from past Mondays this year
-        const now = new Date();
-        const yearStart = new Date(now.getFullYear(), 0, 1);
-        const meetings: ArchivedMeeting[] = [];
-
-        // Find first Monday of the year
-        const firstDay = new Date(yearStart);
-        while (firstDay.getDay() !== 1) {
-          firstDay.setDate(firstDay.getDate() + 1);
+        const res = await fetch('/api/command-center/meetings?action=list', {
+          credentials: 'include',
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (!json.success || !Array.isArray(json.data)) {
+          setArchives([]);
+          return;
         }
-
-        const preparedByOptions = ['Michael', 'Sara', 'Office Team'];
-        let current = new Date(firstDay);
-
-        while (current < now) {
-          meetings.push({
-            date: getISODate(current),
-            status: 'presented',
-            preparedBy: preparedByOptions[meetings.length % preparedByOptions.length],
-            hasNotes: meetings.length % 3 !== 2, // 2/3 have notes
-          });
-          current.setDate(current.getDate() + 7);
-        }
-
-        // Reverse so most recent first
-        meetings.reverse();
-        setArchives(meetings);
+        const mapped: ArchivedMeeting[] = json.data
+          .filter((p: unknown): p is Record<string, unknown> => !!p && typeof p === 'object')
+          .map((p: Record<string, unknown>) => {
+            const announcementsP1 = ((p.announcements as { part1?: unknown[] } | undefined)?.part1) || [];
+            const announcementsP2 = ((p.announcements as { part2?: unknown[] } | undefined)?.part2) || [];
+            const deptNotes = (p.departmentNotes as Record<string, string> | undefined) || {};
+            const hasNotes = Boolean(
+              announcementsP1.length ||
+              announcementsP2.length ||
+              p.trainingTopic ||
+              p.specialNotes ||
+              Object.values(deptNotes).some(v => typeof v === 'string' && v.trim().length > 0),
+            );
+            return {
+              date: String(p.meetingDate || ''),
+              status: (p.status as 'presented' | 'ready' | 'draft') || 'draft',
+              preparedBy: String(p.preparedBy || '—'),
+              hasNotes,
+              bibleVerseRef: (p.bibleVerse as { reference?: string } | null)?.reference || '',
+              employeeOfMonth: (p.employeeOfMonth as { name?: string } | null)?.name || '',
+              trainingTopic: String(p.trainingTopic || ''),
+            };
+          })
+          .filter((m: ArchivedMeeting) => m.date)
+          .sort((a: ArchivedMeeting, b: ArchivedMeeting) => b.date.localeCompare(a.date));
+        setArchives(mapped);
       } catch (error) {
         console.error('Error loading meeting archives:', error);
         setArchives([]);
