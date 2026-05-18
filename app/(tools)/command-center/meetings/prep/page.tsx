@@ -21,7 +21,7 @@
 import * as React from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft,
   Save,
@@ -234,16 +234,22 @@ function AnnouncementList({ label, items, onChange, placeholder }: AnnouncementL
 
 export default function MeetingPrepPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
 
-  // Meeting info
-  const nextMeeting = calculateNextMeetingDate();
-  const meetingDate = getISODate(nextMeeting);
-  const weekNumber = getWeekNumber(nextMeeting);
+  // Meeting info — defaults to the next Monday, but accepts ?date=YYYY-MM-DD
+  // to let the archives / recent-notes panel link directly to a past meeting.
+  const dateParam = searchParams?.get('date') || '';
+  const isViewingPast = /^\d{4}-\d{2}-\d{2}$/.test(dateParam);
+  const meetingDateObj = isViewingPast
+    ? new Date(dateParam + 'T00:00:00')
+    : calculateNextMeetingDate();
+  const meetingDate = isViewingPast ? dateParam : getISODate(meetingDateObj);
+  const weekNumber = getWeekNumber(meetingDateObj);
 
   // Form state
   const [form, setForm] = useState<FormState>({
@@ -465,8 +471,13 @@ export default function MeetingPrepPage() {
             </h1>
             <div className="flex items-center gap-4 mt-2">
               <p className="text-zinc-400">
-                {formatMeetingDate(nextMeeting)}
+                {formatMeetingDate(meetingDateObj)}
               </p>
+              {isViewingPast && (
+                <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-zinc-700 text-zinc-300">
+                  archived
+                </span>
+              )}
               <span className="text-zinc-600">|</span>
               <p className="text-zinc-500 flex items-center gap-1">
                 <Clock size={14} />
