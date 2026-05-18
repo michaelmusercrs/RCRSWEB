@@ -161,6 +161,18 @@ interface ActivityResponse {
   recordsInPeriod?: number;
 }
 
+// Recent meeting note for the homepage "Recent Meeting Notes" panel
+interface RecentMeetingNote {
+  date: string;
+  status: 'presented' | 'ready' | 'draft';
+  preparedBy: string;
+  bibleVerseRef: string;
+  trainingTopic: string;
+  employeeOfMonth: string;
+  // First non-empty department/special note used as the preview snippet
+  snippet: string;
+}
+
 // =============================================================================
 // Icon Mapping
 // =============================================================================
@@ -681,6 +693,7 @@ export default function MeetingsPage() {
   const [view, setView] = useState<LeaderboardView>('sales');
   const [activityData, setActivityData] = useState<ActivityResponse | null>(null);
   const [activityLoading, setActivityLoading] = useState(false);
+  const [recentNotes, setRecentNotes] = useState<RecentMeetingNote[] | null>(null);
 
   // Fetch meeting configuration
   useEffect(() => {
@@ -757,6 +770,55 @@ export default function MeetingsPage() {
   useEffect(() => {
     if (view === 'activity') fetchActivity(period);
   }, [view, period, fetchActivity]);
+
+  // Recent meeting notes — fetched once on mount from the real MeetingPrep sheet
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/command-center/meetings?action=list&limit=5', {
+          credentials: 'include',
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (cancelled) return;
+        if (!json.success || !Array.isArray(json.data)) {
+          setRecentNotes([]);
+          return;
+        }
+        const mapped: RecentMeetingNote[] = json.data
+          .filter((p: unknown): p is Record<string, unknown> => !!p && typeof p === 'object')
+          .map((p: Record<string, unknown>) => {
+            const dept = (p.departmentNotes as Record<string, string> | undefined) || {};
+            const specialNotes = String(p.specialNotes || '').trim();
+            const snippet =
+              specialNotes ||
+              (dept.sales || '').trim() ||
+              (dept.operations || '').trim() ||
+              (dept.office || '').trim() ||
+              (dept.drivers || '').trim() ||
+              '';
+            return {
+              date: String(p.meetingDate || ''),
+              status: (p.status as 'presented' | 'ready' | 'draft') || 'draft',
+              preparedBy: String(p.preparedBy || ''),
+              bibleVerseRef: (p.bibleVerse as { reference?: string } | null)?.reference || '',
+              trainingTopic: String(p.trainingTopic || ''),
+              employeeOfMonth: (p.employeeOfMonth as { name?: string } | null)?.name || '',
+              snippet,
+            };
+          })
+          .filter((m: RecentMeetingNote) => m.date)
+          .sort((a: RecentMeetingNote, b: RecentMeetingNote) => b.date.localeCompare(a.date))
+          .slice(0, 3);
+        setRecentNotes(mapped);
+      } catch (err) {
+        console.error('Failed to fetch recent meeting notes:', err);
+        if (!cancelled) setRecentNotes([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   // Format date for display
   const formatDate = (dateStr: string | null) => {
@@ -1079,11 +1141,59 @@ export default function MeetingsPage() {
             <ChevronRight size={16} />
           </Link>
         </div>
-        <div className="text-center py-8 text-zinc-500">
-          <MessageCircle className="h-12 w-12 mx-auto mb-3 opacity-50" />
-          <p className="text-sm">No meeting notes recorded yet</p>
-          <p className="text-xs mt-1">Notes will appear here after meetings are presented</p>
-        </div>
+        {recentNotes === null ? (
+          <div className="flex items-center justify-center py-8">
+            <LoadingSpinner size="md" />
+          </div>
+        ) : recentNotes.length === 0 ? (
+          <div className="text-center py-8 text-zinc-500">
+            <MessageCircle className="h-12 w-12 mx-auto mb-3 opacity-50" />
+            <p className="text-sm">No meeting notes recorded yet</p>
+            <p className="text-xs mt-1">Notes will appear here after meetings are presented</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-zinc-800">
+            {recentNotes.map(note => (
+              <Link
+                key={note.date}
+                href={`/command-center/meetings/prep?date=${note.date}`}
+                className="block p-3 -mx-3 rounded-lg hover:bg-zinc-800/40 transition-colors"
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2 text-sm font-medium text-white">
+                    <Calendar size={14} className="text-zinc-500" />
+                    {new Date(note.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </div>
+                  <span
+                    className={cn(
+                      'px-2 py-0.5 rounded-full text-[11px] font-medium',
+                      note.status === 'presented' && 'bg-lime-500/20 text-lime-400',
+                      note.status === 'ready' && 'bg-brand-green/20 text-blue-400',
+                      note.status === 'draft' && 'bg-zinc-700 text-zinc-400',
+                    )}
+                  >
+                    {note.status}
+                  </span>
+                </div>
+                <div className="text-xs text-zinc-500 flex items-center gap-3 mb-1">
+                  {note.preparedBy && <span>by {note.preparedBy}</span>}
+                  {note.employeeOfMonth && <span>· EOM: {note.employeeOfMonth}</span>}
+                  {note.bibleVerseRef && <span>· {note.bibleVerseRef}</span>}
+                </div>
+                {note.trainingTopic && (
+                  <div className="text-xs text-zinc-400 italic">
+                    Training: {note.trainingTopic}
+                  </div>
+                )}
+                {note.snippet && (
+                  <div className="text-sm text-zinc-300 line-clamp-2 mt-1">
+                    {note.snippet}
+                  </div>
+                )}
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
