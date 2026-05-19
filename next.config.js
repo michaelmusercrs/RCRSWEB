@@ -123,7 +123,20 @@ const nextConfig = {
     ];
   },
   async redirects() {
-    return [];
+    return [
+      // Old /ram2 path was renamed to /ram on 2026-05-19 — 307 so browsers
+      // don't permanent-cache (per house rule: never 308).
+      {
+        source: '/ram2',
+        destination: '/ram',
+        permanent: false,
+      },
+      {
+        source: '/ram2/:path*',
+        destination: '/ram/:path*',
+        permanent: false,
+      },
+    ];
   },
   images: {
     remotePatterns: [
