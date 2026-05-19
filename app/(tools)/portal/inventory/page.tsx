@@ -485,6 +485,13 @@ export default function InventoryPage() {
               <CheckCircle className="w-3.5 h-3.5" />
               Reconciliation
             </Link>
+            <Link
+              href="/portal/inventory/order-history"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
+            >
+              <History className="w-3.5 h-3.5" />
+              Order History
+            </Link>
           </div>
         </div>
       </div>
