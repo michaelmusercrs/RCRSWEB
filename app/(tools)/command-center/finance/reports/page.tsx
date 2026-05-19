@@ -42,6 +42,29 @@ import CommandCenterLayout from '@/components/command-center/CommandCenterLayout
 
 interface FinancialData {
   timestamp: string;
+  lifetime?: {
+    generatedAt: string;
+    source: string;
+    totalIncome: number;
+    totalCOGS: number;
+    grossProfit: number;
+    grossMargin: number;
+    totalExpenses: number;
+    netOperatingIncome: number;
+    netOtherIncome: number;
+    netIncome: number;
+    netMargin: number;
+    salesCommissionTotal: number;
+    subcontractorPayTotal: number;
+    jobMaterialsTotal: number;
+    payrollTotal: number;
+    advertisingTotal: number;
+    assets: number;
+    liabilities: number;
+    equity: number;
+    accountsReceivable: number;
+    cashOnHand: number;
+  };
   incomeStatement: {
     grossRevenue: number;
     revenueThisMonth: number;
@@ -299,7 +322,90 @@ export default function FinancialReportsPage() {
         {data && !loading && (
           <>
             {/* ============================================================= */}
-            {/* KPI Cards - Revenue Summary */}
+            {/* Lifetime Totals (real QuickBooks numbers, not estimates) */}
+            {/* ============================================================= */}
+            {data.lifetime && (
+              <div>
+                <div className="flex items-baseline justify-between mb-2">
+                  <h2 className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">
+                    Lifetime — Real QuickBooks Numbers
+                  </h2>
+                  <span className="text-[10px] text-gray-500">
+                    From {data.lifetime.source.split('—')[0].trim()} · pulled {data.lifetime.generatedAt}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+                  <div className="bg-gradient-to-br from-[#39FF14]/10 to-gray-900 rounded-xl p-4 border border-[#39FF14]/30">
+                    <span className="text-gray-400 text-[10px] uppercase tracking-wide">Lifetime Revenue</span>
+                    <div className="text-2xl font-bold text-white mt-1">
+                      {formatCurrency(data.lifetime.totalIncome)}
+                    </div>
+                    <div className="text-[10px] text-gray-500 mt-1">
+                      {formatFullCurrency(data.lifetime.totalIncome)}
+                    </div>
+                  </div>
+                  <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+                    <span className="text-gray-400 text-[10px] uppercase tracking-wide">Gross Profit</span>
+                    <div className="text-2xl font-bold text-white mt-1">
+                      {formatCurrency(data.lifetime.grossProfit)}
+                    </div>
+                    <div className="text-[10px] text-gray-400 mt-1">
+                      {formatPercent(data.lifetime.grossMargin * 100)} margin
+                    </div>
+                  </div>
+                  <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+                    <span className="text-gray-400 text-[10px] uppercase tracking-wide">Net Income</span>
+                    <div className={`text-2xl font-bold mt-1 ${data.lifetime.netIncome >= 0 ? 'text-white' : 'text-red-400'}`}>
+                      {formatCurrency(data.lifetime.netIncome)}
+                    </div>
+                    <div className="text-[10px] text-gray-400 mt-1">
+                      {formatPercent(data.lifetime.netMargin * 100)} net
+                    </div>
+                  </div>
+                  <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+                    <span className="text-gray-400 text-[10px] uppercase tracking-wide">A/R Outstanding</span>
+                    <div className="text-2xl font-bold text-white mt-1">
+                      {formatCurrency(data.lifetime.accountsReceivable)}
+                    </div>
+                    <div className="text-[10px] text-gray-400 mt-1">balance sheet</div>
+                  </div>
+                  <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+                    <span className="text-gray-400 text-[10px] uppercase tracking-wide">Cash on Hand</span>
+                    <div className="text-2xl font-bold text-white mt-1">
+                      {formatCurrency(data.lifetime.cashOnHand)}
+                    </div>
+                    <div className="text-[10px] text-gray-400 mt-1">bank accounts</div>
+                  </div>
+                </div>
+
+                {/* Cost-of-revenue breakdown */}
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+                  <div className="bg-gray-900 rounded-lg p-3 border border-gray-800">
+                    <div className="text-[10px] uppercase tracking-wide text-gray-500">Job Materials</div>
+                    <div className="text-base font-semibold text-white mt-1">{formatCurrency(data.lifetime.jobMaterialsTotal)}</div>
+                  </div>
+                  <div className="bg-gray-900 rounded-lg p-3 border border-gray-800">
+                    <div className="text-[10px] uppercase tracking-wide text-gray-500">Subcontractor Pay</div>
+                    <div className="text-base font-semibold text-white mt-1">{formatCurrency(data.lifetime.subcontractorPayTotal)}</div>
+                  </div>
+                  <div className="bg-gray-900 rounded-lg p-3 border border-gray-800">
+                    <div className="text-[10px] uppercase tracking-wide text-gray-500">Sales Commission</div>
+                    <div className="text-base font-semibold text-white mt-1">{formatCurrency(data.lifetime.salesCommissionTotal)}</div>
+                  </div>
+                  <div className="bg-gray-900 rounded-lg p-3 border border-gray-800">
+                    <div className="text-[10px] uppercase tracking-wide text-gray-500">Payroll</div>
+                    <div className="text-base font-semibold text-white mt-1">{formatCurrency(data.lifetime.payrollTotal)}</div>
+                  </div>
+                  <div className="bg-gray-900 rounded-lg p-3 border border-gray-800">
+                    <div className="text-[10px] uppercase tracking-wide text-gray-500">Advertising / Marketing</div>
+                    <div className="text-base font-semibold text-white mt-1">{formatCurrency(data.lifetime.advertisingTotal)}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================= */}
+            {/* KPI Cards - Revenue Summary (current period estimates) */}
             {/* ============================================================= */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {/* MTD Revenue */}

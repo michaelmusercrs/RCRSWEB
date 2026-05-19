@@ -13,6 +13,7 @@
 import { GoogleSpreadsheet } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
 import commissionsData from '@/data/commissions.json';
+import companyOverviewData from '@/data/company-overview.json';
 import { invoiceService, type Invoice } from './invoice-service';
 import { isJobNimbusConfigured, jobNimbusService } from './jobnimbus-service';
 
@@ -210,7 +211,11 @@ const FINANCIAL_THRESHOLDS = {
   invoiceAgingBuckets: [0, 30, 60, 90],
 };
 
-// Average job multiplier: commissions are roughly 10% of job value
+// Per-rep / per-month rough estimate multiplier. This is the legacy heuristic
+// used where we don't have a real revenue source — sales commissions to a rep
+// are roughly 10% of the job revenue they wrote. Lifetime company-wide totals
+// should use getLifetimeTotals() (real numbers from the QB management report)
+// instead of multiplying anything.
 const COMMISSION_TO_REVENUE_MULTIPLIER = 10;
 // Typical cost breakdown for roofing: ~35% materials, ~25% labor, ~5% overhead
 const MATERIAL_COST_RATIO = 0.35;
@@ -1277,6 +1282,61 @@ class FinancialService {
     } catch {
       return [];
     }
+  }
+
+  /**
+   * Real company-wide lifetime totals from the most recent QuickBooks
+   * Management Report (data/company-overview.json). Use these for
+   * "since-inception" cards on the finance dashboard — they're the
+   * authoritative numbers, not derived from any multiplier.
+   */
+  getLifetimeTotals(): {
+    generatedAt: string;
+    source: string;
+    totalIncome: number;
+    totalCOGS: number;
+    grossProfit: number;
+    grossMargin: number;
+    totalExpenses: number;
+    netOperatingIncome: number;
+    netOtherIncome: number;
+    netIncome: number;
+    netMargin: number;
+    salesCommissionTotal: number;
+    subcontractorPayTotal: number;
+    jobMaterialsTotal: number;
+    payrollTotal: number;
+    advertisingTotal: number;
+    assets: number;
+    liabilities: number;
+    equity: number;
+    accountsReceivable: number;
+    cashOnHand: number;
+  } {
+    const o = companyOverviewData;
+    return {
+      generatedAt: o.generatedAt,
+      source: o.source,
+      totalIncome: o.income.total,
+      totalCOGS: o.cogs.total,
+      grossProfit: o.grossProfit,
+      grossMargin: o.grossMargin,
+      totalExpenses: o.expenses.total,
+      netOperatingIncome: o.netOperatingIncome,
+      netOtherIncome: o.netOtherIncome,
+      netIncome: o.netIncome,
+      netMargin: o.income.total > 0 ? o.netIncome / o.income.total : 0,
+      salesCommissionTotal: o.cogs.salesCommission.total,
+      subcontractorPayTotal: o.cogs.subcontractorPay.total,
+      jobMaterialsTotal: o.cogs.jobMaterials.total,
+      payrollTotal: o.expenses.payrollExpenses.total,
+      advertisingTotal: o.expenses.advertisingMarketing.total,
+      assets: o.balanceSheet.assets.total,
+      liabilities: o.balanceSheet.liabilities.total,
+      equity: o.balanceSheet.equity.total,
+      accountsReceivable: o.balanceSheet.assets.currentAssets.accountsReceivable,
+      cashOnHand: o.balanceSheet.assets.currentAssets.bankAccounts.total,
+    };
   }
 }
 

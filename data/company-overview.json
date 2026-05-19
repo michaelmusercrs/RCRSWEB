@@ -1,0 +1,299 @@
+{
+  "generatedAt": "2026-05-19",
+  "scope": "all-dates",
+  "source": "QuickBooks Management Report — Profit & Loss + Balance Sheet (lifetime through 2026-05-19)",
+  "sourceFile": "River City Roofing Solutions, Inc._Company+Overview.docx",
+
+  "income": {
+    "rcrsRoofingSalesJobNimbus": 35849571.02,
+    "productSalesOther": -7815.91,
+    "doNotUseA": 2809.99,
+    "doNotUseB": 27.00,
+    "rentalIncome": 1400.00,
+    "total": 35845992.10
+  },
+
+  "cogs": {
+    "costOfGoodsSold": 0.00,
+    "aerialMeasurements": 84477.17,
+    "creditCardMerchantFees": 16378.16,
+    "jobMaterials": {
+      "subtotal": 11572069.50,
+      "discountsReceived": -42584.04,
+      "refundsRebatesReceived": -325776.85,
+      "reimbursements": 547273.23,
+      "reworkExpense": -1222.48,
+      "total": 11749759.36
+    },
+    "jobPermitsCityCo": 133037.24,
+    "ownersPayCommission": {
+      "ownersPay": -86858.98,
+      "bonusDistributions": 88858.98,
+      "total": 2000.00
+    },
+    "rentalEquipment": 2744.61,
+    "salesCommission": {
+      "salesCommission": 4764772.73,
+      "bonus": 158373.48,
+      "total": 4923146.21
+    },
+    "subcontractorPay": {
+      "subcontractorPay": 8850646.91,
+      "subcontractorRework": 2181.29,
+      "total": 8852828.20
+    },
+    "totalCostOfGoodsSold": 25764370.95,
+    "workersCompensationExpenses": 55469.92,
+    "total": 25819840.87
+  },
+
+  "grossProfit": 10026151.23,
+  "grossMargin": 0.2796,
+
+  "expenses": {
+    "advertisingMarketing": {
+      "general": 255163.03,
+      "waff": 383011.28,
+      "bbb": 19641.40,
+      "bni": 20254.69,
+      "businessCards": 4072.58,
+      "facebook": 7988.93,
+      "godaddy": 20611.02,
+      "google": 308650.44,
+      "homeShows2021": 17991.19,
+      "mailDropFlyers": 305.50,
+      "referralFees": 9179.95,
+      "salesgenie": 4336.50,
+      "waay31": 44973.00,
+      "whnt": 175965.69,
+      "banquet2022": 10641.89,
+      "tnValleyMedia": 10157.05,
+      "homeShows2022": 5732.01,
+      "homeShow2023": 11181.01,
+      "btc": 2000.71,
+      "googleLLC": 1598.22,
+      "homeShow2025": 7388.58,
+      "homeShows2024": 1729.33,
+      "homeShows2026": 4254.49,
+      "insuranceAgentsClaimsOffice": 45.78,
+      "meta": 641.14,
+      "total": 1327515.41
+    },
+    "badDebts": 16023.60,
+    "bankCharges": 10939.04,
+    "giftsFlowers": 21976.56,
+    "charitableContributions": {
+      "general": 41553.10,
+      "riverCityNetReapers": 10580.72,
+      "total": 52133.82
+    },
+    "duesSubscriptions": {
+      "general": 22398.97,
+      "googleMusicPremium": 400.96,
+      "total": 22799.93
+    },
+    "insurance": {
+      "general": 71304.71,
+      "companyContributions": {
+        "general": 282463.11,
+        "accident": 3618.87,
+        "accidentRCRS": 21049.76,
+        "bcbs": 271626.93,
+        "cancer": 6984.70,
+        "criticalIllness": 346.00,
+        "dental": 12217.65,
+        "disability": 3584.26,
+        "healthInsurance": 3002.85,
+        "insurance": -321.79,
+        "mdvip": 12149.76,
+        "termLife": 14025.10,
+        "wholeLife": 5611.12,
+        "groupTermLife": 4230.12,
+        "vision": -668.31,
+        "total": 639920.13
+      },
+      "total": 711224.84
+    },
+    "royaltyExpenses": 31897.61,
+    "leasePmtMscRealty": 159177.00,
+    "legalProfessional": 71900.44,
+    "meals": 23399.11,
+    "officeSuppliesGeneralExpenses": {
+      "general": 410626.21,
+      "postage": 11248.40,
+      "softwareWebServices": 73234.46,
+      "lunchesMeals": 850.94,
+      "total": 495960.01
+    },
+    "otherBusinessExpenses": {
+      "general": 9223.50,
+      "banquet2026": 4146.24,
+      "total": 13369.74
+    },
+    "officeExpenses": 41937.33,
+    "payrollExpenses": {
+      "payrollExpenses": 38817.94,
+      "companyRetirementContributions": {
+        "companyRetirementContributions": 25730.65,
+        "retirementContributions": 59240.90,
+        "total": 84971.55
+      },
+      "taxes": {
+        "taxes": 56959.74,
+        "alUnemploymentTax": 8488.74,
+        "federalTaxes941_944": 159047.08,
+        "federalUnemployment940": 2871.51,
+        "total": 227367.07
+      },
+      "salariesWages": 1881588.07,
+      "wages": {
+        "companyContributionsRetirement": 1960.78,
+        "wages": 213632.67,
+        "officerSalaryAndWages": 356656.16,
+        "total": 570288.83
+      },
+      "total": 2804994.24
+    },
+    "supplies": 2225.83,
+    "repairsMaintenance": {
+      "repairsMaintenance": 2032.63,
+      "cleaningService": 18660.00,
+      "dumpster": 7375.86,
+      "lawnCare": 7829.60,
+      "pestControl": 8558.30,
+      "total": 44456.39
+    },
+    "travelExpenses": {
+      "travelExpenses": 100614.88,
+      "carRental": 604.92,
+      "entertainment": 456.75,
+      "foodMeals": 3394.59,
+      "gatlinburg2022": 6654.57,
+      "hotels": 6606.83,
+      "jamaica": 35782.33,
+      "perDiem": 5588.00,
+      "rockTheSouth2022": 3581.14,
+      "jamaica2022": 36362.31,
+      "beachTrip2023": 15460.78,
+      "jamaica2024": 38837.94,
+      "gatlinburg2024": 8084.65,
+      "destinFL2025": 14350.07,
+      "total": 276379.76
+    },
+    "utilities": {
+      "utilities": 5110.49,
+      "cellPhone": 60456.49,
+      "electricWater": 28591.83,
+      "internet": 9646.21,
+      "officePhoneAnswering": 38286.69,
+      "total": 142091.71
+    },
+    "truckFuelExpenses": {
+      "truckFuel": 288902.43,
+      "gasChrisKane": 1435.07,
+      "gasChrisMuse": 3979.40,
+      "gasMichaelMuse": 3610.67,
+      "gasProductionTruck": 6083.77,
+      "vehicleJohnCordonis": 2177.95,
+      "vehicleDannyRay": 5742.46,
+      "vehicleMichael": 13745.74,
+      "vehicleInsurance": 59535.55,
+      "total": 385213.04
+    },
+    "banquet2025": 3931.21,
+    "officeSuppliesSoftware": {
+      "officeSuppliesSoftware": 11505.39,
+      "aiSoftware": 4909.58,
+      "total": 16414.97
+    },
+    "payrollExpense2018Deleted": 9401.64,
+    "reimbursableExpenses": {
+      "reimbursableExpenses": 24534.26,
+      "aaronTrip2025Sales": 4416.56,
+      "total": 28950.82
+    },
+    "websiteHosting": 538.66,
+    "total": 6714852.71
+  },
+
+  "netOperatingIncome": 3311298.52,
+
+  "otherIncome": {
+    "otherIncome": 29513.86,
+    "interestIncome": 1670.69,
+    "pppForgiveness": 85603.00,
+    "total": 116787.55
+  },
+
+  "otherExpenses": {
+    "otherMiscellaneous": 4401.17,
+    "depreciation": 134491.34,
+    "taxesLicenses": 61218.60,
+    "incomeTaxesFederal": 277897.00,
+    "incomeTaxesState": 128712.75,
+    "reconciliationDiscrepancies": 1067.13,
+    "transferFunds": 400.00,
+    "banquet2024": 11285.76,
+    "gainOnSaleOfAsset": -8000.00,
+    "total": 611473.75
+  },
+
+  "netOtherIncome": -494686.20,
+  "netIncome": 2816612.32,
+
+  "balanceSheet": {
+    "assets": {
+      "currentAssets": {
+        "bankAccounts": {
+          "cashOnHand": 7844.00,
+          "rfcuMain": 61187.87,
+          "rickAccount": 200.00,
+          "total": 69231.87
+        },
+        "accountsReceivable": 678085.43,
+        "otherCurrentAssets": {
+          "undepositedFunds": 4155.36,
+          "loansToOfficersMM": 84321.05,
+          "loansToOfficersCM": 92824.21,
+          "advance": 86962.30,
+          "inventoryAsset": 22917.16,
+          "payrollRefunds": 1824.95,
+          "total": 293005.03
+        },
+        "total": 1040322.33
+      },
+      "otherAssets": {
+        "machineryEquipment": 3870.00,
+        "trucksAutomobiles": 119828.28,
+        "accumulatedDepreciation": -99091.11,
+        "securityDeposits": 2150.00,
+        "notesReceivableBrandonBradford": 14946.00,
+        "notesReceivableEthan": 5162.14,
+        "notesReceivableAaronBoykin": 10504.51,
+        "total": 57369.82
+      },
+      "total": 1097692.15
+    },
+    "liabilities": {
+      "currentLiabilities": {
+        "accountsPayable": 1831.26,
+        "otherCurrentLiabilities": 152115.30,
+        "total": 153946.56
+      },
+      "longTermLiabilities": {
+        "notePayableDotson": 83416.77,
+        "total": 83416.77
+      },
+      "total": 237363.33
+    },
+    "equity": {
+      "commonStock": 1000.00,
+      "dividends": -312737.22,
+      "additionalPaidInCapital": 19000.00,
+      "retainedEarnings": -1663546.28,
+      "netIncome": 2816612.32,
+      "total": 860328.82
+    },
+    "totalLiabilitiesAndEquity": 1097692.15
+  }
+}

@@ -112,6 +112,12 @@ export async function GET(req: NextRequest) {
       accountsPayable: financialSummary.accountsPayable,
     };
 
+    // Real lifetime totals from the most recent QuickBooks Management Report
+    // (data/company-overview.json). These are authoritative — not derived from
+    // any multiplier estimate. Display them as the headline numbers on the
+    // dashboard; per-rep / per-month figures still come from the estimate.
+    const lifetime = financialService.getLifetimeTotals();
+
     // Build response using proper accounting terminology
     const response = {
       timestamp: new Date().toISOString(),
@@ -119,6 +125,9 @@ export async function GET(req: NextRequest) {
         from: dateFrom || 'all-time',
         to: dateTo || 'present',
       },
+
+      // Lifetime totals — real QB numbers
+      lifetime,
 
       // Income Statement (P&L)
       incomeStatement: {
