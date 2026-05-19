@@ -138,6 +138,18 @@ export default function AdminPortal() {
       stat: '-',
       statLabel: 'vendors',
     },
+    {
+      id: 'warehouse-settings',
+      title: 'Warehouse Geofence',
+      description: 'Pin warehouse location + auto-LOAD_VERIFIED settings',
+      icon: MapPin,
+      href: '/portal/admin/warehouse-settings',
+      color: 'from-orange-500 to-amber-500',
+      bgColor: 'bg-orange-500/10',
+      iconColor: '#f97316',
+      stat: '-',
+      statLabel: 'config',
+    },
   ];
 
   return (

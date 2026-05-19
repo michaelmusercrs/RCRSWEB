@@ -38,6 +38,10 @@
     {
       "path": "/api/cron/sync-inventory-tab",
       "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron/predictive-stock",
+      "schedule": "0 6 * * *"
     }
   ],
   "headers": [
