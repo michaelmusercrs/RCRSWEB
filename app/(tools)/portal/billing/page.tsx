@@ -293,6 +293,13 @@ export default function BillingPortalPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <Link
+              href="/portal/billing/payments"
+              className="flex items-center gap-1.5 px-3 py-2 bg-brand-green/15 text-brand-green border border-brand-green/40 rounded-lg hover:bg-brand-green/25 transition-colors font-semibold text-sm"
+            >
+              <CreditCard size={16} />
+              <span className="hidden sm:inline">Payments</span>
+            </Link>
             {alerts.length > 0 && (
               <button
                 onClick={() => setActiveTab('alerts')}
