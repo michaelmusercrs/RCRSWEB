@@ -1,6 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async headers() {
+    // Next.js dev mode (next dev) uses React Refresh which calls `eval()` to
+    // hot-reload modules. The production CSP blocks `unsafe-eval` for safety,
+    // so in development we relax it just enough for Refresh to work. Prod
+    // builds never include this token.
+    const isDev = process.env.NODE_ENV !== 'production';
+    const scriptSrc = isDev
+      ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://maps.googleapis.com https://connect.facebook.net"
+      : "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://maps.googleapis.com https://connect.facebook.net";
     const securityHeaders = [
       {
         key: 'X-Content-Type-Options',
@@ -26,7 +34,7 @@ const nextConfig = {
         key: 'Content-Security-Policy',
         value: [
           "default-src 'self'",
-          "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://maps.googleapis.com https://connect.facebook.net",
+          scriptSrc,
           "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
           "img-src 'self' data: blob: https: http:",
           "font-src 'self' https://fonts.gstatic.com",
