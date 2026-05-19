@@ -5,6 +5,7 @@ import { TrainingProvider } from '@/lib/training-context';
 import TrainingPopup from '@/components/TrainingPopup';
 import ChatWidget from '@/components/portal/ChatWidget';
 import ImpersonationBanner from '@/components/portal/ImpersonationBanner';
+import OfflineQueueProvider from '@/components/portal/OfflineQueueProvider';
 import { PortalShell } from '@/components/portal/PortalShell';
 
 function AuthGatedExtras() {
@@ -14,6 +15,7 @@ function AuthGatedExtras() {
     <>
       <TrainingPopup />
       <ChatWidget />
+      <OfflineQueueProvider />
     </>
   );
 }

@@ -59,7 +59,12 @@ export default function QRLabelsPage() {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [qrMap, setQrMap] = useState<Record<string, string>>({});
-  const [labelSize, setLabelSize] = useState<'small' | 'medium' | 'large'>('medium');
+  // Label size presets — Avery 5160 is the warehouse default.
+  //  - avery5160: 1" × 2-5/8", 30/sheet on US Letter (the everyday roofer label)
+  //  - sq1x1_5:   1" × 1.5", compact rack labels
+  //  - sq2x2:     2" × 2", big chunky labels for high-traffic items
+  type LabelPreset = 'avery5160' | 'sq1x1_5' | 'sq2x2';
+  const [labelPreset, setLabelPreset] = useState<LabelPreset>('avery5160');
 
   // Load the inventory catalog
   useEffect(() => {
@@ -183,13 +188,61 @@ export default function QRLabelsPage() {
     [items, selected]
   );
 
-  // Label size classes — small=24/sheet, medium=12/sheet, large=6/sheet
-  const sizeClasses = {
-    small: { container: 'w-32 h-32', qr: 'w-20 h-20', text: 'text-[8px]', name: 'text-[9px]' },
-    medium: { container: 'w-44 h-44', qr: 'w-28 h-28', text: 'text-[10px]', name: 'text-xs' },
-    large: { container: 'w-60 h-60', qr: 'w-40 h-40', text: 'text-xs', name: 'text-sm' },
+  // Label size presets. Each describes both on-screen preview classes AND
+  // the @print sizes (in inches/CSS) so labels land in the right cells on
+  // a real label sheet.
+  const sizePresets: Record<LabelPreset, {
+    container: string;
+    qr: string;
+    text: string;
+    name: string;
+    // Print-time CSS — applied via inline style or <style jsx> below
+    printWidth: string;
+    printHeight: string;
+    printGridCols: number;
+    printGridGap: string;
+    sheetMargin: string;
+    description: string;
+  }> = {
+    avery5160: {
+      container: 'w-40 h-16',
+      qr: 'w-14 h-14',
+      text: 'text-[8px]',
+      name: 'text-[10px]',
+      // 1" × 2-5/8" — 3 columns × 10 rows = 30/sheet on Letter
+      printWidth: '2.625in',
+      printHeight: '1in',
+      printGridCols: 3,
+      printGridGap: '0.125in 0.125in', // row × column
+      sheetMargin: '0.5in 0.1875in', // top/bottom × left/right (Avery 5160 spec)
+      description: 'Avery 5160 (1" × 2-5/8", 30/sheet)',
+    },
+    sq1x1_5: {
+      container: 'w-28 h-20',
+      qr: 'w-16 h-16',
+      text: 'text-[8px]',
+      name: 'text-[10px]',
+      printWidth: '1.5in',
+      printHeight: '1in',
+      printGridCols: 5,
+      printGridGap: '0.125in',
+      sheetMargin: '0.5in 0.5in',
+      description: 'Compact (1" × 1.5")',
+    },
+    sq2x2: {
+      container: 'w-44 h-44',
+      qr: 'w-28 h-28',
+      text: 'text-xs',
+      name: 'text-sm',
+      printWidth: '2in',
+      printHeight: '2in',
+      printGridCols: 4,
+      printGridGap: '0.125in',
+      sheetMargin: '0.5in 0.25in',
+      description: 'Large (2" × 2")',
+    },
   };
-  const cls = sizeClasses[labelSize];
+  const cls = sizePresets[labelPreset];
 
   if (loading) {
     return (
@@ -212,25 +265,48 @@ export default function QRLabelsPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950">
-      {/* Print-only styles */}
+      {/* Print-only styles — preset-aware so labels land in the right cells */}
       <style jsx global>{`
+        @page {
+          size: Letter portrait;
+          margin: ${cls.sheetMargin};
+        }
         @media print {
-          body { background: white; }
+          html, body {
+            background: white !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
           .no-print { display: none !important; }
           .print-only { display: block !important; }
           .label-grid {
             display: grid !important;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)) !important;
-            gap: 8px !important;
+            grid-template-columns: repeat(${cls.printGridCols}, ${cls.printWidth}) !important;
+            gap: ${cls.printGridGap} !important;
+            justify-content: center;
           }
           .label {
+            width: ${cls.printWidth} !important;
+            height: ${cls.printHeight} !important;
             background: white !important;
             color: black !important;
-            border: 1px solid #999 !important;
+            border: 0.5pt solid #ccc !important;
             page-break-inside: avoid;
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            padding: 0.05in !important;
+            box-sizing: border-box !important;
+          }
+          .label.label-square {
+            flex-direction: column !important;
+            justify-content: space-between !important;
           }
           .label * {
             color: black !important;
+          }
+          .label img {
+            flex-shrink: 0;
           }
         }
         .print-only { display: none; }
@@ -255,13 +331,14 @@ export default function QRLabelsPage() {
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <select
-              value={labelSize}
-              onChange={(e) => setLabelSize(e.target.value as 'small' | 'medium' | 'large')}
+              value={labelPreset}
+              onChange={(e) => setLabelPreset(e.target.value as LabelPreset)}
               className="px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-sm text-white"
+              title="Label sheet size"
             >
-              <option value="small">Small (24/sheet)</option>
-              <option value="medium">Medium (12/sheet)</option>
-              <option value="large">Large (6/sheet)</option>
+              <option value="avery5160">Avery 5160 (1&quot; × 2-5/8&quot;)</option>
+              <option value="sq1x1_5">Compact (1&quot; × 1.5&quot;)</option>
+              <option value="sq2x2">Large (2&quot; × 2&quot;)</option>
             </select>
             <button
               onClick={selectAllFiltered}
@@ -359,11 +436,11 @@ export default function QRLabelsPage() {
 
       {/* Print preview / actual print output */}
       <div className="px-4 md:px-6 py-4 print-only">
-        <div className="label-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+        <div className="label-grid">
           {selectedItems.map((item) => (
             <div
               key={item.productId}
-              className={`label ${cls.container} bg-white text-black border-2 border-black rounded p-2 flex flex-col items-center justify-between`}
+              className={`label ${labelPreset === 'sq2x2' ? 'label-square' : ''} bg-white text-black`}
             >
               {qrMap[item.productId] ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -377,7 +454,7 @@ export default function QRLabelsPage() {
                   <Loader2 className="w-6 h-6 animate-spin text-neutral-400" />
                 </div>
               )}
-              <div className="text-center w-full">
+              <div className={`${labelPreset === 'sq2x2' ? 'text-center' : 'flex-1 ml-1.5 overflow-hidden'} w-full`}>
                 <div className={`${cls.name} font-bold leading-tight line-clamp-2`}>
                   {item.productName}
                 </div>
@@ -394,14 +471,21 @@ export default function QRLabelsPage() {
       {/* Screen-only preview of selected items so user can see what will print */}
       {selectedItems.length > 0 && (
         <div className="no-print px-4 md:px-6 py-6 border-t border-zinc-800 bg-zinc-900/30">
-          <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-3">
-            Print Preview ({selectedItems.length} labels)
-          </h3>
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider">
+              Print Preview ({selectedItems.length} labels)
+            </h3>
+            <span className="text-xs text-zinc-500">
+              {cls.description} ·{' '}
+              {Math.ceil(selectedItems.length / (cls.printGridCols * (labelPreset === 'avery5160' ? 10 : labelPreset === 'sq1x1_5' ? 10 : 5)))}{' '}
+              sheet(s)
+            </span>
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {selectedItems.map((item) => (
               <div
                 key={item.productId}
-                className={`${cls.container} bg-white text-black border-2 border-black rounded p-2 flex flex-col items-center justify-between`}
+                className={`${cls.container} bg-white text-black border-2 border-black rounded ${labelPreset === 'sq2x2' ? 'p-2 flex flex-col items-center justify-between' : 'p-1.5 flex flex-row items-center gap-1.5'}`}
               >
                 {qrMap[item.productId] ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -415,12 +499,12 @@ export default function QRLabelsPage() {
                     <Loader2 className="w-6 h-6 animate-spin text-neutral-400" />
                   </div>
                 )}
-                <div className="text-center w-full">
+                <div className={`${labelPreset === 'sq2x2' ? 'text-center w-full' : 'flex-1 min-w-0 overflow-hidden'}`}>
                   <div className={`${cls.name} font-bold leading-tight line-clamp-2`}>
                     {item.productName}
                   </div>
                   <div className={`${cls.text} font-mono mt-0.5`}>{item.productId}</div>
-                  <div className={`${cls.text} text-neutral-600 mt-0.5`}>{item.location}</div>
+                  <div className={`${cls.text} text-neutral-600 mt-0.5 truncate`}>{item.location}</div>
                 </div>
               </div>
             ))}

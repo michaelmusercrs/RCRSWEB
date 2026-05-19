@@ -207,21 +207,44 @@ export default function LoadingChecklistPage() {
     });
   };
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
-    Array.from(files).forEach(file => {
-      const preview = URL.createObjectURL(file);
-      const newPhoto: PhotoUpload = {
-        id: `photo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        file,
-        preview,
-        label: `Loaded truck photo ${photos.length + 1}`,
-        timestamp: new Date(),
-      };
-      setPhotos(prev => [...prev, newPhoto]);
-    });
+    // Compress each file before adding to state — keeps the truck-loaded
+    // photo set under ~500KB each so the verify-load submit isn't slow.
+    const imageCompression = (await import('browser-image-compression')).default;
+
+    for (const file of Array.from(files)) {
+      try {
+        const compressed = await imageCompression(file, {
+          maxSizeMB: 0.5,
+          maxWidthOrHeight: 1600,
+          useWebWorker: true,
+          initialQuality: 0.85,
+        });
+        const preview = URL.createObjectURL(compressed);
+        const newPhoto: PhotoUpload = {
+          id: `photo-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+          file: compressed,
+          preview,
+          label: `Loaded truck photo ${photos.length + 1}`,
+          timestamp: new Date(),
+        };
+        setPhotos(prev => [...prev, newPhoto]);
+      } catch (err) {
+        console.warn('[loading-checklist] compression failed, using original:', err);
+        const preview = URL.createObjectURL(file);
+        const newPhoto: PhotoUpload = {
+          id: `photo-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+          file,
+          preview,
+          label: `Loaded truck photo ${photos.length + 1}`,
+          timestamp: new Date(),
+        };
+        setPhotos(prev => [...prev, newPhoto]);
+      }
+    }
 
     // Reset file input
     if (fileInputRef.current) {
@@ -277,8 +300,11 @@ export default function LoadingChecklistPage() {
         }
       }
 
-      // 2. Upload photos to Vercel Blob via the delivery photos endpoint
+      // 2. Upload photos to Vercel Blob via the delivery photos endpoint.
+      //    On failure, push to the IndexedDB offline queue so the driver
+      //    can keep moving and the photo will retry when network returns.
       const uploadedUrls: string[] = [];
+      let queuedCount = 0;
       for (const p of photos) {
         const fd = new FormData();
         fd.append('photo', p.file);
@@ -286,15 +312,39 @@ export default function LoadingChecklistPage() {
         fd.append('stage', 'LOAD_VERIFIED');
         if (gpsLocation) fd.append('gpsLocation', gpsLocation);
 
-        const upRes = await fetch('/api/portal/delivery/photos', {
-          method: 'POST',
-          body: fd,
-        });
-        const upJson = await upRes.json().catch(() => ({}));
-        if (!upRes.ok || !upJson.success) {
-          throw new Error(`Photo upload failed: ${upJson.error || upRes.status}`);
+        try {
+          const upRes = await fetch('/api/portal/delivery/photos', {
+            method: 'POST',
+            body: fd,
+          });
+          const upJson = await upRes.json().catch(() => ({}));
+          if (!upRes.ok || !upJson.success) {
+            throw new Error(`Photo upload failed: ${upJson.error || upRes.status}`);
+          }
+          uploadedUrls.push(upJson.photo.url);
+        } catch (upErr) {
+          // Queue the photo for retry — non-blocking on the verify-load step
+          try {
+            const { enqueueOfflinePhoto } = await import('@/lib/offline-queue');
+            await enqueueOfflinePhoto({
+              id: p.id,
+              ticketId: selectedDelivery.ticketId,
+              stage: 'LOAD_VERIFIED',
+              gpsLocation: gpsLocation,
+              file: p.file,
+              endpoint: '/api/portal/delivery/photos',
+              queuedAt: Date.now(),
+            });
+            queuedCount++;
+            console.warn(`[loading-checklist] photo queued offline (${p.id}):`, upErr);
+          } catch (qErr) {
+            console.error('[loading-checklist] offline-queue failed too:', qErr);
+            throw upErr; // surface the original error
+          }
         }
-        uploadedUrls.push(upJson.photo.url);
+      }
+      if (queuedCount > 0) {
+        console.warn(`[loading-checklist] ${queuedCount} photo(s) queued for retry`);
       }
 
       // 3. Call verify-load — runs the load-verified aftermath:
