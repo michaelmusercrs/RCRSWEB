@@ -113,6 +113,14 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(suggestions);
       }
 
+      case 'restockDrafts': {
+        // Phase 4: auto-generate drafts for items below reorderPoint and
+        // return the open draft list. ensureRestockDrafts() is idempotent.
+        await unifiedInventoryService.ensureRestockDrafts(auth.user.userId, auth.user.name);
+        const orders = await unifiedInventoryService.getRestockOrders('draft');
+        return NextResponse.json(orders);
+      }
+
       case 'restockOrders': {
         const status = searchParams.get('status') as any;
         const orders = await unifiedInventoryService.getRestockOrders(status || undefined);
@@ -302,7 +310,24 @@ export async function POST(request: NextRequest) {
       }
 
       case 'initiateCount': {
+        // Phase 4: routes to one of three modes based on countSessionType.
+        // Legacy callers without the field still get the full weekly count.
+        const type = body.countSessionType || 'full';
+        if (type === 'cycle') {
+          const target = typeof body.targetCount === 'number' ? body.targetCount : 7;
+          const session = await unifiedInventoryService.initiateCycleCount(auth.user.userId, auth.user.name, target);
+          auditLog('INVENTORY_COUNT_START', auth.user.email, `Started cycle count (${target} items)`, request);
+          return NextResponse.json(session, { status: 201 });
+        }
+        if (type === 'item') {
+          if (!body.productId) return NextResponse.json({ error: 'productId required' }, { status: 400 });
+          const session = await unifiedInventoryService.initiateItemCount(body.productId, auth.user.userId, auth.user.name);
+          if (!session) return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+          auditLog('INVENTORY_COUNT_START', auth.user.email, `Started item count for ${body.productId}`, request);
+          return NextResponse.json(session, { status: 201 });
+        }
         const session = await unifiedInventoryService.initiateWeeklyCount(auth.user.userId, auth.user.name);
+        auditLog('INVENTORY_COUNT_START', auth.user.email, 'Started full weekly count', request);
         return NextResponse.json(session, { status: 201 });
       }
 
@@ -326,7 +351,19 @@ export async function POST(request: NextRequest) {
         const order = await unifiedInventoryService.createRestockOrder(
           body.items, auth.user.userId, auth.user.name, body.supplier, body.notes
         );
+        auditLog('RESTOCK_DRAFT_CREATE', auth.user.email, `Created draft PO ${order.orderId} (${order.items.length} lines, supplier: ${order.supplier})`, request);
         return NextResponse.json(order, { status: 201 });
+      }
+
+      case 'ensureRestockDrafts': {
+        // Phase 4: explicit "build drafts now" action — same idempotent
+        // behavior as the GET restockDrafts case, but as a POST so it can be
+        // triggered by a button without re-fetching the whole list.
+        const created = await unifiedInventoryService.ensureRestockDrafts(auth.user.userId, auth.user.name);
+        if (created.length > 0) {
+          auditLog('RESTOCK_DRAFT_AUTO', auth.user.email, `Auto-generated ${created.length} draft PO(s): ${created.join(', ')}`, request);
+        }
+        return NextResponse.json({ created });
       }
 
       case 'updateRestockStatus': {

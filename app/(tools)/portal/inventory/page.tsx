@@ -485,6 +485,20 @@ export default function InventoryPage() {
               <CheckCircle className="w-3.5 h-3.5" />
               Reconciliation
             </Link>
+            <Link
+              href="/portal/inventory/low-stock"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-300 hover:text-white bg-amber-900/20 hover:bg-amber-900/40 border border-amber-700/40 rounded-lg transition-colors"
+            >
+              <AlertTriangle className="w-3.5 h-3.5" />
+              Low Stock
+            </Link>
+            <Link
+              href="/portal/inventory/vendors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
+            >
+              <Package className="w-3.5 h-3.5" />
+              Vendors
+            </Link>
           </div>
         </div>
       </div>

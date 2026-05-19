@@ -421,6 +421,18 @@ export default function AdminPortal() {
                   <div className="text-xs text-neutral-500">Route incoming leads to reps</div>
                 </div>
               </Link>
+              <Link
+                href="/portal/admin/audit"
+                className="flex items-center gap-3 px-4 py-3 bg-white/[0.02] border border-white/5 rounded-xl hover:bg-white/[0.05] transition-colors"
+              >
+                <div className="w-10 h-10 bg-amber-500/10 rounded-lg flex items-center justify-center">
+                  <Shield size={18} className="text-amber-400" />
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-white">Audit Log</div>
+                  <div className="text-xs text-neutral-500">Sheets-backed audit trail w/ filters</div>
+                </div>
+              </Link>
             </div>
             {geocodeMessage && (
               <div className="mt-4 p-3 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sm text-sky-400">

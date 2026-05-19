@@ -498,13 +498,23 @@ export default function NotificationSettingsPage() {
                 </p>
               </div>
             </div>
-            <button
-              onClick={loadData}
-              className="text-neutral-400 hover:text-white p-2 rounded-lg hover:bg-neutral-800 transition-colors"
-              title="Refresh"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/portal/settings/notifications/push"
+                className="px-3 py-1.5 text-sm bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded-lg inline-flex items-center gap-1.5"
+                title="Push notifications via ntfy.sh"
+              >
+                <Smartphone className="w-4 h-4" />
+                Push (ntfy)
+              </Link>
+              <button
+                onClick={loadData}
+                className="text-neutral-400 hover:text-white p-2 rounded-lg hover:bg-neutral-800 transition-colors"
+                title="Refresh"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </div>

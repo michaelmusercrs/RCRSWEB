@@ -1,17 +1,34 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+/**
+ * /portal/inventory/count — three count modes (Phase 4).
+ *
+ * Full count   = legacy weekly all-SKU count (default tab)
+ * Cycle count  = system picks 5–10 random items per week
+ * Item count   = on-demand single SKU
+ *
+ * All three modes funnel through the same CountSession/Record flow on the
+ * service side — the only differences are scope (totalItems + which items
+ * show up in the "to count" list) and the countSessionType marker so the
+ * History table can label them differently.
+ */
+
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import {
-  ArrowLeft, ClipboardCheck, Camera, CheckCircle, AlertTriangle,
-  RefreshCw, Loader2, X, Plus, Hash, History, Package
+  ArrowLeft, ClipboardCheck, CheckCircle, AlertTriangle, RefreshCw,
+  Loader2, X, Plus, History, Package, Shuffle, Search, Layers,
 } from 'lucide-react';
+
+type CountSessionType = 'full' | 'cycle' | 'item';
 
 interface CountSession {
   sessionId: string;
   startedAt: string;
   startedByName: string;
   status: string;
+  countSessionType?: CountSessionType;
+  scopedProductIds?: string[];
   completedAt?: string;
   totalItems: number;
   countedItems: number;
@@ -40,9 +57,17 @@ interface InventoryItem {
   unit: string;
   location: string;
   category: string;
+  sku?: string;
 }
 
+const TABS: { key: CountSessionType; label: string; desc: string; Icon: typeof Layers }[] = [
+  { key: 'full', label: 'Full count', desc: 'Weekly all-SKU count', Icon: Layers },
+  { key: 'cycle', label: 'Cycle count', desc: '5–10 random items per week', Icon: Shuffle },
+  { key: 'item', label: 'Item count', desc: 'Single SKU on demand', Icon: Search },
+];
+
 export default function InventoryCountPage() {
+  const [activeTab, setActiveTab] = useState<CountSessionType>('full');
   const [activeSession, setActiveSession] = useState<CountSession | null>(null);
   const [sessions, setSessions] = useState<CountSession[]>([]);
   const [records, setRecords] = useState<CountRecord[]>([]);
@@ -52,6 +77,13 @@ export default function InventoryCountPage() {
   const [countValue, setCountValue] = useState('');
   const [countNotes, setCountNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  // Cycle count config
+  const [cycleTarget, setCycleTarget] = useState(7);
+
+  // Item count selection
+  const [itemSearch, setItemSearch] = useState('');
+  const [selectedItemId, setSelectedItemId] = useState('');
 
   const fetchData = useCallback(async () => {
     try {
@@ -67,6 +99,8 @@ export default function InventoryCountPage() {
         if (data?.sessionId) {
           const recordsRes = await fetch(`/api/portal/inventory?action=countRecords&sessionId=${data.sessionId}`);
           if (recordsRes.ok) setRecords(await recordsRes.json());
+          // Auto-pin the tab to whatever the active session's type is
+          if (data.countSessionType) setActiveTab(data.countSessionType);
         }
       }
       if (sessionsRes.ok) setSessions(await sessionsRes.json());
@@ -86,14 +120,29 @@ export default function InventoryCountPage() {
   const startNewCount = async () => {
     setSubmitting(true);
     try {
+      const payload: Record<string, unknown> = {
+        action: 'initiateCount',
+        countSessionType: activeTab,
+      };
+      if (activeTab === 'cycle') payload.targetCount = cycleTarget;
+      if (activeTab === 'item') {
+        if (!selectedItemId) {
+          setSubmitting(false);
+          return;
+        }
+        payload.productId = selectedItemId;
+      }
+
       const res = await fetch('/api/portal/inventory', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'initiateCount' }),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
         const session = await res.json();
         setActiveSession(session);
+        setItemSearch('');
+        setSelectedItemId('');
         fetchData();
       }
     } catch (error) {
@@ -148,10 +197,33 @@ export default function InventoryCountPage() {
   };
 
   const countedProductIds = new Set(records.map(r => r.productId));
-  const uncountedItems = inventory.filter(i => !countedProductIds.has(i.productId));
+  const scopedIds = activeSession?.scopedProductIds;
+  const inScope = (item: InventoryItem) =>
+    !scopedIds || scopedIds.length === 0 || scopedIds.includes(item.productId);
+  const uncountedItems = inventory.filter(i => !countedProductIds.has(i.productId) && inScope(i));
   const discrepancies = records.filter(r => r.discrepancy !== 0 && !r.resolved);
 
   const progress = activeSession ? Math.round((activeSession.countedItems / Math.max(1, activeSession.totalItems)) * 100) : 0;
+
+  const searchMatches = useMemo(() => {
+    if (!itemSearch) return inventory.slice(0, 25);
+    const q = itemSearch.toLowerCase();
+    return inventory.filter(i =>
+      i.productName.toLowerCase().includes(q) ||
+      i.productId.toLowerCase().includes(q) ||
+      (i.sku || '').toLowerCase().includes(q),
+    ).slice(0, 25);
+  }, [itemSearch, inventory]);
+
+  const sessionTypeBadge = (s: CountSession) => {
+    const t = s.countSessionType || 'full';
+    const meta = TABS.find(x => x.key === t)!;
+    return (
+      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-gray-100 text-gray-700 font-medium">
+        <meta.Icon className="w-3 h-3" />{meta.label}
+      </span>
+    );
+  };
 
   if (loading) {
     return (
@@ -169,7 +241,7 @@ export default function InventoryCountPage() {
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold">Weekly Inventory Count</h1>
+            <h1 className="text-2xl font-bold">Inventory Count</h1>
             <p className="text-sm text-gray-500">Verify physical inventory against system records</p>
           </div>
         </div>
@@ -178,14 +250,101 @@ export default function InventoryCountPage() {
         </button>
       </div>
 
-      {/* Active Session or Start New */}
+      {/* Mode tabs — disabled while a session is active so we don't fork modes */}
+      <div className="bg-white rounded-xl border shadow-sm p-1 grid grid-cols-3 gap-1">
+        {TABS.map(t => {
+          const isActive = activeTab === t.key;
+          const isDisabled = !!activeSession && activeSession.countSessionType !== t.key;
+          return (
+            <button
+              key={t.key}
+              disabled={isDisabled}
+              onClick={() => setActiveTab(t.key)}
+              className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isActive ? 'bg-blue-600 text-white' : isDisabled ? 'opacity-40 text-gray-500 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-100'
+              }`}
+              title={t.desc}
+            >
+              <t.Icon className="w-4 h-4" />
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Cycle "Today's items" preview when on cycle tab + no active session */}
+      {activeTab === 'cycle' && !activeSession && (
+        <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+          <h3 className="font-semibold flex items-center gap-2">
+            <Shuffle className="w-5 h-5 text-purple-600" />
+            Today's cycle items
+          </h3>
+          <p className="text-sm text-purple-900 mt-1">
+            Start a cycle count and the system will randomly pick{' '}
+            <input
+              type="number"
+              min="1"
+              max={Math.max(1, inventory.length)}
+              value={cycleTarget}
+              onChange={e => setCycleTarget(Math.max(1, parseInt(e.target.value) || 1))}
+              className="w-16 px-1 py-0.5 border rounded text-sm mx-1"
+            />{' '}
+            items for you to count.
+          </p>
+        </div>
+      )}
+
+      {/* Item-count selector when on item tab + no active session */}
+      {activeTab === 'item' && !activeSession && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <h3 className="font-semibold flex items-center gap-2">
+            <Search className="w-5 h-5 text-amber-600" />
+            Pick an item to count
+          </h3>
+          <div className="relative mt-2">
+            <Search className="w-4 h-4 absolute left-2 top-2.5 text-gray-400" />
+            <input
+              value={itemSearch}
+              onChange={e => setItemSearch(e.target.value)}
+              placeholder="Search by name or SKU…"
+              className="w-full pl-8 pr-3 py-2 border rounded text-sm"
+            />
+          </div>
+          <div className="mt-2 max-h-72 overflow-y-auto border bg-white rounded">
+            {searchMatches.length === 0 ? (
+              <p className="p-3 text-sm text-gray-500">No matches.</p>
+            ) : (
+              <ul className="divide-y">
+                {searchMatches.map(item => (
+                  <li key={item.productId}>
+                    <button
+                      onClick={() => setSelectedItemId(item.productId)}
+                      className={`w-full text-left px-3 py-2 hover:bg-gray-50 ${
+                        selectedItemId === item.productId ? 'bg-blue-50' : ''
+                      }`}
+                    >
+                      <div className="text-sm font-medium">{item.productName}</div>
+                      <div className="text-xs text-gray-500">
+                        {item.sku ? `${item.sku} · ` : ''}On hand: {item.currentQty} {item.unit}
+                      </div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Active Session card */}
       {activeSession ? (
         <div className="bg-white rounded-xl shadow-sm border p-4">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="font-semibold flex items-center gap-2">
                 <ClipboardCheck className="w-5 h-5 text-blue-600" />
-                Active Count: {activeSession.sessionId}
+                Active count: {activeSession.sessionId}
+                {sessionTypeBadge(activeSession)}
               </h2>
               <p className="text-sm text-gray-500">Started by {activeSession.startedByName} on {new Date(activeSession.startedAt).toLocaleString()}</p>
             </div>
@@ -225,15 +384,19 @@ export default function InventoryCountPage() {
       ) : (
         <div className="bg-white rounded-xl shadow-sm border p-8 text-center">
           <ClipboardCheck className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-          <h2 className="text-xl font-semibold mb-2">No Active Count Session</h2>
-          <p className="text-gray-500 mb-4">Start a new weekly count to verify inventory levels.</p>
+          <h2 className="text-xl font-semibold mb-2">No active count session</h2>
+          <p className="text-gray-500 mb-4">
+            {activeTab === 'full' && 'Start a new full weekly count to verify every SKU.'}
+            {activeTab === 'cycle' && `Start a cycle count and the system will pick ${cycleTarget} random items.`}
+            {activeTab === 'item' && (selectedItemId ? 'Selected. Tap below to start.' : 'Pick an item above to start a single-SKU count.')}
+          </p>
           <button
             onClick={startNewCount}
-            disabled={submitting}
+            disabled={submitting || (activeTab === 'item' && !selectedItemId)}
             className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2 mx-auto"
           >
             {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
-            Start Weekly Count
+            Start {activeTab} count
           </button>
         </div>
       )}
@@ -243,7 +406,7 @@ export default function InventoryCountPage() {
         <div className="bg-amber-50 rounded-xl border border-amber-200 p-4">
           <h3 className="font-semibold flex items-center gap-2 mb-3">
             <AlertTriangle className="w-5 h-5 text-amber-600" />
-            Unresolved Discrepancies ({discrepancies.length})
+            Unresolved discrepancies ({discrepancies.length})
           </h3>
           <div className="space-y-2">
             {discrepancies.map(rec => (
@@ -262,13 +425,13 @@ export default function InventoryCountPage() {
                     onClick={() => resolveDiscrepancy(rec.recordId, 'adjust_system', rec.countedQty, 'miscount')}
                     className="px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded hover:bg-blue-100"
                   >
-                    Adjust System
+                    Adjust system
                   </button>
                   <button
                     onClick={() => resolveDiscrepancy(rec.recordId, 'no_action', rec.systemQty, 'miscount')}
                     className="px-2 py-1 text-xs bg-gray-50 text-gray-700 rounded hover:bg-gray-100"
                   >
-                    Keep System
+                    Keep system
                   </button>
                 </div>
               </div>
@@ -277,12 +440,12 @@ export default function InventoryCountPage() {
         </div>
       )}
 
-      {/* Uncounted Items */}
+      {/* Uncounted Items (scoped to session) */}
       {activeSession && activeSession.status === 'in_progress' && uncountedItems.length > 0 && (
         <div>
           <h3 className="font-semibold mb-3 flex items-center gap-2">
             <Package className="w-5 h-5" />
-            Items to Count ({uncountedItems.length})
+            Items to count ({uncountedItems.length})
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {uncountedItems.map(item => (
@@ -334,13 +497,14 @@ export default function InventoryCountPage() {
         <div>
           <h3 className="font-semibold mb-3 flex items-center gap-2">
             <History className="w-5 h-5" />
-            Count History
+            Count history
           </h3>
           <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 text-left text-xs font-semibold text-gray-500 uppercase">
                   <th className="px-4 py-3">Session</th>
+                  <th className="px-4 py-3">Mode</th>
                   <th className="px-4 py-3">Started</th>
                   <th className="px-4 py-3">By</th>
                   <th className="px-4 py-3">Items</th>
@@ -349,9 +513,10 @@ export default function InventoryCountPage() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {sessions.slice(0, 10).map(session => (
+                {sessions.slice(0, 15).map(session => (
                   <tr key={session.sessionId} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-mono">{session.sessionId}</td>
+                    <td className="px-4 py-3 font-mono text-xs">{session.sessionId}</td>
+                    <td className="px-4 py-3">{sessionTypeBadge(session)}</td>
                     <td className="px-4 py-3">{new Date(session.startedAt).toLocaleDateString()}</td>
                     <td className="px-4 py-3">{session.startedByName}</td>
                     <td className="px-4 py-3">{session.countedItems}/{session.totalItems}</td>
