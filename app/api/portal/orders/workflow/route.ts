@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { orderWorkflowService } from '@/lib/order-workflow-service';
 import { materialOrders } from '@/lib/materialOrders';
-import { updateProductStock } from '@/lib/inventoryData';
+import { unifiedInventoryService } from '@/lib/unified-inventory-service';
 
 // GET - Fetch orders or a single order
 export async function GET(request: NextRequest) {
@@ -298,13 +298,24 @@ export async function PATCH(request: NextRequest) {
 
     await orderWorkflowService.updateOrderStatus(orderId, status, updates);
 
-    // Update inventory if order is moving to loading (deduct stock once)
-    // Only deduct if loadedAt is not already set (prevents double-deduction on repeat calls)
+    // Legacy stock-deduction path: only fires on the LEGACY orderWorkflowService
+    // "loading" status transition. The NEW material-order-pipeline already
+    // deducts at LOAD_VERIFIED via unifiedInventoryService.deductStock. To
+    // avoid double-deducting, this path uses the SAME canonical service so
+    // either route is safe; loadedAt gates idempotency.
     if (status === 'loading') {
       const order = await orderWorkflowService.getOrderById(orderId);
       if (order && !order.loadedAt) {
         for (const item of order.items) {
-          updateProductStock(item.productId, item.quantity, 'subtract');
+          await unifiedInventoryService.deductStock(
+            item.productId,
+            item.quantity,
+            orderId,
+            'legacy_loading',
+            auth.user?.email || 'system',
+            auth.user?.name || 'system',
+            `Legacy workflow: ${order.jobName || orderId} status → loading`,
+          );
         }
       }
     }

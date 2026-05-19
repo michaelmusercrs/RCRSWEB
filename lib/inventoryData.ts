@@ -1,3 +1,16 @@
+/**
+ * @deprecated Use `unified-inventory-service.ts` for live inventory data.
+ *
+ * This module is a legacy fallback containing a hardcoded snapshot of the
+ * 11-item warehouse catalog from December 2025. The canonical source of
+ * truth is now Google Sheets via `unifiedInventoryService`. Do NOT add new
+ * features here or call `updateProductStock()` — that mutates an in-memory
+ * const array and is lost on restart.
+ *
+ * Remaining read-only callers (dropdowns, fallback lookups) are tolerated
+ * for now but should migrate to `unifiedInventoryService.getProducts()`
+ * in a future pass.
+ */
 // Inventory Data - Source: items for web.pdf
 // Last Updated: December 2025
 

@@ -154,6 +154,42 @@ export async function pushToRoles(
 }
 
 /**
+ * Adapter object for Phase 5 callers (predictive-stock cron) that use a
+ * sendToRoles({title, message, priority, tags, ...}) object-payload style.
+ * Maps string priority ('min'|'low'|'default'|'high'|'max') to Phase 4's
+ * numeric NtfyPriority scale.
+ */
+type Phase5Priority = 'min' | 'low' | 'default' | 'high' | 'max';
+const PRIORITY_MAP: Record<Phase5Priority, NtfyPriority> = {
+  min: 1, low: 2, default: 3, high: 4, max: 5,
+};
+
+interface Phase5SendOptions {
+  title: string;
+  message: string;
+  priority?: Phase5Priority | NtfyPriority;
+  tags?: string[];
+  clickUrl?: string;
+}
+
+export const ntfyService = {
+  async sendToRoles(
+    roles: NtfyRoleTopic[],
+    opts: Phase5SendOptions,
+  ): Promise<{ topic: string; ok: boolean }[]> {
+    const numericPriority: NtfyPriority | undefined =
+      typeof opts.priority === 'string'
+        ? PRIORITY_MAP[opts.priority]
+        : opts.priority;
+    return pushToRoles(roles, opts.title, opts.message, {
+      priority: numericPriority,
+      tags: opts.tags,
+      clickUrl: opts.clickUrl,
+    });
+  },
+};
+
+/**
  * RFC 2047 encode the title header. ntfy is OK with plain ASCII, but emoji
  * and accented chars in titles need =?UTF-8?B?...?= or they get mangled
  * client-side. Simplest safe path: base64-utf8 encode anything non-ASCII.

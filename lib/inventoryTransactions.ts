@@ -1,3 +1,12 @@
+/**
+ * @deprecated Use `unified-inventory-service.ts` transaction log.
+ *
+ * Historical transaction snapshot (1,660 rows) imported from Items.xlsx
+ * on 2025-12-04. The canonical transaction log now lives in the Google
+ * Sheets `InventoryTransactions` tab and is managed by
+ * `unifiedInventoryService`. This file remains only for backfill/audit
+ * purposes; do not append new transactions here.
+ */
 // Inventory Transaction History - Real Data from Items.xlsx
 // Total Transactions: 1660
 // Data imported: 2025-12-04 22:40:11

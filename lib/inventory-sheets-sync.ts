@@ -1,3 +1,12 @@
+/**
+ * @deprecated Use `unified-inventory-service.ts` for all inventory sync.
+ *
+ * Legacy 2-way sync built on top of the hardcoded `inventoryData.ts` and
+ * `inventoryTransactions.ts` arrays. The canonical sync layer is now
+ * `unifiedInventoryService` which reads/writes Google Sheets directly.
+ * The only remaining caller is `/api/portal/sync/route.ts` which exists
+ * as a bridge for legacy clients; new code should NOT import this.
+ */
 // Inventory Google Sheets 2-Way Sync Service
 // Syncs inventory data, transactions, tickets, and employees with Google Sheets
 // Last Updated: December 2025
