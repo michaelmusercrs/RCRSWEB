@@ -1025,9 +1025,9 @@ class JobBreakdownService {
 
         let estimateTotal = 0;
         // Try to get estimates for this job's contact
-        if (job.primary?.jnid) {
+        if (job.primary?.id) {
           try {
-            const estimates = await jobNimbusService.getEstimatesForContact(job.primary.jnid);
+            const estimates = await jobNimbusService.getEstimatesForContact(job.primary.id);
             estimateTotal = estimates.reduce((sum: number, est: JobNimbusEstimate) => sum + (est.total || est.amount || 0), 0);
           } catch {
             // Estimates not available, that's fine

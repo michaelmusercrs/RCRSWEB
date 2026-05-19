@@ -433,7 +433,7 @@ async function handleDepositWebhook(
       (typeof data?.jnid === 'string' && data.jnid)
       || (typeof data?.job_jnid === 'string' && data.job_jnid)
       || (typeof data?.related?.jnid === 'string' && data.related.jnid)
-      || (typeof data?.primary?.jnid === 'string' && data.primary.jnid)
+      || (typeof data?.primary?.id === 'string' && data.primary.id)
       || '';
 
     let jnJobNumber: string =
@@ -492,7 +492,7 @@ async function handleDepositWebhook(
 
     // Enrich with contact data if we have a contact jnid but no email/phone yet.
     const contactJnid: string =
-      (typeof job?.primary?.jnid === 'string' && job.primary.jnid)
+      (typeof job?.primary?.id === 'string' && job.primary.id)
       || (typeof job?.primary_id === 'string' && job.primary_id)
       || '';
 

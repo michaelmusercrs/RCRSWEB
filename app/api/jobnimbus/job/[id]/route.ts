@@ -76,9 +76,9 @@ export async function GET(
     };
 
     // Optionally include related contact info
-    if ((includeContact || includeAll) && job.primary?.jnid) {
+    if ((includeContact || includeAll) && job.primary?.id) {
       try {
-        const contact = await jobNimbusService.getContact(job.primary.jnid);
+        const contact = await jobNimbusService.getContact(job.primary.id);
         response.contact = {
           jnid: contact.jnid,
           displayName: jobNimbusService.getContactName(contact),
@@ -108,9 +108,9 @@ export async function GET(
     }
 
     // Optionally include estimates
-    if ((includeEstimates || includeAll) && job.primary?.jnid) {
+    if ((includeEstimates || includeAll) && job.primary?.id) {
       try {
-        const estimates = await jobNimbusService.getEstimatesForContact(job.primary.jnid);
+        const estimates = await jobNimbusService.getEstimatesForContact(job.primary.id);
         response.estimates = estimates.map(e => ({
           jnid: e.jnid,
           number: e.number,
@@ -131,9 +131,9 @@ export async function GET(
     }
 
     // Optionally include tasks/appointments
-    if ((includeTasks || includeAll) && job.primary?.jnid) {
+    if ((includeTasks || includeAll) && job.primary?.id) {
       try {
-        const tasks = await jobNimbusService.getTasksForContact(job.primary.jnid);
+        const tasks = await jobNimbusService.getTasksForContact(job.primary.id);
         response.tasks = tasks.map(t => ({
           jnid: t.jnid,
           title: t.title,

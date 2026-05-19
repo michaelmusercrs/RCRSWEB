@@ -398,10 +398,10 @@ class JNSyncEngine {
 
       // Also add a note about the status change
       const job = await jobNimbusService.getJob(jobJnid);
-      if (job.primary?.jnid) {
+      if (job.primary?.id) {
         await jobNimbusService.createNoteOnJob(
           jobJnid,
-          job.primary.jnid,
+          job.primary.id,
           `[Portal Status Update] Status changed to "${jnStatus}" by ${updatedBy} via RCRS Portal`
         );
       }

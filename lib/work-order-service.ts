@@ -1577,9 +1577,9 @@ class WorkOrderService {
 
     // Fetch contact info if the job has a primary contact
     let contact: JobNimbusContact | null = null;
-    if (job.primary?.jnid) {
+    if (job.primary?.id) {
       try {
-        contact = await jobNimbusService.getContact(job.primary.jnid);
+        contact = await jobNimbusService.getContact(job.primary.id);
       } catch (err) {
         console.warn(`Failed to fetch contact for job ${jobJnid}:`, err);
       }
