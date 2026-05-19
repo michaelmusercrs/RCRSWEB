@@ -1438,6 +1438,38 @@ class MaterialOrderPipelineService {
         console.error('[pipeline] _notifyStageAdvance email rejected:', r.reason);
       }
     }
+
+    // Phase 4: fire ntfy.sh push to each role topic in parallel. ntfy is a
+    // free/OSS channel and is layered ON TOP of the existing email send —
+    // not a replacement. Failures here never bubble up.
+    try {
+      const { pushToRoles, roleTopicFor } = await import('./ntfy-service');
+      const ntfyRoles = Array.from(
+        new Set(
+          config.notifyRoles
+            .map(r => roleTopicFor(r))
+            .filter((r): r is 'office' | 'warehouse' | 'drivers' | 'admin' | 'billing' => !!r)
+        )
+      );
+      if (ntfyRoles.length > 0) {
+        const title = `Stage ${config.number}: ${config.label}`;
+        const lines = [
+          `Order: ${order.orderId}`,
+          order.jobName ? `Job: ${order.jobName}` : '',
+          order.customerName ? `Customer: ${order.customerName}` : '',
+          order.deliveryAddress ? `Address: ${order.deliveryAddress}` : '',
+          order.assignedDriverName ? `Driver: ${order.assignedDriverName}` : '',
+          `Updated by: ${performedByName}`,
+        ].filter(Boolean).join('\n');
+        await pushToRoles(ntfyRoles, title, lines, {
+          priority: 3,
+          tags: ['truck'],
+          respectQuietHours: true,
+        });
+      }
+    } catch (err) {
+      console.error('[pipeline] _notifyStageAdvance ntfy push failed:', err);
+    }
   }
 
   /**

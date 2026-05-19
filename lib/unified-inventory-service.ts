@@ -97,6 +97,15 @@ export interface InventoryItem {
   minStockLevel: number;
   maxStockLevel: number;
   reorderQty: number;
+  /**
+   * Trigger threshold for auto-restock. When `currentQty < reorderPoint`,
+   * the item is flagged in getLowStock and a draft PO is auto-generated
+   * by ensureRestockDrafts() (Phase 4). When 0 or unset, falls back to
+   * minStockLevel for backward compatibility.
+   */
+  reorderPoint?: number;
+  /** Optional vendor id from the Vendors sheet — auto-PO targets this vendor. */
+  preferredVendorId?: string;
   unitCost: number;         // Purchase price (INTERNAL ONLY)
   unitPrice: number;        // Final/selling price
   supplier: string;
@@ -128,12 +137,24 @@ export interface InventoryTransaction {
   unitPrice?: number;
 }
 
+export type CountSessionType = 'full' | 'cycle' | 'item';
+
 export interface CountSession {
   sessionId: string;
   startedAt: string;
   startedBy: string;
   startedByName: string;
   status: 'in_progress' | 'completed' | 'cancelled';
+  /**
+   * Phase 4:
+   *   - 'full'  = weekly all-SKU count (legacy default)
+   *   - 'cycle' = system-scheduled N random items (e.g. 5-10 per week)
+   *   - 'item'  = single-SKU on-demand count
+   * Legacy rows without a value are treated as 'full'.
+   */
+  countSessionType?: CountSessionType;
+  /** For 'cycle' and 'item' sessions: the productIds in scope. */
+  scopedProductIds?: string[];
   completedAt?: string;
   totalItems: number;
   countedItems: number;
@@ -389,18 +410,27 @@ const UNIFIED_CATALOG: Omit<InventoryItem, 'availableQty'>[] = [
   // starting values; the Sheets tab is the live source once seeded.
   // DO NOT ADD FAKE ITEMS. New stock goes through /portal/inventory/restock.
   // Quantities computed from 1991 transaction rows in inventory-source.xlsx
-  { productId: 'INV-0001', legacyId: 'item-123', legacySku: 'NAIL-125-EG', productName: '1 1/4 EG Nails', description: '15-18 Sq. per box', category: 'nails_fasteners', sku: 'NAIL-125-EG', unit: 'box', currentQty: 44, holdQty: 0, minStockLevel: 10, maxStockLevel: 100, reorderQty: 30, unitCost: 27.50, unitPrice: 64.90, supplier: '', supplierPartNumber: '', location: 'Warehouse', weight: 30, lastCountDate: '', lastCountBy: '', lastRestockDate: '', notes: '', active: true },
-  { productId: 'INV-0002', legacyId: 'item-124', legacySku: 'CAP-PLST', productName: 'Bottom Caps (plastic)', description: '25-35 SQ per bucket by pitch', category: 'nails_fasteners', sku: 'CAP-PLST', unit: 'bag', currentQty: 56, holdQty: 0, minStockLevel: 20, maxStockLevel: 200, reorderQty: 50, unitCost: 16.50, unitPrice: 29.15, supplier: '', supplierPartNumber: '', location: 'Warehouse', weight: 15, lastCountDate: '', lastCountBy: '', lastRestockDate: '', notes: '', active: true },
-  { productId: 'INV-0003', legacyId: 'item-125', legacySku: 'FELT-SYN-10', productName: 'RCRS Syn Felt', description: '10 Sq', category: 'underlayment', sku: 'FELT-SYN-10', unit: 'roll', currentQty: 74, holdQty: 0, minStockLevel: 15, maxStockLevel: 150, reorderQty: 40, unitCost: 66.00, unitPrice: 79.86, supplier: '', supplierPartNumber: '', location: 'Warehouse', weight: 35, lastCountDate: '', lastCountBy: '', lastRestockDate: '', notes: '', active: true },
-  { productId: 'INV-0004', legacyId: 'item-126', legacySku: 'ICE-WATER-2', productName: 'Ice & Water Shield', description: 'Peel and Stick, 67LF, 2 SQ., 200 SQFT', category: 'underlayment', sku: 'ICE-WATER-2', unit: 'roll', currentQty: 37, holdQty: 0, minStockLevel: 10, maxStockLevel: 100, reorderQty: 25, unitCost: 62.70, unitPrice: 114.22, supplier: '', supplierPartNumber: '', location: 'Warehouse', weight: 50, lastCountDate: '', lastCountBy: '', lastRestockDate: '', notes: '', active: true },
-  { productId: 'INV-0005', legacyId: 'item-127', legacySku: 'VENT-RIDGE-4', productName: 'Ridge Vent 4LF', description: '', category: 'ventilation', sku: 'VENT-RIDGE-4', unit: 'piece', currentQty: 190, holdQty: 0, minStockLevel: 50, maxStockLevel: 500, reorderQty: 100, unitCost: 7.15, unitPrice: 10.20, supplier: '', supplierPartNumber: '', location: 'Warehouse', weight: 3, lastCountDate: '', lastCountBy: '', lastRestockDate: '', notes: '', active: true },
-  { productId: 'INV-0006', legacyId: 'item-128', legacySku: 'BOOT-BLK-15', productName: '1 1/2” Black Bullet Boot', description: '', category: 'flashing', sku: 'BOOT-BLK-15', unit: 'each', currentQty: 54, holdQty: 0, minStockLevel: 25, maxStockLevel: 250, reorderQty: 50, unitCost: 16.67, unitPrice: 20.89, supplier: '', supplierPartNumber: '', location: 'Warehouse', weight: 1, lastCountDate: '', lastCountBy: '', lastRestockDate: '', notes: '', active: true },
-  { productId: 'INV-0007', legacyId: 'item-129', legacySku: 'BOOT-BLK-2', productName: '2” Black Bullet Boot', description: '', category: 'flashing', sku: 'BOOT-BLK-2', unit: 'each', currentQty: 39, holdQty: 0, minStockLevel: 25, maxStockLevel: 250, reorderQty: 50, unitCost: 17.77, unitPrice: 22.54, supplier: '', supplierPartNumber: '', location: 'Warehouse', weight: 1, lastCountDate: '', lastCountBy: '', lastRestockDate: '', notes: '', active: true },
-  { productId: 'INV-0008', legacyId: 'item-130', legacySku: 'BOOT-BLK-3', productName: '3” Black Bullet Boot', description: '', category: 'flashing', sku: 'BOOT-BLK-3', unit: 'each', currentQty: 33, holdQty: 0, minStockLevel: 20, maxStockLevel: 200, reorderQty: 50, unitCost: 20.19, unitPrice: 38.29, supplier: '', supplierPartNumber: '', location: 'Warehouse', weight: 1.5, lastCountDate: '', lastCountBy: '', lastRestockDate: '', notes: '', active: true },
-  { productId: 'INV-0009', legacyId: 'item-131', legacySku: 'BOOT-BLK-4', productName: '4” Black Bullet Boot', description: '', category: 'flashing', sku: 'BOOT-BLK-4', unit: 'each', currentQty: 13, holdQty: 0, minStockLevel: 15, maxStockLevel: 150, reorderQty: 40, unitCost: 37.48, unitPrice: 42.50, supplier: '', supplierPartNumber: '', location: 'Warehouse', weight: 2, lastCountDate: '', lastCountBy: '', lastRestockDate: '', notes: '', active: true },
-  { productId: 'INV-0010', legacyId: 'item-132', legacySku: 'SEAL-TUBE', productName: 'Sealant', description: 'Roofing sealant for flashing and repairs', category: 'sealants', sku: 'SEAL-TUBE', unit: 'tube', currentQty: 46, holdQty: 0, minStockLevel: 50, maxStockLevel: 500, reorderQty: 100, unitCost: 9.35, unitPrice: 10.00, supplier: '', supplierPartNumber: '', location: 'Warehouse', weight: 1, lastCountDate: '', lastCountBy: '', lastRestockDate: '', notes: '', active: true },
-  { productId: 'INV-0011', legacyId: 'item-133', legacySku: 'BOOT-ZIP', productName: 'Zipper Boot', description: 'Split boot pipe flashing for retrofit installations', category: 'flashing', sku: 'BOOT-ZIP', unit: 'each', currentQty: 6, holdQty: 0, minStockLevel: 10, maxStockLevel: 100, reorderQty: 25, unitCost: 37.40, unitPrice: 48.00, supplier: '', supplierPartNumber: '', location: 'Warehouse', weight: 1.5, lastCountDate: '', lastCountBy: '', lastRestockDate: '', notes: '', active: true },
+  { productId: 'INV-0001', legacyId: 'item-123', legacySku: 'NAIL-125-EG', productName: '1 1/4 EG Nails', description: '15-18 Sq. per box', category: 'nails_fasteners', sku: 'NAIL-125-EG', unit: 'box', currentQty: 44, holdQty: 0, minStockLevel: 10, maxStockLevel: 100, reorderQty: 30, reorderPoint: 0, unitCost: 27.50, unitPrice: 64.90, supplier: '', supplierPartNumber: '', location: 'Warehouse', weight: 30, lastCountDate: '', lastCountBy: '', lastRestockDate: '', notes: '', active: true },
+  { productId: 'INV-0002', legacyId: 'item-124', legacySku: 'CAP-PLST', productName: 'Bottom Caps (plastic)', description: '25-35 SQ per bucket by pitch', category: 'nails_fasteners', sku: 'CAP-PLST', unit: 'bag', currentQty: 56, holdQty: 0, minStockLevel: 20, maxStockLevel: 200, reorderQty: 50, reorderPoint: 0, unitCost: 16.50, unitPrice: 29.15, supplier: '', supplierPartNumber: '', location: 'Warehouse', weight: 15, lastCountDate: '', lastCountBy: '', lastRestockDate: '', notes: '', active: true },
+  { productId: 'INV-0003', legacyId: 'item-125', legacySku: 'FELT-SYN-10', productName: 'RCRS Syn Felt', description: '10 Sq', category: 'underlayment', sku: 'FELT-SYN-10', unit: 'roll', currentQty: 74, holdQty: 0, minStockLevel: 15, maxStockLevel: 150, reorderQty: 40, reorderPoint: 0, unitCost: 66.00, unitPrice: 79.86, supplier: '', supplierPartNumber: '', location: 'Warehouse', weight: 35, lastCountDate: '', lastCountBy: '', lastRestockDate: '', notes: '', active: true },
+  { productId: 'INV-0004', legacyId: 'item-126', legacySku: 'ICE-WATER-2', productName: 'Ice & Water Shield', description: 'Peel and Stick, 67LF, 2 SQ., 200 SQFT', category: 'underlayment', sku: 'ICE-WATER-2', unit: 'roll', currentQty: 37, holdQty: 0, minStockLevel: 10, maxStockLevel: 100, reorderQty: 25, reorderPoint: 0, unitCost: 62.70, unitPrice: 114.22, supplier: '', supplierPartNumber: '', location: 'Warehouse', weight: 50, lastCountDate: '', lastCountBy: '', lastRestockDate: '', notes: '', active: true },
+  { productId: 'INV-0005', legacyId: 'item-127', legacySku: 'VENT-RIDGE-4', productName: 'Ridge Vent 4LF', description: '', category: 'ventilation', sku: 'VENT-RIDGE-4', unit: 'piece', currentQty: 190, holdQty: 0, minStockLevel: 50, maxStockLevel: 500, reorderQty: 100, reorderPoint: 0, unitCost: 7.15, unitPrice: 10.20, supplier: '', supplierPartNumber: '', location: 'Warehouse', weight: 3, lastCountDate: '', lastCountBy: '', lastRestockDate: '', notes: '', active: true },
+  { productId: 'INV-0006', legacyId: 'item-128', legacySku: 'BOOT-BLK-15', productName: '1 1/2” Black Bullet Boot', description: '', category: 'flashing', sku: 'BOOT-BLK-15', unit: 'each', currentQty: 54, holdQty: 0, minStockLevel: 25, maxStockLevel: 250, reorderQty: 50, reorderPoint: 0, unitCost: 16.67, unitPrice: 20.89, supplier: '', supplierPartNumber: '', location: 'Warehouse', weight: 1, lastCountDate: '', lastCountBy: '', lastRestockDate: '', notes: '', active: true },
+  { productId: 'INV-0007', legacyId: 'item-129', legacySku: 'BOOT-BLK-2', productName: '2” Black Bullet Boot', description: '', category: 'flashing', sku: 'BOOT-BLK-2', unit: 'each', currentQty: 39, holdQty: 0, minStockLevel: 25, maxStockLevel: 250, reorderQty: 50, reorderPoint: 0, unitCost: 17.77, unitPrice: 22.54, supplier: '', supplierPartNumber: '', location: 'Warehouse', weight: 1, lastCountDate: '', lastCountBy: '', lastRestockDate: '', notes: '', active: true },
+  { productId: 'INV-0008', legacyId: 'item-130', legacySku: 'BOOT-BLK-3', productName: '3” Black Bullet Boot', description: '', category: 'flashing', sku: 'BOOT-BLK-3', unit: 'each', currentQty: 33, holdQty: 0, minStockLevel: 20, maxStockLevel: 200, reorderQty: 50, reorderPoint: 0, unitCost: 20.19, unitPrice: 38.29, supplier: '', supplierPartNumber: '', location: 'Warehouse', weight: 1.5, lastCountDate: '', lastCountBy: '', lastRestockDate: '', notes: '', active: true },
+  { productId: 'INV-0009', legacyId: 'item-131', legacySku: 'BOOT-BLK-4', productName: '4” Black Bullet Boot', description: '', category: 'flashing', sku: 'BOOT-BLK-4', unit: 'each', currentQty: 13, holdQty: 0, minStockLevel: 15, maxStockLevel: 150, reorderQty: 40, reorderPoint: 0, unitCost: 37.48, unitPrice: 42.50, supplier: '', supplierPartNumber: '', location: 'Warehouse', weight: 2, lastCountDate: '', lastCountBy: '', lastRestockDate: '', notes: '', active: true },
+  { productId: 'INV-0010', legacyId: 'item-132', legacySku: 'SEAL-TUBE', productName: 'Sealant', description: 'Roofing sealant for flashing and repairs', category: 'sealants', sku: 'SEAL-TUBE', unit: 'tube', currentQty: 46, holdQty: 0, minStockLevel: 50, maxStockLevel: 500, reorderQty: 100, reorderPoint: 0, unitCost: 9.35, unitPrice: 10.00, supplier: '', supplierPartNumber: '', location: 'Warehouse', weight: 1, lastCountDate: '', lastCountBy: '', lastRestockDate: '', notes: '', active: true },
+  { productId: 'INV-0011', legacyId: 'item-133', legacySku: 'BOOT-ZIP', productName: 'Zipper Boot', description: 'Split boot pipe flashing for retrofit installations', category: 'flashing', sku: 'BOOT-ZIP', unit: 'each', currentQty: 6, holdQty: 0, minStockLevel: 10, maxStockLevel: 100, reorderQty: 25, reorderPoint: 0, unitCost: 37.40, unitPrice: 48.00, supplier: '', supplierPartNumber: '', location: 'Warehouse', weight: 1.5, lastCountDate: '', lastCountBy: '', lastRestockDate: '', notes: '', active: true },
 ];
+
+/**
+ * Returns the effective reorder threshold for an item. When reorderPoint
+ * is set (>0), use it. Otherwise fall back to minStockLevel for backward
+ * compatibility with rows that pre-date Phase 4.
+ */
+export function effectiveReorderPoint(item: Pick<InventoryItem, 'reorderPoint' | 'minStockLevel'>): number {
+  return item.reorderPoint && item.reorderPoint > 0 ? item.reorderPoint : item.minStockLevel;
+}
 
 // ============================================
 // SHEETS HELPER
@@ -478,6 +508,7 @@ class UnifiedInventoryService {
         'productId', 'legacyId', 'legacySku', 'productName', 'description',
         'category', 'sku', 'unit', 'currentQty', 'holdQty',
         'minStockLevel', 'maxStockLevel', 'reorderQty',
+        'reorderPoint', 'preferredVendorId',
         'unitCost', 'unitPrice', 'supplier', 'supplierPartNumber',
         'location', 'weight', 'lastCountDate', 'lastCountBy',
         'lastRestockDate', 'notes', 'active',
@@ -548,6 +579,8 @@ class UnifiedInventoryService {
       minStockLevel: parseFloat(row.get('minStockLevel')) || 10,
       maxStockLevel: parseFloat(row.get('maxStockLevel')) || 100,
       reorderQty: parseFloat(row.get('reorderQty')) || 10,
+      reorderPoint: parseFloat(row.get('reorderPoint')) || 0,
+      preferredVendorId: row.get('preferredVendorId') || undefined,
       unitCost,
       unitPrice,
       supplier: row.get('supplier') || '',
@@ -566,7 +599,8 @@ class UnifiedInventoryService {
     const headers = [
       'productId', 'legacyId', 'legacySku', 'productName', 'description', 'category',
       'sku', 'unit', 'currentQty', 'holdQty', 'minStockLevel', 'maxStockLevel',
-      'reorderQty', 'unitCost', 'unitPrice', 'supplier', 'supplierPartNumber',
+      'reorderQty', 'reorderPoint', 'preferredVendorId',
+      'unitCost', 'unitPrice', 'supplier', 'supplierPartNumber',
       'location', 'weight', 'lastCountDate', 'lastCountBy', 'lastRestockDate', 'notes', 'active'
     ];
 
@@ -592,6 +626,8 @@ class UnifiedInventoryService {
       minStockLevel: item.minStockLevel.toString(),
       maxStockLevel: item.maxStockLevel.toString(),
       reorderQty: item.reorderQty.toString(),
+      reorderPoint: (item.reorderPoint ?? 0).toString(),
+      preferredVendorId: item.preferredVendorId || '',
       unitCost: item.unitCost.toString(),
       unitPrice: item.unitPrice.toString(),
       supplier: item.supplier,
@@ -652,26 +688,38 @@ class UnifiedInventoryService {
   private async _loadCountSessions(): Promise<void> {
     const result = await getOrCreateSheet(SHEET_TABS.COUNT_SESSIONS, [
       'sessionId', 'startedAt', 'startedBy', 'startedByName', 'status',
+      'countSessionType', 'scopedProductIds',
       'completedAt', 'totalItems', 'countedItems', 'discrepancies',
       'resolvedDiscrepancies', 'photoUrl', 'notes',
     ]);
     if (!result) return;
     try {
       const rows = await result.sheet.getRows();
-      this.countSessions = rows.map((row: GoogleSpreadsheetRow) => ({
-        sessionId: row.get('sessionId') || '',
-        startedAt: row.get('startedAt') || '',
-        startedBy: row.get('startedBy') || '',
-        startedByName: row.get('startedByName') || '',
-        status: (row.get('status') || 'in_progress') as CountSession['status'],
-        completedAt: row.get('completedAt') || undefined,
-        totalItems: parseInt(row.get('totalItems')) || 0,
-        countedItems: parseInt(row.get('countedItems')) || 0,
-        discrepancies: parseInt(row.get('discrepancies')) || 0,
-        resolvedDiscrepancies: parseInt(row.get('resolvedDiscrepancies')) || 0,
-        photoUrl: row.get('photoUrl') || undefined,
-        notes: row.get('notes') || undefined,
-      }));
+      this.countSessions = rows.map((row: GoogleSpreadsheetRow) => {
+        const rawType = (row.get('countSessionType') || 'full') as string;
+        const type: CountSessionType = (['full', 'cycle', 'item'].includes(rawType) ? rawType : 'full') as CountSessionType;
+        let scoped: string[] | undefined;
+        const rawScoped = row.get('scopedProductIds');
+        if (rawScoped) {
+          try { scoped = JSON.parse(rawScoped); } catch { scoped = undefined; }
+        }
+        return {
+          sessionId: row.get('sessionId') || '',
+          startedAt: row.get('startedAt') || '',
+          startedBy: row.get('startedBy') || '',
+          startedByName: row.get('startedByName') || '',
+          status: (row.get('status') || 'in_progress') as CountSession['status'],
+          countSessionType: type,
+          scopedProductIds: scoped,
+          completedAt: row.get('completedAt') || undefined,
+          totalItems: parseInt(row.get('totalItems')) || 0,
+          countedItems: parseInt(row.get('countedItems')) || 0,
+          discrepancies: parseInt(row.get('discrepancies')) || 0,
+          resolvedDiscrepancies: parseInt(row.get('resolvedDiscrepancies')) || 0,
+          photoUrl: row.get('photoUrl') || undefined,
+          notes: row.get('notes') || undefined,
+        };
+      });
     } catch (error) {
       console.error('Failed to load count sessions:', error);
     }
@@ -764,6 +812,7 @@ class UnifiedInventoryService {
       'productId', 'legacyId', 'legacySku', 'productName', 'description',
       'category', 'sku', 'unit', 'currentQty', 'holdQty',
       'minStockLevel', 'maxStockLevel', 'reorderQty',
+      'reorderPoint', 'preferredVendorId',
       'unitCost', 'unitPrice', 'supplier', 'supplierPartNumber',
       'location', 'weight', 'lastCountDate', 'lastCountBy',
       'lastRestockDate', 'notes', 'active',
@@ -790,6 +839,8 @@ class UnifiedInventoryService {
         minStockLevel: item.minStockLevel.toString(),
         maxStockLevel: item.maxStockLevel.toString(),
         reorderQty: item.reorderQty.toString(),
+        reorderPoint: (item.reorderPoint ?? 0).toString(),
+        preferredVendorId: item.preferredVendorId || '',
         unitCost: item.unitCost.toString(),
         unitPrice: item.unitPrice.toString(),
         supplier: item.supplier,
@@ -930,6 +981,7 @@ class UnifiedInventoryService {
   private async _persistCountSession(session: CountSession): Promise<void> {
     const result = await getOrCreateSheet(SHEET_TABS.COUNT_SESSIONS, [
       'sessionId', 'startedAt', 'startedBy', 'startedByName', 'status',
+      'countSessionType', 'scopedProductIds',
       'completedAt', 'totalItems', 'countedItems', 'discrepancies',
       'resolvedDiscrepancies', 'photoUrl', 'notes'
     ]);
@@ -943,6 +995,8 @@ class UnifiedInventoryService {
         startedBy: session.startedBy,
         startedByName: session.startedByName,
         status: session.status,
+        countSessionType: session.countSessionType || 'full',
+        scopedProductIds: session.scopedProductIds ? JSON.stringify(session.scopedProductIds) : '',
         completedAt: session.completedAt || '',
         totalItems: session.totalItems.toString(),
         countedItems: session.countedItems.toString(),
@@ -1468,6 +1522,7 @@ class UnifiedInventoryService {
       startedBy,
       startedByName,
       status: 'in_progress',
+      countSessionType: 'full',
       totalItems: this.inventory.filter(i => i.active).length,
       countedItems: 0,
       discrepancies: 0,
@@ -1476,6 +1531,86 @@ class UnifiedInventoryService {
     this.countSessions.unshift(session);
     await this._persistCountSession(session).catch((err) =>
       console.error('[inventory] initiateWeeklyCount persist failed:', err)
+    );
+    return session;
+  }
+
+  /**
+   * Phase 4: start a cycle count covering N randomly selected active SKUs.
+   * The same N is the session's "totalItems" so the existing progress + auto-
+   * complete logic works without changes.
+   */
+  async initiateCycleCount(
+    startedBy: string,
+    startedByName: string,
+    targetCount: number = 7,
+  ): Promise<CountSession> {
+    await this.ensureLoaded();
+    const active = this.inventory.filter(i => i.active);
+    const n = Math.max(1, Math.min(targetCount, active.length));
+    // Fisher-Yates shuffle, pick first N
+    const pool = [...active];
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    const picked = pool.slice(0, n);
+
+    const sessionId = `CYC-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${String(this.nextIds.cnt++).padStart(3, '0')}`;
+    const session: CountSession = {
+      sessionId,
+      startedAt: new Date().toISOString(),
+      startedBy,
+      startedByName,
+      status: 'in_progress',
+      countSessionType: 'cycle',
+      scopedProductIds: picked.map(i => i.productId),
+      totalItems: n,
+      countedItems: 0,
+      discrepancies: 0,
+      resolvedDiscrepancies: 0,
+      notes: `Cycle count: ${n} random items`,
+    };
+    this.countSessions.unshift(session);
+    await this._persistCountSession(session).catch((err) =>
+      console.error('[inventory] initiateCycleCount persist failed:', err)
+    );
+    return session;
+  }
+
+  /**
+   * Phase 4: start an on-demand single-SKU count session. Used when a driver
+   * or PM picks an item from the search box and counts just that one.
+   * Sessions are short-lived (totalItems = 1, auto-completes on recordCount).
+   */
+  async initiateItemCount(
+    productId: string,
+    startedBy: string,
+    startedByName: string,
+  ): Promise<CountSession | null> {
+    await this.ensureLoaded();
+    const resolved = resolveProductId(productId);
+    const item = this.inventory.find(i => i.productId === resolved && i.active);
+    if (!item) return null;
+
+    const sessionId = `ITM-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${String(this.nextIds.cnt++).padStart(3, '0')}`;
+    const session: CountSession = {
+      sessionId,
+      startedAt: new Date().toISOString(),
+      startedBy,
+      startedByName,
+      status: 'in_progress',
+      countSessionType: 'item',
+      scopedProductIds: [item.productId],
+      totalItems: 1,
+      countedItems: 0,
+      discrepancies: 0,
+      resolvedDiscrepancies: 0,
+      notes: `Item count: ${item.productName}`,
+    };
+    this.countSessions.unshift(session);
+    await this._persistCountSession(session).catch((err) =>
+      console.error('[inventory] initiateItemCount persist failed:', err)
     );
     return session;
   }
@@ -1628,11 +1763,12 @@ class UnifiedInventoryService {
   async getStockAlerts(): Promise<StockAlert[]> {
     await this.ensureLoaded();
     return this.inventory
-      .filter(i => i.active && i.currentQty <= i.minStockLevel)
+      .filter(i => i.active && i.currentQty < effectiveReorderPoint(i))
       .map(item => {
+        const threshold = effectiveReorderPoint(item);
         let severity: AlertSeverity = 'warning';
         if (item.currentQty === 0) severity = 'out_of_stock';
-        else if (item.currentQty <= item.minStockLevel * 0.25) severity = 'critical';
+        else if (item.currentQty <= threshold * 0.25) severity = 'critical';
 
         const dailyUsage = Math.max(1, (item.maxStockLevel - item.currentQty) / 30);
         return {
@@ -1654,14 +1790,75 @@ class UnifiedInventoryService {
       });
   }
 
+  /**
+   * Phase 4: Items where currentQty < reorderPoint (or minStockLevel if no
+   * reorderPoint set). Different from getCriticalItems — this is the trigger
+   * threshold for auto-PO drafts, not the "we're nearly out" critical line.
+   */
   async getLowStockItems(): Promise<InventoryItem[]> {
     await this.ensureLoaded();
-    return this.inventory.filter(i => i.active && i.currentQty <= i.minStockLevel);
+    return this.inventory
+      .filter(i => i.active && i.currentQty < effectiveReorderPoint(i))
+      .sort((a, b) => {
+        // Sort by deficit severity: largest gap first
+        const aDeficit = effectiveReorderPoint(a) - a.currentQty;
+        const bDeficit = effectiveReorderPoint(b) - b.currentQty;
+        return bDeficit - aDeficit;
+      });
   }
 
   async getCriticalItems(): Promise<InventoryItem[]> {
     await this.ensureLoaded();
-    return this.inventory.filter(i => i.active && (i.currentQty === 0 || i.currentQty <= i.minStockLevel * 0.25));
+    return this.inventory.filter(i => {
+      const threshold = effectiveReorderPoint(i);
+      return i.active && (i.currentQty === 0 || i.currentQty <= threshold * 0.25);
+    });
+  }
+
+  /**
+   * Phase 4: Auto-generate a draft restock PO for every low-stock item that
+   * doesn't already have a draft PO for it. Drafts are grouped by
+   * preferredVendorId (one PO per vendor). Returns the list of draft order
+   * IDs created. Safe to call on every page load — it's idempotent because
+   * it checks for an existing draft containing the productId before adding.
+   */
+  async ensureRestockDrafts(createdBy: string = 'system', createdByName: string = 'Auto-Reorder'): Promise<string[]> {
+    await this.ensureLoaded();
+    const lowItems = await this.getLowStockItems();
+    if (lowItems.length === 0) return [];
+
+    // Collect productIds already on draft POs so we don't double up.
+    const draftedProductIds = new Set<string>();
+    for (const order of this.restockOrders) {
+      if (order.status === 'draft') {
+        for (const line of order.items) draftedProductIds.add(line.productId);
+      }
+    }
+
+    // Group items by vendor (preferredVendorId || supplier name || 'Unassigned')
+    const byVendor = new Map<string, InventoryItem[]>();
+    for (const item of lowItems) {
+      if (draftedProductIds.has(item.productId)) continue;
+      const vendorKey = item.preferredVendorId || item.supplier || 'Unassigned';
+      if (!byVendor.has(vendorKey)) byVendor.set(vendorKey, []);
+      byVendor.get(vendorKey)!.push(item);
+    }
+
+    const createdOrderIds: string[] = [];
+    for (const [vendorKey, items] of byVendor) {
+      const order = await this.createRestockOrder(
+        items.map(i => ({
+          productId: i.productId,
+          orderQty: i.reorderQty > 0 ? i.reorderQty : Math.max(1, Math.ceil(effectiveReorderPoint(i) * 2 - i.currentQty)),
+        })),
+        createdBy,
+        createdByName,
+        vendorKey,
+        'Auto-generated draft: items below reorder point.',
+      );
+      createdOrderIds.push(order.orderId);
+    }
+    return createdOrderIds;
   }
 
   // ============================================
@@ -1897,17 +2094,19 @@ class UnifiedInventoryService {
     return order;
   }
 
-  async getRestockSuggestions(): Promise<{ productId: string; productName: string; currentQty: number; minStockLevel: number; suggestedQty: number; supplier: string; estimatedCost: number }[]> {
+  async getRestockSuggestions(): Promise<{ productId: string; productName: string; currentQty: number; minStockLevel: number; reorderPoint: number; suggestedQty: number; supplier: string; preferredVendorId?: string; estimatedCost: number }[]> {
     await this.ensureLoaded();
     return this.inventory
-      .filter(i => i.active && i.currentQty <= i.minStockLevel)
+      .filter(i => i.active && i.currentQty < effectiveReorderPoint(i))
       .map(item => ({
         productId: item.productId,
         productName: item.productName,
         currentQty: item.currentQty,
         minStockLevel: item.minStockLevel,
+        reorderPoint: effectiveReorderPoint(item),
         suggestedQty: item.reorderQty,
         supplier: item.supplier,
+        preferredVendorId: item.preferredVendorId,
         estimatedCost: Math.round(item.reorderQty * item.unitCost * 100) / 100,
       }));
   }
@@ -2205,6 +2404,8 @@ class UnifiedInventoryService {
       availableQty: i.availableQty,
       minStock: i.minStockLevel,
       maxStock: i.maxStockLevel,
+      reorderPoint: effectiveReorderPoint(i),
+      preferredVendorId: i.preferredVendorId,
       unit: i.unit,
       supplier: i.supplier,
       location: i.location,
