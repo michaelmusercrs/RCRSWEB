@@ -1,7 +1,7 @@
 // River City Roofing Solutions - Service Worker
 // Version: 1.0.2 (ram bypass — renamed from ram2 on 2026-05-19)
 
-const CACHE_NAME = 'rcrs-cache-v4';
+const CACHE_NAME = 'rcrs-cache-v5';
 const OFFLINE_URL = '/offline';
 
 // Paths the SW must NEVER intercept — always go direct to network.
