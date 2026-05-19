@@ -25,6 +25,7 @@ import {
   Loader2
 } from 'lucide-react';
 import AddressAutocomplete, { AddressResult } from '@/components/AddressAutocomplete';
+import JobSearchAutocomplete, { JobSearchHit } from '@/components/JobSearchAutocomplete';
 import { useAuth } from '@/lib/auth-context';
 
 // Roles allowed to see purchase cost / margin in the order builder.
@@ -293,6 +294,36 @@ export default function NewOrderPage() {
     setJobSearchTerm('');
   };
 
+  // Apply a normalized JN search hit from the autocomplete picker.
+  const applyJobHit = (hit: JobSearchHit) => {
+    setSelectedJob({
+      jnid: hit.jnid,
+      number: hit.rNumber,
+      name: hit.jobName,
+      customerName: hit.customerName,
+      customerPhone: hit.phone,
+      customerEmail: hit.email,
+      address: hit.address,
+      city: hit.city,
+      state: hit.state,
+      zip: hit.zip,
+    });
+    setOrderData(prev => ({
+      ...prev,
+      jobNumber: hit.rNumber || prev.jobNumber,
+      jobName: hit.jobName || prev.jobName,
+      jobNimbusId: hit.jnid || prev.jobNimbusId,
+      customerName: hit.customerName || prev.customerName,
+      customerPhone: hit.phone || prev.customerPhone,
+      customerEmail: hit.email || prev.customerEmail,
+      customerAddress: hit.address || prev.customerAddress,
+      city: hit.city || prev.city,
+      state: hit.state || prev.state,
+      zipCode: hit.zip || prev.zipCode,
+    }));
+    setJobNumberMsg(`Imported from JobNimbus: ${hit.customerName || hit.jobName}`);
+  };
+
   // Add product to order
   const addProduct = (product: CatalogProduct, qty: number = 1) => {
     const existing = orderItems.find(i => i.productId === product.productId);
@@ -496,46 +527,14 @@ export default function NewOrderPage() {
             <div className="bg-neutral-900 rounded-xl border border-neutral-200 p-6">
               <h2 className="text-lg font-semibold text-neutral-900 mb-4 flex items-center gap-2">
                 <Building className="w-5 h-5 text-green-400" />
-                Link to JobNimbus Job
+                Find the Job
               </h2>
 
-              <div className="flex gap-2 mb-4">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                  <input
-                    type="text"
-                    value={jobSearchTerm}
-                    onChange={(e) => setJobSearchTerm(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && searchJobs()}
-                    placeholder="Search by job name, number, or customer..."
-                    className="w-full pl-10 pr-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
-                </div>
-                <button
-                  onClick={searchJobs}
-                  disabled={searchingJobs}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-                >
-                  {searchingJobs ? 'Searching...' : 'Search'}
-                </button>
-              </div>
-
-              {/* Search Results */}
-              {jobs.length > 0 && (
-                <div className="space-y-2 mb-4">
-                  {jobs.map(job => (
-                    <button
-                      key={job.jnid}
-                      onClick={() => selectJob(job)}
-                      className="w-full text-left p-3 bg-neutral-50 rounded-lg hover:bg-green-50 border border-transparent hover:border-green-500/20 transition-colors"
-                    >
-                      <div className="font-medium text-neutral-900">{job.name}</div>
-                      <div className="text-sm text-neutral-500">{job.number} - {job.customerName}</div>
-                      <div className="text-sm text-neutral-400">{job.address}, {job.city}</div>
-                    </button>
-                  ))}
-                </div>
-              )}
+              <JobSearchAutocomplete
+                onSelect={applyJobHit}
+                placeholder="Type R-number, customer name, or address…"
+                className="mb-4"
+              />
 
               {selectedJob && (
                 <div className="p-4 bg-green-50 rounded-lg border border-green-500/20">

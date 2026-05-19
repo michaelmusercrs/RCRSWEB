@@ -20,6 +20,7 @@ import {
   CheckCircle, FileText, Users, Package, DollarSign, Clock, ExternalLink,
   Shield, Calculator, Save, X, ChevronRight, Eye, EyeOff, Loader2,
 } from 'lucide-react';
+import JobSearchAutocomplete, { JobSearchHit } from '@/components/JobSearchAutocomplete';
 
 // ─── Types (mirror server) ─────────────────────────────────────────────
 
@@ -171,6 +172,39 @@ export default function CustomerBreakdownsPage() {
   const [syncApplying, setSyncApplying] = useState(false);
   const [pendingChanges, setPendingChanges] = useState<Array<{ field: string; portalValue: unknown; sheetValue: unknown }> | null>(null);
 
+  // Credit memos posted against this R-number — feed the embedded panel.
+  const [creditMemos, setCreditMemos] = useState<Array<{
+    invoiceId: string;
+    totalCost: number;
+    createdAt: string;
+    createdByName: string;
+    lines: Array<{ productName: string; quantity: number; lineCost: number }>;
+    notes: string;
+  }>>([]);
+  const [creditMemosLoading, setCreditMemosLoading] = useState(false);
+
+  useEffect(() => {
+    const r = breakdown.rNumber?.trim();
+    if (!r) {
+      setCreditMemos([]);
+      return;
+    }
+    let cancelled = false;
+    setCreditMemosLoading(true);
+    (async () => {
+      try {
+        const res = await fetch(`/api/portal/credit-memos?job=${encodeURIComponent(r)}`);
+        const data = await res.json();
+        if (!cancelled) setCreditMemos(data.records || []);
+      } catch {
+        if (!cancelled) setCreditMemos([]);
+      } finally {
+        if (!cancelled) setCreditMemosLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [breakdown.rNumber]);
+
   // ── Load dropdown config on mount ────────────────────────────
   useEffect(() => {
     (async () => {
@@ -220,6 +254,59 @@ export default function CustomerBreakdownsPage() {
   }, [breakdown, config, recalculate]);
 
   // ── R-number lookup ─────────────────────────────────────────
+  // Hoisted so applyJobHit can call it with the picked R-number directly,
+  // before the breakdown state has settled.
+  async function handleLookupFor(rNumberArg: string) {
+    if (!rNumberArg.trim()) return;
+    setLookupLoading(true);
+    setLookupMessage(null);
+    try {
+      const res = await fetch(
+        `/api/portal/customer-breakdowns?action=lookup&rNumber=${encodeURIComponent(rNumberArg.trim())}`,
+        { credentials: 'include' }
+      );
+      const data = await res.json();
+      if (data.success) {
+        const ap = data.autoPopulated || {};
+        setBreakdown(prev => ({
+          ...prev,
+          ...ap,
+          jobTotal: ap.jobTotal ?? prev.jobTotal,
+          rNumber: rNumberArg,
+        }));
+        const sourceLabels: Record<string, string> = {
+          'customer-breakdowns': 'Existing breakdown found — loaded all fields',
+          'jobnimbus': 'JobNimbus match — populated customer, address, sales rep',
+          'commissions': 'Found in commissions log — populated customer and rep',
+          'none': `No existing data for ${rNumberArg}. Fill in manually.`,
+        };
+        setLookupMessage(sourceLabels[data.source] || data.message || 'Lookup complete');
+      } else {
+        setLookupMessage(data.error || 'Lookup failed');
+      }
+    } catch (e) {
+      setLookupMessage('Lookup failed: ' + (e as Error).message);
+    } finally {
+      setLookupLoading(false);
+    }
+  }
+
+  // Apply a normalized JN search hit from the autocomplete, then trigger the
+  // richer server-side lookup so existing breakdowns / commissions data also
+  // gets folded in.
+  function applyJobHit(hit: JobSearchHit) {
+    setBreakdown(prev => ({
+      ...prev,
+      rNumber: hit.rNumber || prev.rNumber,
+      customerName: hit.customerName || prev.customerName,
+      address: hit.address || prev.address,
+      salesRep: hit.salesRep || prev.salesRep,
+    }));
+    if (hit.rNumber) {
+      void handleLookupFor(hit.rNumber);
+    }
+  }
+
   async function handleLookup() {
     if (!breakdown.rNumber.trim()) return;
     setLookupLoading(true);
@@ -698,27 +785,25 @@ export default function CustomerBreakdownsPage() {
             Look Up Job
           </h2>
           <div className="flex items-center gap-3">
-            <div className="flex-1 relative">
-              <input
-                type="text"
-                value={breakdown.rNumber}
-                onChange={e => setBreakdown(prev => ({ ...prev, rNumber: e.target.value }))}
-                onKeyDown={e => e.key === 'Enter' && handleLookup()}
-                placeholder="Enter R-Number (e.g., R1295) or JobNimbus Job Number"
-                className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:outline-none focus:border-[#39FF14] focus:ring-1 focus:ring-[#39FF14]/30"
+            <div className="flex-1">
+              <JobSearchAutocomplete
+                onSelect={applyJobHit}
+                defaultValue={breakdown.rNumber}
+                placeholder="R-1295, Hooper, 1352 CR-1422…"
               />
             </div>
             <button
               onClick={handleLookup}
               disabled={lookupLoading || !breakdown.rNumber.trim()}
               className="flex items-center gap-2 px-4 py-2.5 bg-[#39FF14] text-black rounded-lg font-medium text-sm hover:bg-[#39FF14]/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Re-run lookup with the current R-number"
             >
               {lookupLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <Download className="w-4 h-4" />
               )}
-              Auto-Populate
+              Refresh
             </button>
           </div>
           {lookupMessage && (
@@ -1106,6 +1191,62 @@ export default function CustomerBreakdownsPage() {
             </>
           )}
         </section>
+
+        {/* ── Credit Memos ─────────────────────────────────── */}
+        {breakdown.rNumber && (
+          <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <RefreshCw className="w-5 h-5 text-amber-300" />
+                Credit Memos
+                {creditMemosLoading && (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-zinc-500" />
+                )}
+                {creditMemos.length > 0 && (
+                  <span className="text-xs text-zinc-400">
+                    ({creditMemos.length} · −${creditMemos.reduce((s, c) => s + (c.totalCost || 0), 0).toFixed(2)})
+                  </span>
+                )}
+              </h2>
+              <Link
+                href={`/portal/credit-memos`}
+                className="flex items-center gap-1 text-xs text-[#39FF14] hover:text-[#39FF14]/80"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                New credit memo
+              </Link>
+            </div>
+            {creditMemos.length === 0 && !creditMemosLoading ? (
+              <p className="text-sm text-zinc-500">
+                No credit memos on {breakdown.rNumber} yet. Materials that come back to the warehouse should be credited here so the job&apos;s net cost stays accurate.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {creditMemos.map(cm => (
+                  <div
+                    key={cm.invoiceId}
+                    className="p-3 bg-zinc-950 border border-zinc-800 rounded-lg"
+                  >
+                    <div className="flex items-baseline justify-between gap-3 flex-wrap">
+                      <div className="font-mono text-[#39FF14] text-sm">{cm.invoiceId}</div>
+                      <div className="tabular-nums text-sm text-amber-300">
+                        −${cm.totalCost.toFixed(2)}
+                      </div>
+                    </div>
+                    <div className="text-xs text-zinc-400 mt-1">
+                      {cm.lines.length} line{cm.lines.length === 1 ? '' : 's'} ·{' '}
+                      {new Date(cm.createdAt).toLocaleString()} ·{' '}
+                      {cm.createdByName || 'system'}
+                    </div>
+                    {cm.notes && (
+                      <div className="text-xs text-zinc-500 mt-1 italic">{cm.notes}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
         {/* ── Materials ────────────────────────────────────── */}
         <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">

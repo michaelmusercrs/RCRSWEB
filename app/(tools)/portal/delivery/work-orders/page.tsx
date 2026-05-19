@@ -48,6 +48,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import AddressAutocomplete, { AddressResult } from '@/components/AddressAutocomplete';
+import JobSearchAutocomplete, { JobSearchHit } from '@/components/JobSearchAutocomplete';
 
 // ============================================
 // TYPES
@@ -1007,6 +1008,22 @@ function CreateWorkOrder({
     return () => { cancelled = true; };
   }, []);
 
+  // Apply a normalized JN search hit from the autocomplete picker — same
+  // shape used across every form, so we fill our local state from it.
+  const applyJobHit = useCallback((hit: JobSearchHit) => {
+    if (hit.rNumber) setJobNumber(hit.rNumber);
+    if (hit.customerName) setCustomerName(hit.customerName);
+    if (hit.phone) setCustomerPhone(hit.phone);
+    if (hit.email) setCustomerEmail(hit.email);
+    if (hit.salesRep) setSalesRep(hit.salesRep);
+    if (hit.address) setStreet(hit.address);
+    if (hit.city) setCity(hit.city);
+    if (hit.state) setState(hit.state);
+    if (hit.zip) setZip(hit.zip);
+    setJobNumberLookupState('found');
+    setJobNumberLookupMessage(`Imported from JobNimbus: ${hit.customerName || hit.jobName}`);
+  }, []);
+
   // R-number lookup — called on blur or Enter key. Pulls customer/address/
   // rep/phone/email from JobNimbus and autofills the form.
   const lookupJobNumber = useCallback(async () => {
@@ -1233,42 +1250,22 @@ function CreateWorkOrder({
         </div>
       </div>
 
-      {/* Job Number (R-number) — canonical ID, auto-populates from JobNimbus */}
+      {/* Job Search — typeahead against JobNimbus by R-number, name, or address */}
       <div className="border border-zinc-800 rounded-xl p-6">
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <Hash className="w-5 h-5 text-[#39FF14]" />
-          Job Number (R-Number)
+          Find the Job
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-2">
             <label className="block text-sm text-zinc-400 mb-1">
-              R-Number <span className="text-zinc-500 text-xs">(enter and press Tab or Enter to import)</span>
+              Search by R-number, customer name, or address
             </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={jobNumber}
-                onChange={e => {
-                  setJobNumber(e.target.value);
-                  if (jobNumberLookupState !== 'idle' && jobNumberLookupState !== 'loading') {
-                    setJobNumberLookupState('idle');
-                    setJobNumberLookupMessage('');
-                  }
-                }}
-                onBlur={() => lookupJobNumber()}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    lookupJobNumber();
-                  }
-                }}
-                placeholder="R-11071"
-                className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm focus:outline-none focus:border-[#39FF14]/50"
-              />
-              {jobNumberLookupState === 'loading' && (
-                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 animate-spin" />
-              )}
-            </div>
+            <JobSearchAutocomplete
+              onSelect={applyJobHit}
+              defaultValue={jobNumber}
+              placeholder="R-11071, Hooper, 1352 CR-1422…"
+            />
             {jobNumberLookupMessage && (
               <div
                 className={`mt-2 text-xs flex items-center gap-1.5 ${
@@ -1294,7 +1291,7 @@ function CreateWorkOrder({
               type="text"
               value={salesRep}
               onChange={e => setSalesRep(e.target.value)}
-              placeholder="Auto-filled from lookup"
+              placeholder="Auto-filled from selection"
               className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm focus:outline-none focus:border-[#39FF14]/50"
             />
           </div>
