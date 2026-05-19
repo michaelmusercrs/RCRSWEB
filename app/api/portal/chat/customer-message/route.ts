@@ -88,7 +88,8 @@ export async function POST(request: NextRequest) {
         try {
           const noteContent = `[Staff Reply] from ${repName || 'Rep'}${subject ? ` - ${subject}` : ''}\n\n${content}`;
 
-          const jnRes = await fetch(`${jnApiUrl}/notes`, {
+          // JN uses /activities (not /notes), with `note`/`record_type_name`.
+          const jnRes = await fetch(`${jnApiUrl}/activities`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${jnApiKey}`,
@@ -96,8 +97,9 @@ export async function POST(request: NextRequest) {
             },
             body: JSON.stringify({
               primary: { jnid: contactJnid },
-              content: noteContent,
-              type: 'note',
+              note: noteContent,
+              record_type_name: 'Note',
+              is_active: true,
             }),
           });
 
@@ -222,8 +224,13 @@ export async function GET(request: NextRequest) {
     if (jnApiKey && safeCustomerId.length > 10) {
       // Looks like a JN ID
       try {
+        // JN filter must be a JSON-encoded ES bool query — see jobnimbus-service.ts:318
+        const jnFilter = encodeURIComponent(
+          JSON.stringify({ must: [{ term: { 'primary.id': safeCustomerId } }] }),
+        );
         const jnRes = await fetch(
-          `${jnApiUrl}/notes?filter=primary.jnid:"${safeCustomerId}"&sort=-created_at&limit=50`,
+          // JN stores notes inside /activities — there is no /notes endpoint.
+          `${jnApiUrl}/activities?filter=${jnFilter}&sort=-created_at&limit=50`,
           {
             headers: {
               'Authorization': `Bearer ${jnApiKey}`,

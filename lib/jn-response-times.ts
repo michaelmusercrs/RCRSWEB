@@ -300,8 +300,12 @@ export async function queryResponseTimes(opts: {
     
     // Fetch activities for this contact (sorted by date ascending)
     try {
+      // JN filter must be JSON-encoded — see lib/jobnimbus-service.ts:318
+      const activitiesFilter = encodeURIComponent(
+        JSON.stringify({ must: [{ term: { 'related.id': contact.jnid } }] }),
+      );
       const activitiesResult = await jnFetch<{ count?: number; results?: JNActivity[]; activity?: JNActivity[] }>(
-        `/activities?filter=related.id:"${contact.jnid}"&sort=date_created&limit=50`
+        `/activities?filter=${activitiesFilter}&sort=date_created&limit=50`,
       );
       
       // JN API returns activities under "results" or "activity" key

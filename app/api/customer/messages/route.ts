@@ -49,8 +49,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create a note in JobNimbus
-    const response = await fetch(`${JOBNIMBUS_API_URL}/notes`, {
+    // JN uses /activities (not /notes) for notes, with `note` (not `content`)
+    // and `record_type_name: 'Note'`. Mirrors lib/jobnimbus-service.ts createNote.
+    const response = await fetch(`${JOBNIMBUS_API_URL}/activities`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${JOBNIMBUS_API_KEY}`,
@@ -58,8 +59,9 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         primary: { jnid: customerId },
-        content: `[Customer Portal Message]\n\n${content}`,
-        type: 'note',
+        note: `[Customer Portal Message]\n\n${content}`,
+        record_type_name: 'Note',
+        is_active: true,
       }),
     });
 
@@ -124,8 +126,13 @@ export async function GET(request: Request) {
     // Fetch notes for this customer that contain portal messages
     // SECURITY: Sanitize customerId to prevent API query injection
     const safeCustomerId = customerId.replace(/[^a-zA-Z0-9_-]/g, '');
+    // JN filter must be a JSON-encoded ES bool query — see jobnimbus-service.ts:318
+    const jnFilter = encodeURIComponent(
+      JSON.stringify({ must: [{ term: { 'primary.id': safeCustomerId } }] }),
+    );
     const response = await fetch(
-      `${JOBNIMBUS_API_URL}/notes?filter=primary.jnid:"${safeCustomerId}"&sort=-created_at&limit=50`,
+      // JN stores notes inside /activities — there is no /notes endpoint.
+      `${JOBNIMBUS_API_URL}/activities?filter=${jnFilter}&sort=-created_at&limit=50`,
       {
         headers: {
           'Authorization': `Bearer ${JOBNIMBUS_API_KEY}`,

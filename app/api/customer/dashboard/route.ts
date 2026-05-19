@@ -12,6 +12,14 @@ export const runtime = 'nodejs';
 const JOBNIMBUS_API_KEY = process.env.JOBNIMBUS_API_KEY;
 const JOBNIMBUS_API_URL = process.env.JOBNIMBUS_API_URL || 'https://app.jobnimbus.com/api1';
 
+// JN requires the `filter` query param to be a JSON-encoded Elasticsearch
+// bool query. The old `filter=primary.jnid:"X"` string form returns HTTP
+// 400 "Filter syntax error: not valid JSON". Verified 2026-05-19.
+function jnFilterByPrimaryId(customerId: string): string {
+  const filter = { must: [{ term: { 'primary.id': customerId } }] };
+  return `filter=${encodeURIComponent(JSON.stringify(filter))}`;
+}
+
 // Map JobNimbus status to job phase
 function mapStatusToPhase(status?: string): string {
   const statusMap: Record<string, string> = {
@@ -218,7 +226,7 @@ export async function GET(request: Request) {
 
     // Fetch jobs for this customer
     const jobsResponse = await fetch(
-      `${JOBNIMBUS_API_URL}/jobs?filter=primary.jnid:"${customerId}"`,
+      `${JOBNIMBUS_API_URL}/jobs?${jnFilterByPrimaryId(customerId)}`,
       {
         headers: {
           'Authorization': `Bearer ${JOBNIMBUS_API_KEY}`,
@@ -253,7 +261,7 @@ export async function GET(request: Request) {
 
     // Fetch tasks/appointments
     const tasksResponse = await fetch(
-      `${JOBNIMBUS_API_URL}/tasks?filter=primary.jnid:"${customerId}"&sort=-date_start`,
+      `${JOBNIMBUS_API_URL}/tasks?${jnFilterByPrimaryId(customerId)}&sort=-date_start`,
       {
         headers: {
           'Authorization': `Bearer ${JOBNIMBUS_API_KEY}`,
@@ -283,7 +291,7 @@ export async function GET(request: Request) {
 
     // Fetch estimates for documents
     const estimatesResponse = await fetch(
-      `${JOBNIMBUS_API_URL}/estimates?filter=primary.jnid:"${customerId}"`,
+      `${JOBNIMBUS_API_URL}/estimates?${jnFilterByPrimaryId(customerId)}`,
       {
         headers: {
           'Authorization': `Bearer ${JOBNIMBUS_API_KEY}`,
@@ -313,7 +321,7 @@ export async function GET(request: Request) {
 
     // Fetch invoices
     const invoicesResponse = await fetch(
-      `${JOBNIMBUS_API_URL}/invoices?filter=primary.jnid:"${customerId}"`,
+      `${JOBNIMBUS_API_URL}/invoices?${jnFilterByPrimaryId(customerId)}`,
       {
         headers: {
           'Authorization': `Bearer ${JOBNIMBUS_API_KEY}`,
@@ -339,7 +347,8 @@ export async function GET(request: Request) {
 
     // Fetch notes/messages
     const notesResponse = await fetch(
-      `${JOBNIMBUS_API_URL}/notes?filter=primary.jnid:"${customerId}"&sort=-created_at&limit=50`,
+      // JN stores notes inside the /activities collection — there is no /notes endpoint.
+      `${JOBNIMBUS_API_URL}/activities?${jnFilterByPrimaryId(customerId)}&sort=-created_at&limit=50`,
       {
         headers: {
           'Authorization': `Bearer ${JOBNIMBUS_API_KEY}`,

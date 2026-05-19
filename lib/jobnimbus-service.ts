@@ -464,9 +464,11 @@ class JobNimbusService {
   }
 
   // Get notes for a job
+  // JN filter must be JSON-encoded — see getJobByNumber comment.
   async getNotesForJob(jobJnid: string, limit: number = 50): Promise<JobNimbusNote[]> {
+    const filter = { must: [{ term: { 'related.id': jobJnid } }] };
     const result = await this.apiRequest<{ results: JobNimbusNote[] }>(
-      `/activities?filter=related.jnid:"${jobJnid}"&sort=-created_at&limit=${limit}`
+      `/activities?filter=${encodeURIComponent(JSON.stringify(filter))}&sort=-created_at&limit=${limit}`,
     );
     return result.results || [];
   }
@@ -494,9 +496,11 @@ class JobNimbusService {
   }
 
   // Get files for a job
+  // JN filter must be JSON-encoded — see getJobByNumber comment.
   async getFilesForJob(jobJnid: string): Promise<JobNimbusAttachment[]> {
+    const filter = { must: [{ term: { 'related.id': jobJnid } }] };
     const result = await this.apiRequest<{ results: JobNimbusAttachment[] }>(
-      `/files?filter=related.jnid:"${jobJnid}"&sort=-created_at`
+      `/files?filter=${encodeURIComponent(JSON.stringify(filter))}&sort=-created_at`,
     );
     return result.results || [];
   }
@@ -600,18 +604,28 @@ class JobNimbusService {
   }
 
   // Search contacts by email
+  // JN filter must be JSON-encoded — see getJobByNumber comment.
   async searchContactByEmail(email: string): Promise<JobNimbusContact | null> {
+    const filter = { must: [{ term: { email } }] };
     const result = await this.apiRequest<{ results: JobNimbusContact[] }>(
-      `/contacts?filter=email:"${email}"&limit=1`
+      `/contacts?filter=${encodeURIComponent(JSON.stringify(filter))}&limit=1`,
     );
     return result.results[0] || null;
   }
 
   // Search contacts by phone (checks all phone fields)
+  // `should` with multiple terms is ES's OR — at least one phone field matches.
   async searchContactByPhone(phone: string): Promise<JobNimbusContact | null> {
     const normalizedPhone = phone.replace(/\D/g, '');
+    const filter = {
+      should: [
+        { term: { mobile_phone: normalizedPhone } },
+        { term: { home_phone: normalizedPhone } },
+        { term: { work_phone: normalizedPhone } },
+      ],
+    };
     const result = await this.apiRequest<{ results: JobNimbusContact[] }>(
-      `/contacts?filter=mobile_phone:"${normalizedPhone}" OR home_phone:"${normalizedPhone}" OR work_phone:"${normalizedPhone}"&limit=1`
+      `/contacts?filter=${encodeURIComponent(JSON.stringify(filter))}&limit=1`,
     );
     return result.results[0] || null;
   }

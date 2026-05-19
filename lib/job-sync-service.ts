@@ -432,8 +432,12 @@ class JobSyncService {
       if (!contactJnid) {
         // Search for existing contact by email or phone
         let existingContact = null;
+        // JN filter must be JSON-encoded — see lib/jobnimbus-service.ts:318
         if (job.customerEmail) {
-          const searchRes = await fetch(`${baseUrl}/contacts?filter=email:"${job.customerEmail}"&limit=1`, { headers });
+          const f = encodeURIComponent(
+            JSON.stringify({ must: [{ term: { email: job.customerEmail } }] }),
+          );
+          const searchRes = await fetch(`${baseUrl}/contacts?filter=${f}&limit=1`, { headers });
           if (searchRes.ok) {
             const data = await searchRes.json();
             existingContact = data.results?.[0] || null;
@@ -441,7 +445,10 @@ class JobSyncService {
         }
         if (!existingContact && job.customerPhone) {
           const normalizedPhone = job.customerPhone.replace(/\D/g, '');
-          const searchRes = await fetch(`${baseUrl}/contacts?filter=mobile_phone:"${normalizedPhone}"&limit=1`, { headers });
+          const f = encodeURIComponent(
+            JSON.stringify({ must: [{ term: { mobile_phone: normalizedPhone } }] }),
+          );
+          const searchRes = await fetch(`${baseUrl}/contacts?filter=${f}&limit=1`, { headers });
           if (searchRes.ok) {
             const data = await searchRes.json();
             existingContact = data.results?.[0] || null;
@@ -509,7 +516,11 @@ class JobSyncService {
 
       // Check if we have a JN job ID already stored (look for it in notes or a dedicated field)
       // For now, always check for existing jobs on this contact
-      const jobsRes = await fetch(`${baseUrl}/jobs?filter=primary.jnid:"${contactJnid}"&limit=50`, { headers });
+      // JN filter must be JSON-encoded — see lib/jobnimbus-service.ts:318
+      const jobsFilter = encodeURIComponent(
+        JSON.stringify({ must: [{ term: { 'primary.id': contactJnid } }] }),
+      );
+      const jobsRes = await fetch(`${baseUrl}/jobs?filter=${jobsFilter}&limit=50`, { headers });
       let existingJob = null;
       if (jobsRes.ok) {
         const data = await jobsRes.json();
