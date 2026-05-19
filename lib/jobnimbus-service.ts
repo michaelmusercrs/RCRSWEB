@@ -59,14 +59,29 @@ interface JobNimbusJob {
   name?: string;
   description?: string;
   status?: string;
+  status_name?: string;
   sales_rep?: string;
   sales_rep_name?: string;
-  primary?: { jnid: string }; // Related contact
+  // The related contact on a job. JN returns `id` here, NOT `jnid`. Both are
+  // kept on the type because old call sites read .jnid; new code should read .id.
+  primary?: {
+    id?: string;
+    jnid?: string;
+    name?: string;
+    number?: string;
+    email?: string | null;
+    type?: string;
+  };
   address_line1?: string;
   address_line2?: string;
   city?: string;
   state_text?: string;
   zip?: string;
+  // Phone fields are on the job itself (parent_*) — no separate contact fetch needed.
+  parent_home_phone?: string;
+  parent_mobile_phone?: string;
+  parent_work_phone?: string;
+  parent_fax_number?: string;
   created_at?: number;
   updated_at?: number;
   date_start?: number;
@@ -284,12 +299,15 @@ class JobNimbusService {
     return this.apiRequest(`/jobs/${jnid}`);
   }
 
-  // Get jobs for a contact
+  // Get jobs for a contact.
+  // JN filter must be a JSON object — see getJobByNumber comment.
   async getJobsForContact(contactJnid: string): Promise<JobNimbusJob[]> {
+    if (!contactJnid) return [];
+    const filter = { must: [{ term: { 'primary.id': contactJnid } }] };
     const result = await this.apiRequest<{ results: JobNimbusJob[] }>(
-      `/jobs?filter=primary.jnid:"${contactJnid}"`
+      `/jobs?filter=${encodeURIComponent(JSON.stringify(filter))}`,
     );
-    return result.results;
+    return result.results || [];
   }
 
   /**
@@ -300,9 +318,13 @@ class JobNimbusService {
   async getJobByNumber(jobNumber: string): Promise<JobNimbusJob | null> {
     if (!jobNumber) return null;
     try {
-      // JN supports filter=number:"R-XXXXX"
-      const result = await this.apiRequest<{ results: JobNimbusJob[] }>(
-        `/jobs?filter=number:"${encodeURIComponent(jobNumber)}"`
+      // JN requires the `filter` query param to be a JSON-encoded Elasticsearch
+      // bool query. The previous `filter=number:"R-XXXX"` was a string and
+      // returned HTTP 400 "Filter syntax error: not valid JSON". Verified
+      // 2026-05-19 against R-10997 — must+term returns the single match.
+      const filter = { must: [{ term: { number: jobNumber } }] };
+      const result = await this.apiRequest<{ results: JobNimbusJob[]; count?: number }>(
+        `/jobs?filter=${encodeURIComponent(JSON.stringify(filter))}`,
       );
       const jobs = result.results || [];
       return jobs[0] || null;
@@ -330,12 +352,14 @@ class JobNimbusService {
     return this.apiRequest(`/estimates/${jnid}`);
   }
 
-  // Get estimates for a contact
+  // Get estimates for a contact (JSON filter — see getJobByNumber)
   async getEstimatesForContact(contactJnid: string): Promise<JobNimbusEstimate[]> {
+    if (!contactJnid) return [];
+    const filter = { must: [{ term: { 'primary.id': contactJnid } }] };
     const result = await this.apiRequest<{ results: JobNimbusEstimate[] }>(
-      `/estimates?filter=primary.jnid:"${contactJnid}"`
+      `/estimates?filter=${encodeURIComponent(JSON.stringify(filter))}`,
     );
-    return result.results;
+    return result.results || [];
   }
 
   // Get tasks/appointments
@@ -354,32 +378,49 @@ class JobNimbusService {
 
   // Get tasks for a contact
   async getTasksForContact(contactJnid: string): Promise<JobNimbusTask[]> {
+    if (!contactJnid) return [];
+    const filter = { must: [{ term: { 'primary.id': contactJnid } }] };
     const result = await this.apiRequest<{ results: JobNimbusTask[] }>(
-      `/tasks?filter=primary.jnid:"${contactJnid}"`
+      `/tasks?filter=${encodeURIComponent(JSON.stringify(filter))}`,
     );
-    return result.results;
+    return result.results || [];
   }
 
   // Get notes for a contact
   async getNotesForContact(contactJnid: string, limit: number = 50): Promise<JobNimbusNote[]> {
+    if (!contactJnid) return [];
+    const filter = { must: [{ term: { 'primary.id': contactJnid } }] };
+    const qs = new URLSearchParams({
+      filter: JSON.stringify(filter),
+      sort: '-created_at',
+      limit: String(limit),
+    });
     const result = await this.apiRequest<{ results: JobNimbusNote[] }>(
-      `/notes?filter=primary.jnid:"${contactJnid}"&sort=-created_at&limit=${limit}`
+      `/notes?${qs.toString()}`,
     );
     return result.results || [];
   }
 
   // Get attachments/files for a contact
   async getAttachmentsForContact(contactJnid: string): Promise<JobNimbusAttachment[]> {
+    if (!contactJnid) return [];
+    const filter = { must: [{ term: { 'primary.id': contactJnid } }] };
+    const qs = new URLSearchParams({
+      filter: JSON.stringify(filter),
+      sort: '-created_at',
+    });
     const result = await this.apiRequest<{ results: JobNimbusAttachment[] }>(
-      `/files?filter=primary.jnid:"${contactJnid}"&sort=-created_at`
+      `/files?${qs.toString()}`,
     );
     return result.results || [];
   }
 
   // Get invoices for a contact
   async getInvoicesForContact(contactJnid: string): Promise<JobNimbusInvoice[]> {
+    if (!contactJnid) return [];
+    const filter = { must: [{ term: { 'primary.id': contactJnid } }] };
     const result = await this.apiRequest<{ results: JobNimbusInvoice[] }>(
-      `/invoices?filter=primary.jnid:"${contactJnid}"`
+      `/invoices?filter=${encodeURIComponent(JSON.stringify(filter))}`,
     );
     return result.results || [];
   }

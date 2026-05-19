@@ -75,48 +75,40 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      // Pull contact record for phone/email (job has address but no phone)
-      let contact: Awaited<ReturnType<typeof jobNimbusService.getContact>> | null = null;
-      const contactJnid = jnJob.primary?.jnid;
-      if (contactJnid) {
+      // The job record itself has the phones (parent_*) and the related
+      // contact's name/email (primary). The contact ID is primary.id, NOT
+      // primary.jnid — the old code read .jnid which is always undefined
+      // and silently skipped the contact fetch. Only fall back to fetching
+      // the contact if the job itself is missing the email.
+      const contactId = jnJob.primary?.id;
+      const contactEmailFromJob = jnJob.primary?.email || '';
+      let fallbackEmail = '';
+      if (!contactEmailFromJob && contactId) {
         try {
-          contact = await jobNimbusService.getContact(contactJnid);
+          const contact = await jobNimbusService.getContact(contactId);
+          fallbackEmail = contact?.email || '';
         } catch {
-          contact = null;
+          /* contact fetch failed — leave email blank */
         }
       }
 
-      // Address: prefer job record, fall back to contact
-      const addrSource = [
+      const address = [
         jnJob.address_line1,
         jnJob.city,
         jnJob.state_text,
         jnJob.zip,
-      ].some(Boolean) ? jnJob : contact;
+      ].filter(Boolean).join(', ');
 
-      const address = addrSource
-        ? [
-            addrSource.address_line1,
-            addrSource.city,
-            addrSource.state_text,
-            addrSource.zip,
-          ].filter(Boolean).join(', ')
-        : '';
-
-      // Phone fallback order: mobile → home → work
+      // Phone fallback order: mobile → home → work (all read directly from job)
       const phone =
-        contact?.mobile_phone ||
-        contact?.home_phone ||
-        contact?.work_phone ||
+        jnJob.parent_mobile_phone ||
+        jnJob.parent_home_phone ||
+        jnJob.parent_work_phone ||
         '';
 
       // Customer name: prefer job.name (e.g. "Smith - Roof Replacement"),
-      // fall back to contact display name.
-      const customerName =
-        jnJob.name ||
-        contact?.display_name ||
-        [contact?.first_name, contact?.last_name].filter(Boolean).join(' ') ||
-        '';
+      // fall back to related contact's display name on the job.
+      const customerName = jnJob.name || jnJob.primary?.name || '';
 
       return NextResponse.json({
         success: true,
@@ -125,14 +117,14 @@ export async function GET(request: NextRequest) {
         customerName,
         address,
         addressParts: {
-          street: (addrSource?.address_line1 || '').trim(),
-          city: (addrSource?.city || '').trim(),
-          state: (addrSource?.state_text || '').trim(),
-          zip: (addrSource?.zip || '').trim(),
+          street: (jnJob.address_line1 || '').trim(),
+          city: (jnJob.city || '').trim(),
+          state: (jnJob.state_text || '').trim(),
+          zip: (jnJob.zip || '').trim(),
         },
         phone,
-        email: contact?.email || '',
-        salesRep: jnJob.sales_rep_name || contact?.sales_rep_name || '',
+        email: contactEmailFromJob || fallbackEmail,
+        salesRep: jnJob.sales_rep_name || '',
         jobName: jnJob.name || '',
       });
     }
