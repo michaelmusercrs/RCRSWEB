@@ -45,9 +45,14 @@ function isoWeekToMonday(weekStr: string): string {
 }
 
 /**
- * Fire-and-forget sync of submitted numbers to:
- * 1. The Monday meeting sheet (original source)
- * 2. The MeetingNumbers_2026 tab on the master RoofStack sheet
+ * Fire-and-forget sync of submitted numbers to the dedicated Monday meeting
+ * sheet (the canonical 2026 RCRS MEETING NUMBERS spreadsheet, owned by Sara).
+ *
+ * Historical note: this route used to dual-write into the master sheet's
+ * `MeetingNumbers_2026` tab as well. That parallel store drifted out of sync
+ * with the dedicated sheet (96 rows through 4/27 while the dedicated sheet
+ * had 135 rows through 5/18). Disabled 2026-05-19 to keep a single source
+ * of truth. The dedicated Monday sheet IS the source.
  */
 async function syncToMeetingSheet(
   repName: string,
@@ -70,41 +75,12 @@ async function syncToMeetingSheet(
     homeShow: parseInt(String(body.homeShow)) || 0,
   };
 
-  // 1. Write to Monday meeting sheet + local JSON cache
+  // Single source of truth: the dedicated Monday meeting sheet + local JSON
+  // cache. The previous master-sheet `MeetingNumbers_2026` write-back was
+  // intentionally removed — see comment above. weekStr param retained for
+  // call-site compatibility.
+  void weekStr;
   await meetingNumbersService.submitNumbers(repName, meetingDate, parsed);
-
-  // 2. Write to master RoofStack sheet (MeetingNumbers_2026 tab)
-  syncToMasterSheet(repName, meetingDate, weekStr, parsed).catch(err => {
-    console.error('[WeeklyNumbers] Master sheet sync failed:', err);
-  });
-}
-
-/**
- * Sync a single rep's numbers to the MeetingNumbers_{year} tab on the master sheet.
- */
-async function syncToMasterSheet(
-  repName: string,
-  meetingDate: string,
-  tabName: string,
-  data: Record<string, number | string>,
-): Promise<void> {
-  await googleSheetsService.upsertMeetingNumber({
-    meetingDate,
-    repName,
-    inspected: data.inspected,
-    damage: data.damage,
-    signed: data.signed,
-    repair: data.repair,
-    gutter: data.gutter,
-    revenue: data.revenue,
-    approved: data.approved,
-    goal: data.goal,
-    referrals: data.referrals,
-    agents: data.agents,
-    present: String(data.present || ''),
-    homeShow: data.homeShow,
-    tabName,
-  });
 }
 
 // The fields that match the Monday meeting sheet columns
