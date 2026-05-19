@@ -6,7 +6,7 @@ import Image from 'next/image';
 import {
   ArrowLeft, FileText, Users, Image as ImageIcon, Settings, ChevronRight,
   Globe, BookOpen, BarChart3, TrendingUp, Eye, Clock, Sparkles, Home,
-  DollarSign, AlertTriangle, Package, Command, Shield, MapPin, Loader2, Store
+  DollarSign, AlertTriangle, Package, Command, Shield, MapPin, Loader2, Store, Database,
 } from 'lucide-react';
 import SettingsMenu from '@/components/SettingsMenu';
 
@@ -42,6 +42,18 @@ export default function AdminPortal() {
   }, []);
 
   const adminSections = [
+    {
+      id: 'database',
+      title: 'Database Dashboard',
+      description: 'Lifetime revenue, customers, vendors, reps, commissions — all in one place',
+      icon: Database,
+      href: '/portal/admin/database',
+      color: 'from-emerald-500 to-green-400',
+      bgColor: 'bg-brand-green/10',
+      iconColor: '#39FF14',
+      stat: 0,
+      statLabel: '',
+    },
     {
       id: 'blog',
       title: 'Blog Posts',
