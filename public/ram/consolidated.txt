@@ -1,10 +1,14 @@
 ================================================================================
-2013 RAM DIAGNOSTIC DATA - ALL SCANS FROM 2026-05-14/15
+2013 RAM DIAGNOSTIC DATA - 2026-05-14/15 BASELINE + 2026-05-19 FOLLOW-UP
 ================================================================================
 
-Total Scans: 7
+*** 5/19 UPDATE: Cyl 8 misfire RESOLVED via coil swap.                    ***
+*** Bank 2 LTFT +6.60% -> +1.06%. Banks now symmetric. Cyl 8 FTP 0.20->0  ***
+*** Still open: oil pressure sensor circuit (still 0.0V).                 ***
+
+Total Scans: 7 baseline + 4 follow-up = 11
 Data Source: X-Tool D7
-Report Generated: 2026-05-14 20:48:26
+Report Generated: 2026-05-14 20:48:26 (baseline) | 2026-05-19 (follow-up appended)
 
 SCAN FILENAMES AND TIMESTAMPS:
 --------------------------------------------------------------------------------

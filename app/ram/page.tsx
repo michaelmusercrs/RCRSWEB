@@ -383,7 +383,7 @@ export default function RamDiagnosticFlowchart() {
           <div>
             <div className="ram-eyebrow">Garage Diagnostic</div>
             <h1>2013 Ram 1500 — Diagnostic Flowchart</h1>
-            <div className="ram-sub">5.7L Hemi · 319,774 mi · prior scan 2026-05-14</div>
+            <div className="ram-sub">5.7L Hemi · 319,774 mi · baseline 2026-05-14 · follow-up 2026-05-19</div>
           </div>
           <div className="ram-modes">
             <button className={viewMode === 'wizard' ? 'on' : ''} onClick={() => setViewMode('wizard')}>Wizard</button>
@@ -391,6 +391,53 @@ export default function RamDiagnosticFlowchart() {
           </div>
         </div>
       </header>
+
+      <section style={{
+        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+        color: 'white',
+        padding: '28px 32px',
+        margin: '0 0 0 0',
+      }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <div style={{ fontSize: '0.85em', opacity: 0.9, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+            Update · 2026-05-19
+          </div>
+          <h2 style={{ fontSize: '1.6em', margin: '0 0 10px 0', fontWeight: 700 }}>
+            ✅ Cyl 8 Misfire RESOLVED — Coil Swap Fixed It
+          </h2>
+          <p style={{ margin: '0 0 14px 0', opacity: 0.95, lineHeight: 1.5 }}>
+            Replaced the cyl 8 ignition coil with a spare on hand (and refilled the tank). Verified the next day with
+            both-bank STFT/LTFT and bank-2 cylinder injector pulse widths under load (MAF up to 150 g/s).
+            Outcome: the 20% coil branch, not the 70% spark-plug branch.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
+            <div style={{ background: 'rgba(0,0,0,0.15)', padding: '10px 14px', borderRadius: 8 }}>
+              <div style={{ fontSize: '0.8em', opacity: 0.85 }}>2/1 LTFT mean</div>
+              <div style={{ fontSize: '1.3em', fontWeight: 700 }}>+6.60% → +1.06%</div>
+              <div style={{ fontSize: '0.75em', opacity: 0.85 }}>−84%</div>
+            </div>
+            <div style={{ background: 'rgba(0,0,0,0.15)', padding: '10px 14px', borderRadius: 8 }}>
+              <div style={{ fontSize: '0.8em', opacity: 0.85 }}>2/1 LTFT max</div>
+              <div style={{ fontSize: '1.3em', fontWeight: 700 }}>+16.41% → +3.32%</div>
+              <div style={{ fontSize: '0.75em', opacity: 0.85 }}>−80%</div>
+            </div>
+            <div style={{ background: 'rgba(0,0,0,0.15)', padding: '10px 14px', borderRadius: 8 }}>
+              <div style={{ fontSize: '0.8em', opacity: 0.85 }}>Cyl 8 FTP counter mean</div>
+              <div style={{ fontSize: '1.3em', fontWeight: 700 }}>0.20 → 0.00</div>
+              <div style={{ fontSize: '0.75em', opacity: 0.85 }}>−100%</div>
+            </div>
+            <div style={{ background: 'rgba(0,0,0,0.15)', padding: '10px 14px', borderRadius: 8 }}>
+              <div style={{ fontSize: '0.8em', opacity: 0.85 }}>Banks delta (LTFT)</div>
+              <div style={{ fontSize: '1.3em', fontWeight: 700 }}>0.07%</div>
+              <div style={{ fontSize: '0.75em', opacity: 0.85 }}>symmetric</div>
+            </div>
+          </div>
+          <p style={{ margin: '14px 0 0 0', fontSize: '0.88em', opacity: 0.9 }}>
+            <strong>Still open:</strong> oil pressure sensor circuit (still 0.0 V on 5/19 retest).
+            Needs mechanical gauge test before clearing engine concerns.
+          </p>
+        </div>
+      </section>
 
       <section className="tools">
         <h2>All diagnostic tools & data</h2>
@@ -400,37 +447,37 @@ export default function RamDiagnosticFlowchart() {
             <div className="t-title">Interactive Wizard</div>
             <div className="t-desc">Step-by-step decision tree (you are here). Click answers, get the next test.</div>
           </a>
-          <a className="tool primary" href="/ram2/dashboard.html" target="_blank" rel="noopener">
+          <a className="tool primary" href="/ram/dashboard.html" target="_blank" rel="noopener">
             <div className="t-icon">📊</div>
             <div className="t-title">Full Dashboard</div>
             <div className="t-desc">5-tab interactive dashboard — overview, issues, fixes, cost, action checklist.</div>
           </a>
-          <a className="tool" href="/ram2/old-flowchart.html" target="_blank" rel="noopener">
+          <a className="tool" href="/ram/old-flowchart.html" target="_blank" rel="noopener">
             <div className="t-icon">🔍</div>
             <div className="t-title">Original Flowchart</div>
             <div className="t-desc">First-generation 12-point decision flowchart from the 2026-05-14 session.</div>
           </a>
-          <a className="tool" href="/ram2/reference.txt" target="_blank" rel="noopener">
+          <a className="tool" href="/ram/reference.txt" target="_blank" rel="noopener">
             <div className="t-icon">⚡</div>
             <div className="t-title">Quick Reference</div>
             <div className="t-desc">Cheat sheet: part numbers, prices, cyl-8 location, cost matrix A-E.</div>
           </a>
-          <a className="tool" href="/ram2/report.md" target="_blank" rel="noopener">
+          <a className="tool" href="/ram/report.md" target="_blank" rel="noopener">
             <div className="t-icon">📋</div>
             <div className="t-title">Full Report (MD)</div>
             <div className="t-desc">Comprehensive markdown writeup of all 7 scans with severity ratings.</div>
           </a>
-          <a className="tool" href="/ram2/all-scans.txt" target="_blank" rel="noopener">
+          <a className="tool" href="/ram/all-scans.txt" target="_blank" rel="noopener">
             <div className="t-icon">📈</div>
             <div className="t-title">All Scans Consolidated</div>
             <div className="t-desc">Aggregated stats across 7 D7 scans — fuel trim, misfires, O2, MAF, RPM.</div>
           </a>
-          <a className="tool" href="/ram2/data/" target="_blank" rel="noopener">
+          <a className="tool" href="/ram/data/" target="_blank" rel="noopener">
             <div className="t-icon">📂</div>
             <div className="t-title">Raw CSV Data</div>
             <div className="t-desc">16 CSVs: per-scan summary + frame-by-frame timeseries.</div>
           </a>
-          <a className="tool" href="/ram2/screenshots/" target="_blank" rel="noopener">
+          <a className="tool" href="/ram/screenshots/" target="_blank" rel="noopener">
             <div className="t-icon">📷</div>
             <div className="t-title">D7 Screenshots</div>
             <div className="t-desc">XTOOL D7 scanner screenshots captured during the diagnostic session.</div>
@@ -439,32 +486,32 @@ export default function RamDiagnosticFlowchart() {
       </section>
 
       <section id="wizard-anchor" className="findings">
-        <h2>Known findings from prior scan</h2>
+        <h2>Findings — baseline 5/14 + follow-up 5/19</h2>
         <div className="findings-grid">
           <div className="finding bad">
-            <div className="f-tag">CONFIRMED</div>
+            <div className="f-tag">STILL OPEN</div>
             <div className="f-title">Oil pressure sensor dead</div>
-            <div className="f-body">Sensor voltage flat 0.000 V across 3 captures. Real engine pressure UNKNOWN until tested mechanically.</div>
+            <div className="f-body">Sensor voltage still flat 0.000 V on 5/19 retest. Real engine pressure UNKNOWN until tested mechanically. Coil swap did not change this — separate dead-circuit issue.</div>
           </div>
-          <div className="finding warn">
-            <div className="f-tag">CONFIRMED</div>
+          <div className="finding good">
+            <div className="f-tag">RESOLVED 5/19</div>
             <div className="f-title">Cylinder 8 misfire</div>
-            <div className="f-body">Only cyl 8 logs misfires. Counter mean 417 / 200 rev. Catalyst-damaging counter low (max 1).</div>
+            <div className="f-body">Cyl 8 FTP counter mean 0.20 → 0.00 after coil swap. Rolling-200-rev counter at end of session 443 → 278 (−37%). Cyl 8 injector pulse width within 1.5% of cyl 5-7 bank-mates.</div>
+          </div>
+          <div className="finding good">
+            <div className="f-tag">RESOLVED 5/19</div>
+            <div className="f-title">Bank 2 LTFT high</div>
+            <div className="f-body">Was +6.6% mean / +16.4% max. Now +1.06% mean / +3.32% max. Banks symmetric (delta 0.07%). Verified under load — MAF reached 150 g/s.</div>
           </div>
           <div className="finding warn">
-            <div className="f-tag">CONSISTENT</div>
-            <div className="f-title">Bank 2 LTFT +6.6% to +9%</div>
-            <div className="f-body">ECU adding fuel on bank 2 (cyl 8 is on bank 2). Bank 1 normal at idle. Matches a weak cyl 8.</div>
+            <div className="f-tag">YELLOW FLAG</div>
+            <div className="f-title">One STFT bank-2 spike at idle</div>
+            <div className="f-body">Single-frame +11.32% STFT spike on bank 2 at T+0:59 of the post-fix recording, at low airflow (MAF 9.07 g/s). Could be noise or residual cyl-8 weakness at low load. Confirm with one 15-20 min loaded drive.</div>
           </div>
-          <div className="finding bad">
-            <div className="f-tag">NEW DATA</div>
-            <div className="f-title">Cyl-8 injector pulse 20× normal</div>
-            <div className="f-body">Cyl 8 pulse width 3,010 µs vs cyls 3-5 at ~150 µs. Cyls 1, 2, 6, 7 also high (~2,500-2,900 µs). ECU dumping fuel to compensate for misread O2.</div>
-          </div>
-          <div className="finding bad">
-            <div className="f-tag">NEW DATA</div>
-            <div className="f-title">O2 sensors stuck high</div>
-            <div className="f-body">Bank 1/1 at 3.47 V, 1/2 at 3.34 V (should be 0.1-0.9 V swinging). Sensor failure or wiring fault. Skews fuel trim across the engine.</div>
+          <div className="finding warn">
+            <div className="f-tag">CARRIES OVER</div>
+            <div className="f-title">MAF variance</div>
+            <div className="f-body">Baseline 90× swing (1.96 → 176.21 g/s). Follow-up 29× swing (5.23 → 150.74 g/s) — improved but still wide. Cheap fix: MAF cleaner spray.</div>
           </div>
           <div className="finding good">
             <div className="f-tag">RULED OUT</div>
@@ -559,7 +606,7 @@ export default function RamDiagnosticFlowchart() {
 
       <footer className="ram-foot">
         <div>Source data: XTOOL D7 .cds recordings from 2026-05-14 · 7 Dodge scans · 319,774 mi at scan time</div>
-        <div>All assets at <code>/ram2/</code> · raw CSVs at <code>/ram2/data/</code> · scanner screenshots at <code>/ram2/screenshots/</code></div>
+        <div>All assets at <code>/ram/</code> · raw CSVs at <code>/ram/data/</code> · scanner screenshots at <code>/ram/screenshots/</code></div>
       </footer>
     </div>
   );

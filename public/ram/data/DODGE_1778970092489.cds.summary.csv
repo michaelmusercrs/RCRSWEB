@@ -1,0 +1,12 @@
+pid,unit,n,na,min,max,mean,sd,first,last,range,flag
+Mis-Fire Monitor Status,,0,61,,,,,,,,NO-DATA
+Mis-Fire Counter-200 REV,,61,0,1.0,786.0,417.344262295082,249.01733992200792,121.0,388.0,785.0,
+Mis-Fire Counter CAT 200 Rev,,61,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,FLAT
+Cylinder 1 FTP Mis-Fire Counter,,61,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,FLAT
+Cylinder 2 FTP Mis-Fire Counter,,61,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,FLAT
+Cylinder 3 FTP Mis-Fire Counter,,61,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,FLAT
+Cylinder 4 FTP Mis-Fire Counter,,61,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,FLAT
+Cylinder 5 FTP Mis-Fire Counter,,61,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,FLAT
+Cylinder 6 FTP Mis-Fire Counter,,61,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,FLAT
+Cylinder 7 FTP Mis-Fire Counter,,61,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,FLAT
+Cylinder 8 FTP Mis-Fire Counter,,61,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,FLAT

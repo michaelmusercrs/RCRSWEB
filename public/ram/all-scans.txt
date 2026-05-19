@@ -1,11 +1,15 @@
 ================================================================================
 2013 RAM 1500 - ALL DIAGNOSTIC SCANS (CONSOLIDATED)
-X-Tool D7 Analysis - May 14-15, 2026
+X-Tool D7 Analysis - Baseline May 14-15, 2026 | Follow-up May 19, 2026
 ================================================================================
 
-TOTAL SCANS: 7 DODGE diagnostic sessions
-STATUS: Loss of power, vibration at idle
-ROOT CAUSE: Rich fuel mixture + Cylinder 8 misfire
+*** 5/19 UPDATE: Cyl 8 misfire RESOLVED via coil swap. 4 new CHRYSLER .cds + 2 ***
+*** new CSV exports. Bank 2 LTFT +6.60% -> +1.06%. Banks now symmetric.       ***
+*** Still open: oil pressure sensor circuit (still 0.0V).                     ***
+
+TOTAL SCANS: 7 DODGE (5/14 baseline) + 4 CHRYSLER (5/19 follow-up) = 11
+STATUS: Cyl 8 misfire resolved 5/19 | Oil pressure sensor still open
+ROOT CAUSE CONFIRMED: Cylinder 8 ignition coil (20% branch, not spark plug)
 
 ================================================================================
 SCAN #1: 1778793304091

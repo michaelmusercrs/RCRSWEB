@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2013 RAM 1500 - Diagnostic Decision Flowchart</title>
+    <title>2013 RAM 1500 - Diagnostic Decision Flowchart (5/19: Coil Branch Was the Answer)</title>
     <style>
         * {
             margin: 0;
@@ -340,10 +340,16 @@
     <div class="container">
         <div class="header">
             <h1>🔍 2013 RAM 1500 Diagnostic Flowchart</h1>
-            <p>Step-by-step decision tree • If YES/NO/Above/Below logic</p>
+            <p>Step-by-step decision tree • Original 5/14 plan with 5/19 outcomes annotated</p>
         </div>
 
         <div class="content">
+            <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 24px; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
+                <h2 style="margin: 0 0 10px 0;">✅ 5/19 Outcome — Coil Branch Was the Answer</h2>
+                <p style="margin: 0 0 12px 0; opacity: 0.95;">Tree walked: <strong>Step 1 (oil pressure gauge)</strong> → skipped (separate sensor-circuit issue, still open). <strong>Step 2-4 (spark plug + MAF + fuel)</strong> → skipped to Step 9. <strong>Step 9 (coil swap)</strong> → applied. Used a spare coil on hand, $0 cost.</p>
+                <p style="margin: 0; opacity: 0.95;"><strong>Result:</strong> Cyl 8 FTP misfire counter 0.20 → 0.00, bank 2 LTFT +6.60% → +1.06%, both banks now symmetric. Verified under load (MAF to 150 g/s).</p>
+                <p style="margin: 10px 0 0 0; opacity: 0.9; font-size: 0.9em;">Outcome was the <strong>20% coil branch</strong>, not the 70% spark-plug branch the tree originally weighted.</p>
+            </div>
             <div class="legend">
                 <div class="legend-item">
                     <div class="legend-dot start"></div>

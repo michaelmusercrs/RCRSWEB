@@ -1,9 +1,29 @@
 # 2013 RAM 1500 DIAGNOSTIC REPORT
-## X-Tool D7 Analysis — May 14-15, 2026
+## X-Tool D7 Analysis — Baseline May 14-15, 2026 · Follow-up May 19, 2026
 
 ---
 
-## EXECUTIVE SUMMARY
+## ✅ 5/19 UPDATE — Cyl 8 Misfire RESOLVED (Coil Swap)
+
+Replaced the cyl 8 ignition coil with a spare on hand. Verified with both-bank STFT/LTFT and bank-2 cylinder injector pulse widths under load (MAF up to 150 g/s).
+
+| Metric | Baseline 5/14 | Post-fix 5/19 | Change |
+|---|---|---|---|
+| 2/1 LTFT mean | +6.60% | **+1.06%** | −84% |
+| 2/1 LTFT max  | +16.41% | **+3.32%** | −80% |
+| Bank 1 vs Bank 2 LTFT delta | bank 2 alone | **0.07% (symmetric)** | resolved |
+| Cyl 8 FTP misfire counter mean | 0.20 | **0.00** | −100% |
+| Cyl 8 injector pulse width | (not captured) | **2340 µs** | within 1.5% of cyl 5-7 |
+
+**Root cause confirmed:** weak cyl 8 ignition coil (the 20% branch of the original diagnostic tree, not the 70% spark-plug branch).
+
+**Cost:** $0 (used a spare coil on hand). **Time:** ~30 min.
+
+**Still open:** oil pressure sensor circuit (still reads 0.0V on 5/19 retest — separate dead-circuit issue, needs mechanical gauge test).
+
+---
+
+## ORIGINAL EXECUTIVE SUMMARY (historical, 5/14)
 
 **Vehicle Issue:** Loss of power, vibration at idle
 **Root Cause:** Rich fuel mixture (Long-term fuel trim +6.6% to +9.0%)

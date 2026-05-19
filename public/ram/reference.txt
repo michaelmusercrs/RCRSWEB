@@ -2,8 +2,19 @@
 2013 RAM 1500 QUICK REFERENCE GUIDE
 ================================================================================
 
-PROBLEM: Loss of power, vibration at idle
-ROOT CAUSE: Cylinder 8 misfire + rich fuel mixture
+================================================================================
+*** 5/19 UPDATE - CYL 8 MISFIRE RESOLVED VIA COIL SWAP ($0, spare on hand) ***
+================================================================================
+Bank 2 LTFT mean: +6.60% -> +1.06%  (-84%)
+Bank 2 LTFT max:  +16.41% -> +3.32% (-80%)
+Cyl 8 FTP counter mean: 0.20 -> 0.00
+Banks now symmetric (was bank 2 alone elevated).
+Verified under load (MAF to 150 g/s).
+STILL OPEN: oil pressure sensor circuit (still 0.0V on 5/19 retest).
+================================================================================
+
+PROBLEM (5/14 baseline, now resolved): Loss of power, vibration at idle
+ROOT CAUSE CONFIRMED: Cylinder 8 ignition coil (the 20% branch, not spark plug)
 
 ================================================================================
 THE NUMBERS
