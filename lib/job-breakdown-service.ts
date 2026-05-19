@@ -1068,7 +1068,7 @@ class JobBreakdownService {
     let estimates: JobNimbusEstimate[] = [];
 
     // Fetch contact and estimates in parallel
-    const contactJnid = job.primary?.jnid;
+    const contactJnid = job.primary?.id;
     if (contactJnid) {
       const [contactResult, estimatesResult] = await Promise.allSettled([
         jobNimbusService.getContact(contactJnid),

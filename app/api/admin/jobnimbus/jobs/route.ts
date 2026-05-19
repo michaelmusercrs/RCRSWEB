@@ -37,7 +37,7 @@ export async function GET(request: Request) {
           status: job.status,
           phase: jobNimbusService.mapStatusToPhase(job.status),
           salesRep: job.sales_rep_name,
-          contactId: job.primary?.jnid,
+          contactId: job.primary?.id,
           address: [
             job.address_line1,
             job.address_line2,
@@ -86,7 +86,7 @@ export async function GET(request: Request) {
         status: j.status,
         phase: jobNimbusService.mapStatusToPhase(j.status),
         salesRep: j.sales_rep_name,
-        contactId: j.primary?.jnid,
+        contactId: j.primary?.id,
         address: [j.address_line1, j.city, j.state_text, j.zip].filter(Boolean).join(', '),
         startDate: j.date_start ? new Date(j.date_start * 1000).toISOString() : null,
         endDate: j.date_end ? new Date(j.date_end * 1000).toISOString() : null,

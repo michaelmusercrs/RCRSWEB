@@ -367,7 +367,7 @@ class JNSyncEngine {
       description: j.description || '',
       status: j.status || 'unknown',
       contactName: '',
-      contactJnid: j.primary?.jnid || '',
+      contactJnid: j.primary?.id || '',
       address: [j.address_line1, j.city, j.state_text, j.zip].filter(Boolean).join(', '),
       salesRep: j.sales_rep_name || '',
       startDate: j.date_start ? new Date(j.date_start * 1000).toISOString() : '',

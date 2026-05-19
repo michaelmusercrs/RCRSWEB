@@ -88,7 +88,7 @@ async function handleSearch(query: string) {
 
     // Add contacts with their jobs
     for (const contact of matchedContacts) {
-      const contactJobs = matchedJobs.filter((j: any) => j.primary?.jnid === contact.jnid);
+      const contactJobs = matchedJobs.filter((j: any) => j.primary?.id === contact.jnid);
       const address = [contact.address_line1, contact.city, contact.state_text, contact.zip]
         .filter(Boolean).join(', ');
 
@@ -133,7 +133,7 @@ async function handleSearch(query: string) {
           .filter(Boolean).join(', ');
         results.push({
           type: 'job',
-          contactJnid: job.primary?.jnid || null,
+          contactJnid: job.primary?.id || null,
           jobJnid: job.jnid,
           contactName: job.name || 'Unknown',
           jobName: job.name || job.number || 'Untitled Job',

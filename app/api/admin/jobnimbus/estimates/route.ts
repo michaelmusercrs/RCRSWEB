@@ -59,7 +59,7 @@ export async function GET(request: Request) {
         tax: e.tax,
         total: e.total,
         description: e.description,
-        contactId: e.primary?.jnid,
+        contactId: e.primary?.id,
         jobId: e.related?.jnid,
         pdfUrl: e.pdf_url,
         publicUrl: e.public_url,

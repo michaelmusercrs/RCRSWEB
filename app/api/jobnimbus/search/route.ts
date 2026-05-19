@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
         phase: jobNimbusService.mapStatusToPhase(j.status),
         salesRep: j.sales_rep_name,
         salesRepId: j.sales_rep,
-        contactId: j.primary?.jnid,
+        contactId: j.primary?.id,
         address: [j.address_line1, j.city, j.state_text, j.zip].filter(Boolean).join(', '),
         addressLine1: j.address_line1,
         city: j.city,

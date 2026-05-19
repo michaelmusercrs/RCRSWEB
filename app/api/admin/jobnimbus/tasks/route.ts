@@ -55,7 +55,7 @@ export async function GET(request: Request) {
         description: t.description,
         type: t.type,
         status: t.status,
-        contactId: t.primary?.jnid,
+        contactId: t.primary?.id,
         startDate: t.date_start ? new Date(t.date_start * 1000).toISOString() : null,
         endDate: t.date_end ? new Date(t.date_end * 1000).toISOString() : null,
         assignedTo: t.assigned_to,

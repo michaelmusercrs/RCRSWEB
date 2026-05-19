@@ -151,7 +151,7 @@ async function tryJnEnrichment(refNumber: string): Promise<Partial<SheetTicket>>
   let city = job.city || '';
   let state = job.state_text || '';
 
-  const contactJnid = job.primary?.jnid;
+  const contactJnid = job.primary?.id;
   if (contactJnid) {
     const contact = await jobNimbusService.getContact(contactJnid).catch(() => null);
     if (contact) {

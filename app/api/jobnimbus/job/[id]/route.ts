@@ -55,7 +55,7 @@ export async function GET(
         phase: jobNimbusService.mapStatusToPhase(job.status),
         salesRep: job.sales_rep_name,
         salesRepId: job.sales_rep,
-        contactId: job.primary?.jnid,
+        contactId: job.primary?.id,
         address: {
           full: [job.address_line1, job.address_line2, job.city, job.state_text, job.zip]
             .filter(Boolean)
