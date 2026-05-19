@@ -774,11 +774,63 @@ export default function InventoryManagementPage() {
   // ============================================
 
   if (loading) {
+    // Skeleton shimmer — shows the shape of the page so the user knows
+    // what's about to render instead of a bare spinner.
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-[#39FF14] mx-auto mb-3" />
-          <p className="text-zinc-400">Loading inventory management...</p>
+      <div className="min-h-screen bg-zinc-950 text-white">
+        <div className="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-sm sticky top-0 z-40">
+          <div className="max-w-7xl mx-auto px-4 py-4">
+            <div className="flex items-center gap-3">
+              <div className="w-5 h-5 bg-zinc-800 rounded animate-pulse" />
+              <div className="w-6 h-6 bg-zinc-800 rounded animate-pulse" />
+              <div>
+                <div className="h-5 w-48 bg-zinc-800 rounded animate-pulse mb-1" />
+                <div className="h-3 w-32 bg-zinc-800 rounded animate-pulse" />
+              </div>
+            </div>
+            <div className="flex gap-2 mt-4">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="h-9 w-24 bg-zinc-800 rounded-t-lg animate-pulse" />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 h-24 animate-pulse"
+              >
+                <div className="h-3 w-24 bg-zinc-800 rounded mb-3" />
+                <div className="h-6 w-16 bg-zinc-800 rounded" />
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+            <div className="lg:col-span-2 bg-zinc-900 border border-zinc-800 rounded-xl p-5 h-72 animate-pulse">
+              <div className="h-4 w-40 bg-zinc-800 rounded mb-4" />
+              <div className="space-y-2">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="h-3 bg-zinc-800 rounded" />
+                ))}
+              </div>
+            </div>
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 h-72 animate-pulse">
+              <div className="h-4 w-32 bg-zinc-800 rounded mb-4" />
+              <div className="space-y-2">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="h-8 bg-zinc-800 rounded" />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="text-center py-4 text-xs text-zinc-600">
+          <Loader2 className="w-4 h-4 animate-spin text-[#39FF14] inline mr-1" />
+          Loading inventory management...
         </div>
       </div>
     );
@@ -806,32 +858,39 @@ export default function InventoryManagementPage() {
 
       {/* Header */}
       <div className="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-sm sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Link href="/portal/inventory" className="text-zinc-400 hover:text-white transition">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <Link
+                href="/portal/inventory"
+                className="text-zinc-400 hover:text-white transition flex-shrink-0"
+                aria-label="Back to inventory"
+              >
                 <ArrowLeft className="w-5 h-5" />
               </Link>
-              <Warehouse className="w-6 h-6 text-[#39FF14]" />
-              <div>
-                <h1 className="text-xl font-bold">Inventory Management</h1>
-                <p className="text-xs text-zinc-500">{inventoryValue.itemCount} SKUs | {formatCurrency(inventoryValue.totalCost)} cost value</p>
+              <Warehouse className="w-5 h-5 sm:w-6 sm:h-6 text-[#39FF14] flex-shrink-0" />
+              <div className="min-w-0">
+                <h1 className="text-base sm:text-xl font-bold truncate">Inventory Management</h1>
+                <p className="text-[10px] sm:text-xs text-zinc-500 truncate">
+                  {inventoryValue.itemCount} SKUs · {formatCurrency(inventoryValue.totalCost)} cost
+                </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <Link
                 href="/portal/inventory/reconciliation"
-                className="flex items-center gap-2 px-3 py-1.5 text-sm bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-lg transition"
+                className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-sm bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-lg transition"
               >
                 <CheckCircle className="w-4 h-4 text-[#39FF14]" />
                 Reconciliation
               </Link>
               <button
                 onClick={() => { fetchData(); fetchCountData(); fetchRestockData(); fetchPricingData(); }}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm bg-zinc-800 hover:bg-zinc-700 rounded-lg transition"
+                className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-xs sm:text-sm bg-zinc-800 hover:bg-zinc-700 rounded-lg transition"
+                aria-label="Refresh"
               >
                 <RefreshCw className="w-4 h-4" />
-                Refresh
+                <span className="hidden sm:inline">Refresh</span>
               </button>
             </div>
           </div>
@@ -859,9 +918,9 @@ export default function InventoryManagementPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg mb-6">
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-3 sm:px-4 py-2 sm:py-3 rounded-lg mb-4 sm:mb-6 text-sm sm:text-base">
             {error}
           </div>
         )}
