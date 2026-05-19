@@ -93,11 +93,55 @@ const HEADERS = [
   'notes',
 ];
 
-function generateInvoiceId(type: JobMaterialCostType): string {
+function extractJobDigits(jobNumber: string): string {
+  const digits = (jobNumber || '').replace(/\D/g, '');
+  return digits || '';
+}
+
+function legacyInvoiceId(type: JobMaterialCostType): string {
   const prefix = type === 'credit_memo' ? 'JMC-CM' : 'JMC';
   const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
   const rand = crypto.randomBytes(3).toString('hex').toUpperCase();
   return `${prefix}-${stamp}-${rand}`;
+}
+
+/**
+ * Build a job-scoped invoice ID:
+ *   - `CM<digits>-<n>` for credit memos (e.g. CM11071-1, CM11071-2)
+ *   - `IN<digits>-<n>` for delivery invoices
+ *
+ * Sequence `n` is the next available integer across both posted and voided
+ * rows for that job. Falls back to the legacy `JMC[-CM]-YYYYMMDD-RAND` format
+ * when no job number is provided so historical write paths keep working.
+ */
+async function generateInvoiceId(
+  type: JobMaterialCostType,
+  jobNumber?: string,
+): Promise<string> {
+  const digits = extractJobDigits(jobNumber || '');
+  if (!digits) return legacyInvoiceId(type);
+
+  const prefix = type === 'credit_memo' ? `CM${digits}` : `IN${digits}`;
+  const re = new RegExp(`^${prefix}-(\\d+)$`);
+
+  let nextN = 1;
+  try {
+    const rows = await googleSheetsService.getGenericRows(SHEET_NAMES.JOB_MATERIAL_COSTS, HEADERS);
+    let maxN = 0;
+    for (const r of rows) {
+      const m = re.exec(r.invoiceId || '');
+      if (m) {
+        const n = parseInt(m[1], 10);
+        if (Number.isFinite(n) && n > maxN) maxN = n;
+      }
+    }
+    nextN = maxN + 1;
+  } catch {
+    // If the sheet read fails, fall back to legacy format rather than risk a
+    // duplicate. Caller still gets a unique ID.
+    return legacyInvoiceId(type);
+  }
+  return `${prefix}-${nextN}`;
 }
 
 function recordToRow(rec: JobMaterialCostRecord): Record<string, unknown> {
@@ -178,7 +222,7 @@ class JobMaterialCostService {
     const totalCost = input.lines.reduce((sum, l) => sum + (l.lineCost || 0), 0);
     const now = new Date().toISOString();
     const record: JobMaterialCostRecord = {
-      invoiceId: generateInvoiceId('invoice'),
+      invoiceId: await generateInvoiceId('invoice', input.jobNumber),
       type: 'invoice',
       status: 'posted',
       ticketId: input.ticketId,
@@ -232,7 +276,7 @@ class JobMaterialCostService {
     const totalCost = input.lines.reduce((sum, l) => sum + (l.lineCost || 0), 0);
     const now = new Date().toISOString();
     const record: JobMaterialCostRecord = {
-      invoiceId: generateInvoiceId('credit_memo'),
+      invoiceId: await generateInvoiceId('credit_memo', input.jobNumber),
       type: 'credit_memo',
       status: 'posted',
       ticketId: input.ticketId,
@@ -259,6 +303,15 @@ class JobMaterialCostService {
       recordToRow(record),
     );
 
+    // JN sync — post a note on the job summarizing the credit memo so the
+    // office can see the credit history without leaving JobNimbus. Never
+    // block the credit-memo create if the JN side fails.
+    try {
+      await postCreditMemoNoteToJN(record);
+    } catch (jnErr) {
+      console.warn('[job-material-cost] JN credit-memo note sync failed:', jnErr);
+    }
+
     return record;
   }
 
@@ -281,6 +334,14 @@ class JobMaterialCostService {
       .map(rowToRecord);
   }
 
+  async getByJobNumber(jobNumber: string): Promise<JobMaterialCostRecord[]> {
+    const rows = await googleSheetsService.getGenericRows(SHEET_NAMES.JOB_MATERIAL_COSTS, HEADERS);
+    return rows
+      .filter(r => r.jobNumber === jobNumber)
+      .map(rowToRecord)
+      .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+  }
+
   /**
    * Compute net material cost for a job: invoices - credit memos.
    * Used by the breakdown service.
@@ -299,3 +360,44 @@ class JobMaterialCostService {
 
 export const jobMaterialCostService = new JobMaterialCostService();
 export { HEADERS as JOB_MATERIAL_COST_HEADERS };
+
+/**
+ * Post a JobNimbus note summarizing a credit memo. Looks up the job by its
+ * display number (e.g. R-11071) and writes a note tagged `[Credit Memo …]`
+ * on it. Stays internal — JN notes aren't customer-visible.
+ *
+ * Throws on any failure; the caller wraps this in try/catch so the credit
+ * memo itself is never blocked by a JN outage.
+ */
+async function postCreditMemoNoteToJN(record: JobMaterialCostRecord): Promise<void> {
+  if (!record.jobNumber) return; // can't look up the JN job without a number
+  const { jobNimbusService } = await import('./jobnimbus-service');
+  const job = await jobNimbusService.getJobByNumber(record.jobNumber);
+  if (!job?.jnid) return;
+
+  // JN's primary contact lives on `job.primary.id`; fall back to the job's
+  // own jnid if the relationship isn't populated. createNoteOnJob requires
+  // both ids — using jobJnid for both is the safe fallback when there's no
+  // primary contact.
+  const primaryId =
+    (job as { primary?: { id?: string } }).primary?.id || job.jnid;
+
+  const lineCount = record.lines.length;
+  const total = record.totalCost.toFixed(2);
+  const linesPreview = record.lines
+    .slice(0, 5)
+    .map(l => `  • ${l.quantity}× ${l.productName} ($${(l.lineCost || 0).toFixed(2)})`)
+    .join('\n');
+  const moreLines = lineCount > 5 ? `\n  • …and ${lineCount - 5} more` : '';
+
+  const content =
+    `[Credit Memo ${record.invoiceId}]\n` +
+    `Materials returned to warehouse from this job.\n` +
+    `Ticket: ${record.referenceNumber || record.ticketId}\n` +
+    `Lines (${lineCount}):\n${linesPreview}${moreLines}\n` +
+    `Total credited (cost): $${total}\n` +
+    (record.createdByName ? `Posted by: ${record.createdByName}\n` : '') +
+    (record.notes ? `Notes: ${record.notes}` : '');
+
+  await jobNimbusService.createNoteOnJob(job.jnid, primaryId, content);
+}
