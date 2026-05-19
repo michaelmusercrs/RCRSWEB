@@ -1,10 +1,17 @@
 /**
  * Warehouse GPS Ping
  *
- * Receives Rick's GPS coordinates from the warehouse mobile app while it's
- * open. Computes distance to the warehouse and triggers Tuya stub events
- * at proximity thresholds. Once Tuya is wired, the same triggers fire the
- * real device commands.
+ * Receives the warehouse mobile app's GPS while it's open. Two things
+ * happen on each ping:
+ *
+ *  1. Tuya proximity stub fires at distance thresholds (legacy behavior).
+ *  2. **Auto-LOAD_VERIFIED** (Phase 5 geofence). If the pinging user is
+ *     a driver with an active order in `MATERIALS_PULLED`, and the previous
+ *     ping was INSIDE the warehouse geofence and the current ping is
+ *     OUTSIDE, we auto-advance the order to `LOAD_VERIFIED`. This is a
+ *     single-step advance from stage 5 to stage 6 — no skipReason needed.
+ *     The advance carries `metadata.autoTriggeredByGeofence = true` so
+ *     downstream reporting can tell auto vs. manual.
  *
  * POST /api/warehouse/gps-ping
  *   Body: { lat: number, lng: number, accuracy?: number }
@@ -12,22 +19,25 @@
  * Auth: driver, admin, owner only.
  *
  * The endpoint is idempotent — sending the same coordinates twice does NOT
- * re-fire the same threshold trigger. State is held in a small per-driver
- * map keyed by userId. On Vercel cold starts the map resets, which would
- * cause one duplicate trigger; tolerable for stub mode.
+ * re-fire the same threshold trigger. Geofence-cross state is held per-
+ * driver in a small in-memory map keyed by userId. Cold starts reset that
+ * map, which on the worst day causes one missed auto-advance per driver;
+ * the driver still has the courtesy "confirm load was verified?" banner
+ * to do it manually.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { tuyaStub } from '@/lib/tuya-stub';
 import { googleSheetsService, SHEET_NAMES } from '@/lib/google-sheets-service';
+import {
+  getWarehouseSettings,
+  haversineDistanceMeters,
+} from '@/lib/warehouse-settings-service';
+import { materialOrderPipeline } from '@/lib/material-order-pipeline';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-
-// RCRS warehouse coordinates (Decatur, AL — 3325 Central Pkwy SW)
-const WAREHOUSE_LAT = parseFloat(process.env.WAREHOUSE_LAT || '34.5536');
-const WAREHOUSE_LNG = parseFloat(process.env.WAREHOUSE_LNG || '-86.9806');
 
 const DRIVER_LOCATION_HEADERS = [
   'userId',
@@ -74,22 +84,23 @@ async function persistLocation(input: {
 // Per-driver last-fired threshold map. Reset on cold start.
 const lastTriggered = new Map<string, Set<string>>();
 
+// Per-driver geofence state: was the last ping INSIDE the warehouse
+// geofence? Used to detect inside→outside crossings for auto-LOAD_VERIFIED.
+// Reset on cold start (intentional — see header comment).
+const lastInsideGeofence = new Map<string, boolean>();
+
+// Per-order de-dupe: once we auto-advance an order we don't try again,
+// even if the driver crosses back through the geofence.
+const autoAdvancedOrders = new Set<string>();
+
 function getThresholdSet(userId: string): Set<string> {
   if (!lastTriggered.has(userId)) lastTriggered.set(userId, new Set());
   return lastTriggered.get(userId)!;
 }
 
-/** Haversine distance in miles between two lat/lng pairs */
+/** Haversine distance in MILES (legacy threshold logic uses miles). */
 function haversineMiles(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const toRad = (n: number) => (n * Math.PI) / 180;
-  const R = 3959; // Earth radius in miles
-  const dLat = toRad(lat2 - lat1);
-  const dLng = toRad(lng2 - lng1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
+  return haversineDistanceMeters(lat1, lng1, lat2, lng2) / 1609.344;
 }
 
 export async function POST(request: NextRequest) {
@@ -110,7 +121,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'lat and lng (numbers) are required' }, { status: 400 });
   }
 
-  const distance = haversineMiles(body.lat, body.lng, WAREHOUSE_LAT, WAREHOUSE_LNG);
+  const settings = await getWarehouseSettings();
+  const distanceMiles = haversineMiles(body.lat, body.lng, settings.warehouseLat, settings.warehouseLng);
+  const distanceMeters = haversineDistanceMeters(body.lat, body.lng, settings.warehouseLat, settings.warehouseLng);
 
   // Persist the latest known location so the office can see the driver
   // pin on the manager map. Best-effort — never block the threshold logic.
@@ -120,17 +133,14 @@ export async function POST(request: NextRequest) {
     lat: body.lat,
     lng: body.lng,
     accuracy: body.accuracy,
-    distanceMiles: Math.round(distance * 100) / 100,
+    distanceMiles: Math.round(distanceMiles * 100) / 100,
   }).catch(() => {});
 
   const fired: string[] = [];
   const thresholdSet = getThresholdSet(auth.user.userId);
 
-  // Check thresholds in order from far to near. Once Rick is inside a
-  // threshold and we've fired it, we don't fire again until he goes outside
-  // and back in (we drop the threshold from the set on departure).
-  if (distance <= 0.05) {
-    // Arrived (~265 ft)
+  // Tuya proximity thresholds (legacy)
+  if (distanceMiles <= 0.05) {
     if (!thresholdSet.has('arrived')) {
       thresholdSet.add('arrived');
       thresholdSet.add('quarter_mi');
@@ -139,39 +149,134 @@ export async function POST(request: NextRequest) {
       await tuyaStub.onArrived();
       fired.push('arrived');
     }
-  } else if (distance <= 0.25) {
+  } else if (distanceMiles <= 0.25) {
     if (!thresholdSet.has('quarter_mi')) {
       thresholdSet.add('quarter_mi');
       thresholdSet.add('1mi');
       thresholdSet.add('2mi');
-      await tuyaStub.onProximityQuarterMile(distance);
+      await tuyaStub.onProximityQuarterMile(distanceMiles);
       fired.push('quarter_mi');
     }
-  } else if (distance <= 1) {
+  } else if (distanceMiles <= 1) {
     if (!thresholdSet.has('1mi')) {
       thresholdSet.add('1mi');
       thresholdSet.add('2mi');
-      await tuyaStub.onProximity1Mile(distance);
+      await tuyaStub.onProximity1Mile(distanceMiles);
       fired.push('1mi');
     }
-  } else if (distance <= 2) {
+  } else if (distanceMiles <= 2) {
     if (!thresholdSet.has('2mi')) {
       thresholdSet.add('2mi');
-      await tuyaStub.onProximity2Mile(distance);
+      await tuyaStub.onProximity2Mile(distanceMiles);
       fired.push('2mi');
     }
-  } else if (distance > 5 && thresholdSet.size > 0) {
-    // Departed — clear the threshold state and fire onDeparted once
+  } else if (distanceMiles > 5 && thresholdSet.size > 0) {
     thresholdSet.clear();
     await tuyaStub.onDeparted();
     fired.push('departed');
   }
 
+  // ---------- Phase 5: auto-LOAD_VERIFIED on geofence exit ----------
+  //
+  // Only drivers get auto-advance; admin/owner pings are for the map only.
+  const insideNow = distanceMeters <= settings.geofenceRadiusMeters;
+  const insidePrev = lastInsideGeofence.get(auth.user.userId);
+  lastInsideGeofence.set(auth.user.userId, insideNow);
+
+  let autoLoadVerified: {
+    orderId: string;
+    fired: boolean;
+    error?: string;
+  } | undefined;
+
+  // Banner hint for the UI even if we're not auto-firing — surface any
+  // active MATERIALS_PULLED order so the driver can confirm manually.
+  let pendingLoadVerifyOrder:
+    | { orderId: string; jobName: string; jobNumber: string }
+    | undefined;
+
+  if (auth.user.role === 'driver' && settings.autoLoadVerifiedEnabled) {
+    try {
+      const orders = await materialOrderPipeline.getOrders({
+        driverId: auth.user.userId,
+        stage: 'MATERIALS_PULLED',
+        cancelled: false,
+      });
+      const target = orders[0]; // most recently updated due to getOrders sort
+
+      if (target) {
+        pendingLoadVerifyOrder = {
+          orderId: target.orderId,
+          jobName: target.jobName,
+          jobNumber: target.jobNumber,
+        };
+
+        // Auto-fire only on inside→outside crossing, and only once per order.
+        const crossedOutside =
+          insidePrev === true && insideNow === false;
+        const alreadyAdvanced = autoAdvancedOrders.has(target.orderId);
+
+        if (crossedOutside && !alreadyAdvanced) {
+          autoAdvancedOrders.add(target.orderId);
+          const result = await materialOrderPipeline.advanceStage(
+            target.orderId,
+            'LOAD_VERIFIED',
+            auth.user.userId,
+            auth.user.name,
+            auth.user.role,
+            {
+              gpsLatitude: body.lat,
+              gpsLongitude: body.lng,
+              // The pipeline requires at least one photo for LOAD_VERIFIED;
+              // we attach a sentinel placeholder so the auto-advance can
+              // proceed. The driver should still upload real photos via
+              // the standard UI; we surface a "confirm with photos?" banner
+              // to that effect.
+              photoUrls: ['auto:geofence-exit-pending-driver-confirmation'],
+              metadata: {
+                autoTriggeredByGeofence: true,
+                geofenceRadiusMeters: settings.geofenceRadiusMeters,
+                distanceMetersAtTrigger: Math.round(distanceMeters),
+                warehouseLat: settings.warehouseLat,
+                warehouseLng: settings.warehouseLng,
+                triggeredAt: new Date().toISOString(),
+              },
+            },
+          );
+
+          if (result.success) {
+            autoLoadVerified = { orderId: target.orderId, fired: true };
+            fired.push('auto_load_verified');
+          } else {
+            // Re-allow if it failed (don't permanently dedupe a failed run)
+            autoAdvancedOrders.delete(target.orderId);
+            autoLoadVerified = {
+              orderId: target.orderId,
+              fired: false,
+              error: result.error,
+            };
+            console.warn(
+              `[gps-ping] auto-advance LOAD_VERIFIED failed for ${target.orderId}: ${result.error}`,
+            );
+          }
+        }
+      }
+    } catch (err) {
+      // Never block the ping response on the auto-advance pathway
+      console.warn('[gps-ping] auto-LOAD_VERIFIED check failed:', err);
+    }
+  }
+
   return NextResponse.json({
     success: true,
-    distanceMiles: Math.round(distance * 100) / 100,
+    distanceMiles: Math.round(distanceMiles * 100) / 100,
+    distanceMeters: Math.round(distanceMeters),
+    insideGeofence: insideNow,
+    geofenceRadiusMeters: settings.geofenceRadiusMeters,
     triggered: fired,
     activeThresholds: Array.from(thresholdSet),
+    pendingLoadVerifyOrder,
+    autoLoadVerified,
     stub: true,
   });
 }

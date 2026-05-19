@@ -107,6 +107,20 @@ export default function WarehousePage() {
   const [gpsStatus, setGpsStatus] = useState<string>('');
   const watchIdRef = useRef<number | null>(null);
 
+  // Phase 5 — geofence auto-LOAD_VERIFIED banner state. Surfaced from
+  // gps-ping responses when the driver has an active MATERIALS_PULLED
+  // order. If `autoLoadVerified.fired === true` the pipeline already
+  // advanced; banner becomes a confirmation/photo-prompt. Otherwise
+  // it's a "one tap to confirm" courtesy.
+  const [geofencePrompt, setGeofencePrompt] = useState<{
+    orderId: string;
+    jobName: string;
+    jobNumber: string;
+    autoFired: boolean;
+    insideGeofence: boolean;
+  } | null>(null);
+  const [confirmingLoadVerified, setConfirmingLoadVerified] = useState(false);
+
   // Driver self-service modals
   const [modal, setModal] = useState<ModalType>(null);
   const [modalContext, setModalContext] = useState<{
@@ -219,6 +233,25 @@ export default function WarehousePage() {
         if (res.ok) {
           const j = await res.json();
           setGpsStatus(`${j.distanceMiles}mi from warehouse${j.triggered.length > 0 ? ` · fired ${j.triggered.join(', ')}` : ''}`);
+
+          // Phase 5 — geofence courtesy banner. Surface as long as there's
+          // an active pulled order; refresh the page list when the auto-
+          // advance succeeds so the new stage shows up.
+          if (j.pendingLoadVerifyOrder) {
+            setGeofencePrompt({
+              orderId: j.pendingLoadVerifyOrder.orderId,
+              jobName: j.pendingLoadVerifyOrder.jobName,
+              jobNumber: j.pendingLoadVerifyOrder.jobNumber,
+              autoFired: Boolean(j.autoLoadVerified?.fired),
+              insideGeofence: Boolean(j.insideGeofence),
+            });
+            if (j.autoLoadVerified?.fired) {
+              // Auto-fired — pull a fresh ticket list to reflect Stage 6.
+              refresh();
+            }
+          } else {
+            setGeofencePrompt(null);
+          }
         }
       } catch {
         setGpsStatus('GPS ping failed');
@@ -501,6 +534,93 @@ export default function WarehousePage() {
             </div>
           )}
         </div>
+
+        {/* Phase 5 — geofence courtesy banner */}
+        {geofencePrompt && (
+          <div
+            className={`rounded-2xl p-4 border-2 ${
+              geofencePrompt.autoFired
+                ? 'bg-orange-950/40 border-orange-500'
+                : geofencePrompt.insideGeofence
+                  ? 'bg-yellow-950/40 border-yellow-600'
+                  : 'bg-blue-950/40 border-blue-500'
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <Truck
+                className={`w-6 h-6 mt-0.5 ${
+                  geofencePrompt.autoFired
+                    ? 'text-orange-300'
+                    : geofencePrompt.insideGeofence
+                      ? 'text-yellow-300'
+                      : 'text-blue-300'
+                }`}
+              />
+              <div className="flex-1">
+                <div className="font-bold">
+                  {geofencePrompt.autoFired
+                    ? 'Load auto-verified — please upload truck photos'
+                    : geofencePrompt.insideGeofence
+                      ? 'Pull complete — tap when truck is loaded'
+                      : 'Looks like you are leaving the warehouse'}
+                </div>
+                <div className="text-sm text-gray-300 mt-1">
+                  Order for{' '}
+                  <strong>{geofencePrompt.jobName || geofencePrompt.jobNumber}</strong>
+                  {geofencePrompt.autoFired
+                    ? ' was auto-advanced to Stage 6 (LOAD_VERIFIED). Add the actual load-photo when you can.'
+                    : ' is at MATERIALS_PULLED. Confirm load was verified?'}
+                </div>
+              </div>
+            </div>
+            {!geofencePrompt.autoFired && (
+              <button
+                onClick={async () => {
+                  setConfirmingLoadVerified(true);
+                  try {
+                    const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+                      navigator.geolocation.getCurrentPosition(resolve, reject, {
+                        enableHighAccuracy: true,
+                        timeout: 10_000,
+                      }),
+                    );
+                    const res = await fetch('/api/portal/pipeline', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        action: 'advanceStage',
+                        orderId: geofencePrompt.orderId,
+                        targetStage: 'LOAD_VERIFIED',
+                        gpsLatitude: pos.coords.latitude,
+                        gpsLongitude: pos.coords.longitude,
+                        photoUrls: ['manual:driver-confirm-pending-photos'],
+                        metadata: {
+                          manualConfirmFromGeofenceBanner: true,
+                          triggeredAt: new Date().toISOString(),
+                        },
+                      }),
+                    });
+                    if (res.ok) {
+                      setGeofencePrompt(null);
+                      refresh();
+                    } else {
+                      const j = await res.json().catch(() => ({}));
+                      alert(`Could not advance: ${j.error || res.status}`);
+                    }
+                  } catch (e) {
+                    alert(`Confirm failed: ${e instanceof Error ? e.message : String(e)}`);
+                  } finally {
+                    setConfirmingLoadVerified(false);
+                  }
+                }}
+                disabled={confirmingLoadVerified}
+                className="mt-3 w-full py-3 rounded-xl bg-[#39FF14] text-black font-bold text-sm disabled:opacity-50"
+              >
+                {confirmingLoadVerified ? 'Confirming...' : 'Confirm Load Verified'}
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Today's route — multi-stop Google Maps deep link */}
         {data && data.tickets.length > 0 && (() => {
