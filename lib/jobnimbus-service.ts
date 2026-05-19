@@ -96,8 +96,8 @@ interface JobNimbusEstimate {
   tax?: number;
   total?: number;
   description?: string;
-  primary?: { jnid: string }; // Related contact
-  related?: { jnid: string }; // Related job
+  primary?: { jnid?: string; id?: string }; // Related contact — JN returns .id, see JobNimbusJob
+  related?: { jnid?: string; id?: string }; // Related job
   pdf_url?: string;
   public_url?: string;
   created_at?: number;
@@ -113,7 +113,7 @@ interface JobNimbusTask {
   date_start?: number;
   date_end?: number;
   assigned_to?: string[];
-  primary?: { jnid: string };
+  primary?: { jnid?: string; id?: string };
 }
 
 interface JobNimbusNote {
@@ -123,8 +123,8 @@ interface JobNimbusNote {
   created_at?: number;
   created_by?: string;
   created_by_name?: string;
-  primary?: { jnid: string };
-  related?: { jnid: string };
+  primary?: { jnid?: string; id?: string };
+  related?: { jnid?: string; id?: string };
 }
 
 interface JobNimbusAttachment {
@@ -137,8 +137,8 @@ interface JobNimbusAttachment {
   size?: number;
   created_at?: number;
   created_by?: string;
-  primary?: { jnid: string };
-  related?: { jnid: string };
+  primary?: { jnid?: string; id?: string };
+  related?: { jnid?: string; id?: string };
 }
 
 interface JobNimbusInvoice {
@@ -154,8 +154,8 @@ interface JobNimbusInvoice {
   pdf_url?: string;
   public_url?: string;
   created_at?: number;
-  primary?: { jnid: string };
-  related?: { jnid: string };
+  primary?: { jnid?: string; id?: string };
+  related?: { jnid?: string; id?: string };
 }
 
 // Error types for better error handling
