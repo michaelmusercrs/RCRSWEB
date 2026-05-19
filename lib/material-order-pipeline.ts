@@ -980,11 +980,29 @@ class MaterialOrderPipelineService {
     const config = STAGE_CONFIG[targetStage];
     if (!config) return { success: false, error: `Invalid stage: ${targetStage}` };
 
-    // Validate stage ordering (must be same or later stage)
+    // Validate stage ordering. Rules:
+    //   - currentStage must be a known stage (defensive against corrupt rows)
+    //   - target must not be backward (state machine is forward-only)
+    //   - target must not skip more than 2 stages without an explicit skipReason
+    //     in data.metadata (allows admin overrides while catching UI bugs)
     const currentIdx = PIPELINE_STAGES.indexOf(order.currentStage);
     const targetIdx = PIPELINE_STAGES.indexOf(targetStage);
+    if (currentIdx < 0) {
+      return { success: false, error: `Order has corrupt current stage: ${order.currentStage}` };
+    }
     if (targetIdx < currentIdx) {
       return { success: false, error: `Cannot go backward from ${order.currentStage} to ${targetStage}` };
+    }
+    const skip = targetIdx - currentIdx;
+    if (skip > 2) {
+      const meta = data?.metadata as Record<string, unknown> | undefined;
+      const skipReason = meta?.skipReason;
+      if (!skipReason || typeof skipReason !== 'string' || skipReason.trim().length < 5) {
+        return {
+          success: false,
+          error: `Stage skip of ${skip} (from ${order.currentStage} to ${targetStage}) requires data.metadata.skipReason explaining why.`,
+        };
+      }
     }
 
     // Validate requirements
@@ -1061,6 +1079,12 @@ class MaterialOrderPipelineService {
         break;
 
       case 'LOAD_VERIFIED':
+        // Truck is loaded and about to leave the warehouse. Per business rule:
+        // (1) stock deducts NOW (memory: "stock deducts at load_verified —
+        //     truck loaded, about to leave warehouse"), and
+        // (2) office invoice fires NOW with PRICE ONLY (memory: "Office
+        //     invoice (rcrs@rcrsal.com) fires AT load_verified, NOT at ticket
+        //     creation. PRICE ONLY — no cost").
         if (data?.verifiedItems) {
           for (const verified of data.verifiedItems) {
             const item = order.items.find(i => i.productId === resolveProductId(verified.productId));
@@ -1071,6 +1095,32 @@ class MaterialOrderPipelineService {
           for (const item of order.items) {
             item.verifiedQty = item.pulledQty || item.quantity;
           }
+        }
+        // STOCK DEDUCTION (stock orders only — never for other-vendor pass-throughs)
+        if (order.orderSource === 'other_vendor') {
+          console.log(`[pipeline] Skipped inventory decrement for other-vendor order ${orderId} at LOAD_VERIFIED`);
+        } else {
+          for (const item of order.items) {
+            // Use verifiedQty (what's actually on the truck) — falls back to
+            // pulled or ordered if upstream didn't fill them in.
+            const qty = item.verifiedQty || item.pulledQty || item.quantity;
+            if (item.holdId) {
+              await unifiedInventoryService.fulfillHold(item.holdId, performedBy, performedByName, qty);
+            } else {
+              await unifiedInventoryService.deductStock(
+                item.productId, qty, orderId, 'pipeline_delivery',
+                performedBy, performedByName,
+                `Load verified for ${order.jobName} — truck leaving warehouse`
+              );
+            }
+          }
+        }
+        // Create invoices NOW so office has a price-only invoice in hand
+        // before the truck leaves. (Idempotent: skips if already created.)
+        if (!order.customerInvoiceId) {
+          await this._createInvoices(order).catch(err =>
+            console.error('[pipeline] LOAD_VERIFIED _createInvoices failed:', err)
+          );
         }
         // Persist updated item quantities — AWAIT to ensure write completes
         await this._updateOrderItems(orderId, order.items).catch((err) =>
@@ -1116,40 +1166,20 @@ class MaterialOrderPipelineService {
         break;
 
       case 'DELIVERY_CONFIRMED':
-        // THIS IS WHERE STOCK DEDUCTION HAPPENS (stock orders only)
+        // Stock was already deducted at LOAD_VERIFIED. This stage only
+        // records what was actually delivered to the customer (final
+        // confirmation, post-unload). If deliveredQty differs from
+        // verifiedQty (partial drop, damaged-on-arrival), the variance
+        // is captured here for reconciliation but does NOT re-touch stock.
         if (data?.deliveredItems) {
           for (const delivered of data.deliveredItems) {
             const item = order.items.find(i => i.productId === resolveProductId(delivered.productId));
             if (item) item.deliveredQty = delivered.deliveredQty;
           }
         } else {
-          // Default: delivered matches verified/pulled quantities
+          // Default: delivered matches what we put on the truck
           for (const item of order.items) {
             item.deliveredQty = item.verifiedQty || item.pulledQty || item.quantity;
-          }
-        }
-        // Skip inventory deduction entirely for other-vendor orders. These
-        // were pass-through buys from an outside supplier, so we never held
-        // or owned the stock in the first place.
-        if (order.orderSource === 'other_vendor') {
-          console.log(`[pipeline] Skipped inventory decrement for other-vendor order ${orderId}`);
-        } else {
-          // Deduct stock for all delivered items
-          for (const item of order.items) {
-            const qty = item.deliveredQty || item.quantity;
-            // If there's a hold, fulfill it (which also deducts).
-            // Pass the actual delivered qty so partial deliveries don't
-            // over-deduct against the original held quantity.
-            if (item.holdId) {
-              await unifiedInventoryService.fulfillHold(item.holdId, performedBy, performedByName, qty);
-            } else {
-              // Direct deduction (no hold was placed at order creation)
-              await unifiedInventoryService.deductStock(
-                item.productId, qty, orderId, 'pipeline_delivery',
-                performedBy, performedByName,
-                `Delivery confirmed for ${order.jobName}`
-              );
-            }
           }
         }
         // Persist updated item quantities — AWAIT to ensure write completes
@@ -1181,8 +1211,13 @@ class MaterialOrderPipelineService {
         break;
 
       case 'BILLING_REVIEW':
-        // Auto-create both invoice types
-        await this._createInvoices(order);
+        // Invoices were created early at LOAD_VERIFIED so office had a price-only
+        // invoice in hand before the truck rolled. This stage is now just for
+        // office to REVIEW the existing invoices — only re-create if somehow
+        // missing (e.g., legacy order created before the LOAD_VERIFIED change).
+        if (!order.customerInvoiceId) {
+          await this._createInvoices(order);
+        }
         // Auto-create the job breakdown row tied to the original format.
         // This is the hook Michael asked for: every order that reaches
         // billing review gets a breakdown sheet entry mirroring the
@@ -1279,6 +1314,14 @@ class MaterialOrderPipelineService {
       console.error(`[Pipeline] Stage notification failed for ${targetStage}:`, err);
     });
 
+    // Push a stage-transition note to the JobNimbus job so the CRM has a
+    // running activity timeline. Non-essential — failure doesn't block the
+    // stage transition. Only fires for stages that have business meaning in
+    // JN (skip internal-only stages like ORDER_REVIEWED).
+    this._pushJnActivity(order, targetStage, performedByName).catch(err => {
+      console.warn(`[pipeline] JN activity push failed for ${targetStage}:`, err);
+    });
+
     // Audit log: pipeline stage transition
     try {
       const { auditLog } = await import('./audit-logger');
@@ -1287,10 +1330,10 @@ class MaterialOrderPipelineService {
         performedBy || 'system',
         `Order ${orderId} → ${targetStage}. Job: ${order.jobNumber || order.jobId || 'unknown'}. ` +
         `By: ${performedByName} (${performedByRole}). ` +
-        (targetStage === 'DELIVERY_CONFIRMED' && order.orderSource !== 'other_vendor'
-          ? 'Inventory decremented.'
-          : targetStage === 'DELIVERY_CONFIRMED'
-            ? 'Inventory skip (other_vendor).'
+        (targetStage === 'LOAD_VERIFIED' && order.orderSource !== 'other_vendor'
+          ? 'Inventory decremented + customer invoice created.'
+          : targetStage === 'LOAD_VERIFIED'
+            ? 'Inventory skip (other_vendor) + invoice created.'
             : '')
       );
     } catch (err) {
@@ -1394,6 +1437,69 @@ class MaterialOrderPipelineService {
       if (r.status === 'rejected') {
         console.error('[pipeline] _notifyStageAdvance email rejected:', r.reason);
       }
+    }
+  }
+
+  /**
+   * Push a stage-transition activity note to the JobNimbus job/contact so
+   * the CRM has a running timeline of what's happening on the delivery.
+   *
+   * IMPORTANT: per business rule, JN attachments NEVER show cost — only the
+   * customer-facing price. The note text below is safe (no cost numbers).
+   *
+   * Stages worth pushing to JN (per INVENTORY-FLOW-SPEC):
+   *   3 DRIVER_ASSIGNED, 6 LOAD_VERIFIED, 7 DEPARTURE_CONFIRMED,
+   *   9 ARRIVED_AT_SITE, 11 DELIVERY_CONFIRMED, 12 SIGNATURE_CAPTURED,
+   *   13 QC_PHOTOS, 14 OFFICE_NOTIFIED, 15 BILLING_REVIEW, 16 INVOICE_SENT,
+   *   17 PAYMENT_RECEIVED, 18 JOB_CLOSED.
+   * Internal-only stages (ORDER_CREATED/REVIEWED, WAREHOUSE_NOTIFIED,
+   * MATERIALS_PULLED, EN_ROUTE, UNLOADING) are skipped — they aren't
+   * useful timeline events in the CRM.
+   */
+  private async _pushJnActivity(order: PipelineOrder, stage: PipelineStage, performedByName: string): Promise<void> {
+    if (!order.jobNimbusId) return; // No JN job linked
+    const stagesToPush = new Set<PipelineStage>([
+      'DRIVER_ASSIGNED', 'LOAD_VERIFIED', 'DEPARTURE_CONFIRMED',
+      'ARRIVED_AT_SITE', 'DELIVERY_CONFIRMED', 'SIGNATURE_CAPTURED',
+      'QC_PHOTOS', 'OFFICE_NOTIFIED', 'BILLING_REVIEW', 'INVOICE_SENT',
+      'PAYMENT_RECEIVED', 'JOB_CLOSED',
+    ]);
+    if (!stagesToPush.has(stage)) return;
+
+    const config = STAGE_CONFIG[stage];
+    if (!config) return;
+
+    const noteLines: string[] = [
+      `[RCRS Delivery] Stage ${config.number}: ${config.label}`,
+      `Order: ${order.orderId}`,
+    ];
+    if (order.jobName) noteLines.push(`Job: ${order.jobName}`);
+    if (order.assignedDriverName) noteLines.push(`Driver: ${order.assignedDriverName}`);
+    if (stage === 'LOAD_VERIFIED') {
+      noteLines.push(`Truck loaded with ${order.items.length} item type(s). Total price: $${(order.totalPrice || 0).toFixed(2)}.`);
+    }
+    if (stage === 'INVOICE_SENT' && order.customerInvoiceId) {
+      noteLines.push(`Customer invoice ${order.customerInvoiceId} sent. Total: $${(order.totalPrice || 0).toFixed(2)}.`);
+    }
+    if (stage === 'PAYMENT_RECEIVED') {
+      noteLines.push(`Payment received: $${(order.paymentAmount || order.totalPrice || 0).toFixed(2)}.`);
+    }
+    noteLines.push(`Performed by: ${performedByName}`);
+    const noteContent = noteLines.join('\n');
+
+    try {
+      const { jobNimbusService, isJobNimbusConfigured } = await import('./jobnimbus-service');
+      if (!isJobNimbusConfigured()) return;
+      // primary = the related entity. JN accepts a job or contact jnid here.
+      // We don't always know the contact, so we send only the related job ref.
+      await jobNimbusService.createNoteOnJob(
+        order.jobNimbusId,
+        order.jobNimbusId, // primary fallback — JN accepts the job jnid
+        noteContent
+      );
+    } catch (err) {
+      // Non-fatal: log and move on. The stage transition already persisted.
+      console.warn(`[pipeline] _pushJnActivity failed for ${stage}:`, err);
     }
   }
 
