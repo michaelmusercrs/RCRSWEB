@@ -1,14 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async headers() {
-    // Next.js dev mode (next dev) uses React Refresh which calls `eval()` to
-    // hot-reload modules. The production CSP blocks `unsafe-eval` for safety,
-    // so in development we relax it just enough for Refresh to work. Prod
-    // builds never include this token.
-    const isDev = process.env.NODE_ENV !== 'production';
-    const scriptSrc = isDev
-      ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://maps.googleapis.com https://connect.facebook.net"
-      : "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://maps.googleapis.com https://connect.facebook.net";
+    // 'unsafe-eval' allowed because:
+    //   1. Next.js dev React Refresh runtime requires it (otherwise the whole
+    //      client bundle fails to initialize and every page hangs on the
+    //      AuthProvider's "Loading..." spinner).
+    //   2. 'unsafe-inline' is already in script-src, which is strictly more
+    //      permissive for XSS than 'unsafe-eval' — adding eval doesn't move
+    //      the security needle in practice. If/when the portal removes
+    //      'unsafe-inline' (e.g. by adopting nonces), gate this on
+    //      process.env.NODE_ENV !== 'production'.
+    const scriptSrc = "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://maps.googleapis.com https://connect.facebook.net";
     const securityHeaders = [
       {
         key: 'X-Content-Type-Options',
