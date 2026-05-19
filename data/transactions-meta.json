@@ -1,0 +1,15 @@
+{
+  "generatedAt": "2026-05-19",
+  "source": "River City Roofing Solutions, Inc._Transaction List (1).xlsx",
+  "totalTransactions": 56763,
+  "dateRange": {
+    "earliest": "2018-08-24",
+    "latest": "2026-05-19"
+  },
+  "monthsCovered": 94,
+  "lifetimeRevenue": 35793638.36,
+  "lifetimeExpense": 36657411.81,
+  "uniqueReps": 51,
+  "uniqueCustomersTop200": 200,
+  "uniqueVendorsTop200": 200
+}

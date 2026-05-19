@@ -14,6 +14,8 @@ import { GoogleSpreadsheet } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
 import commissionsData from '@/data/commissions.json';
 import companyOverviewData from '@/data/company-overview.json';
+import transactionsMonthly from '@/data/transactions-monthly.json';
+import transactionsByRep from '@/data/transactions-by-rep.json';
 import { invoiceService, type Invoice } from './invoice-service';
 import { isJobNimbusConfigured, jobNimbusService } from './jobnimbus-service';
 
@@ -211,16 +213,29 @@ const FINANCIAL_THRESHOLDS = {
   invoiceAgingBuckets: [0, 30, 60, 90],
 };
 
-// Per-rep / per-month rough estimate multiplier. This is the legacy heuristic
-// used where we don't have a real revenue source — sales commissions to a rep
-// are roughly 10% of the job revenue they wrote. Lifetime company-wide totals
-// should use getLifetimeTotals() (real numbers from the QB management report)
-// instead of multiplying anything.
-const COMMISSION_TO_REVENUE_MULTIPLIER = 10;
-// Typical cost breakdown for roofing: ~35% materials, ~25% labor, ~5% overhead
-const MATERIAL_COST_RATIO = 0.35;
-const LABOR_COST_RATIO = 0.25;
-const OVERHEAD_COST_RATIO = 0.05;
+// Removed: COMMISSION_TO_REVENUE_MULTIPLIER. All revenue figures now come
+// from real QB transaction data (data/transactions-monthly.json,
+// data/transactions-by-rep.json) — see refresh via
+// `node scripts/aggregate-transactions.mjs`. Lifetime company-wide totals
+// use getLifetimeTotals() (from the management report).
+// Real RCRS cost ratios derived from the QB Management Report (lifetime):
+//   materials: jobMaterials / revenue       = 11,749,759 / 35,845,992 ≈ 32.8%
+//   labor:    (subcontractors + sales comm) / revenue
+//                                            = 13,775,974 / 35,845,992 ≈ 38.4%
+//   overhead: operating expenses / revenue   = 6,714,853 / 35,845,992 ≈ 18.7%
+// These replace the previous textbook 35/25/5% guesses with company-specific
+// ratios. Recompute by running `node scripts/aggregate-transactions.mjs` and
+// updating data/company-overview.json from a fresh QB management report.
+const _o = companyOverviewData;
+const MATERIAL_COST_RATIO = _o.income.total > 0
+  ? _o.cogs.jobMaterials.total / _o.income.total
+  : 0.328;
+const LABOR_COST_RATIO = _o.income.total > 0
+  ? (_o.cogs.subcontractorPay.total + _o.cogs.salesCommission.total) / _o.income.total
+  : 0.384;
+const OVERHEAD_COST_RATIO = _o.income.total > 0
+  ? _o.expenses.total / _o.income.total
+  : 0.187;
 
 // =============================================================================
 // Commission Data Parsing (cached)
@@ -497,22 +512,42 @@ class FinancialService {
     const ytdCommissions = this.getCommissionData(yearStart);
     const lastYearCommissions = this.getCommissionData(lastYearStart, lastYearEnd);
 
-    // Commission amounts are what reps earned. Estimated total job revenue = commissions * multiplier.
-    // For a roofing company, commissions are ~10% of job revenue.
+    // Commission totals (real, from data/commissions.json) — used for cash-flow
+    // outflow context below.
     const totalCommissions = allCommissions.reduce((sum, c) => sum + c.amount, 0);
-    const totalRevenue = Math.round(totalCommissions * COMMISSION_TO_REVENUE_MULTIPLIER * 100) / 100;
-
     const thisMonthCommissionTotal = thisMonthCommissions.reduce((sum, c) => sum + c.amount, 0);
-    const revenueThisMonth = Math.round(thisMonthCommissionTotal * COMMISSION_TO_REVENUE_MULTIPLIER * 100) / 100;
 
-    const lastMonthCommissionTotal = lastMonthCommissions.reduce((sum, c) => sum + c.amount, 0);
-    const revenueLastMonth = Math.round(lastMonthCommissionTotal * COMMISSION_TO_REVENUE_MULTIPLIER * 100) / 100;
+    // Revenue figures come from the REAL transaction ledger
+    // (data/transactions-monthly.json — sum of Invoice + Sales Receipt minus
+    // Credit Memo, per month). Previously this section multiplied commissions
+    // by COMMISSION_TO_REVENUE_MULTIPLIER (a 10× heuristic guess); that's gone.
+    const monthlyMap = new Map<string, number>(
+      (transactionsMonthly as Array<{ month: string; netRevenue: number }>).map(
+        m => [m.month, m.netRevenue],
+      ),
+    );
+    function monthKey(d: Date): string {
+      return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+    }
+    function sumMonthsInRange(from: Date, to?: Date): number {
+      let total = 0;
+      const end = to || new Date();
+      const cursor = new Date(Date.UTC(from.getFullYear(), from.getMonth(), 1));
+      const endMonth = new Date(Date.UTC(end.getFullYear(), end.getMonth(), 1));
+      while (cursor <= endMonth) {
+        total += monthlyMap.get(monthKey(cursor)) || 0;
+        cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+      }
+      return Math.round(total * 100) / 100;
+    }
 
-    const ytdCommissionTotal = ytdCommissions.reduce((sum, c) => sum + c.amount, 0);
-    const revenueYTD = Math.round(ytdCommissionTotal * COMMISSION_TO_REVENUE_MULTIPLIER * 100) / 100;
-
-    const lastYearCommissionTotal = lastYearCommissions.reduce((sum, c) => sum + c.amount, 0);
-    const revenueLastYear = Math.round(lastYearCommissionTotal * COMMISSION_TO_REVENUE_MULTIPLIER * 100) / 100;
+    const totalRevenue = Math.round(
+      Array.from(monthlyMap.values()).reduce((s, v) => s + v, 0) * 100,
+    ) / 100;
+    const revenueThisMonth = sumMonthsInRange(effectiveThisMonthStart, effectiveThisMonthEnd);
+    const revenueLastMonth = sumMonthsInRange(lastMonthStart, lastMonthEnd);
+    const revenueYTD = sumMonthsInRange(yearStart);
+    const revenueLastYear = sumMonthsInRange(lastYearStart, lastYearEnd);
 
     // ---- Costs (estimated from revenue ratios + real invoice data) ----
     const invoices = await this.getInvoiceRecords();
@@ -639,59 +674,54 @@ class FinancialService {
   }
 
   // =============================================================================
-  // Revenue by Rep - REAL DATA from commissions.json
+  // Revenue by Rep - REAL DATA from transactions-by-rep.json
   // =============================================================================
 
   async getRevenueByRep(dateFrom?: string, dateTo?: string): Promise<RevenueByRep[]> {
-    const from = dateFrom ? new Date(dateFrom) : undefined;
-    const to = dateTo ? new Date(dateTo) : undefined;
-    const commissions = this.getCommissionData(from, to);
+    // Note: dateFrom/dateTo are ignored here because the rep aggregates in
+    // transactions-by-rep.json are lifetime (since-inception). The financial
+    // dashboard's monthly breakdown handles date-windowed views via the
+    // transactions-monthly.json data instead. Per-rep date-windowed needs the
+    // raw transactions.json — see /api/financial/transactions.
+    void dateFrom; void dateTo;
 
-    // Group by sales rep
-    const repMap = new Map<string, { total: number; count: number }>();
-    let grandTotal = 0;
+    const repRows = transactionsByRep as Array<{
+      rep: string;
+      invoiceTotal: number;
+      invoiceCount: number;
+    }>;
 
-    for (const c of commissions) {
-      if (!repMap.has(c.salesRep)) {
-        repMap.set(c.salesRep, { total: 0, count: 0 });
-      }
-      const rep = repMap.get(c.salesRep)!;
-      rep.total += c.amount;
-      rep.count++;
-      grandTotal += c.amount;
-    }
-
-    // Also get all-time data for close rate estimation
+    // Commission totals come from data/commissions.json (1099 payouts) and
+    // are joined onto each rep where we have a name match.
     const allCommissions = getParsedCommissions();
-    const allRepMap = new Map<string, number>();
+    const commissionByRep = new Map<string, number>();
     for (const c of allCommissions) {
-      allRepMap.set(c.salesRep, (allRepMap.get(c.salesRep) || 0) + 1);
+      commissionByRep.set(c.salesRep, (commissionByRep.get(c.salesRep) || 0) + c.amount);
     }
 
-    const totalEstimatedRevenue = grandTotal * COMMISSION_TO_REVENUE_MULTIPLIER;
+    const grandTotalRevenue = repRows.reduce((s, r) => s + r.invoiceTotal, 0);
 
-    const result: RevenueByRep[] = [];
-    repMap.forEach((data, name) => {
-      const estimatedRevenue = Math.round(data.total * COMMISSION_TO_REVENUE_MULTIPLIER * 100) / 100;
-      const allTimeTransactions = allRepMap.get(name) || data.count;
-      // Estimate close rate: more transactions = higher implied close rate
-      // Industry average is ~30-40% for roofing; scale based on productivity
-      const avgTransactionsPerRep = allCommissions.length / Math.max(allRepMap.size, 1);
-      const relativeProductivity = allTimeTransactions / Math.max(avgTransactionsPerRep, 1);
-      const estimatedCloseRate = Math.min(Math.round(30 * relativeProductivity * 10) / 10, 85);
-
-      result.push({
-        repId: name.toLowerCase().replace(/\s+/g, '-'),
-        repName: name,
-        totalRevenue: estimatedRevenue,
-        totalCommissions: Math.round(data.total * 100) / 100,
-        jobCount: data.count,
-        avgJobValue: data.count > 0 ? Math.round((estimatedRevenue / data.count) * 100) / 100 : 0,
-        closeRate: estimatedCloseRate,
-        percentOfTotal: totalEstimatedRevenue > 0
-          ? Math.round((estimatedRevenue / totalEstimatedRevenue) * 10000) / 100
+    const result: RevenueByRep[] = repRows.map(r => {
+      const totalCommissions = Math.round((commissionByRep.get(r.rep) || 0) * 100) / 100;
+      return {
+        repId: r.rep.toLowerCase().replace(/\s+/g, '-'),
+        repName: r.rep,
+        totalRevenue: Math.round(r.invoiceTotal * 100) / 100,
+        totalCommissions,
+        jobCount: r.invoiceCount,
+        avgJobValue: r.invoiceCount > 0
+          ? Math.round((r.invoiceTotal / r.invoiceCount) * 100) / 100
           : 0,
-      });
+        // closeRate computed from ratio of invoices to total invoice volume —
+        // not a real close rate (we don't have lead counts), but at least it's
+        // grounded in actual rep activity rather than a productivity estimate.
+        closeRate: grandTotalRevenue > 0
+          ? Math.round(((r.invoiceTotal / grandTotalRevenue) * 100) * 10) / 10
+          : 0,
+        percentOfTotal: grandTotalRevenue > 0
+          ? Math.round((r.invoiceTotal / grandTotalRevenue) * 10000) / 100
+          : 0,
+      };
     });
 
     return result.sort((a, b) => b.totalRevenue - a.totalRevenue);
@@ -763,12 +793,44 @@ class FinancialService {
       }
 
       const periodCommissions = this.getCommissionData(periodStart, periodEnd);
-      const commissionTotal = periodCommissions.reduce((sum, c) => sum + c.amount, 0);
-      const revenue = Math.round(commissionTotal * COMMISSION_TO_REVENUE_MULTIPLIER * 100) / 100;
-      const costs = Math.round(revenue * (MATERIAL_COST_RATIO + LABOR_COST_RATIO) * 100) / 100;
+      // Revenue + expense for the period come from the transaction ledger
+      // (real). For sub-month periods (day/week), we approximate by scaling
+      // the containing month's totals proportionally to days-in-window.
+      const monthlyRows = transactionsMonthly as Array<{
+        month: string; netRevenue: number; expense: number; invoiceCount: number;
+      }>;
+      const inWindow = (m: { month: string }) => {
+        const [y, mm] = m.month.split('-').map(Number);
+        const ms = new Date(Date.UTC(y, mm - 1, 1));
+        const me = new Date(Date.UTC(y, mm, 0, 23, 59, 59));
+        return ms <= periodEnd && me >= periodStart;
+      };
+      let revenue = 0;
+      let costs = 0;
+      let invoiceCount = 0;
+      for (const m of monthlyRows.filter(inWindow)) {
+        const [y, mm] = m.month.split('-').map(Number);
+        const ms = new Date(Date.UTC(y, mm - 1, 1));
+        const me = new Date(Date.UTC(y, mm, 0, 23, 59, 59));
+        // Day-fraction of the month that overlaps the period
+        const overlapStart = ms > periodStart ? ms : periodStart;
+        const overlapEnd = me < periodEnd ? me : periodEnd;
+        const overlapDays =
+          (overlapEnd.getTime() - overlapStart.getTime()) / 86400000 + 1;
+        const monthDays = (me.getTime() - ms.getTime()) / 86400000 + 1;
+        const frac = Math.max(0, Math.min(1, overlapDays / monthDays));
+        revenue += m.netRevenue * frac;
+        costs += m.expense * frac;
+        invoiceCount += Math.round(m.invoiceCount * frac);
+      }
+      revenue = Math.round(revenue * 100) / 100;
+      costs = Math.round(costs * 100) / 100;
       const profit = Math.round((revenue - costs) * 100) / 100;
       const margin = revenue > 0 ? Math.round((profit / revenue) * 10000) / 100 : 0;
 
+      // Use real invoice count from the ledger (falls back to commission
+      // count if no transactions in this period).
+      const jobCount = invoiceCount || periodCommissions.length;
       result.push({
         period,
         periodLabel,
@@ -776,9 +838,9 @@ class FinancialService {
         costs,
         profit,
         margin,
-        jobCount: periodCommissions.length,
-        avgJobValue: periodCommissions.length > 0
-          ? Math.round((revenue / periodCommissions.length) * 100) / 100
+        jobCount,
+        avgJobValue: jobCount > 0
+          ? Math.round((revenue / jobCount) * 100) / 100
           : 0,
       });
     }
@@ -930,9 +992,16 @@ class FinancialService {
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const thisMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
+    // Real revenue for this month from the transaction ledger.
+    const monthKey = `${thisMonthStart.getFullYear()}-${String(thisMonthStart.getMonth() + 1).padStart(2, '0')}`;
+    const monthRevenueRow = (transactionsMonthly as Array<{ month: string; netRevenue: number }>)
+      .find(m => m.month === monthKey);
+    const monthRevenue = monthRevenueRow?.netRevenue || 0;
+    void thisMonthEnd;
+
+    // Real commission outflow for this month — used in the Commissions budget row.
     const monthCommissions = this.getCommissionData(thisMonthStart, thisMonthEnd);
     const monthCommissionTotal = monthCommissions.reduce((sum, c) => sum + c.amount, 0);
-    const monthRevenue = monthCommissionTotal * COMMISSION_TO_REVENUE_MULTIPLIER;
 
     // Get real expenses if available from sheets
     const sheetExpenses = await this.getExpensesFromSheets();
@@ -1055,10 +1124,12 @@ class FinancialService {
       });
     }
 
-    // 2. Revenue below target alert
+    // 2. Revenue below target alert — real monthly revenue from the ledger.
     const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-    const thisMonthCommissions = this.getCommissionData(thisMonthStart);
-    const thisMonthRevenue = thisMonthCommissions.reduce((sum, c) => sum + c.amount, 0) * COMMISSION_TO_REVENUE_MULTIPLIER;
+    const alertMonthKey = `${thisMonthStart.getFullYear()}-${String(thisMonthStart.getMonth() + 1).padStart(2, '0')}`;
+    const alertMonthRow = (transactionsMonthly as Array<{ month: string; netRevenue: number }>)
+      .find(m => m.month === alertMonthKey);
+    const thisMonthRevenue = alertMonthRow?.netRevenue || 0;
     const dayOfMonth = today.getDate();
     const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
     const proRatedTarget = (FINANCIAL_THRESHOLDS.monthlyRevenueTarget / daysInMonth) * dayOfMonth;

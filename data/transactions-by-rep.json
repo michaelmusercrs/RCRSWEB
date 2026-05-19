@@ -1,0 +1,257 @@
+[
+  {
+    "rep": "Hunter Rivers",
+    "invoiceTotal": 6091320.27,
+    "invoiceCount": 750
+  },
+  {
+    "rep": "Aaron Lussi",
+    "invoiceTotal": 5393535.73,
+    "invoiceCount": 669
+  },
+  {
+    "rep": "Adam Rudell",
+    "invoiceTotal": 3316235.07,
+    "invoiceCount": 398
+  },
+  {
+    "rep": "Richard Geahr",
+    "invoiceTotal": 2842074.67,
+    "invoiceCount": 338
+  },
+  {
+    "rep": "Wess Cozelos",
+    "invoiceTotal": 2807522.45,
+    "invoiceCount": 434
+  },
+  {
+    "rep": "Brendon Muse",
+    "invoiceTotal": 2550619.08,
+    "invoiceCount": 359
+  },
+  {
+    "rep": "Greg Muse",
+    "invoiceTotal": 2291949.49,
+    "invoiceCount": 224
+  },
+  {
+    "rep": "Ryan Butcher",
+    "invoiceTotal": 2086346.2,
+    "invoiceCount": 295
+  },
+  {
+    "rep": "Tim Hall",
+    "invoiceTotal": 1283354.39,
+    "invoiceCount": 114
+  },
+  {
+    "rep": "David Thomas",
+    "invoiceTotal": 972928.65,
+    "invoiceCount": 108
+  },
+  {
+    "rep": "Chris Muse",
+    "invoiceTotal": 799773.15,
+    "invoiceCount": 88
+  },
+  {
+    "rep": "Taylor Jones",
+    "invoiceTotal": 647013.82,
+    "invoiceCount": 87
+  },
+  {
+    "rep": "John Cordonis",
+    "invoiceTotal": 607070.83,
+    "invoiceCount": 68
+  },
+  {
+    "rep": "Aaron Boykin",
+    "invoiceTotal": 487359.94,
+    "invoiceCount": 45
+  },
+  {
+    "rep": "Gary Lindsey",
+    "invoiceTotal": 470055.94,
+    "invoiceCount": 61
+  },
+  {
+    "rep": "Ethan Frith",
+    "invoiceTotal": 456801.94,
+    "invoiceCount": 48
+  },
+  {
+    "rep": "Brandon Bradford",
+    "invoiceTotal": 393196.49,
+    "invoiceCount": 43
+  },
+  {
+    "rep": "MJ Muse",
+    "invoiceTotal": 339701.24,
+    "invoiceCount": 47
+  },
+  {
+    "rep": "Michael Muse",
+    "invoiceTotal": 293917.17,
+    "invoiceCount": 62
+  },
+  {
+    "rep": "Brian Sullivan",
+    "invoiceTotal": 263143.24,
+    "invoiceCount": 26
+  },
+  {
+    "rep": "Dustin Shariett",
+    "invoiceTotal": 262940.28,
+    "invoiceCount": 45
+  },
+  {
+    "rep": "Daniel Ganas",
+    "invoiceTotal": 195185.52,
+    "invoiceCount": 26
+  },
+  {
+    "rep": "Sean Newberry",
+    "invoiceTotal": 178289.38,
+    "invoiceCount": 24
+  },
+  {
+    "rep": "Travis Wages",
+    "invoiceTotal": 170531.59,
+    "invoiceCount": 18
+  },
+  {
+    "rep": "Brandon Smith",
+    "invoiceTotal": 141779.33,
+    "invoiceCount": 21
+  },
+  {
+    "rep": "Alijah Coleman",
+    "invoiceTotal": 125626,
+    "invoiceCount": 7
+  },
+  {
+    "rep": "Steve Cofield",
+    "invoiceTotal": 64489.91,
+    "invoiceCount": 14
+  },
+  {
+    "rep": "Jacob Hill",
+    "invoiceTotal": 51946.46,
+    "invoiceCount": 11
+  },
+  {
+    "rep": "Braden Speegle",
+    "invoiceTotal": 38326.36,
+    "invoiceCount": 6
+  },
+  {
+    "rep": "Chris / Michael Muse",
+    "invoiceTotal": 27581.76,
+    "invoiceCount": 3
+  },
+  {
+    "rep": "Joseph Dowd",
+    "invoiceTotal": 20391.64,
+    "invoiceCount": 4
+  },
+  {
+    "rep": "Hunter Rivers/ Sean",
+    "invoiceTotal": 18122.54,
+    "invoiceCount": 2
+  },
+  {
+    "rep": "CANCELLED JOB",
+    "invoiceTotal": 15407.59,
+    "invoiceCount": 1
+  },
+  {
+    "rep": "Michael / Chris Muse",
+    "invoiceTotal": 15273.55,
+    "invoiceCount": 4
+  },
+  {
+    "rep": "Jason Cagle",
+    "invoiceTotal": 13096.59,
+    "invoiceCount": 2
+  },
+  {
+    "rep": "Wess Cozelos / sean",
+    "invoiceTotal": 11160.17,
+    "invoiceCount": 1
+  },
+  {
+    "rep": "Bart Roberts",
+    "invoiceTotal": 9464.88,
+    "invoiceCount": 2
+  },
+  {
+    "rep": "DOES NOT GET COUNTED IN NUMBERS",
+    "invoiceTotal": 9077.93,
+    "invoiceCount": 1
+  },
+  {
+    "rep": "Dustin",
+    "invoiceTotal": 4986.3,
+    "invoiceCount": 3
+  },
+  {
+    "rep": "Ryan Butcher/ Sean",
+    "invoiceTotal": 4863.48,
+    "invoiceCount": 1
+  },
+  {
+    "rep": "Michael",
+    "invoiceTotal": 4473.7,
+    "invoiceCount": 2
+  },
+  {
+    "rep": "Chris Muse /  Michael Muse",
+    "invoiceTotal": 3415.13,
+    "invoiceCount": 1
+  },
+  {
+    "rep": "Chris M./ Michael M.",
+    "invoiceTotal": 2863.74,
+    "invoiceCount": 1
+  },
+  {
+    "rep": "Boston Muse",
+    "invoiceTotal": 2733.27,
+    "invoiceCount": 1
+  },
+  {
+    "rep": "Tawny Haga",
+    "invoiceTotal": 1620,
+    "invoiceCount": 1
+  },
+  {
+    "rep": "cancelled",
+    "invoiceTotal": 1500,
+    "invoiceCount": 1
+  },
+  {
+    "rep": "Brandon / Sean",
+    "invoiceTotal": 1200,
+    "invoiceCount": 1
+  },
+  {
+    "rep": "Chris M/ Michael M.",
+    "invoiceTotal": 600,
+    "invoiceCount": 1
+  },
+  {
+    "rep": "CXL JOB",
+    "invoiceTotal": 0,
+    "invoiceCount": 10
+  },
+  {
+    "rep": "BOUNCED CHECK",
+    "invoiceTotal": 0,
+    "invoiceCount": 7
+  },
+  {
+    "rep": "VOIDED INVOICE",
+    "invoiceTotal": 0,
+    "invoiceCount": 2
+  }
+]
