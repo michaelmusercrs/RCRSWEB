@@ -9,6 +9,15 @@
 // - Status update emails
 // - Gmail+ alias automation (e.g., richard+orders@rivercityroofingsolutions.com)
 
+export interface EmailAttachment {
+  /** Display filename, e.g. "invoice-INV-2026-0123.pdf" */
+  filename: string;
+  /** Raw file bytes (Buffer) OR a base64 string */
+  content: Buffer | string;
+  /** MIME type, e.g. "application/pdf" (defaults to application/octet-stream) */
+  mimeType?: string;
+}
+
 export interface EmailOptions {
   to: string;
   subject: string;
@@ -17,6 +26,15 @@ export interface EmailOptions {
   cc?: string;
   bcc?: string;
   fromName?: string;
+  /**
+   * Optional attachments. Forwarded to Google Apps Script as repeated
+   * `attachment_<n>_filename` / `attachment_<n>_mime` / `attachment_<n>_b64`
+   * form fields. If the GAS handler hasn't been upgraded to read them yet,
+   * the email still sends with the body; we ALSO upload each attachment to
+   * Vercel Blob and append download links to the email body, so the
+   * recipient never loses the file.
+   */
+  attachments?: EmailAttachment[];
 }
 
 class EmailService {
@@ -30,7 +48,11 @@ class EmailService {
   async send(options: EmailOptions): Promise<{ success: boolean; error?: string }> {
     // Sandbox mode: log instead of sending
     if (process.env.SANDBOX_MODE === 'true' || process.env.VERCEL_GIT_COMMIT_REF === 'sandbox') {
-      console.log('[SANDBOX] Email intercepted:', { to: options.to, subject: options.subject });
+      console.log('[SANDBOX] Email intercepted:', {
+        to: options.to,
+        subject: options.subject,
+        attachmentCount: options.attachments?.length || 0,
+      });
       return { success: true };
     }
 
@@ -39,20 +61,87 @@ class EmailService {
       return { success: false, error: 'Email endpoint not configured' };
     }
 
+    // ---- Attachment handling ------------------------------------------
+    // GAS form-data POST has practical size limits. For each attachment:
+    //   1. Try to upload to Vercel Blob and capture a public URL (always
+    //      useful — the recipient gets a permanent download link in the
+    //      body even if their mail client strips the attachment).
+    //   2. Inline-encode as base64 and pass to GAS so the apps-script
+    //      handler (once upgraded) can attach it directly.
+    let finalBody = options.body;
+    const attachmentParams: Record<string, string> = {};
+
+    if (options.attachments && options.attachments.length > 0) {
+      const links: string[] = [];
+      for (let i = 0; i < options.attachments.length; i++) {
+        const att = options.attachments[i];
+        const buf = Buffer.isBuffer(att.content)
+          ? att.content
+          : Buffer.from(att.content, 'base64');
+        const mime = att.mimeType || 'application/octet-stream';
+        const b64 = buf.toString('base64');
+
+        // (1) Try Vercel Blob upload — best-effort
+        try {
+          const { put } = await import('@vercel/blob');
+          const ts = Date.now();
+          const safeName = att.filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+          const blob = await put(`invoices/${ts}-${safeName}`, buf, {
+            access: 'public',
+            contentType: mime,
+            addRandomSuffix: false,
+            allowOverwrite: false,
+          });
+          if (blob?.url) {
+            links.push(
+              `<li><a href="${blob.url}" style="color:#39FF14;">${att.filename}</a></li>`
+            );
+          }
+        } catch (err) {
+          console.warn(
+            `[email-service] Vercel Blob upload failed for ${att.filename}:`,
+            err instanceof Error ? err.message : err
+          );
+        }
+
+        // (2) Pack into form fields for the GAS handler
+        attachmentParams[`attachment_${i}_filename`] = att.filename;
+        attachmentParams[`attachment_${i}_mime`] = mime;
+        attachmentParams[`attachment_${i}_b64`] = b64;
+      }
+
+      if (links.length > 0) {
+        finalBody += `
+          <div style="margin-top:24px;padding:14px;background:#f0fff0;border-left:3px solid #39FF14;border-radius:4px;">
+            <strong style="color:#0a0a0a;">Attachments:</strong>
+            <ul style="margin:8px 0 0 18px;padding:0;">${links.join('')}</ul>
+          </div>
+        `;
+      }
+
+      attachmentParams.attachment_count = String(options.attachments.length);
+    }
+
     try {
+      // We use URLSearchParams which Content-Type-wise is form-urlencoded.
+      // The base64 attachment payload survives this fine; just keeps the
+      // request body within the GAS doPost form-data parser.
+      const params = new URLSearchParams({
+        formType: 'email_notification',
+        to: options.to,
+        subject: options.subject,
+        body: finalBody,
+        ...(options.replyTo && { replyTo: options.replyTo }),
+        ...(options.cc && { cc: options.cc }),
+        ...(options.bcc && { bcc: options.bcc }),
+        ...(options.fromName && { fromName: options.fromName }),
+        ...attachmentParams,
+      });
+
       const response = await fetch(this.endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          formType: 'email_notification',
-          to: options.to,
-          subject: options.subject,
-          body: options.body,
-          ...(options.replyTo && { replyTo: options.replyTo }),
-          ...(options.cc && { cc: options.cc }),
-          ...(options.bcc && { bcc: options.bcc }),
-          ...(options.fromName && { fromName: options.fromName }),
-        }).toString(),
+        body: params.toString(),
       });
 
       if (!response.ok) {
