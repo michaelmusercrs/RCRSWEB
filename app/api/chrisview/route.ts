@@ -20,6 +20,7 @@ import companyOverview from '@/data/company-overview.json';
 import commissions from '@/data/commissions.json';
 import meetingNumbersAll from '@/data/meeting-numbers-all.json';
 import meetingNumbers2026 from '@/data/meeting-numbers-2026.json';
+import inventoryProducts from '@/data/inventory-products.json';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -84,6 +85,10 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(await filterTransactions(searchParams, page, pageSize));
       case 'charts':
         return NextResponse.json(buildCharts());
+      case 'inventory':
+        return NextResponse.json(buildInventory(q));
+      case 'yearComparison':
+        return NextResponse.json(buildYearComparison());
       default:
         return NextResponse.json({ error: 'Unknown type' }, { status: 400 });
     }
@@ -411,6 +416,96 @@ function buildCharts() {
     salesActivityWeeks,
     salesActivityByYear,
   };
+}
+
+function buildInventory(q: string) {
+  type Item = {
+    'Item ID'?: string; Name?: string; Description?: string; Cost?: number; Price?: number;
+    Unit?: string; Category?: string; Supplier?: string; Location?: string;
+    Quantity?: number; MinStock?: number; MaxStock?: number;
+  };
+  const items = inventoryProducts as Item[];
+  const rows = items.map(i => {
+    const qty = i.Quantity || 0;
+    const cost = i.Cost || 0;
+    const price = i.Price || 0;
+    return {
+      id: i['Item ID'] || '',
+      name: i.Name || '',
+      description: i.Description || '',
+      category: i.Category || '',
+      supplier: i.Supplier || '',
+      location: i.Location || '',
+      unit: i.Unit || '',
+      qty,
+      minStock: i.MinStock || 0,
+      cost,
+      price,
+      stockValue: Math.round(qty * cost * 100) / 100,
+      potentialRevenue: Math.round(qty * price * 100) / 100,
+      margin: price > 0 ? Math.round(((price - cost) / price) * 1000) / 10 : 0,
+      lowStock: qty < (i.MinStock || 0),
+    };
+  });
+  const filtered = q
+    ? rows.filter(r => `${r.name} ${r.description} ${r.category} ${r.supplier}`.toLowerCase().includes(q))
+    : rows;
+  const totalStockValue = filtered.reduce((s, r) => s + r.stockValue, 0);
+  const totalPotentialRevenue = filtered.reduce((s, r) => s + r.potentialRevenue, 0);
+  return {
+    rows: filtered,
+    total: filtered.length,
+    summary: {
+      totalStockValue: Math.round(totalStockValue * 100) / 100,
+      totalPotentialRevenue: Math.round(totalPotentialRevenue * 100) / 100,
+      lowStockCount: filtered.filter(r => r.lowStock).length,
+    },
+  };
+}
+
+function buildYearComparison() {
+  const monthly = transactionsMonthly as Array<{
+    month: string; netRevenue: number; expense: number; invoiceCount: number;
+  }>;
+  // Build a (year, week-of-year) -> revenue map so we can compare apples-to-apples
+  const yearTotals: Record<string, { revenue: number; expense: number; invoices: number }> = {};
+  for (const m of monthly) {
+    const y = m.month.slice(0, 4);
+    if (!yearTotals[y]) yearTotals[y] = { revenue: 0, expense: 0, invoices: 0 };
+    yearTotals[y].revenue += m.netRevenue;
+    yearTotals[y].expense += m.expense;
+    yearTotals[y].invoices += m.invoiceCount;
+  }
+  // Year-to-date through current month for each year (so we can compare like windows)
+  const now = new Date();
+  const currentMonthIdx = now.getMonth() + 1;
+  const ytdByYear: Record<string, { revenue: number; expense: number; invoices: number }> = {};
+  for (const m of monthly) {
+    const [y, mm] = m.month.split('-').map(Number);
+    if (mm > currentMonthIdx) continue;
+    if (!ytdByYear[String(y)]) ytdByYear[String(y)] = { revenue: 0, expense: 0, invoices: 0 };
+    ytdByYear[String(y)].revenue += m.netRevenue;
+    ytdByYear[String(y)].expense += m.expense;
+    ytdByYear[String(y)].invoices += m.invoiceCount;
+  }
+
+  const rows = Object.entries(yearTotals)
+    .map(([year, t]) => {
+      const ytd = ytdByYear[year] || { revenue: 0, expense: 0, invoices: 0 };
+      return {
+        year,
+        revenueYear: Math.round(t.revenue * 100) / 100,
+        expenseYear: Math.round(t.expense * 100) / 100,
+        netYear: Math.round((t.revenue - t.expense) * 100) / 100,
+        invoicesYear: t.invoices,
+        revenueYTD: Math.round(ytd.revenue * 100) / 100,
+        netYTD: Math.round((ytd.revenue - ytd.expense) * 100) / 100,
+        invoicesYTD: ytd.invoices,
+      };
+    })
+    .sort((a, b) => b.year.localeCompare(a.year));
+
+  return { rows, currentMonth: currentMonthIdx };
 }
 
 async function filterTransactions(searchParams: URLSearchParams, page: number, pageSize: number) {

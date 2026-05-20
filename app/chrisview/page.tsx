@@ -51,7 +51,23 @@ import {
 
 const PIE_COLORS = ['#39FF14', '#60a5fa', '#fbbf24', '#fb7185', '#a78bfa', '#22d3ee', '#f97316', '#10b981', '#ec4899', '#6366f1', '#84cc16'];
 
-type TabId = 'overview' | 'charts' | 'transactions' | 'customers' | 'vendors' | 'reps' | 'commissions';
+type TabId = 'overview' | 'charts' | 'transactions' | 'customers' | 'vendors' | 'reps' | 'commissions' | 'inventory';
+
+interface InventoryRow {
+  id: string; name: string; description: string; category: string; supplier: string;
+  location: string; unit: string; qty: number; minStock: number; cost: number; price: number;
+  stockValue: number; potentialRevenue: number; margin: number; lowStock: boolean;
+}
+interface InventoryData {
+  rows: InventoryRow[];
+  total: number;
+  summary: { totalStockValue: number; totalPotentialRevenue: number; lowStockCount: number };
+}
+
+interface YearComparisonRow {
+  year: string; revenueYear: number; expenseYear: number; netYear: number; invoicesYear: number;
+  revenueYTD: number; netYTD: number; invoicesYTD: number;
+}
 
 interface ChartsData {
   byYear: Array<{ year: string; revenue: number; expense: number; net: number; invoiceCount: number }>;
@@ -132,6 +148,8 @@ export default function ChrisViewPage() {
     totals?: { netAmount: number; absTotal: number };
     facets?: { types: Array<[string, number]> };
   } | null>(null);
+  const [inventory, setInventory] = useState<InventoryData | null>(null);
+  const [yearComparison, setYearComparison] = useState<{ rows: YearComparisonRow[]; currentMonth: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -167,6 +185,14 @@ export default function ChrisViewPage() {
         case 'reps': setReps(data); break;
         case 'commissions': setCommissionsData(data); break;
         case 'transactions': setTransactionsData(data); break;
+        case 'inventory': setInventory(data); break;
+      }
+      // Year comparison is loaded alongside overview
+      if (tab === 'overview' && !yearComparison) {
+        try {
+          const ycRes = await fetch('/api/chrisview?type=yearComparison');
+          if (ycRes.ok) setYearComparison(await ycRes.json());
+        } catch { /* non-critical */ }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -227,6 +253,7 @@ export default function ChrisViewPage() {
             { id: 'vendors' as TabId, label: 'Vendors', icon: Truck },
             { id: 'reps' as TabId, label: 'Sales Reps', icon: UserCheck },
             { id: 'commissions' as TabId, label: 'Commissions', icon: DollarSign },
+            { id: 'inventory' as TabId, label: 'Inventory', icon: Briefcase },
           ].map(t => {
             const Icon = t.icon;
             const active = tab === t.id;
@@ -324,6 +351,41 @@ export default function ChrisViewPage() {
                     </table>
                   </div>
                 </section>
+
+                {/* Year-over-year YTD comparison */}
+                {yearComparison && yearComparison.rows.length > 0 && (
+                  <section>
+                    <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wide mb-2">
+                      YTD Comparison Through Month {yearComparison.currentMonth}
+                    </h2>
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="text-xs text-zinc-500 uppercase tracking-wide bg-zinc-950 border-b border-zinc-800">
+                          <tr>
+                            <th className="text-left py-2 px-3 font-medium">Year</th>
+                            <th className="text-right py-2 px-3 font-medium">YTD Revenue (same window)</th>
+                            <th className="text-right py-2 px-3 font-medium">YTD Net</th>
+                            <th className="text-right py-2 px-3 font-medium">YTD Invoices</th>
+                            <th className="text-right py-2 px-3 font-medium">Full Year Revenue</th>
+                            <th className="text-right py-2 px-3 font-medium">Full Year Net</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-800">
+                          {yearComparison.rows.map(r => (
+                            <tr key={r.year} className="hover:bg-zinc-800/30">
+                              <td className="py-2 px-3 font-mono text-xs text-zinc-300">{r.year}</td>
+                              <td className="py-2 px-3 text-right tabular-nums text-[#39FF14]">{fmtMoneyExact(r.revenueYTD)}</td>
+                              <td className={`py-2 px-3 text-right tabular-nums ${r.netYTD >= 0 ? 'text-white' : 'text-red-400'}`}>{fmtMoneyExact(r.netYTD)}</td>
+                              <td className="py-2 px-3 text-right text-zinc-400">{r.invoicesYTD}</td>
+                              <td className="py-2 px-3 text-right tabular-nums text-zinc-300">{fmtMoneyExact(r.revenueYear)}</td>
+                              <td className={`py-2 px-3 text-right tabular-nums ${r.netYear >= 0 ? 'text-zinc-300' : 'text-red-400'}`}>{fmtMoneyExact(r.netYear)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+                )}
 
                 <section>
                   <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wide mb-2">Data Catalog</h2>
@@ -778,8 +840,73 @@ export default function ChrisViewPage() {
           </>
         )}
 
+        {/* INVENTORY */}
+        {tab === 'inventory' && (
+          <>
+            {inventory && (
+              <section className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <Kpi label="Items" value={inventory.total.toString()} />
+                <Kpi label="Stock Value (cost)" value={fmtMoney(inventory.summary.totalStockValue)} sub={fmtMoneyExact(inventory.summary.totalStockValue)} highlight />
+                <Kpi label="Potential Revenue" value={fmtMoney(inventory.summary.totalPotentialRevenue)} sub={`${inventory.summary.lowStockCount} low-stock`} />
+              </section>
+            )}
+            <div className="relative max-w-md">
+              <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text" value={q} onChange={e => setQ(e.target.value)}
+                placeholder="Search inventory by name / category / supplier…"
+                className="w-full pl-9 pr-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm focus:outline-none focus:border-[#39FF14]/50"
+              />
+            </div>
+            <section className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="text-xs text-zinc-500 uppercase tracking-wide bg-zinc-950 border-b border-zinc-800">
+                    <tr>
+                      <th className="text-left py-2 px-3 font-medium">Item</th>
+                      <th className="text-left py-2 px-3 font-medium">Category</th>
+                      <th className="text-left py-2 px-3 font-medium">Supplier</th>
+                      <th className="text-right py-2 px-3 font-medium">Qty</th>
+                      <th className="text-right py-2 px-3 font-medium">Cost</th>
+                      <th className="text-right py-2 px-3 font-medium">Price</th>
+                      <th className="text-right py-2 px-3 font-medium">Stock value</th>
+                      <th className="text-right py-2 px-3 font-medium">Margin</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800">
+                    {loading && (
+                      <tr><td colSpan={8} className="py-6 text-center text-zinc-500"><Loader2 className="w-4 h-4 animate-spin inline mr-2" />Loading…</td></tr>
+                    )}
+                    {!loading && inventory?.rows.length === 0 && (
+                      <tr><td colSpan={8} className="py-6 text-center text-zinc-500">No items.</td></tr>
+                    )}
+                    {!loading && inventory?.rows.map(r => (
+                      <tr key={r.id} className={`hover:bg-zinc-800/30 ${r.lowStock ? 'bg-amber-500/5' : ''}`}>
+                        <td className="py-2 px-3">
+                          <div className="font-medium">{r.name}</div>
+                          {r.description && <div className="text-xs text-zinc-500">{r.description}</div>}
+                        </td>
+                        <td className="py-2 px-3 text-xs text-zinc-400">{r.category}</td>
+                        <td className="py-2 px-3 text-xs text-zinc-400">{r.supplier}</td>
+                        <td className={`py-2 px-3 text-right tabular-nums ${r.lowStock ? 'text-amber-400' : 'text-zinc-300'}`}>
+                          {r.qty} {r.unit}
+                          {r.lowStock && <div className="text-[10px] text-amber-500">low (min {r.minStock})</div>}
+                        </td>
+                        <td className="py-2 px-3 text-right tabular-nums text-zinc-300">{fmtMoneyExact(r.cost)}</td>
+                        <td className="py-2 px-3 text-right tabular-nums text-zinc-300">{fmtMoneyExact(r.price)}</td>
+                        <td className="py-2 px-3 text-right tabular-nums text-[#39FF14]">{fmtMoneyExact(r.stockValue)}</td>
+                        <td className="py-2 px-3 text-right tabular-nums text-zinc-400">{r.margin}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </>
+        )}
+
         {/* Other search tabs */}
-        {tab !== 'overview' && tab !== 'transactions' && (
+        {tab !== 'overview' && tab !== 'transactions' && tab !== 'charts' && tab !== 'inventory' && (
           <>
             <div className="relative max-w-md">
               <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
