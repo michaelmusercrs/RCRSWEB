@@ -8,6 +8,7 @@ The scheduled routine appends an entry per action.
 
 ## 2026-05-20
 
+- `22:30` · claude · 6 files · Phase 7.4 storm-report magic-link share — on `sweep/storm-magic-link` branch · 24-char base62 token public share + rep regen endpoint + 60/hr KV rate limit + wired into existing storm-report email · CRM moat win #5 · commit (sweep)
 - `22:00` · claude · 6 files · Phase 7.3 review-request automation — on `sweep/review-automation` branch · env-gated template + sheet queue + daily cron + load-verified hook; vercel.json entry parked in `_disabledCrons` · commit 2a2eae4 (sweep)
 - `21:45` · claude · 5 service pages + lib/seo.ts + lib/serviceEnhancements.ts (new) · Phase 5.6b service-page SEO depth — process steps + includes/excludes + related cross-links + county callouts + ServiceChannel schema · commit ffb6e35 (main)
 - `21:00` · claude · MobileCTABar.tsx + BeforeAfterSlider.tsx + 4 page wirings · Phase 7.2 design refresh — on `sweep/design-refresh` branch · mobile call/text sticky bar + drag-comparison slider; slider has TODO placeholders for real photo pairs · commit cd1c51f (sweep)
