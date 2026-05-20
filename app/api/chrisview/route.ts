@@ -115,6 +115,29 @@ function buildOverview() {
     month: string; netRevenue: number; expense: number; invoiceCount: number;
   }>;
   const last12 = monthly.slice(-12);
+
+  // Customer concentration risk — top N customers as % of lifetime invoiced.
+  // High concentration = revenue is fragile if a big customer leaves.
+  const sortedCust = (transactionsByCustomer as Array<{ customer: string; total: number }>)
+    .map(c => c.total)
+    .sort((a, b) => b - a);
+  const totalCustRevenue = sortedCust.reduce((s, v) => s + v, 0);
+  const concentration = {
+    top5Share: totalCustRevenue > 0 ? (sortedCust.slice(0, 5).reduce((s, v) => s + v, 0) / totalCustRevenue) : 0,
+    top10Share: totalCustRevenue > 0 ? (sortedCust.slice(0, 10).reduce((s, v) => s + v, 0) / totalCustRevenue) : 0,
+    top20Share: totalCustRevenue > 0 ? (sortedCust.slice(0, 20).reduce((s, v) => s + v, 0) / totalCustRevenue) : 0,
+    totalCustomers: (transactionsByCustomer as Array<unknown>).length,
+  };
+
+  // Rep concentration — how reliant we are on top sales reps
+  const sortedReps = (transactionsByRep as Array<{ rep: string; invoiceTotal: number }>)
+    .map(r => r.invoiceTotal)
+    .sort((a, b) => b - a);
+  const totalRepRevenue = sortedReps.reduce((s, v) => s + v, 0);
+  const repConcentration = {
+    top3Share: totalRepRevenue > 0 ? (sortedReps.slice(0, 3).reduce((s, v) => s + v, 0) / totalRepRevenue) : 0,
+    top5Share: totalRepRevenue > 0 ? (sortedReps.slice(0, 5).reduce((s, v) => s + v, 0) / totalRepRevenue) : 0,
+  };
   return {
     meta: transactionsMeta,
     lifetime: {
@@ -144,6 +167,8 @@ function buildOverview() {
     last12,
     last12Revenue: Math.round(last12.reduce((s, m) => s + m.netRevenue, 0) * 100) / 100,
     last12Expense: Math.round(last12.reduce((s, m) => s + m.expense, 0) * 100) / 100,
+    concentration,
+    repConcentration,
   };
 }
 

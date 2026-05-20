@@ -102,6 +102,8 @@ interface OverviewData {
   counts: { transactions: number; customers: number; vendors: number; reps: number; commissionRows: number; months: number };
   last12: Array<{ month: string; netRevenue: number; expense: number; invoiceCount: number }>;
   last12Revenue: number; last12Expense: number;
+  concentration?: { top5Share: number; top10Share: number; top20Share: number; totalCustomers: number };
+  repConcentration?: { top3Share: number; top5Share: number };
 }
 interface Customer { customer: string; total: number; invoiceCount: number; }
 interface Vendor { vendor: string; total: number; txCount: number; }
@@ -448,6 +450,30 @@ export default function ChrisViewPage() {
                     </table>
                   </div>
                 </section>
+
+                {/* Concentration risk */}
+                {(overview.concentration || overview.repConcentration) && (
+                  <section>
+                    <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wide mb-2">
+                      Concentration Risk
+                    </h2>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                      {overview.concentration && (
+                        <>
+                          <Kpi label="Top 5 customers" value={fmtPercent(overview.concentration.top5Share)} sub="of lifetime revenue" />
+                          <Kpi label="Top 10 customers" value={fmtPercent(overview.concentration.top10Share)} sub="of lifetime revenue" />
+                          <Kpi label="Top 20 customers" value={fmtPercent(overview.concentration.top20Share)} sub={`of ${overview.concentration.totalCustomers}+ customers`} />
+                        </>
+                      )}
+                      {overview.repConcentration && (
+                        <>
+                          <Kpi label="Top 3 reps" value={fmtPercent(overview.repConcentration.top3Share)} sub="of lifetime invoiced" />
+                          <Kpi label="Top 5 reps" value={fmtPercent(overview.repConcentration.top5Share)} sub="of lifetime invoiced" />
+                        </>
+                      )}
+                    </div>
+                  </section>
+                )}
 
                 {/* Year-over-year YTD comparison */}
                 {yearComparison && yearComparison.rows.length > 0 && (
