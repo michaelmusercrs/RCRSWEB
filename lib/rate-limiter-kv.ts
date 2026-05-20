@@ -108,6 +108,19 @@ export const RATE_LIMIT_CONFIGS = {
     message: 'Too many storm-report lookups. Please wait before trying again.',
   },
 
+  // Public storm-report SHARE view (magic-link landing page). Customers
+  // re-open the link a handful of times after the storm visit; reps may
+  // share the same URL across multiple roof appointments in a day. 60/hr
+  // covers normal usage with headroom. Higher than the per-form caps
+  // because this is a READ surface, not a write surface — but still
+  // bounded so a token-guessing attacker can't grind through the
+  // ~143-bit token space (would still take ~2^137 hours).
+  stormReportShareView: {
+    windowMs: 60 * 60 * 1000,
+    maxRequests: 60,
+    message: 'Too many requests. Please wait a minute and try again.',
+  },
+
   // Cross-form per-IP global cap. A single IP hitting 15 form
   // submissions of ANY kind in an hour is almost certainly a bot
   // operator probing — trip the alarm.
@@ -449,6 +462,20 @@ export function createBniPartnerFormRateLimiter(): RateLimiter {
 }
 export function createStormReportRateLimiter(): RateLimiter {
   return new RateLimiter(RATE_LIMIT_CONFIGS.stormReport, 'form-storm-report');
+}
+
+/**
+ * Public per-IP limiter for the storm-report magic-link share view.
+ * 60/hr — see RATE_LIMIT_CONFIGS.stormReportShareView for rationale.
+ * Even though the tokens are ~143 bits of entropy, this is a cheap
+ * belt-and-suspenders so a misconfigured scanner or a compromised
+ * downstream cache can't pull the report repeatedly.
+ */
+export function createStormReportShareViewRateLimiter(): RateLimiter {
+  return new RateLimiter(
+    RATE_LIMIT_CONFIGS.stormReportShareView,
+    'storm-share-view'
+  );
 }
 
 /**

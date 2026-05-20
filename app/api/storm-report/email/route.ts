@@ -18,6 +18,7 @@ import {
   createGlobalFormRateLimiter,
   withRateLimit,
 } from '@/lib/rate-limiter-kv';
+import { createShareToken, buildShareUrl } from '@/lib/storm-report-share';
 
 const formRateLimiter = createStormReportRateLimiter();
 const globalFormRateLimiter = createGlobalFormRateLimiter();
@@ -96,7 +97,10 @@ function riskColor(level: string): string {
 // Customer email – partial/teaser report
 // ---------------------------------------------------------------------------
 
-function buildCustomerEmailHtml(data: StormReportPayload): string {
+function buildCustomerEmailHtml(
+  data: StormReportPayload,
+  shareUrl: string | null
+): string {
   const color = riskColor(data.riskLevel);
   const topFactors = data.riskFactors.slice(0, 3);
 
@@ -165,6 +169,17 @@ function buildCustomerEmailHtml(data: StormReportPayload): string {
       `).join('')}
     </div>
 
+    ${shareUrl ? `
+    <!-- Open Report (magic link) -->
+    <div style="background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:20px;text-align:center;margin:0 0 20px;">
+      <p style="margin:0 0 10px;font-size:13px;color:#aaa;">
+        Bookmark your report — view it anytime, no login needed.
+      </p>
+      <a href="${shareUrl}" style="display:inline-block;background:#0084FF;color:#fff;font-weight:700;font-size:15px;text-decoration:none;padding:12px 28px;border-radius:8px;letter-spacing:1px;">
+        Open my report &rarr;
+      </a>
+    </div>` : ''}
+
     <!-- CTA -->
     <div style="background:#1a1a1a;border:2px solid #84cc16;border-radius:12px;padding:24px;text-align:center;margin:0 0 20px;">
       <h3 style="margin:0 0 8px;font-size:18px;color:#fff;text-transform:uppercase;letter-spacing:2px;">
@@ -200,7 +215,10 @@ function buildCustomerEmailHtml(data: StormReportPayload): string {
 // Sales team email – FULL report
 // ---------------------------------------------------------------------------
 
-function buildSalesEmailHtml(data: StormReportPayload): string {
+function buildSalesEmailHtml(
+  data: StormReportPayload,
+  shareUrl: string | null
+): string {
   const color = riskColor(data.riskLevel);
 
   const hailRows = data.hailEvents.slice(0, 20).map(e => `
@@ -245,6 +263,18 @@ function buildSalesEmailHtml(data: StormReportPayload): string {
         <tr><td style="padding:4px 0;font-size:13px;color:#888;">Address:</td><td style="padding:4px 0;font-size:13px;color:#fff;">${data.fullAddress}</td></tr>
       </table>
     </div>
+
+    ${shareUrl ? `
+    <!-- Customer-facing share link (text or paste into a reply) -->
+    <div style="background:#0a2540;border:1px solid #0084FF;border-radius:8px;padding:14px 18px;margin:0 0 20px;">
+      <p style="margin:0 0 6px;font-size:12px;color:#9cc4ff;text-transform:uppercase;letter-spacing:1px;">
+        Customer share link
+      </p>
+      <a href="${shareUrl}" style="color:#9cc4ff;font-size:13px;word-break:break-all;text-decoration:underline;">${shareUrl}</a>
+      <p style="margin:8px 0 0;font-size:11px;color:#9cc4ff;opacity:0.7;">
+        Text or email this link to the customer — they can re-open their report any time, no login needed.
+      </p>
+    </div>` : ''}
 
     <!-- Risk Summary -->
     <div style="background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:20px;margin:0 0 20px;">
@@ -451,21 +481,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Mint a magic-link share token so the customer (and rep) can revisit
+    // the rendered report at a tokenized public URL — no login required.
+    // Best-effort: if minting fails (e.g. Google Sheets API hiccup), we
+    // still send the emails without the share link rather than block the
+    // whole flow.
+    let shareUrl: string | null = null;
+    try {
+      const share = await createShareToken({
+        reportId: data.reportId,
+        customerEmail: data.customerEmail,
+        customerName: data.customerName,
+        address: data.fullAddress || data.address,
+        assignedRepSlug: data.assignedRep,
+      });
+      shareUrl = buildShareUrl(share.token);
+    } catch (shareErr) {
+      console.warn(
+        '[storm-report/email] createShareToken failed — sending emails without share link',
+        shareErr instanceof Error ? shareErr.message : shareErr
+      );
+    }
+
     // Fire both emails in parallel via Google Apps Script
     const [customerResult, salesResult] = await Promise.allSettled([
-      // 1. Customer partial report
+      // 1. Customer partial report — includes the magic share link if minted.
       emailService.send({
         to: data.customerEmail,
         subject: `Your Storm Damage Risk Report – ${data.riskLevel} Risk | ${COMPANY_NAME}`,
-        body: buildCustomerEmailHtml(data),
+        body: buildCustomerEmailHtml(data, shareUrl),
         fromName: COMPANY_NAME,
       }),
 
       // 2. Sales team full report — routed to assigned rep when known.
+      //    Includes the same share URL so the rep can text it to the customer.
       emailService.send({
         to: salesRecipient,
         subject: `New Storm Report Lead - ${data.riskLevel} - ${data.fullAddress}`,
-        body: buildSalesEmailHtml(data),
+        body: buildSalesEmailHtml(data, shareUrl),
         replyTo: data.customerEmail,
         fromName: 'RCRS Storm Reports',
       }),
@@ -478,6 +531,7 @@ export async function POST(request: NextRequest) {
       success: true,
       customerEmail: customerOk,
       salesEmail: salesOk,
+      shareUrl, // null if minting failed; the lead-capture page can deep-link the customer right into the share view when present
       errors: {
         customer: !customerOk
           ? (customerResult.status === 'fulfilled' ? customerResult.value.error : (customerResult as PromiseRejectedResult).reason?.message)
