@@ -55,6 +55,18 @@ export default function AdminPortal() {
       statLabel: '',
     },
     {
+      id: 'chrisview',
+      title: 'Chris View (Public Link)',
+      description: 'Shareable read-only dashboard at /chrisview — same data + charts, no login required',
+      icon: BarChart3,
+      href: '/chrisview',
+      color: 'from-amber-500 to-orange-400',
+      bgColor: 'bg-amber-500/10',
+      iconColor: '#fbbf24',
+      stat: 0,
+      statLabel: '',
+    },
+    {
       id: 'blog',
       title: 'Blog Posts',
       description: 'Create, edit, and publish articles',
