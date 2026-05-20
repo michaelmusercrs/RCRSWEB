@@ -1,0 +1,4167 @@
+{
+  "generatedAt": "2026-05-20",
+  "totalCustomers": 3194,
+  "totalRevenue": 35793638.36,
+  "repeatCount": 1036,
+  "repeatRevenue": 19445681.34,
+  "repeatRate": 32.4,
+  "top10PctRevenueShare": 30.7,
+  "topCustomers": [
+    {
+      "customer": "Cornerstone Presbyterian Church (Gym Full) R10516",
+      "total": 279520.48,
+      "invoiceCount": 2,
+      "firstDate": "2025-08-11",
+      "lastDate": "2026-05-12",
+      "daysAsCustomer": 274,
+      "avgInvoice": 139760.24,
+      "recentInvoices": 1,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Louise Willis R8533",
+      "total": 143952.37,
+      "invoiceCount": 3,
+      "firstDate": "2024-03-12",
+      "lastDate": "2024-06-12",
+      "daysAsCustomer": 92,
+      "avgInvoice": 47984.12,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "David Thomas"
+      ]
+    },
+    {
+      "customer": "Doil Akins R8447",
+      "total": 137686.15,
+      "invoiceCount": 1,
+      "firstDate": "2024-03-21",
+      "lastDate": "2024-03-21",
+      "daysAsCustomer": 0,
+      "avgInvoice": 137686.15,
+      "recentInvoices": 0,
+      "isRepeat": false,
+      "reps": [
+        "Tim Hall"
+      ]
+    },
+    {
+      "customer": "Brickyard Landing Condominium R2762",
+      "total": 127710.27,
+      "invoiceCount": 4,
+      "firstDate": "2020-04-03",
+      "lastDate": "2020-05-19",
+      "daysAsCustomer": 46,
+      "avgInvoice": 31927.57,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Chris Muse"
+      ]
+    },
+    {
+      "customer": "Joan Theusch R3827",
+      "total": 103655.8,
+      "invoiceCount": 1,
+      "firstDate": "2021-02-18",
+      "lastDate": "2021-02-18",
+      "daysAsCustomer": 0,
+      "avgInvoice": 103655.8,
+      "recentInvoices": 0,
+      "isRepeat": false,
+      "reps": [
+        "Richard Geahr"
+      ]
+    },
+    {
+      "customer": "Janessa Arellano (Blue Bird 201) R6901",
+      "total": 102082.1,
+      "invoiceCount": 3,
+      "firstDate": "2023-05-23",
+      "lastDate": "2023-07-03",
+      "daysAsCustomer": 41,
+      "avgInvoice": 34027.37,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Cornerstone Presbyterian Church (Main) R9100",
+      "total": 96308.77,
+      "invoiceCount": 2,
+      "firstDate": "2025-08-11",
+      "lastDate": "2025-10-14",
+      "daysAsCustomer": 64,
+      "avgInvoice": 48154.38,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Daniel Hankins R10204",
+      "total": 81260,
+      "invoiceCount": 2,
+      "firstDate": "2025-06-03",
+      "lastDate": "2025-08-06",
+      "daysAsCustomer": 64,
+      "avgInvoice": 40630,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Stephen Cutter R10311",
+      "total": 75470.81,
+      "invoiceCount": 2,
+      "firstDate": "2025-06-19",
+      "lastDate": "2025-09-29",
+      "daysAsCustomer": 102,
+      "avgInvoice": 37735.41,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Senior Citizen Center R10444",
+      "total": 70483.57,
+      "invoiceCount": 1,
+      "firstDate": "2025-09-08",
+      "lastDate": "2025-09-08",
+      "daysAsCustomer": 0,
+      "avgInvoice": 70483.57,
+      "recentInvoices": 0,
+      "isRepeat": false,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Pleasant Grove Baptist Church R2877",
+      "total": 68695.29,
+      "invoiceCount": 3,
+      "firstDate": "2020-07-15",
+      "lastDate": "2020-08-13",
+      "daysAsCustomer": 29,
+      "avgInvoice": 22898.43,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Michael Muse"
+      ]
+    },
+    {
+      "customer": "Adam Daniel - Moulton Middle R8819",
+      "total": 68446.14,
+      "invoiceCount": 1,
+      "firstDate": "2024-07-02",
+      "lastDate": "2024-07-02",
+      "daysAsCustomer": 0,
+      "avgInvoice": 68446.14,
+      "recentInvoices": 0,
+      "isRepeat": false,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Decatur Christian FLC R3446",
+      "total": 65800,
+      "invoiceCount": 2,
+      "firstDate": "2020-09-28",
+      "lastDate": "2020-09-28",
+      "daysAsCustomer": 0,
+      "avgInvoice": 32900,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Gary Lindsey"
+      ]
+    },
+    {
+      "customer": "Russ Beard/Sheltons Funeral Home R6587",
+      "total": 64670.19,
+      "invoiceCount": 2,
+      "firstDate": "2024-07-16",
+      "lastDate": "2024-08-13",
+      "daysAsCustomer": 28,
+      "avgInvoice": 32335.1,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Richard Geahr"
+      ]
+    },
+    {
+      "customer": "Wendy Putman R6709",
+      "total": 62259.83,
+      "invoiceCount": 6,
+      "firstDate": "2023-03-08",
+      "lastDate": "2023-10-06",
+      "daysAsCustomer": 212,
+      "avgInvoice": 10376.64,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "David Thomas"
+      ]
+    },
+    {
+      "customer": "Roy Frias R6274",
+      "total": 60879.13,
+      "invoiceCount": 2,
+      "firstDate": "2023-09-08",
+      "lastDate": "2023-11-28",
+      "daysAsCustomer": 81,
+      "avgInvoice": 30439.57,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Brian Sullivan"
+      ]
+    },
+    {
+      "customer": "Hunts. Water Treatment Plant R9479",
+      "total": 58920,
+      "invoiceCount": 4,
+      "firstDate": "2024-10-29",
+      "lastDate": "2024-12-04",
+      "daysAsCustomer": 36,
+      "avgInvoice": 14730,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse",
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Chris Lee R6366",
+      "total": 57608.36,
+      "invoiceCount": 1,
+      "firstDate": "2023-03-02",
+      "lastDate": "2023-03-02",
+      "daysAsCustomer": 0,
+      "avgInvoice": 57608.36,
+      "recentInvoices": 0,
+      "isRepeat": false,
+      "reps": [
+        "Brendon Muse"
+      ]
+    },
+    {
+      "customer": "Chrissy Wright R7869",
+      "total": 55910.1,
+      "invoiceCount": 2,
+      "firstDate": "2023-09-20",
+      "lastDate": "2023-12-27",
+      "daysAsCustomer": 98,
+      "avgInvoice": 27955.05,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "David Thomas"
+      ]
+    },
+    {
+      "customer": "Tyler Mann R10190",
+      "total": 53494.73,
+      "invoiceCount": 3,
+      "firstDate": "2025-06-06",
+      "lastDate": "2025-11-14",
+      "daysAsCustomer": 161,
+      "avgInvoice": 17831.58,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Lee Draper R7387",
+      "total": 53027.91,
+      "invoiceCount": 1,
+      "firstDate": "2023-06-28",
+      "lastDate": "2023-06-28",
+      "daysAsCustomer": 0,
+      "avgInvoice": 53027.91,
+      "recentInvoices": 0,
+      "isRepeat": false,
+      "reps": [
+        "David Thomas"
+      ]
+    },
+    {
+      "customer": "Amanda Reed R4042",
+      "total": 51162.5,
+      "invoiceCount": 2,
+      "firstDate": "2021-04-06",
+      "lastDate": "2021-04-08",
+      "daysAsCustomer": 2,
+      "avgInvoice": 25581.25,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Taylor Jones"
+      ]
+    },
+    {
+      "customer": "Melvin Roden R9675",
+      "total": 50893.52,
+      "invoiceCount": 2,
+      "firstDate": "2025-05-07",
+      "lastDate": "2025-05-28",
+      "daysAsCustomer": 21,
+      "avgInvoice": 25446.76,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Bill Bomar R7678",
+      "total": 49949.32,
+      "invoiceCount": 2,
+      "firstDate": "2023-08-02",
+      "lastDate": "2023-08-24",
+      "daysAsCustomer": 22,
+      "avgInvoice": 24974.66,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Sandy Harbin R3594",
+      "total": 49716.5,
+      "invoiceCount": 1,
+      "firstDate": "2023-08-15",
+      "lastDate": "2023-08-15",
+      "daysAsCustomer": 0,
+      "avgInvoice": 49716.5,
+      "recentInvoices": 0,
+      "isRepeat": false,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Bruce Knutson R6910",
+      "total": 49674.31,
+      "invoiceCount": 2,
+      "firstDate": "2023-12-19",
+      "lastDate": "2023-12-28",
+      "daysAsCustomer": 9,
+      "avgInvoice": 24837.16,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Tim Hall"
+      ]
+    },
+    {
+      "customer": "Phil Frappaolo (Church) R2311",
+      "total": 49500,
+      "invoiceCount": 1,
+      "firstDate": "2019-11-14",
+      "lastDate": "2019-11-14",
+      "daysAsCustomer": 0,
+      "avgInvoice": 49500,
+      "recentInvoices": 0,
+      "isRepeat": false,
+      "reps": [
+        "John Cordonis"
+      ]
+    },
+    {
+      "customer": "Decatur SDA R6363",
+      "total": 48334.75,
+      "invoiceCount": 2,
+      "firstDate": "2023-01-04",
+      "lastDate": "2023-01-24",
+      "daysAsCustomer": 20,
+      "avgInvoice": 24167.38,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Tim Hall"
+      ]
+    },
+    {
+      "customer": "Mark Swanson R2280",
+      "total": 47790,
+      "invoiceCount": 1,
+      "firstDate": "2019-12-11",
+      "lastDate": "2019-12-11",
+      "daysAsCustomer": 0,
+      "avgInvoice": 47790,
+      "recentInvoices": 0,
+      "isRepeat": false,
+      "reps": [
+        "Chris Muse"
+      ]
+    },
+    {
+      "customer": "Daniel Levis R7457",
+      "total": 47581.41,
+      "invoiceCount": 2,
+      "firstDate": "2023-08-10",
+      "lastDate": "2023-10-03",
+      "daysAsCustomer": 54,
+      "avgInvoice": 23790.71,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "John Zeller R6338",
+      "total": 47500,
+      "invoiceCount": 2,
+      "firstDate": "2023-06-19",
+      "lastDate": "2023-07-27",
+      "daysAsCustomer": 38,
+      "avgInvoice": 23750,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Jeff & Vickie Irons R10229",
+      "total": 46616.75,
+      "invoiceCount": 4,
+      "firstDate": "2025-06-16",
+      "lastDate": "2025-09-04",
+      "daysAsCustomer": 80,
+      "avgInvoice": 11654.19,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Adam Rudell"
+      ]
+    },
+    {
+      "customer": "Nancy & Edward Jones R3816",
+      "total": 46289.7,
+      "invoiceCount": 2,
+      "firstDate": "2021-01-25",
+      "lastDate": "2021-02-05",
+      "daysAsCustomer": 11,
+      "avgInvoice": 23144.85,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Taylor Jones"
+      ]
+    },
+    {
+      "customer": "Lee Butler R2334",
+      "total": 45821.42,
+      "invoiceCount": 1,
+      "firstDate": "2019-11-27",
+      "lastDate": "2019-11-27",
+      "daysAsCustomer": 0,
+      "avgInvoice": 45821.42,
+      "recentInvoices": 0,
+      "isRepeat": false,
+      "reps": [
+        "John Cordonis"
+      ]
+    },
+    {
+      "customer": "Patty Chancelor R3873",
+      "total": 45400.31,
+      "invoiceCount": 2,
+      "firstDate": "2021-04-21",
+      "lastDate": "2021-06-30",
+      "daysAsCustomer": 70,
+      "avgInvoice": 22700.16,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Brendon Depres R8320",
+      "total": 44876.27,
+      "invoiceCount": 3,
+      "firstDate": "2024-05-13",
+      "lastDate": "2024-06-06",
+      "daysAsCustomer": 24,
+      "avgInvoice": 14958.76,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Brendon Muse"
+      ]
+    },
+    {
+      "customer": "Kristin Mahaffey R10614",
+      "total": 44677.22,
+      "invoiceCount": 1,
+      "firstDate": "2025-09-29",
+      "lastDate": "2025-09-29",
+      "daysAsCustomer": 0,
+      "avgInvoice": 44677.22,
+      "recentInvoices": 0,
+      "isRepeat": false,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Dan Higginbotham R5455",
+      "total": 44591.14,
+      "invoiceCount": 3,
+      "firstDate": "2022-04-26",
+      "lastDate": "2022-05-12",
+      "daysAsCustomer": 16,
+      "avgInvoice": 14863.71,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Adam Rudell"
+      ]
+    },
+    {
+      "customer": "Horace Tankersley R4630",
+      "total": 44560,
+      "invoiceCount": 2,
+      "firstDate": "2021-07-19",
+      "lastDate": "2025-12-17",
+      "daysAsCustomer": 1612,
+      "avgInvoice": 22280,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Ricky McWhorter R7012",
+      "total": 44538.31,
+      "invoiceCount": 2,
+      "firstDate": "2023-05-25",
+      "lastDate": "2023-08-31",
+      "daysAsCustomer": 98,
+      "avgInvoice": 22269.16,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Glenn Toups R10290",
+      "total": 44244.07,
+      "invoiceCount": 4,
+      "firstDate": "2025-07-30",
+      "lastDate": "2026-02-17",
+      "daysAsCustomer": 202,
+      "avgInvoice": 11061.02,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Mark Vaporis R7950",
+      "total": 43687,
+      "invoiceCount": 2,
+      "firstDate": "2023-10-05",
+      "lastDate": "2023-11-03",
+      "daysAsCustomer": 29,
+      "avgInvoice": 21843.5,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Vernon Hurst R6463",
+      "total": 43500,
+      "invoiceCount": 1,
+      "firstDate": "2023-03-03",
+      "lastDate": "2023-03-03",
+      "daysAsCustomer": 0,
+      "avgInvoice": 43500,
+      "recentInvoices": 0,
+      "isRepeat": false,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Robert Coates R10207",
+      "total": 43370.3,
+      "invoiceCount": 2,
+      "firstDate": "2025-06-26",
+      "lastDate": "2025-11-19",
+      "daysAsCustomer": 146,
+      "avgInvoice": 21685.15,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Mara Killingsworth R6287",
+      "total": 43106.4,
+      "invoiceCount": 2,
+      "firstDate": "2022-11-01",
+      "lastDate": "2022-11-01",
+      "daysAsCustomer": 0,
+      "avgInvoice": 21553.2,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Brendon Muse"
+      ]
+    },
+    {
+      "customer": "Donnie Blankenship R10710",
+      "total": 42300.75,
+      "invoiceCount": 3,
+      "firstDate": "2025-11-03",
+      "lastDate": "2025-11-03",
+      "daysAsCustomer": 0,
+      "avgInvoice": 14100.25,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Michael Grieco R9972",
+      "total": 40519.92,
+      "invoiceCount": 2,
+      "firstDate": "2025-05-19",
+      "lastDate": "2025-06-04",
+      "daysAsCustomer": 16,
+      "avgInvoice": 20259.96,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Brendon Muse"
+      ]
+    },
+    {
+      "customer": "Eddie Landry R7546",
+      "total": 40330.02,
+      "invoiceCount": 1,
+      "firstDate": "2023-07-24",
+      "lastDate": "2023-07-24",
+      "daysAsCustomer": 0,
+      "avgInvoice": 40330.02,
+      "recentInvoices": 0,
+      "isRepeat": false,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Lee Garling R7523",
+      "total": 39973.44,
+      "invoiceCount": 4,
+      "firstDate": "2023-07-21",
+      "lastDate": "2023-09-20",
+      "daysAsCustomer": 61,
+      "avgInvoice": 9993.36,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Brendon Muse"
+      ]
+    },
+    {
+      "customer": "Russ Wilson R10101",
+      "total": 39909,
+      "invoiceCount": 2,
+      "firstDate": "2025-05-20",
+      "lastDate": "2025-06-19",
+      "daysAsCustomer": 30,
+      "avgInvoice": 19954.5,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Jerry Madej R10843",
+      "total": 39848.36,
+      "invoiceCount": 1,
+      "firstDate": "2026-01-28",
+      "lastDate": "2026-01-28",
+      "daysAsCustomer": 0,
+      "avgInvoice": 39848.36,
+      "recentInvoices": 0,
+      "isRepeat": false,
+      "reps": [
+        "Adam Rudell"
+      ]
+    },
+    {
+      "customer": "Jeff Coburn R7751",
+      "total": 39640.81,
+      "invoiceCount": 3,
+      "firstDate": "2023-08-31",
+      "lastDate": "2024-01-31",
+      "daysAsCustomer": 153,
+      "avgInvoice": 13213.6,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "BOUNCED CHECK",
+        "Brandon Bradford"
+      ]
+    },
+    {
+      "customer": "Stacey Wheeler R10293",
+      "total": 39390.94,
+      "invoiceCount": 3,
+      "firstDate": "2025-06-27",
+      "lastDate": "2025-09-15",
+      "daysAsCustomer": 80,
+      "avgInvoice": 13130.31,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Bernard Granger R8154",
+      "total": 39145.87,
+      "invoiceCount": 3,
+      "firstDate": "2026-02-16",
+      "lastDate": "2026-03-13",
+      "daysAsCustomer": 25,
+      "avgInvoice": 13048.62,
+      "recentInvoices": 1,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Ismael Abusaleem R5035",
+      "total": 39066.44,
+      "invoiceCount": 2,
+      "firstDate": "2021-11-09",
+      "lastDate": "2021-12-06",
+      "daysAsCustomer": 27,
+      "avgInvoice": 19533.22,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Wess Cozelos"
+      ]
+    },
+    {
+      "customer": "Rick Tait R4623",
+      "total": 39028.76,
+      "invoiceCount": 2,
+      "firstDate": "2021-08-30",
+      "lastDate": "2021-10-18",
+      "daysAsCustomer": 49,
+      "avgInvoice": 19514.38,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Taylor Jones"
+      ]
+    },
+    {
+      "customer": "Terry Kelly R10485",
+      "total": 38994.07,
+      "invoiceCount": 2,
+      "firstDate": "2025-07-14",
+      "lastDate": "2025-10-07",
+      "daysAsCustomer": 85,
+      "avgInvoice": 19497.04,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Adam Rudell"
+      ]
+    },
+    {
+      "customer": "James Slemp R2344",
+      "total": 38908.71,
+      "invoiceCount": 2,
+      "firstDate": "2020-01-02",
+      "lastDate": "2023-08-18",
+      "daysAsCustomer": 1324,
+      "avgInvoice": 19454.36,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Adam Rudell",
+        "Ryan Butcher"
+      ]
+    },
+    {
+      "customer": "Parkway Apts Bldg B&C R10887",
+      "total": 38900,
+      "invoiceCount": 2,
+      "firstDate": "2026-02-25",
+      "lastDate": "2026-03-11",
+      "daysAsCustomer": 14,
+      "avgInvoice": 19450,
+      "recentInvoices": 2,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Andy Zupko R10312",
+      "total": 38514.07,
+      "invoiceCount": 2,
+      "firstDate": "2025-07-01",
+      "lastDate": "2025-08-25",
+      "daysAsCustomer": 55,
+      "avgInvoice": 19257.04,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Boykin"
+      ]
+    },
+    {
+      "customer": "Michael Johnson 1 R4085",
+      "total": 38438.88,
+      "invoiceCount": 2,
+      "firstDate": "2021-06-30",
+      "lastDate": "2021-12-09",
+      "daysAsCustomer": 162,
+      "avgInvoice": 19219.44,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Boyd Hawkins R2776",
+      "total": 38196.16,
+      "invoiceCount": 3,
+      "firstDate": "2020-04-10",
+      "lastDate": "2024-12-09",
+      "daysAsCustomer": 1704,
+      "avgInvoice": 12732.05,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers",
+        "Wess Cozelos"
+      ]
+    },
+    {
+      "customer": "Jamie Wright (911 Call Center) R4858",
+      "total": 38115,
+      "invoiceCount": 1,
+      "firstDate": "2022-03-18",
+      "lastDate": "2022-03-18",
+      "daysAsCustomer": 0,
+      "avgInvoice": 38115,
+      "recentInvoices": 0,
+      "isRepeat": false,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Kevin Coon R9202",
+      "total": 37012.33,
+      "invoiceCount": 3,
+      "firstDate": "2024-08-29",
+      "lastDate": "2024-09-13",
+      "daysAsCustomer": 15,
+      "avgInvoice": 12337.44,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Adam Rudell"
+      ]
+    },
+    {
+      "customer": "Robert E Johnson R8988",
+      "total": 36924.29,
+      "invoiceCount": 4,
+      "firstDate": "2024-06-03",
+      "lastDate": "2024-07-08",
+      "daysAsCustomer": 35,
+      "avgInvoice": 9231.07,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse",
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Christy Wheat (full roof) R6129",
+      "total": 36919.41,
+      "invoiceCount": 5,
+      "firstDate": "2022-12-21",
+      "lastDate": "2023-02-28",
+      "daysAsCustomer": 69,
+      "avgInvoice": 7383.88,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Joshua Liles R7384",
+      "total": 36794.06,
+      "invoiceCount": 2,
+      "firstDate": "2023-07-08",
+      "lastDate": "2023-08-31",
+      "daysAsCustomer": 54,
+      "avgInvoice": 18397.03,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Karen MaCleod R7041",
+      "total": 36676.93,
+      "invoiceCount": 2,
+      "firstDate": "2023-04-28",
+      "lastDate": "2023-06-12",
+      "daysAsCustomer": 45,
+      "avgInvoice": 18338.47,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Brendon Muse"
+      ]
+    },
+    {
+      "customer": "Alex Branch R4853",
+      "total": 36557.65,
+      "invoiceCount": 2,
+      "firstDate": "2021-09-22",
+      "lastDate": "2021-11-29",
+      "daysAsCustomer": 68,
+      "avgInvoice": 18278.83,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Adam Rudell"
+      ]
+    },
+    {
+      "customer": "Christian Smart R7608",
+      "total": 36332.2,
+      "invoiceCount": 2,
+      "firstDate": "2023-08-01",
+      "lastDate": "2023-10-03",
+      "daysAsCustomer": 63,
+      "avgInvoice": 18166.1,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Brandon Bradford"
+      ]
+    },
+    {
+      "customer": "Jim Sigle R11107",
+      "total": 36199.66,
+      "invoiceCount": 3,
+      "firstDate": "2026-05-12",
+      "lastDate": "2026-05-19",
+      "daysAsCustomer": 7,
+      "avgInvoice": 12066.55,
+      "recentInvoices": 3,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse",
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Roy Whittenburg R8160",
+      "total": 36178.17,
+      "invoiceCount": 1,
+      "firstDate": "2024-07-11",
+      "lastDate": "2024-07-11",
+      "daysAsCustomer": 0,
+      "avgInvoice": 36178.17,
+      "recentInvoices": 0,
+      "isRepeat": false,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Ellajo Thompson R5132",
+      "total": 36157.26,
+      "invoiceCount": 2,
+      "firstDate": "2022-02-02",
+      "lastDate": "2022-02-25",
+      "daysAsCustomer": 23,
+      "avgInvoice": 18078.63,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Mike Carrol R10859",
+      "total": 36125,
+      "invoiceCount": 6,
+      "firstDate": "2026-03-03",
+      "lastDate": "2026-04-10",
+      "daysAsCustomer": 38,
+      "avgInvoice": 6020.83,
+      "recentInvoices": 6,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Church of Good Shepherd R2417",
+      "total": 35908.83,
+      "invoiceCount": 2,
+      "firstDate": "2020-03-06",
+      "lastDate": "2020-05-13",
+      "daysAsCustomer": 68,
+      "avgInvoice": 17954.42,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Chris Muse"
+      ]
+    },
+    {
+      "customer": "Lynn Bradley #2 R10407",
+      "total": 35314.08,
+      "invoiceCount": 2,
+      "firstDate": "2025-07-22",
+      "lastDate": "2025-09-23",
+      "daysAsCustomer": 63,
+      "avgInvoice": 17657.04,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Richard Geahr"
+      ]
+    },
+    {
+      "customer": "Debbie & Chip Ledbetter (Whole Roof) R6563",
+      "total": 35142.01,
+      "invoiceCount": 2,
+      "firstDate": "2023-02-28",
+      "lastDate": "2023-05-08",
+      "daysAsCustomer": 69,
+      "avgInvoice": 17571,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Wess Cozelos"
+      ]
+    },
+    {
+      "customer": "Zachary Mardis R10224",
+      "total": 35128.08,
+      "invoiceCount": 2,
+      "firstDate": "2025-06-25",
+      "lastDate": "2025-07-30",
+      "daysAsCustomer": 35,
+      "avgInvoice": 17564.04,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Christian Fellowship Baptist R9829",
+      "total": 34879.47,
+      "invoiceCount": 1,
+      "firstDate": "2025-04-28",
+      "lastDate": "2025-04-28",
+      "daysAsCustomer": 0,
+      "avgInvoice": 34879.47,
+      "recentInvoices": 0,
+      "isRepeat": false,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Creed McDaris R10557",
+      "total": 34802.78,
+      "invoiceCount": 2,
+      "firstDate": "2025-08-28",
+      "lastDate": "2025-10-15",
+      "daysAsCustomer": 48,
+      "avgInvoice": 17401.39,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Brendon Muse",
+        "Aaron Boykin"
+      ]
+    },
+    {
+      "customer": "Starr Womack R5138",
+      "total": 34775.75,
+      "invoiceCount": 3,
+      "firstDate": "2021-12-03",
+      "lastDate": "2022-08-04",
+      "daysAsCustomer": 244,
+      "avgInvoice": 11591.92,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Taylor Jones"
+      ]
+    },
+    {
+      "customer": "Don Anderson R9164",
+      "total": 34743.28,
+      "invoiceCount": 1,
+      "firstDate": "2024-07-02",
+      "lastDate": "2024-07-02",
+      "daysAsCustomer": 0,
+      "avgInvoice": 34743.28,
+      "recentInvoices": 0,
+      "isRepeat": false,
+      "reps": [
+        "Adam Rudell"
+      ]
+    },
+    {
+      "customer": "Roger Walker R10222",
+      "total": 34628.92,
+      "invoiceCount": 2,
+      "firstDate": "2025-06-18",
+      "lastDate": "2025-07-23",
+      "daysAsCustomer": 35,
+      "avgInvoice": 17314.46,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Alan Donham R7400",
+      "total": 34495.22,
+      "invoiceCount": 2,
+      "firstDate": "2023-07-12",
+      "lastDate": "2023-10-04",
+      "daysAsCustomer": 84,
+      "avgInvoice": 17247.61,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Chad and Amy Hostetter R9242",
+      "total": 34398.98,
+      "invoiceCount": 1,
+      "firstDate": "2024-08-01",
+      "lastDate": "2024-08-01",
+      "daysAsCustomer": 0,
+      "avgInvoice": 34398.98,
+      "recentInvoices": 0,
+      "isRepeat": false,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Albert Jones R4213",
+      "total": 34251.28,
+      "invoiceCount": 2,
+      "firstDate": "2021-06-03",
+      "lastDate": "2021-06-29",
+      "daysAsCustomer": 26,
+      "avgInvoice": 17125.64,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Wess Cozelos"
+      ]
+    },
+    {
+      "customer": "Jennifer Brown R6215",
+      "total": 34153.11,
+      "invoiceCount": 2,
+      "firstDate": "2022-09-21",
+      "lastDate": "2022-10-26",
+      "daysAsCustomer": 35,
+      "avgInvoice": 17076.56,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Brandon Phillips R10365",
+      "total": 34055.46,
+      "invoiceCount": 4,
+      "firstDate": "2025-06-20",
+      "lastDate": "2025-09-17",
+      "daysAsCustomer": 89,
+      "avgInvoice": 8513.87,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers",
+        "VOIDED INVOICE"
+      ]
+    },
+    {
+      "customer": "Linda Davis R4233",
+      "total": 34036.79,
+      "invoiceCount": 1,
+      "firstDate": "2021-06-02",
+      "lastDate": "2021-06-02",
+      "daysAsCustomer": 0,
+      "avgInvoice": 34036.79,
+      "recentInvoices": 0,
+      "isRepeat": false,
+      "reps": [
+        "Ryan Butcher"
+      ]
+    },
+    {
+      "customer": "Harry Smith R8284",
+      "total": 33966.63,
+      "invoiceCount": 2,
+      "firstDate": "2024-01-29",
+      "lastDate": "2024-03-18",
+      "daysAsCustomer": 49,
+      "avgInvoice": 16983.31,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Ethan Frith"
+      ]
+    },
+    {
+      "customer": "Jennifer Kassay R4984",
+      "total": 33945.61,
+      "invoiceCount": 3,
+      "firstDate": "2021-12-13",
+      "lastDate": "2022-02-24",
+      "daysAsCustomer": 73,
+      "avgInvoice": 11315.2,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Wess Cozelos"
+      ]
+    },
+    {
+      "customer": "Mike Laughmiller R7737",
+      "total": 33856.69,
+      "invoiceCount": 2,
+      "firstDate": "2023-08-22",
+      "lastDate": "2023-11-01",
+      "daysAsCustomer": 71,
+      "avgInvoice": 16928.35,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Richard Geahr"
+      ]
+    },
+    {
+      "customer": "Nate Smith R6180",
+      "total": 33596.02,
+      "invoiceCount": 3,
+      "firstDate": "2023-02-24",
+      "lastDate": "2023-04-14",
+      "daysAsCustomer": 49,
+      "avgInvoice": 11198.67,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Richard Geahr"
+      ]
+    },
+    {
+      "customer": "Steve O'neill R8046",
+      "total": 33488.88,
+      "invoiceCount": 2,
+      "firstDate": "2023-10-18",
+      "lastDate": "2023-11-03",
+      "daysAsCustomer": 16,
+      "avgInvoice": 16744.44,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Brian Sullivan"
+      ]
+    },
+    {
+      "customer": "Jill Copeland R9433",
+      "total": 33390.27,
+      "invoiceCount": 2,
+      "firstDate": "2026-01-07",
+      "lastDate": "2026-01-29",
+      "daysAsCustomer": 22,
+      "avgInvoice": 16695.14,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Emily Jackson R6390",
+      "total": 33341.24,
+      "invoiceCount": 3,
+      "firstDate": "2022-12-09",
+      "lastDate": "2023-01-26",
+      "daysAsCustomer": 48,
+      "avgInvoice": 11113.75,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Brendon Muse"
+      ]
+    },
+    {
+      "customer": "Lawrence Nelson R8042",
+      "total": 33204.4,
+      "invoiceCount": 2,
+      "firstDate": "2023-10-30",
+      "lastDate": "2023-12-27",
+      "daysAsCustomer": 58,
+      "avgInvoice": 16602.2,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Brendon Muse"
+      ]
+    },
+    {
+      "customer": "David Gereski R10210",
+      "total": 33096.15,
+      "invoiceCount": 2,
+      "firstDate": "2025-06-04",
+      "lastDate": "2025-06-18",
+      "daysAsCustomer": 14,
+      "avgInvoice": 16548.08,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "David Thomas"
+      ]
+    },
+    {
+      "customer": "Chris Williams Rd R7900",
+      "total": 32976,
+      "invoiceCount": 1,
+      "firstDate": "2023-09-20",
+      "lastDate": "2023-09-20",
+      "daysAsCustomer": 0,
+      "avgInvoice": 32976,
+      "recentInvoices": 0,
+      "isRepeat": false,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Bruce Sholes R5914",
+      "total": 32975.99,
+      "invoiceCount": 3,
+      "firstDate": "2022-09-01",
+      "lastDate": "2022-10-04",
+      "daysAsCustomer": 33,
+      "avgInvoice": 10992,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Adam Rudell"
+      ]
+    }
+  ],
+  "repeatCustomers": [
+    {
+      "customer": "Cornerstone Presbyterian Church (Gym Full) R10516",
+      "total": 279520.48,
+      "invoiceCount": 2,
+      "firstDate": "2025-08-11",
+      "lastDate": "2026-05-12",
+      "daysAsCustomer": 274,
+      "avgInvoice": 139760.24,
+      "recentInvoices": 1,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Louise Willis R8533",
+      "total": 143952.37,
+      "invoiceCount": 3,
+      "firstDate": "2024-03-12",
+      "lastDate": "2024-06-12",
+      "daysAsCustomer": 92,
+      "avgInvoice": 47984.12,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "David Thomas"
+      ]
+    },
+    {
+      "customer": "Brickyard Landing Condominium R2762",
+      "total": 127710.27,
+      "invoiceCount": 4,
+      "firstDate": "2020-04-03",
+      "lastDate": "2020-05-19",
+      "daysAsCustomer": 46,
+      "avgInvoice": 31927.57,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Chris Muse"
+      ]
+    },
+    {
+      "customer": "Janessa Arellano (Blue Bird 201) R6901",
+      "total": 102082.1,
+      "invoiceCount": 3,
+      "firstDate": "2023-05-23",
+      "lastDate": "2023-07-03",
+      "daysAsCustomer": 41,
+      "avgInvoice": 34027.37,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Cornerstone Presbyterian Church (Main) R9100",
+      "total": 96308.77,
+      "invoiceCount": 2,
+      "firstDate": "2025-08-11",
+      "lastDate": "2025-10-14",
+      "daysAsCustomer": 64,
+      "avgInvoice": 48154.38,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Daniel Hankins R10204",
+      "total": 81260,
+      "invoiceCount": 2,
+      "firstDate": "2025-06-03",
+      "lastDate": "2025-08-06",
+      "daysAsCustomer": 64,
+      "avgInvoice": 40630,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Stephen Cutter R10311",
+      "total": 75470.81,
+      "invoiceCount": 2,
+      "firstDate": "2025-06-19",
+      "lastDate": "2025-09-29",
+      "daysAsCustomer": 102,
+      "avgInvoice": 37735.41,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Pleasant Grove Baptist Church R2877",
+      "total": 68695.29,
+      "invoiceCount": 3,
+      "firstDate": "2020-07-15",
+      "lastDate": "2020-08-13",
+      "daysAsCustomer": 29,
+      "avgInvoice": 22898.43,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Michael Muse"
+      ]
+    },
+    {
+      "customer": "Decatur Christian FLC R3446",
+      "total": 65800,
+      "invoiceCount": 2,
+      "firstDate": "2020-09-28",
+      "lastDate": "2020-09-28",
+      "daysAsCustomer": 0,
+      "avgInvoice": 32900,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Gary Lindsey"
+      ]
+    },
+    {
+      "customer": "Russ Beard/Sheltons Funeral Home R6587",
+      "total": 64670.19,
+      "invoiceCount": 2,
+      "firstDate": "2024-07-16",
+      "lastDate": "2024-08-13",
+      "daysAsCustomer": 28,
+      "avgInvoice": 32335.1,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Richard Geahr"
+      ]
+    },
+    {
+      "customer": "Wendy Putman R6709",
+      "total": 62259.83,
+      "invoiceCount": 6,
+      "firstDate": "2023-03-08",
+      "lastDate": "2023-10-06",
+      "daysAsCustomer": 212,
+      "avgInvoice": 10376.64,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "David Thomas"
+      ]
+    },
+    {
+      "customer": "Roy Frias R6274",
+      "total": 60879.13,
+      "invoiceCount": 2,
+      "firstDate": "2023-09-08",
+      "lastDate": "2023-11-28",
+      "daysAsCustomer": 81,
+      "avgInvoice": 30439.57,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Brian Sullivan"
+      ]
+    },
+    {
+      "customer": "Hunts. Water Treatment Plant R9479",
+      "total": 58920,
+      "invoiceCount": 4,
+      "firstDate": "2024-10-29",
+      "lastDate": "2024-12-04",
+      "daysAsCustomer": 36,
+      "avgInvoice": 14730,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse",
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Chrissy Wright R7869",
+      "total": 55910.1,
+      "invoiceCount": 2,
+      "firstDate": "2023-09-20",
+      "lastDate": "2023-12-27",
+      "daysAsCustomer": 98,
+      "avgInvoice": 27955.05,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "David Thomas"
+      ]
+    },
+    {
+      "customer": "Tyler Mann R10190",
+      "total": 53494.73,
+      "invoiceCount": 3,
+      "firstDate": "2025-06-06",
+      "lastDate": "2025-11-14",
+      "daysAsCustomer": 161,
+      "avgInvoice": 17831.58,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Amanda Reed R4042",
+      "total": 51162.5,
+      "invoiceCount": 2,
+      "firstDate": "2021-04-06",
+      "lastDate": "2021-04-08",
+      "daysAsCustomer": 2,
+      "avgInvoice": 25581.25,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Taylor Jones"
+      ]
+    },
+    {
+      "customer": "Melvin Roden R9675",
+      "total": 50893.52,
+      "invoiceCount": 2,
+      "firstDate": "2025-05-07",
+      "lastDate": "2025-05-28",
+      "daysAsCustomer": 21,
+      "avgInvoice": 25446.76,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Bill Bomar R7678",
+      "total": 49949.32,
+      "invoiceCount": 2,
+      "firstDate": "2023-08-02",
+      "lastDate": "2023-08-24",
+      "daysAsCustomer": 22,
+      "avgInvoice": 24974.66,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Bruce Knutson R6910",
+      "total": 49674.31,
+      "invoiceCount": 2,
+      "firstDate": "2023-12-19",
+      "lastDate": "2023-12-28",
+      "daysAsCustomer": 9,
+      "avgInvoice": 24837.16,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Tim Hall"
+      ]
+    },
+    {
+      "customer": "Decatur SDA R6363",
+      "total": 48334.75,
+      "invoiceCount": 2,
+      "firstDate": "2023-01-04",
+      "lastDate": "2023-01-24",
+      "daysAsCustomer": 20,
+      "avgInvoice": 24167.38,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Tim Hall"
+      ]
+    },
+    {
+      "customer": "Daniel Levis R7457",
+      "total": 47581.41,
+      "invoiceCount": 2,
+      "firstDate": "2023-08-10",
+      "lastDate": "2023-10-03",
+      "daysAsCustomer": 54,
+      "avgInvoice": 23790.71,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "John Zeller R6338",
+      "total": 47500,
+      "invoiceCount": 2,
+      "firstDate": "2023-06-19",
+      "lastDate": "2023-07-27",
+      "daysAsCustomer": 38,
+      "avgInvoice": 23750,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Jeff & Vickie Irons R10229",
+      "total": 46616.75,
+      "invoiceCount": 4,
+      "firstDate": "2025-06-16",
+      "lastDate": "2025-09-04",
+      "daysAsCustomer": 80,
+      "avgInvoice": 11654.19,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Adam Rudell"
+      ]
+    },
+    {
+      "customer": "Nancy & Edward Jones R3816",
+      "total": 46289.7,
+      "invoiceCount": 2,
+      "firstDate": "2021-01-25",
+      "lastDate": "2021-02-05",
+      "daysAsCustomer": 11,
+      "avgInvoice": 23144.85,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Taylor Jones"
+      ]
+    },
+    {
+      "customer": "Patty Chancelor R3873",
+      "total": 45400.31,
+      "invoiceCount": 2,
+      "firstDate": "2021-04-21",
+      "lastDate": "2021-06-30",
+      "daysAsCustomer": 70,
+      "avgInvoice": 22700.16,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Brendon Depres R8320",
+      "total": 44876.27,
+      "invoiceCount": 3,
+      "firstDate": "2024-05-13",
+      "lastDate": "2024-06-06",
+      "daysAsCustomer": 24,
+      "avgInvoice": 14958.76,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Brendon Muse"
+      ]
+    },
+    {
+      "customer": "Dan Higginbotham R5455",
+      "total": 44591.14,
+      "invoiceCount": 3,
+      "firstDate": "2022-04-26",
+      "lastDate": "2022-05-12",
+      "daysAsCustomer": 16,
+      "avgInvoice": 14863.71,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Adam Rudell"
+      ]
+    },
+    {
+      "customer": "Horace Tankersley R4630",
+      "total": 44560,
+      "invoiceCount": 2,
+      "firstDate": "2021-07-19",
+      "lastDate": "2025-12-17",
+      "daysAsCustomer": 1612,
+      "avgInvoice": 22280,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Ricky McWhorter R7012",
+      "total": 44538.31,
+      "invoiceCount": 2,
+      "firstDate": "2023-05-25",
+      "lastDate": "2023-08-31",
+      "daysAsCustomer": 98,
+      "avgInvoice": 22269.16,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Glenn Toups R10290",
+      "total": 44244.07,
+      "invoiceCount": 4,
+      "firstDate": "2025-07-30",
+      "lastDate": "2026-02-17",
+      "daysAsCustomer": 202,
+      "avgInvoice": 11061.02,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Mark Vaporis R7950",
+      "total": 43687,
+      "invoiceCount": 2,
+      "firstDate": "2023-10-05",
+      "lastDate": "2023-11-03",
+      "daysAsCustomer": 29,
+      "avgInvoice": 21843.5,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Robert Coates R10207",
+      "total": 43370.3,
+      "invoiceCount": 2,
+      "firstDate": "2025-06-26",
+      "lastDate": "2025-11-19",
+      "daysAsCustomer": 146,
+      "avgInvoice": 21685.15,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Mara Killingsworth R6287",
+      "total": 43106.4,
+      "invoiceCount": 2,
+      "firstDate": "2022-11-01",
+      "lastDate": "2022-11-01",
+      "daysAsCustomer": 0,
+      "avgInvoice": 21553.2,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Brendon Muse"
+      ]
+    },
+    {
+      "customer": "Donnie Blankenship R10710",
+      "total": 42300.75,
+      "invoiceCount": 3,
+      "firstDate": "2025-11-03",
+      "lastDate": "2025-11-03",
+      "daysAsCustomer": 0,
+      "avgInvoice": 14100.25,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Michael Grieco R9972",
+      "total": 40519.92,
+      "invoiceCount": 2,
+      "firstDate": "2025-05-19",
+      "lastDate": "2025-06-04",
+      "daysAsCustomer": 16,
+      "avgInvoice": 20259.96,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Brendon Muse"
+      ]
+    },
+    {
+      "customer": "Lee Garling R7523",
+      "total": 39973.44,
+      "invoiceCount": 4,
+      "firstDate": "2023-07-21",
+      "lastDate": "2023-09-20",
+      "daysAsCustomer": 61,
+      "avgInvoice": 9993.36,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Brendon Muse"
+      ]
+    },
+    {
+      "customer": "Russ Wilson R10101",
+      "total": 39909,
+      "invoiceCount": 2,
+      "firstDate": "2025-05-20",
+      "lastDate": "2025-06-19",
+      "daysAsCustomer": 30,
+      "avgInvoice": 19954.5,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Jeff Coburn R7751",
+      "total": 39640.81,
+      "invoiceCount": 3,
+      "firstDate": "2023-08-31",
+      "lastDate": "2024-01-31",
+      "daysAsCustomer": 153,
+      "avgInvoice": 13213.6,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "BOUNCED CHECK",
+        "Brandon Bradford"
+      ]
+    },
+    {
+      "customer": "Stacey Wheeler R10293",
+      "total": 39390.94,
+      "invoiceCount": 3,
+      "firstDate": "2025-06-27",
+      "lastDate": "2025-09-15",
+      "daysAsCustomer": 80,
+      "avgInvoice": 13130.31,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Bernard Granger R8154",
+      "total": 39145.87,
+      "invoiceCount": 3,
+      "firstDate": "2026-02-16",
+      "lastDate": "2026-03-13",
+      "daysAsCustomer": 25,
+      "avgInvoice": 13048.62,
+      "recentInvoices": 1,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Ismael Abusaleem R5035",
+      "total": 39066.44,
+      "invoiceCount": 2,
+      "firstDate": "2021-11-09",
+      "lastDate": "2021-12-06",
+      "daysAsCustomer": 27,
+      "avgInvoice": 19533.22,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Wess Cozelos"
+      ]
+    },
+    {
+      "customer": "Rick Tait R4623",
+      "total": 39028.76,
+      "invoiceCount": 2,
+      "firstDate": "2021-08-30",
+      "lastDate": "2021-10-18",
+      "daysAsCustomer": 49,
+      "avgInvoice": 19514.38,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Taylor Jones"
+      ]
+    },
+    {
+      "customer": "Terry Kelly R10485",
+      "total": 38994.07,
+      "invoiceCount": 2,
+      "firstDate": "2025-07-14",
+      "lastDate": "2025-10-07",
+      "daysAsCustomer": 85,
+      "avgInvoice": 19497.04,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Adam Rudell"
+      ]
+    },
+    {
+      "customer": "James Slemp R2344",
+      "total": 38908.71,
+      "invoiceCount": 2,
+      "firstDate": "2020-01-02",
+      "lastDate": "2023-08-18",
+      "daysAsCustomer": 1324,
+      "avgInvoice": 19454.36,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Adam Rudell",
+        "Ryan Butcher"
+      ]
+    },
+    {
+      "customer": "Parkway Apts Bldg B&C R10887",
+      "total": 38900,
+      "invoiceCount": 2,
+      "firstDate": "2026-02-25",
+      "lastDate": "2026-03-11",
+      "daysAsCustomer": 14,
+      "avgInvoice": 19450,
+      "recentInvoices": 2,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Andy Zupko R10312",
+      "total": 38514.07,
+      "invoiceCount": 2,
+      "firstDate": "2025-07-01",
+      "lastDate": "2025-08-25",
+      "daysAsCustomer": 55,
+      "avgInvoice": 19257.04,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Boykin"
+      ]
+    },
+    {
+      "customer": "Michael Johnson 1 R4085",
+      "total": 38438.88,
+      "invoiceCount": 2,
+      "firstDate": "2021-06-30",
+      "lastDate": "2021-12-09",
+      "daysAsCustomer": 162,
+      "avgInvoice": 19219.44,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Boyd Hawkins R2776",
+      "total": 38196.16,
+      "invoiceCount": 3,
+      "firstDate": "2020-04-10",
+      "lastDate": "2024-12-09",
+      "daysAsCustomer": 1704,
+      "avgInvoice": 12732.05,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers",
+        "Wess Cozelos"
+      ]
+    },
+    {
+      "customer": "Kevin Coon R9202",
+      "total": 37012.33,
+      "invoiceCount": 3,
+      "firstDate": "2024-08-29",
+      "lastDate": "2024-09-13",
+      "daysAsCustomer": 15,
+      "avgInvoice": 12337.44,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Adam Rudell"
+      ]
+    },
+    {
+      "customer": "Robert E Johnson R8988",
+      "total": 36924.29,
+      "invoiceCount": 4,
+      "firstDate": "2024-06-03",
+      "lastDate": "2024-07-08",
+      "daysAsCustomer": 35,
+      "avgInvoice": 9231.07,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse",
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Christy Wheat (full roof) R6129",
+      "total": 36919.41,
+      "invoiceCount": 5,
+      "firstDate": "2022-12-21",
+      "lastDate": "2023-02-28",
+      "daysAsCustomer": 69,
+      "avgInvoice": 7383.88,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Joshua Liles R7384",
+      "total": 36794.06,
+      "invoiceCount": 2,
+      "firstDate": "2023-07-08",
+      "lastDate": "2023-08-31",
+      "daysAsCustomer": 54,
+      "avgInvoice": 18397.03,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Karen MaCleod R7041",
+      "total": 36676.93,
+      "invoiceCount": 2,
+      "firstDate": "2023-04-28",
+      "lastDate": "2023-06-12",
+      "daysAsCustomer": 45,
+      "avgInvoice": 18338.47,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Brendon Muse"
+      ]
+    },
+    {
+      "customer": "Alex Branch R4853",
+      "total": 36557.65,
+      "invoiceCount": 2,
+      "firstDate": "2021-09-22",
+      "lastDate": "2021-11-29",
+      "daysAsCustomer": 68,
+      "avgInvoice": 18278.83,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Adam Rudell"
+      ]
+    },
+    {
+      "customer": "Christian Smart R7608",
+      "total": 36332.2,
+      "invoiceCount": 2,
+      "firstDate": "2023-08-01",
+      "lastDate": "2023-10-03",
+      "daysAsCustomer": 63,
+      "avgInvoice": 18166.1,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Brandon Bradford"
+      ]
+    },
+    {
+      "customer": "Jim Sigle R11107",
+      "total": 36199.66,
+      "invoiceCount": 3,
+      "firstDate": "2026-05-12",
+      "lastDate": "2026-05-19",
+      "daysAsCustomer": 7,
+      "avgInvoice": 12066.55,
+      "recentInvoices": 3,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse",
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Ellajo Thompson R5132",
+      "total": 36157.26,
+      "invoiceCount": 2,
+      "firstDate": "2022-02-02",
+      "lastDate": "2022-02-25",
+      "daysAsCustomer": 23,
+      "avgInvoice": 18078.63,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Mike Carrol R10859",
+      "total": 36125,
+      "invoiceCount": 6,
+      "firstDate": "2026-03-03",
+      "lastDate": "2026-04-10",
+      "daysAsCustomer": 38,
+      "avgInvoice": 6020.83,
+      "recentInvoices": 6,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Church of Good Shepherd R2417",
+      "total": 35908.83,
+      "invoiceCount": 2,
+      "firstDate": "2020-03-06",
+      "lastDate": "2020-05-13",
+      "daysAsCustomer": 68,
+      "avgInvoice": 17954.42,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Chris Muse"
+      ]
+    },
+    {
+      "customer": "Lynn Bradley #2 R10407",
+      "total": 35314.08,
+      "invoiceCount": 2,
+      "firstDate": "2025-07-22",
+      "lastDate": "2025-09-23",
+      "daysAsCustomer": 63,
+      "avgInvoice": 17657.04,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Richard Geahr"
+      ]
+    },
+    {
+      "customer": "Debbie & Chip Ledbetter (Whole Roof) R6563",
+      "total": 35142.01,
+      "invoiceCount": 2,
+      "firstDate": "2023-02-28",
+      "lastDate": "2023-05-08",
+      "daysAsCustomer": 69,
+      "avgInvoice": 17571,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Wess Cozelos"
+      ]
+    },
+    {
+      "customer": "Zachary Mardis R10224",
+      "total": 35128.08,
+      "invoiceCount": 2,
+      "firstDate": "2025-06-25",
+      "lastDate": "2025-07-30",
+      "daysAsCustomer": 35,
+      "avgInvoice": 17564.04,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Creed McDaris R10557",
+      "total": 34802.78,
+      "invoiceCount": 2,
+      "firstDate": "2025-08-28",
+      "lastDate": "2025-10-15",
+      "daysAsCustomer": 48,
+      "avgInvoice": 17401.39,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Brendon Muse",
+        "Aaron Boykin"
+      ]
+    },
+    {
+      "customer": "Starr Womack R5138",
+      "total": 34775.75,
+      "invoiceCount": 3,
+      "firstDate": "2021-12-03",
+      "lastDate": "2022-08-04",
+      "daysAsCustomer": 244,
+      "avgInvoice": 11591.92,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Taylor Jones"
+      ]
+    },
+    {
+      "customer": "Roger Walker R10222",
+      "total": 34628.92,
+      "invoiceCount": 2,
+      "firstDate": "2025-06-18",
+      "lastDate": "2025-07-23",
+      "daysAsCustomer": 35,
+      "avgInvoice": 17314.46,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Alan Donham R7400",
+      "total": 34495.22,
+      "invoiceCount": 2,
+      "firstDate": "2023-07-12",
+      "lastDate": "2023-10-04",
+      "daysAsCustomer": 84,
+      "avgInvoice": 17247.61,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Albert Jones R4213",
+      "total": 34251.28,
+      "invoiceCount": 2,
+      "firstDate": "2021-06-03",
+      "lastDate": "2021-06-29",
+      "daysAsCustomer": 26,
+      "avgInvoice": 17125.64,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Wess Cozelos"
+      ]
+    },
+    {
+      "customer": "Jennifer Brown R6215",
+      "total": 34153.11,
+      "invoiceCount": 2,
+      "firstDate": "2022-09-21",
+      "lastDate": "2022-10-26",
+      "daysAsCustomer": 35,
+      "avgInvoice": 17076.56,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Brandon Phillips R10365",
+      "total": 34055.46,
+      "invoiceCount": 4,
+      "firstDate": "2025-06-20",
+      "lastDate": "2025-09-17",
+      "daysAsCustomer": 89,
+      "avgInvoice": 8513.87,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers",
+        "VOIDED INVOICE"
+      ]
+    },
+    {
+      "customer": "Harry Smith R8284",
+      "total": 33966.63,
+      "invoiceCount": 2,
+      "firstDate": "2024-01-29",
+      "lastDate": "2024-03-18",
+      "daysAsCustomer": 49,
+      "avgInvoice": 16983.31,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Ethan Frith"
+      ]
+    },
+    {
+      "customer": "Jennifer Kassay R4984",
+      "total": 33945.61,
+      "invoiceCount": 3,
+      "firstDate": "2021-12-13",
+      "lastDate": "2022-02-24",
+      "daysAsCustomer": 73,
+      "avgInvoice": 11315.2,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Wess Cozelos"
+      ]
+    },
+    {
+      "customer": "Mike Laughmiller R7737",
+      "total": 33856.69,
+      "invoiceCount": 2,
+      "firstDate": "2023-08-22",
+      "lastDate": "2023-11-01",
+      "daysAsCustomer": 71,
+      "avgInvoice": 16928.35,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Richard Geahr"
+      ]
+    },
+    {
+      "customer": "Nate Smith R6180",
+      "total": 33596.02,
+      "invoiceCount": 3,
+      "firstDate": "2023-02-24",
+      "lastDate": "2023-04-14",
+      "daysAsCustomer": 49,
+      "avgInvoice": 11198.67,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Richard Geahr"
+      ]
+    },
+    {
+      "customer": "Steve O'neill R8046",
+      "total": 33488.88,
+      "invoiceCount": 2,
+      "firstDate": "2023-10-18",
+      "lastDate": "2023-11-03",
+      "daysAsCustomer": 16,
+      "avgInvoice": 16744.44,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Brian Sullivan"
+      ]
+    },
+    {
+      "customer": "Jill Copeland R9433",
+      "total": 33390.27,
+      "invoiceCount": 2,
+      "firstDate": "2026-01-07",
+      "lastDate": "2026-01-29",
+      "daysAsCustomer": 22,
+      "avgInvoice": 16695.14,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Emily Jackson R6390",
+      "total": 33341.24,
+      "invoiceCount": 3,
+      "firstDate": "2022-12-09",
+      "lastDate": "2023-01-26",
+      "daysAsCustomer": 48,
+      "avgInvoice": 11113.75,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Brendon Muse"
+      ]
+    },
+    {
+      "customer": "Lawrence Nelson R8042",
+      "total": 33204.4,
+      "invoiceCount": 2,
+      "firstDate": "2023-10-30",
+      "lastDate": "2023-12-27",
+      "daysAsCustomer": 58,
+      "avgInvoice": 16602.2,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Brendon Muse"
+      ]
+    },
+    {
+      "customer": "David Gereski R10210",
+      "total": 33096.15,
+      "invoiceCount": 2,
+      "firstDate": "2025-06-04",
+      "lastDate": "2025-06-18",
+      "daysAsCustomer": 14,
+      "avgInvoice": 16548.08,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "David Thomas"
+      ]
+    },
+    {
+      "customer": "Bruce Sholes R5914",
+      "total": 32975.99,
+      "invoiceCount": 3,
+      "firstDate": "2022-09-01",
+      "lastDate": "2022-10-04",
+      "daysAsCustomer": 33,
+      "avgInvoice": 10992,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Adam Rudell"
+      ]
+    },
+    {
+      "customer": "Scott Wallace R8924",
+      "total": 32887.58,
+      "invoiceCount": 2,
+      "firstDate": "2024-05-24",
+      "lastDate": "2024-07-16",
+      "daysAsCustomer": 53,
+      "avgInvoice": 16443.79,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Daniel Ganas"
+      ]
+    },
+    {
+      "customer": "Kim McConnell R10225",
+      "total": 32564.2,
+      "invoiceCount": 2,
+      "firstDate": "2025-06-30",
+      "lastDate": "2025-09-23",
+      "daysAsCustomer": 85,
+      "avgInvoice": 16282.1,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Patty Smith R10549",
+      "total": 32459.31,
+      "invoiceCount": 3,
+      "firstDate": "2025-09-12",
+      "lastDate": "2025-11-18",
+      "daysAsCustomer": 67,
+      "avgInvoice": 10819.77,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Suzan Lancaster R7986",
+      "total": 32358.26,
+      "invoiceCount": 2,
+      "firstDate": "2023-10-20",
+      "lastDate": "2023-12-05",
+      "daysAsCustomer": 46,
+      "avgInvoice": 16179.13,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Richard Geahr"
+      ]
+    },
+    {
+      "customer": "Teddy Reed R11024",
+      "total": 32349.49,
+      "invoiceCount": 2,
+      "firstDate": "2026-04-13",
+      "lastDate": "2026-05-04",
+      "daysAsCustomer": 21,
+      "avgInvoice": 16174.75,
+      "recentInvoices": 2,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "James L Conatser R7410",
+      "total": 32317.12,
+      "invoiceCount": 2,
+      "firstDate": "2023-07-20",
+      "lastDate": "2023-10-05",
+      "daysAsCustomer": 77,
+      "avgInvoice": 16158.56,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Ethan Frith"
+      ]
+    },
+    {
+      "customer": "Seth Gooden R8361",
+      "total": 32309,
+      "invoiceCount": 2,
+      "firstDate": "2024-03-01",
+      "lastDate": "2024-05-31",
+      "daysAsCustomer": 91,
+      "avgInvoice": 16154.5,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Brandon Bradford"
+      ]
+    },
+    {
+      "customer": "Jack Gulden R8335",
+      "total": 32156.92,
+      "invoiceCount": 3,
+      "firstDate": "2024-01-24",
+      "lastDate": "2024-05-09",
+      "daysAsCustomer": 106,
+      "avgInvoice": 10718.97,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Daniel Ganas"
+      ]
+    },
+    {
+      "customer": "Michael Lee R9751",
+      "total": 31979.79,
+      "invoiceCount": 3,
+      "firstDate": "2025-02-28",
+      "lastDate": "2025-03-19",
+      "daysAsCustomer": 19,
+      "avgInvoice": 10659.93,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Mark Guida R7656",
+      "total": 31892.86,
+      "invoiceCount": 2,
+      "firstDate": "2023-12-29",
+      "lastDate": "2023-12-29",
+      "daysAsCustomer": 0,
+      "avgInvoice": 15946.43,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Adam Rudell"
+      ]
+    },
+    {
+      "customer": "Robert Christian R10652",
+      "total": 31891.9,
+      "invoiceCount": 2,
+      "firstDate": "2025-09-05",
+      "lastDate": "2025-10-29",
+      "daysAsCustomer": 54,
+      "avgInvoice": 15945.95,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Adam Rudell"
+      ]
+    },
+    {
+      "customer": "Jerry Owens R8844",
+      "total": 31889.92,
+      "invoiceCount": 2,
+      "firstDate": "2024-05-15",
+      "lastDate": "2024-06-19",
+      "daysAsCustomer": 35,
+      "avgInvoice": 15944.96,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "MJ Muse"
+      ]
+    },
+    {
+      "customer": "Thomas Foster R10122",
+      "total": 31772.39,
+      "invoiceCount": 2,
+      "firstDate": "2025-05-30",
+      "lastDate": "2025-06-18",
+      "daysAsCustomer": 19,
+      "avgInvoice": 15886.2,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Boykin"
+      ]
+    },
+    {
+      "customer": "Colonel Dave & Melissa Baxter R7612",
+      "total": 31700.33,
+      "invoiceCount": 2,
+      "firstDate": "2023-08-22",
+      "lastDate": "2023-10-23",
+      "daysAsCustomer": 62,
+      "avgInvoice": 15850.17,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Adam Rudell"
+      ]
+    },
+    {
+      "customer": "Mitch Schuster R4660",
+      "total": 31671.13,
+      "invoiceCount": 2,
+      "firstDate": "2021-07-27",
+      "lastDate": "2021-11-18",
+      "daysAsCustomer": 114,
+      "avgInvoice": 15835.57,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Richard Geahr"
+      ]
+    },
+    {
+      "customer": "David Yarbrough (Whole Roof) R6896",
+      "total": 31661.5,
+      "invoiceCount": 2,
+      "firstDate": "2023-04-06",
+      "lastDate": "2023-05-19",
+      "daysAsCustomer": 43,
+      "avgInvoice": 15830.75,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Wess Cozelos"
+      ]
+    },
+    {
+      "customer": "Megan Watts R7441",
+      "total": 31619.09,
+      "invoiceCount": 2,
+      "firstDate": "2023-08-18",
+      "lastDate": "2023-10-18",
+      "daysAsCustomer": 61,
+      "avgInvoice": 15809.55,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Brendon Muse"
+      ]
+    },
+    {
+      "customer": "Stacie Freeman R6492",
+      "total": 31468.62,
+      "invoiceCount": 4,
+      "firstDate": "2023-03-22",
+      "lastDate": "2023-06-20",
+      "daysAsCustomer": 90,
+      "avgInvoice": 7867.16,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Richard Geahr"
+      ]
+    },
+    {
+      "customer": "Marc & Vicki Highsmith R8107",
+      "total": 31356.15,
+      "invoiceCount": 4,
+      "firstDate": "2023-12-12",
+      "lastDate": "2024-01-10",
+      "daysAsCustomer": 29,
+      "avgInvoice": 7839.04,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Adam Rudell"
+      ]
+    },
+    {
+      "customer": "John Gaivin R10405",
+      "total": 31312.82,
+      "invoiceCount": 2,
+      "firstDate": "2025-06-17",
+      "lastDate": "2025-08-14",
+      "daysAsCustomer": 58,
+      "avgInvoice": 15656.41,
+      "recentInvoices": 0,
+      "isRepeat": true,
+      "reps": [
+        "Adam Rudell"
+      ]
+    },
+    {
+      "customer": "Rod Schumann R10967",
+      "total": 31265.02,
+      "invoiceCount": 4,
+      "firstDate": "2026-03-04",
+      "lastDate": "2026-03-16",
+      "daysAsCustomer": 12,
+      "avgInvoice": 7816.26,
+      "recentInvoices": 4,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse"
+      ]
+    }
+  ],
+  "recentBig": [
+    {
+      "customer": "Cornerstone Presbyterian Church (Gym Full) R10516",
+      "total": 279520.48,
+      "invoiceCount": 2,
+      "firstDate": "2025-08-11",
+      "lastDate": "2026-05-12",
+      "daysAsCustomer": 274,
+      "avgInvoice": 139760.24,
+      "recentInvoices": 1,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Bernard Granger R8154",
+      "total": 39145.87,
+      "invoiceCount": 3,
+      "firstDate": "2026-02-16",
+      "lastDate": "2026-03-13",
+      "daysAsCustomer": 25,
+      "avgInvoice": 13048.62,
+      "recentInvoices": 1,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Parkway Apts Bldg B&C R10887",
+      "total": 38900,
+      "invoiceCount": 2,
+      "firstDate": "2026-02-25",
+      "lastDate": "2026-03-11",
+      "daysAsCustomer": 14,
+      "avgInvoice": 19450,
+      "recentInvoices": 2,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Jim Sigle R11107",
+      "total": 36199.66,
+      "invoiceCount": 3,
+      "firstDate": "2026-05-12",
+      "lastDate": "2026-05-19",
+      "daysAsCustomer": 7,
+      "avgInvoice": 12066.55,
+      "recentInvoices": 3,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse",
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Mike Carrol R10859",
+      "total": 36125,
+      "invoiceCount": 6,
+      "firstDate": "2026-03-03",
+      "lastDate": "2026-04-10",
+      "daysAsCustomer": 38,
+      "avgInvoice": 6020.83,
+      "recentInvoices": 6,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Dave Bishop R11053",
+      "total": 32598.89,
+      "invoiceCount": 1,
+      "firstDate": "2026-04-28",
+      "lastDate": "2026-04-28",
+      "daysAsCustomer": 0,
+      "avgInvoice": 32598.89,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Teddy Reed R11024",
+      "total": 32349.49,
+      "invoiceCount": 2,
+      "firstDate": "2026-04-13",
+      "lastDate": "2026-05-04",
+      "daysAsCustomer": 21,
+      "avgInvoice": 16174.75,
+      "recentInvoices": 2,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Rod Schumann R10967",
+      "total": 31265.02,
+      "invoiceCount": 4,
+      "firstDate": "2026-03-04",
+      "lastDate": "2026-03-16",
+      "daysAsCustomer": 12,
+      "avgInvoice": 7816.26,
+      "recentInvoices": 4,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Glenn Gaines R11012",
+      "total": 31041.7,
+      "invoiceCount": 1,
+      "firstDate": "2026-04-22",
+      "lastDate": "2026-04-22",
+      "daysAsCustomer": 0,
+      "avgInvoice": 31041.7,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Alijah Coleman"
+      ]
+    },
+    {
+      "customer": "Tommy Prater R11005",
+      "total": 29929.83,
+      "invoiceCount": 3,
+      "firstDate": "2026-04-07",
+      "lastDate": "2026-04-07",
+      "daysAsCustomer": 0,
+      "avgInvoice": 9976.61,
+      "recentInvoices": 3,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Blake Entrekin R11185",
+      "total": 28372.74,
+      "invoiceCount": 1,
+      "firstDate": "2026-05-06",
+      "lastDate": "2026-05-06",
+      "daysAsCustomer": 0,
+      "avgInvoice": 28372.74,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Leslie Randolph R11083",
+      "total": 27371.6,
+      "invoiceCount": 1,
+      "firstDate": "2026-04-02",
+      "lastDate": "2026-04-02",
+      "daysAsCustomer": 0,
+      "avgInvoice": 27371.6,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Brian Langham R11133",
+      "total": 27351.75,
+      "invoiceCount": 1,
+      "firstDate": "2026-05-04",
+      "lastDate": "2026-05-04",
+      "daysAsCustomer": 0,
+      "avgInvoice": 27351.75,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Joyce Kirksey R10838",
+      "total": 26514.68,
+      "invoiceCount": 2,
+      "firstDate": "2026-04-28",
+      "lastDate": "2026-04-29",
+      "daysAsCustomer": 1,
+      "avgInvoice": 13257.34,
+      "recentInvoices": 2,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Kathy Jones (HSV) R10935",
+      "total": 25874.74,
+      "invoiceCount": 2,
+      "firstDate": "2026-04-09",
+      "lastDate": "2026-04-29",
+      "daysAsCustomer": 20,
+      "avgInvoice": 12937.37,
+      "recentInvoices": 2,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "David Elliot R11045",
+      "total": 25702.09,
+      "invoiceCount": 2,
+      "firstDate": "2026-04-02",
+      "lastDate": "2026-04-02",
+      "daysAsCustomer": 0,
+      "avgInvoice": 12851.05,
+      "recentInvoices": 2,
+      "isRepeat": true,
+      "reps": [
+        "Alijah Coleman"
+      ]
+    },
+    {
+      "customer": "Wally Looney (3110 Constitution) R10932",
+      "total": 25269.79,
+      "invoiceCount": 1,
+      "firstDate": "2026-02-26",
+      "lastDate": "2026-02-26",
+      "daysAsCustomer": 0,
+      "avgInvoice": 25269.79,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Efren Arriaga R11087",
+      "total": 25158.31,
+      "invoiceCount": 1,
+      "firstDate": "2026-04-02",
+      "lastDate": "2026-04-02",
+      "daysAsCustomer": 0,
+      "avgInvoice": 25158.31,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Alijah Coleman"
+      ]
+    },
+    {
+      "customer": "Ben Williams. R10940",
+      "total": 24857.6,
+      "invoiceCount": 2,
+      "firstDate": "2026-03-27",
+      "lastDate": "2026-03-27",
+      "daysAsCustomer": 0,
+      "avgInvoice": 12428.8,
+      "recentInvoices": 2,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Jason Abbott 2 R10982",
+      "total": 24545.51,
+      "invoiceCount": 1,
+      "firstDate": "2026-04-03",
+      "lastDate": "2026-04-03",
+      "daysAsCustomer": 0,
+      "avgInvoice": 24545.51,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Marty Hutto R11071",
+      "total": 24499,
+      "invoiceCount": 1,
+      "firstDate": "2026-04-03",
+      "lastDate": "2026-04-03",
+      "daysAsCustomer": 0,
+      "avgInvoice": 24499,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Dusty Dutton R11011",
+      "total": 24181.48,
+      "invoiceCount": 2,
+      "firstDate": "2026-04-01",
+      "lastDate": "2026-04-15",
+      "daysAsCustomer": 14,
+      "avgInvoice": 12090.74,
+      "recentInvoices": 2,
+      "isRepeat": true,
+      "reps": [
+        "Alijah Coleman"
+      ]
+    },
+    {
+      "customer": "Leo Johnson R11049",
+      "total": 23851.9,
+      "invoiceCount": 1,
+      "firstDate": "2026-04-03",
+      "lastDate": "2026-04-03",
+      "daysAsCustomer": 0,
+      "avgInvoice": 23851.9,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Roger Gibson R11070",
+      "total": 23616.49,
+      "invoiceCount": 1,
+      "firstDate": "2026-03-18",
+      "lastDate": "2026-03-18",
+      "daysAsCustomer": 0,
+      "avgInvoice": 23616.49,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Mark Williams R11104",
+      "total": 23499.38,
+      "invoiceCount": 1,
+      "firstDate": "2026-04-14",
+      "lastDate": "2026-04-14",
+      "daysAsCustomer": 0,
+      "avgInvoice": 23499.38,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Britt Parrish R7707",
+      "total": 22146.71,
+      "invoiceCount": 1,
+      "firstDate": "2026-05-15",
+      "lastDate": "2026-05-15",
+      "daysAsCustomer": 0,
+      "avgInvoice": 22146.71,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Marietta Jelks R11062",
+      "total": 22103.45,
+      "invoiceCount": 2,
+      "firstDate": "2026-04-10",
+      "lastDate": "2026-04-10",
+      "daysAsCustomer": 0,
+      "avgInvoice": 11051.73,
+      "recentInvoices": 2,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Dan Sebring R11222",
+      "total": 21850,
+      "invoiceCount": 1,
+      "firstDate": "2026-05-18",
+      "lastDate": "2026-05-18",
+      "daysAsCustomer": 0,
+      "avgInvoice": 21850,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Chad Gault R11032",
+      "total": 21635.13,
+      "invoiceCount": 3,
+      "firstDate": "2026-03-30",
+      "lastDate": "2026-04-24",
+      "daysAsCustomer": 25,
+      "avgInvoice": 7211.71,
+      "recentInvoices": 3,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Phillip Parmer R10789",
+      "total": 21302.73,
+      "invoiceCount": 2,
+      "firstDate": "2026-03-09",
+      "lastDate": "2026-03-24",
+      "daysAsCustomer": 15,
+      "avgInvoice": 10651.37,
+      "recentInvoices": 2,
+      "isRepeat": true,
+      "reps": [
+        "Travis Wages"
+      ]
+    },
+    {
+      "customer": "Paula White R11077",
+      "total": 20882.04,
+      "invoiceCount": 2,
+      "firstDate": "2026-04-03",
+      "lastDate": "2026-04-16",
+      "daysAsCustomer": 13,
+      "avgInvoice": 10441.02,
+      "recentInvoices": 2,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Michael Roberson R10996",
+      "total": 20799.27,
+      "invoiceCount": 1,
+      "firstDate": "2026-04-23",
+      "lastDate": "2026-04-23",
+      "daysAsCustomer": 0,
+      "avgInvoice": 20799.27,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Isaac Schrimsher R5158",
+      "total": 20189.54,
+      "invoiceCount": 1,
+      "firstDate": "2026-04-30",
+      "lastDate": "2026-04-30",
+      "daysAsCustomer": 0,
+      "avgInvoice": 20189.54,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Mary Hanson R11166",
+      "total": 19542.42,
+      "invoiceCount": 1,
+      "firstDate": "2026-04-29",
+      "lastDate": "2026-04-29",
+      "daysAsCustomer": 0,
+      "avgInvoice": 19542.42,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Alijah Coleman"
+      ]
+    },
+    {
+      "customer": "Rick Roark R11019",
+      "total": 19234.49,
+      "invoiceCount": 1,
+      "firstDate": "2026-03-13",
+      "lastDate": "2026-03-13",
+      "daysAsCustomer": 0,
+      "avgInvoice": 19234.49,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Brian Pace R11031",
+      "total": 18883.49,
+      "invoiceCount": 2,
+      "firstDate": "2026-04-24",
+      "lastDate": "2026-05-06",
+      "daysAsCustomer": 12,
+      "avgInvoice": 9441.74,
+      "recentInvoices": 2,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Pamela Ebeling-Belt R11135",
+      "total": 18715.93,
+      "invoiceCount": 1,
+      "firstDate": "2026-04-07",
+      "lastDate": "2026-04-07",
+      "daysAsCustomer": 0,
+      "avgInvoice": 18715.93,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Travis Wages"
+      ]
+    },
+    {
+      "customer": "Parkway Apr Bldg J R11092",
+      "total": 18400,
+      "invoiceCount": 1,
+      "firstDate": "2026-05-14",
+      "lastDate": "2026-05-14",
+      "daysAsCustomer": 0,
+      "avgInvoice": 18400,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Elam Creek Missionary Baptist Church R11121",
+      "total": 18238.36,
+      "invoiceCount": 2,
+      "firstDate": "2026-04-01",
+      "lastDate": "2026-04-06",
+      "daysAsCustomer": 5,
+      "avgInvoice": 9119.18,
+      "recentInvoices": 2,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Kenny & Debbie Parker R10783",
+      "total": 18166.88,
+      "invoiceCount": 3,
+      "firstDate": "2026-01-23",
+      "lastDate": "2026-05-06",
+      "daysAsCustomer": 103,
+      "avgInvoice": 6055.63,
+      "recentInvoices": 2,
+      "isRepeat": true,
+      "reps": [
+        "Brendon Muse"
+      ]
+    },
+    {
+      "customer": "Joy Honea R10993",
+      "total": 16791.49,
+      "invoiceCount": 1,
+      "firstDate": "2026-05-13",
+      "lastDate": "2026-05-13",
+      "daysAsCustomer": 0,
+      "avgInvoice": 16791.49,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Brendon Muse"
+      ]
+    },
+    {
+      "customer": "Thomas Roberson R10984",
+      "total": 16575.25,
+      "invoiceCount": 2,
+      "firstDate": "2026-03-16",
+      "lastDate": "2026-03-25",
+      "daysAsCustomer": 9,
+      "avgInvoice": 8287.63,
+      "recentInvoices": 2,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Leo Johnson R11058",
+      "total": 16044.28,
+      "invoiceCount": 1,
+      "firstDate": "2026-04-10",
+      "lastDate": "2026-04-10",
+      "daysAsCustomer": 0,
+      "avgInvoice": 16044.28,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Mike Smith. R11109",
+      "total": 15860,
+      "invoiceCount": 1,
+      "firstDate": "2026-04-03",
+      "lastDate": "2026-04-03",
+      "daysAsCustomer": 0,
+      "avgInvoice": 15860,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Kim Hooper R10978",
+      "total": 15772.73,
+      "invoiceCount": 1,
+      "firstDate": "2026-04-02",
+      "lastDate": "2026-04-02",
+      "daysAsCustomer": 0,
+      "avgInvoice": 15772.73,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Beth Marquardt R10841",
+      "total": 15772.08,
+      "invoiceCount": 2,
+      "firstDate": "2026-03-13",
+      "lastDate": "2026-03-24",
+      "daysAsCustomer": 11,
+      "avgInvoice": 7886.04,
+      "recentInvoices": 2,
+      "isRepeat": true,
+      "reps": [
+        "Travis Wages"
+      ]
+    },
+    {
+      "customer": "John Morgan Hunter R10908",
+      "total": 15200,
+      "invoiceCount": 2,
+      "firstDate": "2026-01-30",
+      "lastDate": "2026-02-26",
+      "daysAsCustomer": 27,
+      "avgInvoice": 7600,
+      "recentInvoices": 1,
+      "isRepeat": true,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Thad Gray R8141",
+      "total": 14765.48,
+      "invoiceCount": 1,
+      "firstDate": "2026-04-03",
+      "lastDate": "2026-04-03",
+      "daysAsCustomer": 0,
+      "avgInvoice": 14765.48,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Bradley Willis R10871",
+      "total": 14738.37,
+      "invoiceCount": 1,
+      "firstDate": "2026-03-24",
+      "lastDate": "2026-03-24",
+      "daysAsCustomer": 0,
+      "avgInvoice": 14738.37,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Chris Russell R11017",
+      "total": 14708.64,
+      "invoiceCount": 2,
+      "firstDate": "2026-03-13",
+      "lastDate": "2026-03-23",
+      "daysAsCustomer": 10,
+      "avgInvoice": 7354.32,
+      "recentInvoices": 2,
+      "isRepeat": true,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Leanna Hooper R10997",
+      "total": 14495.86,
+      "invoiceCount": 1,
+      "firstDate": "2026-05-08",
+      "lastDate": "2026-05-08",
+      "daysAsCustomer": 0,
+      "avgInvoice": 14495.86,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Chuck Rogers R10923",
+      "total": 14436.93,
+      "invoiceCount": 1,
+      "firstDate": "2026-05-13",
+      "lastDate": "2026-05-13",
+      "daysAsCustomer": 0,
+      "avgInvoice": 14436.93,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Sandy Revis R11165",
+      "total": 13704.72,
+      "invoiceCount": 1,
+      "firstDate": "2026-04-24",
+      "lastDate": "2026-04-24",
+      "daysAsCustomer": 0,
+      "avgInvoice": 13704.72,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Rita Baker Roof Repair R11191",
+      "total": 13694.92,
+      "invoiceCount": 2,
+      "firstDate": "2026-05-05",
+      "lastDate": "2026-05-18",
+      "daysAsCustomer": 13,
+      "avgInvoice": 6847.46,
+      "recentInvoices": 2,
+      "isRepeat": true,
+      "reps": [
+        "Travis Wages",
+        "Brendon Muse"
+      ]
+    },
+    {
+      "customer": "Erik Preece R11190",
+      "total": 13129.62,
+      "invoiceCount": 1,
+      "firstDate": "2026-05-05",
+      "lastDate": "2026-05-05",
+      "daysAsCustomer": 0,
+      "avgInvoice": 13129.62,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Travis Wages"
+      ]
+    },
+    {
+      "customer": "Drema Parker R11039",
+      "total": 12296,
+      "invoiceCount": 1,
+      "firstDate": "2026-04-03",
+      "lastDate": "2026-04-03",
+      "daysAsCustomer": 0,
+      "avgInvoice": 12296,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Zack Mosley R11101",
+      "total": 12213.18,
+      "invoiceCount": 1,
+      "firstDate": "2026-04-28",
+      "lastDate": "2026-04-28",
+      "daysAsCustomer": 0,
+      "avgInvoice": 12213.18,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Kelly Martin R11170",
+      "total": 11768.75,
+      "invoiceCount": 1,
+      "firstDate": "2026-05-11",
+      "lastDate": "2026-05-11",
+      "daysAsCustomer": 0,
+      "avgInvoice": 11768.75,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Cliff McCue R10872",
+      "total": 11316.34,
+      "invoiceCount": 2,
+      "firstDate": "2026-03-17",
+      "lastDate": "2026-03-25",
+      "daysAsCustomer": 8,
+      "avgInvoice": 5658.17,
+      "recentInvoices": 2,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Brenda Langham R11223",
+      "total": 11238.42,
+      "invoiceCount": 1,
+      "firstDate": "2026-05-15",
+      "lastDate": "2026-05-15",
+      "daysAsCustomer": 0,
+      "avgInvoice": 11238.42,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Chuck Rogers (Fascia, Soffit, Siding) R11207",
+      "total": 10981.14,
+      "invoiceCount": 1,
+      "firstDate": "2026-05-13",
+      "lastDate": "2026-05-13",
+      "daysAsCustomer": 0,
+      "avgInvoice": 10981.14,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Ashley Allen Back Half Roof R11009",
+      "total": 10826.98,
+      "invoiceCount": 2,
+      "firstDate": "2026-03-24",
+      "lastDate": "2026-04-01",
+      "daysAsCustomer": 8,
+      "avgInvoice": 5413.49,
+      "recentInvoices": 2,
+      "isRepeat": true,
+      "reps": [
+        "Brendon Muse"
+      ]
+    },
+    {
+      "customer": "Chandler Daniel R11116",
+      "total": 9089.99,
+      "invoiceCount": 2,
+      "firstDate": "2026-04-17",
+      "lastDate": "2026-04-21",
+      "daysAsCustomer": 4,
+      "avgInvoice": 4545,
+      "recentInvoices": 2,
+      "isRepeat": true,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Jim Hill R10994",
+      "total": 7965.38,
+      "invoiceCount": 1,
+      "firstDate": "2026-04-30",
+      "lastDate": "2026-04-30",
+      "daysAsCustomer": 0,
+      "avgInvoice": 7965.38,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Mark Williams (Gutter) R11180",
+      "total": 7561.72,
+      "invoiceCount": 1,
+      "firstDate": "2026-04-30",
+      "lastDate": "2026-04-30",
+      "daysAsCustomer": 0,
+      "avgInvoice": 7561.72,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Mitch Schuster Home R11217",
+      "total": 6886.31,
+      "invoiceCount": 1,
+      "firstDate": "2026-05-18",
+      "lastDate": "2026-05-18",
+      "daysAsCustomer": 0,
+      "avgInvoice": 6886.31,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Richard Geahr R10779",
+      "total": 6432.02,
+      "invoiceCount": 1,
+      "firstDate": "2026-04-03",
+      "lastDate": "2026-04-03",
+      "daysAsCustomer": 0,
+      "avgInvoice": 6432.02,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Richard Geahr"
+      ]
+    },
+    {
+      "customer": "Antioch Baptist (2nd Repair) R10960",
+      "total": 4595.36,
+      "invoiceCount": 1,
+      "firstDate": "2026-03-19",
+      "lastDate": "2026-03-19",
+      "daysAsCustomer": 0,
+      "avgInvoice": 4595.36,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Brendon Muse"
+      ]
+    },
+    {
+      "customer": "Jason Abbott (Gutters, Fascia, Siding) R11020",
+      "total": 4586.09,
+      "invoiceCount": 1,
+      "firstDate": "2026-04-03",
+      "lastDate": "2026-04-03",
+      "daysAsCustomer": 0,
+      "avgInvoice": 4586.09,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Benjamin Behm R11018",
+      "total": 4500,
+      "invoiceCount": 1,
+      "firstDate": "2026-03-11",
+      "lastDate": "2026-03-11",
+      "daysAsCustomer": 0,
+      "avgInvoice": 4500,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Robert Brown Gutters R11088",
+      "total": 4283.53,
+      "invoiceCount": 1,
+      "firstDate": "2026-04-03",
+      "lastDate": "2026-04-03",
+      "daysAsCustomer": 0,
+      "avgInvoice": 4283.53,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Travis Wages"
+      ]
+    },
+    {
+      "customer": "Bryan Styles R10929",
+      "total": 4155.36,
+      "invoiceCount": 1,
+      "firstDate": "2026-05-19",
+      "lastDate": "2026-05-19",
+      "daysAsCustomer": 0,
+      "avgInvoice": 4155.36,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Gudrun Fatuaalii R10979",
+      "total": 3486.81,
+      "invoiceCount": 1,
+      "firstDate": "2026-03-04",
+      "lastDate": "2026-03-04",
+      "daysAsCustomer": 0,
+      "avgInvoice": 3486.81,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Endeavour Realty (5031 SE Valley Cove Dr) R10969",
+      "total": 3250,
+      "invoiceCount": 1,
+      "firstDate": "2026-03-09",
+      "lastDate": "2026-03-09",
+      "daysAsCustomer": 0,
+      "avgInvoice": 3250,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Rebecca Buckner (Gutter/fascia)  R4727",
+      "total": 3200,
+      "invoiceCount": 1,
+      "firstDate": "2026-03-02",
+      "lastDate": "2026-03-02",
+      "daysAsCustomer": 0,
+      "avgInvoice": 3200,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Hillary Parker (New) R11148",
+      "total": 2563.92,
+      "invoiceCount": 1,
+      "firstDate": "2026-04-27",
+      "lastDate": "2026-04-27",
+      "daysAsCustomer": 0,
+      "avgInvoice": 2563.92,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Chad Gault (Gutters) R11050",
+      "total": 2477.3,
+      "invoiceCount": 1,
+      "firstDate": "2026-04-10",
+      "lastDate": "2026-04-10",
+      "daysAsCustomer": 0,
+      "avgInvoice": 2477.3,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Justin Ramsey R11076",
+      "total": 2150,
+      "invoiceCount": 1,
+      "firstDate": "2026-04-10",
+      "lastDate": "2026-04-10",
+      "daysAsCustomer": 0,
+      "avgInvoice": 2150,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Joe Garza III R11114",
+      "total": 1757.49,
+      "invoiceCount": 1,
+      "firstDate": "2026-03-27",
+      "lastDate": "2026-03-27",
+      "daysAsCustomer": 0,
+      "avgInvoice": 1757.49,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Brendon Muse"
+      ]
+    },
+    {
+      "customer": "James Tynan R10963",
+      "total": 1650,
+      "invoiceCount": 1,
+      "firstDate": "2026-02-25",
+      "lastDate": "2026-02-25",
+      "daysAsCustomer": 0,
+      "avgInvoice": 1650,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Paula White (Gutters) R11126",
+      "total": 1363.14,
+      "invoiceCount": 1,
+      "firstDate": "2026-04-16",
+      "lastDate": "2026-04-16",
+      "daysAsCustomer": 0,
+      "avgInvoice": 1363.14,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Greg Muse"
+      ]
+    },
+    {
+      "customer": "Wendy Putman. R11199",
+      "total": 1150,
+      "invoiceCount": 1,
+      "firstDate": "2026-05-02",
+      "lastDate": "2026-05-02",
+      "daysAsCustomer": 0,
+      "avgInvoice": 1150,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Suzan Lancaster (Repair) R11112",
+      "total": 757.59,
+      "invoiceCount": 1,
+      "firstDate": "2026-04-14",
+      "lastDate": "2026-04-14",
+      "daysAsCustomer": 0,
+      "avgInvoice": 757.59,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Richard Geahr"
+      ]
+    },
+    {
+      "customer": "Timothy Davey Vent R11177",
+      "total": 750,
+      "invoiceCount": 1,
+      "firstDate": "2026-05-07",
+      "lastDate": "2026-05-07",
+      "daysAsCustomer": 0,
+      "avgInvoice": 750,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Hoi Nguyen Repair R11233",
+      "total": 700,
+      "invoiceCount": 1,
+      "firstDate": "2026-05-15",
+      "lastDate": "2026-05-15",
+      "daysAsCustomer": 0,
+      "avgInvoice": 700,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "Delaney Burrows R11211",
+      "total": 700,
+      "invoiceCount": 1,
+      "firstDate": "2026-05-08",
+      "lastDate": "2026-05-08",
+      "daysAsCustomer": 0,
+      "avgInvoice": 700,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "customer": "NAPMG #2(25157 Delilah Cir) R11102",
+      "total": 650,
+      "invoiceCount": 1,
+      "firstDate": "2026-04-01",
+      "lastDate": "2026-04-01",
+      "daysAsCustomer": 0,
+      "avgInvoice": 650,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "NAPMG (179 Sandy Hollow Dr NW) R11111",
+      "total": 600,
+      "invoiceCount": 1,
+      "firstDate": "2026-03-31",
+      "lastDate": "2026-03-31",
+      "daysAsCustomer": 0,
+      "avgInvoice": 600,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Eric Kile R11227",
+      "total": 517.29,
+      "invoiceCount": 1,
+      "firstDate": "2026-05-13",
+      "lastDate": "2026-05-13",
+      "daysAsCustomer": 0,
+      "avgInvoice": 517.29,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "customer": "Endeavour Realty (6167 Wall Triana) R11067",
+      "total": 350,
+      "invoiceCount": 1,
+      "firstDate": "2026-03-19",
+      "lastDate": "2026-03-19",
+      "daysAsCustomer": 0,
+      "avgInvoice": 350,
+      "recentInvoices": 1,
+      "isRepeat": false,
+      "reps": [
+        "Aaron Lussi"
+      ]
+    }
+  ],
+  "cohorts": [
+    {
+      "year": "2018",
+      "customers": 55,
+      "totalRevenue": 241240.15,
+      "repeatCount": 6,
+      "repeatRate": 10.9,
+      "avgPerCustomer": 4386.18
+    },
+    {
+      "year": "2019",
+      "customers": 429,
+      "totalRevenue": 3123544.75,
+      "repeatCount": 19,
+      "repeatRate": 4.4,
+      "avgPerCustomer": 7280.99
+    },
+    {
+      "year": "2020",
+      "customers": 518,
+      "totalRevenue": 4165707.11,
+      "repeatCount": 16,
+      "repeatRate": 3.1,
+      "avgPerCustomer": 8041.91
+    },
+    {
+      "year": "2021",
+      "customers": 508,
+      "totalRevenue": 5074494.55,
+      "repeatCount": 177,
+      "repeatRate": 34.8,
+      "avgPerCustomer": 9989.16
+    },
+    {
+      "year": "2022",
+      "customers": 433,
+      "totalRevenue": 5150215.64,
+      "repeatCount": 207,
+      "repeatRate": 47.8,
+      "avgPerCustomer": 11894.26
+    },
+    {
+      "year": "2023",
+      "customers": 489,
+      "totalRevenue": 6929845.75,
+      "repeatCount": 261,
+      "repeatRate": 53.4,
+      "avgPerCustomer": 14171.46
+    },
+    {
+      "year": "2024",
+      "customers": 299,
+      "totalRevenue": 4260427.21,
+      "repeatCount": 139,
+      "repeatRate": 46.5,
+      "avgPerCustomer": 14248.92
+    },
+    {
+      "year": "2025",
+      "customers": 354,
+      "totalRevenue": 5250359.34,
+      "repeatCount": 180,
+      "repeatRate": 50.8,
+      "avgPerCustomer": 14831.52
+    },
+    {
+      "year": "2026",
+      "customers": 109,
+      "totalRevenue": 1597803.86,
+      "repeatCount": 31,
+      "repeatRate": 28.4,
+      "avgPerCustomer": 14658.75
+    }
+  ]
+}
