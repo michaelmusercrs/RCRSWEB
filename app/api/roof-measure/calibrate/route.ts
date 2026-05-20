@@ -5,6 +5,7 @@ import {
   type CalibrationMeasurements,
   type AICalibrationResult,
 } from '@/lib/roof-calibration';
+import { requireAuth } from '@/lib/auth-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +16,13 @@ export const dynamic = 'force-dynamic';
  * Recalculates per-method correction factors and accuracy scores.
  */
 export async function POST(request: NextRequest) {
+  // SECURITY 2026-05-20: was unauthenticated — public POST mutated
+  // calibration data (correction factors / accuracy scores). Anyone could
+  // poison future roof measurements. Gate to any authenticated team
+  // member as the minimum. GET stays public (read-only stats).
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const body = await request.json();
     const { address, measurements, source, aiResults, roofArea_sqft } = body;

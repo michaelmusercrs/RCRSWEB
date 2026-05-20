@@ -1,4 +1,5 @@
-import { generateMetadata as genMeta } from '@/lib/seo';
+import { generateMetadata as genMeta, generateBreadcrumbSchema } from '@/lib/seo';
+import StructuredData from '@/components/StructuredData';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
@@ -9,8 +10,14 @@ export const metadata: Metadata = genMeta({
 });
 
 export default function TermsOfServicePage() {
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: 'Terms of Service', url: '/terms' },
+  ]);
+
   return (
     <div className="min-h-screen bg-black/80 backdrop-blur-sm">
+      <StructuredData data={breadcrumbSchema} />
       <div className="container mx-auto px-4 py-16 max-w-4xl">
         <h1 className="text-4xl font-bold text-white mb-8">Terms of Service</h1>
         <p className="text-gray-400 mb-8">Last Updated: February 6, 2026</p>

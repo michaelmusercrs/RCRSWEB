@@ -4,6 +4,19 @@
  */
 
 import { Metadata } from 'next';
+import reviewsMaster from '../data/reviews-master.json';
+
+// Real review aggregate, sourced from data/reviews-master.json (the canonical
+// review corpus used by the reviews page + leaderboards). Keeping this here
+// means every schema generator that emits an `aggregateRating` reflects the
+// real count + average — no fabrication. See `feedback_never_invent_brand_data`.
+const reviewsMasterTyped = reviewsMaster as {
+  count: number;
+  fiveStarCount: number;
+  averageRating: number;
+};
+const REAL_REVIEW_COUNT = reviewsMasterTyped.count;
+const REAL_AVG_RATING = reviewsMasterTyped.averageRating;
 
 // Base configuration - Use www version for canonical URLs
 // IMPORTANT: Always use hardcoded www URL for canonical consistency
@@ -75,10 +88,13 @@ export const siteConfig = {
     'IKO ROOFPRO certified contractor Alabama',
     'roof insurance claim help Alabama',
   ],
-  // Review stats - single source of truth for aggregateRating across all schemas
+  // Review stats - single source of truth for aggregateRating across all schemas.
+  // Values are derived from data/reviews-master.json (the real review corpus).
+  // Do NOT hardcode review counts here — that risks fabricating data and
+  // tripping rich-result validation when the master file changes.
   reviewStats: {
-    ratingValue: '5.0',
-    reviewCount: '270',
+    ratingValue: REAL_AVG_RATING.toFixed(1),
+    reviewCount: String(REAL_REVIEW_COUNT),
     bestRating: '5',
     worstRating: '1',
   },
@@ -259,6 +275,7 @@ export function generateLocalBusinessSchema() {
       longitude: -86.9833,
     },
     areaServed: [
+      // Cities — the largest 8 active markets, kept for keyword + GBP signal
       {
         '@type': 'City',
         name: 'Decatur',
@@ -299,6 +316,24 @@ export function generateLocalBusinessSchema() {
         name: 'Moulton',
         '@id': 'https://en.wikipedia.org/wiki/Moulton,_Alabama',
       },
+      // Counties — full 15-county lead-distribution footprint, sourced from
+      // data/lead-distro-config.json so this stays in sync with the actual
+      // service area. AdministrativeArea is the schema.org type for counties.
+      { '@type': 'AdministrativeArea', name: 'Madison County, Alabama' },
+      { '@type': 'AdministrativeArea', name: 'Limestone County, Alabama' },
+      { '@type': 'AdministrativeArea', name: 'Morgan County, Alabama' },
+      { '@type': 'AdministrativeArea', name: 'Marshall County, Alabama' },
+      { '@type': 'AdministrativeArea', name: 'Jackson County, Alabama' },
+      { '@type': 'AdministrativeArea', name: 'DeKalb County, Alabama' },
+      { '@type': 'AdministrativeArea', name: 'Lawrence County, Alabama' },
+      { '@type': 'AdministrativeArea', name: 'Cullman County, Alabama' },
+      { '@type': 'AdministrativeArea', name: 'Blount County, Alabama' },
+      { '@type': 'AdministrativeArea', name: 'Etowah County, Alabama' },
+      { '@type': 'AdministrativeArea', name: 'Cherokee County, Alabama' },
+      { '@type': 'AdministrativeArea', name: 'Colbert County, Alabama' },
+      { '@type': 'AdministrativeArea', name: 'Franklin County, Alabama' },
+      { '@type': 'AdministrativeArea', name: 'Marion County, Alabama' },
+      { '@type': 'AdministrativeArea', name: 'Winston County, Alabama' },
       {
         '@type': 'State',
         name: 'Alabama',
@@ -354,8 +389,12 @@ export function generateLocalBusinessSchema() {
       },
     ],
     award: [
-      'BBB A+ Rating',
+      // IKO ROOFPRO Craftsman Premier always leads — primary manufacturer
+      // certification, per the certifications memory rule.
       'IKO ROOFPRO Craftsman Premier Contractor',
+      'Owens Corning Preferred Contractor',
+      'Boral Certified LeafX Dealer / Pro Installer',
+      'BBB A+ Rating',
     ],
     knowsAbout: [
       'Roof Replacement',
@@ -422,6 +461,11 @@ export function generateLocalBusinessSchema() {
         },
         {
           '@type': 'Offer',
+          // Free Roof Inspection — real, advertised offer. Explicit price 0
+          // makes it eligible for the "Free" rich-result badge in SERPs.
+          price: '0',
+          priceCurrency: 'USD',
+          availability: 'https://schema.org/InStock',
           itemOffered: {
             '@type': 'Service',
             name: 'Free Roof Inspection',
@@ -499,19 +543,33 @@ export function generateArticleSchema(params: {
 }
 
 /**
- * Generate JSON-LD structured data for service pages
+ * Generate JSON-LD structured data for service pages.
+ *
+ * The optional `offer` argument lets a page attach an Offer (e.g. "Free Roof
+ * Inspection" → price 0) so Google can render rich-result snippets with a
+ * starting price / "Free" badge.
  */
 export function generateServiceSchema(params: {
   name: string;
   description: string;
   image?: string;
   url: string;
+  /** Optional offer details. If `price: '0'` is passed, the schema validator
+   *  will render this as a free offering — useful for free inspections. */
+  offer?: {
+    price: string;
+    priceCurrency?: string;
+    description?: string;
+    availability?: string;
+  };
 }) {
   return {
     '@context': 'https://schema.org',
     '@type': 'Service',
     name: params.name,
     description: params.description,
+    // Reference the canonical RoofingContractor via @id so all Service schemas
+    // resolve back to one organization node in Google's knowledge graph.
     provider: {
       '@type': 'RoofingContractor',
       name: siteConfig.name,
@@ -527,6 +585,7 @@ export function generateServiceSchema(params: {
       },
     },
     areaServed: [
+      // Cities (active markets)
       { '@type': 'City', name: 'Decatur', containedInPlace: { '@type': 'State', name: 'Alabama' } },
       { '@type': 'City', name: 'Huntsville', containedInPlace: { '@type': 'State', name: 'Alabama' } },
       { '@type': 'City', name: 'Madison', containedInPlace: { '@type': 'State', name: 'Alabama' } },
@@ -536,11 +595,37 @@ export function generateServiceSchema(params: {
       { '@type': 'City', name: 'Moulton', containedInPlace: { '@type': 'State', name: 'Alabama' } },
       { '@type': 'City', name: 'Florence', containedInPlace: { '@type': 'State', name: 'Alabama' } },
       { '@type': 'City', name: 'Owens Cross Roads', containedInPlace: { '@type': 'State', name: 'Alabama' } },
+      // Counties (full lead-distribution footprint)
+      { '@type': 'AdministrativeArea', name: 'Madison County, Alabama' },
+      { '@type': 'AdministrativeArea', name: 'Limestone County, Alabama' },
+      { '@type': 'AdministrativeArea', name: 'Morgan County, Alabama' },
+      { '@type': 'AdministrativeArea', name: 'Marshall County, Alabama' },
+      { '@type': 'AdministrativeArea', name: 'Jackson County, Alabama' },
+      { '@type': 'AdministrativeArea', name: 'DeKalb County, Alabama' },
+      { '@type': 'AdministrativeArea', name: 'Lawrence County, Alabama' },
+      { '@type': 'AdministrativeArea', name: 'Cullman County, Alabama' },
+      { '@type': 'AdministrativeArea', name: 'Blount County, Alabama' },
+      { '@type': 'AdministrativeArea', name: 'Etowah County, Alabama' },
+      { '@type': 'AdministrativeArea', name: 'Cherokee County, Alabama' },
+      { '@type': 'AdministrativeArea', name: 'Colbert County, Alabama' },
+      { '@type': 'AdministrativeArea', name: 'Franklin County, Alabama' },
+      { '@type': 'AdministrativeArea', name: 'Marion County, Alabama' },
+      { '@type': 'AdministrativeArea', name: 'Winston County, Alabama' },
     ],
     serviceType: params.name,
     url: params.url,
     ...(params.image && {
       image: params.image.startsWith('http') ? params.image : `${siteConfig.url}${params.image}`,
+    }),
+    ...(params.offer && {
+      offers: {
+        '@type': 'Offer',
+        price: params.offer.price,
+        priceCurrency: params.offer.priceCurrency ?? 'USD',
+        availability: params.offer.availability ?? 'https://schema.org/InStock',
+        ...(params.offer.description && { description: params.offer.description }),
+        url: params.url,
+      },
     }),
   };
 }

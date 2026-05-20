@@ -111,12 +111,22 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
   const Icon = iconMap[service.icon];
   const items = service.whatsIncluded || service.servicesIncluded || service.features || [];
 
-  // Generate structured data for service page
+  // Generate structured data for service page.
+  // Attach a price: '0' Offer to the free-inspection service so SERPs can
+  // show a "Free" rich-result badge. Other services don't get an Offer
+  // here — we'd be inventing prices we don't publish.
   const serviceSchema = generateServiceSchema({
     name: service.title,
     description: service.description,
     image: service.image,
     url: `${siteConfig.url}/services/${slug}`,
+    ...(slug === 'roof-inspections-maintenance' && {
+      offer: {
+        price: '0',
+        priceCurrency: 'USD',
+        description: 'Free, no-obligation roof inspection with photo documentation. Available across North Alabama.',
+      },
+    }),
   });
 
   const breadcrumbSchema = generateBreadcrumbSchema([

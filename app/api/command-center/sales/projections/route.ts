@@ -22,6 +22,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { meetingNumbersService, type MeetingRecord } from '@/lib/meeting-numbers-service';
 import * as fs from 'fs';
 import * as path from 'path';
+import { requireAuth } from '@/lib/auth-service';
 
 // =============================================================================
 // TYPES
@@ -44,7 +45,6 @@ interface BonusTier {
 
 interface CompetitionConfig {
   monthlyBonusTiers: BonusTier[];
-  biannualBonusTiers: BonusTier[];
   awardsTrip: { threshold: number; periodType: string; description: string };
   monthlyGasCard: { amount: number; minDeals: number; minSales: number; description: string };
 }
@@ -378,6 +378,12 @@ function generateSuggestions(
 // =============================================================================
 
 export async function GET(request: NextRequest) {
+  // SECURITY 2026-05-20: was unauthenticated — leaked per-rep monthly/
+  // yearly sales projections, commission projections, and bonus-tier
+  // progress. Gate to any authenticated team member as the minimum.
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   const timestamp = new Date().toISOString();
 
   try {

@@ -20,6 +20,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { googleSheetsService } from '@/lib/google-sheets-service';
+import { requireAuth } from '@/lib/auth-service';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -92,6 +93,12 @@ function getPeriodBounds(period: string): { start: string; end: string } {
 }
 
 export async function GET(request: NextRequest) {
+  // SECURITY 2026-05-20: was unauthenticated — leaked the third leaderboard
+  // (self-reported activity: doors knocked, appointments set, revenueClosed
+  // per rep). Gate to any authenticated team member as the minimum.
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   const { searchParams } = new URL(request.url);
   const period = searchParams.get('period') || 'thisMonth';
   const sortMetric = (searchParams.get('metric') || 'revenueClosed') as keyof AggregatedRep;

@@ -8,7 +8,9 @@ The scheduled routine appends an entry per action.
 
 ## 2026-05-20
 
-- `16:45` · claude · 32 files repo root → docs/archive/ · Phase 4 safe archive (cookies.txt, curl-debug.txt, 22 ARCHIVE-tagged + 10 non-code DELETE-tagged docs) · cleans root noise; reversible via git history; INDEX.md added · commit pending
+- `17:30` · claude · 8 routes · Second security pass — 6 CRITICAL unauth routes in command-center/meetings + sales/projections + 2 HIGH POST endpoints (roof-measure/calibrate, dashboard/leads) all gated with requireAuth · QB commission + leaderboard + revenue were leaking · commit pending
+- `17:15` · claude · docs/unauth-route-audit.md + docs/research-crm-comparison.md + lib/seo.ts + 4 layout/page files · Deeper unauth audit + CRM hybrid recommendation + SEO schema upgrades (15-county areaServed, real 317-review aggregateRating, IKO-led award order, BreadcrumbList on legal/careers/check-my-address, $0 Free Inspection Offer) · also fixed prior fabrication of 270/5.0 review stats → real 317/4.74 · commit pending
+- `16:45` · claude · 32 files repo root → docs/archive/ · Phase 4 safe archive (cookies.txt, curl-debug.txt, 22 ARCHIVE-tagged + 10 non-code DELETE-tagged docs) · cleans root noise; reversible via git history; INDEX.md added · commit e26c2e8
 - `16:30` · claude · lib/email-templates/load-verified-invoice-pdf.ts (new) + load-verified-invoice.ts (trimmed) + email-service.ts (Attachment interface + Resend attachment wiring) + package.json (pdfmake + @types/pdfmake) · Phase 1.3b PDF invoice — pdfmake-based real PDF attachment with cover-note HTML body; PDF-fail fallback sends cover-note alone · commit pending
 - `16:00` · claude · OWNER-SETUP.md + docs/research-inventory-and-leaderboards.md + docs/research-portal-seo-design.md · 5-step owner setup checklist + Phase 5 research (inventory, leaderboards, portal UX, SEO 2026, design) — 15 ranked, scoped improvements · commit 798e71a
 - `15:15` · claude · docs/dead-code-triage.md (new) · Phase 4 dead-code + duplicate-page triage — 8 page overlaps, 8 unreferenced API routes, 56 root docs scored, 11 orphan components, 83 script entries, 12 owner questions · commit 3678aa8

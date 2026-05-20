@@ -1,4 +1,6 @@
 import { Metadata } from 'next';
+import { generateBreadcrumbSchema } from '@/lib/seo';
+import StructuredData from '@/components/StructuredData';
 
 export const metadata: Metadata = {
   title: 'Check My Address for Hail & Storm Damage | Free Report | River City Roofing',
@@ -98,12 +100,18 @@ export default function CheckMyAddressLayout({
     ],
   };
 
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: 'Check My Address', url: '/check-my-address' },
+  ]);
+
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <StructuredData data={breadcrumbSchema} />
       {children}
     </>
   );

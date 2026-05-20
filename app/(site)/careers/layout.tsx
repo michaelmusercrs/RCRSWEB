@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import { generateBreadcrumbSchema } from '@/lib/seo';
+import StructuredData from '@/components/StructuredData';
 
 export const metadata: Metadata = {
   title: 'Roofing Sales Jobs Decatur & Huntsville AL | Careers at River City Roofing',
@@ -71,12 +73,18 @@ export default function CareersLayout({ children }: { children: React.ReactNode 
     qualifications: 'No experience required. Must be motivated and willing to learn.',
   };
 
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: 'Careers', url: '/careers' },
+  ]);
+
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jobPostingSchema) }}
       />
+      <StructuredData data={breadcrumbSchema} />
       {children}
     </>
   );

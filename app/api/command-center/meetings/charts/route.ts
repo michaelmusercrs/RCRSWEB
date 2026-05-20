@@ -15,6 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readFileSync, existsSync } from 'fs';
 import * as path from 'path';
+import { requireAuth } from '@/lib/auth-service';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -387,6 +388,12 @@ function buildQuarterlyBreakdown(meetings: ParsedMeeting[], commissions: Commiss
 // ============================================================================
 
 export async function GET(req: NextRequest) {
+  // SECURITY 2026-05-20: was unauthenticated — leaked revenue/commission
+  // trend charts, per-rep comparisons, and quarterly breakdowns. Gate to
+  // any authenticated team member as the minimum.
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const { searchParams } = new URL(req.url);
     const period = searchParams.get('period') || 'year';

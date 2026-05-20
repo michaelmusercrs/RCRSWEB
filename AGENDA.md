@@ -84,7 +84,16 @@ The codebase has accumulated. Find what to keep, retire, or merge.
 Owner explicitly asked for this — look at how others solve the same problems.
 
 - `[done]` **5.1+5.2 Inventory + leaderboard research** — `docs/research-inventory-and-leaderboards.md`. 5 inventory improvements + 5 leaderboard improvements, all rebuildable in-stack, no SaaS. Highlights: QR-scan-to-adjust, TV-mode `/chrisview/board`, GroupMe-wired win-takeovers, anonymous-tail mode.
-- `[pending]` **5.3 CRM comparison** — JobNimbus, AccuLynx, RoofSnap. Where we duplicate vs add value. (Deferred — JN integration audit covers part of this.)
+- `[done]` **5.3 CRM comparison** — `docs/research-crm-comparison.md`. Compares JN, AccuLynx, RoofSnap, Leap, Improveit 360, Followup. Recommendation: Option C hybrid — JN owns jobs/estimates/QB/supplier orders; RCRS owns lead scoring + 3-board leaderboard system + Monday meetings + storm reports + warehouse + GroupMe. 5 moat wins identified.
+
+## Phase 3b — Second security pass (deeper unauth audit)
+
+- `[done]` **3b.1 Deeper unauth audit** — `docs/unauth-route-audit.md`. Found 6 CRITICAL + 2 HIGH + 2 MEDIUM + 1 LOW. All webhooks verified for signature/secret. All 10 crons verify CRON_SECRET.
+- `[done]` **3b.2 CRITICAL fixes (6 routes)** — `requireAuth` added to all 6 command-center meeting routes that were leaking QB commission data + sales leaderboard + revenue (leaderboard, stats, charts, activity-leaderboard, announcements, sales/projections).
+- `[done]` **3b.3 HIGH fixes (2 routes)** — `roof-measure/calibrate` POST gated (was vulnerable to calibration poisoning); `dashboard/leads` POST gated (legacy lead-write endpoint without form-hardening).
+- `[pending]` **3b.4 Portal namespace cost-data visibility tightening** — `/api/portal/reports/{commissions, profitability, finance-summary}` + `/api/portal/jobnimbus/commissions` allow ANY logged-in user; per `[[feedback_purchase_price_visibility]]` should be owner/admin/office/manager-tier only. `[needs-owner]` confirm tier.
+- `[needs-owner]` **3b.5 `march-madness-2026` routes intent** — currently public; reclassify as internal or shelve.
+- `[needs-owner]` **3b.6 Webhook fail-mode** — JN webhook fails OPEN if signing secret is missing. Confirm we want fail-closed.
 - `[done]` **5.4+5.5+5.6 Portal + SEO + design research** — `docs/research-portal-seo-design.md`. 5 portal features (CompanyCam-style share, PM trading card, insurance timeline, delivery preview, warranty packet), 5 SEO wins (load-verified review automation, RoofingContractor schema, Core Web Vitals tightening), 5 design wins (vertical install video hero, before-after slider, trust strip, mobile CTA bar, county landing pages).
 
 Deliverable per item: 1-page summary + 3-5 concrete suggestions that would actually move the needle for RCRS, ranked by impact/effort.

@@ -24,6 +24,7 @@ import { readFileSync, existsSync } from 'fs';
 import * as path from 'path';
 import { meetingNumbersService } from '@/lib/meeting-numbers-service';
 import { resolveCommissionName } from '@/lib/team-roles';
+import { requireAuth } from '@/lib/auth-service';
 
 // Commission record from QuickBooks (data/commissions.json)
 interface CommissionRecord {
@@ -323,6 +324,13 @@ function calculateAchievements(
 // ============================================================================
 
 export async function GET(request: NextRequest) {
+  // SECURITY 2026-05-20: was unauthenticated — leaked real per-rep meeting
+  // revenue ($$$$$), QB-actual YTD commissions, and the entire ranked
+  // leaderboard to anyone with the URL. Gate to any authenticated team
+  // member as the minimum. TODO tighten to owner/admin/office/manager.
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   const timestamp = new Date().toISOString();
 
   try {

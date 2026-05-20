@@ -22,6 +22,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { readFileSync, existsSync } from 'fs';
 import * as path from 'path';
 import { resolveCommissionName } from '@/lib/team-roles';
+import { requireAuth } from '@/lib/auth-service';
 
 // ============================================================================
 // Types
@@ -312,6 +313,12 @@ function filterByRange(records: ParsedRecord[], start: string, end: string): Par
 // ============================================================================
 
 export async function GET(request: NextRequest) {
+  // SECURITY 2026-05-20: was unauthenticated — leaked aggregated weekly/
+  // monthly/YTD meeting revenue, per-rep performance comparisons, and goal
+  // tracking. Gate to any authenticated team member as the minimum.
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   const timestamp = new Date().toISOString();
 
   try {

@@ -6,8 +6,15 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 
 export async function GET(request: NextRequest) {
+  // SECURITY 2026-05-20: was unauthenticated — proxies Monday-notes
+  // announcements (internal meeting content). Gate to any authenticated
+  // team member as the minimum.
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     // Forward to the portal monday-notes announcements endpoint
     const baseUrl = request.nextUrl.origin;

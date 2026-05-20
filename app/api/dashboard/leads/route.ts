@@ -165,6 +165,13 @@ export async function GET(req: NextRequest) {
  * Add a new lead (called from contact form)
  */
 export async function POST(req: NextRequest) {
+  // SECURITY 2026-05-20: was unauthenticated — legacy lead-write endpoint
+  // with no honeypot/Turnstile/spam filter. Public POST = unlimited fake
+  // leads dropped into the dashboard data. Gate to any authenticated team
+  // member; the public contact form has its own validated endpoint.
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const body = await req.json();
     const leads = await readLeads();
