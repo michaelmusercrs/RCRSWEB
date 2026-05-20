@@ -4,11 +4,13 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Phone, Mail, MapPin, Facebook, Instagram, Clock, Shield, CheckCircle } from 'lucide-react';
 import HoneypotField from '@/components/forms/HoneypotField';
+import TurnstileWidget from '@/components/forms/TurnstileWidget';
 
 function FooterEmailCapture() {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [website, setWebsite] = useState(''); // honeypot — bots fill, humans don't
+  const [turnstileToken, setTurnstileToken] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -29,6 +31,7 @@ function FooterEmailCapture() {
           utmMedium: params.get('utm_medium') || '',
           utmCampaign: params.get('utm_campaign') || '',
           website, // honeypot — server drops if non-empty
+          turnstileToken, // Cloudflare Turnstile token (or 'disabled' when inert)
         }),
       });
       setSubmitted(true);
@@ -69,6 +72,7 @@ function FooterEmailCapture() {
         className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:border-brand-green transition"
       />
       <HoneypotField value={website} onChange={setWebsite} />
+      <TurnstileWidget onVerify={setTurnstileToken} theme="dark" />
       <button
         type="submit"
         disabled={submitting}

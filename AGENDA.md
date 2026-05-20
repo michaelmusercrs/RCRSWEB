@@ -51,7 +51,8 @@ The flood was bot spam on the public contact form (`juliana@trustedbusinessaward
 - `[done]` **2.5c Honeypot field across all 10 form endpoints** — new `components/forms/HoneypotField.tsx` + `lib/honeypot.ts` helper. 10 API routes check `checkHoneypot(body)` BEFORE validation/spam-filter; 10 UI form components carry the hidden `website` field. Bots get a 200 OK identical to legit. Field hidden via absolute positioning + `aria-hidden` + `tabIndex={-1}` so accessibility isn't broken.
 - `[done]` **2.6 Vercel KV-backed rate limiter** — new `lib/rate-limiter-kv.ts`. Public interface preserved; per-route factories (3/hr contact/referral/careers/bni-partner; 10/hr storm-report; cross-form 15/hr per IP global cap). Lazy `import('@vercel/kv')` with in-memory fallback if KV env not set. `@vercel/kv@^3.0.0` installed. `[needs-owner]` set `KV_REST_API_URL` + `KV_REST_API_TOKEN` on Vercel to activate KV-backed; until then it transparently uses the existing in-memory limiter.
 - `[pending]` **2.6b Migrate the 10 form endpoints from `lib/rate-limiter` to `lib/rate-limiter-kv`** — one-line import swap per route; opt in per-route gradually.
-- `[needs-owner]` **2.7 Implement Phase 3 (Cloudflare Turnstile)** — owner has Cloudflare access via rivercityroofingsolutions@gmail.com login. Provision Turnstile site key + secret, share secret to Vercel envs, then enable the gate.
+- `[done]` **2.7 Cloudflare Turnstile integration** — `lib/turnstile.ts` + `components/forms/TurnstileWidget.tsx` wired into all 10 API routes + 9 form components. INERT until `NEXT_PUBLIC_TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY` env vars are set. `@marsidev/react-turnstile@^1.x` installed. `[needs-owner]` provision site at https://dash.cloudflare.com → Turnstile → Add Site (Widget Mode: Managed, domain: rivercityroofingsolutions.com), set the two env vars on the 4 public-site Vercel projects, redeploy.
+- `[done]` **2.6b 10 form endpoints migrated to KV rate limiter** — per-route limits (3/hr contact/referral/careers/bni-partner; 10/hr storm-report) + global 15/hr cross-form IP cap wrapped outside each per-form wrap. `RateLimiter.check()` is now async; `withRateLimit` handles it transparently.
 
 ---
 
@@ -73,10 +74,8 @@ Owner flagged data-visibility cross-contamination as a security issue.
 
 The codebase has accumulated. Find what to keep, retire, or merge.
 
-- `[pending]` **4.1 Inventory duplicate pages** — overlapping URLs or near-duplicate routes. Report only; owner decides what merges/deletes.
-- `[pending]` **4.2 Unused files / dead code** — components not imported anywhere, API routes with no caller, scripts that no longer run. Use a static analysis pass (depcheck / ts-prune / knip).
-- `[pending]` **4.3 Stale docs** — `*.md` files in repo root. Many are old plans. Triage into `kept` / `archive` / `delete`.
-- `[pending]` **4.4 Abandoned features** — features behind never-flipped flags or with no production usage. Identify, propose retire/finish.
+- `[done]` **4.1-4.3 Phase 4 triage** — `docs/dead-code-triage.md`. Findings: 8 duplicate page pairs (most actionable: `/contact/thank-you` vs `/thank-you`, `/awards-trip` vs `/command-center/competition/awards-trip`, `/portal/profile` vs `/portal/my-profile`); 8 unreferenced API routes; 56 root docs triaged (22 KEEP, 22 ARCHIVE, 12 DELETE); 11 orphan components (5 in `components/leads/*`); 83 script entries (none referenced from package.json/vercel.json — ~30 clearly one-shot). 12 owner-decision questions surfaced.
+- `[pending]` **4.4 Apply the triage** — execute the `KEEP`/`ARCHIVE`/`DELETE` actions from the triage doc. Owner approves the list first. `[needs-owner]`
 
 ---
 

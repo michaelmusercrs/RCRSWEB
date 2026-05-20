@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Phone, Send, Loader2 } from 'lucide-react';
 import HoneypotField from '@/components/forms/HoneypotField';
+import TurnstileWidget from '@/components/forms/TurnstileWidget';
 
 interface LandingPageFormProps {
   /** CTA button text, e.g. "Get Free Inspection" */
@@ -32,6 +33,7 @@ export default function LandingPageForm({
   const [address, setAddress] = useState('');
   const [description, setDescription] = useState('');
   const [website, setWebsite] = useState(''); // honeypot — bots fill, humans don't
+  const [turnstileToken, setTurnstileToken] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -73,6 +75,7 @@ export default function LandingPageForm({
             ? `${utmParams.utm_source} / ${utmParams.utm_medium || 'cpc'} / ${utmParams.utm_campaign || 'unknown'}`
             : 'Google Ads - Landing Page',
           website, // honeypot — server drops if non-empty
+          turnstileToken, // Cloudflare Turnstile token (or 'disabled' when inert)
         }),
       });
 
@@ -187,6 +190,8 @@ export default function LandingPageForm({
       )}
 
       <HoneypotField value={website} onChange={setWebsite} />
+
+      <TurnstileWidget onVerify={setTurnstileToken} theme="dark" />
 
       <button
         type="submit"

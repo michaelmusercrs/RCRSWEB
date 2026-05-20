@@ -3,7 +3,11 @@
 // NO auto-assignment. Office staff (Tia/Destin/Sara) review and manually enter into lead distribution.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { RateLimiter, withRateLimit } from '@/lib/rate-limiter';
+import {
+  createContactFormRateLimiter,
+  createGlobalFormRateLimiter,
+  withRateLimit,
+} from '@/lib/rate-limiter-kv';
 import { requireAuth } from '@/lib/auth-service';
 import { auditLog } from '@/lib/audit-logger';
 import { portalGenerator, LeadData } from '@/lib/portal-generator';
@@ -21,13 +25,12 @@ import { isJobNimbusConfigured, jobNimbusService } from '@/lib/jobnimbus-service
 import { roofReportService } from '@/lib/roof-report-service';
 import { checkForSpam } from '@/lib/spam-filter';
 import { checkHoneypot } from '@/lib/honeypot';
+import { verifyTurnstileToken, getRequestIp } from '@/lib/turnstile';
 
-// Rate limit: 5 requests per minute per IP for public lead submissions
-const leadRateLimiter = new RateLimiter({
-  windowMs: 60 * 1000, // 1 minute
-  maxRequests: 5,
-  message: 'Too many lead submissions. Please wait a minute before trying again.',
-}, 'leads-new');
+// Rate limit: 3/hr per IP via shared KV contact-form bucket, plus the
+// cross-form 15/hr global cap.
+const leadRateLimiter = createContactFormRateLimiter();
+const globalFormRateLimiter = createGlobalFormRateLimiter();
 
 // Office staff + Michael who receive new lead notifications
 const OFFICE_NOTIFY_EMAILS = [
@@ -78,7 +81,10 @@ function sanitizeInput(str: string | undefined): string {
 }
 
 export async function POST(request: NextRequest) {
-  return withRateLimit(request, leadRateLimiter, async () => {
+  // Check the cross-form global cap first so a hot IP can't burn its
+  // per-form budget before tripping the global cap.
+  return withRateLimit(request, globalFormRateLimiter, async () =>
+    withRateLimit(request, leadRateLimiter, async () => {
   try {
     let body: NewLeadRequest;
     try {
@@ -236,6 +242,27 @@ export async function POST(request: NextRequest) {
         email: body.email, score: spamResult.spamScore, reasons: spamResult.reasons,
       });
       return NextResponse.json({ success: true });
+    }
+
+    // Cloudflare Turnstile — bot fingerprint challenge. INERT until env vars
+    // are set (see lib/turnstile.ts header). Explicit 400 on failure so legit
+    // users can retry.
+    //
+    // Note on inter-route calls: /api/forms/contact, /api/forms/referral,
+    // /api/email-capture, and the check-my-address page fan into this route
+    // server-side AFTER they've already verified Turnstile. Those callers
+    // pass turnstileToken: 'disabled' so this verifier short-circuits as
+    // "already gated upstream" — Cloudflare tokens are single-use, so we
+    // can't re-verify the original token here.
+    const turnstileToken =
+      (body as unknown as { turnstileToken?: string }).turnstileToken;
+    const turnstile = await verifyTurnstileToken(turnstileToken, getRequestIp(request));
+    if (!turnstile.valid) {
+      console.warn('[TURNSTILE FAILED route=leads/new]', { reason: turnstile.reason });
+      return NextResponse.json(
+        { success: false, message: 'Verification failed. Please try again.' },
+        { status: 400 }
+      );
     }
 
     // ── GEOCODE ──────────────────────────────────────────────────────────
@@ -554,7 +581,8 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-  });
+  })
+  );
 }
 
 // GET - Retrieve leads (admin use)

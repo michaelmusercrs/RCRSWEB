@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from 'react';
 import HoneypotField from '@/components/forms/HoneypotField';
+import TurnstileWidget from '@/components/forms/TurnstileWidget';
 
 interface Partner {
   name: string;
@@ -20,6 +21,7 @@ export default function BNIPartnerForm({ partners }: BNIPartnerFormProps) {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [website, setWebsite] = useState(''); // honeypot — bots fill, humans don't
+  const [turnstileToken, setTurnstileToken] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
@@ -47,6 +49,7 @@ export default function BNIPartnerForm({ partners }: BNIPartnerFormProps) {
           email: email.trim(),
           message: message.trim(),
           website, // honeypot — server drops if non-empty
+          turnstileToken, // Cloudflare Turnstile token (or 'disabled' when inert)
         }),
       });
 
@@ -168,6 +171,8 @@ export default function BNIPartnerForm({ partners }: BNIPartnerFormProps) {
         )}
 
         <HoneypotField value={website} onChange={setWebsite} />
+
+        <TurnstileWidget onVerify={setTurnstileToken} theme="dark" />
 
         {/* Submit Button */}
         <button

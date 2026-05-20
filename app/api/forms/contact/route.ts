@@ -1,18 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { formService } from '@/lib/form-service';
-import { createFormRateLimiter, withRateLimit } from '@/lib/rate-limiter';
+import {
+  createContactFormRateLimiter,
+  createGlobalFormRateLimiter,
+  withRateLimit,
+} from '@/lib/rate-limiter-kv';
 import { checkRequestSize } from '@/lib/request-size-limit';
 import { checkForSpam } from '@/lib/spam-filter';
 import { checkHoneypot } from '@/lib/honeypot';
+import { verifyTurnstileToken, getRequestIp } from '@/lib/turnstile';
 
-const formRateLimiter = createFormRateLimiter();
+const formRateLimiter = createContactFormRateLimiter();
+const globalFormRateLimiter = createGlobalFormRateLimiter();
 
 export async function POST(request: NextRequest) {
   // SECURITY: Enforce request body size limit on public form
   const sizeError = checkRequestSize(request, '50kb');
   if (sizeError) return sizeError;
 
-  return withRateLimit(request, formRateLimiter, async () => {
+  // Check the cross-form global cap first so a hot IP can't burn its
+  // per-form budget before tripping the global cap.
+  return withRateLimit(request, globalFormRateLimiter, async () =>
+    withRateLimit(request, formRateLimiter, async () => {
   try {
     const body = await request.json();
 
@@ -97,6 +106,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Cloudflare Turnstile — bot fingerprint challenge. INERT until both
+    // TURNSTILE_SECRET_KEY (server) and NEXT_PUBLIC_TURNSTILE_SITE_KEY (client)
+    // are set in Vercel env. Unlike honeypot/spam which silently 200 to fool
+    // bots, Turnstile failures return an explicit 400 — legit users may hit
+    // them on flaky networks and need to retry.
+    const turnstile = await verifyTurnstileToken(body.turnstileToken, getRequestIp(request));
+    if (!turnstile.valid) {
+      console.warn('[TURNSTILE FAILED route=forms/contact]', { reason: turnstile.reason });
+      return NextResponse.json(
+        { success: false, message: 'Verification failed. Please try again.' },
+        { status: 400 }
+      );
+    }
+
     // Submit the form to Google Sheets
     const result = await formService.submitContactForm({
       name,
@@ -135,6 +158,11 @@ export async function POST(request: NextRequest) {
             assignedRepSlug: salesRep || (preferredInspector !== 'First Available' ? preferredInspector : undefined),
             sendNotifications: true,
             notifyTeam: true,
+            // Server-side fan-in: this route already verified Turnstile.
+            // Cloudflare tokens are single-use, so we can't re-verify the
+            // original token in /api/leads/new — pass the 'disabled'
+            // sentinel to short-circuit the downstream gate.
+            turnstileToken: 'disabled',
           }),
         });
       } catch (leadErr) {
@@ -151,5 +179,6 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-  });
+  })
+  );
 }

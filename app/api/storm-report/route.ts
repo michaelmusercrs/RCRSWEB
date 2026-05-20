@@ -10,20 +10,29 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { stormReportService } from '@/lib/storm-report-service';
-import { createFormRateLimiter, withRateLimit } from '@/lib/rate-limiter';
+import {
+  createStormReportRateLimiter,
+  createGlobalFormRateLimiter,
+  withRateLimit,
+} from '@/lib/rate-limiter-kv';
 import { cache } from '@/lib/cache';
 import { checkHoneypot } from '@/lib/honeypot';
+import { verifyTurnstileToken, getRequestIp } from '@/lib/turnstile';
 
 const STORM_REPORT_TTL = 15 * 60 * 1000; // 15 minutes
 
-const formRateLimiter = createFormRateLimiter();
+const formRateLimiter = createStormReportRateLimiter();
+const globalFormRateLimiter = createGlobalFormRateLimiter();
 
 // ---------------------------------------------------------------------------
 // POST - Generate storm report
 // ---------------------------------------------------------------------------
 
 export async function POST(request: NextRequest) {
-  return withRateLimit(request, formRateLimiter, async () => {
+  // Check the cross-form global cap first so a hot IP can't burn its
+  // per-form budget before tripping the global cap.
+  return withRateLimit(request, globalFormRateLimiter, async () =>
+    withRateLimit(request, formRateLimiter, async () => {
   let body: any = {};
   try {
     body = await request.json();
@@ -34,6 +43,18 @@ export async function POST(request: NextRequest) {
     if (hp.triggered) {
       console.warn('[HONEYPOT TRIGGERED route=storm-report]', { value: hp.value });
       return NextResponse.json({ success: true, data: null });
+    }
+
+    // Cloudflare Turnstile — bot fingerprint challenge. INERT until env vars
+    // are set (see lib/turnstile.ts header). Explicit 400 on failure so
+    // legit users on flaky networks can retry.
+    const turnstile = await verifyTurnstileToken(body.turnstileToken, getRequestIp(request));
+    if (!turnstile.valid) {
+      console.warn('[TURNSTILE FAILED route=storm-report]', { reason: turnstile.reason });
+      return NextResponse.json(
+        { success: false, message: 'Verification failed. Please try again.' },
+        { status: 400 }
+      );
     }
 
     const { address, city, state, zip, leadId, customerId, daysBack, radiusMiles } = body;
@@ -107,7 +128,8 @@ export async function POST(request: NextRequest) {
       data: fallbackReport,
     });
   }
-  });
+  })
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -115,7 +137,10 @@ export async function POST(request: NextRequest) {
 // ---------------------------------------------------------------------------
 
 export async function GET(request: NextRequest) {
-  return withRateLimit(request, formRateLimiter, async () => {
+  // Check the cross-form global cap first so a hot IP can't burn its
+  // per-form budget before tripping the global cap.
+  return withRateLimit(request, globalFormRateLimiter, async () =>
+    withRateLimit(request, formRateLimiter, async () => {
   try {
     const { searchParams } = new URL(request.url);
 
@@ -198,5 +223,6 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-  });
+  })
+  );
 }

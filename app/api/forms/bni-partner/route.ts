@@ -1,18 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { formService } from '@/lib/form-service';
-import { createFormRateLimiter, withRateLimit } from '@/lib/rate-limiter';
+import {
+  createBniPartnerFormRateLimiter,
+  createGlobalFormRateLimiter,
+  withRateLimit,
+} from '@/lib/rate-limiter-kv';
 import { checkRequestSize } from '@/lib/request-size-limit';
 import { checkForSpam } from '@/lib/spam-filter';
 import { checkHoneypot } from '@/lib/honeypot';
+import { verifyTurnstileToken, getRequestIp } from '@/lib/turnstile';
 
-const formRateLimiter = createFormRateLimiter();
+const formRateLimiter = createBniPartnerFormRateLimiter();
+const globalFormRateLimiter = createGlobalFormRateLimiter();
 
 export async function POST(request: NextRequest) {
   // SECURITY: Enforce request body size limit on public form
   const sizeError = checkRequestSize(request, '50kb');
   if (sizeError) return sizeError;
 
-  return withRateLimit(request, formRateLimiter, async () => {
+  // Check the cross-form global cap first so a hot IP can't burn its
+  // per-form budget before tripping the global cap.
+  return withRateLimit(request, globalFormRateLimiter, async () =>
+    withRateLimit(request, formRateLimiter, async () => {
     try {
       const body = await request.json();
 
@@ -62,6 +71,18 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Cloudflare Turnstile — bot fingerprint challenge. INERT until env
+      // vars are set (see lib/turnstile.ts header). Explicit 400 on failure
+      // so legit users can retry.
+      const turnstile = await verifyTurnstileToken(body.turnstileToken, getRequestIp(request));
+      if (!turnstile.valid) {
+        console.warn('[TURNSTILE FAILED route=forms/bni-partner]', { reason: turnstile.reason });
+        return NextResponse.json(
+          { success: false, message: 'Verification failed. Please try again.' },
+          { status: 400 }
+        );
+      }
+
       // Submit as a contact form with BNI partner context
       const result = await formService.submitContactForm({
         name,
@@ -83,5 +104,6 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-  });
+    })
+  );
 }

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Phone, Mail, MapPin, Loader2, CheckCircle2 } from 'lucide-react';
 import { trackingService, getLeadSourceSummary, getJobNimbusSource } from '@/lib/tracking-service';
 import HoneypotField from '@/components/forms/HoneypotField';
+import TurnstileWidget from '@/components/forms/TurnstileWidget';
 
 interface ContactFormProps {
   showContactInfo?: boolean;
@@ -24,6 +25,7 @@ export default function ContactForm({
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [formStarted, setFormStarted] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState('');
   const router = useRouter();
 
   // Track form start on first interaction
@@ -63,6 +65,9 @@ export default function ContactForm({
           // Honeypot — forwarded so the server can drop bot submissions.
           // Real users never fill this field; it's hidden via CSS/ARIA.
           website: formData.get('website') || '',
+          // Cloudflare Turnstile token — 'disabled' when widget is inert
+          // (NEXT_PUBLIC_TURNSTILE_SITE_KEY unset). Server matches sentinel.
+          turnstileToken,
           preferredInspector: preselectedTeamMember || 'First Available',
           salesRep: preselectedTeamMember || '',
           sourcePage: sourcePage,
@@ -308,6 +313,11 @@ export default function ContactForm({
           </div>
 
           <HoneypotField />
+
+          <TurnstileWidget
+            onVerify={setTurnstileToken}
+            theme={darkMode ? 'dark' : 'light'}
+          />
 
           <button
             type="submit"

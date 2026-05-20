@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Phone, Send, Loader2, CheckCircle2 } from 'lucide-react';
 import HoneypotField from '@/components/forms/HoneypotField';
+import TurnstileWidget from '@/components/forms/TurnstileWidget';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // US phone — accepts (256) 555-1234, 256-555-1234, 256.555.1234, 2565551234, +12565551234
@@ -16,6 +17,7 @@ export default function QuickContactForm() {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [website, setWebsite] = useState(''); // honeypot — bots fill, humans don't
+  const [turnstileToken, setTurnstileToken] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
@@ -53,6 +55,7 @@ export default function QuickContactForm() {
           leadSource: 'Website',
           leadSourceDetail: 'Homepage Quick Contact',
           website, // honeypot — server drops if non-empty
+          turnstileToken, // Cloudflare Turnstile token (or 'disabled' when inert)
         }),
       });
 
@@ -139,6 +142,8 @@ export default function QuickContactForm() {
       )}
 
       <HoneypotField value={website} onChange={setWebsite} />
+
+      <TurnstileWidget onVerify={setTurnstileToken} theme="dark" />
 
       <div className="flex flex-col sm:flex-row gap-3">
         <button

@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { CheckCircle } from 'lucide-react';
 import HoneypotField from '@/components/forms/HoneypotField';
+import TurnstileWidget from '@/components/forms/TurnstileWidget';
 
 export default function ApplicationForm() {
   const [form, setForm] = useState({
@@ -19,6 +20,7 @@ export default function ApplicationForm() {
   });
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState('');
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -29,7 +31,11 @@ export default function ApplicationForm() {
         const res = await fetch('/api/forms/careers', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(form),
+          body: JSON.stringify({
+            ...form,
+            // Cloudflare Turnstile token (or 'disabled' when inert).
+            turnstileToken,
+          }),
         });
         const data = await res.json();
         if (data.success) {
@@ -43,7 +49,7 @@ export default function ApplicationForm() {
         setStatus('error');
       }
     },
-    [form],
+    [form, turnstileToken],
   );
 
   if (status === 'success') {
@@ -182,6 +188,8 @@ export default function ApplicationForm() {
             value={form.website}
             onChange={(v) => set('website', v)}
           />
+
+          <TurnstileWidget onVerify={setTurnstileToken} />
 
           <button
             type="submit"

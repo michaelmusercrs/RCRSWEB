@@ -11,6 +11,15 @@ import { emailService } from '@/lib/email-service';
 import { TEAM_MEMBERS } from '@/lib/team-roles';
 import { checkForSpam } from '@/lib/spam-filter';
 import { checkHoneypot } from '@/lib/honeypot';
+import { verifyTurnstileToken, getRequestIp } from '@/lib/turnstile';
+import {
+  createStormReportRateLimiter,
+  createGlobalFormRateLimiter,
+  withRateLimit,
+} from '@/lib/rate-limiter-kv';
+
+const formRateLimiter = createStormReportRateLimiter();
+const globalFormRateLimiter = createGlobalFormRateLimiter();
 
 // ---------------------------------------------------------------------------
 // Types (mirror the page types for the report data)
@@ -322,6 +331,10 @@ function buildSalesEmailHtml(data: StormReportPayload): string {
 // ---------------------------------------------------------------------------
 
 export async function POST(request: NextRequest) {
+  // Check the cross-form global cap first so a hot IP can't burn its
+  // per-form budget before tripping the global cap.
+  return withRateLimit(request, globalFormRateLimiter, async () =>
+    withRateLimit(request, formRateLimiter, async () => {
   try {
     const data: StormReportPayload = await request.json();
 
@@ -367,6 +380,20 @@ export async function POST(request: NextRequest) {
           errors: { customer: undefined, sales: undefined },
         });
       }
+    }
+
+    // Cloudflare Turnstile — bot fingerprint challenge. INERT until env vars
+    // are set (see lib/turnstile.ts header). Explicit 400 on failure so legit
+    // users can retry. Token comes in alongside the report payload; not in
+    // the typed StormReportPayload interface, hence the indexed read.
+    const turnstileToken = (data as unknown as { turnstileToken?: string }).turnstileToken;
+    const turnstile = await verifyTurnstileToken(turnstileToken, getRequestIp(request));
+    if (!turnstile.valid) {
+      console.warn('[TURNSTILE FAILED route=storm-report/email]', { reason: turnstile.reason });
+      return NextResponse.json(
+        { success: false, message: 'Verification failed. Please try again.' },
+        { status: 400 },
+      );
     }
 
     // Resolve the sales rep recipient. Per owner directive "reminders to
@@ -437,4 +464,6 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
+    })
+  );
 }

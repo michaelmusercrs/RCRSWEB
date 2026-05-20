@@ -10,21 +10,23 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { isGoogleSheetsConfigured } from '@/lib/google-sheets-service';
-import { rateLimit } from '@/lib/rate-limit';
+import {
+  createContactFormRateLimiter,
+  createGlobalFormRateLimiter,
+  withRateLimit,
+} from '@/lib/rate-limiter-kv';
 import { checkForSpam } from '@/lib/spam-filter';
 import { checkHoneypot } from '@/lib/honeypot';
+import { verifyTurnstileToken, getRequestIp } from '@/lib/turnstile';
+
+const formRateLimiter = createContactFormRateLimiter();
+const globalFormRateLimiter = createGlobalFormRateLimiter();
 
 export async function POST(request: NextRequest) {
-  // Rate limit: 5 submissions per minute per IP
-  const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-  const rateLimitResult = rateLimit(ip, 5, 60_000);
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { success: false, error: 'Too many requests. Please try again later.' },
-      { status: 429 }
-    );
-  }
-
+  // Check the cross-form global cap first so a hot IP can't burn its
+  // per-form budget before tripping the global cap.
+  return withRateLimit(request, globalFormRateLimiter, async () =>
+    withRateLimit(request, formRateLimiter, async () => {
   try {
     const body = await request.json();
 
@@ -74,6 +76,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Cloudflare Turnstile — bot fingerprint challenge. INERT until env vars
+    // are set (see lib/turnstile.ts header). Explicit 400 on failure so legit
+    // users on flaky networks can retry.
+    const turnstile = await verifyTurnstileToken(body.turnstileToken, getRequestIp(request));
+    if (!turnstile.valid) {
+      console.warn('[TURNSTILE FAILED route=email-capture]', { reason: turnstile.reason });
+      return NextResponse.json(
+        { success: false, message: 'Verification failed. Please try again.' },
+        { status: 400 }
+      );
+    }
+
     const timestamp = new Date().toISOString();
 
     const captureData = {
@@ -116,6 +130,9 @@ export async function POST(request: NextRequest) {
           message: `Email capture from ${captureData.sourcePage}. UTM: ${captureData.utmSource || 'direct'}/${captureData.utmMedium || 'none'}/${captureData.utmCampaign || 'none'}`,
           sendNotifications: true,
           notifyTeam: true,
+          // Server-side fan-in: this route already verified Turnstile.
+          // Pass 'disabled' so the downstream gate short-circuits.
+          turnstileToken: 'disabled',
         }),
       });
       if (!leadRes.ok) {
@@ -136,6 +153,8 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+    })
+  );
 }
 
 /**

@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import AddressAutocomplete, { AddressResult } from '@/components/AddressAutocomplete';
 import HoneypotField from '@/components/forms/HoneypotField';
+import TurnstileWidget from '@/components/forms/TurnstileWidget';
 import {
   CloudLightning,
   Shield,
@@ -232,6 +233,7 @@ function CheckMyAddressPage() {
   const [customerName, setCustomerName] = useState('');
   const [formLoadedAt] = useState(() => Date.now()); // bot timing trap
   const [honeypot, setHoneypot] = useState(''); // bot honeypot field
+  const [turnstileToken, setTurnstileToken] = useState('');
 
   // Form state
   const [address, setAddress] = useState('');
@@ -295,7 +297,14 @@ function CheckMyAddressPage() {
       const reportRes = await fetch('/api/storm-report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address, city, state, zip, website: honeypot }),
+        body: JSON.stringify({
+          address,
+          city,
+          state,
+          zip,
+          website: honeypot,
+          turnstileToken,
+        }),
       });
 
       const reportResult = await reportRes.json();
@@ -306,7 +315,10 @@ function CheckMyAddressPage() {
 
       setReport(reportResult.data);
 
-      // 2. Send emails in background (only if email provided)
+      // 2. Send emails in background (only if email provided).
+      // Pass turnstileToken: 'disabled' — the first /api/storm-report call
+      // already verified the user; Cloudflare tokens are single-use so we
+      // can't re-verify the original here.
       if (email) fetch('/api/storm-report/email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -331,10 +343,12 @@ function CheckMyAddressPage() {
           dateRangeStart: reportResult.data.dateRangeStart,
           dateRangeEnd: reportResult.data.dateRangeEnd,
           website: honeypot,
+          turnstileToken: 'disabled',
         }),
       }).catch((err) => console.error('Email error:', err));
 
-      // 3. Create lead (always — even without email) in background
+      // 3. Create lead (always — even without email) in background.
+      // Same single-use-token rationale as above: pass 'disabled'.
       fetch('/api/leads/new', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -355,6 +369,7 @@ function CheckMyAddressPage() {
           sendNotifications: true,
           notifyTeam: true,
           website: honeypot,
+          turnstileToken: 'disabled',
         }),
       }).catch((err) => console.error('Lead creation error:', err));
 
@@ -594,6 +609,8 @@ function CheckMyAddressPage() {
                     server-side checkHoneypot() in the API routes is the
                     real defense. */}
                 <HoneypotField value={honeypot} onChange={setHoneypot} />
+
+                <TurnstileWidget onVerify={setTurnstileToken} theme="dark" />
 
                 {/* Submit */}
                 <button

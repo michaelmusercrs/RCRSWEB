@@ -1,20 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { formService } from '@/lib/form-service';
 import { groupMeService, getGroupMeConfigFromEnv } from '@/lib/groupme-service';
-import { createFormRateLimiter, withRateLimit } from '@/lib/rate-limiter';
+import {
+  createCareersFormRateLimiter,
+  createGlobalFormRateLimiter,
+  withRateLimit,
+} from '@/lib/rate-limiter-kv';
 import { checkRequestSize } from '@/lib/request-size-limit';
 import { emailService } from '@/lib/email-service';
 import { checkForSpam } from '@/lib/spam-filter';
 import { checkHoneypot } from '@/lib/honeypot';
+import { verifyTurnstileToken, getRequestIp } from '@/lib/turnstile';
 
-const formRateLimiter = createFormRateLimiter();
+const formRateLimiter = createCareersFormRateLimiter();
+const globalFormRateLimiter = createGlobalFormRateLimiter();
 
 export async function POST(request: NextRequest) {
   // SECURITY: Enforce request body size limit on public form
   const sizeError = checkRequestSize(request, '50kb');
   if (sizeError) return sizeError;
 
-  return withRateLimit(request, formRateLimiter, async () => {
+  // Check the cross-form global cap first so a hot IP can't burn its
+  // per-form budget before tripping the global cap.
+  return withRateLimit(request, globalFormRateLimiter, async () =>
+    withRateLimit(request, formRateLimiter, async () => {
   try {
     const body = await request.json();
 
@@ -69,6 +78,18 @@ export async function POST(request: NextRequest) {
           { status: 200 },
         );
       }
+    }
+
+    // Cloudflare Turnstile — bot fingerprint challenge. INERT until env vars
+    // are set in Vercel (see lib/turnstile.ts header). Explicit 400 on
+    // failure so legit users on flaky networks can retry.
+    const turnstile = await verifyTurnstileToken(body.turnstileToken, getRequestIp(request));
+    if (!turnstile.valid) {
+      console.warn('[TURNSTILE FAILED route=forms/careers]', { reason: turnstile.reason });
+      return NextResponse.json(
+        { success: false, message: 'Verification failed. Please try again.' },
+        { status: 400 },
+      );
     }
 
     // 1. Save to Google Sheets via the form service (reuse contact form pattern)
@@ -140,5 +161,6 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
-  });
+  })
+  );
 }

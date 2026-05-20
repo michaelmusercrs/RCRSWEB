@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Phone, Menu, X, MessageCircle, Send, Home, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import HoneypotField from '@/components/forms/HoneypotField';
+import TurnstileWidget from '@/components/forms/TurnstileWidget';
 
 
 interface NavItem {
@@ -46,6 +47,7 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [contactFormOpen, setContactFormOpen] = useState(false);
   const [formData, setFormData] = useState({ name: '', phone: '', email: '', message: '', website: '' });
+  const [turnstileToken, setTurnstileToken] = useState('');
   const [formSubmitted, setFormSubmitted] = useState(false);
   const pathname = usePathname();
   const isHomePage = pathname === '/';
@@ -80,6 +82,7 @@ export default function Header() {
           leadSource: 'Website',
           leadSourceDetail: 'Header Quick Quote',
           website: formData.website, // honeypot — server drops if non-empty
+          turnstileToken, // Cloudflare Turnstile token (or 'disabled' when inert)
         }),
       });
 
@@ -367,6 +370,8 @@ export default function Header() {
                     value={formData.website}
                     onChange={(v) => setFormData({ ...formData, website: v })}
                   />
+
+                  <TurnstileWidget onVerify={setTurnstileToken} />
 
                   <Button
                     type="submit"

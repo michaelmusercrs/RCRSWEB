@@ -1,17 +1,26 @@
 import { NextResponse } from 'next/server';
 import { apiError } from '@/lib/api-response';
-import { createFormRateLimiter, withRateLimit } from '@/lib/rate-limiter';
+import {
+  createReferralFormRateLimiter,
+  createGlobalFormRateLimiter,
+  withRateLimit,
+} from '@/lib/rate-limiter-kv';
 import { checkForSpam } from '@/lib/spam-filter';
 import { checkHoneypot } from '@/lib/honeypot';
+import { verifyTurnstileToken, getRequestIp } from '@/lib/turnstile';
 
-const formRateLimiter = createFormRateLimiter();
+const formRateLimiter = createReferralFormRateLimiter();
+const globalFormRateLimiter = createGlobalFormRateLimiter();
 
 /**
  * Referral Form API Route
  * Forwards referral submissions to Google Apps Script for processing
  */
 export async function POST(request: Request) {
-  return withRateLimit(request, formRateLimiter, async () => {
+  // Check the cross-form global cap first so a hot IP can't burn its
+  // per-form budget before tripping the global cap.
+  return withRateLimit(request, globalFormRateLimiter, async () =>
+    withRateLimit(request, formRateLimiter, async () => {
   try {
     const body = await request.json();
 
@@ -74,6 +83,17 @@ export async function POST(request: Request) {
           { status: 200 }
         );
       }
+    }
+
+    // Cloudflare Turnstile — bot fingerprint challenge. INERT until env vars
+    // are set (see lib/turnstile.ts header). Explicit 400 on failure.
+    const turnstile = await verifyTurnstileToken(body.turnstileToken, getRequestIp(request));
+    if (!turnstile.valid) {
+      console.warn('[TURNSTILE FAILED route=referral]', { reason: turnstile.reason });
+      return NextResponse.json(
+        { success: false, message: 'Verification failed. Please try again.' },
+        { status: 400 }
+      );
     }
 
     // Log the referral
@@ -141,5 +161,6 @@ export async function POST(request: Request) {
       'REFERRAL_FORM_ERROR'
     );
   }
-  });
+  })
+  );
 }

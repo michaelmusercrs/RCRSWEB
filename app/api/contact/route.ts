@@ -4,13 +4,19 @@ import { groupMeService, getGroupMeConfigFromEnv } from '@/lib/groupme-service';
 import { portalGenerator } from '@/lib/portal-generator';
 import { leadPortalService } from '@/lib/lead-portal-service';
 import { apiError } from '@/lib/api-response';
-import { createFormRateLimiter, withRateLimit } from '@/lib/rate-limiter';
+import {
+  createContactFormRateLimiter,
+  createGlobalFormRateLimiter,
+  withRateLimit,
+} from '@/lib/rate-limiter-kv';
 import { emailService } from '@/lib/email-service';
 import { renderContactFormEmail, contactFormSubject } from '@/lib/email-templates/contact-form';
 import { checkForSpam } from '@/lib/spam-filter';
 import { checkHoneypot } from '@/lib/honeypot';
+import { verifyTurnstileToken, getRequestIp } from '@/lib/turnstile';
 
-const contactRateLimiter = createFormRateLimiter();
+const contactRateLimiter = createContactFormRateLimiter();
+const globalFormRateLimiter = createGlobalFormRateLimiter();
 
 /**
  * Contact Form API Route
@@ -27,7 +33,10 @@ const contactRateLimiter = createFormRateLimiter();
  * 5. Return success/error to frontend
  */
 export async function POST(request: NextRequest) {
-  return withRateLimit(request, contactRateLimiter, async () => {
+  // Check the cross-form global cap first so a hot IP can't burn its
+  // per-form budget before tripping the global cap.
+  return withRateLimit(request, globalFormRateLimiter, async () =>
+    withRateLimit(request, contactRateLimiter, async () => {
   try {
     const body = await request.json();
 
@@ -77,6 +86,18 @@ export async function POST(request: NextRequest) {
           { status: 200 }
         );
       }
+    }
+
+    // Cloudflare Turnstile — bot fingerprint challenge. INERT until env vars
+    // are set (see lib/turnstile.ts header). Explicit 400 on failure so legit
+    // users can retry.
+    const turnstile = await verifyTurnstileToken(body.turnstileToken, getRequestIp(request));
+    if (!turnstile.valid) {
+      console.warn('[TURNSTILE FAILED route=contact]', { reason: turnstile.reason });
+      return NextResponse.json(
+        { success: false, message: 'Verification failed. Please try again.' },
+        { status: 400 }
+      );
     }
 
     // Calculate lead quality score
@@ -260,5 +281,6 @@ export async function POST(request: NextRequest) {
       'CONTACT_FORM_ERROR'
     );
   }
-  }); // end withRateLimit
+  }) // end per-form withRateLimit
+  ); // end global withRateLimit
 }
