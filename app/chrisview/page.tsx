@@ -39,6 +39,8 @@ import {
   ComposedChart,
   AreaChart,
   Area,
+  PieChart,
+  Pie,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -46,6 +48,8 @@ import {
   Legend,
   Cell,
 } from 'recharts';
+
+const PIE_COLORS = ['#39FF14', '#60a5fa', '#fbbf24', '#fb7185', '#a78bfa', '#22d3ee', '#f97316', '#10b981', '#ec4899', '#6366f1', '#84cc16'];
 
 type TabId = 'overview' | 'charts' | 'transactions' | 'customers' | 'vendors' | 'reps' | 'commissions';
 
@@ -64,6 +68,10 @@ interface ChartsData {
     yoyDeltaProrated: number; forecastVsLastYear: number;
   };
   commissionsByYear: Array<{ year: string; total: number }>;
+  expenseBreakdown: Array<{ name: string; value: number }>;
+  cogsBreakdown: Array<{ name: string; value: number }>;
+  salesActivityWeeks: Array<{ date: string; inspected: number; signed: number; revenue: number }>;
+  salesActivityByYear: Array<{ year: string; inspected: number; signed: number; revenue: number }>;
 }
 
 interface OverviewData {
@@ -506,6 +514,121 @@ export default function ChrisViewPage() {
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
+                  </div>
+                </section>
+
+                {/* COGS + Operating expense breakdown (pie charts) */}
+                <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-[#39FF14]" />
+                      COGS Breakdown — Lifetime
+                    </h3>
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={charts.cogsBreakdown}
+                            dataKey="value"
+                            nameKey="name"
+                            outerRadius={100}
+                            label={({ name, percent }: { name?: string; percent?: number }) =>
+                              `${name} ${percent ? (percent * 100).toFixed(0) : 0}%`}
+                            labelLine={false}
+                            fontSize={11}
+                          >
+                            {charts.cogsBreakdown.map((_, i) => (
+                              <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            contentStyle={{ background: '#18181b', border: '1px solid #27272a', borderRadius: 8 }}
+                            formatter={(v: number | undefined) => v != null ? fmtMoneyExact(v) : '—'}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <Receipt className="w-4 h-4 text-[#39FF14]" />
+                      Operating Expense Breakdown — Lifetime
+                    </h3>
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={charts.expenseBreakdown}
+                            dataKey="value"
+                            nameKey="name"
+                            outerRadius={100}
+                            label={({ name, percent }: { name?: string; percent?: number }) =>
+                              `${name} ${percent ? (percent * 100).toFixed(0) : 0}%`}
+                            labelLine={false}
+                            fontSize={11}
+                          >
+                            {charts.expenseBreakdown.map((_, i) => (
+                              <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            contentStyle={{ background: '#18181b', border: '1px solid #27272a', borderRadius: 8 }}
+                            formatter={(v: number | undefined) => v != null ? fmtMoneyExact(v) : '—'}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Sales activity from Monday meeting numbers */}
+                <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                  <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-[#39FF14]" />
+                    Sales Activity — Last 26 Monday Meetings
+                  </h3>
+                  <div className="h-72">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart data={charts.salesActivityWeeks} margin={{ top: 8, right: 8, bottom: 8, left: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                        <XAxis dataKey="date" stroke="#71717a" fontSize={10} interval={2} />
+                        <YAxis yAxisId="left" stroke="#71717a" fontSize={11} />
+                        <YAxis yAxisId="right" orientation="right" stroke="#71717a" fontSize={11} tickFormatter={v => `$${(v / 1000).toFixed(0)}K`} />
+                        <Tooltip
+                          contentStyle={{ background: '#18181b', border: '1px solid #27272a', borderRadius: 8 }}
+                        />
+                        <Legend />
+                        <Bar yAxisId="left" dataKey="inspected" fill="#60a5fa" name="Inspected" />
+                        <Bar yAxisId="left" dataKey="signed" fill="#39FF14" name="Signed" />
+                        <Line yAxisId="right" type="monotone" dataKey="revenue" stroke="#fbbf24" strokeWidth={2} name="Revenue $" dot={false} />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                </section>
+
+                {/* Sales activity by year */}
+                <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                  <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-[#39FF14]" />
+                    Sales Activity by Year — Monday Meeting Numbers
+                  </h3>
+                  <div className="h-72">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart data={charts.salesActivityByYear} margin={{ top: 8, right: 8, bottom: 8, left: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                        <XAxis dataKey="year" stroke="#71717a" fontSize={11} />
+                        <YAxis yAxisId="left" stroke="#71717a" fontSize={11} />
+                        <YAxis yAxisId="right" orientation="right" stroke="#71717a" fontSize={11} tickFormatter={v => `$${(v / 1_000_000).toFixed(1)}M`} />
+                        <Tooltip
+                          contentStyle={{ background: '#18181b', border: '1px solid #27272a', borderRadius: 8 }}
+                        />
+                        <Legend />
+                        <Bar yAxisId="left" dataKey="inspected" fill="#60a5fa" name="Inspected" />
+                        <Bar yAxisId="left" dataKey="signed" fill="#39FF14" name="Signed" />
+                        <Line yAxisId="right" type="monotone" dataKey="revenue" stroke="#fbbf24" strokeWidth={2} name="Revenue $" dot={true} />
+                      </ComposedChart>
+                    </ResponsiveContainer>
                   </div>
                 </section>
 

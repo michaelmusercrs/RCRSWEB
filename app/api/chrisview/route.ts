@@ -18,6 +18,8 @@ import transactionsMonthly from '@/data/transactions-monthly.json';
 import transactionsMeta from '@/data/transactions-meta.json';
 import companyOverview from '@/data/company-overview.json';
 import commissions from '@/data/commissions.json';
+import meetingNumbersAll from '@/data/meeting-numbers-all.json';
+import meetingNumbers2026 from '@/data/meeting-numbers-2026.json';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -320,6 +322,81 @@ function buildCharts() {
     .map(([year, total]) => ({ year, total: Math.round(total * 100) / 100 }))
     .sort((a, b) => a.year.localeCompare(b.year));
 
+  // Expense category breakdown from QB management report
+  const oe = companyOverview.expenses;
+  const expenseBreakdown = [
+    { name: 'Payroll', value: oe.payrollExpenses.total },
+    { name: 'Advertising', value: oe.advertisingMarketing.total },
+    { name: 'Insurance', value: oe.insurance.total },
+    { name: 'Office / supplies', value: oe.officeSuppliesGeneralExpenses.total },
+    { name: 'Truck / fuel', value: oe.truckFuelExpenses.total },
+    { name: 'Travel', value: oe.travelExpenses.total },
+    { name: 'Lease', value: oe.leasePmtMscRealty },
+    { name: 'Utilities', value: oe.utilities.total },
+    { name: 'Legal / Pro', value: oe.legalProfessional },
+    { name: 'Royalties', value: oe.royaltyExpenses },
+    { name: 'Other', value: oe.repairsMaintenance.total + oe.duesSubscriptions.total + oe.bankCharges + oe.giftsFlowers + oe.charitableContributions.total + oe.officeExpenses + oe.badDebts },
+  ].sort((a, b) => b.value - a.value);
+
+  // COGS breakdown from QB management report
+  const oc = companyOverview.cogs;
+  const cogsBreakdown = [
+    { name: 'Job Materials', value: oc.jobMaterials.total },
+    { name: 'Subcontractor Pay', value: oc.subcontractorPay.total },
+    { name: 'Sales Commission', value: oc.salesCommission.total },
+    { name: 'Job Permits', value: oc.jobPermitsCityCo },
+    { name: 'Aerial Measurements', value: oc.aerialMeasurements },
+    { name: 'Workers Comp', value: oc.workersCompensationExpenses },
+    { name: 'CC Fees / Misc', value: oc.creditCardMerchantFees + oc.rentalEquipment + oc.ownersPayCommission.total },
+  ].sort((a, b) => b.value - a.value);
+
+  // Sales activity (meeting numbers) — last 26 weeks by rep
+  type MeetingRow = {
+    meetingDate?: string;
+    repName?: string;
+    Inspected?: string;
+    Signed?: string;
+    $$$$$?: string;
+  };
+  const allMeetings = [
+    ...(meetingNumbersAll as MeetingRow[]),
+    ...(meetingNumbers2026 as MeetingRow[]),
+  ];
+  // Aggregate by week (meetingDate)
+  type WeekAgg = { date: string; inspected: number; signed: number; revenue: number };
+  const byWeek = new Map<string, WeekAgg>();
+  for (const m of allMeetings) {
+    if (!m.meetingDate) continue;
+    const w = byWeek.get(m.meetingDate) || { date: m.meetingDate, inspected: 0, signed: 0, revenue: 0 };
+    w.inspected += parseInt(String(m.Inspected || '0')) || 0;
+    w.signed += parseInt(String(m.Signed || '0')) || 0;
+    const rev = parseFloat(String(m.$$$$$ || '0').replace(/[$,]/g, '')) || 0;
+    w.revenue += rev;
+    byWeek.set(m.meetingDate, w);
+  }
+  const salesActivityWeeks = Array.from(byWeek.values())
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(-26)
+    .map(w => ({
+      ...w,
+      revenue: Math.round(w.revenue * 100) / 100,
+    }));
+
+  // Aggregate sales activity by year
+  const byActivityYear: Record<string, { year: string; inspected: number; signed: number; revenue: number }> = {};
+  for (const m of allMeetings) {
+    if (!m.meetingDate) continue;
+    const y = m.meetingDate.slice(0, 4);
+    if (!byActivityYear[y]) byActivityYear[y] = { year: y, inspected: 0, signed: 0, revenue: 0 };
+    byActivityYear[y].inspected += parseInt(String(m.Inspected || '0')) || 0;
+    byActivityYear[y].signed += parseInt(String(m.Signed || '0')) || 0;
+    const rev = parseFloat(String(m.$$$$$ || '0').replace(/[$,]/g, '')) || 0;
+    byActivityYear[y].revenue += rev;
+  }
+  const salesActivityByYear = Object.values(byActivityYear)
+    .map(y => ({ ...y, revenue: Math.round(y.revenue * 100) / 100 }))
+    .sort((a, b) => a.year.localeCompare(b.year));
+
   return {
     byYear,
     last24,
@@ -329,6 +406,10 @@ function buildCharts() {
     topCustomers,
     projection,
     commissionsByYear,
+    expenseBreakdown,
+    cogsBreakdown,
+    salesActivityWeeks,
+    salesActivityByYear,
   };
 }
 
