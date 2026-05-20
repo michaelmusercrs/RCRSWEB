@@ -94,7 +94,32 @@ class EmailService {
 
   // Send email via Google Apps Script
   async send(options: EmailOptions): Promise<{ success: boolean; error?: string }> {
-    // Kill switch: flip EMAIL_KILL_SWITCH=true on Vercel to block ALL sends.
+    // TRANSPORT DISABLED 2026-05-20 — pending migration off Google Apps Script.
+    //
+    // Evidence: GAS endpoint emits a malformed "NEW CONTACT FORM SUBMISSION"
+    // copy of every payload to rivercityroofingsolutions@gmail.com, regardless
+    // of formType. Sample subjects in owner inbox: "New Delivery: R-10997 —
+    // Leanna Hooper" (driver material-order), "Hey Adam - Log Your Numbers
+    // This Week" (rep cron), "[Contact Page] New Lead:" (contact form). All
+    // arrive as "NEW CONTACT FORM SUBMISSION" with undefined fields.
+    //
+    // Per-recipient cap below does not protect against this because gmail is
+    // injected by GAS, not declared in the JS recipient list.
+    //
+    // Re-enable only after switching transport (Resend / nodemailer-SMTP /
+    // direct Gmail API). Override for one-off testing by setting
+    // EMAIL_TRANSPORT_FORCE=true (use sparingly — every send floods gmail).
+    if (process.env.EMAIL_TRANSPORT_FORCE !== 'true') {
+      console.warn('[EMAIL TRANSPORT DISABLED]', {
+        to: options.to,
+        cc: options.cc,
+        subject: options.subject,
+        reason: 'GAS amplifier flood, pending transport migration',
+      });
+      return { success: false, error: 'transport disabled pending migration' };
+    }
+
+    // Legacy kill switch retained for env-only disable in the future.
     if (process.env.EMAIL_KILL_SWITCH === 'true') {
       console.warn('[EMAIL KILL SWITCH] Send blocked:', { to: options.to, cc: options.cc, subject: options.subject });
       return { success: false, error: 'EMAIL_KILL_SWITCH active' };
