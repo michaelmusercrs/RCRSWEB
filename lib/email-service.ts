@@ -33,6 +33,7 @@ import {
   renderDriverNewOrderEmail,
   driverNewOrderSubject,
 } from './email-templates/driver-new-order';
+import { logEmailAttempt } from './email-log';
 
 export type EmailTemplate =
   | 'contact-form'
@@ -163,12 +164,33 @@ class EmailService {
         subject: options.subject,
         to: options.to,
       });
+      // Fire-and-forget audit log — never block on the sheet write.
+      logEmailAttempt({
+        template: template || '(untagged)',
+        to: options.to,
+        cc: options.cc,
+        bcc: options.bcc,
+        from: options.fromName ? `${options.fromName} <${this.from}>` : this.from,
+        subject: options.subject,
+        status: 'dropped_template_not_allowed',
+        error: `template '${template || 'untagged'}' not in allowlist`,
+      }).catch(() => {});
       return { success: false, error: `template '${template || 'untagged'}' not in allowlist` };
     }
 
     // Legacy env kill switch — still honored.
     if (process.env.EMAIL_KILL_SWITCH === 'true') {
       console.warn('[EMAIL KILL SWITCH]', { template, to: options.to, subject: options.subject });
+      logEmailAttempt({
+        template,
+        to: options.to,
+        cc: options.cc,
+        bcc: options.bcc,
+        from: options.fromName ? `${options.fromName} <${this.from}>` : this.from,
+        subject: options.subject,
+        status: 'dropped_kill_switch',
+        error: 'EMAIL_KILL_SWITCH active',
+      }).catch(() => {});
       return { success: false, error: 'EMAIL_KILL_SWITCH active' };
     }
 
@@ -180,6 +202,16 @@ class EmailService {
         template,
         subject: options.subject,
       });
+      logEmailAttempt({
+        template,
+        to: options.to,
+        cc: options.cc,
+        bcc: options.bcc,
+        from: options.fromName ? `${options.fromName} <${this.from}>` : this.from,
+        subject: options.subject,
+        status: 'dropped_transport_not_configured',
+        error: 'transport not configured (set RESEND_API_KEY and EMAIL_FROM)',
+      }).catch(() => {});
       return {
         success: false,
         error: 'transport not configured (set RESEND_API_KEY and EMAIL_FROM)',
@@ -204,13 +236,23 @@ class EmailService {
         droppedTo: toF.dropped,
         subject: options.subject,
       });
+      logEmailAttempt({
+        template,
+        to: options.to,
+        cc: options.cc,
+        bcc: options.bcc,
+        from: options.fromName ? `${options.fromName} <${this.from}>` : this.from,
+        subject: options.subject,
+        status: 'dropped_rate_limit',
+        error: `all to-recipients rate-limited (dropped: ${toF.dropped.join(',')})`,
+      }).catch(() => {});
       return { success: false, error: 'all to-recipients rate-limited' };
     }
 
     // Send via Resend.
+    const displayName = options.fromName || this.fromName;
+    const fromHeader = displayName ? `${displayName} <${this.from}>` : this.from;
     try {
-      const displayName = options.fromName || this.fromName;
-      const fromHeader = displayName ? `${displayName} <${this.from}>` : this.from;
       const toList = toF.kept.split(',').map(s => s.trim()).filter(Boolean);
       const ccList = ccF.kept ? ccF.kept.split(',').map(s => s.trim()).filter(Boolean) : undefined;
       const bccList = bccF.kept ? bccF.kept.split(',').map(s => s.trim()).filter(Boolean) : undefined;
@@ -237,11 +279,40 @@ class EmailService {
       });
       if (error) {
         console.error('[EMAIL SEND FAILED]', { template, subject: options.subject, error });
+        logEmailAttempt({
+          template,
+          to: toF.kept,
+          cc: ccF.kept || options.cc,
+          bcc: bccF.kept || options.bcc,
+          from: fromHeader,
+          subject: options.subject,
+          status: 'send_failed',
+          error: error.message || 'send failed',
+        }).catch(() => {});
         return { success: false, error: error.message || 'send failed' };
       }
+      logEmailAttempt({
+        template,
+        to: toF.kept,
+        cc: ccF.kept || options.cc,
+        bcc: bccF.kept || options.bcc,
+        from: fromHeader,
+        subject: options.subject,
+        status: 'sent',
+      }).catch(() => {});
       return { success: true };
     } catch (err) {
       console.error('[EMAIL SEND ERROR]', { template, subject: options.subject, err });
+      logEmailAttempt({
+        template,
+        to: toF.kept,
+        cc: ccF.kept || options.cc,
+        bcc: bccF.kept || options.bcc,
+        from: fromHeader,
+        subject: options.subject,
+        status: 'send_failed',
+        error: err instanceof Error ? err.message : 'unknown error',
+      }).catch(() => {});
       return {
         success: false,
         error: err instanceof Error ? err.message : 'unknown error',

@@ -18,18 +18,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { callsService, WebhookPayload } from '@/lib/calls-service';
 
-// Validate webhook API key
-function validateApiKey(request: NextRequest): boolean {
-  const apiKey = request.headers.get('x-api-key') || request.headers.get('authorization')?.replace('Bearer ', '');
+// SECURITY 2026-05-20: was fail-open in non-production when CALLS_WEBHOOK_API_KEY
+// was unset (any request accepted, "for development convenience"). The
+// dev-mode loophole is removed: an unset env var now always rejects, in every
+// environment. Production behavior (compare provided key to expected key) is
+// unchanged. Caller distinguishes "webhook disabled" (503, no key configured)
+// from "wrong key" (401, key mismatch).
+type ApiKeyResult = 'ok' | 'not_configured' | 'invalid';
+
+function validateApiKey(request: NextRequest): ApiKeyResult {
   const expectedKey = process.env.CALLS_WEBHOOK_API_KEY;
 
-  // If no key configured, allow in development
   if (!expectedKey) {
-    console.warn('CALLS_WEBHOOK_API_KEY not configured - allowing all requests in development');
-    return process.env.NODE_ENV !== 'production';
+    console.error('[WEBHOOK FAIL-CLOSED route=calls] CRITICAL: CALLS_WEBHOOK_API_KEY is not set - webhook disabled, rejecting request');
+    return 'not_configured';
   }
 
-  return apiKey === expectedKey;
+  const apiKey = request.headers.get('x-api-key') || request.headers.get('authorization')?.replace('Bearer ', '');
+  return apiKey === expectedKey ? 'ok' : 'invalid';
 }
 
 /**
@@ -40,7 +46,14 @@ function validateApiKey(request: NextRequest): boolean {
 export async function POST(request: NextRequest) {
   try {
     // Validate API key
-    if (!validateApiKey(request)) {
+    const auth = validateApiKey(request);
+    if (auth === 'not_configured') {
+      return NextResponse.json(
+        { error: 'Service Unavailable', message: 'Webhook not configured' },
+        { status: 503 }
+      );
+    }
+    if (auth === 'invalid') {
       return NextResponse.json(
         { error: 'Unauthorized', message: 'Invalid or missing API key' },
         { status: 401 }
@@ -99,7 +112,14 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   // Validate API key for status check too
-  if (!validateApiKey(request)) {
+  const auth = validateApiKey(request);
+  if (auth === 'not_configured') {
+    return NextResponse.json(
+      { error: 'Service Unavailable', message: 'Webhook not configured' },
+      { status: 503 }
+    );
+  }
+  if (auth === 'invalid') {
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 401 }

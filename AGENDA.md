@@ -93,7 +93,13 @@ Owner explicitly asked for this — look at how others solve the same problems.
 - `[done]` **3b.3 HIGH fixes (2 routes)** — `roof-measure/calibrate` POST gated (was vulnerable to calibration poisoning); `dashboard/leads` POST gated (legacy lead-write endpoint without form-hardening).
 - `[pending]` **3b.4 Portal namespace cost-data visibility tightening** — `/api/portal/reports/{commissions, profitability, finance-summary}` + `/api/portal/jobnimbus/commissions` allow ANY logged-in user; per `[[feedback_purchase_price_visibility]]` should be owner/admin/office/manager-tier only. `[needs-owner]` confirm tier.
 - `[needs-owner]` **3b.5 `march-madness-2026` routes intent** — currently public; reclassify as internal or shelve.
-- `[needs-owner]` **3b.6 Webhook fail-mode** — JN webhook fails OPEN if signing secret is missing. Confirm we want fail-closed.
+- `[done]` **3b.6 Webhook fail-mode hardened** — JN webhook now returns 503 if signing secret missing (was fail-open, CRITICAL). Material-order-email tightened (cosmetic). Calls webhook had a dev-mode loophole that accepted any request when key was unset — closed (HIGH). GroupMe documented as intentionally unsigned (no signing protocol on inbound; read-only routing).
+
+## Phase 6 — Operational visibility
+
+- `[done]` **6.1 Email send-log to master sheet** — `lib/email-log.ts` appends to `Email Log` tab on every `emailService.send()` outcome (template-not-allowed, kill-switch, transport-not-configured, rate-limit, send-failed, sent). Fire-and-forget; never blocks the email path. Owner gets a sortable real-time view of every send attempt once Resend goes live.
+- `[pending]` **6.2 Build `/admin/email-log` viewer page** — read the sheet, paginate, filter by template/status/recipient. Operational tool.
+- `[pending]` **6.3 Build `/admin/spam-log` viewer page** — show every honeypot/spam-filter/turnstile block with reason. Helps verify the gates are catching things.
 - `[done]` **5.4+5.5+5.6 Portal + SEO + design research** — `docs/research-portal-seo-design.md`. 5 portal features (CompanyCam-style share, PM trading card, insurance timeline, delivery preview, warranty packet), 5 SEO wins (load-verified review automation, RoofingContractor schema, Core Web Vitals tightening), 5 design wins (vertical install video hero, before-after slider, trust strip, mobile CTA bar, county landing pages).
 
 Deliverable per item: 1-page summary + 3-5 concrete suggestions that would actually move the needle for RCRS, ranked by impact/effort.

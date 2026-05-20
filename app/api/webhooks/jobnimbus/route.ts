@@ -74,30 +74,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // SECURITY: Verify webhook signature when secret is configured.
-    // If JOBNIMBUS_WEBHOOK_SECRET is set, signature validation is REQUIRED.
-    // Requests without a valid signature are rejected with 401.
-    if (WEBHOOK_SECRET) {
-      const signature = request.headers.get('x-jobnimbus-signature');
+    // SECURITY 2026-05-20: was fail-open when JOBNIMBUS_WEBHOOK_SECRET was unset
+    // (any unsigned request would be accepted). Now fail-closed: if the env
+    // var is missing/empty the webhook is treated as DISABLED and returns 503,
+    // because an unconfigured webhook is not ready to receive traffic.
+    // If the secret IS set but the request signature is missing/invalid we
+    // continue to return 401 (unchanged behavior).
+    if (!WEBHOOK_SECRET) {
+      console.error('[WEBHOOK FAIL-CLOSED route=jobnimbus] CRITICAL: JOBNIMBUS_WEBHOOK_SECRET is not set - webhook disabled, returning 503');
+      return NextResponse.json(
+        { error: 'Webhook not configured' },
+        { status: 503 }
+      );
+    }
 
-      if (!signature) {
-        console.warn('SECURITY: JN webhook rejected - missing signature header');
-        return NextResponse.json(
-          { error: 'Missing webhook signature' },
-          { status: 401 }
-        );
-      }
+    const signature = request.headers.get('x-jobnimbus-signature');
 
-      if (!verifyWebhookSignature(rawBody, signature, WEBHOOK_SECRET)) {
-        console.warn('SECURITY: JN webhook rejected - invalid signature');
-        return NextResponse.json(
-          { error: 'Invalid webhook signature' },
-          { status: 401 }
-        );
-      }
-    } else {
-      // Log warning if webhook secret is not configured
-      console.warn('SECURITY WARNING: JOBNIMBUS_WEBHOOK_SECRET not set - webhook requests are not verified');
+    if (!signature) {
+      console.warn('SECURITY: JN webhook rejected - missing signature header');
+      return NextResponse.json(
+        { error: 'Missing webhook signature' },
+        { status: 401 }
+      );
+    }
+
+    if (!verifyWebhookSignature(rawBody, signature, WEBHOOK_SECRET)) {
+      console.warn('SECURITY: JN webhook rejected - invalid signature');
+      return NextResponse.json(
+        { error: 'Invalid webhook signature' },
+        { status: 401 }
+      );
     }
 
     // Parse the verified body

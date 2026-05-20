@@ -1,6 +1,18 @@
 // GroupMe Bot Webhook - "River" bot callback endpoint
 // Receives messages posted in GroupMe groups where the bot is added
 // Can trigger automated responses, command processing, etc.
+//
+// SECURITY 2026-05-20: NO signature verification — by design.
+// GroupMe outgoing webhooks do NOT sign their callbacks (no HMAC, no secret,
+// no IP allowlist published). Per GroupMe dev docs the only available
+// authentication is "trust the URL". Risk profile is LOW because:
+//   1. The bot only POSTs back to GroupMe via GROUPME_BOT_ID (not the caller)
+//   2. Handlers are read-only command lookups; no DB writes, no Sheets writes
+//   3. Worst case is bot spam in our own group, not data exfiltration
+// If this endpoint ever gains write capability (e.g., creating leads from
+// GroupMe messages), it MUST be upgraded to verify a shared-secret query
+// parameter on the bot callback URL (e.g., ?token=<GROUPME_WEBHOOK_TOKEN>)
+// and that token MUST be required (fail-closed) — same pattern as JobNimbus.
 
 import { NextRequest, NextResponse } from 'next/server';
 

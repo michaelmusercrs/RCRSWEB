@@ -51,12 +51,17 @@ interface WebhookPayload {
 }
 
 export async function POST(request: NextRequest) {
-  // Auth via shared secret header
+  // SECURITY 2026-05-20: confirmed fail-closed. If MATERIAL_ORDER_WEBHOOK_SECRET
+  // is unset/empty the webhook is treated as DISABLED and returns 503 (was 500
+  // before — semantically the route is unavailable, not crashing). If the
+  // secret IS set but the provided header doesn't match, we return 401 as
+  // before. Either way, a request CANNOT succeed without a configured secret.
   const provided = request.headers.get('x-webhook-secret') || '';
   if (!WEBHOOK_SECRET) {
+    console.error('[WEBHOOK FAIL-CLOSED route=material-order-email] CRITICAL: MATERIAL_ORDER_WEBHOOK_SECRET is not set - webhook disabled, returning 503');
     return NextResponse.json(
-      { error: 'MATERIAL_ORDER_WEBHOOK_SECRET not configured on server' },
-      { status: 500 },
+      { error: 'Webhook not configured' },
+      { status: 503 },
     );
   }
   if (provided !== WEBHOOK_SECRET) {
