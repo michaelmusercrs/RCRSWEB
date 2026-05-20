@@ -8,6 +8,8 @@ The scheduled routine appends an entry per action.
 
 ## 2026-05-20
 
+- `23:30` · claude · 5 files · Phase 7.5 hail auto-canvass — on `sweep/hail-canvass` branch · admin UI + K-means rep clustering + real address data via Geocoded_Contacts sheet + SVG fallback map · CRM moat win #1 · commit (sweep)
+- `23:15` · claude · 9 page-files + 3 new opengraph-image.tsx + lib/auth-service.ts · Phase 3b.4 cost-data tiering (8 routes via new requireRoleAtLeast helper, Richard slug-whitelisted) + Phase 5.6c full OG/Twitter cards + dynamic opengraph-image generators · commit b789cb5 (main)
 - `22:30` · claude · 6 files · Phase 7.4 storm-report magic-link share — on `sweep/storm-magic-link` branch · 24-char base62 token public share + rep regen endpoint + 60/hr KV rate limit + wired into existing storm-report email · CRM moat win #5 · commit (sweep)
 - `22:00` · claude · 6 files · Phase 7.3 review-request automation — on `sweep/review-automation` branch · env-gated template + sheet queue + daily cron + load-verified hook; vercel.json entry parked in `_disabledCrons` · commit 2a2eae4 (sweep)
 - `21:45` · claude · 5 service pages + lib/seo.ts + lib/serviceEnhancements.ts (new) · Phase 5.6b service-page SEO depth — process steps + includes/excludes + related cross-links + county callouts + ServiceChannel schema · commit ffb6e35 (main)
