@@ -36,13 +36,19 @@ const SALES_REPS = [
   'Brittany Hutchison',
 ];
 
-// Manual action types (exclude automated/system activities)
+// Manual action types (exclude automated/system activities). Per Michael's
+// 2026-05-20 correction: appointments and tasks count too — a rep setting
+// an appt IS first-contact even if no note/call/email was logged first.
 const MANUAL_ACTION_TYPES = new Set([
   'Note',
   'Phone Call',
   'Text Message',
   'Email',
   'email',
+  'Appointment',
+  'appointment',
+  'Task',
+  'task',
 ]);
 
 // System/automation authors to exclude
@@ -317,18 +323,40 @@ export async function queryResponseTimes(opts: {
   for (let i = 0; i < officeContacts.length; i++) {
     const contact = officeContacts[i];
     
-    // Fetch activities for this contact (sorted by date ascending)
+    // Fetch activities for this contact AND any related jobs. Per Michael's
+    // 2026-05-20 correction: activities can be logged against the JOB record
+    // rather than the contact directly, so we need to check both — otherwise
+    // appts/notes logged on a job are missed.
     try {
       // JN filter must be JSON-encoded — see lib/jobnimbus-service.ts:318
-      const activitiesFilter = encodeURIComponent(
+      const contactFilter = encodeURIComponent(
         JSON.stringify({ must: [{ term: { 'related.id': contact.jnid } }] }),
       );
-      const activitiesResult = await jnFetch<{ count?: number; results?: JNActivity[]; activity?: JNActivity[] }>(
-        `/activities?filter=${activitiesFilter}&sort=date_created&limit=50`,
+      // Primary.id covers activities where the contact is the PRIMARY entity
+      const primaryFilter = encodeURIComponent(
+        JSON.stringify({ must: [{ term: { 'primary.id': contact.jnid } }] }),
       );
-      
-      // JN API returns activities under "results" or "activity" key
-      const activities = activitiesResult.results || activitiesResult.activity || [];
+
+      const [byRelated, byPrimary] = await Promise.all([
+        jnFetch<{ count?: number; results?: JNActivity[]; activity?: JNActivity[] }>(
+          `/activities?filter=${contactFilter}&sort=date_created&limit=50`,
+        ),
+        jnFetch<{ count?: number; results?: JNActivity[]; activity?: JNActivity[] }>(
+          `/activities?filter=${primaryFilter}&sort=date_created&limit=50`,
+        ),
+      ]);
+
+      // Merge + de-dupe by jnid
+      const seen = new Set<string>();
+      const merged: JNActivity[] = [];
+      for (const r of [...(byRelated.results || byRelated.activity || []), ...(byPrimary.results || byPrimary.activity || [])]) {
+        if (r.jnid && !seen.has(r.jnid)) {
+          seen.add(r.jnid);
+          merged.push(r);
+        }
+      }
+      merged.sort((a, b) => (a.date_created || 0) - (b.date_created || 0));
+      const activities = merged;
       
       // Find first manual action by the assigned sales rep (or any sales rep)
       let firstAction: JNActivity | null = null;
