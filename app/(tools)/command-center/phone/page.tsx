@@ -83,6 +83,25 @@ interface DashboardData {
   };
 }
 
+// FreePBX live data (merged in via /api/freepbx/extensions when available)
+interface FreePbxExtension {
+  extension: string;
+  name: string;
+  device: 'mobile' | 'desk' | 'softphone' | 'unknown';
+  registration: 'registered' | 'unregistered' | 'in-call' | 'ringing' | 'dnd' | 'unknown';
+  queueIds: string[];
+  callsToday: number;
+  dnd: boolean;
+}
+
+interface FreePbxQueueSummary {
+  queueId: string;
+  name: string;
+  waitingCalls: number;
+  members: { extension: string; paused: boolean }[];
+  avgWaitSeconds: number;
+}
+
 // =============================================================================
 // EXTENSION DATA (mirrored for client-side)
 // =============================================================================
@@ -157,14 +176,36 @@ export default function PhoneDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Live FreePBX state — merges with the static EXTENSIONS list above.
+  const [liveExts, setLiveExts] = useState<FreePbxExtension[]>([]);
+  const [liveQueues, setLiveQueues] = useState<FreePbxQueueSummary[]>([]);
+  const [pbxConfigured, setPbxConfigured] = useState<boolean>(false);
+  const [pbxSource, setPbxSource] = useState<string>('stub');
+
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/command-center/calls?recent=15');
-      if (!res.ok) throw new Error('Failed to fetch phone data');
-      const json = await res.json();
-      setData(json);
+      const [cdrRes, extRes, qRes] = await Promise.all([
+        fetch('/api/command-center/calls?recent=15'),
+        fetch('/api/freepbx/extensions'),
+        fetch('/api/freepbx/queues'),
+      ]);
+
+      if (!cdrRes.ok) throw new Error('Failed to fetch phone data');
+      const cdrJson = await cdrRes.json();
+      setData(cdrJson);
       setError('');
+
+      if (extRes.ok) {
+        const ej = await extRes.json();
+        setPbxConfigured(Boolean(ej.configured));
+        setPbxSource(String(ej.source || 'stub'));
+        setLiveExts(Array.isArray(ej.data) ? ej.data : []);
+      }
+      if (qRes.ok) {
+        const qj = await qRes.json();
+        setLiveQueues(Array.isArray(qj.data) ? qj.data : []);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load dashboard');
     } finally {
@@ -176,8 +217,23 @@ export default function PhoneDashboardPage() {
     fetchData();
   }, [fetchData]);
 
-  const onlineCount = EXTENSIONS.filter(e => e.status === 'online').length;
-  const offlineCount = EXTENSIONS.filter(e => e.status === 'offline').length;
+  // Merge live registration into the static EXTENSIONS list so the UI
+  // works pre-FreePBX-config (falls back to the legacy `status` field).
+  const mergedExtensions = EXTENSIONS.map(e => {
+    const live = liveExts.find(le => le.extension === e.extension);
+    if (!live) return { ...e, registration: e.status === 'online' ? 'registered' : 'unregistered', callsToday: 0, queueIds: [] as string[] };
+    return {
+      ...e,
+      registration: live.registration,
+      callsToday: live.callsToday,
+      queueIds: live.queueIds,
+      device: live.device,
+    };
+  });
+  const onlineCount = mergedExtensions.filter(e =>
+    e.registration === 'registered' || e.registration === 'in-call' || e.registration === 'ringing'
+  ).length;
+  const offlineCount = mergedExtensions.length - onlineCount;
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -220,6 +276,22 @@ export default function PhoneDashboardPage() {
         {error && (
           <div className="bg-red-900/20 border border-red-800 rounded-xl p-4 mb-6 text-red-400 text-sm">
             {error}
+          </div>
+        )}
+
+        {/* FreePBX connection banner */}
+        {!pbxConfigured && (
+          <div className="bg-amber-900/20 border border-amber-800/60 rounded-xl p-4 mb-6 text-amber-200 text-sm">
+            <div className="font-medium mb-1">FreePBX not configured yet</div>
+            <p className="text-amber-200/80 text-xs">
+              Set <code className="text-amber-300">FREEPBX_URL</code>, <code className="text-amber-300">FREEPBX_API_USER</code>, <code className="text-amber-300">FREEPBX_API_KEY</code>, and <code className="text-amber-300">FREEPBX_VOIP_NUMBERS</code> in your environment to enable live extension status, queues, and click-to-call originate. UI is showing static fallback data.
+            </p>
+          </div>
+        )}
+        {pbxConfigured && pbxSource === 'freepbx-rest' && (
+          <div className="bg-green-900/10 border border-green-800/40 rounded-lg px-4 py-2 mb-6 text-green-300 text-xs flex items-center gap-2">
+            <Wifi className="w-3.5 h-3.5" />
+            Connected to FreePBX
           </div>
         )}
 
@@ -299,63 +371,128 @@ export default function PhoneDashboardPage() {
         </div>
 
         {/* Quick Navigation */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+          <Link
+            href="/command-center/phone/queues"
+            className="group bg-gray-900 border border-gray-800 hover:border-[#39FF14]/30 rounded-xl p-4 transition-all"
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <Users className="w-4 h-4 text-cyan-400" />
+              <span className="text-xs font-medium">Queues</span>
+            </div>
+            <div className="text-xl font-bold">{liveQueues.length || '—'}</div>
+            <div className="text-xs text-gray-500">{liveQueues.reduce((s, q) => s + q.waitingCalls, 0)} waiting</div>
+          </Link>
+
+          <Link
+            href="/command-center/phone/routing"
+            className="group bg-gray-900 border border-gray-800 hover:border-[#39FF14]/30 rounded-xl p-4 transition-all"
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <Activity className="w-4 h-4 text-purple-400" />
+              <span className="text-xs font-medium">Routing</span>
+            </div>
+            <div className="text-xs text-gray-500">Time-of-day rules</div>
+          </Link>
+
+          <Link
+            href="/command-center/phone/recordings"
+            className="group bg-gray-900 border border-gray-800 hover:border-[#39FF14]/30 rounded-xl p-4 transition-all"
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <Voicemail className="w-4 h-4 text-pink-400" />
+              <span className="text-xs font-medium">Recordings</span>
+            </div>
+            <div className="text-xs text-gray-500">Playback</div>
+          </Link>
+
+          <Link
+            href="/command-center/phone/numbers"
+            className="group bg-gray-900 border border-gray-800 hover:border-[#39FF14]/30 rounded-xl p-4 transition-all"
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <Phone className="w-4 h-4 text-emerald-400" />
+              <span className="text-xs font-medium">VoIP Numbers</span>
+            </div>
+            <div className="text-xs text-gray-500">DIDs &amp; cost</div>
+          </Link>
+
           <Link
             href="/command-center/phone/calls"
-            className="group bg-gray-900 border border-gray-800 hover:border-[#39FF14]/30 rounded-xl p-5 transition-all"
+            className="group bg-gray-900 border border-gray-800 hover:border-[#39FF14]/30 rounded-xl p-4 transition-all"
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                  <PhoneCall className="w-5 h-5 text-blue-400" />
-                </div>
-                <div>
-                  <h3 className="font-medium">Call Log</h3>
-                  <p className="text-sm text-gray-500">
-                    {data?.stats?.totalCalls ?? 0} total calls
-                  </p>
-                </div>
-              </div>
-              <ArrowRight className="w-5 h-5 text-gray-600 group-hover:text-[#39FF14] transition-colors" />
+            <div className="flex items-center gap-2 mb-1">
+              <PhoneCall className="w-4 h-4 text-blue-400" />
+              <span className="text-xs font-medium">Call Log</span>
             </div>
+            <div className="text-xl font-bold">{data?.stats?.totalCalls ?? 0}</div>
+            <div className="text-xs text-gray-500">total calls</div>
           </Link>
 
           <Link
             href="/command-center/phone/voicemail"
-            className="group bg-gray-900 border border-gray-800 hover:border-[#39FF14]/30 rounded-xl p-5 transition-all"
+            className="group bg-gray-900 border border-gray-800 hover:border-[#39FF14]/30 rounded-xl p-4 transition-all"
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                  <Voicemail className="w-5 h-5 text-purple-400" />
-                </div>
-                <div>
-                  <h3 className="font-medium">Voicemail</h3>
-                  <p className="text-sm text-gray-500">Inbox &amp; transcriptions</p>
-                </div>
-              </div>
-              <ArrowRight className="w-5 h-5 text-gray-600 group-hover:text-[#39FF14] transition-colors" />
+            <div className="flex items-center gap-2 mb-1">
+              <Voicemail className="w-4 h-4 text-purple-400" />
+              <span className="text-xs font-medium">Voicemail</span>
             </div>
-          </Link>
-
-          <Link
-            href="/command-center/phone/manage"
-            className="group bg-gray-900 border border-gray-800 hover:border-[#39FF14]/30 rounded-xl p-5 transition-all"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                  <Settings className="w-5 h-5 text-amber-400" />
-                </div>
-                <div>
-                  <h3 className="font-medium">Manage</h3>
-                  <p className="text-sm text-gray-500">Extensions &amp; settings</p>
-                </div>
-              </div>
-              <ArrowRight className="w-5 h-5 text-gray-600 group-hover:text-[#39FF14] transition-colors" />
-            </div>
+            <div className="text-xs text-gray-500">Inbox &amp; transcriptions</div>
           </Link>
         </div>
+
+        {/* Manage link — separate row so it stays full-width */}
+        <div className="mb-6">
+          <Link
+            href="/command-center/phone/manage"
+            className="group flex items-center justify-between bg-gray-900 border border-gray-800 hover:border-[#39FF14]/30 rounded-xl p-4 transition-all"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                <Settings className="w-4 h-4 text-amber-400" />
+              </div>
+              <div>
+                <h3 className="font-medium text-sm">Manage Extensions &amp; Ring Groups</h3>
+                <p className="text-xs text-gray-500">Extensions, ring groups, feature codes</p>
+              </div>
+            </div>
+            <ArrowRight className="w-4 h-4 text-gray-600 group-hover:text-[#39FF14] transition-colors" />
+          </Link>
+        </div>
+
+        {/* Queue dashboard strip */}
+        {liveQueues.length > 0 && (
+          <div className="bg-gray-900 border border-gray-800 rounded-xl mb-6">
+            <div className="px-5 py-3 border-b border-gray-800 flex items-center justify-between">
+              <h2 className="font-semibold flex items-center gap-2">
+                <Users className="w-4 h-4 text-cyan-400" />
+                Queue Status
+              </h2>
+              <Link href="/command-center/phone/queues" className="text-xs text-[#39FF14] hover:text-[#39FF14]/80">
+                View all
+              </Link>
+            </div>
+            <div className="divide-y divide-gray-800">
+              {liveQueues.slice(0, 4).map(q => (
+                <div key={q.queueId} className="flex items-center gap-4 px-5 py-3">
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">{q.name}</div>
+                    <div className="text-xs text-gray-500">{q.members.length} members</div>
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    <span className={q.waitingCalls > 0 ? 'text-red-400 font-medium' : 'text-gray-500'}>
+                      {q.waitingCalls}
+                    </span>{' '}
+                    waiting
+                  </div>
+                  <div className="text-xs text-gray-500 w-20 text-right">
+                    avg {formatDuration(q.avgWaitSeconds)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Two-column layout: Recent Calls + Needs Attention */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
@@ -481,19 +618,28 @@ export default function PhoneDashboardPage() {
                 </Link>
               </div>
               <div className="divide-y divide-gray-800">
-                {EXTENSIONS.map((ext) => (
-                  <Link
-                    key={ext.extension}
-                    href={`/command-center/phone/${ext.extension}`}
-                    className="flex items-center gap-3 px-5 py-2.5 hover:bg-gray-800/50 transition-colors"
-                  >
-                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                      ext.status === 'online' ? 'bg-[#39FF14]' : 'bg-gray-600'
-                    }`} />
-                    <span className="text-sm flex-1 truncate">{ext.name}</span>
-                    <span className="text-xs text-gray-500">{ext.extension}</span>
-                  </Link>
-                ))}
+                {mergedExtensions.map((ext) => {
+                  const dotColor =
+                    ext.registration === 'in-call' ? 'bg-yellow-400' :
+                    ext.registration === 'ringing' ? 'bg-cyan-400' :
+                    ext.registration === 'dnd' ? 'bg-red-400' :
+                    ext.registration === 'registered' ? 'bg-[#39FF14]' :
+                    'bg-gray-600';
+                  return (
+                    <Link
+                      key={ext.extension}
+                      href={`/command-center/phone/${ext.extension}`}
+                      className="flex items-center gap-3 px-5 py-2.5 hover:bg-gray-800/50 transition-colors"
+                    >
+                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${dotColor}`} />
+                      <span className="text-sm flex-1 truncate">{ext.name}</span>
+                      {ext.callsToday > 0 && (
+                        <span className="text-[10px] text-gray-500">{ext.callsToday} calls</span>
+                      )}
+                      <span className="text-xs text-gray-500">{ext.extension}</span>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
 

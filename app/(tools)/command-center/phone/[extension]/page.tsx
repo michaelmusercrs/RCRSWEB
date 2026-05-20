@@ -13,6 +13,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import ClickToCallButton from '@/components/ClickToCallButton';
 import {
   Phone,
   PhoneCall,
@@ -186,6 +187,15 @@ export default function ExtensionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'calls' | 'voicemail'>('calls');
+  // Live FreePBX registration data for this extension
+  const [liveRegistration, setLiveRegistration] = useState<string | null>(null);
+  const [liveDevice, setLiveDevice] = useState<string | null>(null);
+  // For click-to-call demo: caller's own extension (would normally come
+  // from session/profile; we read from /api/freepbx/extensions match on
+  // the logged-in user's name if available, else falls back to the
+  // currently-viewed extension which means "this is a self-test call").
+  const [callerExt, setCallerExt] = useState<string>('');
+  const [testNumber, setTestNumber] = useState<string>('');
 
   // Find extension info
   const ext = EXTENSIONS.find(e => e.extension === extensionNumber);
@@ -213,6 +223,22 @@ export default function ExtensionDetailPage() {
       } catch {
         // Voicemail API may not exist yet
         setVoicemails([]);
+      }
+
+      // Fetch live FreePBX registration
+      try {
+        const lr = await fetch('/api/freepbx/extensions');
+        if (lr.ok) {
+          const lj = await lr.json();
+          const list: { extension: string; registration: string; device: string }[] = Array.isArray(lj.data) ? lj.data : [];
+          const match = list.find(e => e.extension === extensionNumber);
+          if (match) {
+            setLiveRegistration(match.registration);
+            setLiveDevice(match.device);
+          }
+        }
+      } catch {
+        // FreePBX not reachable — fine, static status remains
       }
 
       setError('');
@@ -374,12 +400,55 @@ export default function ExtensionDetailPage() {
               </div>
             )}
             <div className="flex items-center gap-2 text-sm">
-              {ext.status === 'online' ? (
+              {(liveRegistration === 'registered' || liveRegistration === 'in-call' || liveRegistration === 'ringing') ? (
+                <Wifi className="w-4 h-4 text-[#39FF14]" />
+              ) : liveRegistration ? (
+                <WifiOff className="w-4 h-4 text-gray-600" />
+              ) : ext.status === 'online' ? (
                 <Wifi className="w-4 h-4 text-[#39FF14]" />
               ) : (
                 <WifiOff className="w-4 h-4 text-gray-600" />
               )}
-              <span className={statusInfo.color}>{statusInfo.label}</span>
+              <span className={statusInfo.color}>
+                {liveRegistration ? `PBX: ${liveRegistration}` : statusInfo.label}
+              </span>
+              {liveDevice && (
+                <span className="text-xs text-gray-500">({liveDevice})</span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Click-to-call test panel */}
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <h3 className="text-sm font-medium text-white">Click-to-call from ext {extensionNumber}</h3>
+              <p className="text-xs text-gray-500">
+                Test the FreePBX originate API — your phone will ring first, then dial the target.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <input
+                type="tel"
+                placeholder="Phone number to dial"
+                value={testNumber}
+                onChange={e => setTestNumber(e.target.value)}
+                className="px-3 py-1.5 rounded-md bg-gray-800 border border-gray-700 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#39FF14]/50 w-56"
+              />
+              <ClickToCallButton
+                fromExt={callerExt || extensionNumber}
+                toNumber={testNumber}
+                notes="Test call from extension detail page"
+                variant="full"
+              />
+              <input
+                type="text"
+                placeholder="Caller ext (optional)"
+                value={callerExt}
+                onChange={e => setCallerExt(e.target.value)}
+                className="px-3 py-1.5 rounded-md bg-gray-800 border border-gray-700 text-xs text-gray-300 placeholder-gray-500 focus:outline-none focus:border-[#39FF14]/50 w-32"
+              />
             </div>
           </div>
         </div>

@@ -392,6 +392,10 @@ const SHEET_NAMES = {
   // Driver GPS pings persisted so the office can see Rick on a map.
   DRIVER_LOCATIONS: 'Driver_Locations',
   SYSTEM_HEALTH: 'SystemHealth',
+  // Click-to-call originate events from the portal phone dashboard.
+  // Separate from CALLS (which mirrors the PBX CDR) so the portal-side
+  // intent log isn't polluted by inbound traffic.
+  PHONE_CALL_LOG: 'Phone Call Log',
 } as const;
 
 export type SheetName = (typeof SHEET_NAMES)[keyof typeof SHEET_NAMES];

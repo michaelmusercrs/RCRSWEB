@@ -10,7 +10,7 @@
  * - Quick links to individual extension pages
  */
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Settings,
@@ -33,6 +33,11 @@ import {
   ExternalLink,
   Copy,
   CheckCircle,
+  Smartphone,
+  Monitor,
+  Headphones,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
 
 // =============================================================================
@@ -162,10 +167,63 @@ const CATEGORY_CONFIG: Record<string, { label: string; icon: typeof Voicemail; c
 // PAGE COMPONENT
 // =============================================================================
 
+interface LiveFreePbxExtension {
+  extension: string;
+  name: string;
+  device: 'mobile' | 'desk' | 'softphone' | 'unknown';
+  registration: 'registered' | 'unregistered' | 'in-call' | 'ringing' | 'dnd' | 'unknown';
+  queueIds: string[];
+  callsToday: number;
+  dnd: boolean;
+}
+
+function deviceIcon(d: LiveFreePbxExtension['device']) {
+  if (d === 'mobile') return Smartphone;
+  if (d === 'desk') return Monitor;
+  if (d === 'softphone') return Headphones;
+  return Phone;
+}
+
+function regStyle(r: LiveFreePbxExtension['registration']) {
+  switch (r) {
+    case 'registered': return { dot: 'bg-[#39FF14]', text: 'text-[#39FF14]', label: 'Registered' };
+    case 'in-call': return { dot: 'bg-yellow-400', text: 'text-yellow-400', label: 'In call' };
+    case 'ringing': return { dot: 'bg-cyan-400', text: 'text-cyan-400', label: 'Ringing' };
+    case 'dnd': return { dot: 'bg-red-400', text: 'text-red-400', label: 'DND' };
+    case 'unregistered': return { dot: 'bg-gray-600', text: 'text-gray-500', label: 'Unregistered' };
+    default: return { dot: 'bg-gray-600', text: 'text-gray-500', label: 'Unknown' };
+  }
+}
+
 export default function PhoneManagePage() {
   const [activeTab, setActiveTab] = useState<'extensions' | 'ringgroups' | 'features'>('extensions');
   const [expandedGroup, setExpandedGroup] = useState<string | null>('600');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  // Live FreePBX extension data
+  const [liveExts, setLiveExts] = useState<LiveFreePbxExtension[]>([]);
+  const [pbxConfigured, setPbxConfigured] = useState(false);
+  const [pbxLoading, setPbxLoading] = useState(true);
+
+  const fetchLive = useCallback(async () => {
+    try {
+      setPbxLoading(true);
+      const r = await fetch('/api/freepbx/extensions');
+      if (r.ok) {
+        const j = await r.json();
+        setPbxConfigured(Boolean(j.configured));
+        setLiveExts(Array.isArray(j.data) ? j.data : []);
+      }
+    } catch {
+      // Silent — UI already shows static data
+    } finally {
+      setPbxLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLive();
+  }, [fetchLive]);
 
   const onlineCount = EXTENSIONS.filter(e => e.status === 'online').length;
 
@@ -275,11 +333,32 @@ export default function PhoneManagePage() {
               </div>
             </div>
 
+            {/* FreePBX live status banner */}
+            <div className="mb-4 flex items-center justify-between">
+              <div className="text-xs text-gray-500 flex items-center gap-2">
+                {pbxConfigured ? (
+                  <><Wifi className="w-3.5 h-3.5 text-[#39FF14]" /> Live registration from FreePBX</>
+                ) : (
+                  <><AlertCircle className="w-3.5 h-3.5 text-amber-400" /> FreePBX not configured — showing static fallback</>
+                )}
+              </div>
+              <button
+                onClick={fetchLive}
+                className="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-gray-800"
+                title="Refresh live status"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${pbxLoading ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
+
             {/* Extensions Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {EXTENSIONS.map(ext => {
                 const statusInfo = getStatusInfo(ext.status);
                 const roleBadge = getRoleBadge(ext.role);
+                const live = liveExts.find(l => l.extension === ext.extension);
+                const reg = live ? regStyle(live.registration) : null;
+                const DevIcon = live ? deviceIcon(live.device) : Phone;
 
                 return (
                   <Link
@@ -290,9 +369,9 @@ export default function PhoneManagePage() {
                     {/* Header */}
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2">
-                        <div className={`w-2.5 h-2.5 rounded-full ${statusInfo.dotColor}`} />
-                        <span className={`text-xs font-medium ${statusInfo.color}`}>
-                          {statusInfo.label}
+                        <div className={`w-2.5 h-2.5 rounded-full ${reg ? reg.dot : statusInfo.dotColor}`} />
+                        <span className={`text-xs font-medium ${reg ? reg.text : statusInfo.color}`}>
+                          {reg ? reg.label : statusInfo.label}
                         </span>
                       </div>
                       <span className={`text-xs px-2 py-0.5 rounded-full ${roleBadge.color} ${roleBadge.bgColor}`}>
@@ -311,14 +390,36 @@ export default function PhoneManagePage() {
 
                     {/* Info Row */}
                     <div className="flex items-center gap-3 text-xs text-gray-500">
+                      <span className="flex items-center gap-1" title={live ? `Device: ${live.device}` : 'Device unknown'}>
+                        <DevIcon className="w-3 h-3" />
+                        {live ? live.device : 'softphone'}
+                      </span>
                       {ext.voicemailEnabled && (
                         <span className="flex items-center gap-1">
                           <Voicemail className="w-3 h-3" />
                           VM
                         </span>
                       )}
-                      <span className="truncate">{ext.email}</span>
+                      {live && live.callsToday > 0 && (
+                        <span className="flex items-center gap-1 text-[#39FF14]">
+                          {live.callsToday} today
+                        </span>
+                      )}
                     </div>
+
+                    {/* Queue membership */}
+                    {live && live.queueIds.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {live.queueIds.slice(0, 3).map(q => (
+                          <span key={q} className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-900/30 text-cyan-300">
+                            Q{q}
+                          </span>
+                        ))}
+                        {live.queueIds.length > 3 && (
+                          <span className="text-[10px] text-gray-500">+{live.queueIds.length - 3}</span>
+                        )}
+                      </div>
+                    )}
 
                     {/* Link indicator */}
                     <div className="mt-3 pt-3 border-t border-gray-800 text-xs text-gray-600 flex items-center gap-1 group-hover:text-[#39FF14] transition-colors">
