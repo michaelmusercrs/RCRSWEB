@@ -194,29 +194,22 @@ class FormService {
   }
 
   /**
-   * Send email notification via Google Apps Script + direct email to both company addresses
+   * Send email notification.
+   *
+   * NOTE 2026-05-20: the legacy Google Apps Script notification fetch is
+   * DISABLED. That GAS endpoint emails the owner gmail with subject
+   * "[Contact Page] New Lead: …" on every submission, and was the actual
+   * channel of today's flood (bot spam on the public contact form, amplified
+   * straight to the personal inbox via GAS). Sheet logging is unaffected —
+   * saveToSheet writes directly via the Google Sheets API. The formal
+   * company-address email below (emailService.send) still fires and is now
+   * rate-limited per recipient. To re-enable the GAS notification later,
+   * first update the GAS code so it does not email the owner gmail.
    */
   private async sendEmailNotification(formType: string, data: ContactFormData | ReferralFormData): Promise<void> {
-    // 1. Send via Google Apps Script (existing)
-    const endpoint = process.env.NEXT_PUBLIC_GOOGLE_SCRIPT_ENDPOINT;
-    if (endpoint) {
-      const formData = new URLSearchParams();
-      formData.append('formType', formType);
-      formData.append('sourcePage', data.sourcePage);
-      Object.entries(data).forEach(([key, value]) => {
-        if (value) formData.append(key, String(value));
-      });
-
-      try {
-        await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: formData.toString(),
-        });
-      } catch (error) {
-        console.error('Google Apps Script email failed:', error);
-      }
-    }
+    // 1. Legacy GAS notification — disabled. See note above.
+    // const endpoint = process.env.NEXT_PUBLIC_GOOGLE_SCRIPT_ENDPOINT;
+    // (intentionally not re-enabled — flood channel)
 
     // 2. Send direct email notification to both company addresses
     try {
