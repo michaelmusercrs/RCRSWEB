@@ -376,6 +376,11 @@ export function middleware(request: NextRequest) {
     if (pathname === '/chrisview' || pathname.startsWith('/chrisview/') || pathname.startsWith('/api/chrisview')) {
       return NextResponse.next();
     }
+    // /division-leaders shows recruiter / division-leader override checks
+    // pulled from QB 1099 memos. Same intentional-public-link pattern.
+    if (pathname === '/division-leaders' || pathname.startsWith('/division-leaders/') || pathname.startsWith('/api/division-leaders')) {
+      return NextResponse.next();
+    }
 
     // Everything else on rcrsal.com that's not portal → redirect to public site
     if (isPublicRoute(pathname)) {

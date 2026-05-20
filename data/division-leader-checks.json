@@ -1,0 +1,1504 @@
+{
+  "generatedAt": "2026-05-20",
+  "source": "River+City+Roofing+Solutions,+Inc._1099+Transaction+Detail+Report.xlsx",
+  "totalChecks": 158,
+  "totalAmount": 65900.51,
+  "byRecipient": [
+    {
+      "recipient": "Hunter Rivers",
+      "total": 39545.05,
+      "count": 42,
+      "entities": [
+        "Hunter Rivers"
+      ]
+    },
+    {
+      "recipient": "Brendon Muse",
+      "total": 12887.16,
+      "count": 44,
+      "entities": [
+        "BCM Contracting LLC"
+      ]
+    },
+    {
+      "recipient": "Richard Geahr",
+      "total": 7103.61,
+      "count": 51,
+      "entities": [
+        "Richard  Geahr"
+      ]
+    },
+    {
+      "recipient": "Aaron Lussi",
+      "total": 5212.93,
+      "count": 16,
+      "entities": [
+        "Roof Angel, LLC",
+        "Aaron Lussi"
+      ]
+    },
+    {
+      "recipient": "Brandon Bradford",
+      "total": 951.76,
+      "count": 4,
+      "entities": [
+        "BPB Contracting LLC",
+        "Brandon Bradford"
+      ]
+    },
+    {
+      "recipient": "Brian Sullivan",
+      "total": 200,
+      "count": 1,
+      "entities": [
+        "Brian Sullivan"
+      ]
+    }
+  ],
+  "byYear": [
+    {
+      "year": "2019",
+      "total": 51.66
+    },
+    {
+      "year": "2023",
+      "total": 7268.6
+    },
+    {
+      "year": "2024",
+      "total": 28919.03
+    },
+    {
+      "year": "2025",
+      "total": 13681.86
+    },
+    {
+      "year": "2026",
+      "total": 15979.36
+    }
+  ],
+  "checks": [
+    {
+      "date": "05/06/2026",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "6459",
+      "amount": 685.87,
+      "memo": "APRIL 2026 DIVISION LEADER"
+    },
+    {
+      "date": "05/06/2026",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "6460",
+      "amount": 759.81,
+      "memo": "APRIL 2026 DIVISION LEADER"
+    },
+    {
+      "date": "05/06/2026",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "6460",
+      "amount": 4555.5,
+      "memo": "APRIL 2026 DIVISION LEADER"
+    },
+    {
+      "date": "04/03/2026",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "6368",
+      "amount": 1373.96,
+      "memo": "MARCH 2026 DIVISION LEADER"
+    },
+    {
+      "date": "04/03/2026",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "6368",
+      "amount": 150,
+      "memo": "MARCH 2026 DIVISION LEADER"
+    },
+    {
+      "date": "03/31/2026",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "6352",
+      "amount": 781.76,
+      "memo": "JAN. FEBRUARY 2026 TEAM LEADER\nTEAM LEADER 2025 - TRAVIS"
+    },
+    {
+      "date": "03/31/2026",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "6352",
+      "amount": 1190.21,
+      "memo": "JAN. FEBRUARY 2026 TEAM LEADER\nTEAM LEADER 2025 - TRAVIS"
+    },
+    {
+      "date": "03/31/2026",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "6352",
+      "amount": 1299.88,
+      "memo": "JAN. FEBRUARY 2026 TEAM LEADER\nTEAM LEADER 2025 - TRAVIS"
+    },
+    {
+      "date": "03/31/2026",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "6352",
+      "amount": 242.05,
+      "memo": "JAN. FEBRUARY 2026 TEAM LEADER\nTEAM LEADER 2025 - TRAVIS"
+    },
+    {
+      "date": "02/25/2026",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "6260",
+      "amount": 1691.79,
+      "memo": "SALES LEADER CHECK PER CM"
+    },
+    {
+      "date": "01/06/2026",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "6157",
+      "amount": 887.93,
+      "memo": "OCT. NOV. DEC. 2025 TEAM LEADER"
+    },
+    {
+      "date": "01/06/2026",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "6157",
+      "amount": 1164.71,
+      "memo": "OCT. NOV. DEC. 2025 TEAM LEADER"
+    },
+    {
+      "date": "01/06/2026",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "6157",
+      "amount": 1195.89,
+      "memo": "OCT. NOV. DEC. 2025 TEAM LEADER"
+    },
+    {
+      "date": "08/19/2025",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "5794",
+      "amount": 941.21,
+      "memo": "JULY 2025 DIVISION LEADER"
+    },
+    {
+      "date": "07/24/2025",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "5672",
+      "amount": 1919.99,
+      "memo": "JUNE 2025 DIVISION LEADER"
+    },
+    {
+      "date": "06/02/2025",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "5494",
+      "amount": 4392.26,
+      "memo": "MAY 2025 DIVISION LEADER"
+    },
+    {
+      "date": "05/05/2025",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "5411",
+      "amount": 70,
+      "memo": "APRIL 2025 DIVISION LEADER"
+    },
+    {
+      "date": "05/05/2025",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "5412",
+      "amount": 1078.07,
+      "memo": "APRIL 2025 DIVISION LEADER"
+    },
+    {
+      "date": "04/07/2025",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "5423",
+      "amount": 75,
+      "memo": "MARCH 2025 DIVISION LEADER"
+    },
+    {
+      "date": "04/07/2025",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "5423",
+      "amount": 9.11,
+      "memo": "MARCH 2025 DIVISION LEADER"
+    },
+    {
+      "date": "04/07/2025",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "5313",
+      "amount": 1370.08,
+      "memo": "MARCH 2025 DIVISION LEADER"
+    },
+    {
+      "date": "03/03/2025",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "5213",
+      "amount": 36.5,
+      "memo": "FEBRUARY 2025 DIVISION LEADER"
+    },
+    {
+      "date": "03/03/2025",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "5213",
+      "amount": 78.57,
+      "memo": "FEBRUARY 2025 DIVISION LEADER"
+    },
+    {
+      "date": "03/03/2025",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "5211",
+      "amount": 1253.42,
+      "memo": "FEBRUARY 2025 DIVISION LEADER"
+    },
+    {
+      "date": "03/03/2025",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "5212",
+      "amount": 18.25,
+      "memo": "FEBRUARY 2025 DIVISION LEADER"
+    },
+    {
+      "date": "03/03/2025",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "5212",
+      "amount": 39.28,
+      "memo": "FEBRUARY 2025 DIVISION LEADER"
+    },
+    {
+      "date": "02/03/2025",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "9047",
+      "amount": 77.85,
+      "memo": "JANUARY 2025 DIVISION LEADER"
+    },
+    {
+      "date": "02/03/2025",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "9044",
+      "amount": 886.77,
+      "memo": "JANUARY 2025 DIVISION LEADER\nCHECK #9044 TRANSFERRED TO COME OUT OF NEW ACCOUNT BY REDSTONE. -SH"
+    },
+    {
+      "date": "01/06/2025",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "8983",
+      "amount": 136.57,
+      "memo": "DECEMBER 2024 DIVISION LEADER"
+    },
+    {
+      "date": "01/06/2025",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "8983",
+      "amount": 120.92,
+      "memo": "DECEMBER 2024 DIVISION LEADER"
+    },
+    {
+      "date": "01/06/2025",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "8980",
+      "amount": 952.64,
+      "memo": "DECEMBER 2024 DIVISION LEADER"
+    },
+    {
+      "date": "01/06/2025",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "8982",
+      "amount": 60.46,
+      "memo": "DECEMBER 2024 DIVISION LEADER"
+    },
+    {
+      "date": "01/06/2025",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "8982",
+      "amount": 68.28,
+      "memo": "DECEMBER 2024 DIVISION LEADER"
+    },
+    {
+      "date": "01/06/2025",
+      "entity": "Roof Angel, LLC",
+      "recipient": "Aaron Lussi",
+      "type": "Check",
+      "num": "8981",
+      "amount": 96.63,
+      "memo": "DECEMBER 2024 DIVISION LEADER"
+    },
+    {
+      "date": "12/26/2024",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "8858",
+      "amount": 22.5,
+      "memo": "COMMISSIONS PAY W.E 2.1.2024\nJANUARY 2024 DIVISION LEADER\nOutstanding check rewritten per MD"
+    },
+    {
+      "date": "12/26/2024",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "8858",
+      "amount": 72.3,
+      "memo": "COMMISSIONS PAY W.E 2.1.2024\nJANUARY 2024 DIVISION LEADER\nOutstanding check rewritten per MD"
+    },
+    {
+      "date": "12/20/2024",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "8956",
+      "amount": 409.19,
+      "memo": "DECEMBER DIVISION LEADER BONUS\nREPRINT FOR LOSS CHECK - CK #7801"
+    },
+    {
+      "date": "12/20/2024",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "8956",
+      "amount": 171.63,
+      "memo": "DECEMBER DIVISION LEADER BONUS\nREPRINT FOR LOSS CHECK - CK #7801"
+    },
+    {
+      "date": "12/02/2024",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "8918",
+      "amount": 210.77,
+      "memo": "2024 NOVEMBER DIVISION LEADER"
+    },
+    {
+      "date": "12/02/2024",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "8915",
+      "amount": 1308.39,
+      "memo": "NOVEMBER 2024 DIVISION LEADER"
+    },
+    {
+      "date": "12/02/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "8917",
+      "amount": 105.38,
+      "memo": "2024 NOVEMBER DIVISION LEADER"
+    },
+    {
+      "date": "12/02/2024",
+      "entity": "Roof Angel, LLC",
+      "recipient": "Aaron Lussi",
+      "type": "Check",
+      "num": "8916",
+      "amount": 199.04,
+      "memo": "2024 NOVEMBER COMMISSION LEADER"
+    },
+    {
+      "date": "11/04/2024",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "8858",
+      "amount": 232.37,
+      "memo": "OCTOBER 2024 DIVISION LEADER"
+    },
+    {
+      "date": "11/04/2024",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "8855",
+      "amount": 1224.61,
+      "memo": "OCTOBER 2024 DIVISION LEADER"
+    },
+    {
+      "date": "11/04/2024",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "8855",
+      "amount": 286.24,
+      "memo": "OCTOBER 2024 DIVISION LEADER"
+    },
+    {
+      "date": "11/04/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "8857",
+      "amount": 116.19,
+      "memo": "OCTOBER 2024 DIVISION LEADER"
+    },
+    {
+      "date": "11/04/2024",
+      "entity": "Roof Angel, LLC",
+      "recipient": "Aaron Lussi",
+      "type": "Check",
+      "num": "8856",
+      "amount": 155.25,
+      "memo": "OCTOBER 2024 DIVISION LEADER"
+    },
+    {
+      "date": "10/02/2024",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "8768",
+      "amount": 77.71,
+      "memo": "SEPTEMBER DIVISION LEADER"
+    },
+    {
+      "date": "10/02/2024",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "8768",
+      "amount": 268.09,
+      "memo": "SEPTEMBER DIVISION LEADER"
+    },
+    {
+      "date": "10/02/2024",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "8765",
+      "amount": 1525.24,
+      "memo": "SEPTEMBER DIVISION LEADER"
+    },
+    {
+      "date": "10/02/2024",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "8765",
+      "amount": 74.43,
+      "memo": "SEPTEMBER DIVISION LEADER"
+    },
+    {
+      "date": "10/02/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "8767",
+      "amount": 134.04,
+      "memo": "SEPTEMBER DIVISION LEADER"
+    },
+    {
+      "date": "10/02/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "8767",
+      "amount": 38.85,
+      "memo": "SEPTEMBER DIVISION LEADER"
+    },
+    {
+      "date": "10/02/2024",
+      "entity": "Roof Angel, LLC",
+      "recipient": "Aaron Lussi",
+      "type": "Check",
+      "num": "8766",
+      "amount": 342.78,
+      "memo": "SEPTEMBER DIVISION LEADER"
+    },
+    {
+      "date": "09/03/2024",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "8682",
+      "amount": 218.31,
+      "memo": "AUGUST DIVISION LEADER"
+    },
+    {
+      "date": "09/03/2024",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "8682",
+      "amount": 68.57,
+      "memo": "AUGUST DIVISION LEADER"
+    },
+    {
+      "date": "09/03/2024",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "8679",
+      "amount": 1909.02,
+      "memo": "AUGUST DIVISION LEADER"
+    },
+    {
+      "date": "09/03/2024",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "8679",
+      "amount": 186.86,
+      "memo": "AUGUST DIVISION LEADER"
+    },
+    {
+      "date": "09/03/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "8681",
+      "amount": 109.15,
+      "memo": "AUGUST DIVISION LEADER"
+    },
+    {
+      "date": "09/03/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "8681",
+      "amount": 34.29,
+      "memo": "AUGUST DIVISION LEADER"
+    },
+    {
+      "date": "09/03/2024",
+      "entity": "Roof Angel, LLC",
+      "recipient": "Aaron Lussi",
+      "type": "Check",
+      "num": "8680",
+      "amount": 720.04,
+      "memo": "AUGUST DIVISION LEADER"
+    },
+    {
+      "date": "08/05/2024",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "8566",
+      "amount": 334.64,
+      "memo": "JULY DIVISION LEADER"
+    },
+    {
+      "date": "08/05/2024",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "8566",
+      "amount": 80,
+      "memo": "JULY DIVISION LEADER"
+    },
+    {
+      "date": "08/05/2024",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "8563",
+      "amount": 233.25,
+      "memo": "JULY DIVISION LEADER"
+    },
+    {
+      "date": "08/05/2024",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "8563",
+      "amount": 15,
+      "memo": "JULY DIVISION LEADER"
+    },
+    {
+      "date": "08/05/2024",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "8563",
+      "amount": 1123.8,
+      "memo": "JULY DIVISION LEADER"
+    },
+    {
+      "date": "08/05/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "8565",
+      "amount": 493.52,
+      "memo": "JULY DIVISION LEADER"
+    },
+    {
+      "date": "08/05/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "8565",
+      "amount": 167.32,
+      "memo": "JULY DIVISION LEADER"
+    },
+    {
+      "date": "08/05/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "8565",
+      "amount": 40,
+      "memo": "JULY DIVISION LEADER"
+    },
+    {
+      "date": "08/05/2024",
+      "entity": "Roof Angel, LLC",
+      "recipient": "Aaron Lussi",
+      "type": "Check",
+      "num": "8564",
+      "amount": 457.27,
+      "memo": "JULY DIVISION LEADER"
+    },
+    {
+      "date": "07/01/2024",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "8457",
+      "amount": 223.9,
+      "memo": "JUNE 2024 DIVISION LEADER"
+    },
+    {
+      "date": "07/01/2024",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "8456",
+      "amount": 492.38,
+      "memo": "DIVISION LEADER JUNE 2024"
+    },
+    {
+      "date": "07/01/2024",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "8453",
+      "amount": 504.45,
+      "memo": "DIVISION LEADER JUNE 2024"
+    },
+    {
+      "date": "07/01/2024",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "8453",
+      "amount": 565.36,
+      "memo": "DIVISION LEADER JUNE 2024"
+    },
+    {
+      "date": "07/01/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "8455",
+      "amount": 246.19,
+      "memo": "DIVISION LEADER JUNE 2024"
+    },
+    {
+      "date": "07/01/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "8455",
+      "amount": 111.95,
+      "memo": "DIVISION LEADER JUNE 2024"
+    },
+    {
+      "date": "07/01/2024",
+      "entity": "Roof Angel, LLC",
+      "recipient": "Aaron Lussi",
+      "type": "Check",
+      "num": "8454",
+      "amount": 887.14,
+      "memo": "DIVISION LEADER JUNE 2024"
+    },
+    {
+      "date": "05/31/2024",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "8351",
+      "amount": 228.22,
+      "memo": "MAY 2024 DIVISION LEADER"
+    },
+    {
+      "date": "05/31/2024",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "8351",
+      "amount": 318.48,
+      "memo": "MAY 2024 DIVISION LEADER"
+    },
+    {
+      "date": "05/31/2024",
+      "entity": "BPB Contracting LLC",
+      "recipient": "Brandon Bradford",
+      "type": "Check",
+      "num": "8352",
+      "amount": 530.06,
+      "memo": "MAY 2024 DIVISION LEADER"
+    },
+    {
+      "date": "05/31/2024",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "8348",
+      "amount": 430.34,
+      "memo": "MAY 2024 DIVISION LEADER"
+    },
+    {
+      "date": "05/31/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "8350",
+      "amount": 328.83,
+      "memo": "MAY 2024 DIVISION LEADER"
+    },
+    {
+      "date": "05/31/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "8350",
+      "amount": 265.03,
+      "memo": "MAY 2024 DIVISION LEADER"
+    },
+    {
+      "date": "05/31/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "8350",
+      "amount": 114.11,
+      "memo": "MAY 2024 DIVISION LEADER"
+    },
+    {
+      "date": "05/31/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "8350",
+      "amount": 159.24,
+      "memo": "MAY 2024 DIVISION LEADER"
+    },
+    {
+      "date": "05/31/2024",
+      "entity": "Roof Angel, LLC",
+      "recipient": "Aaron Lussi",
+      "type": "Check",
+      "num": "8349",
+      "amount": 342.75,
+      "memo": "MAY 2024 DIVISION LEADER"
+    },
+    {
+      "date": "05/01/2024",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "8233",
+      "amount": 138.2,
+      "memo": "2024 APRIL DIVISION LEADER"
+    },
+    {
+      "date": "05/01/2024",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "8233",
+      "amount": 594.44,
+      "memo": "2024 APRIL DIVISION LEADER"
+    },
+    {
+      "date": "05/01/2024",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "8233",
+      "amount": 197.21,
+      "memo": "2024 APRIL DIVISION LEADER"
+    },
+    {
+      "date": "05/01/2024",
+      "entity": "BPB Contracting LLC",
+      "recipient": "Brandon Bradford",
+      "type": "Check",
+      "num": "8234",
+      "amount": 60,
+      "memo": "2024 APRIL DIVISION LEADER"
+    },
+    {
+      "date": "05/01/2024",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "8230",
+      "amount": 30.99,
+      "memo": "APRIL 2024 DIVISION LEADER"
+    },
+    {
+      "date": "05/01/2024",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "8230",
+      "amount": 51.04,
+      "memo": "APRIL 2024 DIVISION LEADER"
+    },
+    {
+      "date": "05/01/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "8232",
+      "amount": 69.1,
+      "memo": "2024 APRIL DIVISION LEADER"
+    },
+    {
+      "date": "05/01/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "8232",
+      "amount": 30,
+      "memo": "2024 APRIL DIVISION LEADER"
+    },
+    {
+      "date": "05/01/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "8232",
+      "amount": 98.6,
+      "memo": "2024 APRIL DIVISION LEADER"
+    },
+    {
+      "date": "05/01/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "8232",
+      "amount": 297.22,
+      "memo": "2024 APRIL DIVISION LEADER"
+    },
+    {
+      "date": "05/01/2024",
+      "entity": "Roof Angel, LLC",
+      "recipient": "Aaron Lussi",
+      "type": "Check",
+      "num": "8231",
+      "amount": 373.8,
+      "memo": "2024 APRIL DIVISION LEADER"
+    },
+    {
+      "date": "04/01/2024",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "8110",
+      "amount": 138.41,
+      "memo": "MARCH DIVISION LEADER"
+    },
+    {
+      "date": "04/01/2024",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "8110",
+      "amount": 48.08,
+      "memo": "MARCH DIVISION LEADER"
+    },
+    {
+      "date": "04/01/2024",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "8110",
+      "amount": 257.56,
+      "memo": "MARCH DIVISION LEADER"
+    },
+    {
+      "date": "04/01/2024",
+      "entity": "Brandon Bradford",
+      "recipient": "Brandon Bradford",
+      "type": "Check",
+      "num": "8111",
+      "amount": 75,
+      "memo": "MARCH DIVISION LEADER"
+    },
+    {
+      "date": "04/01/2024",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "8107",
+      "amount": 806,
+      "memo": "MARCH DIVISION LEADER"
+    },
+    {
+      "date": "04/01/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "8109",
+      "amount": 24.04,
+      "memo": "MARCH DIVISION LEADER"
+    },
+    {
+      "date": "04/01/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "8109",
+      "amount": 128.78,
+      "memo": "MARCH DIVISION LEADER"
+    },
+    {
+      "date": "04/01/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "8109",
+      "amount": 69.21,
+      "memo": "MARCH DIVISION LEADER"
+    },
+    {
+      "date": "04/01/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "8109",
+      "amount": 37.5,
+      "memo": "MARCH DIVISION LEADER"
+    },
+    {
+      "date": "04/01/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "8109",
+      "amount": 243.75,
+      "memo": "MARCH DIVISION LEADER"
+    },
+    {
+      "date": "04/01/2024",
+      "entity": "Roof Angel, LLC",
+      "recipient": "Aaron Lussi",
+      "type": "Check",
+      "num": "8108",
+      "amount": 104.7,
+      "memo": "MARCH DIVISION LEADER"
+    },
+    {
+      "date": "03/04/2024",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "8000",
+      "amount": 517.19,
+      "memo": "2024 FEBRUARY DIVISION LEADER"
+    },
+    {
+      "date": "03/04/2024",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "8000",
+      "amount": 612.91,
+      "memo": "2024 FEBRUARY DIVISION LEADER"
+    },
+    {
+      "date": "03/04/2024",
+      "entity": "Brandon Bradford",
+      "recipient": "Brandon Bradford",
+      "type": "Check",
+      "num": "8001",
+      "amount": 286.7,
+      "memo": "2024 FEBRUARY DIVISION LEADER"
+    },
+    {
+      "date": "03/04/2024",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "7997",
+      "amount": 208.31,
+      "memo": "2024 FEBRUARY DIVISION LEADER BONUS"
+    },
+    {
+      "date": "03/04/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "7999",
+      "amount": 143.35,
+      "memo": "2024 FEBRUARY DIVISON LEADER"
+    },
+    {
+      "date": "03/04/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "7999",
+      "amount": 306.45,
+      "memo": "2024 FEBRUARY DIVISON LEADER"
+    },
+    {
+      "date": "03/04/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "7999",
+      "amount": 223.77,
+      "memo": "2024 FEBRUARY DIVISON LEADER"
+    },
+    {
+      "date": "03/04/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "7999",
+      "amount": 258.6,
+      "memo": "2024 FEBRUARY DIVISON LEADER"
+    },
+    {
+      "date": "03/04/2024",
+      "entity": "Roof Angel, LLC",
+      "recipient": "Aaron Lussi",
+      "type": "Check",
+      "num": "7998",
+      "amount": 22.85,
+      "memo": "2024 FEBRUARY DIVISION LEADER"
+    },
+    {
+      "date": "02/05/2024",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "7861",
+      "amount": 174.94,
+      "memo": "JANUARY 2024 DIVISION LEADER"
+    },
+    {
+      "date": "02/05/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "7860",
+      "amount": 75,
+      "memo": "JANUARY 2024 DIVISION LEADER"
+    },
+    {
+      "date": "02/05/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "7860",
+      "amount": 23.36,
+      "memo": "JANUARY 2024 DIVISION LEADER"
+    },
+    {
+      "date": "02/05/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "7860",
+      "amount": 87.47,
+      "memo": "JANUARY 2024 DIVISION LEADER"
+    },
+    {
+      "date": "01/08/2024",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "7803",
+      "amount": 483.07,
+      "memo": "BONUS FOR RECRUIT MAY 2023"
+    },
+    {
+      "date": "01/08/2024",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "7798",
+      "amount": 1796.15,
+      "memo": "DECEMBER DIVISION LEADER BONUS"
+    },
+    {
+      "date": "01/08/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "7800",
+      "amount": 85.81,
+      "memo": "DECEMBER DIVISION LEADER BONUS"
+    },
+    {
+      "date": "01/08/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "7800",
+      "amount": 204.59,
+      "memo": "DECEMBER DIVISION LEADER BONUS"
+    },
+    {
+      "date": "01/08/2024",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "7800",
+      "amount": 80.54,
+      "memo": "DECEMBER DIVISION LEADER BONUS"
+    },
+    {
+      "date": "01/08/2024",
+      "entity": "Roof Angel, LLC",
+      "recipient": "Aaron Lussi",
+      "type": "Check",
+      "num": "7799",
+      "amount": 539.87,
+      "memo": "DECEMBER DIVISION LEADER BONUS"
+    },
+    {
+      "date": "12/04/2023",
+      "entity": "Aaron Lussi",
+      "recipient": "Aaron Lussi",
+      "type": "Check",
+      "num": "7663",
+      "amount": 38.2,
+      "memo": "NOVEMBER 2023 DIVISION LEADER"
+    },
+    {
+      "date": "12/04/2023",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "7665",
+      "amount": 350.05,
+      "memo": "NOVEMBER 2023 DIVISION LEADER"
+    },
+    {
+      "date": "12/04/2023",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "7665",
+      "amount": 331.61,
+      "memo": "NOVEMBER 2023 DIVISION LEADER"
+    },
+    {
+      "date": "12/04/2023",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "7664",
+      "amount": 165.8,
+      "memo": "NOVEMBER 2023 DIVISION LEADER"
+    },
+    {
+      "date": "12/04/2023",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "7664",
+      "amount": 98.43,
+      "memo": "NOVEMBER 2023 DIVISION LEADER"
+    },
+    {
+      "date": "12/04/2023",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "7664",
+      "amount": 10.53,
+      "memo": "NOVEMBER 2023 DIVISION LEADER"
+    },
+    {
+      "date": "12/04/2023",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "7664",
+      "amount": 175.02,
+      "memo": "NOVEMBER 2023 DIVISION LEADER"
+    },
+    {
+      "date": "12/01/2023",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "7771",
+      "amount": 610.47,
+      "memo": "NOVEMBER 2023 DIVISION LEADER"
+    },
+    {
+      "date": "10/30/2023",
+      "entity": "Aaron Lussi",
+      "recipient": "Aaron Lussi",
+      "type": "Check",
+      "num": "7528",
+      "amount": 657.61,
+      "memo": "DIVISION LEADER CHECK FOR OCT. 2023"
+    },
+    {
+      "date": "10/30/2023",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "7530",
+      "amount": 553.85,
+      "memo": "DIVISION LEADER CHECK FOR OCT. 2023"
+    },
+    {
+      "date": "10/30/2023",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "7530",
+      "amount": 318.73,
+      "memo": "DIVISION LEADER CHECK FOR OCT. 2023"
+    },
+    {
+      "date": "10/30/2023",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Check",
+      "num": "7527",
+      "amount": 112.5,
+      "memo": "DIVISION LEADER CHECK FOR OCT. 2023"
+    },
+    {
+      "date": "10/30/2023",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "7529",
+      "amount": 11.25,
+      "memo": "DIVISION LEADER CHECK FOR OCT. 2023"
+    },
+    {
+      "date": "10/30/2023",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "7529",
+      "amount": 276.93,
+      "memo": "DIVISION LEADER CHECK FOR OCT. 2023"
+    },
+    {
+      "date": "10/30/2023",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "7529",
+      "amount": 159.37,
+      "memo": "DIVISION LEADER CHECK FOR OCT. 2023"
+    },
+    {
+      "date": "10/02/2023",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "7409",
+      "amount": 181.73,
+      "memo": "DIVISION LEADERS SEPTEMBER"
+    },
+    {
+      "date": "10/02/2023",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "7409",
+      "amount": 468.71,
+      "memo": "DIVISION LEADERS SEPTEMBER"
+    },
+    {
+      "date": "10/02/2023",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "7410",
+      "amount": 234.36,
+      "memo": "DIVISION LEADERS SEPTEMBER"
+    },
+    {
+      "date": "10/02/2023",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "7410",
+      "amount": 90.87,
+      "memo": "DIVISION LEADERS SEPTEMBER"
+    },
+    {
+      "date": "09/25/2023",
+      "entity": "Aaron Lussi",
+      "recipient": "Aaron Lussi",
+      "type": "Check",
+      "num": "7393",
+      "amount": 200,
+      "memo": "DIVISION A WINNER SEPT. SALES INCENTIVE"
+    },
+    {
+      "date": "09/25/2023",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "7394",
+      "amount": 200,
+      "memo": "DIVISION B WINNER SEPT. 2023 SALES INCENTIVE"
+    },
+    {
+      "date": "09/25/2023",
+      "entity": "Brian Sullivan",
+      "recipient": "Brian Sullivan",
+      "type": "Check",
+      "num": "7395",
+      "amount": 200,
+      "memo": "DIVISION C WINNER SEPT. 2023 SALES INCENTIVE"
+    },
+    {
+      "date": "09/01/2023",
+      "entity": "Aaron Lussi",
+      "recipient": "Aaron Lussi",
+      "type": "Check",
+      "num": "7271",
+      "amount": 75,
+      "memo": "AUGUST 2023 DIVISON LEADERS"
+    },
+    {
+      "date": "09/01/2023",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "7273",
+      "amount": 415.78,
+      "memo": "AUGUST 2023 DIVISION LEADERS"
+    },
+    {
+      "date": "09/01/2023",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "7273",
+      "amount": 412.15,
+      "memo": "AUGUST 2023 DIVISION LEADERS"
+    },
+    {
+      "date": "09/01/2023",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "7272",
+      "amount": 207.89,
+      "memo": "AUGUST 2023 DIVISION LEADERS"
+    },
+    {
+      "date": "09/01/2023",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "7272",
+      "amount": 206.08,
+      "memo": "AUGUST 2023 DIVISION LEADERS"
+    },
+    {
+      "date": "06/05/2023",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "6968",
+      "amount": 241.53,
+      "memo": "BONUS RECRUIT MAY 2023"
+    },
+    {
+      "date": "05/01/2023",
+      "entity": "BCM Contracting LLC",
+      "recipient": "Brendon Muse",
+      "type": "Check",
+      "num": "6845",
+      "amount": 176.1,
+      "memo": "DIVISION LEADER FOR BRANDON"
+    },
+    {
+      "date": "05/01/2023",
+      "entity": "Richard  Geahr",
+      "recipient": "Richard Geahr",
+      "type": "Check",
+      "num": "6846",
+      "amount": 88.05,
+      "memo": "DIVISION LEADER FOR BRANDON"
+    },
+    {
+      "date": "06/28/2019",
+      "entity": "Hunter Rivers",
+      "recipient": "Hunter Rivers",
+      "type": "Bill",
+      "num": "RECRUIT PAY R1476",
+      "amount": 51.66,
+      "memo": "RECRUIT PAY R1476"
+    }
+  ]
+}
