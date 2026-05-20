@@ -89,6 +89,8 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(buildInventory(q));
       case 'yearComparison':
         return NextResponse.json(buildYearComparison());
+      case 'recent':
+        return NextResponse.json(await buildRecentActivity(20));
       default:
         return NextResponse.json({ error: 'Unknown type' }, { status: 400 });
     }
@@ -170,6 +172,27 @@ function buildOverview() {
     concentration,
     repConcentration,
   };
+}
+
+// Last N transactions for the overview "recent activity" feed
+async function buildRecentActivity(limit: number): Promise<{
+  rows: Array<{
+    date: string; type: string; num: string; amount: number;
+    party: string; rep: string;
+  }>;
+}> {
+  const all = await loadTransactions();
+  const rows = all
+    .slice(0, Math.min(limit, 100))
+    .map(t => ({
+      date: t.date,
+      type: t.type,
+      num: t.num,
+      amount: t.amount,
+      party: t.customer || t.vendor || t.employee || '',
+      rep: t.salesRep || '',
+    }));
+  return { rows };
 }
 
 function filterCustomers(q: string) {

@@ -175,6 +175,7 @@ export default function ChrisViewPage() {
   } | null>(null);
   const [inventory, setInventory] = useState<InventoryData | null>(null);
   const [yearComparison, setYearComparison] = useState<{ rows: YearComparisonRow[]; currentMonth: number } | null>(null);
+  const [recent, setRecent] = useState<{ rows: Array<{ date: string; type: string; num: string; amount: number; party: string; rep: string }> } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -212,12 +213,20 @@ export default function ChrisViewPage() {
         case 'transactions': setTransactionsData(data); break;
         case 'inventory': setInventory(data); break;
       }
-      // Year comparison is loaded alongside overview
-      if (tab === 'overview' && !yearComparison) {
-        try {
-          const ycRes = await fetch('/api/chrisview?type=yearComparison');
-          if (ycRes.ok) setYearComparison(await ycRes.json());
-        } catch { /* non-critical */ }
+      // Year comparison + recent activity loaded alongside overview
+      if (tab === 'overview') {
+        if (!yearComparison) {
+          try {
+            const ycRes = await fetch('/api/chrisview?type=yearComparison');
+            if (ycRes.ok) setYearComparison(await ycRes.json());
+          } catch { /* non-critical */ }
+        }
+        if (!recent) {
+          try {
+            const rRes = await fetch('/api/chrisview?type=recent');
+            if (rRes.ok) setRecent(await rRes.json());
+          } catch { /* non-critical */ }
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -546,6 +555,46 @@ export default function ChrisViewPage() {
                         </tbody>
                       </table>
                     </div>
+                  </section>
+                )}
+
+                {/* Recent transactions */}
+                {recent && recent.rows.length > 0 && (
+                  <section>
+                    <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wide mb-2">
+                      Recent Activity — Last 20 Transactions
+                    </h2>
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="text-xs text-zinc-500 uppercase tracking-wide bg-zinc-950 border-b border-zinc-800">
+                          <tr>
+                            <th className="text-left py-2 px-3 font-medium">Date</th>
+                            <th className="text-left py-2 px-3 font-medium">Type</th>
+                            <th className="text-left py-2 px-3 font-medium">#</th>
+                            <th className="text-right py-2 px-3 font-medium">Amount</th>
+                            <th className="text-left py-2 px-3 font-medium">Party</th>
+                            <th className="text-left py-2 px-3 font-medium">Rep</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-800">
+                          {recent.rows.map((t, i) => (
+                            <tr key={i} className="hover:bg-zinc-800/30">
+                              <td className="py-2 px-3 font-mono text-xs text-zinc-300">{t.date}</td>
+                              <td className="py-2 px-3 text-xs">{t.type}</td>
+                              <td className="py-2 px-3 font-mono text-xs text-zinc-400">{t.num || '—'}</td>
+                              <td className={`py-2 px-3 text-right tabular-nums ${t.amount >= 0 ? 'text-[#39FF14]' : 'text-red-400'}`}>
+                                {fmtMoneyExact(t.amount)}
+                              </td>
+                              <td className="py-2 px-3 text-zinc-300">{t.party || '—'}</td>
+                              <td className="py-2 px-3 text-xs text-zinc-400">{t.rep || '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="text-[10px] text-zinc-500 mt-1">
+                      Click <button onClick={() => setTab('transactions')} className="text-[#39FF14] underline">Transactions tab</button> for the full 56K-row ledger with filters.
+                    </p>
                   </section>
                 )}
 
