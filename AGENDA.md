@@ -100,6 +100,11 @@ Owner explicitly asked for this — look at how others solve the same problems.
 - `[needs-owner]` **3b.5 `march-madness-2026` routes intent** — currently public; reclassify as internal or shelve.
 - `[done]` **3b.6 Webhook fail-mode hardened** — JN webhook now returns 503 if signing secret missing (was fail-open, CRITICAL). Material-order-email tightened (cosmetic). Calls webhook had a dev-mode loophole that accepted any request when key was unset — closed (HIGH). GroupMe documented as intentionally unsigned (no signing protocol on inbound; read-only routing).
 
+## Phase 8 — At-a-glance health + reusable widgets
+
+- `[done]` **8.1 `/admin/system/health` dashboard** — single screen showing email/Resend, Turnstile, Vercel KV, Sheets, JN, crons health. Env-var masking (4 chars front / 4 chars back). Read-only pings only. Linked from existing /admin/system page. Overall traffic-light status.
+- `[done]` **8.2 UnifiedLeaderboards widget** — `components/UnifiedLeaderboards.tsx` + `lib/leaderboard-data.ts` + API wrapper. Renders Commission / Sales / Weekly side-by-side with enforced visual separation (gold / blue / green top stripes) per [[project_rcrs_leaderboards]] never-combine rule. Wired into /command-center/meetings + /command-center.
+
 ## Phase 6 — Operational visibility
 
 - `[done]` **6.1 Email send-log to master sheet** — `lib/email-log.ts` appends to `Email Log` tab on every `emailService.send()` outcome (template-not-allowed, kill-switch, transport-not-configured, rate-limit, send-failed, sent). Fire-and-forget; never blocks the email path. Owner gets a sortable real-time view of every send attempt once Resend goes live.

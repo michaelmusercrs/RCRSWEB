@@ -8,6 +8,7 @@ The scheduled routine appends an entry per action.
 
 ## 2026-05-20
 
+- `01:30` · claude · 8 files · Phase 8.1 `/admin/system/health` dashboard + Phase 8.2 UnifiedLeaderboards widget · green/yellow/red per subsystem with masked env-var checklist; reusable 3-board widget enforcing never-combine via colored stripes · commit 6d8855b (main)
 - `00:30` · claude · 7 files · Phase 7.6 Monday meeting prep auto-fill — on `sweep/monday-prep-autofill` · traceable figures + confidence-scored announcements + Open-Meteo weather + Sunday 6pm Central pre-gen cron parked in `_disabledCrons` · CRM moat win #2 · commit (sweep)
 - `00:00` · claude · 36 files · Phase 3b.7 cost-privacy guard on JN reads — lib/jn-redact.ts + viewer arg on ~23 JN read functions + 16 API callsites + cache-key segregation · fail-safe default; Richard slug whitelisted · CRM moat win #3 · commit 603cc34 (main)
 - `23:30` · claude · 5 files · Phase 7.5 hail auto-canvass — on `sweep/hail-canvass` branch · admin UI + K-means rep clustering + real address data via Geocoded_Contacts sheet + SVG fallback map · CRM moat win #1 · commit (sweep)
