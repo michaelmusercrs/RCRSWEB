@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Star, ExternalLink, CheckCircle2, Shield, Clock, ThumbsUp, Award, ArrowRight } from 'lucide-react';
 import { loadAllReviews } from '@/lib/reviews-loader';
 import { getMasterStats } from '@/lib/rep-reviews';
+import { getAllVisibleMasterReviews } from '@/lib/reviews-master-sheet';
+import { teamMembers } from '@/lib/teamData';
 import { generateMetadata as genMeta, generateBreadcrumbSchema, siteConfig } from '@/lib/seo';
 import StructuredData from '@/components/StructuredData';
 import type { Metadata } from 'next';
@@ -35,6 +37,15 @@ function StarRating({ rating }: { rating: number }) {
 export default async function ReviewsPage() {
   const { reviews: allReviews } = await loadAllReviews();
   const masterStats = getMasterStats();
+
+  // Pull live admin-managed reviews from the Reviews_Master sheet tab (best-effort)
+  let sheetReviews: Awaited<ReturnType<typeof getAllVisibleMasterReviews>> = [];
+  try {
+    sheetReviews = await getAllVisibleMasterReviews();
+  } catch (err) {
+    console.warn('[reviews] Reviews_Master fetch failed:', err);
+  }
+  const slugToName = new Map(teamMembers.map((m) => [m.slug.toLowerCase(), m.name]));
   // Real stats from data/reviews-master.json (317 reviews, 92% 5-star, 4.86 avg)
   const totalCount = Math.max(allReviews.length, masterStats.total);
   const fiveStarPct = masterStats.total > 0
@@ -133,6 +144,63 @@ export default async function ReviewsPage() {
           </div>
         </div>
       </section>
+
+      {/* Live admin-managed reviews (Reviews_Master tab) */}
+      {sheetReviews.length > 0 && (
+        <section className="py-12 md:py-16 bg-black/85 backdrop-blur-sm relative z-10">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-10">
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-2">Latest Reviews</h2>
+              <p className="text-neutral-400 text-sm">From Google, BBB, Yelp, Facebook & direct customer feedback</p>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+              {sheetReviews.slice(0, 12).map((review) => (
+                <div
+                  key={review.id}
+                  className="bg-neutral-800 border border-neutral-700 rounded-lg p-6 hover:border-brand-green/50 transition-all"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h3 className="text-white font-semibold text-lg">{review.author}</h3>
+                      {review.originalDate && (
+                        <p className="text-neutral-500 text-sm">
+                          {new Date(review.originalDate).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                          })}
+                        </p>
+                      )}
+                    </div>
+                    <span className="text-xs text-neutral-400 bg-neutral-700 px-2 py-1 rounded uppercase">
+                      {review.source}
+                    </span>
+                  </div>
+                  <StarRating rating={review.rating} />
+                  <p className="text-neutral-300 mt-3 leading-relaxed text-sm">
+                    &ldquo;{review.body}&rdquo;
+                  </p>
+                  {review.mentionedTeam.length > 0 && (
+                    <div className="text-brand-green text-xs mt-3 font-medium flex flex-wrap gap-x-2">
+                      <span className="text-neutral-400">Mentioned:</span>
+                      {review.mentionedTeam.map((slug) => (
+                        <Link
+                          key={slug}
+                          href={`/team/${slug}`}
+                          className="hover:underline"
+                        >
+                          {slugToName.get(slug) || slug}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Google Reviews Section */}
       <section className="py-12 md:py-16 bg-black/80 backdrop-blur-sm relative z-10">

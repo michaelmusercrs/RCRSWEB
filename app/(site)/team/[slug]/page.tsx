@@ -11,6 +11,7 @@ import { getReviewsForMember } from '@/lib/reviewsData';
 import { getReviewsForRep, getRepReviewStats } from '@/lib/rep-reviews';
 import { getApprovedPortalReviews } from '@/lib/portal-reviews';
 import { getApprovedImages } from '@/lib/portal-images';
+import { getVisibleReviewsForMember } from '@/lib/reviews-master-sheet';
 import StructuredData from '@/components/StructuredData';
 import { siteConfig, generatePersonSchema, generateBreadcrumbSchema } from '@/lib/seo';
 // Rep stats removed — only add back with verified data
@@ -94,8 +95,37 @@ export default async function TeamMemberPage({ params }: { params: { slug: strin
   const masterStats = getRepReviewStats(params.slug);
   const staticReviews = getReviewsForMember(params.slug, 3);
 
+  // Reviews_Master sheet tab — admin-curated live reviews mentioning this slug
+  let sheetMentionReviews: Awaited<ReturnType<typeof getVisibleReviewsForMember>> = [];
+  try {
+    sheetMentionReviews = await getVisibleReviewsForMember(params.slug);
+  } catch (err) {
+    console.warn('[team/[slug]] Reviews_Master fetch failed:', err);
+  }
+
+  // Adapt sheet reviews into the same shape the rest of the page expects so
+  // the existing render handles them without additional branching.
+  const sheetReviewsAdapted = sheetMentionReviews.map((r) => ({
+    id: r.id,
+    name: r.author,
+    date: r.originalDate || r.importDate,
+    rating: r.rating,
+    text: r.body,
+    source: r.source,
+  }));
+
   let memberReviews;
-  if (portalReviews.length > 0) {
+  if (sheetReviewsAdapted.length > 0) {
+    // Sheet-based mentions win (most recent admin-curated truth) and we still
+    // append any static/portal reviews to fill out the panel.
+    const combined = [...sheetReviewsAdapted, ...portalReviews, ...masterReviews];
+    const dedupedIds = new Set<string>();
+    memberReviews = combined.filter((r) => {
+      if (dedupedIds.has(r.id)) return false;
+      dedupedIds.add(r.id);
+      return true;
+    }).slice(0, 6);
+  } else if (portalReviews.length > 0) {
     memberReviews = portalReviews.slice(0, 6);
   } else if (masterReviews.length > 0) {
     memberReviews = masterReviews.slice(0, 6);
