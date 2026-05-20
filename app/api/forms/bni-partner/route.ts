@@ -9,6 +9,7 @@ import { checkRequestSize } from '@/lib/request-size-limit';
 import { checkForSpam } from '@/lib/spam-filter';
 import { checkHoneypot } from '@/lib/honeypot';
 import { verifyTurnstileToken, getRequestIp } from '@/lib/turnstile';
+import { logSpamBlock } from '@/lib/spam-log';
 
 const formRateLimiter = createBniPartnerFormRateLimiter();
 const globalFormRateLimiter = createGlobalFormRateLimiter();
@@ -30,6 +31,15 @@ export async function POST(request: NextRequest) {
       const hp = checkHoneypot(body);
       if (hp.triggered) {
         console.warn('[HONEYPOT TRIGGERED route=forms/bni-partner]', { value: hp.value });
+        logSpamBlock({
+          gate: 'honeypot',
+          route: '/api/forms/bni-partner',
+          ip: getRequestIp(request),
+          reason: 'website field populated',
+          details: JSON.stringify({ value: hp.value }),
+          submitterEmail: typeof body?.email === 'string' ? body.email : undefined,
+          submitterName: typeof body?.name === 'string' ? body.name : undefined,
+        }).catch(() => {});
         return NextResponse.json(
           { success: true, message: 'Thank you! We will be in touch soon.' },
           { status: 200 }
@@ -64,6 +74,15 @@ export async function POST(request: NextRequest) {
           console.warn('[BNI SPAM BLOCKED]', {
             email, score: spamCheck.spamScore, reasons: spamCheck.reasons,
           });
+          logSpamBlock({
+            gate: 'spam-filter',
+            route: '/api/forms/bni-partner',
+            ip: getRequestIp(request),
+            reason: `score ${spamCheck.spamScore}`,
+            details: JSON.stringify({ reasons: spamCheck.reasons }),
+            submitterEmail: email,
+            submitterName: name,
+          }).catch(() => {});
           return NextResponse.json(
             { success: true, message: 'Thank you! We will be in touch soon.' },
             { status: 200 }
@@ -77,6 +96,17 @@ export async function POST(request: NextRequest) {
       const turnstile = await verifyTurnstileToken(body.turnstileToken, getRequestIp(request));
       if (!turnstile.valid) {
         console.warn('[TURNSTILE FAILED route=forms/bni-partner]', { reason: turnstile.reason });
+        logSpamBlock({
+          gate: 'turnstile',
+          route: '/api/forms/bni-partner',
+          ip: getRequestIp(request),
+          reason: turnstile.reason ?? 'invalid token',
+          details: turnstile.errorCodes
+            ? JSON.stringify({ errorCodes: turnstile.errorCodes })
+            : undefined,
+          submitterEmail: typeof email === 'string' ? email : undefined,
+          submitterName: typeof name === 'string' ? name : undefined,
+        }).catch(() => {});
         return NextResponse.json(
           { success: false, message: 'Verification failed. Please try again.' },
           { status: 400 }

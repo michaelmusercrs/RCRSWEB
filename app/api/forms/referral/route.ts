@@ -9,6 +9,7 @@ import { checkRequestSize } from '@/lib/request-size-limit';
 import { checkForSpam } from '@/lib/spam-filter';
 import { checkHoneypot } from '@/lib/honeypot';
 import { verifyTurnstileToken, getRequestIp } from '@/lib/turnstile';
+import { logSpamBlock } from '@/lib/spam-log';
 
 const formRateLimiter = createReferralFormRateLimiter();
 const globalFormRateLimiter = createGlobalFormRateLimiter();
@@ -30,6 +31,17 @@ export async function POST(request: NextRequest) {
     const hp = checkHoneypot(body);
     if (hp.triggered) {
       console.warn('[HONEYPOT TRIGGERED route=forms/referral]', { value: hp.value });
+      logSpamBlock({
+        gate: 'honeypot',
+        route: '/api/forms/referral',
+        ip: getRequestIp(request),
+        reason: 'website field populated',
+        details: JSON.stringify({ value: hp.value }),
+        submitterEmail:
+          typeof body?.referrerEmail === 'string' ? body.referrerEmail : undefined,
+        submitterName:
+          typeof body?.referrerName === 'string' ? body.referrerName : undefined,
+      }).catch(() => {});
       return NextResponse.json(
         { success: true, message: 'Thank you for your referral! We will contact them soon.' },
         { status: 200 }
@@ -73,6 +85,15 @@ export async function POST(request: NextRequest) {
         console.warn('[REFERRAL SPAM BLOCKED]', {
           email: spamEmail, score: spamCheck.spamScore, reasons: spamCheck.reasons,
         });
+        logSpamBlock({
+          gate: 'spam-filter',
+          route: '/api/forms/referral',
+          ip: getRequestIp(request),
+          reason: `score ${spamCheck.spamScore}`,
+          details: JSON.stringify({ reasons: spamCheck.reasons }),
+          submitterEmail: spamEmail,
+          submitterName: referralName,
+        }).catch(() => {});
         return NextResponse.json(
           { success: true, message: 'Thank you for your referral! We will contact them soon.' },
           { status: 200 }
@@ -85,6 +106,22 @@ export async function POST(request: NextRequest) {
     const turnstile = await verifyTurnstileToken(body.turnstileToken, getRequestIp(request));
     if (!turnstile.valid) {
       console.warn('[TURNSTILE FAILED route=forms/referral]', { reason: turnstile.reason });
+      logSpamBlock({
+        gate: 'turnstile',
+        route: '/api/forms/referral',
+        ip: getRequestIp(request),
+        reason: turnstile.reason ?? 'invalid token',
+        details: turnstile.errorCodes
+          ? JSON.stringify({ errorCodes: turnstile.errorCodes })
+          : undefined,
+        submitterEmail:
+          typeof referralEmail === 'string'
+            ? referralEmail
+            : typeof referrerEmail === 'string'
+              ? referrerEmail
+              : undefined,
+        submitterName: typeof referrerName === 'string' ? referrerName : undefined,
+      }).catch(() => {});
       return NextResponse.json(
         { success: false, message: 'Verification failed. Please try again.' },
         { status: 400 }

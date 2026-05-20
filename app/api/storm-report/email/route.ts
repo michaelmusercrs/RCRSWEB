@@ -12,6 +12,7 @@ import { TEAM_MEMBERS } from '@/lib/team-roles';
 import { checkForSpam } from '@/lib/spam-filter';
 import { checkHoneypot } from '@/lib/honeypot';
 import { verifyTurnstileToken, getRequestIp } from '@/lib/turnstile';
+import { logSpamBlock } from '@/lib/spam-log';
 import {
   createStormReportRateLimiter,
   createGlobalFormRateLimiter,
@@ -343,6 +344,15 @@ export async function POST(request: NextRequest) {
     const hp = checkHoneypot(data);
     if (hp.triggered) {
       console.warn('[HONEYPOT TRIGGERED route=storm-report/email]', { value: hp.value });
+      logSpamBlock({
+        gate: 'honeypot',
+        route: '/api/storm-report/email',
+        ip: getRequestIp(request),
+        reason: 'website field populated',
+        details: JSON.stringify({ value: hp.value }),
+        submitterEmail: data.customerEmail,
+        submitterName: data.customerName,
+      }).catch(() => {});
       return NextResponse.json({
         success: true,
         customerEmail: true,
@@ -373,6 +383,15 @@ export async function POST(request: NextRequest) {
         console.warn('[STORM REPORT SPAM BLOCKED]', {
           email: data.customerEmail, score: spamCheck.spamScore, reasons: spamCheck.reasons,
         });
+        logSpamBlock({
+          gate: 'spam-filter',
+          route: '/api/storm-report/email',
+          ip: getRequestIp(request),
+          reason: `score ${spamCheck.spamScore}`,
+          details: JSON.stringify({ reasons: spamCheck.reasons }),
+          submitterEmail: data.customerEmail,
+          submitterName: data.customerName,
+        }).catch(() => {});
         return NextResponse.json({
           success: true,
           customerEmail: true,
@@ -390,6 +409,17 @@ export async function POST(request: NextRequest) {
     const turnstile = await verifyTurnstileToken(turnstileToken, getRequestIp(request));
     if (!turnstile.valid) {
       console.warn('[TURNSTILE FAILED route=storm-report/email]', { reason: turnstile.reason });
+      logSpamBlock({
+        gate: 'turnstile',
+        route: '/api/storm-report/email',
+        ip: getRequestIp(request),
+        reason: turnstile.reason ?? 'invalid token',
+        details: turnstile.errorCodes
+          ? JSON.stringify({ errorCodes: turnstile.errorCodes })
+          : undefined,
+        submitterEmail: data.customerEmail,
+        submitterName: data.customerName,
+      }).catch(() => {});
       return NextResponse.json(
         { success: false, message: 'Verification failed. Please try again.' },
         { status: 400 },

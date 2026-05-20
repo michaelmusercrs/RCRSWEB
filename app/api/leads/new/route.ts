@@ -26,6 +26,7 @@ import { roofReportService } from '@/lib/roof-report-service';
 import { checkForSpam } from '@/lib/spam-filter';
 import { checkHoneypot } from '@/lib/honeypot';
 import { verifyTurnstileToken, getRequestIp } from '@/lib/turnstile';
+import { logSpamBlock } from '@/lib/spam-log';
 
 // Rate limit: 3/hr per IP via shared KV contact-form bucket, plus the
 // cross-form 15/hr global cap.
@@ -102,6 +103,15 @@ export async function POST(request: NextRequest) {
     const hp = checkHoneypot(body);
     if (hp.triggered) {
       console.warn('[HONEYPOT TRIGGERED route=leads/new]', { value: hp.value });
+      logSpamBlock({
+        gate: 'honeypot',
+        route: '/api/leads/new',
+        ip: getRequestIp(request),
+        reason: 'website field populated',
+        details: JSON.stringify({ value: hp.value }),
+        submitterEmail: typeof body?.email === 'string' ? body.email : undefined,
+        submitterName: typeof body?.name === 'string' ? body.name : undefined,
+      }).catch(() => {});
       return NextResponse.json({ success: true });
     }
 

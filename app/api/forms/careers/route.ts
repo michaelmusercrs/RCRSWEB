@@ -11,6 +11,7 @@ import { emailService } from '@/lib/email-service';
 import { checkForSpam } from '@/lib/spam-filter';
 import { checkHoneypot } from '@/lib/honeypot';
 import { verifyTurnstileToken, getRequestIp } from '@/lib/turnstile';
+import { logSpamBlock } from '@/lib/spam-log';
 
 const formRateLimiter = createCareersFormRateLimiter();
 const globalFormRateLimiter = createGlobalFormRateLimiter();
@@ -32,6 +33,20 @@ export async function POST(request: NextRequest) {
     const hp = checkHoneypot(body);
     if (hp.triggered) {
       console.warn('[HONEYPOT TRIGGERED route=forms/careers]', { value: hp.value });
+      // Pre-destructure email/name not available yet; pull straight from body.
+      const hpEmail = typeof body?.email === 'string' ? body.email : undefined;
+      const hpFirst = typeof body?.firstName === 'string' ? body.firstName : '';
+      const hpLast = typeof body?.lastName === 'string' ? body.lastName : '';
+      const hpName = `${hpFirst} ${hpLast}`.trim() || undefined;
+      logSpamBlock({
+        gate: 'honeypot',
+        route: '/api/forms/careers',
+        ip: getRequestIp(request),
+        reason: 'website field populated',
+        details: JSON.stringify({ value: hp.value }),
+        submitterEmail: hpEmail,
+        submitterName: hpName,
+      }).catch(() => {});
       return NextResponse.json(
         {
           success: true,
@@ -70,6 +85,15 @@ export async function POST(request: NextRequest) {
         console.warn('[CAREERS SPAM BLOCKED]', {
           email, score: spamCheck.spamScore, reasons: spamCheck.reasons,
         });
+        logSpamBlock({
+          gate: 'spam-filter',
+          route: '/api/forms/careers',
+          ip: getRequestIp(request),
+          reason: `score ${spamCheck.spamScore}`,
+          details: JSON.stringify({ reasons: spamCheck.reasons }),
+          submitterEmail: email,
+          submitterName: name,
+        }).catch(() => {});
         return NextResponse.json(
           {
             success: true,
@@ -86,6 +110,17 @@ export async function POST(request: NextRequest) {
     const turnstile = await verifyTurnstileToken(body.turnstileToken, getRequestIp(request));
     if (!turnstile.valid) {
       console.warn('[TURNSTILE FAILED route=forms/careers]', { reason: turnstile.reason });
+      logSpamBlock({
+        gate: 'turnstile',
+        route: '/api/forms/careers',
+        ip: getRequestIp(request),
+        reason: turnstile.reason ?? 'invalid token',
+        details: turnstile.errorCodes
+          ? JSON.stringify({ errorCodes: turnstile.errorCodes })
+          : undefined,
+        submitterEmail: typeof email === 'string' ? email : undefined,
+        submitterName: name,
+      }).catch(() => {});
       return NextResponse.json(
         { success: false, message: 'Verification failed. Please try again.' },
         { status: 400 },

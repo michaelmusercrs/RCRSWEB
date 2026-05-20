@@ -18,6 +18,7 @@ import {
 import { cache } from '@/lib/cache';
 import { checkHoneypot } from '@/lib/honeypot';
 import { verifyTurnstileToken, getRequestIp } from '@/lib/turnstile';
+import { logSpamBlock } from '@/lib/spam-log';
 
 const STORM_REPORT_TTL = 15 * 60 * 1000; // 15 minutes
 
@@ -42,6 +43,15 @@ export async function POST(request: NextRequest) {
     const hp = checkHoneypot(body);
     if (hp.triggered) {
       console.warn('[HONEYPOT TRIGGERED route=storm-report]', { value: hp.value });
+      logSpamBlock({
+        gate: 'honeypot',
+        route: '/api/storm-report',
+        ip: getRequestIp(request),
+        reason: 'website field populated',
+        details: JSON.stringify({ value: hp.value }),
+        submitterEmail: typeof body?.email === 'string' ? body.email : undefined,
+        submitterName: typeof body?.name === 'string' ? body.name : undefined,
+      }).catch(() => {});
       return NextResponse.json({ success: true, data: null });
     }
 
@@ -51,6 +61,17 @@ export async function POST(request: NextRequest) {
     const turnstile = await verifyTurnstileToken(body.turnstileToken, getRequestIp(request));
     if (!turnstile.valid) {
       console.warn('[TURNSTILE FAILED route=storm-report]', { reason: turnstile.reason });
+      logSpamBlock({
+        gate: 'turnstile',
+        route: '/api/storm-report',
+        ip: getRequestIp(request),
+        reason: turnstile.reason ?? 'invalid token',
+        details: turnstile.errorCodes
+          ? JSON.stringify({ errorCodes: turnstile.errorCodes })
+          : undefined,
+        submitterEmail: typeof body?.email === 'string' ? body.email : undefined,
+        submitterName: typeof body?.name === 'string' ? body.name : undefined,
+      }).catch(() => {});
       return NextResponse.json(
         { success: false, message: 'Verification failed. Please try again.' },
         { status: 400 }
