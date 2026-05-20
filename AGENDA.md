@@ -31,8 +31,8 @@ This is the canonical task tracker for the multi-day sweep. Each scheduled-routi
 
 The whole transport is currently dead. Until rebuilt, no system email leaves. Each item below is a discrete, verifiable step.
 
-- `[pending]` **1.1 Transport selection** — produce a one-page comparison of Resend vs. nodemailer-Gmail-SMTP vs. Postmark vs. direct Gmail API. Cover: setup steps, monthly cost at our volume (~50-200 sends/day est.), deliverability, ops burden, lock-in. Recommend one. Stop and ask owner before integrating.
-- `[pending]` **1.2 Catalog every callsite of `emailService.send()`** — file, line, calling function, trigger, intended recipient, intended template, current behavior, whether it should be enabled in the rebuild or shelved.
+- `[done]` **1.1 Transport selection** — see `docs/email-transport-comparison.md`. Recommended: **Resend** (free at our volume, ~30-line swap in `EmailService.send()`, real deliverability without Postmark price). `[needs-owner]` confirm before integration.
+- `[done]` **1.2 Catalog every callsite of `emailService.send()`** — see `docs/email-callsite-audit.md`. 25 callsites in 17 files. Surfaced: storm-report violates rep-routing rule (sends to sales-team comp email), stock@ misused for breakdown notifications, michael@ vs michaelmuse@ address mismatch, 3 cost-data leak hotspots, 18-stage pipeline emitter likely over-firing, 3 dead wrappers.
 - `[pending]` **1.3 Template redesign** — owner wants each email type to look distinctly professional, not "AI-generated lead notification." Tasks: (a) standardize on a header/footer system component, (b) move material-order invoice to a PDF attachment with a short HTML body, (c) make sure subjects and from-names match the email type, (d) audit for accidental leakage of cost data per `[[feedback_purchase_price_visibility]]`.
 - `[pending]` **1.4 Recipient routing audit** — for every email type, the recipient address must be derived from the right source. Sales-rep reminders → rep email, not company email. Driver notifications → driver, not owner. Customer-facing → customer, never internal. Build a recipient-rules table and test each path.
 - `[pending]` **1.5 Per-recipient rate limit (proper)** — re-add the cap in the new transport with persistence beyond Lambda warm state (Vercel Blob counter or KV).
@@ -44,10 +44,10 @@ The whole transport is currently dead. Until rebuilt, no system email leaves. Ea
 
 The flood was bot spam on the public contact form (`juliana@trustedbusinessawards.com` is a known outreach tool). Stop the source.
 
-- `[pending]` **2.1 Honeypot field** — invisible field in every public form; reject submissions where it's populated.
-- `[pending]` **2.2 Cloudflare Turnstile or hCaptcha** — bot-detection gate on `/api/forms/contact`, `/api/forms/referral`, `/api/forms/careers`, `/api/forms/bni-partner`, `/api/email-capture`.
-- `[pending]` **2.3 IP rate limit** — drop >N submissions/hour per IP at the API layer.
-- `[pending]` **2.4 Domain block list** — drop submissions from known outreach-spam sender domains (`trustedbusinessawards.com`, etc.); maintain in a config file.
+- `[done]` **2.1-2.4 Form-hardening plan** — see `docs/form-hardening-plan.md`. Found **10** public endpoints (more than the original 5). Recommended: Cloudflare Turnstile, 4-phase rollout (honeypot first → KV-backed rate limit → Turnstile → cleanup). Found that current `lib/rate-limiter.ts` is in-memory and silently bypassed by Vercel cold starts — that's why bot spam slipped through.
+- `[pending]` **2.5 Implement Phase 1 of the hardening plan** — honeypot + 20-domain seed block list. Zero user friction. Land on `main` per `[deploy-ok]`.
+- `[pending]` **2.6 Implement Phase 2** — Vercel KV rate limit across all 10 endpoints.
+- `[needs-owner]` **2.7 Implement Phase 3** — Turnstile rollout. Needs owner Cloudflare account + site key.
 
 ---
 
