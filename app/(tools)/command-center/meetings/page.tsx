@@ -56,6 +56,9 @@ import {
 import { StatCard, LoadingSpinner } from '@/components/command-center';
 import { cn } from '@/lib/utils';
 import { SLIDES, Slide } from '@/lib/meeting-data';
+import UnifiedLeaderboards, {
+  type UnifiedLeaderboardsProps,
+} from '@/components/UnifiedLeaderboards';
 
 // =============================================================================
 // Types
@@ -694,6 +697,11 @@ export default function MeetingsPage() {
   const [activityData, setActivityData] = useState<ActivityResponse | null>(null);
   const [activityLoading, setActivityLoading] = useState(false);
   const [recentNotes, setRecentNotes] = useState<RecentMeetingNote[] | null>(null);
+  // Three-boards-side-by-side widget (Commission / Sales / Weekly).
+  // Pre-fetched here, passed in as props. The widget itself is pure render.
+  const [unifiedBoards, setUnifiedBoards] = useState<
+    Pick<UnifiedLeaderboardsProps, 'commission' | 'sales' | 'weekly'> | null
+  >(null);
 
   // Fetch meeting configuration
   useEffect(() => {
@@ -770,6 +778,40 @@ export default function MeetingsPage() {
   useEffect(() => {
     if (view === 'activity') fetchActivity(period);
   }, [view, period, fetchActivity]);
+
+  // Unified-leaderboards widget data (three boards side-by-side).
+  // Pre-fetches Commission/Sales/Weekly so the widget can render purely.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/command-center/unified-leaderboards', {
+          credentials: 'include',
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (cancelled || !json.success || !json.data) return;
+        // Attach board-specific viewAll links so each board links to its own page
+        setUnifiedBoards({
+          commission: {
+            ...json.data.commission,
+            viewAllHref: '/command-center/meetings/present',
+          },
+          sales: {
+            ...json.data.sales,
+            viewAllHref: '/command-center/meetings/present',
+          },
+          weekly: {
+            ...json.data.weekly,
+            viewAllHref: '/portal/sales/weekly-numbers',
+          },
+        });
+      } catch (err) {
+        console.error('[meetings] unified-leaderboards fetch failed:', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   // Recent meeting notes — fetched once on mount from the real MeetingPrep sheet
   useEffect(() => {
@@ -882,6 +924,13 @@ export default function MeetingsPage() {
         </div>
         <StatusBadge status={config.currentPrepStatus} />
       </div>
+
+      {/* Three-boards widget — Commission / Sales / Weekly (never combined) */}
+      <UnifiedLeaderboards
+        commission={unifiedBoards?.commission}
+        sales={unifiedBoards?.sales}
+        weekly={unifiedBoards?.weekly}
+      />
 
       {/* Countdown Section */}
       <div className="rounded-xl border border-zinc-800 bg-gradient-to-br from-zinc-900 to-zinc-900/50 p-6">

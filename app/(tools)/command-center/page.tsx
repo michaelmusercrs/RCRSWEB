@@ -55,6 +55,9 @@ import { RoleBadge } from '@/components/command-center/RoleBadge';
 import { ResponseTimeDashboard } from '@/components/command-center/ResponseTimeDashboard';
 import { SalesCompetitionCard } from '@/components/command-center/SalesCompetition';
 import { SheetsHealthWidget } from '@/components/command-center/SheetsHealthWidget';
+import UnifiedLeaderboards, {
+  type UnifiedLeaderboardsProps,
+} from '@/components/UnifiedLeaderboards';
 import { cn } from '@/lib/utils';
 
 // ============================================================================
@@ -415,6 +418,10 @@ export default function CommandCenterDashboard() {
   const [insightsLoading, setInsightsLoading] = React.useState(true);
   const [meetingStats, setMeetingStats] = React.useState<MeetingStatsData | null>(null);
   const [meetingLoading, setMeetingLoading] = React.useState(true);
+  // Three-boards widget — pre-fetched server data, passed in as props.
+  const [unifiedBoards, setUnifiedBoards] = React.useState<
+    Pick<UnifiedLeaderboardsProps, 'commission' | 'sales' | 'weekly'> | null
+  >(null);
 
   const isAdmin = user?.role === 'owner' || user?.role === 'admin' || user?.role === 'office';
   const isOwner = user?.role === 'owner' || user?.role === 'admin';
@@ -435,6 +442,38 @@ export default function CommandCenterDashboard() {
       }
     }
     fetchStats();
+  }, []);
+
+  // Fetch unified leaderboards (Commission / Sales / Weekly — never combined)
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/command-center/unified-leaderboards', {
+          credentials: 'include',
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (cancelled || !json.success || !json.data) return;
+        setUnifiedBoards({
+          commission: {
+            ...json.data.commission,
+            viewAllHref: '/command-center/meetings/present',
+          },
+          sales: {
+            ...json.data.sales,
+            viewAllHref: '/command-center/meetings/present',
+          },
+          weekly: {
+            ...json.data.weekly,
+            viewAllHref: '/portal/sales/weekly-numbers',
+          },
+        });
+      } catch (err) {
+        console.error('Failed to fetch unified leaderboards:', err);
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   // Fetch sales leaderboard and billing alerts
@@ -606,6 +645,15 @@ export default function CommandCenterDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Three-boards widget — Commission / Sales / Weekly (never combined) */}
+      {isAdmin && (
+        <UnifiedLeaderboards
+          commission={unifiedBoards?.commission}
+          sales={unifiedBoards?.sales}
+          weekly={unifiedBoards?.weekly}
+        />
+      )}
 
       {/* Executive KPI Cards (Owner/Admin) */}
       {isAdmin && (

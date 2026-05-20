@@ -12,6 +12,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
   Settings,
   Shield,
@@ -30,6 +31,7 @@ import {
   Server,
   Lock,
   Unlock,
+  Activity,
 } from 'lucide-react';
 
 interface FeatureFlag {
@@ -320,8 +322,17 @@ export default function SystemSettingsPage() {
           </h1>
           <p className="text-neutral-400 mt-1">Manage environment, features, and security settings</p>
         </div>
-        <div className={`px-4 py-2 rounded-lg border-2 ${badge.bgColor} ${badge.textColor} ${badge.borderColor} font-bold`}>
-          {badge.label}
+        <div className="flex items-center gap-3">
+          <Link
+            href="/admin/system/health"
+            className="flex items-center gap-2 px-3 py-2 bg-brand-green hover:bg-lime-400 text-black font-medium rounded-lg text-sm"
+          >
+            <Activity className="w-4 h-4" />
+            Health Dashboard
+          </Link>
+          <div className={`px-4 py-2 rounded-lg border-2 ${badge.bgColor} ${badge.textColor} ${badge.borderColor} font-bold`}>
+            {badge.label}
+          </div>
         </div>
       </div>
 
