@@ -8,6 +8,7 @@ The scheduled routine appends an entry per action.
 
 ## 2026-05-20
 
+- `21:00` · claude · MobileCTABar.tsx + BeforeAfterSlider.tsx + 4 page wirings · Phase 7.2 design refresh — on `sweep/design-refresh` branch · mobile call/text sticky bar + drag-comparison slider; slider has TODO placeholders for real photo pairs · commit cd1c51f (sweep)
 - `20:30` · claude · app/chrisview/board/page.tsx + app/api/chrisview/board/route.ts (new) · Phase 7.1 TV-mode leaderboard — on `sweep/tv-leaderboard` branch · 3-block auto-rotate + activity ticker + pause-on-hover; reads only existing /chrisview public data · commit 2fde8c6 (sweep)
 - `20:15` · claude · app/(site)/roofing-contractor/[county]/page.tsx + data/county-landing.json + sitemap.ts + Footer.tsx · 5 county landing pages (Madison/Morgan/Marshall/Limestone/Cullman) with Service + BreadcrumbList + FAQPage schemas, IKO-led trust signals, internal-link cluster · SEO content lane · commit 08fab81 (main)
 - `19:30` · claude · app/(tools)/admin/spam-log/page.tsx + app/api/admin/spam-log/route.ts (new) · Phase 6.4 `/admin/spam-log` viewer page — mirrors email-log viewer; filters by gate/route/submitter/date; color-coded gate badges; summary tiles · commit fe4dc96

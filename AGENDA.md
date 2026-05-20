@@ -107,6 +107,7 @@ Owner explicitly asked for this — look at how others solve the same problems.
 ## Phase 7 — Feature work on sweep branches (not yet deployed)
 
 - `[done]` **7.1 TV-mode `/chrisview/board`** — `sweep/tv-leaderboard` branch. Full-screen office TV display; auto-rotating top-5 across 3 leaderboards (Commission / Sales / Weekly) per `[[project_rcrs_leaderboards]]`; activity ticker bottom strip; pause-on-hover; gold/silver/bronze podium; 60s data poll. Reads only data that `/chrisview` already publicly serves — no new leak. `[needs-owner]` review preview URL → merge if approved.
+- `[done]` **7.2 Mobile CTA bar + before-after slider** — `sweep/design-refresh` branch. `MobileCTABar` sticky bottom strip on mobile (Call + Text buttons, scroll-aware reveal/hide). `BeforeAfterSlider` interactive drag-comparison with keyboard support. Wired into homepage, storm-damage service page, gallery. Slider has TODO placeholders for real before/after pairs (no fabrication per `[[feedback_never_invent_brand_data]]`). `[needs-owner]` drop in real photo pairs to `public/uploads/` + review preview → merge.
 
 Deliverable per item: 1-page summary + 3-5 concrete suggestions that would actually move the needle for RCRS, ranked by impact/effort.
 
