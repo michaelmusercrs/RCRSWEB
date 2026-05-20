@@ -28,6 +28,16 @@
       "schedule": "*/10 * * * *"
     }
   ],
+  "_disabledCrons": {
+    "_note": "Entries below are intentionally NOT in the live `crons` array. Move them up once the owner provisions the required env vars. Vercel ignores any top-level key starting with an underscore.",
+    "review-request-queue": {
+      "path": "/api/cron/review-request-queue",
+      "schedule": "0 19 * * *",
+      "_status": "disabled",
+      "_enableWhen": "ENABLE_REVIEW_REQUESTS=true and NEXT_PUBLIC_GOOGLE_REVIEW_URL are set in Vercel env",
+      "_addedBy": "sweep/review-automation"
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",

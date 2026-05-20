@@ -26,6 +26,7 @@ import type { SheetTicket } from './ticket-sheet-service';
 import { inventoryTabSync } from './inventory-tab-sync';
 import { emailService } from './email-service';
 import { jobMaterialCostService } from './job-material-cost-service';
+import { enqueueReviewRequest } from './review-request-queue';
 
 export interface AftermathResult {
   deductedItems: number;
@@ -185,6 +186,64 @@ export async function runLoadVerifiedAftermath(input: {
     }
   } catch (err) {
     errors.push(`Invoice email threw: ${String(err)}`);
+  }
+
+  // 4. Enqueue a customer review-request (sweep/review-automation).
+  //
+  // We enqueue here at load_verified so the queue has a record the
+  // moment materials leave the warehouse. The actual email DOES NOT
+  // fire from this path — it fires from the daily cron
+  // /api/cron/review-request-queue, which drains rows whose `sendAfter`
+  // has elapsed, and only when ENABLE_REVIEW_REQUESTS=true.
+  //
+  // TODO(owner): decide the timing model.
+  //   Option A — delay-based (current default): sendAfter = now +
+  //     REVIEW_REQUEST_DELAY_DAYS (default 3 days). Cron drains when
+  //     the timer is up. Simple but doesn't know the job actually
+  //     wrapped on the customer end.
+  //   Option B — completion-gated: cron only drains rows whose
+  //     corresponding ticket is in status 'completed'. Tighter ask, but
+  //     depends on PMs actually marking tickets completed.
+  //   Option C — fire-immediately at load_verified. Risky — load_verified
+  //     is "materials loaded onto Rick's truck", NOT "job done". Asking
+  //     for a Google review while the truck is still pulling out of the
+  //     warehouse is a terrible look. NOT recommended.
+  //
+  // If/when Option C is ever desired, the actual emailService.sendReviewRequest()
+  // call would go HERE (after the enqueue), gated by an env or a config flag.
+  // For this pass we ship Option A as the default and let the owner flip
+  // the timing knob without touching code.
+  //
+  // Suppressed in `silent` mode — historical backfill should never queue a
+  // months-old job for a "leave us a review" email.
+  if (!silent) {
+    try {
+      const fullAddress = [ticket.jobAddress, ticket.city, ticket.state]
+        .filter(Boolean)
+        .join(', ');
+      // Best-guess project type from the ticket. Most delivery tickets are
+      // roofing material runs; if the ticket has a more specific projectType
+      // field downstream we can refine this later.
+      const projectType = ticket.notes && /repair|tarp|gutter|siding/i.test(ticket.notes)
+        ? 'project'
+        : 'new roof';
+      if (ticket.customerEmail && ticket.customerEmail.includes('@')) {
+        const result = await enqueueReviewRequest({
+          ticketId: ticket.ticketId,
+          jobNumber: ticket.referenceNumber,
+          customerName: ticket.customerName || '',
+          customerEmail: ticket.customerEmail,
+          projectAddress: fullAddress,
+          projectType,
+          // sendAfter omitted — defaults to now + REVIEW_REQUEST_DELAY_DAYS
+        });
+        if (!result.enqueued && result.reason && result.reason !== 'already-queued') {
+          errors.push(`Review queue: ${result.reason}`);
+        }
+      }
+    } catch (err) {
+      errors.push(`Review enqueue threw: ${String(err)}`);
+    }
   }
 
   return {

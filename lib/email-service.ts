@@ -33,6 +33,10 @@ import {
   renderDriverNewOrderEmail,
   driverNewOrderSubject,
 } from './email-templates/driver-new-order';
+import {
+  renderReviewRequestEmail,
+  reviewRequestSubject,
+} from './email-templates/review-request';
 import { logEmailAttempt } from './email-log';
 
 export type EmailTemplate =
@@ -44,7 +48,12 @@ export type EmailTemplate =
   | 'delivery-order'
   | 'office-material-order'
   | 'vendor-return'
-  | 'delivery-reminder';
+  | 'delivery-reminder'
+  // 'review-request' is gated by the ENABLE_REVIEW_REQUESTS env in
+  // isTemplateAllowed() — it is NOT in the default allowlist csv.
+  // Build/wiring lives in lib/review-request-queue.ts + the daily cron;
+  // the owner flips it on when ready to ship customer review asks.
+  | 'review-request';
 
 /**
  * A single binary attachment. Maps directly onto Resend's `Attachment`
@@ -79,7 +88,16 @@ function isTemplateAllowed(template: EmailTemplate | undefined): boolean {
   const list = (process.env.ALLOWED_EMAIL_TEMPLATES ||
     'contact-form,load-verified-invoice,driver-new-order')
     .split(',').map(s => s.trim()).filter(Boolean);
-  return list.includes(template);
+  if (list.includes(template)) return true;
+  // Conditional gate: `review-request` is opt-in via ENABLE_REVIEW_REQUESTS.
+  // Default csv stays at 3 templates; when the env is "true" the allowlist
+  // OR-in opens to 4 (contact-form, load-verified-invoice, driver-new-order,
+  // review-request). Owner flips this on once the queue + cron + Google
+  // review URL are provisioned.
+  if (template === 'review-request' && process.env.ENABLE_REVIEW_REQUESTS === 'true') {
+    return true;
+  }
+  return false;
 }
 
 const OWNER_GMAIL = 'rivercityroofingsolutions@gmail.com';
@@ -756,6 +774,71 @@ class EmailService {
       subject,
       body,
       fromName: 'RCRS Inventory',
+    });
+  }
+
+  // Send the customer-facing review-request email. Gated by
+  // ENABLE_REVIEW_REQUESTS=true via isTemplateAllowed(); the default
+  // allowlist does NOT include 'review-request', so this is a no-op
+  // until the owner flips the env on.
+  //
+  // Required: a real Google review URL — either passed in `googleReviewUrl`
+  // or set in NEXT_PUBLIC_GOOGLE_REVIEW_URL. We refuse to send to a
+  // placeholder so a bad QA setup can't land a [needs-owner] banner in
+  // a real customer's inbox.
+  //
+  // PRICE/COST: this email carries no pricing data. Customer-safe.
+  async sendReviewRequest(data: {
+    customerEmail: string;
+    customerName: string;
+    projectAddress: string;
+    projectType: string;
+    googleReviewUrl?: string;
+    daysSinceCompletion?: number;
+  }): Promise<{ success: boolean; error?: string }> {
+    const reviewUrl =
+      data.googleReviewUrl || process.env.NEXT_PUBLIC_GOOGLE_REVIEW_URL || '';
+
+    if (!reviewUrl) {
+      // Refuse to send a placeholder to a real customer. Log so the
+      // operator sees the gap and can provision the env.
+      console.warn('[REVIEW REQUEST] NEXT_PUBLIC_GOOGLE_REVIEW_URL not set — refusing to send placeholder to customer', {
+        to: data.customerEmail,
+      });
+      logEmailAttempt({
+        template: 'review-request',
+        to: data.customerEmail,
+        from: this.fromName ? `${this.fromName} <${this.from}>` : this.from,
+        subject: reviewRequestSubject({
+          customerName: data.customerName,
+          projectAddress: data.projectAddress,
+          projectType: data.projectType,
+        }),
+        status: 'dropped_transport_not_configured',
+        error: 'NEXT_PUBLIC_GOOGLE_REVIEW_URL not set',
+      }).catch(() => {});
+      return {
+        success: false,
+        error: 'NEXT_PUBLIC_GOOGLE_REVIEW_URL not set',
+      };
+    }
+
+    const tmplData = {
+      customerName: data.customerName,
+      projectAddress: data.projectAddress,
+      projectType: data.projectType,
+      googleReviewUrl: reviewUrl,
+      daysSinceCompletion: data.daysSinceCompletion,
+    };
+    const subject = reviewRequestSubject(tmplData);
+    const body = renderReviewRequestEmail(tmplData);
+
+    return this.send({
+      template: 'review-request',
+      to: data.customerEmail,
+      subject,
+      body,
+      fromName: 'River City Roofing Solutions',
     });
   }
 
