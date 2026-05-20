@@ -80,6 +80,8 @@ export async function GET(request: NextRequest) {
         );
       case 'transactions':
         return NextResponse.json(await filterTransactions(searchParams, page, pageSize));
+      case 'charts':
+        return NextResponse.json(buildCharts());
       default:
         return NextResponse.json({ error: 'Unknown type' }, { status: 400 });
     }
@@ -200,6 +202,134 @@ function filterCommissions(q: string, rep: string | null) {
     return y && m && dd ? `${y}-${m.padStart(2, '0')}-${dd.padStart(2, '0')}` : '';
   };
   return [...rows].sort((a, b) => isoOf(b.date).localeCompare(isoOf(a.date)));
+}
+
+function buildCharts() {
+  const monthly = transactionsMonthly as Array<{
+    month: string; netRevenue: number; expense: number; invoiceCount: number;
+  }>;
+
+  // Per-year aggregates (2018-2026)
+  const yearly: Record<string, { year: string; revenue: number; expense: number; net: number; invoiceCount: number }> = {};
+  for (const m of monthly) {
+    const y = m.month.slice(0, 4);
+    if (!yearly[y]) yearly[y] = { year: y, revenue: 0, expense: 0, net: 0, invoiceCount: 0 };
+    yearly[y].revenue += m.netRevenue;
+    yearly[y].expense += m.expense;
+    yearly[y].invoiceCount += m.invoiceCount;
+  }
+  const byYear = Object.values(yearly).map(y => ({
+    ...y,
+    revenue: Math.round(y.revenue * 100) / 100,
+    expense: Math.round(y.expense * 100) / 100,
+    net: Math.round((y.revenue - y.expense) * 100) / 100,
+  })).sort((a, b) => a.year.localeCompare(b.year));
+
+  // Last 24 months for the line/area chart
+  const last24 = monthly.slice(-24).map(m => ({
+    month: m.month,
+    revenue: Math.round(m.netRevenue * 100) / 100,
+    expense: Math.round(m.expense * 100) / 100,
+    net: Math.round((m.netRevenue - m.expense) * 100) / 100,
+    invoiceCount: m.invoiceCount,
+  }));
+
+  // Cumulative revenue timeline (lifetime)
+  let cumulative = 0;
+  const cumulativeRevenue = monthly.map(m => {
+    cumulative += m.netRevenue;
+    return {
+      month: m.month,
+      cumulative: Math.round(cumulative * 100) / 100,
+    };
+  });
+
+  // Top entities
+  const topReps = (transactionsByRep as Array<{ rep: string; invoiceTotal: number; invoiceCount: number }>)
+    .slice(0, 15)
+    .map(r => ({ name: r.rep, value: Math.round(r.invoiceTotal * 100) / 100, count: r.invoiceCount }));
+  const topVendors = (transactionsByVendor as Array<{ vendor: string; total: number; txCount: number }>)
+    .slice(0, 15)
+    .map(v => ({ name: v.vendor, value: Math.round(v.total * 100) / 100, count: v.txCount }));
+  const topCustomers = (transactionsByCustomer as Array<{ customer: string; total: number; invoiceCount: number }>)
+    .slice(0, 15)
+    .map(c => ({ name: c.customer, value: Math.round(c.total * 100) / 100, count: c.invoiceCount }));
+
+  // Projection for current year
+  const now = new Date();
+  const currentYear = String(now.getFullYear());
+  const ytdRevenue = byYear.find(y => y.year === currentYear)?.revenue || 0;
+  const ytdExpense = byYear.find(y => y.year === currentYear)?.expense || 0;
+  const lastYearRevenue = byYear.find(y => y.year === String(now.getFullYear() - 1))?.revenue || 0;
+
+  // Days elapsed in this year (UTC)
+  const yearStart = new Date(Date.UTC(now.getFullYear(), 0, 1));
+  const daysElapsed = Math.max(
+    1,
+    Math.floor((now.getTime() - yearStart.getTime()) / 86400000) + 1,
+  );
+  const daysInYear = 365 + (now.getFullYear() % 4 === 0 ? 1 : 0);
+
+  // Run rate: last 3 fully-completed months × 4 (annualized)
+  const lastFullMonths = monthly
+    .filter(m => {
+      const [y, mm] = m.month.split('-').map(Number);
+      const meEnd = new Date(Date.UTC(y, mm, 0));
+      return meEnd < new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
+    })
+    .slice(-3);
+  const runRate3moAvg = lastFullMonths.length > 0
+    ? lastFullMonths.reduce((s, m) => s + m.netRevenue, 0) / lastFullMonths.length
+    : 0;
+
+  // YoY growth so far this year
+  const lastYearSameWindow = byYear.find(y => y.year === String(now.getFullYear() - 1));
+  const lastYearProrated = lastYearSameWindow
+    ? (lastYearSameWindow.revenue / daysInYear) * daysElapsed
+    : 0;
+
+  const projection = {
+    currentYear,
+    daysElapsed,
+    daysInYear,
+    ytdRevenue: Math.round(ytdRevenue * 100) / 100,
+    ytdExpense: Math.round(ytdExpense * 100) / 100,
+    ytdNet: Math.round((ytdRevenue - ytdExpense) * 100) / 100,
+    annualizedRevenue: Math.round((ytdRevenue / daysElapsed) * daysInYear * 100) / 100,
+    runRateAnnualized: Math.round(runRate3moAvg * 12 * 100) / 100,
+    runRate3moAvg: Math.round(runRate3moAvg * 100) / 100,
+    lastYearRevenue: Math.round(lastYearRevenue * 100) / 100,
+    lastYearProrated: Math.round(lastYearProrated * 100) / 100,
+    yoyDeltaProrated: lastYearProrated > 0
+      ? Math.round(((ytdRevenue - lastYearProrated) / lastYearProrated) * 1000) / 10
+      : 0,
+    forecastVsLastYear: lastYearRevenue > 0
+      ? Math.round((((ytdRevenue / daysElapsed) * daysInYear - lastYearRevenue) / lastYearRevenue) * 1000) / 10
+      : 0,
+  };
+
+  // Commission payouts by year
+  const commByYear: Record<string, number> = {};
+  for (const c of commissions as Array<{ date: string; amount: number }>) {
+    if (!c.date) continue;
+    const y = c.date.slice(-4);
+    if (!y || y < '2018') continue;
+    commByYear[y] = (commByYear[y] || 0) + (c.amount || 0);
+  }
+  const commissionsByYear = Object.entries(commByYear)
+    .map(([year, total]) => ({ year, total: Math.round(total * 100) / 100 }))
+    .sort((a, b) => a.year.localeCompare(b.year));
+
+  return {
+    byYear,
+    last24,
+    cumulativeRevenue,
+    topReps,
+    topVendors,
+    topCustomers,
+    projection,
+    commissionsByYear,
+  };
 }
 
 async function filterTransactions(searchParams: URLSearchParams, page: number, pageSize: number) {

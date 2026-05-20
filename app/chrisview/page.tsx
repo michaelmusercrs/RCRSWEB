@@ -27,9 +27,44 @@ import {
   Filter,
   Calendar,
   X,
+  BarChart3,
+  LineChart as LineChartIcon,
 } from 'lucide-react';
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  ComposedChart,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  Cell,
+} from 'recharts';
 
-type TabId = 'overview' | 'transactions' | 'customers' | 'vendors' | 'reps' | 'commissions';
+type TabId = 'overview' | 'charts' | 'transactions' | 'customers' | 'vendors' | 'reps' | 'commissions';
+
+interface ChartsData {
+  byYear: Array<{ year: string; revenue: number; expense: number; net: number; invoiceCount: number }>;
+  last24: Array<{ month: string; revenue: number; expense: number; net: number; invoiceCount: number }>;
+  cumulativeRevenue: Array<{ month: string; cumulative: number }>;
+  topReps: Array<{ name: string; value: number; count: number }>;
+  topVendors: Array<{ name: string; value: number; count: number }>;
+  topCustomers: Array<{ name: string; value: number; count: number }>;
+  projection: {
+    currentYear: string; daysElapsed: number; daysInYear: number;
+    ytdRevenue: number; ytdExpense: number; ytdNet: number;
+    annualizedRevenue: number; runRateAnnualized: number; runRate3moAvg: number;
+    lastYearRevenue: number; lastYearProrated: number;
+    yoyDeltaProrated: number; forecastVsLastYear: number;
+  };
+  commissionsByYear: Array<{ year: string; total: number }>;
+}
 
 interface OverviewData {
   meta: { generatedAt: string; source: string; totalTransactions: number; dateRange: { earliest: string; latest: string } };
@@ -79,6 +114,7 @@ export default function ChrisViewPage() {
   const [txTo, setTxTo] = useState('');
 
   const [overview, setOverview] = useState<OverviewData | null>(null);
+  const [charts, setCharts] = useState<ChartsData | null>(null);
   const [customers, setCustomers] = useState<{ rows: Customer[]; total: number } | null>(null);
   const [vendors, setVendors] = useState<{ rows: Vendor[]; total: number } | null>(null);
   const [reps, setReps] = useState<{ rows: Rep[]; total: number } | null>(null);
@@ -117,6 +153,7 @@ export default function ChrisViewPage() {
       const data = await res.json();
       switch (tab) {
         case 'overview': setOverview(data); break;
+        case 'charts': setCharts(data); break;
         case 'customers': setCustomers(data); break;
         case 'vendors': setVendors(data); break;
         case 'reps': setReps(data); break;
@@ -176,6 +213,7 @@ export default function ChrisViewPage() {
         <div className="max-w-7xl mx-auto px-6 flex flex-wrap gap-1 overflow-x-auto">
           {[
             { id: 'overview' as TabId, label: 'Overview', icon: TrendingUp },
+            { id: 'charts' as TabId, label: 'Charts & Projections', icon: BarChart3 },
             { id: 'transactions' as TabId, label: 'Transactions', icon: Receipt },
             { id: 'customers' as TabId, label: 'Customers', icon: Users },
             { id: 'vendors' as TabId, label: 'Vendors', icon: Truck },
@@ -288,6 +326,231 @@ export default function ChrisViewPage() {
                     <Catalog label="Sales Reps" count={overview.counts.reps} icon={UserCheck} onClick={() => setTab('reps')} />
                     <Catalog label="Commissions" count={overview.counts.commissionRows} icon={DollarSign} onClick={() => setTab('commissions')} />
                     <Catalog label="Months" count={overview.counts.months} icon={Briefcase} extra="of data" />
+                  </div>
+                </section>
+              </>
+            )}
+          </>
+        )}
+
+        {/* CHARTS & PROJECTIONS */}
+        {tab === 'charts' && (
+          <>
+            {!charts && loading && (
+              <div className="text-center py-12 text-zinc-500">
+                <Loader2 className="w-5 h-5 animate-spin inline mr-2" />Loading charts…
+              </div>
+            )}
+            {charts && (
+              <>
+                {/* Projection cards */}
+                <section>
+                  <h2 className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide mb-2">
+                    {charts.projection.currentYear} Forecast — based on {charts.projection.daysElapsed}/{charts.projection.daysInYear} days of data
+                  </h2>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <Kpi label="YTD Revenue" value={fmtMoney(charts.projection.ytdRevenue)} sub={fmtMoneyExact(charts.projection.ytdRevenue)} highlight />
+                    <Kpi label="Annualized (YTD pace)" value={fmtMoney(charts.projection.annualizedRevenue)} sub={fmtMoneyExact(charts.projection.annualizedRevenue)} />
+                    <Kpi label="3-Month Run Rate × 12" value={fmtMoney(charts.projection.runRateAnnualized)} sub={`avg ${fmtMoneyExact(charts.projection.runRate3moAvg)}/mo`} />
+                    <Kpi
+                      label="vs Last Year Same Window"
+                      value={`${charts.projection.yoyDeltaProrated >= 0 ? '+' : ''}${charts.projection.yoyDeltaProrated}%`}
+                      sub={`LY: ${fmtMoneyExact(charts.projection.lastYearProrated)}`}
+                      negative={charts.projection.yoyDeltaProrated < 0}
+                    />
+                  </div>
+                </section>
+
+                {/* Last 24 months — revenue / expense / net composed */}
+                <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                  <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                    <LineChartIcon className="w-4 h-4 text-[#39FF14]" />
+                    Last 24 Months — Revenue vs Expense
+                  </h3>
+                  <div className="h-72">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart data={charts.last24} margin={{ top: 8, right: 8, bottom: 8, left: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                        <XAxis dataKey="month" stroke="#71717a" fontSize={11} />
+                        <YAxis stroke="#71717a" fontSize={11} tickFormatter={v => `$${(v / 1000).toFixed(0)}K`} />
+                        <Tooltip
+                          contentStyle={{ background: '#18181b', border: '1px solid #27272a', borderRadius: 8 }}
+                          formatter={(v: number | undefined) => v != null ? fmtMoneyExact(v) : '—'}
+                        />
+                        <Legend />
+                        <Bar dataKey="revenue" fill="#39FF14" name="Revenue" opacity={0.85} />
+                        <Bar dataKey="expense" fill="#ef4444" name="Expense" opacity={0.75} />
+                        <Line type="monotone" dataKey="net" stroke="#60a5fa" strokeWidth={2} name="Net" dot={false} />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                </section>
+
+                {/* Annual revenue + net side by side */}
+                <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <BarChart3 className="w-4 h-4 text-[#39FF14]" />
+                      Annual Revenue (2018–{charts.projection.currentYear})
+                    </h3>
+                    <div className="h-72">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={charts.byYear} margin={{ top: 8, right: 8, bottom: 8, left: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                          <XAxis dataKey="year" stroke="#71717a" fontSize={11} />
+                          <YAxis stroke="#71717a" fontSize={11} tickFormatter={v => `$${(v / 1_000_000).toFixed(1)}M`} />
+                          <Tooltip
+                            contentStyle={{ background: '#18181b', border: '1px solid #27272a', borderRadius: 8 }}
+                            formatter={(v: number | undefined) => v != null ? fmtMoneyExact(v) : '—'}
+                          />
+                          <Bar dataKey="revenue" name="Revenue">
+                            {charts.byYear.map((y, i) => (
+                              <Cell key={i} fill={y.year === charts.projection.currentYear ? '#fbbf24' : '#39FF14'} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <p className="text-[10px] text-zinc-500 mt-1">
+                      {charts.projection.currentYear} is YTD (in-progress, shown amber).
+                    </p>
+                  </div>
+
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-[#39FF14]" />
+                      Annual Net Income
+                    </h3>
+                    <div className="h-72">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={charts.byYear} margin={{ top: 8, right: 8, bottom: 8, left: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                          <XAxis dataKey="year" stroke="#71717a" fontSize={11} />
+                          <YAxis stroke="#71717a" fontSize={11} tickFormatter={v => `$${(v / 1000).toFixed(0)}K`} />
+                          <Tooltip
+                            contentStyle={{ background: '#18181b', border: '1px solid #27272a', borderRadius: 8 }}
+                            formatter={(v: number | undefined) => v != null ? fmtMoneyExact(v) : '—'}
+                          />
+                          <Bar dataKey="net" name="Net">
+                            {charts.byYear.map((y, i) => (
+                              <Cell key={i} fill={y.net >= 0 ? '#39FF14' : '#ef4444'} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Cumulative revenue area chart */}
+                <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                  <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-[#39FF14]" />
+                    Cumulative Revenue Since Inception
+                  </h3>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={charts.cumulativeRevenue} margin={{ top: 8, right: 8, bottom: 8, left: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                        <XAxis dataKey="month" stroke="#71717a" fontSize={10} tickFormatter={(v: string) => v.slice(0, 4)} interval={11} />
+                        <YAxis stroke="#71717a" fontSize={11} tickFormatter={v => `$${(v / 1_000_000).toFixed(0)}M`} />
+                        <Tooltip
+                          contentStyle={{ background: '#18181b', border: '1px solid #27272a', borderRadius: 8 }}
+                          formatter={(v: number | undefined) => v != null ? fmtMoneyExact(v) : '—'}
+                        />
+                        <Area type="monotone" dataKey="cumulative" stroke="#39FF14" fill="#39FF14" fillOpacity={0.2} name="Cumulative Revenue" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </section>
+
+                {/* Top reps + top vendors horizontal bars */}
+                <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <UserCheck className="w-4 h-4 text-[#39FF14]" />
+                      Top 15 Sales Reps — Lifetime Invoiced
+                    </h3>
+                    <div className="h-96">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={charts.topReps} layout="vertical" margin={{ top: 8, right: 8, bottom: 8, left: 100 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                          <XAxis type="number" stroke="#71717a" fontSize={10} tickFormatter={v => `$${(v / 1_000_000).toFixed(1)}M`} />
+                          <YAxis type="category" dataKey="name" stroke="#71717a" fontSize={10} width={100} />
+                          <Tooltip
+                            contentStyle={{ background: '#18181b', border: '1px solid #27272a', borderRadius: 8 }}
+                            formatter={(v: number | undefined) => v != null ? fmtMoneyExact(v) : '—'}
+                          />
+                          <Bar dataKey="value" fill="#39FF14" name="Invoiced" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <Truck className="w-4 h-4 text-[#39FF14]" />
+                      Top 15 Vendors — Lifetime Spend
+                    </h3>
+                    <div className="h-96">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={charts.topVendors} layout="vertical" margin={{ top: 8, right: 8, bottom: 8, left: 100 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                          <XAxis type="number" stroke="#71717a" fontSize={10} tickFormatter={v => `$${(v / 1_000_000).toFixed(1)}M`} />
+                          <YAxis type="category" dataKey="name" stroke="#71717a" fontSize={10} width={100} />
+                          <Tooltip
+                            contentStyle={{ background: '#18181b', border: '1px solid #27272a', borderRadius: 8 }}
+                            formatter={(v: number | undefined) => v != null ? fmtMoneyExact(v) : '—'}
+                          />
+                          <Bar dataKey="value" fill="#fb7185" name="Spend" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Top customers + commissions by year */}
+                <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <Users className="w-4 h-4 text-[#39FF14]" />
+                      Top 15 Customers — Lifetime Invoiced
+                    </h3>
+                    <div className="h-96">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={charts.topCustomers} layout="vertical" margin={{ top: 8, right: 8, bottom: 8, left: 120 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                          <XAxis type="number" stroke="#71717a" fontSize={10} tickFormatter={v => `$${(v / 1000).toFixed(0)}K`} />
+                          <YAxis type="category" dataKey="name" stroke="#71717a" fontSize={10} width={120} />
+                          <Tooltip
+                            contentStyle={{ background: '#18181b', border: '1px solid #27272a', borderRadius: 8 }}
+                            formatter={(v: number | undefined) => v != null ? fmtMoneyExact(v) : '—'}
+                          />
+                          <Bar dataKey="value" fill="#60a5fa" name="Invoiced" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-[#39FF14]" />
+                      Commission Payouts by Year
+                    </h3>
+                    <div className="h-96">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={charts.commissionsByYear} margin={{ top: 8, right: 8, bottom: 8, left: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                          <XAxis dataKey="year" stroke="#71717a" fontSize={11} />
+                          <YAxis stroke="#71717a" fontSize={11} tickFormatter={v => `$${(v / 1_000_000).toFixed(1)}M`} />
+                          <Tooltip
+                            contentStyle={{ background: '#18181b', border: '1px solid #27272a', borderRadius: 8 }}
+                            formatter={(v: number | undefined) => v != null ? fmtMoneyExact(v) : '—'}
+                          />
+                          <Bar dataKey="total" fill="#fbbf24" name="Commissions Paid" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
                 </section>
               </>
