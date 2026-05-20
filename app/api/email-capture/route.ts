@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isGoogleSheetsConfigured } from '@/lib/google-sheets-service';
 import { rateLimit } from '@/lib/rate-limit';
+import { checkForSpam } from '@/lib/spam-filter';
 
 export async function POST(request: NextRequest) {
   // Rate limit: 5 submissions per minute per IP
@@ -41,6 +42,23 @@ export async function POST(request: NextRequest) {
         { success: false, error: 'Invalid email address.' },
         { status: 400 }
       );
+    }
+
+    // Spam filter — drop bot/outreach submissions BEFORE we sheet-write or
+    // create a downstream lead. Footer/popup capture only collects name+email
+    // so we only feed those (no phone/message available). Return a normal-
+    // looking success so bots don't learn they were blocked.
+    {
+      const spamCheck = await checkForSpam({ name, email });
+      if (spamCheck.isSpam) {
+        console.warn('[EMAIL CAPTURE SPAM BLOCKED]', {
+          email, score: spamCheck.spamScore, reasons: spamCheck.reasons,
+        });
+        return NextResponse.json({
+          success: true,
+          message: 'Thank you! We\'ll be in touch soon.',
+        });
+      }
     }
 
     const timestamp = new Date().toISOString();

@@ -2,11 +2,14 @@
 // GET: Get recent distribution logs
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth-service';
+import { requireAdmin } from '@/lib/auth-service';
 import { leadDistributionService } from '@/lib/lead-distribution-service';
 
+// SECURITY 2026-05-20: was requireAuth (any logged-in user could read
+// distribution history including reps). Lead-distro logs reveal which rep
+// got which lead and why — sales-rep-visible data. Tightened to requireAdmin.
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireAdmin();
   if (!auth.authenticated) return auth.response;
 
   try {

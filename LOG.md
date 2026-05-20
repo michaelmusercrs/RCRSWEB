@@ -8,7 +8,12 @@ The scheduled routine appends an entry per action.
 
 ## 2026-05-20
 
-- `12:15` · claude · lib/spam-filter.ts + data/lead-distro-config.json + app/api/forms/contact/route.ts · Hard-block customBlockedDomains + seed 4 known spam domains + apply spam check to contact form route · stop bot pitches at the door before they reach email · commit pending
+- `13:45` · claude · 2 routes · CRITICAL security fixes — `/api/portal/meeting-data` now requireAuth (was unauthenticated, leaked leaderboard); `/api/admin/lead-distro/history` now requireAdmin (was requireAuth, reps could read distro logs) · per role audit findings · commit pending
+- `13:30` · claude · 8 form routes · Spam pre-gate applied across email-capture, contact, referral × 2, careers, bni-partner, leads/new, storm-report/email · `/api/forms/contact` pattern replicated; legit success-shape preserved on bot drop · commit pending
+- `13:15` · claude · 4 routes · Recipient routing fixes from Phase 1.4 — storm-report → assigned rep (was comp email); JN webhook stock@ → rcrs@; michael@ typo → michaelmuse@ in command-center/team; material-order-pipeline gated to 4 milestone stages (was 18) · commit pending
+- `13:00` · claude · lib/email-templates/ + email-service.ts wiring · Phase 1.3 template redesign for the 3 active templates — shared header/footer/button/table helpers, single accent color #0066CC, no neon-green band, mobile-friendly · commit pending
+- `12:30` · claude · vercel.json · Removed weekly-numbers-reminder (× 2) + low-stock-alert crons · they fired emails that drop via allowlist anyway; saves cron quota · commit pending
+- `12:15` · claude · lib/spam-filter.ts + data/lead-distro-config.json + app/api/forms/contact/route.ts · Hard-block customBlockedDomains + seed 4 known spam domains + apply spam check to contact form route · stop bot pitches at the door before they reach email · commit 2059755
 - `12:00` · claude · lib/email-service.ts · Migrated from Google Apps Script to Resend SDK with per-template allowlist (default = contact-form, load-verified-invoice, driver-new-order) · finishes Phase 1.6 transport migration; awaits owner Resend env vars · commit pending
 - `11:45` · claude · routine `rcrs-sweep` · Disabled all routine-side email (success + failure) per owner directive · zero-noise mode; ops failures surface via LOG.md instead · trigger trig_01VkrK3zux6G11GxgGjxYEJ9
 - `11:05` · claude · docs/ · Added email-transport-comparison.md, email-callsite-audit.md, form-hardening-plan.md from parallel research agents · Phase 1.1, 1.2, 2 spec items done · commit f292368

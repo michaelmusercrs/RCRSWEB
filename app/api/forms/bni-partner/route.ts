@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { formService } from '@/lib/form-service';
 import { createFormRateLimiter, withRateLimit } from '@/lib/rate-limiter';
 import { checkRequestSize } from '@/lib/request-size-limit';
+import { checkForSpam } from '@/lib/spam-filter';
 
 const formRateLimiter = createFormRateLimiter();
 
@@ -28,6 +29,22 @@ export async function POST(request: NextRequest) {
           return NextResponse.json(
             { success: false, message: 'Please enter a valid email address.' },
             { status: 400 }
+          );
+        }
+      }
+
+      // Spam filter — drop bot/outreach submissions BEFORE we sheet-write.
+      // Email is optional on this form, so we only run the check when present.
+      // Return a normal-looking success so bots don't learn they were blocked.
+      if (email) {
+        const spamCheck = await checkForSpam({ name, email, phone, message });
+        if (spamCheck.isSpam) {
+          console.warn('[BNI SPAM BLOCKED]', {
+            email, score: spamCheck.spamScore, reasons: spamCheck.reasons,
+          });
+          return NextResponse.json(
+            { success: true, message: 'Thank you! We will be in touch soon.' },
+            { status: 200 }
           );
         }
       }

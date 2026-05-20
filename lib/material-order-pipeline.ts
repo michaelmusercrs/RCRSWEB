@@ -1301,10 +1301,37 @@ class MaterialOrderPipelineService {
   }
 
   /**
+   * Stages that actually warrant a notification email.
+   *
+   * The pipeline has 18 stages; firing on every transition produces 30+
+   * emails per order, which is the "over-firing" the owner flagged in the
+   * Phase 1.2 email audit (callsite #9). Real-time visibility for the
+   * in-between stages happens through the dashboards, GroupMe, and Rick's
+   * mobile view — only owner-meaningful milestones go to email.
+   *
+   * NOTE: must be `public static readonly` so the function below can
+   * reference it via the class name; the rest of the class is otherwise
+   * accessed only through the `materialOrderPipeline` singleton.
+   */
+  public static readonly NOTIFY_STAGES: ReadonlySet<PipelineStage> = new Set<PipelineStage>([
+    'ORDER_CREATED',       // a new delivery order exists
+    'LOAD_VERIFIED',       // truck is loaded; office invoice fires here
+    'DELIVERY_CONFIRMED',  // materials are on the ground at the job
+    'INVOICE_SENT',        // closes the loop for billing
+  ]);
+
+  /**
    * Send email notification when a pipeline stage advances.
    * Uses the notifyRoles from STAGE_CONFIG to determine recipients.
+   *
+   * Early-returns for any stage not in {@link NOTIFY_STAGES} so we don't
+   * spam the team on every in-between transition.
    */
   private async _notifyStageAdvance(order: PipelineOrder, stage: PipelineStage, performedByName: string): Promise<void> {
+    if (!MaterialOrderPipelineService.NOTIFY_STAGES.has(stage)) {
+      console.log(`[STAGE NOTIFICATION SKIPPED] stage=${stage} order=${order.orderId} — not in NOTIFY_STAGES allowlist`);
+      return;
+    }
     const config = STAGE_CONFIG[stage];
     if (!config || config.notifyRoles.length === 0) return;
 

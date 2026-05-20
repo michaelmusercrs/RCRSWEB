@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { formService } from '@/lib/form-service';
 import { createFormRateLimiter, withRateLimit } from '@/lib/rate-limiter';
 import { checkRequestSize } from '@/lib/request-size-limit';
+import { checkForSpam } from '@/lib/spam-filter';
 
 const formRateLimiter = createFormRateLimiter();
 
@@ -32,6 +33,29 @@ export async function POST(request: NextRequest) {
         { success: false, message: 'Please fill in all required fields.' },
         { status: 400 }
       );
+    }
+
+    // Spam filter — drop bot/outreach submissions BEFORE we sheet-write or
+    // create a downstream lead. Prefer the referred-person's email (the real
+    // future-customer); fall back to the referrer's email if none provided.
+    // Return a normal-looking success so bots don't learn they were blocked.
+    const spamEmail = referralEmail || referrerEmail;
+    if (spamEmail) {
+      const spamCheck = await checkForSpam({
+        name: referralName,
+        email: spamEmail,
+        phone: referralPhone,
+        message: notes,
+      });
+      if (spamCheck.isSpam) {
+        console.warn('[REFERRAL SPAM BLOCKED]', {
+          email: spamEmail, score: spamCheck.spamScore, reasons: spamCheck.reasons,
+        });
+        return NextResponse.json(
+          { success: true, message: 'Thank you for your referral! We will contact them soon.' },
+          { status: 200 }
+        );
+      }
     }
 
     // Submit the form

@@ -4,6 +4,7 @@ import { groupMeService, getGroupMeConfigFromEnv } from '@/lib/groupme-service';
 import { createFormRateLimiter, withRateLimit } from '@/lib/rate-limiter';
 import { checkRequestSize } from '@/lib/request-size-limit';
 import { emailService } from '@/lib/email-service';
+import { checkForSpam } from '@/lib/spam-filter';
 
 const formRateLimiter = createFormRateLimiter();
 
@@ -34,6 +35,25 @@ export async function POST(request: NextRequest) {
     }
 
     const name = `${firstName} ${lastName}`;
+
+    // Spam filter — drop bot/outreach submissions BEFORE we sheet-write,
+    // GroupMe-ping, or email Michael. Return a normal-looking success so
+    // bots don't learn they were blocked.
+    {
+      const spamCheck = await checkForSpam({ name, email, phone, message: whyJoin });
+      if (spamCheck.isSpam) {
+        console.warn('[CAREERS SPAM BLOCKED]', {
+          email, score: spamCheck.spamScore, reasons: spamCheck.reasons,
+        });
+        return NextResponse.json(
+          {
+            success: true,
+            message: 'Application submitted! We will contact you within 24 hours.',
+          },
+          { status: 200 },
+        );
+      }
+    }
 
     // 1. Save to Google Sheets via the form service (reuse contact form pattern)
     const result = await formService.submitContactForm({

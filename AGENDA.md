@@ -33,8 +33,9 @@ The whole transport is currently dead. Until rebuilt, no system email leaves. Ea
 
 - `[done]` **1.1 Transport selection** — see `docs/email-transport-comparison.md`. Recommended: **Resend** (free at our volume, ~30-line swap in `EmailService.send()`, real deliverability without Postmark price). `[needs-owner]` confirm before integration.
 - `[done]` **1.2 Catalog every callsite of `emailService.send()`** — see `docs/email-callsite-audit.md`. 25 callsites in 17 files. Surfaced: storm-report violates rep-routing rule (sends to sales-team comp email), stock@ misused for breakdown notifications, michael@ vs michaelmuse@ address mismatch, 3 cost-data leak hotspots, 18-stage pipeline emitter likely over-firing, 3 dead wrappers.
-- `[pending]` **1.3 Template redesign** — owner wants each email type to look distinctly professional, not "AI-generated lead notification." Tasks: (a) standardize on a header/footer system component, (b) move material-order invoice to a PDF attachment with a short HTML body, (c) make sure subjects and from-names match the email type, (d) audit for accidental leakage of cost data per `[[feedback_purchase_price_visibility]]`.
-- `[pending]` **1.4 Recipient routing audit** — for every email type, the recipient address must be derived from the right source. Sales-rep reminders → rep email, not company email. Driver notifications → driver, not owner. Customer-facing → customer, never internal. Build a recipient-rules table and test each path.
+- `[done]` **1.3 Template redesign (3 active templates)** — new `lib/email-templates/` system with shared header/footer/button/table helpers; clean professional look (no neon-green band); single accent `#0066CC`; mobile-friendly. Wired into `sendLoadVerifiedInvoice`, `sendDriverMaterialOrderNotification`, and the inline contact-form callsites. Other 5 templates intentionally untouched (outside the active allowlist). PDF-invoice rebuild deferred to Phase 1.3b.
+- `[pending]` **1.3b PDF-invoice attachment** — make material-order invoice a real PDF, not just an HTML table. Adds an `attachments` field to `EmailOptions`.
+- `[done]` **1.4 Recipient routing audit + fixes** — storm-report now resolves `?rep=<slug>` → assigned rep email via `TEAM_MEMBERS`; JN breakdown-draft moved from `stock@rcrsal.com` to `rcrs@rcrsal.com`; `michael@rcrsal.com` typo fixed to `michaelmuse@rcrsal.com` in `command-center/team` (other 2 occurrences in report-templates and reports/dashboard pages are `[needs-owner]` — different recipient config); cost-leak hotspots verified safe; `material-order-pipeline._notifyStageAdvance` now gated by `NOTIFY_STAGES` set (4 milestones, not 18 stages); dead-wrapper `@deprecated` tags deferred to Phase 4.
 - `[pending]` **1.5 Per-recipient rate limit (proper)** — existing in-memory cap is retained as defense-in-depth on Resend. Promote to Vercel Blob counter or KV for cold-start resilience.
 - `[done]` **1.6 Resend transport integration** — commit `<this-commit>`. `lib/email-service.ts` swapped from Google Apps Script `fetch()` to the Resend SDK. Template allowlist gates sends — default allowlist = `contact-form`, `load-verified-invoice`, `driver-new-order` (per owner directive 2026-05-20). Untagged sends drop with `[EMAIL TEMPLATE NOT ALLOWED]` log. Transport activates once `RESEND_API_KEY` + `EMAIL_FROM` are set on Vercel envs. Eight wrappers + two inline callsites tagged with their templates. `[needs-owner]` provision Resend account at https://resend.com (login via rivercityroofingsolutions@gmail.com), verify rivercityroofingsolutions.com domain, set the three env vars across the 4 public-site Vercel projects.
 
@@ -46,7 +47,7 @@ The flood was bot spam on the public contact form (`juliana@trustedbusinessaward
 
 - `[done]` **2.1-2.4 Form-hardening plan** — see `docs/form-hardening-plan.md`. Found **10** public endpoints (more than the original 5). Recommended: Cloudflare Turnstile, 4-phase rollout (honeypot first → KV-backed rate limit → Turnstile → cleanup). Found that current `lib/rate-limiter.ts` is in-memory and silently bypassed by Vercel cold starts — that's why bot spam slipped through.
 - `[done]` **2.5a Hard-block customBlockedDomains in `lib/spam-filter.ts`** — domains in the list now short-circuit to `isSpam: true` (was 25-point soft score). Seeded with `trustedbusinessawards.com` + 3 known cold-email tools (`mailshake.com`, `woodpecker.co`, `lemlist.com`). `/api/forms/contact` now runs `checkForSpam` BEFORE sheet/email; bots get 200 OK so they can't probe.
-- `[pending]` **2.5b Apply the same spam-check pre-gate to the other 9 form endpoints** — `/api/contact`, `/api/email-capture`, `/api/forms/{referral,careers,bni-partner}`, `/api/leads/new`, etc.
+- `[done]` **2.5b Spam-check pre-gate on all remaining form endpoints** — 8 endpoints hardened: `/api/contact`, `/api/email-capture`, `/api/forms/referral`, `/api/forms/careers`, `/api/forms/bni-partner`, `/api/referral` (legacy), `/api/leads/new` (response normalized), `/api/storm-report/email`. `/api/storm-report` skipped (no email field — nothing to check). Each returns generic 200 OK so bots can't probe.
 - `[pending]` **2.5c Honeypot field** — UI + server-side rejection across all 10 forms.
 - `[pending]` **2.6 Implement Phase 2** — Vercel KV rate limit across all 10 endpoints (current `lib/rate-limiter.ts` is in-memory and cold-start-bypassed).
 - `[needs-owner]` **2.7 Implement Phase 3 (Cloudflare Turnstile)** — owner has Cloudflare access via rivercityroofingsolutions@gmail.com login. Provision Turnstile site key + secret, share secret to Vercel envs, then enable the gate.
@@ -57,11 +58,13 @@ The flood was bot spam on the public contact form (`juliana@trustedbusinessaward
 
 Owner flagged data-visibility cross-contamination as a security issue.
 
-- `[pending]` **3.1 Catalog all user roles** — owner, admin, manager, office, PM, sales, driver, customer. List in a single doc with the access boundaries per role.
-- `[pending]` **3.2 Map every page/API route → required role**.
-- `[pending]` **3.3 Verify cost-data visibility** per `[[feedback_purchase_price_visibility]]` — material cost must never reach JN/reps/customers.
-- `[pending]` **3.4 Verify portal vs. public-site boundary** per `[[feedback_rcrsal_separation]]`.
-- `[pending]` **3.5 Login flow + onboarding** per `[[project_rcrs_login_flow]]`.
+- `[done]` **3.1-3.5 Role/permission audit** — `docs/role-permission-audit.md`. Cataloged all roles, mapped routes, verified login flow against memory. Identified 2 CRITICAL + 5 HIGH issues.
+- `[done]` **3.6 CRITICAL FIX: `/api/portal/meeting-data` now requires auth** — was leaking full sales leaderboard / revenue / per-rep weekly numbers to anyone with the URL. Now requires `requireAuth`. TODO tighten to owner/admin/office/manager once role-check helper is in place.
+- `[done]` **3.7 CRITICAL FIX: `/api/admin/lead-distro/history` now requires admin** — was `requireAuth` (any logged-in user including reps could read distribution logs).
+- `[pending]` **3.8 HIGH: Cost-visibility drift** — `lib/cost-visibility.ts:33-40` adds `project_manager`/`pm` to allowlist (not in owner's rule); inventory pages omit Office/Manager; `permissions.ts:156-175` doesn't grant Office `inventory.viewCosts`. Needs owner decision on whether PMs see cost.
+- `[pending]` **3.9 HIGH: `project_manager` + `viewer` missing from `types/roles.ts:25`** — `hasPermission()` returns false silently for those roles. Risk if new code uses the API.
+- `[pending]` **3.10 MEDIUM: `/api/portal/monday-notes/announcements` also unauthenticated** — same class as 3.6.
+- `[needs-owner]` **3.11 `mustChangePassword: false` hard-coded on every active team member** — login gate never fires today.
 
 ---
 

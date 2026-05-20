@@ -211,51 +211,57 @@ class FormService {
     // const endpoint = process.env.NEXT_PUBLIC_GOOGLE_SCRIPT_ENDPOINT;
     // (intentionally not re-enabled — flood channel)
 
-    // 2. Send direct email notification to both company addresses
+    // 2. Send direct email notification to the company address
     try {
       const { emailService } = await import('./email-service');
+      const { renderContactFormEmail, contactFormSubject } = await import(
+        './email-templates/contact-form'
+      );
       const isContact = formType === 'contact';
       const contactData = data as ContactFormData;
       const referralData = data as ReferralFormData;
 
-      const subject = isContact
-        ? `New Contact Form: ${contactData.subject} - ${contactData.name}`
-        : `New Referral: ${referralData.referralName} (from ${referralData.referrerName})`;
+      let subject: string;
+      let body: string;
+      let replyTo: string | undefined;
 
-      const body = isContact
-        ? `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <div style="background: #000; padding: 20px; text-align: center;">
-              <h1 style="color: #39FF14; margin: 0;">New Contact Form Submission</h1>
-            </div>
-            <div style="padding: 30px; background: #fff;">
-              <table style="width: 100%; border-collapse: collapse;">
-                <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Name</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${contactData.name}</td></tr>
-                <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Email</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${contactData.email || 'Not provided'}</td></tr>
-                <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Phone</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${contactData.phone || 'Not provided'}</td></tr>
-                <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Subject</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${contactData.subject}</td></tr>
-                <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Message</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${contactData.message}</td></tr>
-                <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Source</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${contactData.sourcePage}</td></tr>
-              </table>
-            </div>
-          </div>`
-        : `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <div style="background: #000; padding: 20px; text-align: center;">
-              <h1 style="color: #39FF14; margin: 0;">New Referral Submission</h1>
-            </div>
-            <div style="padding: 30px; background: #fff;">
-              <h3>Referrer</h3>
-              <p>${referralData.referrerName} | ${referralData.referrerPhone} | ${referralData.referrerEmail || 'No email'}</p>
-              <h3>Referred Person</h3>
-              <table style="width: 100%; border-collapse: collapse;">
-                <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Name</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${referralData.referralName}</td></tr>
-                <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Phone</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${referralData.referralPhone}</td></tr>
-                <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Address</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${referralData.referralAddress}</td></tr>
-              </table>
-              ${referralData.notes ? `<p><strong>Notes:</strong> ${referralData.notes}</p>` : ''}
-            </div>
-          </div>`;
+      if (isContact) {
+        const leadEmailData = {
+          name: contactData.name,
+          email: contactData.email,
+          phone: contactData.phone,
+          subject: contactData.subject,
+          message: contactData.message,
+          sourcePage: contactData.sourcePage,
+          preferredInspector: contactData.preferredInspector,
+          serviceType: contactData.serviceType,
+        };
+        subject = contactFormSubject(leadEmailData);
+        body = renderContactFormEmail(leadEmailData);
+        replyTo = contactData.email || undefined;
+      } else {
+        // Referral form shares the 'contact-form' allowlist tag. Render it
+        // as a lead notification too, with the referred person as the lead
+        // and the referrer surfaced in the message body.
+        const referralMessage =
+          `Referrer: ${referralData.referrerName} (${referralData.referrerPhone}` +
+          (referralData.referrerEmail ? `, ${referralData.referrerEmail}` : '') +
+          `)\nReferred address: ${referralData.referralAddress}` +
+          (referralData.salesRep ? `\nRequested rep: ${referralData.salesRep}` : '') +
+          (referralData.notes ? `\n\nNotes: ${referralData.notes}` : '');
+
+        const leadEmailData = {
+          name: referralData.referralName,
+          email: referralData.referralEmail || '',
+          phone: referralData.referralPhone,
+          subject: `Referral from ${referralData.referrerName}`,
+          message: referralMessage,
+          sourcePage: referralData.sourcePage || 'Referral Form',
+        };
+        subject = contactFormSubject(leadEmailData);
+        body = renderContactFormEmail(leadEmailData);
+        replyTo = referralData.referrerEmail || undefined;
+      }
 
       // Send to primary company address only.
       // Tagged template: 'contact-form' (also used for referral/career/BNI
@@ -267,7 +273,7 @@ class FormService {
         to: COMPANY_EMAIL,
         subject,
         body,
-        replyTo: isContact ? (contactData.email || undefined) : (referralData.referrerEmail || undefined),
+        replyTo,
         fromName: 'RCRS Website Forms',
       });
     } catch (error) {

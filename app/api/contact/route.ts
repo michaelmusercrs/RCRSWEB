@@ -6,6 +6,8 @@ import { leadPortalService } from '@/lib/lead-portal-service';
 import { apiError } from '@/lib/api-response';
 import { createFormRateLimiter, withRateLimit } from '@/lib/rate-limiter';
 import { emailService } from '@/lib/email-service';
+import { renderContactFormEmail, contactFormSubject } from '@/lib/email-templates/contact-form';
+import { checkForSpam } from '@/lib/spam-filter';
 
 const contactRateLimiter = createFormRateLimiter();
 
@@ -46,6 +48,22 @@ export async function POST(request: NextRequest) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return apiError('Invalid email address', 400, 'INVALID_EMAIL');
+    }
+
+    // Spam filter — drop bot/outreach submissions BEFORE we sheet-log,
+    // GroupMe-ping, email, or auto-generate a portal. Return a normal-looking
+    // 200 OK so bots don't learn they were blocked.
+    if (email) {
+      const spamCheck = await checkForSpam({ name, email, phone, message });
+      if (spamCheck.isSpam) {
+        console.warn('[CONTACT SPAM BLOCKED]', {
+          email, score: spamCheck.spamScore, reasons: spamCheck.reasons,
+        });
+        return NextResponse.json(
+          { success: true, message: 'Thank you for contacting us! We will get back to you shortly.' },
+          { status: 200 }
+        );
+      }
     }
 
     // Calculate lead quality score
@@ -181,31 +199,28 @@ export async function POST(request: NextRequest) {
       }
 
       // Email notification to Michael + office for every website lead
-      emailService.send({
-        template: 'contact-form',
-        to: 'michaelmuse@rcrsal.com',
-        cc: 'sara@rcrsal.com,tia@rcrsal.com',
-        subject: `Website Lead: ${name} — ${subject}`,
-        body: `
-          <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;">
-            <div style="background:#000;padding:16px;text-align:center;">
-              <h2 style="color:#39FF14;margin:0;">New Website Lead</h2>
-            </div>
-            <div style="padding:20px;background:#fff;">
-              <table style="width:100%;border-collapse:collapse;">
-                <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Name</td><td style="padding:6px;border-bottom:1px solid #eee;">${name}</td></tr>
-                <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Email</td><td style="padding:6px;border-bottom:1px solid #eee;">${email}</td></tr>
-                <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Phone</td><td style="padding:6px;border-bottom:1px solid #eee;">${phone || 'Not provided'}</td></tr>
-                <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Subject</td><td style="padding:6px;border-bottom:1px solid #eee;">${subject}</td></tr>
-                <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Source</td><td style="padding:6px;border-bottom:1px solid #eee;">${sourcePage || 'Contact Page'}</td></tr>
-                <tr><td style="padding:6px;font-weight:bold;">Message</td><td style="padding:6px;">${message}</td></tr>
-              </table>
-              ${portalData ? `<p style="margin-top:12px;"><a href="${portalData.portalUrl}">View Customer Portal</a></p>` : ''}
-            </div>
-          </div>
-        `,
-        fromName: 'RCRS Website',
-      }).catch(err => console.error('[Contact] Email notification failed:', err));
+      {
+        const leadEmailData = {
+          name,
+          email,
+          phone,
+          subject,
+          message,
+          sourcePage: sourcePage || 'Contact Page',
+          preferredInspector,
+          serviceType,
+          portalUrl: portalData?.portalUrl,
+        };
+        emailService.send({
+          template: 'contact-form',
+          to: 'michaelmuse@rcrsal.com',
+          cc: 'sara@rcrsal.com,tia@rcrsal.com',
+          subject: contactFormSubject(leadEmailData),
+          body: renderContactFormEmail(leadEmailData),
+          replyTo: email,
+          fromName: 'RCRS Website',
+        }).catch(err => console.error('[Contact] Email notification failed:', err));
+      }
 
       return NextResponse.json(
         {

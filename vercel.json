@@ -16,24 +16,12 @@
       "schedule": "0 6 * * *"
     },
     {
-      "path": "/api/cron/weekly-numbers-reminder?type=midweek",
-      "schedule": "0 15 * * 3"
-    },
-    {
-      "path": "/api/cron/weekly-numbers-reminder?type=final",
-      "schedule": "0 0 * * 1"
-    },
-    {
       "path": "/api/cron/meeting-reset",
       "schedule": "0 16 * * 1"
     },
     {
       "path": "/api/cron/backup-sheets",
       "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/cron/low-stock-alert",
-      "schedule": "0 13 * * *"
     },
     {
       "path": "/api/cron/sync-inventory-tab",

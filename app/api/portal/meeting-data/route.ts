@@ -10,6 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-service';
 import { googleSheetsService } from '@/lib/google-sheets-service';
 import { cache, CACHE_TTL } from '@/lib/cache';
 import { promises as fs } from 'fs';
@@ -42,6 +43,14 @@ interface CommissionEntry {
 }
 
 export async function GET(request: NextRequest) {
+  // SECURITY 2026-05-20: was unauthenticated — leaked full sales leaderboard,
+  // top-10 rep totals, real revenue, and per-rep weekly numbers to anyone with
+  // the URL. Only the command-center meetings page calls this; restricting to
+  // any authenticated team member as the minimum gate. TODO tighten further
+  // to owner/admin/office/manager once role-check helper is in place.
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const currentWeek = getISOWeekString();
     const prevWeek = getPreviousWeek(currentWeek);

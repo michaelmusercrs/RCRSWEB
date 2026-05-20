@@ -572,10 +572,13 @@ async function handleDepositWebhook(
       `Deposit-triggered breakdown draft ${breakdownId} for ${rNumber} (${customerName})`,
     );
 
-    // Notify stock of the new draft
+    // Notify office of the new draft. stock@rcrsal.com is reserved for
+    // inventory / stock / material-order emails ONLY (see
+    // project_rcrs_stock_workflow). Breakdown drafts are an office concern,
+    // so this routes to Sara's office inbox.
     try {
       await emailService.send({
-        to: 'stock@rcrsal.com',
+        to: 'rcrs@rcrsal.com',
         subject: `New breakdown draft: ${rNumber} - ${customerName}`,
         body: `
           <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;">

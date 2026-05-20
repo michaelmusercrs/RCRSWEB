@@ -82,8 +82,9 @@ export async function POST(request: Request) {
 
     pendingEdits.set(editId, pendingEdit);
 
-    // Notify Michael and Sara about the pending profile edit
-    const adminEmails = ['michael@rcrsal.com', 'sara@rcrsal.com'];
+    // Notify Michael and Sara about the pending profile edit.
+    // Canonical owner email is michaelmuse@rcrsal.com per lib/team-roles.ts.
+    const adminEmails = ['michaelmuse@rcrsal.com', 'sara@rcrsal.com'];
     const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || 'https://rcrsal.com';
     for (const email of adminEmails) {
       emailService.send({

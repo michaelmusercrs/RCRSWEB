@@ -8,6 +8,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { emailService } from '@/lib/email-service';
+import { TEAM_MEMBERS } from '@/lib/team-roles';
+import { checkForSpam } from '@/lib/spam-filter';
 
 // ---------------------------------------------------------------------------
 // Types (mirror the page types for the report data)
@@ -35,6 +37,11 @@ interface StormReportPayload {
   customerName: string;
   customerEmail: string;
   customerPhone: string;
+
+  // Assignment — optional. Set when the lead-capture page was loaded with
+  // ?rep=<slug> (rep-specific landing URLs). Used to route the "full report"
+  // email to the actual rep instead of falling back to SALES_TEAM_EMAIL.
+  assignedRep?: string;
 
   // Report data
   reportId: string;
@@ -325,6 +332,54 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Spam filter — drop bot/outreach submissions BEFORE we email the
+    // (potentially fake) customer or alert the sales team. Return a normal-
+    // looking success so bots don't learn they were blocked.
+    {
+      const spamCheck = await checkForSpam({
+        name: data.customerName || '',
+        email: data.customerEmail,
+        phone: data.customerPhone,
+        address: data.fullAddress || data.address,
+      });
+      if (spamCheck.isSpam) {
+        console.warn('[STORM REPORT SPAM BLOCKED]', {
+          email: data.customerEmail, score: spamCheck.spamScore, reasons: spamCheck.reasons,
+        });
+        return NextResponse.json({
+          success: true,
+          customerEmail: true,
+          salesEmail: true,
+          errors: { customer: undefined, sales: undefined },
+        });
+      }
+    }
+
+    // Resolve the sales rep recipient. Per owner directive "reminders to
+    // sales reps should go to the sales rep, not the comp email":
+    //   1. If the lead-capture page passed `assignedRep` (from ?rep=<slug>),
+    //      look the rep up in team-roles and email them directly.
+    //   2. Otherwise fall back to SALES_TEAM_EMAIL (last resort) and log a
+    //      warning so we know it happened.
+    let salesRecipient = SALES_TEAM_EMAIL;
+    if (data.assignedRep) {
+      const slug = data.assignedRep.toLowerCase().trim();
+      const rep = TEAM_MEMBERS.find(
+        m => m.isActive && (m.slug === slug || m.email.toLowerCase().startsWith(`${slug}@`))
+      );
+      if (rep?.email) {
+        salesRecipient = rep.email;
+      } else {
+        console.warn(
+          `[storm-report/email] assignedRep="${data.assignedRep}" did not resolve to a team member — falling back to SALES_TEAM_EMAIL (${SALES_TEAM_EMAIL})`
+        );
+      }
+    } else {
+      console.warn(
+        `[storm-report/email] No assignedRep on payload for ${data.reportId} — falling back to SALES_TEAM_EMAIL (${SALES_TEAM_EMAIL})`
+      );
+    }
+
     // Fire both emails in parallel via Google Apps Script
     const [customerResult, salesResult] = await Promise.allSettled([
       // 1. Customer partial report
@@ -335,9 +390,9 @@ export async function POST(request: NextRequest) {
         fromName: COMPANY_NAME,
       }),
 
-      // 2. Sales team full report
+      // 2. Sales team full report — routed to assigned rep when known.
       emailService.send({
-        to: SALES_TEAM_EMAIL,
+        to: salesRecipient,
         subject: `New Storm Report Lead - ${data.riskLevel} - ${data.fullAddress}`,
         body: buildSalesEmailHtml(data),
         replyTo: data.customerEmail,

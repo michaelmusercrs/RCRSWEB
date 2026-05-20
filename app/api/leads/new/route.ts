@@ -216,17 +216,16 @@ export async function POST(request: NextRequest) {
       console.error('[NewLead] Sheet logging failed:', logErr);
     }
 
-    // If spam, stop here — logged but no further processing
+    // If spam, stop here — logged but no further processing.
+    // Return a minimal generic 200 so bots can't tell they were filtered:
+    // no leadId, no spamScore, no `filtered: true` flag. Match the shape
+    // of the legit response surface but omit data that would let an
+    // attacker probe the filter.
     if (spamResult.isSpam) {
-      return NextResponse.json({
-        success: true,
-        data: {
-          leadId: null,
-          filtered: true,
-          spamScore: spamResult.spamScore,
-          message: 'Thank you! We\'ll be in touch soon.',
-        },
+      console.warn('[LEADS NEW SPAM BLOCKED]', {
+        email: body.email, score: spamResult.spamScore, reasons: spamResult.reasons,
       });
+      return NextResponse.json({ success: true });
     }
 
     // ── GEOCODE ──────────────────────────────────────────────────────────
