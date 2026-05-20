@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { formService } from '@/lib/form-service';
 import { createFormRateLimiter, withRateLimit } from '@/lib/rate-limiter';
 import { checkRequestSize } from '@/lib/request-size-limit';
+import { checkForSpam } from '@/lib/spam-filter';
 
 const formRateLimiter = createFormRateLimiter();
 
@@ -63,6 +64,22 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           { success: false, message: 'Please enter a valid US phone number.' },
           { status: 400 }
+        );
+      }
+    }
+
+    // Spam filter — drop bot/outreach submissions BEFORE we sheet-log or email.
+    // Custom-blocked domains hard-fail; other heuristics use the scored threshold.
+    // Return 200 OK to the client either way so bots don't learn they were blocked.
+    if (email) {
+      const spamCheck = await checkForSpam({ name, email, phone, message });
+      if (spamCheck.isSpam) {
+        console.warn('[CONTACT FORM SPAM BLOCKED]', {
+          email, score: spamCheck.spamScore, reasons: spamCheck.reasons,
+        });
+        return NextResponse.json(
+          { success: true, message: 'Thank you for contacting us! We will get back to you within 24 hours.' },
+          { status: 200 }
         );
       }
     }

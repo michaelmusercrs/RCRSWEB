@@ -208,6 +208,20 @@ export async function checkForSpam(data: {
     return { isSpam: false, spamScore: 0, reasons: ['Email is on allow list'], passedFilter: true };
   }
 
+  // Hard block: customBlockedDomains short-circuit regardless of threshold.
+  // Disposable-email domains still go through the scoring path (25 pts) since
+  // a real customer might be using one legitimately. Custom block list is for
+  // known outreach-spam tools where every submission is bot pitch.
+  const senderDomain = data.email.split('@')[1]?.toLowerCase();
+  if (senderDomain && config.customBlockedDomains.map(d => d.toLowerCase()).includes(senderDomain)) {
+    return {
+      isSpam: true,
+      spamScore: 100,
+      reasons: [`Hard-blocked domain: ${senderDomain}`],
+      passedFilter: false,
+    };
+  }
+
   let score = 0;
   const reasons: string[] = [];
 

@@ -35,8 +35,8 @@ The whole transport is currently dead. Until rebuilt, no system email leaves. Ea
 - `[done]` **1.2 Catalog every callsite of `emailService.send()`** — see `docs/email-callsite-audit.md`. 25 callsites in 17 files. Surfaced: storm-report violates rep-routing rule (sends to sales-team comp email), stock@ misused for breakdown notifications, michael@ vs michaelmuse@ address mismatch, 3 cost-data leak hotspots, 18-stage pipeline emitter likely over-firing, 3 dead wrappers.
 - `[pending]` **1.3 Template redesign** — owner wants each email type to look distinctly professional, not "AI-generated lead notification." Tasks: (a) standardize on a header/footer system component, (b) move material-order invoice to a PDF attachment with a short HTML body, (c) make sure subjects and from-names match the email type, (d) audit for accidental leakage of cost data per `[[feedback_purchase_price_visibility]]`.
 - `[pending]` **1.4 Recipient routing audit** — for every email type, the recipient address must be derived from the right source. Sales-rep reminders → rep email, not company email. Driver notifications → driver, not owner. Customer-facing → customer, never internal. Build a recipient-rules table and test each path.
-- `[pending]` **1.5 Per-recipient rate limit (proper)** — re-add the cap in the new transport with persistence beyond Lambda warm state (Vercel Blob counter or KV).
-- `[pending]` **1.6 Re-enable** — once transport is in, templates are clean, routing is audited, and rate-limit is in: flip the EMAIL_TRANSPORT_FORCE / migration switch and verify the first send of each type by sending a real test from prod.
+- `[pending]` **1.5 Per-recipient rate limit (proper)** — existing in-memory cap is retained as defense-in-depth on Resend. Promote to Vercel Blob counter or KV for cold-start resilience.
+- `[done]` **1.6 Resend transport integration** — commit `<this-commit>`. `lib/email-service.ts` swapped from Google Apps Script `fetch()` to the Resend SDK. Template allowlist gates sends — default allowlist = `contact-form`, `load-verified-invoice`, `driver-new-order` (per owner directive 2026-05-20). Untagged sends drop with `[EMAIL TEMPLATE NOT ALLOWED]` log. Transport activates once `RESEND_API_KEY` + `EMAIL_FROM` are set on Vercel envs. Eight wrappers + two inline callsites tagged with their templates. `[needs-owner]` provision Resend account at https://resend.com (login via rivercityroofingsolutions@gmail.com), verify rivercityroofingsolutions.com domain, set the three env vars across the 4 public-site Vercel projects.
 
 ---
 
@@ -45,9 +45,11 @@ The whole transport is currently dead. Until rebuilt, no system email leaves. Ea
 The flood was bot spam on the public contact form (`juliana@trustedbusinessawards.com` is a known outreach tool). Stop the source.
 
 - `[done]` **2.1-2.4 Form-hardening plan** — see `docs/form-hardening-plan.md`. Found **10** public endpoints (more than the original 5). Recommended: Cloudflare Turnstile, 4-phase rollout (honeypot first → KV-backed rate limit → Turnstile → cleanup). Found that current `lib/rate-limiter.ts` is in-memory and silently bypassed by Vercel cold starts — that's why bot spam slipped through.
-- `[pending]` **2.5 Implement Phase 1 of the hardening plan** — honeypot + 20-domain seed block list. Zero user friction. Land on `main` per `[deploy-ok]`.
-- `[pending]` **2.6 Implement Phase 2** — Vercel KV rate limit across all 10 endpoints.
-- `[needs-owner]` **2.7 Implement Phase 3** — Turnstile rollout. Needs owner Cloudflare account + site key.
+- `[done]` **2.5a Hard-block customBlockedDomains in `lib/spam-filter.ts`** — domains in the list now short-circuit to `isSpam: true` (was 25-point soft score). Seeded with `trustedbusinessawards.com` + 3 known cold-email tools (`mailshake.com`, `woodpecker.co`, `lemlist.com`). `/api/forms/contact` now runs `checkForSpam` BEFORE sheet/email; bots get 200 OK so they can't probe.
+- `[pending]` **2.5b Apply the same spam-check pre-gate to the other 9 form endpoints** — `/api/contact`, `/api/email-capture`, `/api/forms/{referral,careers,bni-partner}`, `/api/leads/new`, etc.
+- `[pending]` **2.5c Honeypot field** — UI + server-side rejection across all 10 forms.
+- `[pending]` **2.6 Implement Phase 2** — Vercel KV rate limit across all 10 endpoints (current `lib/rate-limiter.ts` is in-memory and cold-start-bypassed).
+- `[needs-owner]` **2.7 Implement Phase 3 (Cloudflare Turnstile)** — owner has Cloudflare access via rivercityroofingsolutions@gmail.com login. Provision Turnstile site key + secret, share secret to Vercel envs, then enable the gate.
 
 ---
 

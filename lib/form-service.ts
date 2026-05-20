@@ -258,12 +258,12 @@ class FormService {
           </div>`;
 
       // Send to primary company address only.
-      // gmail backup CC removed 2026-05-20 — was the only path leaking form
-      // submissions into the owner's personal inbox and got flooded. Restore
-      // via env recipient list once we identify the flood source. Even if
-      // re-added, lib/email-service.ts enforces a per-recipient hourly cap
-      // (tightest on the owner gmail) so a flood can never recur.
+      // Tagged template: 'contact-form' (also used for referral/career/BNI
+      // partner submissions — they share this funnel).
+      // gmail backup CC removed 2026-05-20. Resend transport + template
+      // allowlist in lib/email-service.ts is the new layered defense.
       await emailService.send({
+        template: 'contact-form',
         to: COMPANY_EMAIL,
         subject,
         body,

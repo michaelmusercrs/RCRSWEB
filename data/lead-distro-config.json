@@ -40,7 +40,12 @@
   "spamFilter": {
     "enabled": true,
     "threshold": 70,
-    "customBlockedDomains": [],
+    "customBlockedDomains": [
+      "trustedbusinessawards.com",
+      "mailshake.com",
+      "woodpecker.co",
+      "lemlist.com"
+    ],
     "customBlockedPhrases": [],
     "allowList": []
   },

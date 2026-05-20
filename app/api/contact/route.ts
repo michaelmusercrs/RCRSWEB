@@ -182,6 +182,7 @@ export async function POST(request: NextRequest) {
 
       // Email notification to Michael + office for every website lead
       emailService.send({
+        template: 'contact-form',
         to: 'michaelmuse@rcrsal.com',
         cc: 'sara@rcrsal.com,tia@rcrsal.com',
         subject: `Website Lead: ${name} — ${subject}`,

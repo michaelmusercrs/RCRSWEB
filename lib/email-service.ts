@@ -1,27 +1,43 @@
-// Email Service - Consolidated through Gmail / Google Apps Script
-// ALL email sending goes through the Google Apps Script endpoint
-// No SendGrid, no Mailgun - just Google Workspace
+// Email Service - Transactional email via Resend.
 //
-// Supports:
-// - Portal link emails to customers
-// - Delivery notifications
-// - Lead assignment notifications to reps
-// - Status update emails
-// - Gmail+ alias automation (e.g., richard+orders@rivercityroofingsolutions.com)
+// Migrated 2026-05-20 off the legacy Google Apps Script transport which
+// server-side amplified every send to the owner gmail as a malformed
+// "NEW CONTACT FORM SUBMISSION" template. Full incident at
+// project_rcrs_email_flood_safeguard memory + docs/email-callsite-audit.md.
 //
-// Anti-flood safeguards (added 2026-05-20 after gmail inbox flood incident):
-//   EMAIL_KILL_SWITCH=true                  -> block all outbound sends
-//   EMAIL_CAP_PER_HOUR (default 30)         -> per-recipient hourly cap
-//   EMAIL_CAP_PER_DAY  (default 100)        -> per-recipient daily cap
-//   EMAIL_CAP_OWNER_PER_HOUR (default 5)    -> tighter cap for owner gmail
-//   EMAIL_CAP_OWNER_PER_DAY  (default 30)
-// Caps are in-memory per Lambda instance. Not perfect across cold starts,
-// but a flood warms an instance fast so the cap engages within seconds.
-// Capped recipients are dropped from the recipient list; remaining ones go
-// through. Blocked sends are logged with [EMAIL BLOCKED] / [EMAIL DROPPED]
-// for later forensic review.
+// Two gates control whether a call actually fires:
+//   1. Template allowlist  - only tagged templates in the allowlist fire.
+//      Default allowlist: contact-form, load-verified-invoice,
+//      driver-new-order. Override via ALLOWED_EMAIL_TEMPLATES env (csv).
+//      Untagged sends (legacy callsites without a `template` field) drop.
+//   2. Transport config    - if RESEND_API_KEY / EMAIL_FROM are unset,
+//      sends drop with a clear log line.
+//
+// Env vars:
+//   RESEND_API_KEY                  - Resend account key (required to send)
+//   EMAIL_FROM                      - sender address (e.g. notifications@rivercityroofingsolutions.com)
+//   EMAIL_FROM_NAME                 - optional friendly name (default "River City Roofing Solutions")
+//   ALLOWED_EMAIL_TEMPLATES         - optional csv override of allowlist
+//   EMAIL_CAP_PER_HOUR / *_PER_DAY  - optional per-recipient rate caps
+//   EMAIL_CAP_OWNER_PER_HOUR / DAY  - tighter caps on owner gmail
+//   SANDBOX_MODE=true               - log instead of sending
+//   EMAIL_KILL_SWITCH=true          - legacy env kill (still honored)
+
+import { Resend } from 'resend';
+
+export type EmailTemplate =
+  | 'contact-form'
+  | 'load-verified-invoice'
+  | 'driver-new-order'
+  | 'portal-link'
+  | 'lead-assignment'
+  | 'delivery-order'
+  | 'office-material-order'
+  | 'vendor-return'
+  | 'delivery-reminder';
 
 export interface EmailOptions {
+  template?: EmailTemplate;
   to: string;
   subject: string;
   body: string; // HTML body
@@ -29,6 +45,14 @@ export interface EmailOptions {
   cc?: string;
   bcc?: string;
   fromName?: string;
+}
+
+function isTemplateAllowed(template: EmailTemplate | undefined): boolean {
+  if (!template) return false;
+  const list = (process.env.ALLOWED_EMAIL_TEMPLATES ||
+    'contact-form,load-verified-invoice,driver-new-order')
+    .split(',').map(s => s.trim()).filter(Boolean);
+  return list.includes(template);
 }
 
 const OWNER_GMAIL = 'rivercityroofingsolutions@gmail.com';
@@ -86,54 +110,60 @@ function filterRecipients(addrs: string | undefined, subject: string, field: 'to
 }
 
 class EmailService {
-  private endpoint: string;
+  private resend: Resend | null;
+  private from: string;
+  private fromName: string;
 
   constructor() {
-    this.endpoint = process.env.NEXT_PUBLIC_GOOGLE_SCRIPT_ENDPOINT || '';
+    const key = process.env.RESEND_API_KEY;
+    this.resend = key ? new Resend(key) : null;
+    this.from = process.env.EMAIL_FROM || '';
+    this.fromName = process.env.EMAIL_FROM_NAME || 'River City Roofing Solutions';
   }
 
-  // Send email via Google Apps Script
+  // Send transactional email via Resend.
+  // Two gates:
+  //   1. Template must be in the allowlist (default: contact-form,
+  //      load-verified-invoice, driver-new-order). Untagged sends drop.
+  //   2. RESEND_API_KEY + EMAIL_FROM must be configured. If unset, drop.
+  // Plus the per-recipient rate cap below and the legacy EMAIL_KILL_SWITCH env.
   async send(options: EmailOptions): Promise<{ success: boolean; error?: string }> {
-    // TRANSPORT DISABLED 2026-05-20 — pending migration off Google Apps Script.
-    //
-    // Evidence: GAS endpoint emits a malformed "NEW CONTACT FORM SUBMISSION"
-    // copy of every payload to rivercityroofingsolutions@gmail.com, regardless
-    // of formType. Sample subjects in owner inbox: "New Delivery: R-10997 —
-    // Leanna Hooper" (driver material-order), "Hey Adam - Log Your Numbers
-    // This Week" (rep cron), "[Contact Page] New Lead:" (contact form). All
-    // arrive as "NEW CONTACT FORM SUBMISSION" with undefined fields.
-    //
-    // Per-recipient cap below does not protect against this because gmail is
-    // injected by GAS, not declared in the JS recipient list.
-    //
-    // Re-enable only after switching transport (Resend / nodemailer-SMTP /
-    // direct Gmail API). Override for one-off testing by setting
-    // EMAIL_TRANSPORT_FORCE=true (use sparingly — every send floods gmail).
-    if (process.env.EMAIL_TRANSPORT_FORCE !== 'true') {
-      console.warn('[EMAIL TRANSPORT DISABLED]', {
-        to: options.to,
-        cc: options.cc,
+    const template = options.template;
+
+    // Gate 1: template allowlist.
+    if (!isTemplateAllowed(template)) {
+      console.warn('[EMAIL TEMPLATE NOT ALLOWED]', {
+        template: template || '(untagged)',
         subject: options.subject,
-        reason: 'GAS amplifier flood, pending transport migration',
+        to: options.to,
       });
-      return { success: false, error: 'transport disabled pending migration' };
+      return { success: false, error: `template '${template || 'untagged'}' not in allowlist` };
     }
 
-    // Legacy kill switch retained for env-only disable in the future.
+    // Legacy env kill switch — still honored.
     if (process.env.EMAIL_KILL_SWITCH === 'true') {
-      console.warn('[EMAIL KILL SWITCH] Send blocked:', { to: options.to, cc: options.cc, subject: options.subject });
+      console.warn('[EMAIL KILL SWITCH]', { template, to: options.to, subject: options.subject });
       return { success: false, error: 'EMAIL_KILL_SWITCH active' };
     }
 
-    // Sandbox mode: log instead of sending
-    if (process.env.SANDBOX_MODE === 'true' || process.env.VERCEL_GIT_COMMIT_REF === 'sandbox') {
-      console.log('[SANDBOX] Email intercepted:', { to: options.to, subject: options.subject });
-      return { success: true };
+    // Gate 2: transport configured?
+    if (!this.resend || !this.from) {
+      console.warn('[EMAIL TRANSPORT NOT CONFIGURED]', {
+        hasKey: !!this.resend,
+        hasFrom: !!this.from,
+        template,
+        subject: options.subject,
+      });
+      return {
+        success: false,
+        error: 'transport not configured (set RESEND_API_KEY and EMAIL_FROM)',
+      };
     }
 
-    if (!this.endpoint) {
-      console.error('Email: Google Apps Script endpoint not configured');
-      return { success: false, error: 'Email endpoint not configured' };
+    // Sandbox.
+    if (process.env.SANDBOX_MODE === 'true' || process.env.VERCEL_GIT_COMMIT_REF === 'sandbox') {
+      console.log('[SANDBOX] Email intercepted:', { template, to: options.to, subject: options.subject });
+      return { success: true };
     }
 
     // Per-recipient rate limit. Drop capped recipients, continue with the rest.
@@ -142,7 +172,8 @@ class EmailService {
     const bccF = filterRecipients(options.bcc, options.subject, 'bcc');
 
     if (!toF.kept) {
-      console.warn('[EMAIL DROPPED] All "to" recipients rate-limited:', {
+      console.warn('[EMAIL DROPPED] All to-recipients rate-limited:', {
+        template,
         originalTo: options.to,
         droppedTo: toF.dropped,
         subject: options.subject,
@@ -150,30 +181,33 @@ class EmailService {
       return { success: false, error: 'all to-recipients rate-limited' };
     }
 
+    // Send via Resend.
     try {
-      const response = await fetch(this.endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          formType: 'email_notification',
-          to: toF.kept,
-          subject: options.subject,
-          body: options.body,
-          ...(options.replyTo && { replyTo: options.replyTo }),
-          ...(ccF.kept && { cc: ccF.kept }),
-          ...(bccF.kept && { bcc: bccF.kept }),
-          ...(options.fromName && { fromName: options.fromName }),
-        }).toString(),
+      const displayName = options.fromName || this.fromName;
+      const fromHeader = displayName ? `${displayName} <${this.from}>` : this.from;
+      const toList = toF.kept.split(',').map(s => s.trim()).filter(Boolean);
+      const ccList = ccF.kept ? ccF.kept.split(',').map(s => s.trim()).filter(Boolean) : undefined;
+      const bccList = bccF.kept ? bccF.kept.split(',').map(s => s.trim()).filter(Boolean) : undefined;
+      const { error } = await this.resend.emails.send({
+        from: fromHeader,
+        to: toList,
+        subject: options.subject,
+        html: options.body,
+        ...(options.replyTo ? { replyTo: options.replyTo } : {}),
+        ...(ccList ? { cc: ccList } : {}),
+        ...(bccList ? { bcc: bccList } : {}),
       });
-
-      if (!response.ok) {
-        return { success: false, error: `HTTP ${response.status}` };
+      if (error) {
+        console.error('[EMAIL SEND FAILED]', { template, subject: options.subject, error });
+        return { success: false, error: error.message || 'send failed' };
       }
-
       return { success: true };
-    } catch (error) {
-      console.error('Email send failed:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    } catch (err) {
+      console.error('[EMAIL SEND ERROR]', { template, subject: options.subject, err });
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'unknown error',
+      };
     }
   }
 
@@ -220,6 +254,7 @@ class EmailService {
     `;
 
     return this.send({
+      template: 'portal-link',
       to: data.customerEmail,
       subject,
       body,
@@ -263,6 +298,7 @@ class EmailService {
     `;
 
     return this.send({
+      template: 'lead-assignment',
       to: data.repEmail,
       subject,
       body,
@@ -314,6 +350,7 @@ class EmailService {
     `;
 
     return this.send({
+      template: 'delivery-order',
       to: recipient,
       subject,
       body,
@@ -404,6 +441,7 @@ class EmailService {
     `;
 
     return this.send({
+      template: 'office-material-order',
       to: recipient,
       subject,
       body,
@@ -498,6 +536,7 @@ class EmailService {
     `;
 
     return this.send({
+      template: 'load-verified-invoice',
       to: recipient,
       subject,
       body,
@@ -565,6 +604,7 @@ class EmailService {
     `;
 
     return this.send({
+      template: 'driver-new-order',
       to: recipient,
       subject,
       body,
@@ -652,6 +692,7 @@ class EmailService {
     `;
 
     return this.send({
+      template: 'vendor-return',
       to: recipient,
       subject,
       body,
@@ -691,6 +732,7 @@ class EmailService {
     `;
 
     return this.send({
+      template: 'delivery-reminder',
       to: data.customerEmail,
       subject,
       body,
@@ -698,9 +740,9 @@ class EmailService {
     });
   }
 
-  // Check if email is configured
+  // Check if email transport is configured (RESEND_API_KEY + EMAIL_FROM both set).
   isConfigured(): boolean {
-    return !!this.endpoint;
+    return !!this.resend && !!this.from;
   }
 }
 
