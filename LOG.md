@@ -8,6 +8,8 @@ The scheduled routine appends an entry per action.
 
 ## 2026-05-20
 
+- `02:30` · claude · Gmail MCP + scripts/post-invoices-* · Phase 9.1 catch-up invoice batch — 25 invoices ($41,648.06) written to Invoices tab + inventory deducted + Delivery Schedule rows added + Tickets tagged. ONE Gmail draft to stock@rcrsal.com in owner inbox awaiting send. Per [[feedback_purchase_price_visibility]]: PRICE only, cost stripped · scripts commit 7c689f9 (main); invoice rows on master sheet
+- `02:00` · claude · 5 new lib files + 4 modified · Phase 9.3-9.5 inventory app UI (main) + customer-portal audit + profile self-service (sweep) + FreePBX phone-system portal (sweep) · 3 parallel agents · commits 2918c82 (main) + 2 sweep branches
 - `01:30` · claude · 8 files · Phase 8.1 `/admin/system/health` dashboard + Phase 8.2 UnifiedLeaderboards widget · green/yellow/red per subsystem with masked env-var checklist; reusable 3-board widget enforcing never-combine via colored stripes · commit 6d8855b (main)
 - `00:30` · claude · 7 files · Phase 7.6 Monday meeting prep auto-fill — on `sweep/monday-prep-autofill` · traceable figures + confidence-scored announcements + Open-Meteo weather + Sunday 6pm Central pre-gen cron parked in `_disabledCrons` · CRM moat win #2 · commit (sweep)
 - `00:00` · claude · 36 files · Phase 3b.7 cost-privacy guard on JN reads — lib/jn-redact.ts + viewer arg on ~23 JN read functions + 16 API callsites + cache-key segregation · fail-safe default; Richard slug whitelisted · CRM moat win #3 · commit 603cc34 (main)
