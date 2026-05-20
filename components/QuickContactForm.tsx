@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Phone, Send, Loader2, CheckCircle2 } from 'lucide-react';
+import HoneypotField from '@/components/forms/HoneypotField';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // US phone — accepts (256) 555-1234, 256-555-1234, 256.555.1234, 2565551234, +12565551234
@@ -14,6 +15,7 @@ export default function QuickContactForm() {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
+  const [website, setWebsite] = useState(''); // honeypot — bots fill, humans don't
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
@@ -50,6 +52,7 @@ export default function QuickContactForm() {
           sourcePage: 'Homepage Quick Form',
           leadSource: 'Website',
           leadSourceDetail: 'Homepage Quick Contact',
+          website, // honeypot — server drops if non-empty
         }),
       });
 
@@ -134,6 +137,8 @@ export default function QuickContactForm() {
       {error && (
         <p className="text-red-400 text-sm text-center">{error}</p>
       )}
+
+      <HoneypotField value={website} onChange={setWebsite} />
 
       <div className="flex flex-col sm:flex-row gap-3">
         <button

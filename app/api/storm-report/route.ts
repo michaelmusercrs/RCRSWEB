@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { stormReportService } from '@/lib/storm-report-service';
 import { createFormRateLimiter, withRateLimit } from '@/lib/rate-limiter';
 import { cache } from '@/lib/cache';
+import { checkHoneypot } from '@/lib/honeypot';
 
 const STORM_REPORT_TTL = 15 * 60 * 1000; // 15 minutes
 
@@ -26,6 +27,14 @@ export async function POST(request: NextRequest) {
   let body: any = {};
   try {
     body = await request.json();
+
+    // Honeypot check — silently drop bot submissions before any real work.
+    // Mirror the legit success envelope so bots can't probe what worked.
+    const hp = checkHoneypot(body);
+    if (hp.triggered) {
+      console.warn('[HONEYPOT TRIGGERED route=storm-report]', { value: hp.value });
+      return NextResponse.json({ success: true, data: null });
+    }
 
     const { address, city, state, zip, leadId, customerId, daysBack, radiusMiles } = body;
 

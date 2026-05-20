@@ -223,6 +223,14 @@ class EmailService {
   // CONVENIENCE METHODS
   // ========================================
 
+  /**
+   * @deprecated 2026-05-20 — DEAD WRAPPER. No callers found in repo.
+   * Per docs/email-callsite-audit.md, customer portal link emails are sent
+   * inline by the lead-intake flow, not through this convenience wrapper.
+   * Slated for removal in Phase 4 cleanup. Do NOT add new callers; if you
+   * need to send a portal link, use `sendEmail()` directly with the
+   * relevant template, or revive this method and remove this tag.
+   */
   // Send customer portal link
   async sendPortalLink(data: {
     customerEmail: string;
@@ -271,6 +279,14 @@ class EmailService {
     });
   }
 
+  /**
+   * @deprecated 2026-05-20 — DEAD WRAPPER. No callers found in repo.
+   * Per docs/email-callsite-audit.md, lead-assignment notifications are
+   * sent by the lead-distro service using its own templated payload, not
+   * through this convenience wrapper. Slated for removal in Phase 4
+   * cleanup. Do NOT add new callers; route through the lead-distro
+   * notification path instead.
+   */
   // Notify rep of new lead assignment
   async sendLeadAssignment(data: {
     repEmail: string;
@@ -366,6 +382,14 @@ class EmailService {
     });
   }
 
+  /**
+   * @deprecated 2026-05-20 — DEAD WRAPPER. No callers found in repo.
+   * Per docs/email-callsite-audit.md, the stock-workflow material-order
+   * notifications fire from the JN -> stock@rcrsal.com email path
+   * (see project_rcrs_stock_workflow), not through this wrapper. Slated
+   * for removal in Phase 4 cleanup. Do NOT add new callers; if office
+   * notification needs to change, modify the stock-workflow trigger.
+   */
   // Notify office (Sara + anyone copied) when a new material order ticket
   // is created. Office-side notification — INCLUDES cost / total because
   // Sara handles invoicing and accounting. This email NEVER goes to a

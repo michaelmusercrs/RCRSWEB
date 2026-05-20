@@ -66,9 +66,11 @@ const ROLE_DISPLAY_NAMES: Record<CombinedRole, string> = {
   Owner: 'Owner',
   Admin: 'Admin',
   Manager: 'Manager',
+  ProjectManager: 'Project Manager',
   Sales: 'Sales',
   Driver: 'Driver',
   Office: 'Office',
+  Viewer: 'Viewer',
   // From @/lib/team-roles
   owner: 'Owner',
   admin: 'Admin',

@@ -216,6 +216,52 @@ export const ROLE_PERMISSIONS: Readonly<Record<Role, readonly Permission[]>> = {
     // Note: No schedule.edit
     // Reports - No access
   ],
+
+  ProjectManager: [
+    // Mirrors Manager for operations (Bart, John coordinate jobs + material orders)
+    // but DROPS cost visibility per owner rule (feedback_purchase_price_visibility).
+    // Dashboard - Full view
+    'dashboard.view',
+    'dashboard.viewAll',
+    // Sales - View all but not commissions
+    'sales.view',
+    'sales.viewOwn',
+    // Note: No sales.viewCommissions
+    // Inventory - View + edit (for job material coordination), NO cost
+    'inventory.view',
+    'inventory.edit',
+    // Note: No inventory.viewCosts (owner rule), No inventory.delete
+    // Marketing - View only
+    'marketing.view',
+    // Phone - View
+    'phone.view',
+    'phone.viewAll',
+    // Note: No phone.manage
+    // Team - View only
+    'team.view',
+    // Note: No team.edit
+    // Billing - No access (Office handles)
+    // Schedule - Full access (primary responsibility)
+    'schedule.view',
+    'schedule.edit',
+    // Reports - View
+    'reports.view',
+    // Note: No reports.export
+  ],
+
+  Viewer: [
+    // Read-only role for non-sales staff (Boston / marketing).
+    // Pure *.view permissions — no edit, no delete, no cost, no commissions.
+    'dashboard.view',
+    'sales.view',
+    'inventory.view',
+    'marketing.view',
+    'phone.view',
+    'team.view',
+    'billing.view',
+    'schedule.view',
+    'reports.view',
+  ],
 } as const;
 
 // =============================================================================
@@ -339,6 +385,7 @@ const ROUTE_PERMISSIONS: ReadonlyArray<{
   { pattern: '/command-center/sales/leaderboard', permission: 'sales.view' },
   { pattern: '/command-center/sales/commissions', permission: 'sales.viewCommissions' },
   { pattern: '/command-center/sales/my-stats', permission: 'sales.viewOwn' },
+  { pattern: '/command-center/competition/awards-trip', permission: 'sales.view' },
 
   // Inventory routes
   { pattern: '/command-center/inventory', permission: 'inventory.view' },
@@ -534,6 +581,12 @@ const COMMAND_CENTER_NAV: NavItem[] = [
         id: 'sales-leaderboard',
         label: 'Leaderboard',
         href: '/command-center/sales/leaderboard',
+        requiredPermission: 'sales.view',
+      },
+      {
+        id: 'sales-awards-trip',
+        label: 'Awards Trip',
+        href: '/command-center/competition/awards-trip',
         requiredPermission: 'sales.view',
       },
       {
@@ -922,9 +975,11 @@ export function getRoleDisplayName(role: Role): string {
     Owner: 'Owner',
     Admin: 'Administrator',
     Manager: 'Manager',
+    ProjectManager: 'Project Manager',
     Sales: 'Sales Representative',
     Driver: 'Driver',
     Office: 'Office Staff',
+    Viewer: 'Viewer',
   };
 
   return displayNames[role] || role;
@@ -941,9 +996,11 @@ export function getRoleColor(role: Role): string {
     Owner: 'bg-purple-500',
     Admin: 'bg-red-500',
     Manager: 'bg-blue-500',
+    ProjectManager: 'bg-indigo-500',
     Sales: 'bg-green-500',
     Driver: 'bg-orange-500',
     Office: 'bg-cyan-500',
+    Viewer: 'bg-gray-500',
   };
 
   return colors[role] || 'bg-gray-500';
@@ -960,9 +1017,11 @@ export function getRoleTextColor(role: Role): string {
     Owner: 'text-purple-500',
     Admin: 'text-red-500',
     Manager: 'text-blue-500',
+    ProjectManager: 'text-indigo-500',
     Sales: 'text-green-500',
     Driver: 'text-orange-500',
     Office: 'text-cyan-500',
+    Viewer: 'text-gray-500',
   };
 
   return colors[role] || 'text-gray-500';

@@ -48,8 +48,9 @@ The flood was bot spam on the public contact form (`juliana@trustedbusinessaward
 - `[done]` **2.1-2.4 Form-hardening plan** — see `docs/form-hardening-plan.md`. Found **10** public endpoints (more than the original 5). Recommended: Cloudflare Turnstile, 4-phase rollout (honeypot first → KV-backed rate limit → Turnstile → cleanup). Found that current `lib/rate-limiter.ts` is in-memory and silently bypassed by Vercel cold starts — that's why bot spam slipped through.
 - `[done]` **2.5a Hard-block customBlockedDomains in `lib/spam-filter.ts`** — domains in the list now short-circuit to `isSpam: true` (was 25-point soft score). Seeded with `trustedbusinessawards.com` + 3 known cold-email tools (`mailshake.com`, `woodpecker.co`, `lemlist.com`). `/api/forms/contact` now runs `checkForSpam` BEFORE sheet/email; bots get 200 OK so they can't probe.
 - `[done]` **2.5b Spam-check pre-gate on all remaining form endpoints** — 8 endpoints hardened: `/api/contact`, `/api/email-capture`, `/api/forms/referral`, `/api/forms/careers`, `/api/forms/bni-partner`, `/api/referral` (legacy), `/api/leads/new` (response normalized), `/api/storm-report/email`. `/api/storm-report` skipped (no email field — nothing to check). Each returns generic 200 OK so bots can't probe.
-- `[pending]` **2.5c Honeypot field** — UI + server-side rejection across all 10 forms.
-- `[pending]` **2.6 Implement Phase 2** — Vercel KV rate limit across all 10 endpoints (current `lib/rate-limiter.ts` is in-memory and cold-start-bypassed).
+- `[done]` **2.5c Honeypot field across all 10 form endpoints** — new `components/forms/HoneypotField.tsx` + `lib/honeypot.ts` helper. 10 API routes check `checkHoneypot(body)` BEFORE validation/spam-filter; 10 UI form components carry the hidden `website` field. Bots get a 200 OK identical to legit. Field hidden via absolute positioning + `aria-hidden` + `tabIndex={-1}` so accessibility isn't broken.
+- `[done]` **2.6 Vercel KV-backed rate limiter** — new `lib/rate-limiter-kv.ts`. Public interface preserved; per-route factories (3/hr contact/referral/careers/bni-partner; 10/hr storm-report; cross-form 15/hr per IP global cap). Lazy `import('@vercel/kv')` with in-memory fallback if KV env not set. `@vercel/kv@^3.0.0` installed. `[needs-owner]` set `KV_REST_API_URL` + `KV_REST_API_TOKEN` on Vercel to activate KV-backed; until then it transparently uses the existing in-memory limiter.
+- `[pending]` **2.6b Migrate the 10 form endpoints from `lib/rate-limiter` to `lib/rate-limiter-kv`** — one-line import swap per route; opt in per-route gradually.
 - `[needs-owner]` **2.7 Implement Phase 3 (Cloudflare Turnstile)** — owner has Cloudflare access via rivercityroofingsolutions@gmail.com login. Provision Turnstile site key + secret, share secret to Vercel envs, then enable the gate.
 
 ---
@@ -62,8 +63,8 @@ Owner flagged data-visibility cross-contamination as a security issue.
 - `[done]` **3.6 CRITICAL FIX: `/api/portal/meeting-data` now requires auth** — was leaking full sales leaderboard / revenue / per-rep weekly numbers to anyone with the URL. Now requires `requireAuth`. TODO tighten to owner/admin/office/manager once role-check helper is in place.
 - `[done]` **3.7 CRITICAL FIX: `/api/admin/lead-distro/history` now requires admin** — was `requireAuth` (any logged-in user including reps could read distribution logs).
 - `[pending]` **3.8 HIGH: Cost-visibility drift** — `lib/cost-visibility.ts:33-40` adds `project_manager`/`pm` to allowlist (not in owner's rule); inventory pages omit Office/Manager; `permissions.ts:156-175` doesn't grant Office `inventory.viewCosts`. Needs owner decision on whether PMs see cost.
-- `[pending]` **3.9 HIGH: `project_manager` + `viewer` missing from `types/roles.ts:25`** — `hasPermission()` returns false silently for those roles. Risk if new code uses the API.
-- `[pending]` **3.10 MEDIUM: `/api/portal/monday-notes/announcements` also unauthenticated** — same class as 3.6.
+- `[done]` **3.9 `project_manager` + `viewer` added to `types/roles.ts`** — also added `ROLE_PERMISSIONS`, `ROLE_HIERARCHY`, `ROLE_DISPLAY_NAMES` entries. PM mirrors Manager minus `inventory.viewCosts` + billing (per `feedback_purchase_price_visibility`). Viewer is `*.view`-only.
+- `[done]` **3.10 `/api/portal/monday-notes/announcements` now `requireAuth`** — same fix pattern as 3.6.
 - `[needs-owner]` **3.11 `mustChangePassword: false` hard-coded on every active team member** — login gate never fires today.
 
 ---

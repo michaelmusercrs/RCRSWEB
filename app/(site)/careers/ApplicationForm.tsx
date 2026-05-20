@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { CheckCircle } from 'lucide-react';
+import HoneypotField from '@/components/forms/HoneypotField';
 
 export default function ApplicationForm() {
   const [form, setForm] = useState({
@@ -14,6 +15,7 @@ export default function ApplicationForm() {
     experience: '',
     whyJoin: '',
     agreed: false,
+    website: '', // honeypot — bots fill, humans don't
   });
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
@@ -175,6 +177,11 @@ export default function ApplicationForm() {
           {status === 'error' && (
             <p className="mt-4 text-red-600 text-sm">{errorMsg}</p>
           )}
+
+          <HoneypotField
+            value={form.website}
+            onChange={(v) => set('website', v)}
+          />
 
           <button
             type="submit"

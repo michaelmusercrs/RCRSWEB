@@ -18,28 +18,49 @@
  * - Owner: Full system access (Michael Muse, Chris Muse)
  * - Admin: Full access except some financial details (Sara Hill)
  * - Manager: Operations, team oversight, inventory management (Destin)
+ * - ProjectManager: Job scheduling and delivery coordination (Bart, John) — no cost visibility
+ * - Office: Billing, schedule, customer management (Tia)
  * - Sales: Leaderboard, own stats, inventory quantities only (Hunter, Aaron, Greg, etc.)
  * - Driver: Deliveries, inventory for assigned jobs only (Richard, Tae)
- * - Office: Billing, schedule, customer management (Tia, Bart, Boston, John)
+ * - Viewer: Read-only access for non-sales staff (Boston / marketing)
  */
-export type Role = 'Owner' | 'Admin' | 'Manager' | 'Sales' | 'Driver' | 'Office';
+export type Role =
+  | 'Owner'
+  | 'Admin'
+  | 'Manager'
+  | 'ProjectManager'
+  | 'Sales'
+  | 'Driver'
+  | 'Office'
+  | 'Viewer';
 
 /**
  * All valid role values as a readonly array for runtime validation.
  */
-export const ROLES = ['Owner', 'Admin', 'Manager', 'Sales', 'Driver', 'Office'] as const;
+export const ROLES = [
+  'Owner',
+  'Admin',
+  'Manager',
+  'ProjectManager',
+  'Sales',
+  'Driver',
+  'Office',
+  'Viewer',
+] as const;
 
 /**
  * Role hierarchy for permission inheritance.
  * Higher index = higher permission level.
  */
 export const ROLE_HIERARCHY: Record<Role, number> = {
-  Owner: 6,
-  Admin: 5,
-  Manager: 4,
-  Office: 3,
-  Sales: 2,
-  Driver: 1,
+  Owner: 8,
+  Admin: 7,
+  Manager: 6,
+  ProjectManager: 5,
+  Office: 4,
+  Sales: 3,
+  Driver: 2,
+  Viewer: 1,
 } as const;
 
 // =============================================================================

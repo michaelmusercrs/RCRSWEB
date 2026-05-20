@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { apiError } from '@/lib/api-response';
 import { createFormRateLimiter, withRateLimit } from '@/lib/rate-limiter';
 import { checkForSpam } from '@/lib/spam-filter';
+import { checkHoneypot } from '@/lib/honeypot';
 
 const formRateLimiter = createFormRateLimiter();
 
@@ -13,6 +14,21 @@ export async function POST(request: Request) {
   return withRateLimit(request, formRateLimiter, async () => {
   try {
     const body = await request.json();
+
+    // Honeypot check — silently drop bot submissions before any real work.
+    // Returns the same success shape a real submit would so bots can't probe.
+    const hp = checkHoneypot(body);
+    if (hp.triggered) {
+      console.warn('[HONEYPOT TRIGGERED route=referral]', { value: hp.value });
+      return NextResponse.json(
+        {
+          success: true,
+          message: 'Thank you for your referral! We will contact them soon.',
+        },
+        { status: 200 }
+      );
+    }
+
     const {
       referrerName,
       referrerPhone,

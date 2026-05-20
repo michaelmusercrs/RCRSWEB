@@ -8,6 +8,7 @@ import { createFormRateLimiter, withRateLimit } from '@/lib/rate-limiter';
 import { emailService } from '@/lib/email-service';
 import { renderContactFormEmail, contactFormSubject } from '@/lib/email-templates/contact-form';
 import { checkForSpam } from '@/lib/spam-filter';
+import { checkHoneypot } from '@/lib/honeypot';
 
 const contactRateLimiter = createFormRateLimiter();
 
@@ -29,6 +30,18 @@ export async function POST(request: NextRequest) {
   return withRateLimit(request, contactRateLimiter, async () => {
   try {
     const body = await request.json();
+
+    // Honeypot check — silently drop bot submissions before any real work.
+    // Returns the same success shape a real submit would so bots can't probe.
+    const hp = checkHoneypot(body);
+    if (hp.triggered) {
+      console.warn('[HONEYPOT TRIGGERED route=contact]', { value: hp.value });
+      return NextResponse.json(
+        { success: true, message: 'Thank you for contacting us! We will get back to you shortly.' },
+        { status: 200 }
+      );
+    }
+
     const { name, email, phone, subject, message, preferredInspector, serviceType, serviceArea, city, sourcePage } = body;
 
     // Validate required fields

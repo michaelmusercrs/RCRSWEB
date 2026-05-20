@@ -18,6 +18,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { X, Shield, Phone, Mail, MapPin, CheckCircle } from 'lucide-react';
+import HoneypotField from '@/components/forms/HoneypotField';
 
 const DISMISS_KEY = 'rcrs_email_popup_dismissed';
 const DISMISS_DAYS = 7;
@@ -58,6 +59,7 @@ export default function EmailCapturePopup() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [website, setWebsite] = useState(''); // honeypot — bots fill, humans don't
 
   const show = useCallback(() => {
     if (!firedRef.current && shouldShow()) {
@@ -144,6 +146,7 @@ export default function EmailCapturePopup() {
           address,
           sourcePage: window.location.pathname,
           ...utmParams,
+          website, // honeypot — server drops if non-empty
         }),
       });
 
@@ -291,6 +294,8 @@ export default function EmailCapturePopup() {
               {error && (
                 <p className="text-red-400 text-sm text-center">{error}</p>
               )}
+
+              <HoneypotField value={website} onChange={setWebsite} />
 
               <button
                 type="submit"

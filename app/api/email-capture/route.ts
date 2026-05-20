@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isGoogleSheetsConfigured } from '@/lib/google-sheets-service';
 import { rateLimit } from '@/lib/rate-limit';
 import { checkForSpam } from '@/lib/spam-filter';
+import { checkHoneypot } from '@/lib/honeypot';
 
 export async function POST(request: NextRequest) {
   // Rate limit: 5 submissions per minute per IP
@@ -26,6 +27,18 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
+
+    // Honeypot check — silently drop bot submissions before any real work.
+    // Returns the same success shape a real submit would so bots can't probe.
+    const hp = checkHoneypot(body);
+    if (hp.triggered) {
+      console.warn('[HONEYPOT TRIGGERED route=email-capture]', { value: hp.value });
+      return NextResponse.json({
+        success: true,
+        message: 'Thank you! We\'ll be in touch soon.',
+      });
+    }
+
     const { name, email, phone, address, sourcePage, utmSource, utmMedium, utmCampaign, utmTerm, utmContent } = body;
 
     // Validate required fields

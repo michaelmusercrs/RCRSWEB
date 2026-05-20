@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Phone, Send, Loader2 } from 'lucide-react';
+import HoneypotField from '@/components/forms/HoneypotField';
 
 interface LandingPageFormProps {
   /** CTA button text, e.g. "Get Free Inspection" */
@@ -30,6 +31,7 @@ export default function LandingPageForm({
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [description, setDescription] = useState('');
+  const [website, setWebsite] = useState(''); // honeypot — bots fill, humans don't
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -70,6 +72,7 @@ export default function LandingPageForm({
           marketingSource: utmParams.utm_source
             ? `${utmParams.utm_source} / ${utmParams.utm_medium || 'cpc'} / ${utmParams.utm_campaign || 'unknown'}`
             : 'Google Ads - Landing Page',
+          website, // honeypot — server drops if non-empty
         }),
       });
 
@@ -182,6 +185,8 @@ export default function LandingPageForm({
       {error && (
         <p className="text-red-400 text-sm text-center">{error}</p>
       )}
+
+      <HoneypotField value={website} onChange={setWebsite} />
 
       <button
         type="submit"

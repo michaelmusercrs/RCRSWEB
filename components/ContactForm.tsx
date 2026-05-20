@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Phone, Mail, MapPin, Loader2, CheckCircle2 } from 'lucide-react';
 import { trackingService, getLeadSourceSummary, getJobNimbusSource } from '@/lib/tracking-service';
+import HoneypotField from '@/components/forms/HoneypotField';
 
 interface ContactFormProps {
   showContactInfo?: boolean;
@@ -59,6 +60,9 @@ export default function ContactForm({
           subject: formData.get('subject'),
           message: formData.get('message'),
           smsConsent: formData.get('smsConsent') === 'on',
+          // Honeypot — forwarded so the server can drop bot submissions.
+          // Real users never fill this field; it's hidden via CSS/ARIA.
+          website: formData.get('website') || '',
           preferredInspector: preselectedTeamMember || 'First Available',
           salesRep: preselectedTeamMember || '',
           sourcePage: sourcePage,
@@ -302,6 +306,8 @@ export default function ContactForm({
               className={`w-full px-4 py-3 rounded-lg border outline-none transition-colors focus:ring-2 resize-none ${inputClass}`}
             />
           </div>
+
+          <HoneypotField />
 
           <button
             type="submit"

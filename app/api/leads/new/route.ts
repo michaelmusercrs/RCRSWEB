@@ -20,6 +20,7 @@ import { jnSyncEngine } from '@/lib/jn-sync-engine';
 import { isJobNimbusConfigured, jobNimbusService } from '@/lib/jobnimbus-service';
 import { roofReportService } from '@/lib/roof-report-service';
 import { checkForSpam } from '@/lib/spam-filter';
+import { checkHoneypot } from '@/lib/honeypot';
 
 // Rate limit: 5 requests per minute per IP for public lead submissions
 const leadRateLimiter = new RateLimiter({
@@ -87,6 +88,15 @@ export async function POST(request: NextRequest) {
         { success: false, error: 'Invalid request body' },
         { status: 400 }
       );
+    }
+
+    // Honeypot check — silently drop bot submissions before any real work
+    // (including the spam-filter pre-gate below). Returns the generic
+    // success shape so bots can't probe what worked.
+    const hp = checkHoneypot(body);
+    if (hp.triggered) {
+      console.warn('[HONEYPOT TRIGGERED route=leads/new]', { value: hp.value });
+      return NextResponse.json({ success: true });
     }
 
     // Sanitize text inputs to strip HTML/XSS vectors

@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { emailService } from '@/lib/email-service';
 import { TEAM_MEMBERS } from '@/lib/team-roles';
 import { checkForSpam } from '@/lib/spam-filter';
+import { checkHoneypot } from '@/lib/honeypot';
 
 // ---------------------------------------------------------------------------
 // Types (mirror the page types for the report data)
@@ -323,6 +324,19 @@ function buildSalesEmailHtml(data: StormReportPayload): string {
 export async function POST(request: NextRequest) {
   try {
     const data: StormReportPayload = await request.json();
+
+    // Honeypot check — silently drop bot submissions before any real work.
+    // Mirror the legit success envelope so bots can't probe what worked.
+    const hp = checkHoneypot(data);
+    if (hp.triggered) {
+      console.warn('[HONEYPOT TRIGGERED route=storm-report/email]', { value: hp.value });
+      return NextResponse.json({
+        success: true,
+        customerEmail: true,
+        salesEmail: true,
+        errors: { customer: undefined, sales: undefined },
+      });
+    }
 
     // Validate minimum fields
     if (!data.customerEmail || !data.reportId || !data.riskLevel) {

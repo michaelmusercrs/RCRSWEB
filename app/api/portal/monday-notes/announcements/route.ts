@@ -17,6 +17,7 @@ import {
 import { TeamRole } from '@/lib/team-roles';
 import { googleSheetsService } from '@/lib/google-sheets-service';
 import { cache, CACHE_TTL } from '@/lib/cache';
+import { requireAuth } from '@/lib/auth-service';
 
 function rowToNote(row: Record<string, string>): MondayNote {
   return {
@@ -45,6 +46,12 @@ function rowToNote(row: Record<string, string>): MondayNote {
 }
 
 export async function GET(request: NextRequest) {
+  // SECURITY 2026-05-20: previously unauthenticated — exposed pending and
+  // approved Monday-meeting announcements to anyone with the URL. Per portal
+  // namespace convention, gating to any authenticated team member.
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth.response;
+
   try {
     const { searchParams } = new URL(request.url);
     const meetingDate = searchParams.get('meetingDate') || getNextMondayDate();

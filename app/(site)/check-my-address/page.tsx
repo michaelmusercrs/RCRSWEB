@@ -4,6 +4,7 @@ import { useState, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import AddressAutocomplete, { AddressResult } from '@/components/AddressAutocomplete';
+import HoneypotField from '@/components/forms/HoneypotField';
 import {
   CloudLightning,
   Shield,
@@ -294,7 +295,7 @@ function CheckMyAddressPage() {
       const reportRes = await fetch('/api/storm-report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address, city, state, zip }),
+        body: JSON.stringify({ address, city, state, zip, website: honeypot }),
       });
 
       const reportResult = await reportRes.json();
@@ -329,6 +330,7 @@ function CheckMyAddressPage() {
           windEvents: reportResult.data.windEvents,
           dateRangeStart: reportResult.data.dateRangeStart,
           dateRangeEnd: reportResult.data.dateRangeEnd,
+          website: honeypot,
         }),
       }).catch((err) => console.error('Email error:', err));
 
@@ -352,6 +354,7 @@ function CheckMyAddressPage() {
           message: `Storm Report: Risk Level ${reportResult.data.riskLevel} (${reportResult.data.riskScore}/100). ${reportResult.data.totalHailReports} hail reports found. Report ID: ${reportResult.data.reportId}`,
           sendNotifications: true,
           notifyTeam: true,
+          website: honeypot,
         }),
       }).catch((err) => console.error('Lead creation error:', err));
 
@@ -586,19 +589,11 @@ function CheckMyAddressPage() {
                   </div>
                 </div>
 
-                {/* Honeypot — hidden from humans, bots will fill it */}
-                <div className="absolute -left-[9999px] -top-[9999px]" aria-hidden="true">
-                  <label htmlFor="website">Website</label>
-                  <input
-                    type="text"
-                    id="website"
-                    name="website"
-                    tabIndex={-1}
-                    autoComplete="off"
-                    value={honeypot}
-                    onChange={(e) => setHoneypot(e.target.value)}
-                  />
-                </div>
+                {/* Honeypot — hidden from humans, bots will fill it.
+                    Client-side check above short-circuits before fetch;
+                    server-side checkHoneypot() in the API routes is the
+                    real defense. */}
+                <HoneypotField value={honeypot} onChange={setHoneypot} />
 
                 {/* Submit */}
                 <button

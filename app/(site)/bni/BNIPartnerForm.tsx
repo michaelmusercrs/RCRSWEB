@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
+import HoneypotField from '@/components/forms/HoneypotField';
 
 interface Partner {
   name: string;
@@ -18,6 +19,7 @@ export default function BNIPartnerForm({ partners }: BNIPartnerFormProps) {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
+  const [website, setWebsite] = useState(''); // honeypot — bots fill, humans don't
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
@@ -44,6 +46,7 @@ export default function BNIPartnerForm({ partners }: BNIPartnerFormProps) {
           phone: phone.trim(),
           email: email.trim(),
           message: message.trim(),
+          website, // honeypot — server drops if non-empty
         }),
       });
 
@@ -163,6 +166,8 @@ export default function BNIPartnerForm({ partners }: BNIPartnerFormProps) {
             {error}
           </div>
         )}
+
+        <HoneypotField value={website} onChange={setWebsite} />
 
         {/* Submit Button */}
         <button

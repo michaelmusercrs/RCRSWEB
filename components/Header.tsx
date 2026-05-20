@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Phone, Menu, X, MessageCircle, Send, Home, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import HoneypotField from '@/components/forms/HoneypotField';
 
 
 interface NavItem {
@@ -44,7 +45,7 @@ const locationPages = [
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [contactFormOpen, setContactFormOpen] = useState(false);
-  const [formData, setFormData] = useState({ name: '', phone: '', email: '', message: '' });
+  const [formData, setFormData] = useState({ name: '', phone: '', email: '', message: '', website: '' });
   const [formSubmitted, setFormSubmitted] = useState(false);
   const pathname = usePathname();
   const isHomePage = pathname === '/';
@@ -78,6 +79,7 @@ export default function Header() {
           sourcePage: 'Header Popup',
           leadSource: 'Website',
           leadSourceDetail: 'Header Quick Quote',
+          website: formData.website, // honeypot — server drops if non-empty
         }),
       });
 
@@ -88,7 +90,7 @@ export default function Header() {
         setTimeout(() => {
           setContactFormOpen(false);
           setFormSubmitted(false);
-          setFormData({ name: '', phone: '', email: '', message: '' });
+          setFormData({ name: '', phone: '', email: '', message: '', website: '' });
         }, 2000);
       } else {
         setFormError(result.message || 'Something went wrong. Please call us at (256) 274-8530.');
@@ -360,6 +362,11 @@ export default function Header() {
                   {formError && (
                     <p className="text-red-600 text-sm text-center bg-red-50 p-2 rounded">{formError}</p>
                   )}
+
+                  <HoneypotField
+                    value={formData.website}
+                    onChange={(v) => setFormData({ ...formData, website: v })}
+                  />
 
                   <Button
                     type="submit"
