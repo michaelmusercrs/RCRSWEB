@@ -29,6 +29,7 @@ import {
   X,
   BarChart3,
   LineChart as LineChartIcon,
+  Download,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -117,6 +118,27 @@ function fmtMoney(n: number): string {
   if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(2)}M`;
   if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1)}K`;
   return `${sign}$${abs.toFixed(2)}`;
+}
+
+// CSV export — handles quoting cells with commas/quotes/newlines
+function downloadCSV(filename: string, headers: string[], rows: Array<Array<string | number | null | undefined>>) {
+  const esc = (v: string | number | null | undefined) => {
+    const s = v == null ? '' : String(v);
+    if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    return s;
+  };
+  const csv =
+    headers.map(esc).join(',') + '\n' +
+    rows.map(r => r.map(esc).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 function fmtMoneyExact(n: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
@@ -225,6 +247,70 @@ export default function ChrisViewPage() {
     setTxType(''); setTxRep(''); setTxCustomer(''); setTxVendor(''); setTxFrom(''); setTxTo(''); setQ('');
   };
 
+  const [exporting, setExporting] = useState(false);
+  // Fetch every matching row (cap 10k) then write CSV
+  const exportCurrent = useCallback(async () => {
+    setExporting(true);
+    try {
+      const params = new URLSearchParams({ type: tab, page: '1', pageSize: '10000' });
+      if (q) params.set('q', q);
+      if (tab === 'transactions') {
+        if (txType) params.set('txType', txType);
+        if (txRep) params.set('rep', txRep);
+        if (txCustomer) params.set('customer', txCustomer);
+        if (txVendor) params.set('vendor', txVendor);
+        if (txFrom) params.set('from', txFrom);
+        if (txTo) params.set('to', txTo);
+      }
+      const res = await fetch(`/api/chrisview?${params}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const today = new Date().toISOString().slice(0, 10);
+      const stamp = `rcrs-${tab}-${today}.csv`;
+
+      switch (tab) {
+        case 'transactions': {
+          const rows = (data.rows as Tx[]).map(t => [
+            t.date, t.type, t.num, t.amount, t.accountType, t.customer, t.vendor, t.salesRep, t.employee || '', t.project || '',
+          ]);
+          downloadCSV(stamp, ['date', 'type', 'num', 'amount', 'accountType', 'customer', 'vendor', 'salesRep', 'employee', 'project'], rows);
+          break;
+        }
+        case 'customers': {
+          const rows = (data.rows as Customer[]).map(c => [c.customer, c.total, c.invoiceCount]);
+          downloadCSV(stamp, ['customer', 'lifetimeInvoiced', 'invoiceCount'], rows);
+          break;
+        }
+        case 'vendors': {
+          const rows = (data.rows as Vendor[]).map(v => [v.vendor, v.total, v.txCount]);
+          downloadCSV(stamp, ['vendor', 'lifetimeSpend', 'txCount'], rows);
+          break;
+        }
+        case 'reps': {
+          const rows = (data.rows as Rep[]).map(r => [r.rep, r.invoiceTotal, r.invoiceCount, r.avgInvoice, r.commissionTotal, r.commissionCount]);
+          downloadCSV(stamp, ['rep', 'lifetimeInvoiced', 'invoiceCount', 'avgInvoice', 'commissionPaid', 'commissionCount'], rows);
+          break;
+        }
+        case 'commissions': {
+          const rows = (data.rows as CommissionRow[]).map(c => [c.date, c.salesRep, c.amount, c.jobNumber || '', c.customer || '']);
+          downloadCSV(stamp, ['date', 'salesRep', 'amount', 'checkNumber', 'customer'], rows);
+          break;
+        }
+        case 'inventory': {
+          const rows = (data.rows as InventoryRow[]).map(r => [r.id, r.name, r.category, r.supplier, r.qty, r.unit, r.cost, r.price, r.stockValue, r.margin, r.lowStock ? 'YES' : '']);
+          downloadCSV(stamp, ['id', 'name', 'category', 'supplier', 'qty', 'unit', 'cost', 'price', 'stockValue', 'margin%', 'lowStock'], rows);
+          break;
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setExporting(false);
+    }
+  }, [tab, q, txType, txRep, txCustomer, txVendor, txFrom, txTo]);
+
+  const canExport = ['transactions', 'customers', 'vendors', 'reps', 'commissions', 'inventory'].includes(tab);
+
   return (
     <div className="min-h-screen bg-black text-white">
       <header className="border-b border-zinc-800 bg-zinc-950 sticky top-0 z-30">
@@ -239,6 +325,17 @@ export default function ChrisViewPage() {
               {overview.meta.dateRange.earliest} → {overview.meta.dateRange.latest} ·{' '}
               refreshed {overview.meta.generatedAt}
             </span>
+          )}
+          {canExport && (
+            <button
+              onClick={exportCurrent}
+              disabled={exporting || loading}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#39FF14]/10 border border-[#39FF14]/30 text-[#39FF14] hover:bg-[#39FF14]/20 rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              title={`Download the current ${tab} view as CSV`}
+            >
+              {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+              Export CSV
+            </button>
           )}
         </div>
       </header>
