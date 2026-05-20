@@ -343,6 +343,9 @@ const SHEET_NAMES = {
   OUTSTANDING_INVOICES: 'Outstanding_Invoices',
   MONTHLY_TRENDS: 'Monthly_Trends',
   MEETING_PREP: 'MeetingPrep',
+  // Owner-reviewed Monday meeting prep deck draft (auto-fill output).
+  // One row per weekStart. Owner edits + approves before the meeting.
+  MONDAY_PREP: 'Monday Prep',
   NUMBER_SESSIONS: 'NumberSessions',
 
   // ===========================================================================
@@ -3247,6 +3250,88 @@ class GoogleSheetsService {
     } catch (error) {
       console.error('Error listing meeting preps:', error);
       return [];
+    }
+  }
+
+  // =========================================================================
+  // MONDAY PREP (auto-fill output) — sheet-backed storage for the owner-
+  // reviewed prep deck. One row per weekStart, idempotent on weekStart.
+  // Sections is a JSON blob so we don't have to evolve columns every time
+  // we add a new prep section. Lazy-creates the tab.
+  // =========================================================================
+
+  private readonly mondayPrepHeaders = [
+    'weekStart', 'generatedAt', 'sections',
+    'reviewed', 'approved', 'approvedBy', 'approvedAt',
+    'createdAt', 'updatedAt',
+  ];
+
+  async getMondayPrep(weekStart: string): Promise<Record<string, string> | null> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return null;
+
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.MONDAY_PREP,
+        this.mondayPrepHeaders
+      );
+      const rows = await sheet.getRows();
+      const row = rows.find(r => r.get('weekStart') === weekStart);
+      if (!row) return null;
+
+      const record: Record<string, string> = {};
+      for (const h of this.mondayPrepHeaders) {
+        record[h] = row.get(h) || '';
+      }
+      return record;
+    } catch (error) {
+      console.error('Error fetching monday prep:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Upsert a Monday Prep row, idempotent on weekStart. Returns true on
+   * success. The `sections` field should be a JSON-stringified PrepData
+   * blob from lib/monday-prep-autofill.
+   */
+  async saveMondayPrep(data: Record<string, string>): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    if (!data.weekStart) {
+      console.error('saveMondayPrep: weekStart is required');
+      return false;
+    }
+
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.MONDAY_PREP,
+        this.mondayPrepHeaders
+      );
+      const rows = await sheet.getRows();
+      const existing = rows.find(r => r.get('weekStart') === data.weekStart);
+      const now = new Date().toISOString();
+
+      if (existing) {
+        for (const key of this.mondayPrepHeaders) {
+          if (data[key] !== undefined) {
+            existing.set(key, data[key]);
+          }
+        }
+        existing.set('updatedAt', now);
+        await existing.save();
+      } else {
+        await sheet.addRow({
+          ...data,
+          createdAt: data.createdAt || now,
+          updatedAt: now,
+        } as unknown as Record<string, string | number | boolean>);
+      }
+      return true;
+    } catch (error) {
+      console.error('Error saving monday prep:', error);
+      return false;
     }
   }
 

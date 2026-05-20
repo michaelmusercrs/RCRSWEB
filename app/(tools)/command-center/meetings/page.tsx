@@ -932,6 +932,13 @@ export default function MeetingsPage() {
           variant="outline"
         />
         <QuickActionButton
+          icon={BarChart3}
+          label="Auto-Fill Prep Deck"
+          description="Pre-populate this week's numbers (saves ~30 min)"
+          href="/command-center/meetings/prep-autofill"
+          variant="primary"
+        />
+        <QuickActionButton
           icon={CheckCircle2}
           label="Monday Checklist"
           description="Morning prep checklist for Michael & Sara"

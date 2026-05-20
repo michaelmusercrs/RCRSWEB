@@ -28,6 +28,13 @@
       "schedule": "*/10 * * * *"
     }
   ],
+  "_disabledCrons": [
+    {
+      "_note": "DRAFT — pre-generates Monday meeting prep so it's ready when owner wakes Monday. Move into `crons` to enable. Schedule = 6pm Sunday Central (DST) / midnight UTC Monday.",
+      "path": "/api/cron/monday-prep-pregen",
+      "schedule": "0 0 * * 1"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
