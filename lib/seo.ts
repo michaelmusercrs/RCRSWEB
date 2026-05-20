@@ -548,6 +548,12 @@ export function generateArticleSchema(params: {
  * The optional `offer` argument lets a page attach an Offer (e.g. "Free Roof
  * Inspection" → price 0) so Google can render rich-result snippets with a
  * starting price / "Free" badge.
+ *
+ * Pass `includeServiceChannel: true` to attach a `ServiceChannel` describing
+ * the canonical contact channels (phone + contact form). This binds the
+ * Service node to a clear, single point of intake — useful for the highest
+ * value service pages where SERP rich results benefit from an explicit
+ * availability channel.
  */
 export function generateServiceSchema(params: {
   name: string;
@@ -562,6 +568,8 @@ export function generateServiceSchema(params: {
     description?: string;
     availability?: string;
   };
+  /** Attach a ServiceChannel pointing at the public phone + contact form. */
+  includeServiceChannel?: boolean;
 }) {
   return {
     '@context': 'https://schema.org',
@@ -626,6 +634,31 @@ export function generateServiceSchema(params: {
         ...(params.offer.description && { description: params.offer.description }),
         url: params.url,
       },
+    }),
+    ...(params.includeServiceChannel && {
+      // ServiceChannel describes how a customer actually reaches this service:
+      // a phone line and a web contact form. Useful for the highest-value
+      // service pages — explicitly binds the Service node to a single canonical
+      // intake path rather than letting Google guess from the page footer.
+      availableChannel: [
+        {
+          '@type': 'ServiceChannel',
+          name: 'Phone',
+          serviceUrl: `${siteConfig.url}/contact`,
+          servicePhone: {
+            '@type': 'ContactPoint',
+            telephone: siteConfig.phone,
+            contactType: 'customer service',
+            areaServed: 'US-AL',
+            availableLanguage: ['English'],
+          },
+        },
+        {
+          '@type': 'ServiceChannel',
+          name: 'Online Contact Form',
+          serviceUrl: `${siteConfig.url}/contact`,
+        },
+      ],
     }),
   };
 }

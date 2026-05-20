@@ -2,10 +2,14 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { getService, getAllServiceSlugs, services } from '@/lib/servicesData';
-import { Home, Wrench, Building2, CloudRain, Flame, Shield, Search, AlertTriangle, Droplet, Wind, Paintbrush, ArrowRight, CheckCircle2, Phone, ArrowLeft } from 'lucide-react';
+import { Home, Wrench, Building2, CloudRain, Flame, Shield, Search, AlertTriangle, Droplet, Wind, Paintbrush, ArrowRight, CheckCircle2, XCircle, Clock, MapPin, Phone, ArrowLeft } from 'lucide-react';
 import type { Metadata } from 'next';
 import StructuredData from '@/components/StructuredData';
 import { siteConfig, generateServiceSchema, generateBreadcrumbSchema, generateFAQSchema } from '@/lib/seo';
+import {
+  COUNTY_CALLOUTS,
+  getServiceEnhancement,
+} from '@/lib/serviceEnhancements';
 
 const iconMap: { [key: string]: any } = { Home, Wrench, Building2, CloudRain, Flame, Shield, Search, AlertTriangle, Droplet, Wind, Paintbrush };
 
@@ -111,15 +115,25 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
   const Icon = iconMap[service.icon];
   const items = service.whatsIncluded || service.servicesIncluded || service.features || [];
 
+  // Pull the deeper enhancement bundle (process steps, includes/excludes, related
+  // services) if this slug is one of the 5 high-value enhanced pages. Falls
+  // back to `undefined` for everything else so the page still renders normally.
+  const enhancement = getServiceEnhancement(slug);
+
   // Generate structured data for service page.
   // Attach a price: '0' Offer to the free-inspection service so SERPs can
   // show a "Free" rich-result badge. Other services don't get an Offer
   // here — we'd be inventing prices we don't publish.
+  //
+  // For the 5 enhanced services we also attach a ServiceChannel pointing at
+  // the phone line + contact form, so search engines have an explicit intake
+  // path bound to the Service node.
   const serviceSchema = generateServiceSchema({
     name: service.title,
     description: service.description,
     image: service.image,
     url: `${siteConfig.url}/services/${slug}`,
+    includeServiceChannel: Boolean(enhancement),
     ...(slug === 'roof-inspections-maintenance' && {
       offer: {
         price: '0',
@@ -233,6 +247,232 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
           </div>
         </div>
       </section>
+
+      {/* Process Section — only rendered for enhanced services.
+          Walks the visitor through how the service actually happens, step by
+          step, with real timing ranges. This is the section that turns
+          informational traffic into qualified leads. */}
+      {enhancement && (
+        <section className="py-12 md:py-16 bg-black/70 backdrop-blur-sm border-t border-white/10">
+          <div className="container mx-auto px-4">
+            <div className="max-w-5xl mx-auto">
+              <div className="text-center mb-10">
+                <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                  {enhancement.processHeadline}
+                </h2>
+                <p className="text-lg text-gray-300 max-w-3xl mx-auto">
+                  {enhancement.processIntro}
+                </p>
+              </div>
+              <ol className="space-y-4">
+                {enhancement.process.map((step, idx) => (
+                  <li
+                    key={idx}
+                    className="bg-white/5 border border-white/10 rounded-xl p-6 hover:border-brand-green/50 transition-colors"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-brand-green/20 border border-brand-green/40 flex items-center justify-center text-brand-green font-bold">
+                        {idx + 1}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                          <h3 className="text-xl font-bold text-white">
+                            {step.title}
+                          </h3>
+                          <span className="inline-flex items-center gap-2 text-sm text-brand-green font-semibold">
+                            <Clock size={14} /> {step.timing}
+                          </span>
+                        </div>
+                        <p className="text-gray-300 leading-relaxed">
+                          {step.description}
+                        </p>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* What's Included / Not Included — explicit two-column comparison so
+          there's no ambiguity about scope. Honesty about exclusions also tends
+          to convert better than the standard "everything is included" puffery. */}
+      {enhancement && (
+        <section className="py-12 md:py-16 bg-black/80 backdrop-blur-sm border-t border-white/10">
+          <div className="container mx-auto px-4">
+            <div className="max-w-6xl mx-auto">
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-10 text-center">
+                What&apos;s Included &mdash; And What&apos;s Not
+              </h2>
+              <div className="grid md:grid-cols-2 gap-6 md:gap-10">
+                <div className="bg-white/5 border border-brand-green/30 rounded-2xl p-6 md:p-8">
+                  <h3 className="text-2xl font-bold text-brand-green mb-6 flex items-center gap-2">
+                    <CheckCircle2 size={24} /> Included in this service
+                  </h3>
+                  <ul className="space-y-3">
+                    {enhancement.includes.map((item, idx) => (
+                      <li key={idx} className="flex items-start gap-3 text-gray-200">
+                        <CheckCircle2
+                          className="text-brand-green flex-shrink-0 mt-1"
+                          size={18}
+                        />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8">
+                  <h3 className="text-2xl font-bold text-gray-300 mb-6 flex items-center gap-2">
+                    <XCircle size={24} className="text-gray-400" /> Not included
+                  </h3>
+                  <ul className="space-y-3">
+                    {enhancement.notIncluded.map((item, idx) => (
+                      <li key={idx} className="flex items-start gap-3 text-gray-400">
+                        <XCircle
+                          className="text-gray-500 flex-shrink-0 mt-1"
+                          size={18}
+                        />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-xs text-gray-500 mt-6 italic">
+                    If your project needs something not listed, just ask &mdash; we
+                    can usually coordinate or refer you to a trusted partner.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Related Services — topic-cluster cross-links. Spreads link equity to
+          the other high-value service pages and helps Google understand how
+          this service relates to the broader roofing offering. */}
+      {enhancement && (
+        <section className="py-12 md:py-16 bg-black/70 backdrop-blur-sm border-t border-white/10">
+          <div className="container mx-auto px-4">
+            <div className="max-w-5xl mx-auto">
+              <div className="text-center mb-8">
+                <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">
+                  Related Roofing Services
+                </h2>
+                <p className="text-gray-300 max-w-3xl mx-auto">
+                  Most {service.title.toLowerCase()} jobs touch one or more of
+                  these adjacent services. Bundling on a single visit usually
+                  saves time and money.
+                </p>
+              </div>
+              <div className="grid md:grid-cols-3 gap-4">
+                {enhancement.related.map((rel) => (
+                  <Link
+                    key={rel.slug}
+                    href={`/services/${rel.slug}`}
+                    className="group bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-brand-green/50 transition-colors block"
+                  >
+                    <h3 className="text-xl font-bold text-white group-hover:text-brand-green transition-colors mb-3 flex items-center gap-2">
+                      {rel.title}
+                      <ArrowRight
+                        size={18}
+                        className="text-brand-green opacity-0 group-hover:opacity-100 transition-opacity"
+                      />
+                    </h3>
+                    <p className="text-gray-400 text-sm leading-relaxed">
+                      {rel.tease}
+                    </p>
+                  </Link>
+                ))}
+              </div>
+              <div className="text-center mt-8 text-sm text-gray-400 space-y-1">
+                <p>
+                  See our full{' '}
+                  <Link href="/services" className="text-brand-green hover:text-lime-400">
+                    services catalog
+                  </Link>
+                  , browse the{' '}
+                  <Link href="/gallery" className="text-brand-green hover:text-lime-400">
+                    project gallery
+                  </Link>
+                  , or{' '}
+                  <Link href="/contact" className="text-brand-green hover:text-lime-400">
+                    schedule a free inspection
+                  </Link>
+                  .
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* County Callouts — binds the service page to the 5 county landing
+          pages (Madison, Morgan, Marshall, Limestone, Cullman). These are the
+          highest-population and highest-claim-volume counties in our footprint;
+          each county landing ranks for "roofing contractor <county>" queries
+          and this section feeds link equity into them. */}
+      {enhancement && (
+        <section className="py-12 md:py-16 bg-black/80 backdrop-blur-sm border-t border-white/10">
+          <div className="container mx-auto px-4">
+            <div className="max-w-6xl mx-auto">
+              <div className="text-center mb-10">
+                <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">
+                  Serving North Alabama
+                </h2>
+                <p className="text-gray-300 max-w-3xl mx-auto">
+                  We deliver {service.title.toLowerCase()} across our full
+                  15-county footprint in North Alabama. Five counties carry the
+                  bulk of our volume &mdash; here is the local context for each.
+                </p>
+              </div>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {COUNTY_CALLOUTS.map((county) => (
+                  <Link
+                    key={county.slug}
+                    href={`/roofing-contractor/${county.slug}`}
+                    className="group bg-white/5 border border-white/10 rounded-xl p-5 hover:border-brand-green/50 transition-colors block"
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <MapPin className="text-brand-green" size={18} />
+                      <h3 className="text-lg font-bold text-white group-hover:text-brand-green transition-colors">
+                        {county.name} County, AL
+                      </h3>
+                    </div>
+                    <p className="text-sm text-gray-400 leading-relaxed">
+                      {county.copy}
+                    </p>
+                    <p className="mt-3 text-xs text-brand-green font-semibold inline-flex items-center gap-1">
+                      {service.title} in {county.name} County
+                      <ArrowRight size={12} />
+                    </p>
+                  </Link>
+                ))}
+              </div>
+              <div className="text-center mt-8 text-sm text-gray-400">
+                <p>
+                  Not sure which county you&apos;re in? Use our{' '}
+                  <Link
+                    href="/check-my-address"
+                    className="text-brand-green hover:text-lime-400"
+                  >
+                    address checker
+                  </Link>{' '}
+                  for a recent storm report, or browse all{' '}
+                  <Link
+                    href="/service-areas"
+                    className="text-brand-green hover:text-lime-400"
+                  >
+                    service areas
+                  </Link>
+                  .
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Insurance Carriers - Storm Damage only */}
       {slug === 'storm-hail-damage-repair' && (
