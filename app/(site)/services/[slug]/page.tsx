@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { getService, getAllServiceSlugs, services } from '@/lib/servicesData';
 import { Home, Wrench, Building2, CloudRain, Flame, Shield, Search, AlertTriangle, Droplet, Wind, Paintbrush, ArrowRight, CheckCircle2, Phone, ArrowLeft } from 'lucide-react';
 import type { Metadata } from 'next';
+import BeforeAfterSlider from '@/components/BeforeAfterSlider';
 import StructuredData from '@/components/StructuredData';
 import { siteConfig, generateServiceSchema, generateBreadcrumbSchema, generateFAQSchema } from '@/lib/seo';
 
@@ -233,6 +234,37 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
           </div>
         </div>
       </section>
+
+      {/* Before/After — Storm Damage only */}
+      {/*
+        TODO(Michael): swap these placeholder paths once real before/after pairs
+        are uploaded to /public/uploads. No before/after pair currently exists,
+        so we reuse existing storm/damage imagery so the slider renders without
+        invented filenames.
+      */}
+      {slug === 'storm-hail-damage-repair' && (
+        <section className="py-10 md:py-14 px-4 bg-black/75 backdrop-blur-sm border-t border-white/10">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-8">
+              <span className="text-xs uppercase tracking-widest font-bold text-brand-green">See the Difference</span>
+              <h2 className="text-2xl md:text-3xl font-bold text-white mt-3 mb-3">
+                Storm Damage, Restored
+              </h2>
+              <p className="text-gray-400 max-w-2xl mx-auto">
+                Drag the slider to compare a storm-hit roof to its full replacement.
+              </p>
+            </div>
+            <BeforeAfterSlider
+              beforeSrc="/uploads/blog-hail-damage-assessment.jpg"
+              afterSrc="/uploads/service-storm.jpg"
+              beforeAlt="Hail-damaged roof before River City Roofing repair"
+              afterAlt="Same roof after storm damage restoration"
+              caption="North Alabama — hail damage to full replacement"
+              priority
+            />
+          </div>
+        </section>
+      )}
 
       {/* Insurance Carriers - Storm Damage only */}
       {slug === 'storm-hail-damage-repair' && (

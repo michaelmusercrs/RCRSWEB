@@ -20,6 +20,8 @@ const EmailCapturePopup = dynamic(() => import('@/components/EmailCapturePopup')
 const InstallPromptButton = dynamic(() => import('@/components/InstallPromptButton'), { ssr: false });
 // Rivvy the dog — simple Duck Hunt-style lead-gathering bot. Client-only.
 const DogChatBot = dynamic(() => import('@/components/DogChatBot'), { ssr: false });
+// Mobile-only sticky CTA bar (Call / Text). Opts itself out on contact + storm-report pages.
+const MobileCTABar = dynamic(() => import('@/components/MobileCTABar'), { ssr: false });
 import TrackingProvider from '@/components/TrackingProvider';
 const AnalyticsTracker = dynamic(() => import('@/components/AnalyticsTracker'), { ssr: false });
 const SpeedInsights = dynamic(
@@ -218,6 +220,8 @@ export default function RootLayout({
         <main id="main-content">{children}</main>
         <Footer />
         <FloatingContactButton />
+        {/* Mobile sticky CTA — Call / Text. Appears after scroll past hero on small screens. */}
+        <MobileCTABar />
         {/* Rivvy — Duck Hunt-style dog chatbot for lead capture */}
         <DogChatBot />
         <EmailCapturePopup />

@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { MapPin, Filter, ArrowRight, Wrench, Shield, HardHat } from 'lucide-react';
 import { generateMetadata as genMeta, generateBreadcrumbSchema, siteConfig } from '@/lib/seo';
 import StructuredData from '@/components/StructuredData';
+import BeforeAfterSlider from '@/components/BeforeAfterSlider';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = genMeta({
@@ -194,6 +195,37 @@ export default function GalleryPage() {
                 {cities.filter(c => c !== 'All').join(' | ')}
               </span>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Before/After */}
+      {/*
+        TODO(Michael): replace these placeholder paths once real before/after pairs
+        are uploaded to /public/uploads. No matched pairs exist yet — reusing
+        existing storm/damage imagery so the slider renders without invented
+        filenames or fake URLs.
+      */}
+      <section className="py-12 md:py-16 bg-black/85 backdrop-blur-sm relative z-10 border-y border-white/10">
+        <div className="container mx-auto px-4">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-8">
+              <span className="text-xs uppercase tracking-widest font-bold text-brand-green">Featured Project</span>
+              <h2 className="text-3xl md:text-4xl font-bold text-white mt-3 mb-3">
+                See the Difference
+              </h2>
+              <p className="text-lg text-neutral-300 max-w-2xl mx-auto">
+                Drag the handle to reveal the transformation.
+              </p>
+            </div>
+            <BeforeAfterSlider
+              beforeSrc="/uploads/blog-hail-damage-assessment.jpg"
+              afterSrc="/uploads/service-storm.jpg"
+              beforeAlt="Storm-damaged roof before River City Roofing replacement"
+              afterAlt="Same home after a complete roof replacement"
+              caption="Storm-damaged roof to full replacement — North Alabama"
+              priority
+            />
           </div>
         </div>
       </section>

@@ -6,6 +6,7 @@ import { MapPin, Shield, Award, Users, CheckCircle2, ArrowRight, CloudLightning,
 
 import RotatingText from '@/components/RotatingText';
 import RotatingBanner from '@/components/RotatingBanner';
+import BeforeAfterSlider from '@/components/BeforeAfterSlider';
 import dynamic from 'next/dynamic';
 const QuickContactForm = dynamic(() => import('@/components/QuickContactForm'), { ssr: false });
 import { blogPostIndex as blogPosts } from '@/lib/blogPostIndex';
@@ -334,6 +335,36 @@ export default async function HomePage() {
               </Button>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* See the Difference — Before/After comparison */}
+      {/*
+        TODO(Michael): Replace these placeholder paths with real before/after image pairs.
+        No before/after image pairs currently exist under public/uploads — the slider
+        is wired up with reused storm/repair imagery so the layout renders without
+        invented filenames. Drop matched pairs (e.g. /uploads/before-after-1-before.jpg
+        + /uploads/before-after-1-after.jpg) into /public/uploads and update src below.
+      */}
+      <section className="py-10 md:py-14 px-6 bg-black/85 backdrop-blur-sm border-t border-neutral-800">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-8">
+            <span className="text-xs uppercase tracking-widest font-bold text-brand-green">See the Difference</span>
+            <h2 className="text-3xl md:text-4xl font-black uppercase tracking-wider mt-3 mb-3">
+              Before &amp; After
+            </h2>
+            <p className="text-lg text-neutral-300 max-w-2xl mx-auto">
+              Drag the slider to compare the roof we found with the roof we delivered.
+            </p>
+          </div>
+          <BeforeAfterSlider
+            beforeSrc="/uploads/blog-hail-damage-assessment.jpg"
+            afterSrc="/uploads/service-storm.jpg"
+            beforeAlt="Storm-damaged roof before River City Roofing repair"
+            afterAlt="Same roof after full replacement by River City Roofing"
+            caption="Storm damage repair — North Alabama"
+            priority
+          />
         </div>
       </section>
 
