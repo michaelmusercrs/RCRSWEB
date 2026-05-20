@@ -83,12 +83,9 @@ The codebase has accumulated. Find what to keep, retire, or merge.
 
 Owner explicitly asked for this — look at how others solve the same problems.
 
-- `[pending]` **5.1 Inventory app patterns** — what do best-in-class warehouse/inventory apps do that we don't? (e.g., Sortly, Fishbowl, Cin7, Square for Retail).
-- `[pending]` **5.2 Leaderboard / sales-board patterns** — gamification done right for sales teams.
-- `[pending]` **5.3 CRM patterns** — what does JobNimbus / AccuLynx / RoofSnap do for the bits we duplicate? Where do we actually add value vs. just rebuild theirs?
-- `[pending]` **5.4 Customer portal UX** — what good roofer customer portals look like; ours vs. the bar.
-- `[pending]` **5.5 SEO** — current Google ranking factors 2026, schema markup we should add, content gaps per `[[reference_seo_monitor]]`.
-- `[pending]` **5.6 Roofing-company web design** — visual references; what looks "trustworthy + premium" in this segment.
+- `[done]` **5.1+5.2 Inventory + leaderboard research** — `docs/research-inventory-and-leaderboards.md`. 5 inventory improvements + 5 leaderboard improvements, all rebuildable in-stack, no SaaS. Highlights: QR-scan-to-adjust, TV-mode `/chrisview/board`, GroupMe-wired win-takeovers, anonymous-tail mode.
+- `[pending]` **5.3 CRM comparison** — JobNimbus, AccuLynx, RoofSnap. Where we duplicate vs add value. (Deferred — JN integration audit covers part of this.)
+- `[done]` **5.4+5.5+5.6 Portal + SEO + design research** — `docs/research-portal-seo-design.md`. 5 portal features (CompanyCam-style share, PM trading card, insurance timeline, delivery preview, warranty packet), 5 SEO wins (load-verified review automation, RoofingContractor schema, Core Web Vitals tightening), 5 design wins (vertical install video hero, before-after slider, trust strip, mobile CTA bar, county landing pages).
 
 Deliverable per item: 1-page summary + 3-5 concrete suggestions that would actually move the needle for RCRS, ranked by impact/effort.
 

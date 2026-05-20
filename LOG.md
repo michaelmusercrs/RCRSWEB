@@ -8,7 +8,8 @@ The scheduled routine appends an entry per action.
 
 ## 2026-05-20
 
-- `15:15` · claude · docs/dead-code-triage.md (new) · Phase 4 dead-code + duplicate-page triage — 8 page overlaps, 8 unreferenced API routes, 56 root docs scored, 11 orphan components, 83 script entries, 12 owner questions · commit pending
+- `16:00` · claude · OWNER-SETUP.md + docs/research-inventory-and-leaderboards.md + docs/research-portal-seo-design.md · 5-step owner setup checklist + Phase 5 research (inventory, leaderboards, portal UX, SEO 2026, design) — 15 ranked, scoped improvements · commit pending
+- `15:15` · claude · docs/dead-code-triage.md (new) · Phase 4 dead-code + duplicate-page triage — 8 page overlaps, 8 unreferenced API routes, 56 root docs scored, 11 orphan components, 83 script entries, 12 owner questions · commit 3678aa8
 - `15:00` · claude · 10 API routes · Phase 2.6b — migrated forms from `lib/rate-limiter` (in-memory) to `lib/rate-limiter-kv` (Vercel KV with in-memory fallback) · cold-start bypass that let spam through is now closed when KV envs set · commit pending
 - `14:45` · claude · lib/turnstile.ts + TurnstileWidget.tsx + 10 routes + 9 form components · Cloudflare Turnstile fully wired, inert until `NEXT_PUBLIC_TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY` are set · `@marsidev/react-turnstile` installed; layered order honeypot → spam → turnstile → side-effects · commit pending
 - `14:30` · claude · lib/rate-limiter-kv.ts (new) + package.json · Phase 2.6 Vercel KV-backed rate limiter — per-route factories with form-hardening thresholds; transparent in-memory fallback when KV env unset · cold-start bypass that let spam through is now closed when KV is provisioned · commit ddd3bc2
