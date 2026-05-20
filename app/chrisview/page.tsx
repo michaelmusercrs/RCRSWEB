@@ -89,6 +89,7 @@ interface ChartsData {
   cogsBreakdown: Array<{ name: string; value: number }>;
   salesActivityWeeks: Array<{ date: string; inspected: number; signed: number; revenue: number }>;
   salesActivityByYear: Array<{ year: string; inspected: number; signed: number; revenue: number }>;
+  seasonality: Array<{ month: string; monthNum: number; avgRevenue: number; avgExpense: number; yearCount: number }>;
 }
 
 interface OverviewData {
@@ -828,6 +829,33 @@ export default function ChrisViewPage() {
                       </ComposedChart>
                     </ResponsiveContainer>
                   </div>
+                </section>
+
+                {/* Seasonality chart */}
+                <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                  <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-[#39FF14]" />
+                    Seasonality — Average Revenue per Calendar Month (across all years)
+                  </h3>
+                  <div className="h-72">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart data={charts.seasonality} margin={{ top: 8, right: 8, bottom: 8, left: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                        <XAxis dataKey="month" stroke="#71717a" fontSize={11} />
+                        <YAxis stroke="#71717a" fontSize={11} tickFormatter={v => `$${(v / 1000).toFixed(0)}K`} />
+                        <Tooltip
+                          contentStyle={{ background: '#18181b', border: '1px solid #27272a', borderRadius: 8 }}
+                          formatter={(v: number | undefined) => v != null ? fmtMoneyExact(v) : '—'}
+                        />
+                        <Legend />
+                        <Bar dataKey="avgRevenue" fill="#39FF14" name="Avg revenue/month" />
+                        <Bar dataKey="avgExpense" fill="#ef4444" name="Avg expense/month" opacity={0.7} />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <p className="text-[10px] text-zinc-500 mt-1">
+                    Higher bars = historically stronger months. Useful for spotting whether the current month is on/off the seasonal pattern.
+                  </p>
                 </section>
 
                 {/* Sales activity by year */}

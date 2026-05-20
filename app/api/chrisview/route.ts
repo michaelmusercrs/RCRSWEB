@@ -340,6 +340,29 @@ function buildCharts() {
       : 0,
   };
 
+  // Seasonality — average revenue per calendar month across all years.
+  // Tells Chris "August historically does $X, are we ahead/behind?"
+  const seasonality: Record<number, { sum: number; count: number; expense: number; ec: number }> = {};
+  for (const m of monthly) {
+    const [, mm] = m.month.split('-').map(Number);
+    if (!seasonality[mm]) seasonality[mm] = { sum: 0, count: 0, expense: 0, ec: 0 };
+    seasonality[mm].sum += m.netRevenue;
+    seasonality[mm].count += 1;
+    seasonality[mm].expense += m.expense;
+    seasonality[mm].ec += 1;
+  }
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const seasonalityRows = monthNames.map((name, idx) => {
+    const s = seasonality[idx + 1] || { sum: 0, count: 0, expense: 0, ec: 0 };
+    return {
+      month: name,
+      monthNum: idx + 1,
+      avgRevenue: s.count > 0 ? Math.round((s.sum / s.count) * 100) / 100 : 0,
+      avgExpense: s.ec > 0 ? Math.round((s.expense / s.ec) * 100) / 100 : 0,
+      yearCount: s.count,
+    };
+  });
+
   // Commission payouts by year
   const commByYear: Record<string, number> = {};
   for (const c of commissions as Array<{ date: string; amount: number }>) {
@@ -440,6 +463,7 @@ function buildCharts() {
     cogsBreakdown,
     salesActivityWeeks,
     salesActivityByYear,
+    seasonality: seasonalityRows,
   };
 }
 
