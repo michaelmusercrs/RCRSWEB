@@ -26,6 +26,8 @@ import {
   DollarSign,
   Trash2,
 } from 'lucide-react';
+import { HelpTooltip } from '@/components/inventory/HelpTooltip';
+import { InventoryQuickActions } from '@/components/inventory/InventoryQuickActions';
 
 // Matches the unified-inventory-service InventoryItem shape
 interface InventoryItem {
@@ -439,12 +441,14 @@ export default function InventoryPage() {
               <Warehouse className="w-4 h-4 text-[#39FF14]" />
               <span className="text-sm text-zinc-400">
                 Total Items: <strong className="text-white">{items.length}</strong>
+                <HelpTooltip text="Count of distinct SKUs in the canonical Inventory_Products catalog." />
               </span>
             </div>
             <div className="flex items-center gap-2">
               <DollarSign className="w-4 h-4 text-[#39FF14]" />
               <span className="text-sm text-zinc-400">
                 Total Value: <strong className="text-white">{formatCurrency(totalValue)}</strong>
+                <HelpTooltip text="Sum of (currentQty × unitCost) across all items. Cost basis, not retail." />
               </span>
             </div>
             {lowStockCount > 0 && (
@@ -452,6 +456,7 @@ export default function InventoryPage() {
                 <AlertTriangle className="w-4 h-4 text-amber-400" />
                 <span className="text-sm text-amber-400">
                   <strong>{lowStockCount}</strong> items below minimum
+                  <HelpTooltip text="Items at or below their minStockLevel. Drives the low-stock alert tab." />
                 </span>
               </div>
             )}
@@ -496,13 +501,18 @@ export default function InventoryPage() {
         </div>
       </div>
 
+      {/* Role-aware quick actions */}
+      <div className="px-4 sm:px-6 py-3 max-w-7xl mx-auto w-full">
+        <InventoryQuickActions />
+      </div>
+
       {/* Tabs */}
       <div className="bg-zinc-900 border-b border-zinc-800 px-4 sm:px-6">
         <div className="flex gap-1">
           {[
-            { id: 'inventory' as ViewTab, label: 'All Inventory', icon: Package },
-            { id: 'lowStock' as ViewTab, label: 'Low Stock', icon: AlertTriangle },
-            { id: 'history' as ViewTab, label: 'Transaction History', icon: History },
+            { id: 'inventory' as ViewTab, label: 'All Inventory', icon: Package, help: 'Every SKU in the canonical Inventory_Products catalog.' },
+            { id: 'lowStock' as ViewTab, label: 'Low Stock', icon: AlertTriangle, help: 'SKUs at or below their reorder threshold. Click an item to start a restock.' },
+            { id: 'history' as ViewTab, label: 'Transaction History', icon: History, help: 'Last 100 deductions, restocks, returns, and adjustments — newest first.' },
           ].map(tab => (
             <button
               key={tab.id}
@@ -520,6 +530,7 @@ export default function InventoryPage() {
                   {lowStockCount}
                 </span>
               )}
+              <HelpTooltip text={tab.help} />
             </button>
           ))}
         </div>
@@ -528,7 +539,11 @@ export default function InventoryPage() {
       {/* Search and Filters */}
       {activeTab !== 'history' && (
         <div className="px-4 sm:px-6 py-4 bg-zinc-950 border-b border-zinc-800">
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-3 items-center">
+            <span className="hidden sm:inline-flex items-center gap-1 text-xs text-zinc-500">
+              Search
+              <HelpTooltip text="Matches product name, SKU, description, and supplier. Case-insensitive." />
+            </span>
             <div className="flex-1 min-w-[200px] relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
               <input
@@ -541,6 +556,7 @@ export default function InventoryPage() {
             </div>
             <div className="flex items-center gap-2">
               <Filter className="w-4 h-4 text-zinc-500" />
+              <HelpTooltip text="Narrow the list to one category (shingles, underlayment, etc.). Pulled from the catalog." />
               <select
                 value={categoryFilter}
                 onChange={e => setCategoryFilter(e.target.value)}
@@ -582,13 +598,27 @@ export default function InventoryPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-zinc-800">
-                        <th className="text-left px-4 py-3 text-zinc-400 font-medium">Date</th>
-                        <th className="text-left px-4 py-3 text-zinc-400 font-medium">Item</th>
-                        <th className="text-left px-4 py-3 text-zinc-400 font-medium">Type</th>
-                        <th className="text-right px-4 py-3 text-zinc-400 font-medium">Qty Change</th>
-                        <th className="text-left px-4 py-3 text-zinc-400 font-medium">Reference</th>
-                        <th className="text-right px-4 py-3 text-zinc-400 font-medium">Prev / New Qty</th>
-                        <th className="text-left px-4 py-3 text-zinc-400 font-medium">By</th>
+                        <th className="text-left px-4 py-3 text-zinc-400 font-medium">
+                          Date <HelpTooltip text="When this transaction was recorded. Newest first." />
+                        </th>
+                        <th className="text-left px-4 py-3 text-zinc-400 font-medium">
+                          Item <HelpTooltip text="Product name + SKU affected by this transaction." />
+                        </th>
+                        <th className="text-left px-4 py-3 text-zinc-400 font-medium">
+                          Type <HelpTooltip text="delivery = -qty out to job. restock = +qty in from supplier. return = +qty back from job. adjustment = manual count fix." />
+                        </th>
+                        <th className="text-right px-4 py-3 text-zinc-400 font-medium">
+                          Qty Change <HelpTooltip text="Signed change. Negative = stock out. Positive = stock in." />
+                        </th>
+                        <th className="text-left px-4 py-3 text-zinc-400 font-medium">
+                          Reference <HelpTooltip text="Order ID, ticket ID, or count session linked to this transaction." />
+                        </th>
+                        <th className="text-right px-4 py-3 text-zinc-400 font-medium">
+                          Prev / New Qty <HelpTooltip text="Stock level before and after this transaction." />
+                        </th>
+                        <th className="text-left px-4 py-3 text-zinc-400 font-medium">
+                          By <HelpTooltip text="Person who performed the transaction." />
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-800">

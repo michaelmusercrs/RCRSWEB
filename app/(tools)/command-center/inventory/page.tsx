@@ -36,6 +36,8 @@ import { DataTable, Column } from '@/components/command-center/DataTable';
 import { PermissionGate, usePermissionCheck } from '@/components/command-center/PermissionGate';
 import { InventoryCard } from '@/components/command-center/InventoryCard';
 import { StockAdjustModal } from '@/components/command-center/StockAdjustModal';
+import { HelpTooltip } from '@/components/inventory/HelpTooltip';
+import { InventoryQuickActions } from '@/components/inventory/InventoryQuickActions';
 
 // =============================================================================
 // TYPE DEFINITIONS
@@ -249,7 +251,11 @@ function InventoryPage() {
     const cols: Column<InventoryItem>[] = [
       {
         accessor: 'sku',
-        header: 'SKU',
+        header: (
+          <span className="inline-flex items-center">
+            SKU <HelpTooltip text="Canonical product ID (INV-XXXX) or legacy SKU code." />
+          </span>
+        ),
         sortable: true,
         width: 'w-28',
         render: (value, row) => (
@@ -263,7 +269,9 @@ function InventoryPage() {
       },
       {
         accessor: 'name',
-        header: 'Name',
+        header: (
+          <span className="inline-flex items-center">Name <HelpTooltip text="Product name + short description. Click the row to drill into history." /></span>
+        ),
         sortable: true,
         render: (value, row) => (
           <div className="flex items-center gap-3">
@@ -293,7 +301,9 @@ function InventoryPage() {
       },
       {
         accessor: 'category',
-        header: 'Category',
+        header: (
+          <span className="inline-flex items-center">Category <HelpTooltip text="Catalog grouping (shingles, fasteners, etc.). Drives the category filter." /></span>
+        ),
         sortable: true,
         width: 'w-32',
         render: (value) => (
@@ -304,7 +314,9 @@ function InventoryPage() {
       },
       {
         accessor: 'quantity',
-        header: 'Qty',
+        header: (
+          <span className="inline-flex items-center">Qty <HelpTooltip text="On-hand count. Yellow when ≤ 1.5× min. Red when at/below min." /></span>
+        ),
         sortable: true,
         align: 'center',
         width: 'w-20',
@@ -334,7 +346,9 @@ function InventoryPage() {
       },
       {
         accessor: 'minStock',
-        header: 'Min',
+        header: (
+          <span className="inline-flex items-center">Min <HelpTooltip text="Reorder threshold. Stock at/below this triggers a low-stock alert." /></span>
+        ),
         sortable: true,
         align: 'center',
         width: 'w-16',
@@ -435,9 +449,13 @@ function InventoryPage() {
             >
               <Plus className="h-5 w-5" />
               Add Item
+              <HelpTooltip text="Add a brand-new SKU to the catalog. Requires inventory.edit permission." />
             </Link>
           </PermissionGate>
         </div>
+
+        {/* Role-aware Quick Actions */}
+        <InventoryQuickActions />
 
         {/* Stats Cards */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -711,6 +711,93 @@ const PRODUCTION_CREW_MODULES: TrainingModuleDef[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// Inventory App — role-specific training (2026-05-20)
+// ---------------------------------------------------------------------------
+//
+// One module per role describing exactly what that role does in the new
+// inventory UI: live counts, low-stock alerts, transaction log, quick-actions
+// bar, and (for PMs) the auto-generated Delivery Schedule entry.
+// Primary role is the most-affected viewer; additionalRoles makes the lesson
+// visible from sibling role trees so e.g. Office can see the PM module too.
+
+const INVENTORY_APP_MODULES: TrainingModuleDef[] = [
+  {
+    id: 'inventory-app-driver',
+    title: 'Inventory App — Driver View',
+    description:
+      'Your delivery schedule, today\'s loads, and verify-load workflow on phone. No edits — you only confirm what you delivered. Tap the (?) on any field for a plain-language hint.',
+    role: 'driver',
+    estimatedMinutes: 10,
+    status: 'ready',
+    category: 'Inventory',
+    order: 9,
+    contentType: 'lesson',
+    icon: 'Package',
+    contentUrl: '/portal/driver',
+  },
+  {
+    id: 'inventory-app-warehouse',
+    title: 'Inventory App — Warehouse',
+    description:
+      'Pull lists, load verification, return intake, stock count adjustments. Use the Adjust Stock and Record Return quick-action tiles. All actions log who/when/why.',
+    role: 'driver',
+    additionalRoles: ['admin', 'office_staff'],
+    estimatedMinutes: 15,
+    status: 'ready',
+    category: 'Inventory',
+    order: 10,
+    contentType: 'lesson',
+    icon: 'Warehouse',
+    contentUrl: '/portal/inventory/warehouse',
+  },
+  {
+    id: 'inventory-app-pm',
+    title: 'Inventory App — Project Manager',
+    description:
+      'Material order creation. Submitting auto-emails stock@rcrsal.com AND creates a Delivery Schedule row. Use Credit Memo for returns and Order History to track every job.',
+    role: 'admin',
+    additionalRoles: ['office_staff', 'owner', 'manager'],
+    estimatedMinutes: 15,
+    status: 'ready',
+    category: 'Inventory',
+    order: 11,
+    contentType: 'lesson',
+    icon: 'ClipboardList',
+    contentUrl: '/portal/pm',
+  },
+  {
+    id: 'inventory-app-office',
+    title: 'Inventory App — Office / Billing',
+    description:
+      'Reading the Transaction History tab, low-stock dashboard, reconciliation, and invoicing tied to load-verified events. You see cost; reps and customers do not.',
+    role: 'admin',
+    additionalRoles: ['office_staff', 'owner', 'manager'],
+    estimatedMinutes: 15,
+    status: 'ready',
+    category: 'Inventory',
+    order: 12,
+    contentType: 'lesson',
+    icon: 'FileSpreadsheet',
+    contentUrl: '/portal/inventory',
+  },
+  {
+    id: 'inventory-app-owner',
+    title: 'Inventory App — Owner Snapshot',
+    description:
+      'Per-SKU drill-down: lifetime delivered + average monthly burn rate. Use this to size restock orders and spot SKUs that are bleeding without restock coverage.',
+    role: 'owner',
+    additionalRoles: ['manager'],
+    estimatedMinutes: 10,
+    status: 'ready',
+    category: 'Inventory',
+    order: 13,
+    contentType: 'lesson',
+    icon: 'TrendingUp',
+    contentUrl: '/command-center/inventory',
+  },
+];
+
+// ---------------------------------------------------------------------------
 // Combined exports
 // ---------------------------------------------------------------------------
 
@@ -721,6 +808,7 @@ export const ALL_TRAINING_MODULES: TrainingModuleDef[] = [
   ...OWNER_MODULES,
   ...CUSTOMER_MODULES,
   ...PRODUCTION_CREW_MODULES,
+  ...INVENTORY_APP_MODULES,
 ];
 
 /**

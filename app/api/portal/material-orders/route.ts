@@ -10,6 +10,7 @@ import { requireAuth } from '@/lib/auth-service';
 import { materialOrderPipeline, type PipelineStage } from '@/lib/material-order-pipeline';
 import { unifiedInventoryService } from '@/lib/unified-inventory-service';
 import { canSeeCost, filterCostByRole } from '@/lib/cost-visibility';
+import { upsertDeliveryScheduleEntry } from '@/lib/delivery-schedule-service';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth();
@@ -115,6 +116,31 @@ export async function POST(request: NextRequest) {
       specialInstructions: body.specialInstructions,
       notes: body.notes,
     });
+
+    // Owner directive: every material order submitted from the portal lands
+    // a Delivery Schedule entry automatically — the same as the work-order
+    // → stock@rcrsal.com email path. Best-effort write, never blocks.
+    try {
+      await upsertDeliveryScheduleEntry({
+        ticketId: order.orderId,
+        jobNumber: order.jobNumber,
+        customerName: order.customerName,
+        address: [
+          order.deliveryAddress,
+          order.deliveryCity,
+          order.deliveryState,
+          order.deliveryZip,
+        ]
+          .filter(Boolean)
+          .join(', '),
+        scheduledDate: order.scheduledDeliveryDate || order.requestedDeliveryDate || '',
+        status: 'pending',
+        driverSlug: order.assignedDriverId || '',
+        notes: order.specialInstructions || order.notes || '',
+      });
+    } catch (scheduleErr) {
+      console.warn('[material-orders] Failed to upsert Delivery Schedule entry:', scheduleErr);
+    }
 
     return NextResponse.json(order, { status: 201 });
   } catch (error) {

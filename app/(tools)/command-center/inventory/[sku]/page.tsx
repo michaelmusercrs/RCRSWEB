@@ -39,6 +39,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
 import { PermissionGate, usePermissionCheck } from '@/components/command-center/PermissionGate';
 import { StockAdjustModal } from '@/components/command-center/StockAdjustModal';
+import { HelpTooltip } from '@/components/inventory/HelpTooltip';
 
 // =============================================================================
 // TYPE DEFINITIONS
@@ -109,10 +110,68 @@ function StockHistoryPanel({ sku, itemName, showCost }: { sku: string; itemName:
   const [showCount, setShowCount] = React.useState(25);
 
   React.useEffect(() => {
+    let cancelled = false;
     async function loadTransactions() {
       try {
+        // 1) Try the live API first — pulls from InventoryTransactions sheet.
+        //    Map productId by searching the catalog (the SKU URL param could be
+        //    an INV-XXXX productId OR a legacy SKU).
+        const apiCandidates: string[] = [sku];
+        // Also try resolving via local catalog (fallback for legacy slugs)
+        try {
+          const { inventoryProducts } = await import('@/lib/inventoryData');
+          const product = inventoryProducts.find(
+            (p) => p.productId === sku || p.productName.toLowerCase().replace(/\s+/g, '-') === sku.toLowerCase()
+          );
+          if (product && !apiCandidates.includes(product.productId)) {
+            apiCandidates.push(product.productId);
+          }
+        } catch {
+          // local data is optional — keep going
+        }
+
+        let live: TransactionRecord[] = [];
+        for (const pid of apiCandidates) {
+          try {
+            const res = await fetch(
+              `/api/portal/inventory?action=transactions&productId=${encodeURIComponent(pid)}&limit=500`,
+              { credentials: 'include' },
+            );
+            if (res.ok) {
+              const rows = await res.json();
+              if (Array.isArray(rows) && rows.length > 0) {
+                live = rows.map((r: Record<string, unknown>) => ({
+                  inventoryId: String(r.transactionId || ''),
+                  itemId: String(r.productId || pid),
+                  dateTime: String(r.timestamp || ''),
+                  amount: Number(r.quantity ?? 0),
+                  referenceNumber: String(r.referenceId || ''),
+                  price: Number(r.unitPrice ?? 0),
+                  cost: Number(r.unitCost ?? 0),
+                  status: 'completed' as const,
+                  type: ((): TransactionRecord['type'] => {
+                    const t = String(r.type || 'adjustment');
+                    if (t === 'delivery' || t === 'restock' || t === 'return' || t === 'adjustment' || t === 'count') return t;
+                    return 'adjustment';
+                  })(),
+                  notes: typeof r.notes === 'string' ? r.notes : undefined,
+                }));
+                break;
+              }
+            }
+          } catch {
+            // try next candidate / fall through to local data
+          }
+        }
+
+        if (live.length > 0) {
+          live.sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime());
+          if (!cancelled) setTransactions(live);
+          return;
+        }
+
+        // 2) Fallback: local seed data (only useful in dev / before sheets exist)
         const { inventoryTransactions } = await import('@/lib/inventoryTransactions');
-        // Find the itemId that maps to this SKU
         const { inventoryProducts } = await import('@/lib/inventoryData');
         const product = inventoryProducts.find(
           (p) => p.productId === sku || p.productName.toLowerCase().replace(/\s+/g, '-') === sku.toLowerCase()
@@ -122,20 +181,20 @@ function StockHistoryPanel({ sku, itemName, showCost }: { sku: string; itemName:
         if (product) {
           filtered = inventoryTransactions.filter((t) => t.itemId === product.productId);
         } else {
-          // Try matching by SKU directly
           filtered = inventoryTransactions.filter((t) => t.itemId === sku);
         }
-
-        // Sort by date descending
         filtered.sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime());
-        setTransactions(filtered);
+        if (!cancelled) setTransactions(filtered);
       } catch {
-        setTransactions([]);
+        if (!cancelled) setTransactions([]);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
     loadTransactions();
+    return () => {
+      cancelled = true;
+    };
   }, [sku]);
 
   const filteredTransactions = filterType === 'all'
@@ -173,6 +232,30 @@ function StockHistoryPanel({ sku, itemName, showCost }: { sku: string; itemName:
   const totalUnitsOut = transactions.filter((t) => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0);
   const totalUnitsIn = transactions.filter((t) => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
 
+  // Lifetime delivered = sum of negative qty on delivery rows (units that
+  // physically left the warehouse for jobs). Returns are NOT subtracted
+  // here — they show separately in totalUnitsIn.
+  const lifetimeDelivered = transactions
+    .filter((t) => t.type === 'delivery' && t.amount < 0)
+    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+  // Average monthly burn rate: total units shipped on deliveries, divided by
+  // months of history we have. If there's <30 days of data, we report "—"
+  // because the number would be misleading.
+  const burnRate = ((): { value: string; months: number } => {
+    if (lifetimeDelivered <= 0 || transactions.length === 0) return { value: '—', months: 0 };
+    const dates = transactions
+      .map((t) => new Date(t.dateTime).getTime())
+      .filter((n) => Number.isFinite(n));
+    if (dates.length === 0) return { value: '—', months: 0 };
+    const oldest = Math.min(...dates);
+    const newest = Math.max(...dates);
+    const days = (newest - oldest) / (1000 * 60 * 60 * 24);
+    if (days < 30) return { value: '—', months: 0 };
+    const months = Math.max(days / 30.4375, 1);
+    return { value: `${Math.round(lifetimeDelivered / months)} / mo`, months: Math.round(months) };
+  })();
+
   return (
     <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
       <div className="flex items-center justify-between mb-4">
@@ -187,22 +270,51 @@ function StockHistoryPanel({ sku, itemName, showCost }: { sku: string; itemName:
 
       {/* Summary Stats */}
       {!loading && transactions.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
           <div className="rounded-lg bg-zinc-800/50 p-3">
-            <p className="text-xs text-zinc-500">Total Deliveries</p>
+            <p className="text-xs text-zinc-500">
+              Total Deliveries
+              <HelpTooltip text="How many separate delivery transactions sent this item out to jobs." />
+            </p>
             <p className="text-lg font-bold text-blue-400">{totalDeliveries}</p>
           </div>
           <div className="rounded-lg bg-zinc-800/50 p-3">
-            <p className="text-xs text-zinc-500">Total Restocks</p>
+            <p className="text-xs text-zinc-500">
+              Total Restocks
+              <HelpTooltip text="How many separate restock transactions brought new stock in from a supplier." />
+            </p>
             <p className="text-lg font-bold text-lime-400">{totalRestocks}</p>
           </div>
           <div className="rounded-lg bg-zinc-800/50 p-3">
-            <p className="text-xs text-zinc-500">Units Out</p>
+            <p className="text-xs text-zinc-500">
+              Units Out
+              <HelpTooltip text="Total units removed (deliveries + write-offs). Doesn't subtract returns." />
+            </p>
             <p className="text-lg font-bold text-red-400">{totalUnitsOut}</p>
           </div>
           <div className="rounded-lg bg-zinc-800/50 p-3">
-            <p className="text-xs text-zinc-500">Units In</p>
+            <p className="text-xs text-zinc-500">
+              Units In
+              <HelpTooltip text="Total units added (restocks + returns + positive adjustments)." />
+            </p>
             <p className="text-lg font-bold text-lime-400">{totalUnitsIn}</p>
+          </div>
+          <div className="rounded-lg bg-zinc-800/50 p-3">
+            <p className="text-xs text-zinc-500">
+              Lifetime Delivered
+              <HelpTooltip text="Total units shipped on delivery transactions across the whole history of this SKU." />
+            </p>
+            <p className="text-lg font-bold text-blue-400">{lifetimeDelivered}</p>
+          </div>
+          <div className="rounded-lg bg-zinc-800/50 p-3">
+            <p className="text-xs text-zinc-500">
+              Avg Monthly Burn
+              <HelpTooltip text="Average units delivered per month, computed across the full transaction history. Needs ≥30 days of data." />
+            </p>
+            <p className="text-lg font-bold text-amber-400">{burnRate.value}</p>
+            {burnRate.months > 0 && (
+              <p className="text-[10px] text-zinc-500 mt-0.5">over ~{burnRate.months} mo</p>
+            )}
           </div>
         </div>
       )}

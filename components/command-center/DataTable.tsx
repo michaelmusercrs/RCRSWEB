@@ -7,8 +7,8 @@ import { cn } from '@/lib/utils';
 export interface Column<T> {
   /** Unique key to access data in row object */
   accessor: keyof T | string;
-  /** Display header text */
-  header: string;
+  /** Display header text (string or React node — e.g. <span>Reorder <HelpTooltip … /></span>) */
+  header: React.ReactNode;
   /** Whether column is sortable */
   sortable?: boolean;
   /** Custom render function for cell content */

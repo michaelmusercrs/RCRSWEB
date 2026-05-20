@@ -8,6 +8,7 @@ import { emailService } from '@/lib/email-service';
 import { jobMaterialCostService, type JobMaterialCostLine } from '@/lib/job-material-cost-service';
 import { inventoryTabSync } from '@/lib/inventory-tab-sync';
 import { unifiedInventoryService } from '@/lib/unified-inventory-service';
+import { upsertDeliveryScheduleEntry } from '@/lib/delivery-schedule-service';
 
 // Helper function to send delivery notification (GroupMe + customer auto-notify)
 async function sendDeliveryNotification(ticket: any, status: string) {
@@ -294,6 +295,26 @@ export async function POST(request: NextRequest) {
         // No office email on ticket creation — the order is already saved
         // against the job in JobNimbus, and the office invoice fires later
         // at load_verified (price-only, sent from delivery-workflow-service).
+
+        // Step 6: write a Delivery Schedule entry. Owner directive:
+        // "delivery scheduling is automatic when submitting a material order
+        //  to email stock@rcrsal.com." We lazy-create the sheet tab and
+        //  upsert by ticketId. Driver/scheduledDate stay blank until office
+        //  assigns. Best-effort — never blocks the response.
+        try {
+          await upsertDeliveryScheduleEntry({
+            ticketId: ticket.ticketId,
+            jobNumber: normalizedJobNumber,
+            customerName: data.customerName || '',
+            address: [data.jobAddress, data.city, data.state, data.zip].filter(Boolean).join(', '),
+            scheduledDate: data.requestedDate || '',
+            status: 'pending',
+            driverSlug: '',
+            notes: data.specialInstructions || data.workOrderBody || '',
+          });
+        } catch (scheduleErr) {
+          console.warn('[tickets] Failed to upsert Delivery Schedule entry:', scheduleErr);
+        }
 
         return NextResponse.json({
           success: true,
