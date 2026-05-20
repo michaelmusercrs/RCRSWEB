@@ -5,7 +5,8 @@
 
 
 const COMPANY_EMAIL = 'rcrs@rivercityroofingsolutions.com';
-const COMPANY_EMAIL_BACKUP = 'rivercityroofingsolutions@gmail.com';
+// COMPANY_EMAIL_BACKUP (rivercityroofingsolutions@gmail.com) intentionally
+// removed 2026-05-20 — see CC removal note below.
 
 export interface ContactFormData {
   name: string;
@@ -263,12 +264,16 @@ class FormService {
             </div>
           </div>`;
 
-      // Send to primary address with backup as CC
+      // Send to primary company address only.
+      // gmail backup CC removed 2026-05-20 — was the only path leaking form
+      // submissions into the owner's personal inbox and got flooded. Restore
+      // via env recipient list once we identify the flood source. Even if
+      // re-added, lib/email-service.ts enforces a per-recipient hourly cap
+      // (tightest on the owner gmail) so a flood can never recur.
       await emailService.send({
         to: COMPANY_EMAIL,
         subject,
         body,
-        cc: COMPANY_EMAIL_BACKUP,
         replyTo: isContact ? (contactData.email || undefined) : (referralData.referrerEmail || undefined),
         fromName: 'RCRS Website Forms',
       });

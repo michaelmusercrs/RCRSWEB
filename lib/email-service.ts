@@ -8,6 +8,18 @@
 // - Lead assignment notifications to reps
 // - Status update emails
 // - Gmail+ alias automation (e.g., richard+orders@rivercityroofingsolutions.com)
+//
+// Anti-flood safeguards (added 2026-05-20 after gmail inbox flood incident):
+//   EMAIL_KILL_SWITCH=true                  -> block all outbound sends
+//   EMAIL_CAP_PER_HOUR (default 30)         -> per-recipient hourly cap
+//   EMAIL_CAP_PER_DAY  (default 100)        -> per-recipient daily cap
+//   EMAIL_CAP_OWNER_PER_HOUR (default 5)    -> tighter cap for owner gmail
+//   EMAIL_CAP_OWNER_PER_DAY  (default 30)
+// Caps are in-memory per Lambda instance. Not perfect across cold starts,
+// but a flood warms an instance fast so the cap engages within seconds.
+// Capped recipients are dropped from the recipient list; remaining ones go
+// through. Blocked sends are logged with [EMAIL BLOCKED] / [EMAIL DROPPED]
+// for later forensic review.
 
 export interface EmailOptions {
   to: string;
@@ -19,6 +31,60 @@ export interface EmailOptions {
   fromName?: string;
 }
 
+const OWNER_GMAIL = 'rivercityroofingsolutions@gmail.com';
+
+type Bucket = { hour: number; hourCount: number; day: number; dayCount: number };
+const rateBuckets = new Map<string, Bucket>();
+
+function capsFor(addr: string): { hour: number; day: number } {
+  if (addr === OWNER_GMAIL) {
+    return {
+      hour: parseInt(process.env.EMAIL_CAP_OWNER_PER_HOUR || '5', 10),
+      day: parseInt(process.env.EMAIL_CAP_OWNER_PER_DAY || '30', 10),
+    };
+  }
+  return {
+    hour: parseInt(process.env.EMAIL_CAP_PER_HOUR || '30', 10),
+    day: parseInt(process.env.EMAIL_CAP_PER_DAY || '100', 10),
+  };
+}
+
+function checkAndBumpRate(rawAddr: string): { allowed: boolean; reason?: string } {
+  const addr = rawAddr.toLowerCase().trim();
+  if (!addr) return { allowed: true };
+  const now = Date.now();
+  const hour = Math.floor(now / 3_600_000);
+  const day = Math.floor(now / 86_400_000);
+  const { hour: hourCap, day: dayCap } = capsFor(addr);
+  let b = rateBuckets.get(addr);
+  if (!b) b = { hour, hourCount: 0, day, dayCount: 0 };
+  if (b.hour !== hour) { b.hour = hour; b.hourCount = 0; }
+  if (b.day !== day) { b.day = day; b.dayCount = 0; }
+  if (b.hourCount >= hourCap) return { allowed: false, reason: `hourly cap ${hourCap} hit` };
+  if (b.dayCount >= dayCap) return { allowed: false, reason: `daily cap ${dayCap} hit` };
+  b.hourCount++;
+  b.dayCount++;
+  rateBuckets.set(addr, b);
+  return { allowed: true };
+}
+
+function filterRecipients(addrs: string | undefined, subject: string, field: 'to' | 'cc' | 'bcc'): { kept: string; dropped: string[] } {
+  if (!addrs) return { kept: '', dropped: [] };
+  const list = addrs.split(/[;,]/).map(s => s.trim()).filter(Boolean);
+  const kept: string[] = [];
+  const dropped: string[] = [];
+  for (const a of list) {
+    const r = checkAndBumpRate(a);
+    if (r.allowed) {
+      kept.push(a);
+    } else {
+      dropped.push(a);
+      console.warn('[EMAIL BLOCKED]', { field, addr: a, reason: r.reason, subject });
+    }
+  }
+  return { kept: kept.join(','), dropped };
+}
+
 class EmailService {
   private endpoint: string;
 
@@ -28,6 +94,12 @@ class EmailService {
 
   // Send email via Google Apps Script
   async send(options: EmailOptions): Promise<{ success: boolean; error?: string }> {
+    // Kill switch: flip EMAIL_KILL_SWITCH=true on Vercel to block ALL sends.
+    if (process.env.EMAIL_KILL_SWITCH === 'true') {
+      console.warn('[EMAIL KILL SWITCH] Send blocked:', { to: options.to, cc: options.cc, subject: options.subject });
+      return { success: false, error: 'EMAIL_KILL_SWITCH active' };
+    }
+
     // Sandbox mode: log instead of sending
     if (process.env.SANDBOX_MODE === 'true' || process.env.VERCEL_GIT_COMMIT_REF === 'sandbox') {
       console.log('[SANDBOX] Email intercepted:', { to: options.to, subject: options.subject });
@@ -39,18 +111,32 @@ class EmailService {
       return { success: false, error: 'Email endpoint not configured' };
     }
 
+    // Per-recipient rate limit. Drop capped recipients, continue with the rest.
+    const toF = filterRecipients(options.to, options.subject, 'to');
+    const ccF = filterRecipients(options.cc, options.subject, 'cc');
+    const bccF = filterRecipients(options.bcc, options.subject, 'bcc');
+
+    if (!toF.kept) {
+      console.warn('[EMAIL DROPPED] All "to" recipients rate-limited:', {
+        originalTo: options.to,
+        droppedTo: toF.dropped,
+        subject: options.subject,
+      });
+      return { success: false, error: 'all to-recipients rate-limited' };
+    }
+
     try {
       const response = await fetch(this.endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
           formType: 'email_notification',
-          to: options.to,
+          to: toF.kept,
           subject: options.subject,
           body: options.body,
           ...(options.replyTo && { replyTo: options.replyTo }),
-          ...(options.cc && { cc: options.cc }),
-          ...(options.bcc && { bcc: options.bcc }),
+          ...(ccF.kept && { cc: ccF.kept }),
+          ...(bccF.kept && { bcc: bccF.kept }),
           ...(options.fromName && { fromName: options.fromName }),
         }).toString(),
       });
