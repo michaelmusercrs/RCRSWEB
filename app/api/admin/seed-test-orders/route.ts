@@ -188,7 +188,8 @@ export async function POST(request: NextRequest) {
       // Pull a healthy batch and filter client-side. JN's API doesn't have
       // a great free-text search, so we just grab recent jobs and look for
       // "test" in the name.
-      const result = await jobNimbusService.getJobs({ limit: 200 });
+      // Admin test-data seeder — internal, only job name/status consumed.
+      const result = await jobNimbusService.getJobs({ limit: 200 }, { canSeeCost: true });
       jnJobs = (result.results || []).filter(j =>
         (j.name || '').toLowerCase().includes('test')
       );

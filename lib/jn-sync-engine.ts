@@ -1,5 +1,10 @@
 // JobNimbus 2-Way Sync Engine
 // Handles bidirectional sync between our portal and JobNimbus CRM
+//
+// COST-PRIVACY: all read functions in this file accept an optional `viewer`
+// arg + redact cost fields via lib/jn-redact.ts before returning. Missing
+// viewer => fail-safe redaction (treat as not-allowed). NEVER bypass. See
+// docs/research-crm-comparison.md moat #3 + feedback_purchase_price_visibility.
 
 import {
   jobNimbusService,
@@ -13,6 +18,11 @@ import {
 } from './jobnimbus-service';
 import { teamMembers } from './teamData';
 import { TEAM_MEMBERS, type TeamMember } from './team-roles';
+import {
+  redactCostFieldsDeep,
+  effectiveCanSeeCost,
+  type JNViewer,
+} from './jn-redact';
 
 // Maximum pages to fetch to prevent infinite loops
 const MAX_PAGES = 100;
@@ -264,7 +274,7 @@ class JNSyncEngine {
   /**
    * Get contacts filtered by sales rep name
    */
-  async getContactsForRep(repName: string, limit: number = 200): Promise<RepContactSummary[]> {
+  async getContactsForRep(repName: string, limit: number = 200, viewer?: JNViewer): Promise<RepContactSummary[]> {
     if (!isJobNimbusConfigured()) {
       throw new Error('JobNimbus API not configured');
     }
@@ -280,7 +290,7 @@ class JNSyncEngine {
       const result = await jobNimbusService.getContacts({
         limit: pageSize,
         offset,
-      });
+      }, viewer);
       allContacts.push(...result.results);
       offset += pageSize;
       hasMore = result.results.length === pageSize;
@@ -299,7 +309,9 @@ class JNSyncEngine {
         repNameLower.includes(srn.split(' ')[0]);
     });
 
-    // Enrich with job counts
+    // Enrich with job counts. The mapper below produces our own shape from
+    // JN fields, so cost fields shouldn't surface naturally — but we run the
+    // final array through the redactor as defense in depth.
     const summaries: RepContactSummary[] = repContacts.map(c => ({
       jnid: c.jnid,
       name: jobNimbusService.getContactName(c),
@@ -320,13 +332,13 @@ class JNSyncEngine {
       updatedAt: c.updated_at ? new Date(c.updated_at * 1000).toISOString() : '',
     }));
 
-    return summaries;
+    return redactCostFieldsDeep(summaries, effectiveCanSeeCost(viewer));
   }
 
   /**
    * Get jobs filtered by sales rep
    */
-  async getJobsForRep(repName: string, limit: number = 200): Promise<RepJobSummary[]> {
+  async getJobsForRep(repName: string, limit: number = 200, viewer?: JNViewer): Promise<RepJobSummary[]> {
     if (!isJobNimbusConfigured()) {
       throw new Error('JobNimbus API not configured');
     }
@@ -341,7 +353,7 @@ class JNSyncEngine {
       const result = await jobNimbusService.getJobs({
         limit: pageSize,
         offset,
-      });
+      }, viewer);
       allJobs.push(...result.results);
       offset += pageSize;
       hasMore = result.results.length === pageSize;
@@ -360,7 +372,7 @@ class JNSyncEngine {
         repNameLower.includes(srn.split(' ')[0]);
     });
 
-    return repJobs.map(j => ({
+    const out: RepJobSummary[] = repJobs.map(j => ({
       jnid: j.jnid,
       number: j.number || '',
       name: j.name || 'Untitled Job',
@@ -376,6 +388,7 @@ class JNSyncEngine {
       createdAt: j.created_at ? new Date(j.created_at * 1000).toISOString() : '',
       updatedAt: j.updated_at ? new Date(j.updated_at * 1000).toISOString() : '',
     }));
+    return redactCostFieldsDeep(out, effectiveCanSeeCost(viewer));
   }
 
   /**
@@ -396,8 +409,9 @@ class JNSyncEngine {
     try {
       await jobNimbusService.updateJobStatus(jobJnid, jnStatus);
 
-      // Also add a note about the status change
-      const job = await jobNimbusService.getJob(jobJnid);
+      // Also add a note about the status change. Internal sync — only the
+      // primary.id is consumed, so an owner-tier viewer is safe.
+      const job = await jobNimbusService.getJob(jobJnid, { canSeeCost: true });
       if (job.primary?.id) {
         await jobNimbusService.createNoteOnJob(
           jobJnid,
@@ -459,7 +473,8 @@ class JNSyncEngine {
    */
   async pullNotes(
     contactJnid: string,
-    limit: number = 50
+    limit: number = 50,
+    viewer?: JNViewer,
   ): Promise<Array<{
     jnid: string;
     content: string;
@@ -470,14 +485,15 @@ class JNSyncEngine {
     if (!isJobNimbusConfigured()) return [];
 
     try {
-      const notes = await jobNimbusService.getNotesForContact(contactJnid, limit);
-      return notes.map(n => ({
+      const notes = await jobNimbusService.getNotesForContact(contactJnid, limit, viewer);
+      const mapped = notes.map(n => ({
         jnid: n.jnid,
         content: n.content || '',
         author: n.created_by_name || n.created_by || 'Unknown',
         createdAt: n.created_at ? new Date(n.created_at * 1000).toISOString() : '',
         isPortalNote: (n.content || '').includes('[RCRS Portal') || (n.content || '').includes('[Portal'),
       }));
+      return redactCostFieldsDeep(mapped, effectiveCanSeeCost(viewer));
     } catch {
       return [];
     }
@@ -488,7 +504,8 @@ class JNSyncEngine {
    */
   async pullNotesForJob(
     jobJnid: string,
-    limit: number = 50
+    limit: number = 50,
+    viewer?: JNViewer,
   ): Promise<Array<{
     jnid: string;
     content: string;
@@ -499,14 +516,15 @@ class JNSyncEngine {
     if (!isJobNimbusConfigured()) return [];
 
     try {
-      const notes = await jobNimbusService.getNotesForJob(jobJnid, limit);
-      return notes.map(n => ({
+      const notes = await jobNimbusService.getNotesForJob(jobJnid, limit, viewer);
+      const mapped = notes.map(n => ({
         jnid: n.jnid,
         content: n.content || '',
         author: n.created_by_name || n.created_by || 'Unknown',
         createdAt: n.created_at ? new Date(n.created_at * 1000).toISOString() : '',
         isPortalNote: (n.content || '').includes('[RCRS Portal') || (n.content || '').includes('[Portal'),
       }));
+      return redactCostFieldsDeep(mapped, effectiveCanSeeCost(viewer));
     } catch {
       return [];
     }
@@ -515,7 +533,7 @@ class JNSyncEngine {
   /**
    * Get documents/attachments for a contact and their jobs
    */
-  async getDocuments(contactJnid: string): Promise<Array<{
+  async getDocuments(contactJnid: string, viewer?: JNViewer): Promise<Array<{
     jnid: string;
     filename: string;
     description: string;
@@ -530,8 +548,8 @@ class JNSyncEngine {
     if (!isJobNimbusConfigured()) return [];
 
     try {
-      const attachments = await jobNimbusService.getAttachmentsForContact(contactJnid);
-      return attachments.map(a => ({
+      const attachments = await jobNimbusService.getAttachmentsForContact(contactJnid, viewer);
+      const mapped = attachments.map(a => ({
         jnid: a.jnid,
         filename: a.filename || 'Unknown',
         description: a.description || '',
@@ -543,6 +561,7 @@ class JNSyncEngine {
         createdBy: a.created_by || 'Unknown',
         source: 'jobnimbus' as const,
       }));
+      return redactCostFieldsDeep(mapped, effectiveCanSeeCost(viewer));
     } catch {
       return [];
     }
@@ -551,7 +570,7 @@ class JNSyncEngine {
   /**
    * Get documents for a specific job
    */
-  async getDocumentsForJob(jobJnid: string): Promise<Array<{
+  async getDocumentsForJob(jobJnid: string, viewer?: JNViewer): Promise<Array<{
     jnid: string;
     filename: string;
     description: string;
@@ -565,8 +584,8 @@ class JNSyncEngine {
     if (!isJobNimbusConfigured()) return [];
 
     try {
-      const files = await jobNimbusService.getFilesForJob(jobJnid);
-      return files.map(f => ({
+      const files = await jobNimbusService.getFilesForJob(jobJnid, viewer);
+      const mapped = files.map(f => ({
         jnid: f.jnid,
         filename: f.filename || 'Unknown',
         description: f.description || '',
@@ -577,6 +596,7 @@ class JNSyncEngine {
         createdAt: f.created_at ? new Date(f.created_at * 1000).toISOString() : '',
         createdBy: f.created_by || 'Unknown',
       }));
+      return redactCostFieldsDeep(mapped, effectiveCanSeeCost(viewer));
     } catch {
       return [];
     }
@@ -585,8 +605,11 @@ class JNSyncEngine {
   /**
    * Calculate sales metrics for a rep from JN data
    */
-  async getRepSalesMetrics(repName: string, periodMonths: number = 12): Promise<RepSalesMetrics> {
-    const jobs = await this.getJobsForRep(repName, 500);
+  async getRepSalesMetrics(repName: string, periodMonths: number = 12, viewer?: JNViewer): Promise<RepSalesMetrics> {
+    // Rep metrics include estimateTotal (price, not cost). We still propagate
+    // the viewer so any underlying call redacts cost fields if a future
+    // mapper exposes one.
+    const jobs = await this.getJobsForRep(repName, 500, viewer);
 
     // Calculate cutoff date
     const cutoff = new Date();
@@ -671,10 +694,14 @@ class JNSyncEngine {
   }
 
   /**
-   * Calculate commission data for a rep
+   * Calculate commission data for a rep.
+   *
+   * Commission viewing is allowed to the rep themselves + the cost-visible
+   * roles. The viewer here gates cost redaction on the underlying JN job
+   * fetch — commissions themselves are derived from price not cost.
    */
-  async getRepCommissions(repName: string, repSlug: string): Promise<CommissionData> {
-    const jobs = await this.getJobsForRep(repName, 500);
+  async getRepCommissions(repName: string, repSlug: string, viewer?: JNViewer): Promise<CommissionData> {
+    const jobs = await this.getJobsForRep(repName, 500, viewer);
 
     const commissionJobs: CommissionJob[] = [];
     let totalEarned = 0;
@@ -762,13 +789,15 @@ class JNSyncEngine {
     }
 
     try {
-      // Check for existing contact by email first, then phone
+      // Check for existing contact by email first, then phone. Internal
+      // dedup check — we only read jnid, so owner-tier viewer is safe.
+      const dedupViewer: JNViewer = { canSeeCost: true };
       let existing: import('./jobnimbus-service').JobNimbusContact | null = null;
       if (params.email) {
-        existing = await jobNimbusService.searchContactByEmail(params.email).catch(() => null);
+        existing = await jobNimbusService.searchContactByEmail(params.email, dedupViewer).catch(() => null);
       }
       if (!existing && params.phone) {
-        existing = await jobNimbusService.searchContactByPhone(params.phone).catch(() => null);
+        existing = await jobNimbusService.searchContactByPhone(params.phone, dedupViewer).catch(() => null);
       }
 
       if (existing) {
@@ -916,19 +945,19 @@ class JNSyncEngine {
   /**
    * Get full customer detail from JN (all related data)
    */
-  async getFullCustomerData(contactJnid: string) {
+  async getFullCustomerData(contactJnid: string, viewer?: JNViewer) {
     if (!isJobNimbusConfigured()) {
       throw new Error('JobNimbus API not configured');
     }
 
-    const portalData = await jobNimbusService.getCustomerPortalData(contactJnid);
+    const portalData = await jobNimbusService.getCustomerPortalData(contactJnid, viewer);
     if (!portalData) {
       return null;
     }
 
     const { contact, jobs, estimates, tasks, notes, attachments, invoices } = portalData;
 
-    return {
+    const shaped = {
       contact: {
         jnid: contact.jnid,
         name: jobNimbusService.getContactName(contact),
@@ -1019,6 +1048,10 @@ class JNSyncEngine {
         createdAt: i.created_at ? new Date(i.created_at * 1000).toISOString() : '',
       })),
     };
+
+    // Final belt-and-suspenders pass — strips any cost-named field the
+    // shape mapper above missed.
+    return redactCostFieldsDeep(shaped, effectiveCanSeeCost(viewer));
   }
 
   /**
@@ -1033,9 +1066,15 @@ class JNSyncEngine {
 
     const sinceTimestamp = lastSyncState?.lastSyncTimestamp;
 
+    // runFullSync is a server-internal job; it does not return data to a
+    // caller, only updates lastSyncState counters. Pass an owner-tier viewer
+    // so cost fields are NOT redacted out of the internal copy that may be
+    // persisted to our sheets. Any downstream surface that exposes this data
+    // to users must apply redaction at its own boundary.
+    const internalViewer: JNViewer = { canSeeCost: true };
     try {
       // Sync contacts
-      const contacts = await jobNimbusService.syncContacts(sinceTimestamp);
+      const contacts = await jobNimbusService.syncContacts(sinceTimestamp, internalViewer);
       contactsSynced = contacts.length;
 
       // Sync jobs
@@ -1050,7 +1089,7 @@ class JNSyncEngine {
           limit,
           offset,
           since: sinceTimestamp,
-        });
+        }, internalViewer);
         allJobs.push(...result.results);
         offset += limit;
         hasMore = result.results.length === limit;

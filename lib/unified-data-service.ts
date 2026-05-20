@@ -218,11 +218,15 @@ class UnifiedDataService {
 
     if (isJobNimbusConfigured()) {
       try {
+        // Internal aggregator — only counts/statuses are consumed downstream.
+        // Owner-tier viewer is safe; consumers must re-redact for end users.
+        const internalViewer = { canSeeCost: true };
+
         // Get overall stats
-        jnStats = await jobNimbusService.getStats();
+        jnStats = await jobNimbusService.getStats(internalViewer);
 
         // Get detailed job data for status breakdown
-        const jobsResponse = await jobNimbusService.getJobs({ limit: 100 });
+        const jobsResponse = await jobNimbusService.getJobs({ limit: 100 }, internalViewer);
         const jobs = jobsResponse.results || [];
 
         jobs.forEach(job => {
@@ -242,7 +246,7 @@ class UnifiedDataService {
         });
 
         // Get detailed contact data
-        const contactsResponse = await jobNimbusService.getContacts({ limit: 100 });
+        const contactsResponse = await jobNimbusService.getContacts({ limit: 100 }, internalViewer);
         const contacts = contactsResponse.results || [];
 
         contacts.forEach(contact => {
@@ -255,7 +259,7 @@ class UnifiedDataService {
         });
 
         // Get estimate details
-        const estimatesResponse = await jobNimbusService.getEstimates({ limit: 100 });
+        const estimatesResponse = await jobNimbusService.getEstimates({ limit: 100 }, internalViewer);
         const estimates = estimatesResponse.results || [];
 
         estimates.forEach(estimate => {
@@ -269,7 +273,7 @@ class UnifiedDataService {
         });
 
         // Get task details
-        const tasksResponse = await jobNimbusService.getTasks({ limit: 100 });
+        const tasksResponse = await jobNimbusService.getTasks({ limit: 100 }, internalViewer);
         const tasks = tasksResponse.results || [];
 
         tasks.forEach(task => {

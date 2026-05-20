@@ -208,10 +208,14 @@ export async function GET(
       const weather = await customerPortalService.getWeatherForecast(coords.lat, coords.lng);
       const hailReports = await customerPortalService.getHailReports(coords.lat, coords.lng, 30);
 
-      // If this lead has a JobNimbus contact ID, fetch LIVE data
+      // If this lead has a JobNimbus contact ID, fetch LIVE data.
+      // Customer-facing route — explicit no-cost viewer.
       if (lead.jobnimbusContactId && isJobNimbusConfigured()) {
         try {
-          const jnData = await jobNimbusService.getCustomerPortalData(lead.jobnimbusContactId);
+          const jnData = await jobNimbusService.getCustomerPortalData(
+            lead.jobnimbusContactId,
+            { canSeeCost: false },
+          );
 
           if (jnData) {
             const { contact, jobs, estimates, tasks } = jnData;
@@ -514,7 +518,11 @@ export async function GET(
 
     if (jobNimbusContactId && isJobNimbusConfigured()) {
       try {
-        const jnData = await jobNimbusService.getCustomerPortalData(jobNimbusContactId);
+        // Customer-facing route — explicit no-cost viewer.
+        const jnData = await jobNimbusService.getCustomerPortalData(
+          jobNimbusContactId,
+          { canSeeCost: false },
+        );
 
         if (jnData) {
           const { jobs, estimates, tasks } = jnData;

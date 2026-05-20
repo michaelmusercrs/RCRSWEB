@@ -5,6 +5,12 @@ import { breakdownService } from '@/lib/breakdown-service';
 import { emailService } from '@/lib/email-service';
 import { auditLog } from '@/lib/audit-logger';
 import { jobNimbusService } from '@/lib/jobnimbus-service';
+// Webhook handler is server-internal (JN -> us). Auto-creates breakdowns
+// which DO use cost. Pass owner-tier viewer to underlying JN reads so the
+// raw cost data is preserved through the breakdown pipeline. Anything that
+// later surfaces this to a non-allowlist role must redact at its own boundary.
+import type { JNViewer } from '@/lib/jn-redact';
+const WEBHOOK_INTERNAL_VIEWER: JNViewer = { canSeeCost: true };
 import {
   saveBreakdown,
   getBreakdownByRNumber,
@@ -458,14 +464,14 @@ async function handleDepositWebhook(
     let jnJob: Record<string, any> | null = null;
     if (jnJobNumber) {
       try {
-        jnJob = await jobNimbusService.getJobByNumber(jnJobNumber) as Record<string, any> | null;
+        jnJob = await jobNimbusService.getJobByNumber(jnJobNumber, WEBHOOK_INTERNAL_VIEWER) as Record<string, any> | null;
       } catch (err) {
         console.warn(`[webhook] getJobByNumber(${jnJobNumber}) failed:`, err);
       }
     }
     if (!jnJob && jnJobId) {
       try {
-        jnJob = await jobNimbusService.getJob(jnJobId) as Record<string, any> | null;
+        jnJob = await jobNimbusService.getJob(jnJobId, WEBHOOK_INTERNAL_VIEWER) as Record<string, any> | null;
       } catch (err) {
         console.warn(`[webhook] getJob(${jnJobId}) failed:`, err);
       }
@@ -505,7 +511,7 @@ async function handleDepositWebhook(
     let contact: Record<string, any> | null = null;
     if (contactJnid) {
       try {
-        contact = await jobNimbusService.getContact(contactJnid) as Record<string, any> | null;
+        contact = await jobNimbusService.getContact(contactJnid, WEBHOOK_INTERNAL_VIEWER) as Record<string, any> | null;
       } catch (err) {
         console.warn(`[webhook] getContact(${contactJnid}) failed:`, err);
       }

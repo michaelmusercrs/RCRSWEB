@@ -881,13 +881,18 @@ class InvoiceService {
   }
 
   // ============ JOBNIMBUS INTEGRATION (READ-ONLY) ============
+  //
+  // COST-PRIVACY: every JN read in this block takes an optional `viewer` and
+  // passes it to the underlying service. Default (no viewer) => fail-safe
+  // redact. Callers serving an authenticated user should derive a viewer
+  // from the user role via viewerForRole.
 
   /**
    * Fetch JN invoices for reference/comparison.
    * If contactJnid provided, fetches invoices for that contact.
    * Falls back to empty array if JN not configured or on error.
    */
-  async fetchJNInvoices(contactJnid?: string): Promise<JNInvoiceSummary[]> {
+  async fetchJNInvoices(contactJnid?: string, viewer?: import('./jn-redact').JNViewer): Promise<JNInvoiceSummary[]> {
     if (!isJobNimbusConfigured()) {
       return [];
     }
@@ -897,12 +902,12 @@ class InvoiceService {
         return [];
       }
 
-      const jnInvoices = await jobNimbusService.getInvoicesForContact(contactJnid);
+      const jnInvoices = await jobNimbusService.getInvoicesForContact(contactJnid, viewer);
 
       // Also fetch the contact to get customer name
       let customerName = 'Unknown';
       try {
-        const contact = await jobNimbusService.getContact(contactJnid);
+        const contact = await jobNimbusService.getContact(contactJnid, viewer);
         customerName = jobNimbusService.getContactName(contact);
       } catch {
         // Contact lookup failed - use default name
@@ -931,8 +936,8 @@ class InvoiceService {
    * Fetch a specific JN invoice with full context (contact + job).
    * Gets invoices for the contact, finds the matching one, and enriches with contact/job data.
    */
-  async fetchJNInvoiceDetail(contactJnid: string, invoiceJnid: string): Promise<JNInvoiceDetail> {
-    const jnInvoices = await jobNimbusService.getInvoicesForContact(contactJnid);
+  async fetchJNInvoiceDetail(contactJnid: string, invoiceJnid: string, viewer?: import('./jn-redact').JNViewer): Promise<JNInvoiceDetail> {
+    const jnInvoices = await jobNimbusService.getInvoicesForContact(contactJnid, viewer);
     const matchedInvoice = jnInvoices.find((inv: JobNimbusInvoice) => inv.jnid === invoiceJnid);
 
     if (!matchedInvoice) {
@@ -942,7 +947,7 @@ class InvoiceService {
     // Fetch contact info
     let contact: JobNimbusContact | null = null;
     try {
-      contact = await jobNimbusService.getContact(contactJnid);
+      contact = await jobNimbusService.getContact(contactJnid, viewer);
     } catch {
       // Contact fetch failed
     }
@@ -951,7 +956,7 @@ class InvoiceService {
     let job: JobNimbusJob | null = null;
     if (matchedInvoice.related?.jnid) {
       try {
-        job = await jobNimbusService.getJob(matchedInvoice.related.jnid);
+        job = await jobNimbusService.getJob(matchedInvoice.related.jnid, viewer);
       } catch {
         // Job fetch failed
       }

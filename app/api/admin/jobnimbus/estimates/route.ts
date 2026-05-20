@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import { jobNimbusService, isJobNimbusConfigured } from '@/lib/jobnimbus-service';
 import { requireAdmin } from '@/lib/auth-service';
+import { viewerForRole } from '@/lib/jn-redact';
 
 export async function GET(request: Request) {
   const auth = await requireAdmin();
   if (!auth.authenticated) return auth.response;
+
+  // Admin-gated route — derive viewer from role (admin/owner => sees cost).
+  const viewer = viewerForRole(auth.user.role, { email: auth.user.email, userId: auth.user.userId });
 
   if (!isJobNimbusConfigured()) {
     return NextResponse.json(
@@ -25,7 +29,7 @@ export async function GET(request: Request) {
   try {
     if (contactId) {
       // Get estimates for specific contact
-      const estimates = await jobNimbusService.getEstimatesForContact(contactId);
+      const estimates = await jobNimbusService.getEstimatesForContact(contactId, viewer);
       return NextResponse.json({
         success: true,
         contactId,
@@ -46,7 +50,7 @@ export async function GET(request: Request) {
     }
 
     // Get all estimates with pagination
-    const result = await jobNimbusService.getEstimates({ limit, offset });
+    const result = await jobNimbusService.getEstimates({ limit, offset }, viewer);
 
     return NextResponse.json({
       success: true,

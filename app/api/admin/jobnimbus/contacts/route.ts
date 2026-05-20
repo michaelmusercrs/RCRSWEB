@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import { jobNimbusService, isJobNimbusConfigured } from '@/lib/jobnimbus-service';
 import { requireAdmin } from '@/lib/auth-service';
+import { viewerForRole } from '@/lib/jn-redact';
 
 export async function GET(request: Request) {
   const auth = await requireAdmin();
   if (!auth.authenticated) return auth.response;
+
+  // Admin-gated route — derive viewer from role (admin/owner => sees cost).
+  const viewer = viewerForRole(auth.user.role, { email: auth.user.email, userId: auth.user.userId });
 
   if (!isJobNimbusConfigured()) {
     return NextResponse.json(
@@ -27,7 +31,7 @@ export async function GET(request: Request) {
   try {
     // Get specific contact by ID
     if (contactId) {
-      const contact = await jobNimbusService.getContact(contactId);
+      const contact = await jobNimbusService.getContact(contactId, viewer);
       return NextResponse.json({
         success: true,
         contact: {
@@ -52,7 +56,7 @@ export async function GET(request: Request) {
 
     // Search by email
     if (email) {
-      const contact = await jobNimbusService.searchContactByEmail(email);
+      const contact = await jobNimbusService.searchContactByEmail(email, viewer);
       if (!contact) {
         return NextResponse.json({
           success: true,
@@ -76,7 +80,7 @@ export async function GET(request: Request) {
 
     // Search by phone
     if (phone) {
-      const contact = await jobNimbusService.searchContactByPhone(phone);
+      const contact = await jobNimbusService.searchContactByPhone(phone, viewer);
       if (!contact) {
         return NextResponse.json({
           success: true,
@@ -99,7 +103,7 @@ export async function GET(request: Request) {
     }
 
     // Get all contacts with pagination
-    const result = await jobNimbusService.getContacts({ limit, offset });
+    const result = await jobNimbusService.getContacts({ limit, offset }, viewer);
 
     return NextResponse.json({
       success: true,

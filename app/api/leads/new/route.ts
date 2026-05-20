@@ -279,13 +279,16 @@ export async function POST(request: NextRequest) {
     const geocoded = body.address ? await geocodingService.geocodeAddress(body.address) : null;
 
     // ── JN MATCH SCAN ────────────────────────────────────────────────────
-    // Search JobNimbus for similar contacts by email, phone, name
+    // Search JobNimbus for similar contacts by email, phone, name.
+    // This is an UNAUTHENTICATED public submission endpoint — explicit
+    // no-cost viewer enforces redaction at the source.
+    const publicViewer = { canSeeCost: false };
     let jnMatches: Array<{ jnid: string; displayName: string; matchType: string; phone?: string; email?: string; address?: string }> = [];
     if (isJobNimbusConfigured()) {
       try {
         // Search by email
         if (body.email) {
-          const byEmail = await jobNimbusService.searchContactByEmail(body.email).catch(() => null);
+          const byEmail = await jobNimbusService.searchContactByEmail(body.email, publicViewer).catch(() => null);
           if (byEmail) {
             jnMatches.push({
               jnid: byEmail.jnid,
@@ -299,7 +302,7 @@ export async function POST(request: NextRequest) {
         }
         // Search by phone
         if (body.phone && !jnMatches.length) {
-          const byPhone = await jobNimbusService.searchContactByPhone(body.phone).catch(() => null);
+          const byPhone = await jobNimbusService.searchContactByPhone(body.phone, publicViewer).catch(() => null);
           if (byPhone) {
             jnMatches.push({
               jnid: byPhone.jnid,

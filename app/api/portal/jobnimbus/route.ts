@@ -7,6 +7,7 @@ import { jobNimbusService, isJobNimbusConfigured, JobNimbusContact, JobNimbusJob
 import { portalGenerator } from '@/lib/portal-generator';
 import { leadPortalService } from '@/lib/lead-portal-service';
 import { teamMembers } from '@/lib/teamData';
+import { viewerForRole } from '@/lib/jn-redact';
 
 interface CreatePortalRequest {
   // JobNimbus contact ID (jnid)
@@ -21,6 +22,12 @@ interface CreatePortalRequest {
 export async function POST(request: NextRequest) {
   const auth = await requireAuth();
   if (!auth.authenticated) return auth.response;
+
+  // Derive viewer from caller role. This endpoint creates a portal artifact;
+  // we redact at the JN-read boundary so any cost field is stripped before
+  // it can be persisted into the generated portal payload for non-allowlist
+  // roles. Customer-facing portals get cost stripped regardless.
+  const viewer = viewerForRole(auth.user.role, { email: auth.user.email, userId: auth.user.userId });
 
   try {
     if (!isJobNimbusConfigured()) {
@@ -41,7 +48,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch live data from JobNimbus
-    const portalData = await jobNimbusService.getCustomerPortalData(contactId);
+    const portalData = await jobNimbusService.getCustomerPortalData(contactId, viewer);
 
     if (!portalData) {
       return NextResponse.json(
@@ -212,6 +219,9 @@ export async function GET(request: NextRequest) {
   const auth = await requireAuth();
   if (!auth.authenticated) return auth.response;
 
+  // Derive viewer from caller role.
+  const viewer = viewerForRole(auth.user.role, { email: auth.user.email, userId: auth.user.userId });
+
   try {
     if (!isJobNimbusConfigured()) {
       return NextResponse.json(
@@ -236,14 +246,14 @@ export async function GET(request: NextRequest) {
 
     if (contactId) {
       try {
-        contact = await jobNimbusService.getContact(contactId);
+        contact = await jobNimbusService.getContact(contactId, viewer);
       } catch {
         contact = null;
       }
     } else if (email) {
-      contact = await jobNimbusService.searchContactByEmail(email);
+      contact = await jobNimbusService.searchContactByEmail(email, viewer);
     } else if (phone) {
-      contact = await jobNimbusService.searchContactByPhone(phone);
+      contact = await jobNimbusService.searchContactByPhone(phone, viewer);
     }
 
     if (!contact) {
@@ -255,8 +265,8 @@ export async function GET(request: NextRequest) {
 
     // Fetch related data
     const [jobs, estimates] = await Promise.all([
-      jobNimbusService.getJobsForContact(contact.jnid),
-      jobNimbusService.getEstimatesForContact(contact.jnid),
+      jobNimbusService.getJobsForContact(contact.jnid, viewer),
+      jobNimbusService.getEstimatesForContact(contact.jnid, viewer),
     ]);
 
     // Check if portal already exists

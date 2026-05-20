@@ -8,6 +8,7 @@ import {
   WorkOrderPriority,
 } from '@/lib/work-order-service';
 import { jobNimbusService } from '@/lib/jobnimbus-service';
+import { viewerForRole } from '@/lib/jn-redact';
 
 // Roles allowed to schedule / reassign delivery work orders. Covers:
 // - owner        (Michael, Chris)
@@ -31,6 +32,11 @@ const ALLOWED_SCHEDULER_ROLES = [
 export async function GET(request: NextRequest) {
   const auth = await requireAuth();
   if (!auth.authenticated) return auth.response;
+
+  // Delivery surface: drivers see this. Per cost-visibility rules, the
+  // driver role does NOT see cost on delivery docs. Use role-derived viewer
+  // — driver/sales/rep get stripped, office/admin/owner see raw.
+  const viewer = viewerForRole(auth.user.role, { email: auth.user.email, userId: auth.user.userId });
 
   try {
     const { searchParams } = new URL(request.url);
@@ -61,7 +67,7 @@ export async function GET(request: NextRequest) {
       let jnJob = null;
       for (const candidate of candidates) {
         try {
-          jnJob = await jobNimbusService.getJobByNumber(candidate);
+          jnJob = await jobNimbusService.getJobByNumber(candidate, viewer);
           if (jnJob) break;
         } catch {
           // try next
@@ -85,7 +91,7 @@ export async function GET(request: NextRequest) {
       let fallbackEmail = '';
       if (!contactEmailFromJob && contactId) {
         try {
-          const contact = await jobNimbusService.getContact(contactId);
+          const contact = await jobNimbusService.getContact(contactId, viewer);
           fallbackEmail = contact?.email || '';
         } catch {
           /* contact fetch failed — leave email blank */

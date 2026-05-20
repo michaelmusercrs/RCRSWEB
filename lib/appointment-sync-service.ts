@@ -1,8 +1,12 @@
 // Appointment Sync Service
 // Syncs appointments between app, JobNimbus tasks, and Google Calendar
 // Currently supports JN task read + Google Calendar link generation
+//
+// COST-PRIVACY: tasks/appointments don't carry cost fields, but the
+// underlying JN read still threads the viewer for consistency.
 
 import { jobNimbusService } from './jobnimbus-service';
+import type { JNViewer } from './jn-redact';
 
 export interface Appointment {
   id: string;
@@ -23,9 +27,9 @@ export interface Appointment {
 
 class AppointmentSyncService {
   // Get appointments for a contact from JobNimbus
-  async getAppointmentsForContact(contactJnid: string): Promise<Appointment[]> {
+  async getAppointmentsForContact(contactJnid: string, viewer?: JNViewer): Promise<Appointment[]> {
     try {
-      const tasks = await jobNimbusService.getTasksForContact(contactJnid);
+      const tasks = await jobNimbusService.getTasksForContact(contactJnid, viewer);
 
       return tasks
         .filter(t => t.date_start) // Only tasks with dates

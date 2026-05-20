@@ -1003,15 +1003,19 @@ class JobBreakdownService {
   /**
    * Fetch jobs from JobNimbus that can have breakdowns created.
    * READ-ONLY - does not write to JN.
+   *
+   * COST-PRIVACY: viewer threads to the underlying JN reads. Default
+   * (undefined) => fail-safe redaction. Callers serving authenticated users
+   * should pass viewerForRole(role).
    */
-  async fetchJNJobsForBreakdown(filters?: { status?: string; limit?: number }): Promise<JNJobSummary[]> {
+  async fetchJNJobsForBreakdown(filters?: { status?: string; limit?: number }, viewer?: import('./jn-redact').JNViewer): Promise<JNJobSummary[]> {
     if (!isJobNimbusConfigured()) {
       return [];
     }
 
     try {
       const limit = filters?.limit || 50;
-      const result = await jobNimbusService.getJobs({ limit });
+      const result = await jobNimbusService.getJobs({ limit }, viewer);
       const jobs = result.results || [];
 
       // For each job, try to get estimate totals (batch fetch)
@@ -1027,7 +1031,7 @@ class JobBreakdownService {
         // Try to get estimates for this job's contact
         if (job.primary?.id) {
           try {
-            const estimates = await jobNimbusService.getEstimatesForContact(job.primary.id);
+            const estimates = await jobNimbusService.getEstimatesForContact(job.primary.id, viewer);
             estimateTotal = estimates.reduce((sum: number, est: JobNimbusEstimate) => sum + (est.total || est.amount || 0), 0);
           } catch {
             // Estimates not available, that's fine
@@ -1060,9 +1064,13 @@ class JobBreakdownService {
   /**
    * Fetch full JN job detail to pre-populate a breakdown.
    * READ-ONLY - does not write to JN.
+   *
+   * COST-PRIVACY: viewer threads to underlying JN reads. Breakdowns
+   * legitimately need cost — owner/admin callers should pass viewerForRole
+   * to preserve cost data; reps fall back to fail-safe redaction.
    */
-  async fetchJNJobForBreakdown(jobJnid: string): Promise<JNBreakdownSource> {
-    const job = await jobNimbusService.getJob(jobJnid);
+  async fetchJNJobForBreakdown(jobJnid: string, viewer?: import('./jn-redact').JNViewer): Promise<JNBreakdownSource> {
+    const job = await jobNimbusService.getJob(jobJnid, viewer);
 
     let contact: JobNimbusContact | null = null;
     let estimates: JobNimbusEstimate[] = [];
@@ -1071,8 +1079,8 @@ class JobBreakdownService {
     const contactJnid = job.primary?.id;
     if (contactJnid) {
       const [contactResult, estimatesResult] = await Promise.allSettled([
-        jobNimbusService.getContact(contactJnid),
-        jobNimbusService.getEstimatesForContact(contactJnid),
+        jobNimbusService.getContact(contactJnid, viewer),
+        jobNimbusService.getEstimatesForContact(contactJnid, viewer),
       ]);
 
       if (contactResult.status === 'fulfilled') {

@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { jobNimbusService, isJobNimbusConfigured, JobNimbusError } from '@/lib/jobnimbus-service';
+import { viewerForRole } from '@/lib/jn-redact';
 
 // GET /api/jobnimbus/search - Search for customers/jobs in JobNimbus
 export async function GET(request: NextRequest) {
   const auth = await requireAuth();
   if (!auth.authenticated) return auth.response;
+
+  // Derive viewer from caller role. Reps/customers get cost stripped.
+  const viewer = viewerForRole(auth.user.role, { email: auth.user.email, userId: auth.user.userId });
 
   if (!isJobNimbusConfigured()) {
     return NextResponse.json(
@@ -49,19 +53,19 @@ export async function GET(request: NextRequest) {
 
       if (isEmail) {
         // Search by email
-        const contact = await jobNimbusService.searchContactByEmail(query);
+        const contact = await jobNimbusService.searchContactByEmail(query, viewer);
         if (contact) {
           contacts = [contact];
         }
       } else if (isPhone) {
         // Search by phone
-        const contact = await jobNimbusService.searchContactByPhone(query);
+        const contact = await jobNimbusService.searchContactByPhone(query, viewer);
         if (contact) {
           contacts = [contact];
         }
       } else {
         // General name search - get contacts and filter
-        const allContacts = await jobNimbusService.getContacts({ limit: 500 });
+        const allContacts = await jobNimbusService.getContacts({ limit: 500 }, viewer);
         const searchLower = query.toLowerCase();
         contacts = allContacts.results.filter(c => {
           const name = jobNimbusService.getContactName(c).toLowerCase();
@@ -92,7 +96,7 @@ export async function GET(request: NextRequest) {
 
     // Search jobs
     if (type === 'jobs' || type === 'all') {
-      const allJobs = await jobNimbusService.getJobs({ limit: 500 });
+      const allJobs = await jobNimbusService.getJobs({ limit: 500 }, viewer);
       const searchLower = query.toLowerCase();
 
       const filteredJobs = allJobs.results.filter(j => {

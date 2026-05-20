@@ -140,7 +140,11 @@ function aggregatesToTicketMaterials(
 async function tryJnEnrichment(refNumber: string): Promise<Partial<SheetTicket>> {
   if (!isJobNimbusConfigured()) return {};
   const jobNumber = `R-${refNumber}`;
-  const job = await jobNimbusService.getJobByNumber(jobNumber).catch(() => null);
+  // Admin backfill — internal enrichment, only address/name fields consumed.
+  // Owner-tier viewer preserves any cost data the underlying writer might
+  // need (none consumed today, but signature-consistent).
+  const adminViewer = { canSeeCost: true };
+  const job = await jobNimbusService.getJobByNumber(jobNumber, adminViewer).catch(() => null);
   if (!job) return {};
 
   // Pull the linked contact for address + name
@@ -153,7 +157,7 @@ async function tryJnEnrichment(refNumber: string): Promise<Partial<SheetTicket>>
 
   const contactJnid = job.primary?.id;
   if (contactJnid) {
-    const contact = await jobNimbusService.getContact(contactJnid).catch(() => null);
+    const contact = await jobNimbusService.getContact(contactJnid, adminViewer).catch(() => null);
     if (contact) {
       customerName = jobNimbusService.getContactName(contact);
       customerPhone = jobNimbusService.getContactPhone(contact) || '';

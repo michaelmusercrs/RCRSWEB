@@ -1,11 +1,20 @@
 /**
  * JN Response Times - Direct API Integration
- * 
+ *
  * Queries JobNimbus API directly for:
  * 1. Contacts created by office staff (Sara Hill, Destin McCary, Tia Muse Morris)
  * 2. First manual activity by the assigned sales rep for each contact
  * 3. Calculates response time = first_action.date_created - contact.date_created
+ *
+ * COST-PRIVACY: this module talks to JN via its own fetch helper (not the
+ * jobnimbus-service singleton). The data we surface is response-time
+ * aggregates (avg / median / counts) and lead metadata — no cost fields are
+ * read into the output shape. As belt-and-suspenders, every raw JN response
+ * is passed through redactCostFieldsDeep before downstream processing. See
+ * docs/research-crm-comparison.md moat #3 + feedback_purchase_price_visibility.
  */
+
+import { redactCostFieldsDeep } from './jn-redact';
 
 const JN_API_KEY = process.env.JOBNIMBUS_API_KEY;
 const JN_API_URL = process.env.JOBNIMBUS_API_URL || 'https://app.jobnimbus.com/api1';
@@ -192,9 +201,18 @@ function gradeResponseTime(avgMinutes: number): string {
   return 'F';
 }
 
-async function jnFetch<T>(endpoint: string): Promise<T> {
+/**
+ * Direct JN fetch with cost-field redaction.
+ *
+ * `viewerCanSeeCost` defaults to FALSE (fail-safe). The only caller of this
+ * module — queryResponseTimes — is a server-internal aggregator whose output
+ * is reduced to counts/timestamps, so we can safely strip cost from the raw
+ * response without losing information. If a future caller needs cost data
+ * preserved, it must pass viewerCanSeeCost=true explicitly.
+ */
+async function jnFetch<T>(endpoint: string, viewerCanSeeCost: boolean = false): Promise<T> {
   if (!JN_API_KEY) throw new Error('JobNimbus API key not configured');
-  
+
   const url = `${JN_API_URL}${endpoint}`;
   const response = await fetch(url, {
     headers: {
@@ -202,12 +220,13 @@ async function jnFetch<T>(endpoint: string): Promise<T> {
       'Content-Type': 'application/json',
     },
   });
-  
+
   if (!response.ok) {
     throw new Error(`JN API error ${response.status}: ${await response.text()}`);
   }
-  
-  return response.json();
+
+  const raw = await response.json();
+  return redactCostFieldsDeep(raw, viewerCanSeeCost) as T;
 }
 
 // ---------------------------------------------------------------------------

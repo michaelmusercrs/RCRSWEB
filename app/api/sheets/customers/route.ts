@@ -21,6 +21,7 @@ import {
   CustomerRecord,
 } from '@/lib/google-sheets-service';
 import { jobNimbusService, isJobNimbusConfigured } from '@/lib/jobnimbus-service';
+import { viewerForRole, type JNViewer } from '@/lib/jn-redact';
 import { cache, CACHE_TTL } from '@/lib/cache';
 
 interface JNCustomerRecord {
@@ -79,7 +80,7 @@ function generateCustomerId(): string {
 /**
  * Fetch all contacts from JobNimbus with pagination
  */
-async function fetchAllJNContacts(maxContacts: number = 10500): Promise<JNCustomerRecord[]> {
+async function fetchAllJNContacts(maxContacts: number = 10500, viewer?: JNViewer): Promise<JNCustomerRecord[]> {
   const results: JNCustomerRecord[] = [];
   let offset = 0;
   const pageSize = 100;
@@ -88,7 +89,7 @@ async function fetchAllJNContacts(maxContacts: number = 10500): Promise<JNCustom
   const maxPages = Math.ceil(maxContacts / pageSize);
 
   while (hasMore && pageCount < maxPages) {
-    const page = await jobNimbusService.getContacts({ limit: pageSize, offset });
+    const page = await jobNimbusService.getContacts({ limit: pageSize, offset }, viewer);
 
     for (const c of page.results) {
       const name = c.display_name || `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Unknown';
@@ -145,6 +146,11 @@ export async function GET(request: NextRequest): Promise<NextResponse<CustomersR
   const auth = await requireAuth();
   if (!auth.authenticated) return auth.response as NextResponse<CustomersResponse>;
 
+  // Derive viewer from caller role. The JN customer pull is cached per
+  // includeArchived; cost-bearing fields are stripped before the cached
+  // payload is built when the caller isn't on the allowlist.
+  const viewer = viewerForRole(auth.user.role, { email: auth.user.email, userId: auth.user.userId });
+
   try {
     const { searchParams } = new URL(request.url);
     const dataSource = searchParams.get('source') || 'jobnimbus';
@@ -162,11 +168,13 @@ export async function GET(request: NextRequest): Promise<NextResponse<CustomersR
         );
       }
 
-      const cacheKey = `jn:customers:${includeArchived}`;
+      // Cache key includes canSeeCost so the cached payload is segregated by
+      // viewer-tier — we never serve a cost-bearing cache entry to a rep.
+      const cacheKey = `jn:customers:${includeArchived}:cost=${viewer.canSeeCost ? '1' : '0'}`;
       let customers: JNCustomerRecord[] | undefined = cache.get<JNCustomerRecord[]>(cacheKey) ?? undefined;
 
       if (!customers) {
-        customers = await fetchAllJNContacts(limitParam || 10500);
+        customers = await fetchAllJNContacts(limitParam || 10500, viewer);
         cache.set(cacheKey, customers, CACHE_TTL.MEDIUM);
       }
 

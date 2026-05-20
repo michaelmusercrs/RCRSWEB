@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { jobNimbusService, isJobNimbusConfigured, JobNimbusError } from '@/lib/jobnimbus-service';
+import { viewerForRole } from '@/lib/jn-redact';
 
 // GET /api/jobnimbus/job/[id] - Fetch live job details from JobNimbus
 export async function GET(
@@ -9,6 +10,9 @@ export async function GET(
 ) {
   const auth = await requireAuth();
   if (!auth.authenticated) return auth.response;
+
+  // Derive viewer from caller role. Reps/customers get cost stripped.
+  const viewer = viewerForRole(auth.user.role, { email: auth.user.email, userId: auth.user.userId });
 
   if (!isJobNimbusConfigured()) {
     return NextResponse.json(
@@ -30,7 +34,7 @@ export async function GET(
 
   try {
     // Get the job details
-    const job = await jobNimbusService.getJob(id);
+    const job = await jobNimbusService.getJob(id, viewer);
 
     if (!job) {
       return NextResponse.json(
@@ -78,7 +82,7 @@ export async function GET(
     // Optionally include related contact info
     if ((includeContact || includeAll) && job.primary?.id) {
       try {
-        const contact = await jobNimbusService.getContact(job.primary.id);
+        const contact = await jobNimbusService.getContact(job.primary.id, viewer);
         response.contact = {
           jnid: contact.jnid,
           displayName: jobNimbusService.getContactName(contact),
@@ -110,7 +114,7 @@ export async function GET(
     // Optionally include estimates
     if ((includeEstimates || includeAll) && job.primary?.id) {
       try {
-        const estimates = await jobNimbusService.getEstimatesForContact(job.primary.id);
+        const estimates = await jobNimbusService.getEstimatesForContact(job.primary.id, viewer);
         response.estimates = estimates.map(e => ({
           jnid: e.jnid,
           number: e.number,
@@ -133,7 +137,7 @@ export async function GET(
     // Optionally include tasks/appointments
     if ((includeTasks || includeAll) && job.primary?.id) {
       try {
-        const tasks = await jobNimbusService.getTasksForContact(job.primary.id);
+        const tasks = await jobNimbusService.getTasksForContact(job.primary.id, viewer);
         response.tasks = tasks.map(t => ({
           jnid: t.jnid,
           title: t.title,

@@ -146,7 +146,9 @@ export async function GET(request: Request) {
     if (!filterSource || filterSource === 'jobnimbus') {
       try {
         if (isJobNimbusConfigured()) {
-          const jobsResult = await jobNimbusService.getJobs({ limit: 200 });
+          // Calendar event aggregator — only date/name fields are surfaced
+          // to the calendar event shape. Owner-tier viewer is safe.
+          const jobsResult = await jobNimbusService.getJobs({ limit: 200 }, { canSeeCost: true });
           for (const job of jobsResult.results) {
             // Only include jobs with scheduled dates in our range
             if (!job.date_start) continue;

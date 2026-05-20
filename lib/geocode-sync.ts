@@ -112,7 +112,9 @@ export async function runGeocodeSync(): Promise<SyncProgress> {
 
     if (isJobNimbusConfigured()) {
       try {
-        const jnContacts = await jobNimbusService.syncContacts();
+        // Internal sync — geocoder consumes address fields only. Owner-tier
+        // viewer is safe; nothing here surfaces to user-facing JSON.
+        const jnContacts = await jobNimbusService.syncContacts(undefined, { canSeeCost: true });
         for (const c of jnContacts) {
           const address = buildAddress(c);
           if (address.length <= 5) continue;

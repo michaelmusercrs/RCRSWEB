@@ -6,11 +6,15 @@ import { jobNimbusService, isJobNimbusConfigured } from '@/lib/jobnimbus-service
 import { leadPortalService } from '@/lib/lead-portal-service';
 import { teamMembers } from '@/lib/teamData';
 import { requireAdmin } from '@/lib/auth-service';
+import { viewerForRole } from '@/lib/jn-redact';
 
 // GET - List all portals with JobNimbus status
 export async function GET(request: NextRequest) {
   const auth = await requireAdmin();
   if (!auth.authenticated) return auth.response;
+
+  // Admin-gated route — derive viewer from role (admin/owner => sees cost).
+  const viewer = viewerForRole(auth.user.role, { email: auth.user.email, userId: auth.user.userId });
 
   try {
     const { searchParams } = new URL(request.url);
@@ -68,9 +72,9 @@ export async function GET(request: NextRequest) {
       // Search by email or phone
       let contact = null;
       if (query.includes('@')) {
-        contact = await jobNimbusService.searchContactByEmail(query);
+        contact = await jobNimbusService.searchContactByEmail(query, viewer);
       } else {
-        contact = await jobNimbusService.searchContactByPhone(query);
+        contact = await jobNimbusService.searchContactByPhone(query, viewer);
       }
 
       if (!contact) {
@@ -83,8 +87,8 @@ export async function GET(request: NextRequest) {
 
       // Get related data
       const [jobs, estimates] = await Promise.all([
-        jobNimbusService.getJobsForContact(contact.jnid),
-        jobNimbusService.getEstimatesForContact(contact.jnid),
+        jobNimbusService.getJobsForContact(contact.jnid, viewer),
+        jobNimbusService.getEstimatesForContact(contact.jnid, viewer),
       ]);
 
       // Check if portal already exists
@@ -134,7 +138,7 @@ export async function GET(request: NextRequest) {
       const limit = parseInt(searchParams.get('limit') || '25');
       const offset = parseInt(searchParams.get('offset') || '0');
 
-      const result = await jobNimbusService.getContacts({ limit, offset });
+      const result = await jobNimbusService.getContacts({ limit, offset }, viewer);
 
       const contacts = result.results.map(c => ({
         jnid: c.jnid,
@@ -175,6 +179,9 @@ export async function POST(request: NextRequest) {
   const auth = await requireAdmin();
   if (!auth.authenticated) return auth.response;
 
+  // Admin-gated route — derive viewer from role.
+  const postViewer = viewerForRole(auth.user.role, { email: auth.user.email, userId: auth.user.userId });
+
   try {
     const body = await request.json();
     const { action } = body;
@@ -197,7 +204,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Fetch contact from JobNimbus
-      const portalData = await jobNimbusService.getCustomerPortalData(contactId);
+      const portalData = await jobNimbusService.getCustomerPortalData(contactId, postViewer);
 
       if (!portalData) {
         return NextResponse.json(

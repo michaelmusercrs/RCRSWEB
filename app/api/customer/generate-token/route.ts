@@ -94,7 +94,9 @@ export async function POST(request: NextRequest) {
 
     if (isJobNimbusConfigured()) {
       try {
-        const contact = await jobNimbusService.getContact(jobNimbusContactId);
+        // Token generation path — server-internal, we extract name + zip
+        // only. Explicit no-cost viewer keeps the contact payload clean.
+        const contact = await jobNimbusService.getContact(jobNimbusContactId, { canSeeCost: false });
         if (contact) {
           resolvedName = jobNimbusService.getContactName(contact) || customerName;
           resolvedZip = contact.zip || zip || '';

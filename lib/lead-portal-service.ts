@@ -460,13 +460,16 @@ class LeadPortalService {
       if (byAddr) return { found: true, lead: byAddr, matchedBy: 'address' };
     }
 
-    // Check JobNimbus for existing customer (if configured)
+    // Check JobNimbus for existing customer (if configured).
+    // Internal dedup lookup — we only read jnid + display name, so an
+    // owner-tier viewer is safe (no cost data is returned to the caller).
     try {
       const { jobNimbusService, isJobNimbusConfigured } = await import('./jobnimbus-service');
+      const dedupViewer = { canSeeCost: true };
       if (isJobNimbusConfigured()) {
         // Search by email in JN
         if (params.email) {
-          const jnByEmail = await jobNimbusService.searchContactByEmail(params.email).catch(() => null);
+          const jnByEmail = await jobNimbusService.searchContactByEmail(params.email, dedupViewer).catch(() => null);
           if (jnByEmail) {
             return {
               found: true,
@@ -478,7 +481,7 @@ class LeadPortalService {
         }
         // Search by phone in JN
         if (params.phone) {
-          const jnByPhone = await jobNimbusService.searchContactByPhone(params.phone).catch(() => null);
+          const jnByPhone = await jobNimbusService.searchContactByPhone(params.phone, dedupViewer).catch(() => null);
           if (jnByPhone) {
             return {
               found: true,

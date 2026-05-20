@@ -1,8 +1,18 @@
 // JobNimbus API Service
 // Syncs contacts, jobs, and estimates with customer portal
 // NO DEMO MODE - requires valid API key
+//
+// COST-PRIVACY: all read functions in this file accept an optional `viewer`
+// arg + redact cost fields via lib/jn-redact.ts before returning. Missing
+// viewer => fail-safe redaction (treat as not-allowed). NEVER bypass. See
+// docs/research-crm-comparison.md moat #3 + feedback_purchase_price_visibility.
 
 import { stripCostFields } from './cost-visibility';
+import {
+  redactCostFieldsDeep,
+  effectiveCanSeeCost,
+  type JNViewer,
+} from './jn-redact';
 
 const JOBNIMBUS_API_KEY = process.env.JOBNIMBUS_API_KEY;
 const JOBNIMBUS_API_URL = process.env.JOBNIMBUS_API_URL || 'https://app.jobnimbus.com/api1';
@@ -266,18 +276,22 @@ class JobNimbusService {
     limit?: number;
     offset?: number;
     since?: number; // Unix timestamp for updated_at filter
-  }): Promise<{ count: number; results: JobNimbusContact[] }> {
+  }, viewer?: JNViewer): Promise<{ count: number; results: JobNimbusContact[] }> {
     const query = new URLSearchParams();
     if (params?.limit) query.set('limit', params.limit.toString());
     if (params?.offset) query.set('offset', params.offset.toString());
     if (params?.since) query.set('since', params.since.toString());
 
-    return this.apiRequest(`/contacts?${query.toString()}`);
+    const raw = await this.apiRequest<{ count: number; results: JobNimbusContact[] }>(
+      `/contacts?${query.toString()}`,
+    );
+    return redactCostFieldsDeep(raw, effectiveCanSeeCost(viewer));
   }
 
   // Get single contact
-  async getContact(jnid: string): Promise<JobNimbusContact> {
-    return this.apiRequest(`/contacts/${jnid}`);
+  async getContact(jnid: string, viewer?: JNViewer): Promise<JobNimbusContact> {
+    const raw = await this.apiRequest<JobNimbusContact>(`/contacts/${jnid}`);
+    return redactCostFieldsDeep(raw, effectiveCanSeeCost(viewer));
   }
 
   // Get all jobs
@@ -285,29 +299,33 @@ class JobNimbusService {
     limit?: number;
     offset?: number;
     since?: number;
-  }): Promise<{ count: number; results: JobNimbusJob[] }> {
+  }, viewer?: JNViewer): Promise<{ count: number; results: JobNimbusJob[] }> {
     const query = new URLSearchParams();
     if (params?.limit) query.set('limit', params.limit.toString());
     if (params?.offset) query.set('offset', params.offset.toString());
     if (params?.since) query.set('since', params.since.toString());
 
-    return this.apiRequest(`/jobs?${query.toString()}`);
+    const raw = await this.apiRequest<{ count: number; results: JobNimbusJob[] }>(
+      `/jobs?${query.toString()}`,
+    );
+    return redactCostFieldsDeep(raw, effectiveCanSeeCost(viewer));
   }
 
   // Get single job
-  async getJob(jnid: string): Promise<JobNimbusJob> {
-    return this.apiRequest(`/jobs/${jnid}`);
+  async getJob(jnid: string, viewer?: JNViewer): Promise<JobNimbusJob> {
+    const raw = await this.apiRequest<JobNimbusJob>(`/jobs/${jnid}`);
+    return redactCostFieldsDeep(raw, effectiveCanSeeCost(viewer));
   }
 
   // Get jobs for a contact.
   // JN filter must be a JSON object — see getJobByNumber comment.
-  async getJobsForContact(contactJnid: string): Promise<JobNimbusJob[]> {
+  async getJobsForContact(contactJnid: string, viewer?: JNViewer): Promise<JobNimbusJob[]> {
     if (!contactJnid) return [];
     const filter = { must: [{ term: { 'primary.id': contactJnid } }] };
     const result = await this.apiRequest<{ results: JobNimbusJob[] }>(
       `/jobs?filter=${encodeURIComponent(JSON.stringify(filter))}`,
     );
-    return result.results || [];
+    return redactCostFieldsDeep(result.results || [], effectiveCanSeeCost(viewer));
   }
 
   /**
@@ -315,7 +333,7 @@ class JobNimbusService {
    * null if no match — used by the historical inventory backfill to
    * enrich tickets with customer/address/sales rep data.
    */
-  async getJobByNumber(jobNumber: string): Promise<JobNimbusJob | null> {
+  async getJobByNumber(jobNumber: string, viewer?: JNViewer): Promise<JobNimbusJob | null> {
     if (!jobNumber) return null;
     try {
       // JN requires the `filter` query param to be a JSON-encoded Elasticsearch
@@ -327,7 +345,9 @@ class JobNimbusService {
         `/jobs?filter=${encodeURIComponent(JSON.stringify(filter))}`,
       );
       const jobs = result.results || [];
-      return jobs[0] || null;
+      const first = jobs[0] || null;
+      if (!first) return null;
+      return redactCostFieldsDeep(first, effectiveCanSeeCost(viewer));
     } catch {
       return null;
     }
@@ -338,28 +358,32 @@ class JobNimbusService {
     limit?: number;
     offset?: number;
     since?: number;
-  }): Promise<{ count: number; results: JobNimbusEstimate[] }> {
+  }, viewer?: JNViewer): Promise<{ count: number; results: JobNimbusEstimate[] }> {
     const query = new URLSearchParams();
     if (params?.limit) query.set('limit', params.limit.toString());
     if (params?.offset) query.set('offset', params.offset.toString());
     if (params?.since) query.set('since', params.since.toString());
 
-    return this.apiRequest(`/estimates?${query.toString()}`);
+    const raw = await this.apiRequest<{ count: number; results: JobNimbusEstimate[] }>(
+      `/estimates?${query.toString()}`,
+    );
+    return redactCostFieldsDeep(raw, effectiveCanSeeCost(viewer));
   }
 
   // Get estimate by ID
-  async getEstimate(jnid: string): Promise<JobNimbusEstimate> {
-    return this.apiRequest(`/estimates/${jnid}`);
+  async getEstimate(jnid: string, viewer?: JNViewer): Promise<JobNimbusEstimate> {
+    const raw = await this.apiRequest<JobNimbusEstimate>(`/estimates/${jnid}`);
+    return redactCostFieldsDeep(raw, effectiveCanSeeCost(viewer));
   }
 
   // Get estimates for a contact (JSON filter — see getJobByNumber)
-  async getEstimatesForContact(contactJnid: string): Promise<JobNimbusEstimate[]> {
+  async getEstimatesForContact(contactJnid: string, viewer?: JNViewer): Promise<JobNimbusEstimate[]> {
     if (!contactJnid) return [];
     const filter = { must: [{ term: { 'primary.id': contactJnid } }] };
     const result = await this.apiRequest<{ results: JobNimbusEstimate[] }>(
       `/estimates?filter=${encodeURIComponent(JSON.stringify(filter))}`,
     );
-    return result.results || [];
+    return redactCostFieldsDeep(result.results || [], effectiveCanSeeCost(viewer));
   }
 
   // Get tasks/appointments
@@ -367,27 +391,30 @@ class JobNimbusService {
     limit?: number;
     offset?: number;
     since?: number;
-  }): Promise<{ count: number; results: JobNimbusTask[] }> {
+  }, viewer?: JNViewer): Promise<{ count: number; results: JobNimbusTask[] }> {
     const query = new URLSearchParams();
     if (params?.limit) query.set('limit', params.limit.toString());
     if (params?.offset) query.set('offset', params.offset.toString());
     if (params?.since) query.set('since', params.since.toString());
 
-    return this.apiRequest(`/tasks?${query.toString()}`);
+    const raw = await this.apiRequest<{ count: number; results: JobNimbusTask[] }>(
+      `/tasks?${query.toString()}`,
+    );
+    return redactCostFieldsDeep(raw, effectiveCanSeeCost(viewer));
   }
 
   // Get tasks for a contact
-  async getTasksForContact(contactJnid: string): Promise<JobNimbusTask[]> {
+  async getTasksForContact(contactJnid: string, viewer?: JNViewer): Promise<JobNimbusTask[]> {
     if (!contactJnid) return [];
     const filter = { must: [{ term: { 'primary.id': contactJnid } }] };
     const result = await this.apiRequest<{ results: JobNimbusTask[] }>(
       `/tasks?filter=${encodeURIComponent(JSON.stringify(filter))}`,
     );
-    return result.results || [];
+    return redactCostFieldsDeep(result.results || [], effectiveCanSeeCost(viewer));
   }
 
   // Get notes for a contact
-  async getNotesForContact(contactJnid: string, limit: number = 50): Promise<JobNimbusNote[]> {
+  async getNotesForContact(contactJnid: string, limit: number = 50, viewer?: JNViewer): Promise<JobNimbusNote[]> {
     if (!contactJnid) return [];
     const filter = { must: [{ term: { 'primary.id': contactJnid } }] };
     const qs = new URLSearchParams({
@@ -398,11 +425,11 @@ class JobNimbusService {
     const result = await this.apiRequest<{ results: JobNimbusNote[] }>(
       `/notes?${qs.toString()}`,
     );
-    return result.results || [];
+    return redactCostFieldsDeep(result.results || [], effectiveCanSeeCost(viewer));
   }
 
   // Get attachments/files for a contact
-  async getAttachmentsForContact(contactJnid: string): Promise<JobNimbusAttachment[]> {
+  async getAttachmentsForContact(contactJnid: string, viewer?: JNViewer): Promise<JobNimbusAttachment[]> {
     if (!contactJnid) return [];
     const filter = { must: [{ term: { 'primary.id': contactJnid } }] };
     const qs = new URLSearchParams({
@@ -412,17 +439,17 @@ class JobNimbusService {
     const result = await this.apiRequest<{ results: JobNimbusAttachment[] }>(
       `/files?${qs.toString()}`,
     );
-    return result.results || [];
+    return redactCostFieldsDeep(result.results || [], effectiveCanSeeCost(viewer));
   }
 
   // Get invoices for a contact
-  async getInvoicesForContact(contactJnid: string): Promise<JobNimbusInvoice[]> {
+  async getInvoicesForContact(contactJnid: string, viewer?: JNViewer): Promise<JobNimbusInvoice[]> {
     if (!contactJnid) return [];
     const filter = { must: [{ term: { 'primary.id': contactJnid } }] };
     const result = await this.apiRequest<{ results: JobNimbusInvoice[] }>(
       `/invoices?filter=${encodeURIComponent(JSON.stringify(filter))}`,
     );
-    return result.results || [];
+    return redactCostFieldsDeep(result.results || [], effectiveCanSeeCost(viewer));
   }
 
   // Update a job's status
@@ -455,22 +482,25 @@ class JobNimbusService {
     limit?: number;
     offset?: number;
     since?: number;
-  }): Promise<{ count: number; results: JobNimbusNote[] }> {
+  }, viewer?: JNViewer): Promise<{ count: number; results: JobNimbusNote[] }> {
     const query = new URLSearchParams();
     if (params?.limit) query.set('limit', params.limit.toString());
     if (params?.offset) query.set('offset', params.offset.toString());
     if (params?.since) query.set('since', params.since.toString());
-    return this.apiRequest(`/activities?${query.toString()}`);
+    const raw = await this.apiRequest<{ count: number; results: JobNimbusNote[] }>(
+      `/activities?${query.toString()}`,
+    );
+    return redactCostFieldsDeep(raw, effectiveCanSeeCost(viewer));
   }
 
   // Get notes for a job
   // JN filter must be JSON-encoded — see getJobByNumber comment.
-  async getNotesForJob(jobJnid: string, limit: number = 50): Promise<JobNimbusNote[]> {
+  async getNotesForJob(jobJnid: string, limit: number = 50, viewer?: JNViewer): Promise<JobNimbusNote[]> {
     const filter = { must: [{ term: { 'related.id': jobJnid } }] };
     const result = await this.apiRequest<{ results: JobNimbusNote[] }>(
       `/activities?filter=${encodeURIComponent(JSON.stringify(filter))}&sort=-created_at&limit=${limit}`,
     );
-    return result.results || [];
+    return redactCostFieldsDeep(result.results || [], effectiveCanSeeCost(viewer));
   }
 
   // Create a note on a job
@@ -488,21 +518,24 @@ class JobNimbusService {
   async getFiles(params?: {
     limit?: number;
     offset?: number;
-  }): Promise<{ count: number; results: JobNimbusAttachment[] }> {
+  }, viewer?: JNViewer): Promise<{ count: number; results: JobNimbusAttachment[] }> {
     const query = new URLSearchParams();
     if (params?.limit) query.set('limit', params.limit.toString());
     if (params?.offset) query.set('offset', params.offset.toString());
-    return this.apiRequest(`/files?${query.toString()}`);
+    const raw = await this.apiRequest<{ count: number; results: JobNimbusAttachment[] }>(
+      `/files?${query.toString()}`,
+    );
+    return redactCostFieldsDeep(raw, effectiveCanSeeCost(viewer));
   }
 
   // Get files for a job
   // JN filter must be JSON-encoded — see getJobByNumber comment.
-  async getFilesForJob(jobJnid: string): Promise<JobNimbusAttachment[]> {
+  async getFilesForJob(jobJnid: string, viewer?: JNViewer): Promise<JobNimbusAttachment[]> {
     const filter = { must: [{ term: { 'related.id': jobJnid } }] };
     const result = await this.apiRequest<{ results: JobNimbusAttachment[] }>(
       `/files?filter=${encodeURIComponent(JSON.stringify(filter))}&sort=-created_at`,
     );
-    return result.results || [];
+    return redactCostFieldsDeep(result.results || [], effectiveCanSeeCost(viewer));
   }
 
   // Create a note on a contact
@@ -580,8 +613,12 @@ class JobNimbusService {
     return statusMap[normalized] || 'lead';
   }
 
-  // Sync all contacts since a given timestamp
-  async syncContacts(since?: number): Promise<JobNimbusContact[]> {
+  // Sync all contacts since a given timestamp.
+  // NOTE: this is an internal sync path used by background jobs. We pass an
+  // explicit owner-tier viewer so the underlying paginator does not redact;
+  // the downstream consumer (jn-sync-engine) is responsible for re-applying
+  // redaction on the surface that reaches end users.
+  async syncContacts(since?: number, viewer?: JNViewer): Promise<JobNimbusContact[]> {
     const allContacts: JobNimbusContact[] = [];
     let offset = 0;
     const limit = 100;
@@ -589,7 +626,7 @@ class JobNimbusService {
     let pageCount = 0;
 
     while (hasMore && pageCount < MAX_PAGES) {
-      const result = await this.getContacts({ limit, offset, since });
+      const result = await this.getContacts({ limit, offset, since }, viewer);
       allContacts.push(...result.results);
       offset += limit;
       hasMore = result.results.length === limit;
@@ -605,17 +642,19 @@ class JobNimbusService {
 
   // Search contacts by email
   // JN filter must be JSON-encoded — see getJobByNumber comment.
-  async searchContactByEmail(email: string): Promise<JobNimbusContact | null> {
+  async searchContactByEmail(email: string, viewer?: JNViewer): Promise<JobNimbusContact | null> {
     const filter = { must: [{ term: { email } }] };
     const result = await this.apiRequest<{ results: JobNimbusContact[] }>(
       `/contacts?filter=${encodeURIComponent(JSON.stringify(filter))}&limit=1`,
     );
-    return result.results[0] || null;
+    const first = result.results[0] || null;
+    if (!first) return null;
+    return redactCostFieldsDeep(first, effectiveCanSeeCost(viewer));
   }
 
   // Search contacts by phone (checks all phone fields)
   // `should` with multiple terms is ES's OR — at least one phone field matches.
-  async searchContactByPhone(phone: string): Promise<JobNimbusContact | null> {
+  async searchContactByPhone(phone: string, viewer?: JNViewer): Promise<JobNimbusContact | null> {
     const normalizedPhone = phone.replace(/\D/g, '');
     const filter = {
       should: [
@@ -627,11 +666,13 @@ class JobNimbusService {
     const result = await this.apiRequest<{ results: JobNimbusContact[] }>(
       `/contacts?filter=${encodeURIComponent(JSON.stringify(filter))}&limit=1`,
     );
-    return result.results[0] || null;
+    const first = result.results[0] || null;
+    if (!first) return null;
+    return redactCostFieldsDeep(first, effectiveCanSeeCost(viewer));
   }
 
   // Get complete customer data with jobs, estimates, and tasks
-  async getCustomerPortalData(contactJnid: string): Promise<{
+  async getCustomerPortalData(contactJnid: string, viewer?: JNViewer): Promise<{
     contact: JobNimbusContact;
     jobs: JobNimbusJob[];
     estimates: JobNimbusEstimate[];
@@ -641,14 +682,17 @@ class JobNimbusService {
     invoices: JobNimbusInvoice[];
   } | null> {
     try {
+      // Pass viewer through to each underlying read so redaction happens once,
+      // at the source. The final shape coming out of this aggregator is also
+      // re-redacted as belt-and-suspenders below.
       const results = await Promise.allSettled([
-        this.getContact(contactJnid),
-        this.getJobsForContact(contactJnid),
-        this.getEstimatesForContact(contactJnid),
-        this.getTasksForContact(contactJnid),
-        this.getNotesForContact(contactJnid),
-        this.getAttachmentsForContact(contactJnid),
-        this.getInvoicesForContact(contactJnid),
+        this.getContact(contactJnid, viewer),
+        this.getJobsForContact(contactJnid, viewer),
+        this.getEstimatesForContact(contactJnid, viewer),
+        this.getTasksForContact(contactJnid, viewer),
+        this.getNotesForContact(contactJnid, 50, viewer),
+        this.getAttachmentsForContact(contactJnid, viewer),
+        this.getInvoicesForContact(contactJnid, viewer),
       ]);
 
       // Extract fulfilled values or log rejections
@@ -673,7 +717,11 @@ class JobNimbusService {
         return null;
       }
 
-      return { contact, jobs, estimates, tasks, notes, attachments, invoices };
+      // Belt-and-suspenders: redact at the aggregate level as well. Each
+      // underlying call already redacted, but if any future field bypasses
+      // a typed shape this catches it.
+      const bundle = { contact, jobs, estimates, tasks, notes, attachments, invoices };
+      return redactCostFieldsDeep(bundle, effectiveCanSeeCost(viewer));
     } catch (error) {
       if (error instanceof JobNimbusError && error.statusCode === 404) {
         return null;
@@ -705,18 +753,23 @@ class JobNimbusService {
     }
   }
 
-  // Get API statistics
-  async getStats(): Promise<{
+  // Get API statistics.
+  // Counts only — no cost-sensitive payload — but we still accept a viewer
+  // for signature consistency across the read surface.
+  async getStats(_viewer?: JNViewer): Promise<{
     contacts: number;
     jobs: number;
     estimates: number;
     tasks: number;
   }> {
+    // Stats endpoint asks JN for count totals only. Use an owner-tier viewer
+    // internally because we discard the payload bodies and just keep `count`.
+    const ownerView: JNViewer = { canSeeCost: true };
     const [contacts, jobs, estimates, tasks] = await Promise.all([
-      this.getContacts({ limit: 1 }),
-      this.getJobs({ limit: 1 }),
-      this.getEstimates({ limit: 1 }),
-      this.getTasks({ limit: 1 }),
+      this.getContacts({ limit: 1 }, ownerView),
+      this.getJobs({ limit: 1 }, ownerView),
+      this.getEstimates({ limit: 1 }, ownerView),
+      this.getTasks({ limit: 1 }, ownerView),
     ]);
 
     return {

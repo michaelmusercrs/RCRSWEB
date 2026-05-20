@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { jobNimbusService } from '@/lib/jobnimbus-service';
+import { viewerForRole } from '@/lib/jn-redact';
 import { emailService } from '@/lib/email-service';
 import { TEAM_MEMBERS, getTeamMembersByRole } from '@/lib/team-roles';
 import {
@@ -80,7 +81,7 @@ export async function GET(req: NextRequest) {
     if (!rNumber.trim()) {
       return NextResponse.json({ success: false, error: 'rNumber required' }, { status: 400 });
     }
-    return await handleLookup(rNumber.trim());
+    return await handleLookup(rNumber.trim(), auth.user.role);
   }
 
   // Pending-changes detector — returns any diffs between the portal
@@ -299,7 +300,10 @@ export async function POST(req: NextRequest) {
 
 // ─── R-number Lookup Handler ─────────────────────────────────────────────
 
-async function handleLookup(rNumber: string): Promise<NextResponse> {
+async function handleLookup(rNumber: string, callerRole?: string): Promise<NextResponse> {
+  // Derive viewer from caller role so cost fields are redacted for reps,
+  // preserved for owner/admin/office/manager (and Richard).
+  const viewer = viewerForRole(callerRole);
   // 1. Try the local CustomerBreakdowns sheet first (we may already have this)
   const existing = await getBreakdownByRNumber(rNumber);
   if (existing) {
@@ -334,7 +338,7 @@ async function handleLookup(rNumber: string): Promise<NextResponse> {
     if (!candidate) continue;
     tried.push(candidate);
     try {
-      jnJob = await jobNimbusService.getJobByNumber(candidate);
+      jnJob = await jobNimbusService.getJobByNumber(candidate, viewer);
       if (jnJob) break;
     } catch {
       // continue to next candidate

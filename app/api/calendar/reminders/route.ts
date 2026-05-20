@@ -72,7 +72,9 @@ async function gatherCalendarEvents(
   // JobNimbus
   try {
     if (isJobNimbusConfigured()) {
-      const jobsResult = await jobNimbusService.getJobs({ limit: 200 });
+      // Calendar reminders are server-internal cron output; only date/name
+      // fields are surfaced. Owner-tier viewer keeps the pull complete.
+      const jobsResult = await jobNimbusService.getJobs({ limit: 200 }, { canSeeCost: true });
       for (const job of jobsResult.results) {
         if (!job.date_start) continue;
 

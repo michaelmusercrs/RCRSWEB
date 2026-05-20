@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { jobNimbusService } from '@/lib/jobnimbus-service';
+import { viewerForRole } from '@/lib/jn-redact';
 import { roofReportService } from '@/lib/roof-report-service';
 import { stormReportService } from '@/lib/storm-report-service';
 
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case 'search':
-        return handleSearch(body.query);
+        return handleSearch(body.query, auth.user.role);
       case 'create-job':
         return handleCreateJob(body);
       case 'measure':
@@ -55,17 +56,19 @@ export async function POST(request: NextRequest) {
 
 // ── Search JN contacts and jobs ────────────────────────────────────────────
 
-async function handleSearch(query: string) {
+async function handleSearch(query: string, callerRole?: string) {
   if (!query || query.trim().length < 2) {
     return NextResponse.json({ success: true, results: [] });
   }
 
   const q = query.trim();
+  // Derive viewer from caller role — sales rep here, redacts cost.
+  const viewer = viewerForRole(callerRole);
 
   try {
     // Search contacts - JN API supports filter syntax
-    const contactResult = await jobNimbusService.getContacts({ limit: 20 });
-    const jobResult = await jobNimbusService.getJobs({ limit: 50 });
+    const contactResult = await jobNimbusService.getContacts({ limit: 20 }, viewer);
+    const jobResult = await jobNimbusService.getJobs({ limit: 50 }, viewer);
 
     const qLower = q.toLowerCase();
 

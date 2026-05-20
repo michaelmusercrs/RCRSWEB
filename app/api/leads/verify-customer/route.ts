@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { jobNimbusService, isJobNimbusConfigured } from '@/lib/jobnimbus-service';
+import { viewerForRole } from '@/lib/jn-redact';
 
 // POST /api/leads/verify-customer - Check if customer exists in JobNimbus
 // Searches by email, phone, and name simultaneously, returns deduplicated results with jobs
 export async function POST(request: NextRequest) {
   const auth = await requireAuth();
   if (!auth.authenticated) return auth.response;
+
+  // Derive viewer from caller role.
+  const viewer = viewerForRole(auth.user.role, { email: auth.user.email, userId: auth.user.userId });
 
   if (!isJobNimbusConfigured()) {
     return NextResponse.json(
@@ -51,7 +55,7 @@ export async function POST(request: NextRequest) {
       // Fetch jobs for this contact
       let jobs: any[] = [];
       try {
-        jobs = await jobNimbusService.getJobsForContact(contact.jnid);
+        jobs = await jobNimbusService.getJobsForContact(contact.jnid, viewer);
       } catch {
         // Jobs fetch failed, continue without
       }
@@ -79,7 +83,7 @@ export async function POST(request: NextRequest) {
 
     if (email) {
       searches.push(
-        jobNimbusService.searchContactByEmail(email)
+        jobNimbusService.searchContactByEmail(email, viewer)
           .then(c => addMatch(c, 'email'))
           .catch(() => {})
       );
@@ -87,7 +91,7 @@ export async function POST(request: NextRequest) {
 
     if (phone) {
       searches.push(
-        jobNimbusService.searchContactByPhone(phone)
+        jobNimbusService.searchContactByPhone(phone, viewer)
           .then(c => addMatch(c, 'phone'))
           .catch(() => {})
       );
@@ -97,7 +101,7 @@ export async function POST(request: NextRequest) {
       const fullName = `${firstName || ''} ${lastName || ''}`.trim().toLowerCase();
       if (fullName.length >= 2) {
         searches.push(
-          jobNimbusService.getContacts({ limit: 200 })
+          jobNimbusService.getContacts({ limit: 200 }, viewer)
             .then(result => {
               const nameMatches = result.results.filter(c => {
                 const contactName = jobNimbusService.getContactName(c).toLowerCase();

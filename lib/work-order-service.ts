@@ -1507,14 +1507,14 @@ class WorkOrderService {
 
   // --- JobNimbus Integration (READ-ONLY) ---
 
-  async fetchJNJobs(filters?: { status?: string; rep?: string; limit?: number }): Promise<JNJobForConversion[]> {
+  async fetchJNJobs(filters?: { status?: string; rep?: string; limit?: number }, viewer?: import('./jn-redact').JNViewer): Promise<JNJobForConversion[]> {
     try {
       if (!isJobNimbusConfigured()) {
         console.warn('JobNimbus API key not configured, returning empty array');
         return [];
       }
 
-      const result = await jobNimbusService.getJobs({ limit: filters?.limit || 50 });
+      const result = await jobNimbusService.getJobs({ limit: filters?.limit || 50 }, viewer);
       const jobs = result.results || [];
 
       // Map JN jobs to simplified shape for UI
@@ -1567,19 +1567,19 @@ class WorkOrderService {
     }
   }
 
-  async fetchJNJobDetail(jobJnid: string): Promise<JNJobDetail> {
+  async fetchJNJobDetail(jobJnid: string, viewer?: import('./jn-redact').JNViewer): Promise<JNJobDetail> {
     if (!isJobNimbusConfigured()) {
       throw new Error('JobNimbus API key not configured');
     }
 
     // Fetch the job
-    const job = await jobNimbusService.getJob(jobJnid);
+    const job = await jobNimbusService.getJob(jobJnid, viewer);
 
     // Fetch contact info if the job has a primary contact
     let contact: JobNimbusContact | null = null;
     if (job.primary?.id) {
       try {
-        contact = await jobNimbusService.getContact(job.primary.id);
+        contact = await jobNimbusService.getContact(job.primary.id, viewer);
       } catch (err) {
         console.warn(`Failed to fetch contact for job ${jobJnid}:`, err);
       }
@@ -1589,7 +1589,7 @@ class WorkOrderService {
     let estimates: JobNimbusEstimate[] = [];
     if (contact?.jnid) {
       try {
-        estimates = await jobNimbusService.getEstimatesForContact(contact.jnid);
+        estimates = await jobNimbusService.getEstimatesForContact(contact.jnid, viewer);
       } catch (err) {
         console.warn(`Failed to fetch estimates for contact ${contact.jnid}:`, err);
       }

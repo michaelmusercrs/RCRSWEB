@@ -372,7 +372,8 @@ export { HEADERS as JOB_MATERIAL_COST_HEADERS };
 async function postCreditMemoNoteToJN(record: JobMaterialCostRecord): Promise<void> {
   if (!record.jobNumber) return; // can't look up the JN job without a number
   const { jobNimbusService } = await import('./jobnimbus-service');
-  const job = await jobNimbusService.getJobByNumber(record.jobNumber);
+  // Internal cost-system path — only the jnid is consumed downstream. Owner-tier viewer.
+  const job = await jobNimbusService.getJobByNumber(record.jobNumber, { canSeeCost: true });
   if (!job?.jnid) return;
 
   // JN's primary contact lives on `job.primary.id`; fall back to the job's

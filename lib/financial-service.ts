@@ -445,8 +445,10 @@ class FinancialService {
     if (!isJobNimbusConfigured()) return defaultPipeline;
 
     try {
-      // Fetch recent jobs from JN (first 200)
-      const result = await jobNimbusService.getJobs({ limit: 200 });
+      // Fetch recent jobs from JN (first 200). Internal financial pipeline
+      // — only status + dates are consumed. Owner-tier viewer is safe; the
+      // caller of this service is responsible for redacting per-user.
+      const result = await jobNimbusService.getJobs({ limit: 200 }, { canSeeCost: true });
       const jobs = result.results || [];
 
       for (const job of jobs) {

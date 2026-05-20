@@ -2,8 +2,14 @@
 // Mines JobNimbus historical data to calculate per-rep response times.
 // Office staff (Sara, Destin, Tia) assign leads; we measure time until
 // the assigned sales rep takes first action (call, appointment, or note).
+//
+// COST-PRIVACY: this is a server-internal mining job. It only reads metadata
+// (created_by, timestamps) — it does not surface cost fields to anyone. We
+// still pass an owner-tier viewer to underlying JN reads for signature
+// consistency. Results written to JN_Response_Times sheet contain no cost.
 
 import { jobNimbusService, isJobNimbusConfigured } from './jobnimbus-service';
+import type { JNViewer } from './jn-redact';
 import { matchRepToTeamMember } from './jn-sync-engine';
 import { GoogleSpreadsheet } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
@@ -174,9 +180,12 @@ class JNResponseMiner {
     let hasMore = true;
     let pageCount = 0;
 
+    // Internal mining job — owner-tier view so we keep all fields available
+    // for analysis. Nothing here leaks to a user-visible surface.
+    const internalViewer: JNViewer = { canSeeCost: true };
     while (hasMore && pageCount < MAX_PAGES) {
       try {
-        const result = await jobNimbusService.getJobs({ limit: pageSize, offset });
+        const result = await jobNimbusService.getJobs({ limit: pageSize, offset }, internalViewer);
         allJobs.push(...result.results.map(j => ({
           jnid: j.jnid,
           sales_rep_name: j.sales_rep_name,
@@ -206,7 +215,7 @@ class JNResponseMiner {
 
       try {
         // Fetch activities/notes for this job
-        const notes = await jobNimbusService.getNotesForJob(job.jnid, 50);
+        const notes = await jobNimbusService.getNotesForJob(job.jnid, 50, internalViewer);
         if (!notes || notes.length === 0) continue;
         totalWithNotes++;
 

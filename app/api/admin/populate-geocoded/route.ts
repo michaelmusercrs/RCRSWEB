@@ -47,7 +47,8 @@ async function populateFromJNGeo(): Promise<PopulateResult> {
 
   while (hasMore && pageCount < 120) {
     try {
-      const page = await jobNimbusService.getContacts({ limit: pageSize, offset });
+      // Admin geocode populator — only address fields consumed. Owner-tier viewer.
+      const page = await jobNimbusService.getContacts({ limit: pageSize, offset }, { canSeeCost: true });
 
       for (const c of page.results) {
         totalContacts++;
