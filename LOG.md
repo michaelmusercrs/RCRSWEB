@@ -8,6 +8,8 @@ The scheduled routine appends an entry per action.
 
 ## 2026-05-20
 
+- `22:00` · claude · 6 files · Phase 7.3 review-request automation — on `sweep/review-automation` branch · env-gated template + sheet queue + daily cron + load-verified hook; vercel.json entry parked in `_disabledCrons` · commit 2a2eae4 (sweep)
+- `21:45` · claude · 5 service pages + lib/seo.ts + lib/serviceEnhancements.ts (new) · Phase 5.6b service-page SEO depth — process steps + includes/excludes + related cross-links + county callouts + ServiceChannel schema · commit ffb6e35 (main)
 - `21:00` · claude · MobileCTABar.tsx + BeforeAfterSlider.tsx + 4 page wirings · Phase 7.2 design refresh — on `sweep/design-refresh` branch · mobile call/text sticky bar + drag-comparison slider; slider has TODO placeholders for real photo pairs · commit cd1c51f (sweep)
 - `20:30` · claude · app/chrisview/board/page.tsx + app/api/chrisview/board/route.ts (new) · Phase 7.1 TV-mode leaderboard — on `sweep/tv-leaderboard` branch · 3-block auto-rotate + activity ticker + pause-on-hover; reads only existing /chrisview public data · commit 2fde8c6 (sweep)
 - `20:15` · claude · app/(site)/roofing-contractor/[county]/page.tsx + data/county-landing.json + sitemap.ts + Footer.tsx · 5 county landing pages (Madison/Morgan/Marshall/Limestone/Cullman) with Service + BreadcrumbList + FAQPage schemas, IKO-led trust signals, internal-link cluster · SEO content lane · commit 08fab81 (main)
