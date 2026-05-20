@@ -371,6 +371,11 @@ export function middleware(request: NextRequest) {
     if (pathname === '/trip-dashboard' || pathname === '/trip-dashboard.html') {
       return NextResponse.redirect(new URL('/trip' + request.nextUrl.search, request.url), 307);
     }
+    // /chrisview is a read-only RCRS database dashboard — public by owner's
+    // choice (same pattern as /trip).
+    if (pathname === '/chrisview' || pathname.startsWith('/chrisview/') || pathname.startsWith('/api/chrisview')) {
+      return NextResponse.next();
+    }
 
     // Everything else on rcrsal.com that's not portal → redirect to public site
     if (isPublicRoute(pathname)) {
