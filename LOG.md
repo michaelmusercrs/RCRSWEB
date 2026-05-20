@@ -8,7 +8,9 @@ The scheduled routine appends an entry per action.
 
 ## 2026-05-20
 
-- `19:30` · claude · app/(tools)/admin/spam-log/page.tsx + app/api/admin/spam-log/route.ts (new) · Phase 6.4 `/admin/spam-log` viewer page — mirrors email-log viewer; filters by gate/route/submitter/date; color-coded gate badges; summary tiles · commit pending
+- `20:30` · claude · app/chrisview/board/page.tsx + app/api/chrisview/board/route.ts (new) · Phase 7.1 TV-mode leaderboard — to `sweep/tv-leaderboard` branch · 3-block auto-rotate + activity ticker + pause-on-hover; reads only existing /chrisview public data · commit pending (sweep branch)
+- `20:15` · claude · app/(site)/roofing-contractor/[county]/page.tsx + data/county-landing.json + sitemap.ts + Footer.tsx · 5 county landing pages (Madison/Morgan/Marshall/Limestone/Cullman) with Service + BreadcrumbList + FAQPage schemas, IKO-led trust signals, internal-link cluster · SEO content lane · commit pending (main)
+- `19:30` · claude · app/(tools)/admin/spam-log/page.tsx + app/api/admin/spam-log/route.ts (new) · Phase 6.4 `/admin/spam-log` viewer page — mirrors email-log viewer; filters by gate/route/submitter/date; color-coded gate badges; summary tiles · commit fe4dc96
 - `19:00` · claude · lib/spam-log.ts (new) + 10 gate-site routes · Phase 6.3 spam-block audit log to master sheet — `logSpamBlock` calls added at every honeypot, spam-filter, and Turnstile rejection across the 10 public form endpoints · fire-and-forget; gate logic unchanged · commit bc09c31
 - `18:45` · claude · app/(tools)/admin/email-log/page.tsx + app/api/admin/email-log/route.ts (new) · Phase 6.2 `/admin/email-log` browseable viewer — filters by status/template/recipient/date, 30s auto-refresh, badges, summary tiles, requireAdmin gate · commit pending
 - `18:15` · claude · lib/email-log.ts (new) + lib/email-service.ts · Phase 6.1 email send-log to master sheet — appends to "Email Log" tab for every send attempt (5 status paths); fire-and-forget so it never blocks · gives owner real-time audit of email behavior once Resend is live · commit 3eea308

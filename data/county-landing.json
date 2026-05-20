@@ -1,0 +1,172 @@
+{
+  "madison": {
+    "name": "Madison",
+    "seat": "Huntsville",
+    "cities": ["Huntsville", "Madison", "Triana", "Owens Cross Roads", "New Hope"],
+    "geo": { "latitude": 34.7304, "longitude": -86.5861 },
+    "intro": "Madison County sits at the heart of the Tennessee Valley and is the most populous county we serve. With Huntsville as its county seat and Madison, Triana, Owens Cross Roads, and New Hope rounding out our coverage, this is where River City Roofing Solutions does the bulk of our work in North Alabama.",
+    "localContext": "Roofs in Madison County take a beating from spring and fall storm systems that roll east off the Tennessee River and down from the Cumberland Plateau. Hail and high straight-line winds are common, and several neighborhoods on the south side of the Tennessee River, around Hampton Cove and Owens Cross Roads, sit in known storm corridors. The mix of older brick ranches in south Huntsville, fast-growing subdivisions in west Madison, and lakeside and foothill homes near New Hope means we see every roof style — and we install accordingly.",
+    "faqs": [
+      {
+        "q": "Does insurance cover storm damage in Madison County?",
+        "a": "In most cases, yes — homeowners insurance in Alabama typically covers sudden wind and hail damage. We document everything with photos and an aerial measurement report, then work directly with your adjuster from inspection through final invoice. If your claim is denied or underpaid, we can request a re-inspection."
+      },
+      {
+        "q": "What is the typical roof replacement timeline?",
+        "a": "Most residential roof replacements in Madison County are completed in 1 to 3 days, weather permitting. Tear-off and dry-in usually happen on day one, with shingles, flashing, and cleanup wrapped on day two for an average-size roof."
+      },
+      {
+        "q": "Are you licensed and insured in Alabama?",
+        "a": "Yes. River City Roofing Solutions is a licensed Alabama roofing contractor, fully insured for general liability and workers' compensation. We carry IKO ROOFPRO Craftsman Premier status as our primary manufacturer credential, and we hold a BBB A+ rating."
+      },
+      {
+        "q": "Do you offer emergency tarping in Huntsville and Madison?",
+        "a": "Yes. After a storm we can typically get a tarp on your roof the same day or the next business day to stop water intrusion before the permanent repair. There is no charge for tarping when we also handle your insurance claim."
+      },
+      {
+        "q": "Do you service Redstone Arsenal and the Hampton Cove area?",
+        "a": "We service every residential ZIP code in Madison County, including Hampton Cove, Big Cove, Monte Sano, and the south Huntsville neighborhoods. For on-base work at Redstone Arsenal, contact us directly so we can coordinate access through the appropriate channels."
+      },
+      {
+        "q": "Do you handle commercial roofs in Huntsville?",
+        "a": "Yes. We work on TPO, modified bitumen, and metal commercial systems across Huntsville and Madison — office plazas, churches, light industrial. Free site survey, written scope, and we can phase work to keep your business running."
+      }
+    ]
+  },
+  "morgan": {
+    "name": "Morgan",
+    "seat": "Decatur",
+    "cities": ["Decatur", "Hartselle", "Priceville", "Falkville"],
+    "geo": { "latitude": 34.6059, "longitude": -86.9833 },
+    "intro": "Morgan County is home base for River City Roofing Solutions — our office and warehouse sit on Central Parkway in Decatur, and we have crews on the road across Decatur, Hartselle, Priceville, and Falkville every single working day.",
+    "localContext": "The Tennessee River bends through the middle of Morgan County and brings the moisture that fuels the storms we build for. South of the river, in Hartselle and Priceville, neighborhoods sit in open farmland that catches the full force of supercell hail. Decatur itself has a deep mix of housing stock — historic Albany and Old Decatur homes that need careful flashing detail, mid-century neighborhoods on the south side, and newer subdivisions toward Point Mallard and Beltline. We've roofed all of it.",
+    "faqs": [
+      {
+        "q": "Does insurance cover storm damage in Morgan County?",
+        "a": "Yes, in most cases. Standard Alabama homeowners policies cover sudden hail and wind damage. We document the damage with photos, drone imagery, and an EagleView report, then work the claim from filing through final invoice on your behalf."
+      },
+      {
+        "q": "What is the typical roof replacement timeline?",
+        "a": "Most Decatur and Hartselle homes are torn off and re-shingled in 1 to 2 days. We stage materials the day before so crews can hit it at first light, dry-in by lunch, and finish out by the afternoon of day two."
+      },
+      {
+        "q": "Are you licensed and insured in Alabama?",
+        "a": "Yes — fully licensed Alabama roofing contractor, general liability and workers' comp on every job. We hold IKO ROOFPRO Craftsman Premier status (our primary manufacturer credential), Owens Corning Preferred, Boral Pro Installer, and a BBB A+ rating."
+      },
+      {
+        "q": "Do you offer emergency tarping?",
+        "a": "Yes. Decatur is our home turf, so for active leaks we can usually have someone on your roof within hours. Tarping is free when we handle your insurance claim."
+      },
+      {
+        "q": "Do you have a local office in Decatur?",
+        "a": "Yes. Our office, warehouse, and dispatch are at 3325 Central Parkway SW in Decatur. Walk-ins welcome during business hours, and that's also where stock material is staged for every Morgan County job."
+      },
+      {
+        "q": "Do you work on historic homes in Old Decatur?",
+        "a": "Yes. We re-roof historic and turn-of-the-century homes in Albany and Old Decatur regularly — careful tear-off, period-appropriate shingle profiles when needed, and detailed flashing work on the steep dormers and complex valleys these homes are known for."
+      }
+    ]
+  },
+  "marshall": {
+    "name": "Marshall",
+    "seat": "Guntersville",
+    "cities": ["Boaz", "Albertville", "Guntersville", "Arab"],
+    "geo": { "latitude": 34.3581, "longitude": -86.2967 },
+    "intro": "Marshall County wraps around Lake Guntersville and includes Boaz, Albertville, Guntersville, and Arab. It's one of the most weather-exposed counties in our service area — the lake effect, the ridge topography, and Sand Mountain's storm corridor all converge here.",
+    "localContext": "Lake Guntersville is the largest lake in Alabama, and the homes around it span the full range — full-time lake houses on the water, weekend cabins, year-round subdivisions in Arab and Albertville, and farm homes up on Sand Mountain. Hail is a serious recurring threat in this part of the state; the Boaz-Albertville corridor has been hit by multiple measurable hail events in recent storm seasons. Wind exposure on lakefront and ridgetop homes is also higher than the rest of our footprint, which means underlayment, fastening patterns, and ridge ventilation all matter more here than in a tucked-in subdivision.",
+    "faqs": [
+      {
+        "q": "Do you service lakefront properties on Lake Guntersville?",
+        "a": "Yes — Lake Guntersville is one of our most-served areas. We handle full-time lake homes, weekend cabins, and dock-side outbuildings. Wind-exposed lakefront roofs need upgraded fastening and underlayment, and we spec and install those upgrades as standard for waterside work."
+      },
+      {
+        "q": "Does insurance cover hail damage in Marshall County?",
+        "a": "Almost always — the Boaz-Albertville-Sand Mountain corridor has well-documented hail history that insurance carriers recognize. We document hits with photos and EagleView reports and walk the claim through with your adjuster from start to finish."
+      },
+      {
+        "q": "What is the typical roof replacement timeline?",
+        "a": "Most homes in Marshall County are torn off and re-shingled in 1 to 2 days. Lakefront and large custom homes with complex rooflines can take 3 to 4 days when valleys, dormers, and detailed flashing are involved."
+      },
+      {
+        "q": "Are you licensed and insured in Alabama?",
+        "a": "Yes — licensed Alabama roofing contractor, fully insured. IKO ROOFPRO Craftsman Premier (primary credential), Owens Corning Preferred, Boral Pro Installer, BBB A+ rated."
+      },
+      {
+        "q": "Do you offer emergency tarping in Marshall County?",
+        "a": "Yes. After major hail or wind events on Sand Mountain or around the lake, we deploy tarping crews the same day to stop water intrusion before the permanent repair. Free with insurance claim work."
+      },
+      {
+        "q": "Do you install metal roofing in Marshall County?",
+        "a": "Yes. Standing-seam metal is popular on lake homes, cabins, and ridgetop properties around Guntersville for both longevity and the look. We install standing seam, ribbed metal, and stone-coated steel."
+      }
+    ]
+  },
+  "limestone": {
+    "name": "Limestone",
+    "seat": "Athens",
+    "cities": ["Athens", "Ardmore", "Elkmont", "Mooresville"],
+    "geo": { "latitude": 34.8029, "longitude": -86.9717 },
+    "intro": "Limestone County is one of the fastest-growing counties in Alabama. With Athens as the county seat and Ardmore, Elkmont, and the historic village of Mooresville rounding out the coverage area, we work everything from new construction in west Athens to century-old farmhouses out toward the Tennessee line.",
+    "localContext": "Limestone sits in the open Tennessee Valley plain, north of the river and west of Madison County. The terrain is flat and largely agricultural, which means storms move through fast and hail can fall on wide-open fields and rooftops with nothing to slow it down. The Ardmore and Elkmont areas, near the Tennessee state line, have been struck repeatedly during spring storm seasons. Mooresville is the oldest incorporated town in Alabama, and the historic homes there need a different approach — careful materials selection and traditional craftsmanship — than the new builds going up around the I-65 corridor.",
+    "faqs": [
+      {
+        "q": "Does insurance cover storm damage in Limestone County?",
+        "a": "Yes, in most cases. Alabama homeowners policies typically cover sudden hail and wind damage. We file claims for Athens, Ardmore, Elkmont, and Mooresville homeowners regularly and document everything with photos and aerial measurements."
+      },
+      {
+        "q": "What is the typical roof replacement timeline?",
+        "a": "Most Limestone County roofs are completed in 1 to 2 days. New-construction subdivisions go fastest; complex historic homes in Mooresville can take longer due to detail work."
+      },
+      {
+        "q": "Are you licensed and insured in Alabama?",
+        "a": "Yes. Licensed Alabama roofing contractor, fully insured. We hold IKO ROOFPRO Craftsman Premier as our primary manufacturer credential, Owens Corning Preferred, Boral Pro Installer, and BBB A+."
+      },
+      {
+        "q": "Do you offer emergency tarping in Athens and the surrounding area?",
+        "a": "Yes. After Limestone County storm events we mobilize tarping crews same-day or next business day. Free when we handle your insurance claim."
+      },
+      {
+        "q": "Do you work on homes near the Tennessee state line in Ardmore?",
+        "a": "Yes — Ardmore (the Alabama side) is well within our service area. We've completed roof replacements throughout the Ardmore and Elkmont corridors and respond quickly after any storm activity in that area."
+      },
+      {
+        "q": "Do you work on historic homes in Mooresville?",
+        "a": "Yes. Mooresville is Alabama's oldest incorporated town and the homes there deserve careful, period-appropriate work. We handle traditional shingle profiles, copper and metal accents, and detailed flashing on the steep, complex roofs typical of pre-Civil-War construction."
+      }
+    ]
+  },
+  "cullman": {
+    "name": "Cullman",
+    "seat": "Cullman",
+    "cities": ["Cullman", "Hanceville", "Vinemont", "Holly Pond"],
+    "geo": { "latitude": 34.1748, "longitude": -86.8436 },
+    "intro": "Cullman County anchors the southern end of our service area, bridging North Alabama with the Birmingham metro. The City of Cullman is the county seat, with Hanceville, Vinemont, and Holly Pond rounding out our coverage.",
+    "localContext": "Cullman County sits on the southern edge of the Cumberland Plateau where the terrain begins to climb out of the Tennessee Valley. The I-65 corridor brings fast-moving storm systems straight through Cullman and Vinemont, and the county has been hit by multiple significant hail and tornado events in recent years — including the well-documented April outbreaks that have cycled through Cullman and Hanceville. The mix of farm homes, in-town historic neighborhoods around downtown Cullman, and newer subdivisions out toward Smith Lake means every roof job here is a little different.",
+    "faqs": [
+      {
+        "q": "Does insurance cover storm damage in Cullman County?",
+        "a": "Yes, in most cases. Cullman County has a well-documented storm history and insurance carriers are familiar with the area. We document hail and wind damage with photos and aerial measurement reports and handle the claim from filing through final invoice."
+      },
+      {
+        "q": "What is the typical roof replacement timeline?",
+        "a": "Most Cullman County homes are completed in 1 to 2 days. Larger custom homes near Smith Lake or with complex rooflines may take 2 to 3 days."
+      },
+      {
+        "q": "Are you licensed and insured in Alabama?",
+        "a": "Yes — licensed Alabama roofing contractor, fully insured. IKO ROOFPRO Craftsman Premier (primary credential), Owens Corning Preferred, Boral Pro Installer, BBB A+ rated."
+      },
+      {
+        "q": "Do you offer emergency tarping after tornadoes or hail in Cullman?",
+        "a": "Yes. After major storm events in Cullman, Hanceville, or Vinemont we deploy crews the same day to tarp roofs and stop water intrusion. Free when we also handle your insurance claim."
+      },
+      {
+        "q": "Do you work on properties around Smith Lake?",
+        "a": "Yes. Lake homes and cabins on the Cullman County side of Smith Lake are part of our regular service area. We handle the upgraded fastening and underlayment that wind-exposed waterside roofs need."
+      },
+      {
+        "q": "How far south do you service?",
+        "a": "Cullman County is the southern edge of our primary service area. We cover Cullman, Hanceville, Vinemont, Holly Pond, and the surrounding rural areas. Contact us if you're outside the county and we'll let you know if we can help."
+      }
+    ]
+  }
+}

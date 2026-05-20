@@ -236,6 +236,29 @@ export default function Footer() {
           </div>
         </div>
 
+        {/* Counties Served Row — high-intent county landing pages
+            (/roofing-contractor/[county]) for SEO topic-cluster binding. */}
+        <div className="mt-8 pt-8 border-t border-white/10">
+          <h3 className="text-lg font-semibold text-white mb-4">Counties Served</h3>
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            <Link href="/roofing-contractor/madison" className="text-gray-300 hover:text-brand-green transition-colors text-sm">
+              Madison County, AL
+            </Link>
+            <Link href="/roofing-contractor/morgan" className="text-gray-300 hover:text-brand-green transition-colors text-sm">
+              Morgan County, AL
+            </Link>
+            <Link href="/roofing-contractor/marshall" className="text-gray-300 hover:text-brand-green transition-colors text-sm">
+              Marshall County, AL
+            </Link>
+            <Link href="/roofing-contractor/limestone" className="text-gray-300 hover:text-brand-green transition-colors text-sm">
+              Limestone County, AL
+            </Link>
+            <Link href="/roofing-contractor/cullman" className="text-gray-300 hover:text-brand-green transition-colors text-sm">
+              Cullman County, AL
+            </Link>
+          </div>
+        </div>
+
         {/* Additional Links Row */}
         <div className="mt-8 pt-8 border-t border-white/10">
           <div className="flex flex-wrap justify-center gap-4 text-sm">

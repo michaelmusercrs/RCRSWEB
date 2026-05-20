@@ -176,6 +176,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.8,
   }));
 
+  // County landing pages — /roofing-contractor/[county]. Topic-cluster pages
+  // built for high-intent `roofing contractor <county>` queries. Higher
+  // priority than generic service-area pages because each targets a distinct
+  // county-level search intent and they link to each other as a cluster.
+  const countyLandingSlugs = ['madison', 'morgan', 'marshall', 'limestone', 'cullman'];
+  const countyLandingPages = countyLandingSlugs.map((slug) => ({
+    url: `${baseUrl}/roofing-contractor/${slug}`,
+    lastModified: new Date(),
+    changeFrequency: 'monthly' as const,
+    priority: 0.9,
+  }));
+
   // Team member pages
   const teamPages = teamMembers.map((member) => ({
     url: `${baseUrl}/team/${member.slug}`,
@@ -197,6 +209,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...locationPages,
     ...servicePages,
     ...serviceAreaPages,
+    ...countyLandingPages,
     ...teamPages,
     ...blogPages,
   ];

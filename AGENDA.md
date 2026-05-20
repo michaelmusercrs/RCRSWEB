@@ -102,6 +102,11 @@ Owner explicitly asked for this — look at how others solve the same problems.
 - `[done]` **6.3 Spam-log infrastructure** — `lib/spam-log.ts` (mirrors `lib/email-log.ts`). `logSpamBlock(entry)` appends to `Spam Log` tab. Wired into all 10 honeypot + spam-filter + turnstile gate sites (10 routes × 3 gates = ~30 call sites). Fire-and-forget; gate logic unchanged.
 - `[done]` **6.4 `/admin/spam-log` viewer page** — app/(tools)/admin/spam-log/page.tsx + app/api/admin/spam-log/route.ts. Mirrors the email-log viewer. Filters: gate, route, submitter substring (matches email/name/ip), date range, limit. 30s auto-refresh. Color-coded gate badges (honeypot purple, spam-filter amber, turnstile blue, rate-limit rose). Summary tiles per gate. requireAdmin gate.
 - `[done]` **5.4+5.5+5.6 Portal + SEO + design research** — `docs/research-portal-seo-design.md`. 5 portal features (CompanyCam-style share, PM trading card, insurance timeline, delivery preview, warranty packet), 5 SEO wins (load-verified review automation, RoofingContractor schema, Core Web Vitals tightening), 5 design wins (vertical install video hero, before-after slider, trust strip, mobile CTA bar, county landing pages).
+- `[done]` **5.6a County landing pages (5)** — `app/(site)/roofing-contractor/[county]/page.tsx` + `data/county-landing.json`. Madison, Morgan, Marshall, Limestone, Cullman. Each: H1, hero with county seat + geographic context, cities-served list, 3 service cards, IKO-led trust signals, county-tailored CTA `/contact?source=county-<slug>`, 6 FAQs (one county-specific), Service + BreadcrumbList + FAQPage schemas. Sitemap + Footer wired. Internal-link cluster between the 5 pages.
+
+## Phase 7 — Feature work on sweep branches (not yet deployed)
+
+- `[done]` **7.1 TV-mode `/chrisview/board`** — `sweep/tv-leaderboard` branch. Full-screen office TV display; auto-rotating top-5 across 3 leaderboards (Commission / Sales / Weekly) per `[[project_rcrs_leaderboards]]`; activity ticker bottom strip; pause-on-hover; gold/silver/bronze podium; 60s data poll. Reads only data that `/chrisview` already publicly serves — no new leak. `[needs-owner]` review preview URL → merge if approved.
 
 Deliverable per item: 1-page summary + 3-5 concrete suggestions that would actually move the needle for RCRS, ranked by impact/effort.
 
