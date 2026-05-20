@@ -85,3 +85,12 @@ Thumbs.db
 .next*
 preview/
 .claude/worktrees/
+
+# Local sheet dumps + invoice batch outputs (PII)
+scripts/sheet-dump*.json
+scripts/invoice-drafts*.json
+scripts/pending-invoices.json
+scripts/invoice-batch*.html
+scripts/invoice-batch-results*.json
+scripts/draft-*.json
+scripts/summary-body.html
