@@ -90,6 +90,8 @@ interface ChartsData {
   salesActivityWeeks: Array<{ date: string; inspected: number; signed: number; revenue: number }>;
   salesActivityByYear: Array<{ year: string; inspected: number; signed: number; revenue: number }>;
   seasonality: Array<{ month: string; monthNum: number; avgRevenue: number; avgExpense: number; yearCount: number }>;
+  yearRace: Array<Record<string, string | number>>;
+  yearRaceYears: string[];
 }
 
 interface OverviewData {
@@ -721,6 +723,45 @@ export default function ChrisViewPage() {
                       </ResponsiveContainer>
                     </div>
                   </div>
+                </section>
+
+                {/* Year race — each year's cumulative pace overlaid */}
+                <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                  <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                    <LineChartIcon className="w-4 h-4 text-[#39FF14]" />
+                    Year Race — Cumulative Revenue by Month, Every Year
+                  </h3>
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={charts.yearRace} margin={{ top: 8, right: 8, bottom: 8, left: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                        <XAxis dataKey="month" stroke="#71717a" fontSize={11} />
+                        <YAxis stroke="#71717a" fontSize={11} tickFormatter={v => `$${(v / 1_000_000).toFixed(1)}M`} />
+                        <Tooltip
+                          contentStyle={{ background: '#18181b', border: '1px solid #27272a', borderRadius: 8 }}
+                          formatter={(v: number | undefined) => v != null ? fmtMoneyExact(v) : '—'}
+                        />
+                        <Legend />
+                        {charts.yearRaceYears.map((y, i) => {
+                          const isCurrent = y === charts.projection.currentYear;
+                          return (
+                            <Line
+                              key={y}
+                              type="monotone"
+                              dataKey={y}
+                              stroke={isCurrent ? '#fbbf24' : PIE_COLORS[i % PIE_COLORS.length]}
+                              strokeWidth={isCurrent ? 3 : 1.5}
+                              dot={false}
+                              name={y}
+                            />
+                          );
+                        })}
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <p className="text-[10px] text-zinc-500 mt-1">
+                    Current year ({charts.projection.currentYear}) shown in amber/thick. Compare against any prior year at any month.
+                  </p>
                 </section>
 
                 {/* Cumulative revenue area chart */}

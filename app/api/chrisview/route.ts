@@ -363,6 +363,30 @@ function buildCharts() {
       : 0,
   };
 
+  // Year race — each year as a cumulative-through-month series so they
+  // can be overlaid on one chart. CFO compares "where was 2025 by April"
+  // vs "where is 2026 by April" at a glance.
+  const byYearMonth: Record<string, Record<number, number>> = {};
+  for (const m of monthly) {
+    const [y, mm] = m.month.split('-').map(Number);
+    const ys = String(y);
+    if (!byYearMonth[ys]) byYearMonth[ys] = {};
+    byYearMonth[ys][mm] = m.netRevenue;
+  }
+  const monthNamesShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const yearRace = monthNamesShort.map((name, idx) => {
+    const monthNum = idx + 1;
+    const row: Record<string, string | number> = { month: name };
+    for (const ys of Object.keys(byYearMonth).sort()) {
+      let cum = 0;
+      for (let mm = 1; mm <= monthNum; mm++) {
+        cum += byYearMonth[ys][mm] || 0;
+      }
+      row[ys] = Math.round(cum * 100) / 100;
+    }
+    return row;
+  });
+
   // Seasonality — average revenue per calendar month across all years.
   // Tells Chris "August historically does $X, are we ahead/behind?"
   const seasonality: Record<number, { sum: number; count: number; expense: number; ec: number }> = {};
@@ -487,6 +511,8 @@ function buildCharts() {
     salesActivityWeeks,
     salesActivityByYear,
     seasonality: seasonalityRows,
+    yearRace,
+    yearRaceYears: Object.keys(byYearMonth).sort(),
   };
 }
 
