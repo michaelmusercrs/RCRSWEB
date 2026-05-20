@@ -387,6 +387,44 @@ export default function ChrisViewPage() {
             )}
             {overview && (
               <>
+                {/* Executive summary — one-paragraph at-a-glance */}
+                <section className="bg-gradient-to-br from-[#39FF14]/10 via-zinc-900 to-zinc-900 border border-[#39FF14]/30 rounded-xl p-5">
+                  <h2 className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide mb-2">
+                    Executive Summary
+                  </h2>
+                  <p className="text-sm text-zinc-200 leading-relaxed">
+                    <strong className="text-white">Lifetime revenue {fmtMoney(overview.lifetime.totalIncome)}</strong>
+                    {' '}with{' '}
+                    <strong className={overview.lifetime.netIncome >= 0 ? 'text-[#39FF14]' : 'text-red-400'}>
+                      {fmtMoney(overview.lifetime.netIncome)} cumulative net income
+                    </strong>
+                    {' '}({fmtPercent(overview.lifetime.netIncome / overview.lifetime.totalIncome)} net margin,{' '}
+                    {fmtPercent(overview.lifetime.grossMargin)} gross margin).
+                    {' Top customer concentration is '}
+                    {overview.concentration && overview.concentration.top5Share < 0.25 ? (
+                      <span className="text-[#39FF14]">healthy at {fmtPercent(overview.concentration.top5Share)} (top 5)</span>
+                    ) : overview.concentration ? (
+                      <span className="text-amber-400">elevated at {fmtPercent(overview.concentration.top5Share)} (top 5)</span>
+                    ) : null}
+                    {' '}across {overview.concentration?.totalCustomers || 0}+ customers.
+                    {overview.repConcentration && (
+                      <>
+                        {' '}Rep concentration is{' '}
+                        {overview.repConcentration.top3Share > 0.4 ? (
+                          <span className="text-amber-400">high at {fmtPercent(overview.repConcentration.top3Share)} (top 3 reps)</span>
+                        ) : (
+                          <span className="text-[#39FF14]">healthy at {fmtPercent(overview.repConcentration.top3Share)} (top 3 reps)</span>
+                        )}.
+                      </>
+                    )}
+                    {' '}Cash on hand:{' '}<strong className="text-white">{fmtMoney(overview.lifetime.cashOnHand)}</strong>
+                    {' against '}<strong className="text-amber-300">{fmtMoney(overview.lifetime.accountsReceivable)}</strong> outstanding A/R.
+                    {' '}Last 12 months: <strong className="text-[#39FF14]">{fmtMoney(overview.last12Revenue)}</strong> revenue,{' '}
+                    <strong className="text-red-300">{fmtMoney(overview.last12Expense)}</strong> expense
+                    {' '}({fmtMoney(overview.last12Revenue - overview.last12Expense)} net).
+                  </p>
+                </section>
+
                 <section>
                   <h2 className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide mb-2">Lifetime — All Time</h2>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
