@@ -28,6 +28,7 @@ import {
   renderLoadVerifiedInvoiceEmail,
   loadVerifiedInvoiceSubject,
 } from './email-templates/load-verified-invoice';
+import { renderLoadVerifiedInvoicePDF } from './email-templates/load-verified-invoice-pdf';
 import {
   renderDriverNewOrderEmail,
   driverNewOrderSubject,
@@ -44,6 +45,21 @@ export type EmailTemplate =
   | 'vendor-return'
   | 'delivery-reminder';
 
+/**
+ * A single binary attachment. Maps directly onto Resend's `Attachment`
+ * shape (see node_modules/resend/dist/index.d.mts ~L597):
+ *   { content?: string | Buffer; filename?: string | false; contentType?: string; ... }
+ * We require both `filename` and `content`. `contentType` defaults to
+ * `application/octet-stream` if omitted.
+ */
+export interface Attachment {
+  filename: string;
+  /** Binary Buffer or base64-encoded string. */
+  content: Buffer | string;
+  /** Defaults to 'application/octet-stream'. */
+  contentType?: string;
+}
+
 export interface EmailOptions {
   template?: EmailTemplate;
   to: string;
@@ -53,6 +69,8 @@ export interface EmailOptions {
   cc?: string;
   bcc?: string;
   fromName?: string;
+  /** File attachments (PDF invoices, etc.). Forwarded to Resend. */
+  attachments?: Attachment[];
 }
 
 function isTemplateAllowed(template: EmailTemplate | undefined): boolean {
@@ -196,6 +214,17 @@ class EmailService {
       const toList = toF.kept.split(',').map(s => s.trim()).filter(Boolean);
       const ccList = ccF.kept ? ccF.kept.split(',').map(s => s.trim()).filter(Boolean) : undefined;
       const bccList = bccF.kept ? bccF.kept.split(',').map(s => s.trim()).filter(Boolean) : undefined;
+      // Map our Attachment[] onto Resend's shape. Resend accepts
+      // `content` as Buffer or string and `contentType` defaults to
+      // application/octet-stream server-side if omitted.
+      const resendAttachments = options.attachments?.length
+        ? options.attachments.map(a => ({
+            filename: a.filename,
+            content: a.content,
+            contentType: a.contentType || 'application/octet-stream',
+          }))
+        : undefined;
+
       const { error } = await this.resend.emails.send({
         from: fromHeader,
         to: toList,
@@ -204,6 +233,7 @@ class EmailService {
         ...(options.replyTo ? { replyTo: options.replyTo } : {}),
         ...(ccList ? { cc: ccList } : {}),
         ...(bccList ? { bcc: bccList } : {}),
+        ...(resendAttachments ? { attachments: resendAttachments } : {}),
       });
       if (error) {
         console.error('[EMAIL SEND FAILED]', { template, subject: options.subject, error });
@@ -486,6 +516,13 @@ class EmailService {
   // and serves as the invoice record. PRICE ONLY — no cost. Safe to attach
   // to JobNimbus or share with sales rep. Cost-bearing data only lives in
   // admin / office / manager reports, never on this email.
+  //
+  // 2026-05-20: the HTML body is now a short cover note; the full
+  // invoice (line items + total) is generated as a PDF via
+  // renderLoadVerifiedInvoicePDF and attached as Invoice-{invoiceId}.pdf.
+  // If PDF generation fails we still send the cover-note email rather
+  // than dropping the whole notification — the office at least gets the
+  // summary, and the error is logged for follow-up.
   async sendLoadVerifiedInvoice(data: {
     officeEmail?: string;
     ticketId: string;
@@ -505,12 +542,33 @@ class EmailService {
     const subject = loadVerifiedInvoiceSubject(data);
     const body = renderLoadVerifiedInvoiceEmail(data);
 
+    let attachments: Attachment[] | undefined;
+    try {
+      const pdfBuffer = await renderLoadVerifiedInvoicePDF(data);
+      attachments = [
+        {
+          filename: `Invoice-${data.invoiceId}.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf',
+        },
+      ];
+    } catch (err) {
+      // Don't lose the notification — send the cover note anyway, log
+      // the PDF failure for manual follow-up.
+      console.error('[LOAD-VERIFIED-INVOICE PDF FAILED]', {
+        invoiceId: data.invoiceId,
+        ticketId: data.ticketId,
+        err: err instanceof Error ? err.message : err,
+      });
+    }
+
     return this.send({
       template: 'load-verified-invoice',
       to: recipient,
       subject,
       body,
       fromName: 'RCRS Inventory',
+      attachments,
     });
   }
 
