@@ -1,0 +1,151 @@
+{
+  "generatedAt": "2026-05-20",
+  "totalSubs": 13,
+  "totalSpend": 6595442.81,
+  "totalChecks": 3132,
+  "subs": [
+    {
+      "entity": "Pablo Compuzano-Cruz",
+      "total": 2999089.74,
+      "checks": 1335,
+      "avgCheck": 2246.51,
+      "firstPaid": "2020-03-20",
+      "lastPaid": "2026-01-23",
+      "jobsCount": 425,
+      "recentChecks": 0,
+      "recentTotal": 0
+    },
+    {
+      "entity": "Martin Martinez-Mendoza",
+      "total": 1191250.48,
+      "checks": 561,
+      "avgCheck": 2123.44,
+      "firstPaid": "2023-03-17",
+      "lastPaid": "2025-06-06",
+      "jobsCount": 184,
+      "recentChecks": 0,
+      "recentTotal": 0
+    },
+    {
+      "entity": "Rocio Sanchez Ramirez",
+      "total": 1051582.81,
+      "checks": 528,
+      "avgCheck": 1991.63,
+      "firstPaid": "2021-04-08",
+      "lastPaid": "2023-03-03",
+      "jobsCount": 129,
+      "recentChecks": 0,
+      "recentTotal": 0
+    },
+    {
+      "entity": "Spradlin Construction, Inc.",
+      "total": 410815.56,
+      "checks": 67,
+      "avgCheck": 6131.58,
+      "firstPaid": "2019-01-11",
+      "lastPaid": "2026-03-13",
+      "jobsCount": 57,
+      "recentChecks": 1,
+      "recentTotal": 900
+    },
+    {
+      "entity": "Mr. Jose Acosta-Garcia",
+      "total": 388929.81,
+      "checks": 250,
+      "avgCheck": 1555.72,
+      "firstPaid": "2020-05-08",
+      "lastPaid": "2021-04-02",
+      "jobsCount": 49,
+      "recentChecks": 0,
+      "recentTotal": 0
+    },
+    {
+      "entity": "Oliva Perez-Antonio",
+      "total": 187598.54,
+      "checks": 120,
+      "avgCheck": 1563.32,
+      "firstPaid": "2022-10-28",
+      "lastPaid": "2023-09-27",
+      "jobsCount": 36,
+      "recentChecks": 0,
+      "recentTotal": 0
+    },
+    {
+      "entity": "Mr. Rogelio Gonzalez-Flores",
+      "total": 116285.35,
+      "checks": 46,
+      "avgCheck": 2527.94,
+      "firstPaid": "2026-02-02",
+      "lastPaid": "2026-05-15",
+      "jobsCount": 7,
+      "recentChecks": 42,
+      "recentTotal": 106161.91
+    },
+    {
+      "entity": "Diego Garcia",
+      "total": 106772.27,
+      "checks": 109,
+      "avgCheck": 979.56,
+      "firstPaid": "2025-07-18",
+      "lastPaid": "2026-05-08",
+      "jobsCount": 25,
+      "recentChecks": 25,
+      "recentTotal": 24071.61
+    },
+    {
+      "entity": "Azucena Cortes- Martinez",
+      "total": 94116.75,
+      "checks": 40,
+      "avgCheck": 2352.92,
+      "firstPaid": "2023-10-06",
+      "lastPaid": "2024-05-16",
+      "jobsCount": 18,
+      "recentChecks": 0,
+      "recentTotal": 0
+    },
+    {
+      "entity": "Yolanda Rodriguez-Tavares",
+      "total": 21364.14,
+      "checks": 15,
+      "avgCheck": 1424.28,
+      "firstPaid": "2020-04-24",
+      "lastPaid": "2020-05-01",
+      "jobsCount": 2,
+      "recentChecks": 0,
+      "recentTotal": 0
+    },
+    {
+      "entity": "Juan Bernal",
+      "total": 20130,
+      "checks": 46,
+      "avgCheck": 437.61,
+      "firstPaid": "2021-09-27",
+      "lastPaid": "2024-03-28",
+      "jobsCount": 27,
+      "recentChecks": 0,
+      "recentTotal": 0
+    },
+    {
+      "entity": "BLSContracting LLC",
+      "total": 7507.36,
+      "checks": 13,
+      "avgCheck": 577.49,
+      "firstPaid": "2024-05-10",
+      "lastPaid": "2024-10-11",
+      "jobsCount": 10,
+      "recentChecks": 0,
+      "recentTotal": 0
+    },
+    {
+      "entity": "Natalie Garcia 1328 Round Hill Rd Vestavia Hills AL 35216",
+      "total": 0,
+      "checks": 2,
+      "avgCheck": 0,
+      "firstPaid": "2018-12-14",
+      "lastPaid": "2019-01-02",
+      "jobsCount": 0,
+      "recentChecks": 0,
+      "recentTotal": 0
+    }
+  ]
+}

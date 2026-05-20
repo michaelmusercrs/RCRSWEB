@@ -1,0 +1,223 @@
+{
+  "generatedAt": "2026-05-20",
+  "cashOnHand": 69231.87,
+  "accountsReceivable": 678085.43,
+  "last12Months": [
+    {
+      "month": "2025-06",
+      "revenue": 1101926.49,
+      "expense": 562324.28,
+      "net": 539602.21
+    },
+    {
+      "month": "2025-07",
+      "revenue": 440065.29,
+      "expense": 499512.77,
+      "net": -59447.48
+    },
+    {
+      "month": "2025-08",
+      "revenue": 709383.86,
+      "expense": 664802.54,
+      "net": 44581.32
+    },
+    {
+      "month": "2025-09",
+      "revenue": 537554.08,
+      "expense": 498337.76,
+      "net": 39216.32
+    },
+    {
+      "month": "2025-10",
+      "revenue": 220172.02,
+      "expense": 537461.85,
+      "net": -317289.83
+    },
+    {
+      "month": "2025-11",
+      "revenue": 237650.17,
+      "expense": 364382.32,
+      "net": -126732.15
+    },
+    {
+      "month": "2025-12",
+      "revenue": 110235.64,
+      "expense": 274746.6,
+      "net": -164510.96
+    },
+    {
+      "month": "2026-01",
+      "revenue": 182312.06,
+      "expense": 233169.41,
+      "net": -50857.35
+    },
+    {
+      "month": "2026-02",
+      "revenue": 178977.71,
+      "expense": 221464.55,
+      "net": -42486.84
+    },
+    {
+      "month": "2026-03",
+      "revenue": 279671.09,
+      "expense": 341814.09,
+      "net": -62143
+    },
+    {
+      "month": "2026-04",
+      "revenue": 688923.15,
+      "expense": 515140.52,
+      "net": 173782.63
+    },
+    {
+      "month": "2026-05",
+      "revenue": 404145,
+      "expense": 225567.17,
+      "net": 178577.83
+    }
+  ],
+  "last12Inflow": 5091016.56,
+  "last12Outflow": 4938723.86,
+  "last12Net": 152292.7,
+  "avgMonthlyNet": 12691.06,
+  "burnRate": -12691.06,
+  "monthsRunway": null,
+  "baselineRev": 307377.44,
+  "baselineExp": 301983.72,
+  "seasonal": [
+    {
+      "month": "Jan",
+      "monthNum": 1,
+      "revMult": 0.64,
+      "expMult": 0.7
+    },
+    {
+      "month": "Feb",
+      "monthNum": 2,
+      "revMult": 0.63,
+      "expMult": 0.71
+    },
+    {
+      "month": "Mar",
+      "monthNum": 3,
+      "revMult": 1.07,
+      "expMult": 0.88
+    },
+    {
+      "month": "Apr",
+      "monthNum": 4,
+      "revMult": 1.46,
+      "expMult": 1.16
+    },
+    {
+      "month": "May",
+      "monthNum": 5,
+      "revMult": 1.18,
+      "expMult": 1.1
+    },
+    {
+      "month": "Jun",
+      "monthNum": 6,
+      "revMult": 1.4,
+      "expMult": 1.21
+    },
+    {
+      "month": "Jul",
+      "monthNum": 7,
+      "revMult": 1.27,
+      "expMult": 1.18
+    },
+    {
+      "month": "Aug",
+      "monthNum": 8,
+      "revMult": 1.23,
+      "expMult": 1.16
+    },
+    {
+      "month": "Sep",
+      "monthNum": 9,
+      "revMult": 1.06,
+      "expMult": 1.06
+    },
+    {
+      "month": "Oct",
+      "monthNum": 10,
+      "revMult": 0.94,
+      "expMult": 1.08
+    },
+    {
+      "month": "Nov",
+      "monthNum": 11,
+      "revMult": 0.68,
+      "expMult": 0.96
+    },
+    {
+      "month": "Dec",
+      "monthNum": 12,
+      "revMult": 0.51,
+      "expMult": 0.85
+    }
+  ],
+  "forecast": [
+    {
+      "month": "2026-06",
+      "projectedRevenue": 431723.71,
+      "projectedExpense": 365359.16,
+      "projectedNet": 66364.55,
+      "projectedCashEnd": 135596.42,
+      "seasonalRevMult": 1.4,
+      "seasonalExpMult": 1.21
+    },
+    {
+      "month": "2026-07",
+      "projectedRevenue": 391023.91,
+      "projectedExpense": 356891.75,
+      "projectedNet": 34132.16,
+      "projectedCashEnd": 169728.58,
+      "seasonalRevMult": 1.27,
+      "seasonalExpMult": 1.18
+    },
+    {
+      "month": "2026-08",
+      "projectedRevenue": 378281.65,
+      "projectedExpense": 350425.54,
+      "projectedNet": 27856.11,
+      "projectedCashEnd": 197584.69,
+      "seasonalRevMult": 1.23,
+      "seasonalExpMult": 1.16
+    },
+    {
+      "month": "2026-09",
+      "projectedRevenue": 326595.65,
+      "projectedExpense": 321133.32,
+      "projectedNet": 5462.33,
+      "projectedCashEnd": 203047.02,
+      "seasonalRevMult": 1.06,
+      "seasonalExpMult": 1.06
+    },
+    {
+      "month": "2026-10",
+      "projectedRevenue": 289715.81,
+      "projectedExpense": 325355.52,
+      "projectedNet": -35639.71,
+      "projectedCashEnd": 167407.31,
+      "seasonalRevMult": 0.94,
+      "seasonalExpMult": 1.08
+    },
+    {
+      "month": "2026-11",
+      "projectedRevenue": 209548.55,
+      "projectedExpense": 289640.81,
+      "projectedNet": -80092.26,
+      "projectedCashEnd": 87315.05,
+      "seasonalRevMult": 0.68,
+      "seasonalExpMult": 0.96
+    }
+  ],
+  "alerts": [
+    {
+      "severity": "warning",
+      "msg": "A/R (678085) is 5×+ cash on hand — collections is the choke point."
+    }
+  ]
+}
