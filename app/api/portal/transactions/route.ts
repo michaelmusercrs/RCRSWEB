@@ -9,7 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth-service';
+import { requireRoleAtLeast } from '@/lib/auth-service';
 import {
   unifiedInventoryService,
   type InventoryTransaction as UnifiedTxn,
@@ -101,7 +101,10 @@ function buildStats(transactions: LegacyTransaction[]): TransactionStats {
 }
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
+  // SECURITY 2026-05-20: every transaction row exposes unit cost and the
+  // stats payload computes profit margin — owner/admin/office/manager tier
+  // only per cost-visibility rule. Richard ('driver') allowed by slug.
+  const auth = await requireRoleAtLeast(['owner', 'admin', 'office', 'manager']);
   if (!auth.authenticated) return auth.response;
 
   try {
@@ -181,7 +184,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  // SECURITY 2026-05-20: same cost/profit exposure as GET — owner/admin/
+  // office/manager tier only. Richard ('driver') allowed by slug.
+  const auth = await requireRoleAtLeast(['owner', 'admin', 'office', 'manager']);
   if (!auth.authenticated) return auth.response;
 
   try {

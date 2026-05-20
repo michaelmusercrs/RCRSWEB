@@ -26,12 +26,22 @@ export const metadata: Metadata = {
     type: 'website',
     url: 'https://www.rivercityroofingsolutions.com/check-my-address',
     siteName: 'River City Roofing Solutions',
+    locale: 'en_US',
+    images: [
+      {
+        url: 'https://www.rivercityroofingsolutions.com/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Free Storm Damage Report — River City Roofing Solutions',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Check Your Address for Storm Damage Risk',
     description:
       'Get a free hail and storm damage report for your property. Instant results using real NWS data.',
+    images: ['https://www.rivercityroofingsolutions.com/og-image.png'],
   },
   alternates: {
     canonical: 'https://www.rivercityroofingsolutions.com/check-my-address',

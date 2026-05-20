@@ -445,6 +445,53 @@ export async function requireAdmin(): Promise<
   return auth;
 }
 
+/**
+ * Require the authenticated user's role to be in `allowedRoles`. Returns
+ * 401 if not authenticated, 403 if authenticated but role is not allowed.
+ *
+ * Role comparison is case-insensitive against the JWT-stored role string
+ * (TeamRole values: 'owner' | 'admin' | 'manager' | 'office' | 'sales' |
+ * 'driver' | 'project_manager' | 'viewer'). Per cost-visibility rule
+ * (feedback_purchase_price_visibility), Richard Geahr ("Rick") is also
+ * allowed on cost/commission surfaces despite being role='driver' — pass
+ * his email/slug in `allowedSlugs` to grant him access by identity.
+ *
+ * Usage:
+ *   const auth = await requireRoleAtLeast(['owner', 'admin', 'office', 'manager']);
+ *   if (!auth.authenticated) return auth.response;
+ */
+export async function requireRoleAtLeast(
+  allowedRoles: string[],
+  allowedSlugs: string[] = ['richard', 'richard@rcrsal.com']
+): Promise<{ authenticated: true; user: AuthUser } | { authenticated: false; response: Response }> {
+  const auth = await requireAuth();
+  if (!auth.authenticated) return auth;
+
+  const role = (auth.user.role || '').toLowerCase();
+  const allowedRolesLower = allowedRoles.map(r => r.toLowerCase());
+  const allowedSlugsLower = allowedSlugs.map(s => s.toLowerCase());
+  const email = (auth.user.email || '').toLowerCase();
+  const userId = (auth.user.userId || '').toLowerCase();
+
+  const roleOk = allowedRolesLower.includes(role);
+  const slugOk =
+    allowedSlugsLower.includes(email) ||
+    allowedSlugsLower.includes(userId);
+
+  if (!roleOk && !slugOk) {
+    const { NextResponse } = await import('next/server');
+    return {
+      authenticated: false,
+      response: NextResponse.json(
+        { success: false, error: 'Insufficient role for this resource' },
+        { status: 403 }
+      ),
+    };
+  }
+
+  return auth;
+}
+
 // ============================================
 // SECURITY HEADERS
 // ============================================

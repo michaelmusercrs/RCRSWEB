@@ -18,7 +18,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/auth-service';
+import { requireRoleAtLeast } from '@/lib/auth-service';
 import { listBreakdowns } from '@/lib/customer-breakdown-service';
 import { unifiedInventoryService } from '@/lib/unified-inventory-service';
 import commissionsData from '@/data/commissions.json';
@@ -96,7 +96,9 @@ function r2(n: number): number {
 // ─── Handler ────────────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
-  const auth = await requireAdmin();
+  // SECURITY 2026-05-20: cost/commission/finance data — owner/admin/office/manager tier only.
+  // Richard ('driver') is allowed by slug per cost-visibility rule.
+  const auth = await requireRoleAtLeast(['owner', 'admin', 'office', 'manager']);
   if (!auth.authenticated) return auth.response;
 
   const url = new URL(req.url);

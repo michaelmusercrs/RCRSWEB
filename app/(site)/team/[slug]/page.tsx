@@ -37,18 +37,40 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   const title = `${member.name} - ${member.position} | River City Roofing Team`;
   const description = member.tagline || `Meet ${member.name}, ${member.position} at River City Roofing Solutions. ${member.bio?.substring(0, 100)}...`;
 
+  const trimmedDesc = description.length > 155 ? description.substring(0, 155) + '...' : description;
+  // Prefer the team member's headshot if present; fall back to the site OG image.
+  const memberImage = member.profileImage;
+  const ogImageUrl = memberImage
+    ? (memberImage.startsWith('http') ? memberImage : `${siteConfig.url}${memberImage}`)
+    : `${siteConfig.url}/og-image.png`;
+
   return {
     title,
-    description: description.length > 155 ? description.substring(0, 155) + '...' : description,
+    description: trimmedDesc,
     alternates: {
       canonical: path,
     },
     openGraph: {
       title,
-      description,
+      description: trimmedDesc,
       url: `${siteConfig.url}${path}`,
       siteName: siteConfig.name,
       type: 'profile',
+      locale: 'en_US',
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: `${member.name} — ${member.position}`,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description: trimmedDesc,
+      images: [ogImageUrl],
     },
   };
 }

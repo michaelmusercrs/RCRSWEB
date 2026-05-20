@@ -89,6 +89,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const description = meta?.description || `Professional roofing contractor in ${area.name}, ${area.state}. Roof replacement, storm damage repair, free inspections & insurance claims. Call (256) 274-8530.`;
   const keywords = meta?.keywords || [`roofing contractor ${area.name} ${area.state}`, `roof replacement ${area.name} ${area.state}`, `best roofer ${area.name} ${area.state}`];
 
+  const ogImageUrl = `${siteConfig.url}/og-image.png`;
+
   return {
     title,
     description,
@@ -102,6 +104,21 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       url: `${siteConfig.url}${path}`,
       siteName: siteConfig.name,
       type: 'website',
+      locale: 'en_US',
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: title,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [ogImageUrl],
     },
   };
 }

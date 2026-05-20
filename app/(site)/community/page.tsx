@@ -1,11 +1,13 @@
 import Link from 'next/link';
 import { Heart, Users, GraduationCap, Trophy, ArrowRight, Phone, Shield, Flame, Baby, Handshake, Church, Medal } from 'lucide-react';
 import type { Metadata } from 'next';
+import { generateMetadata as genMeta } from '@/lib/seo';
 
-export const metadata: Metadata = {
-  title: 'Community Involvement | River City Roofing Solutions',
+export const metadata: Metadata = genMeta({
+  title: 'Community Involvement | $100K+ Donated to North Alabama Schools & Youth Sports',
   description:
-    'River City Roofing Solutions has donated over $100,000 to local youth sports, schools, and community organizations across North Alabama including Decatur, Huntsville, and Madison.',
+    'River City Roofing Solutions has donated over $100,000 to local youth sports, schools, first responders, and community organizations across Decatur, Huntsville, Madison & North Alabama.',
+  path: '/community',
   keywords: [
     'community involvement',
     'local sponsorships',
@@ -15,7 +17,7 @@ export const metadata: Metadata = {
     'River City Roofing community',
     'roofing company giving back',
   ],
-};
+});
 
 const sponsorships = [
   {

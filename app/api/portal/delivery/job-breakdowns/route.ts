@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth-service';
+import { requireRoleAtLeast } from '@/lib/auth-service';
 import {
   jobBreakdownService,
   type BreakdownStatus,
@@ -9,7 +9,10 @@ import {
 // ── GET - List breakdowns with optional filtering ─────────────────────────
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
+  // SECURITY 2026-05-20: job-breakdown records expose unitCost, materialCost,
+  // labor cost, and per-job profit — owner/admin/office/manager tier only
+  // per cost-visibility rule. Richard ('driver') allowed by slug.
+  const auth = await requireRoleAtLeast(['owner', 'admin', 'office', 'manager']);
   if (!auth.authenticated) return auth.response;
 
   try {
@@ -68,7 +71,10 @@ export async function GET(request: NextRequest) {
 // ── POST - Actions on breakdowns ──────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  // SECURITY 2026-05-20: create/update/approve/revise breakdowns containing
+  // cost + profit data — owner/admin/office/manager tier only per cost-
+  // visibility rule. Richard ('driver') allowed by slug.
+  const auth = await requireRoleAtLeast(['owner', 'admin', 'office', 'manager']);
   if (!auth.authenticated) return auth.response;
 
   try {

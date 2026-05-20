@@ -21,7 +21,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth-service';
+import { requireAuth, requireRoleAtLeast } from '@/lib/auth-service';
 import {
   jobMaterialCostService,
   type JobMaterialCostLine,
@@ -41,7 +41,12 @@ const ALLOWED_CREATE_ROLES = new Set([
 ]);
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
+  // SECURITY 2026-05-20: credit-memo records expose unitCost/lineCost on
+  // every line — owner/admin/office/manager tier only per cost-visibility
+  // rule. Richard ('driver') allowed by slug. (POST below has its own
+  // role allowlist that intentionally permits drivers/PMs to author
+  // credit memos at the warehouse, so it stays on requireAuth.)
+  const auth = await requireRoleAtLeast(['owner', 'admin', 'office', 'manager']);
   if (!auth.authenticated) return auth.response;
 
   const { searchParams } = new URL(request.url);

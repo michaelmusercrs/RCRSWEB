@@ -46,6 +46,8 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
   // Add geo-targeted keywords to every blog post
   const keywords = [...rawKeywords, 'North Alabama', 'Decatur AL', 'Huntsville AL'].filter((k, i, arr) => arr.indexOf(k) === i);
 
+  const postImageUrl = post.image.startsWith('http') ? post.image : `${siteConfig.url}${post.image}`;
+
   return {
     title: `${post.title} | River City Roofing Blog`,
     description,
@@ -59,7 +61,14 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
       url: `${siteConfig.url}${path}`,
       siteName: siteConfig.name,
       type: 'article',
-      images: [{ url: post.image.startsWith('http') ? post.image : `${siteConfig.url}${post.image}` }],
+      locale: 'en_US',
+      images: [{ url: postImageUrl, width: 1200, height: 630, alt: post.title }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: post.title,
+      description,
+      images: [postImageUrl],
     },
   };
 }
