@@ -1,0 +1,2882 @@
+{
+  "generatedAt": "2026-05-21",
+  "windowDays": 30,
+  "totalLeads": 24,
+  "leadsWithAnyActivity": 24,
+  "leadsWithNoActivity": 0,
+  "pctWithActivity": 100,
+  "activityTypesSeen": {
+    "Contact Created": 24,
+    "Assigned Contact": 24,
+    "Related to job": 24,
+    "Job Created": 24,
+    "Assigned Job": 24,
+    "Status Changed": 21,
+    "Note": 20,
+    "Phone Call": 15,
+    "Email": 10,
+    "Contact Modified": 6,
+    "Automation": 3,
+    "Job Modified": 3,
+    "Unassigned Contact": 2,
+    "email": 2,
+    "Attachment deleted": 1
+  },
+  "authorsSeen": {
+    "Destin McCary": 17,
+    "Tia Muse Morris": 14,
+    "Automation (Job)": 13,
+    "Hunter Rivers": 8,
+    "Travis Wages": 6,
+    "Aaron Lussi": 5,
+    "Sara Hill": 4,
+    "Automation (Note)": 3,
+    "JobNimbus": 2,
+    "Email": 2,
+    "Brendon Muse": 2,
+    "Greg Muse": 1,
+    "Brenda Langham": 1,
+    "Bart Roberts": 1,
+    "Automation (Material Order)": 1,
+    "John Cordonis": 1,
+    "Delaney Burrows": 1
+  },
+  "leads": [
+    {
+      "contactJnid": "d8f059496ac34830843ec2aca563868e",
+      "contactName": "Jodi Turk",
+      "contactCreatedAt": "2026-05-19T15:43:26.000Z",
+      "createdBy": "Tia Muse Morris",
+      "rep": "Aaron Lussi",
+      "source": "Website",
+      "leadStatus": "Active",
+      "jobCount": 3,
+      "jobNumbers": [
+        "R-11243",
+        "R-11242",
+        "R-11237"
+      ],
+      "totalActivities": 19,
+      "activitiesAfterCreate": 17,
+      "repActivities": 13,
+      "firstRepActivity": {
+        "type": "Phone Call",
+        "author": "Aaron Lussi",
+        "date": "2026-05-19T16:15:50.000Z",
+        "noteSnip": "Outgoing call to (440) 728-4629 for 48s\nCalled, left msg \n@TiaMuseMorris \n@Desti",
+        "minutesAfterLead": 32
+      },
+      "allActivityTypes": [
+        "Contact Created",
+        "Assigned Contact",
+        "Status Changed",
+        "Related to job",
+        "Job Created",
+        "Assigned Job",
+        "Phone Call",
+        "Note",
+        "Email"
+      ],
+      "allAuthors": [
+        "Tia Muse Morris",
+        "Automation (Job)",
+        "Aaron Lussi"
+      ],
+      "activities": [
+        {
+          "type": "Contact Created",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-19T15:43:26.000Z",
+          "noteSnip": "Contact Created"
+        },
+        {
+          "type": "Assigned Contact",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-19T15:43:26.000Z",
+          "noteSnip": "Date:5/19/2026 9:43:26 AM --> Type:Assigned Contact:Contact # C-12021:Jodi Turk"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Automation (Job)",
+          "date": "2026-05-19T15:44:55.000Z",
+          "noteSnip": "Contact Updated\nStatus: Lead => Active\n"
+        },
+        {
+          "type": "Related to job",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-19T15:44:55.000Z",
+          "noteSnip": "Related to job: Jodi Turk #R-11237"
+        },
+        {
+          "type": "Job Created",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-19T15:44:55.000Z",
+          "noteSnip": "Job Created",
+          "onJobNumber": "R-11237"
+        },
+        {
+          "type": "Assigned Job",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-19T15:44:55.000Z",
+          "noteSnip": "Assigned Job: Jodi Turk #R-11237",
+          "onJobNumber": "R-11237"
+        },
+        {
+          "type": "Phone Call",
+          "author": "Aaron Lussi",
+          "date": "2026-05-19T16:15:50.000Z",
+          "noteSnip": "Outgoing call to (440) 728-4629 for 48s\nCalled, left msg \n@TiaMuseMorris \n@DestinMccary"
+        },
+        {
+          "type": "Note",
+          "author": "Aaron Lussi",
+          "date": "2026-05-19T22:05:25.000Z",
+          "noteSnip": "Phone tag for a while, but got an appt set \n@TiaMuseMorris \n@DestinMccary",
+          "onJobNumber": "R-11237"
+        },
+        {
+          "type": "Related to job",
+          "author": "Aaron Lussi",
+          "date": "2026-05-20T20:36:09.000Z",
+          "noteSnip": "Related to job: Jodi Turk (garage) #R-11242"
+        },
+        {
+          "type": "Job Created",
+          "author": "Aaron Lussi",
+          "date": "2026-05-20T20:36:09.000Z",
+          "noteSnip": "Job Created",
+          "onJobNumber": "R-11242"
+        },
+        {
+          "type": "Assigned Job",
+          "author": "Aaron Lussi",
+          "date": "2026-05-20T20:36:09.000Z",
+          "noteSnip": "Assigned Job: Jodi Turk (garage) #R-11242",
+          "onJobNumber": "R-11242"
+        },
+        {
+          "type": "Note",
+          "author": "Aaron Lussi",
+          "date": "2026-05-20T20:46:53.000Z",
+          "noteSnip": "Rustic red\n9/12\n\n17' 8\" panel length",
+          "onJobNumber": "R-11242"
+        },
+        {
+          "type": "Note",
+          "author": "Aaron Lussi",
+          "date": "2026-05-20T20:56:40.000Z",
+          "noteSnip": "Separate gutter quote \nBring downspout on the right to the front of the garage\nInstall the downspout on the left in the middle",
+          "onJobNumber": "R-11242"
+        },
+        {
+          "type": "Related to job",
+          "author": "Aaron Lussi",
+          "date": "2026-05-20T21:02:36.000Z",
+          "noteSnip": "Related to job: Jodi Turk (gutters on garage) #R-11243"
+        },
+        {
+          "type": "Job Created",
+          "author": "Aaron Lussi",
+          "date": "2026-05-20T21:02:36.000Z",
+          "noteSnip": "Job Created",
+          "onJobNumber": "R-11243"
+        },
+        {
+          "type": "Assigned Job",
+          "author": "Aaron Lussi",
+          "date": "2026-05-20T21:02:36.000Z",
+          "noteSnip": "Assigned Job: Jodi Turk (gutters on garage) #R-11243",
+          "onJobNumber": "R-11243"
+        },
+        {
+          "type": "Note",
+          "author": "Aaron Lussi",
+          "date": "2026-05-20T21:57:02.000Z",
+          "noteSnip": "IMPORTANT:\nCarport with metal roof was installed on garage recently. During shingle tear off, extra care should be taken to prevent the shingles/granules from scratching the new metal below.\n\nI added ",
+          "onJobNumber": "R-11242"
+        },
+        {
+          "type": "Email",
+          "author": "Aaron Lussi",
+          "date": "2026-05-20T22:12:23.000Z",
+          "noteSnip": "<b>Jodi Turk (gutters on garage) Estimate #E 13091</b>\nHello Jodi Turk,\n     \n     \n    Your estimate is attached to this email. \n     \n    Thank you, \n     \n    Aaron Lussi\nEmail sent to: Jodi Turk ("
+        },
+        {
+          "type": "Email",
+          "author": "Aaron Lussi",
+          "date": "2026-05-20T22:12:30.000Z",
+          "noteSnip": "<b>Jodi Turk (garage) Estimate #E 13090</b>\nHello Jodi Turk,\n     \n     \n    Your estimate is attached to this email. \n     \n    Thank you, \n     \n    Aaron Lussi\nEmail sent to: Jodi Turk (jodi.turk.1"
+        }
+      ]
+    },
+    {
+      "contactJnid": "0878bcf343464681a4d3db0156f68679",
+      "contactName": "Sharon Owens",
+      "contactCreatedAt": "2026-05-18T18:10:50.000Z",
+      "createdBy": "Tia Muse Morris",
+      "rep": "Hunter Rivers",
+      "source": "Insurance Agent",
+      "leadStatus": "Active",
+      "jobCount": 1,
+      "jobNumbers": [
+        "R-11236"
+      ],
+      "totalActivities": 9,
+      "activitiesAfterCreate": 7,
+      "repActivities": 1,
+      "firstRepActivity": {
+        "type": "Phone Call",
+        "author": "Hunter Rivers",
+        "date": "2026-05-18T18:27:39.000Z",
+        "noteSnip": "Outgoing call to (732) 841-7433 for 1m 51s appointment set",
+        "minutesAfterLead": 17
+      },
+      "allActivityTypes": [
+        "Contact Created",
+        "Assigned Contact",
+        "Related to job",
+        "Status Changed",
+        "Job Created",
+        "Assigned Job",
+        "Phone Call",
+        "Note"
+      ],
+      "allAuthors": [
+        "Tia Muse Morris",
+        "Automation (Job)",
+        "Hunter Rivers",
+        "Destin McCary"
+      ],
+      "activities": [
+        {
+          "type": "Contact Created",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-18T18:10:50.000Z",
+          "noteSnip": "Contact Created"
+        },
+        {
+          "type": "Assigned Contact",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-18T18:10:50.000Z",
+          "noteSnip": "Date:5/18/2026 12:10:50 PM --> Type:Assigned Contact:Contact # C-12020:Sharon Owens"
+        },
+        {
+          "type": "Related to job",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-18T18:12:42.000Z",
+          "noteSnip": "Related to job: Sharon Owens #R-11236"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Automation (Job)",
+          "date": "2026-05-18T18:12:42.000Z",
+          "noteSnip": "Contact Updated\nStatus: Lead => Active\n"
+        },
+        {
+          "type": "Job Created",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-18T18:12:42.000Z",
+          "noteSnip": "Job Created",
+          "onJobNumber": "R-11236"
+        },
+        {
+          "type": "Assigned Job",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-18T18:12:42.000Z",
+          "noteSnip": "Assigned Job: Sharon Owens #R-11236",
+          "onJobNumber": "R-11236"
+        },
+        {
+          "type": "Phone Call",
+          "author": "Hunter Rivers",
+          "date": "2026-05-18T18:27:39.000Z",
+          "noteSnip": "Outgoing call to (732) 841-7433 for 1m 51s appointment set",
+          "onJobNumber": "R-11236"
+        },
+        {
+          "type": "Note",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-20T15:25:08.000Z",
+          "noteSnip": "@HunterRivers Homeowner called and said that she was under the impression that you'd be there by 10 this morning. Please give a call",
+          "onJobNumber": "R-11236"
+        },
+        {
+          "type": "Note",
+          "author": "Destin McCary",
+          "date": "2026-05-20T16:23:29.000Z",
+          "noteSnip": "@HunterRivers Please call homeowner ASAP! Thank you!!",
+          "onJobNumber": "R-11236"
+        }
+      ]
+    },
+    {
+      "contactJnid": "28405bbd87074cc5825ae26ffe73e55b",
+      "contactName": "Maria Brown",
+      "contactCreatedAt": "2026-05-18T15:12:53.000Z",
+      "createdBy": "Tia Muse Morris",
+      "rep": "Travis Wages",
+      "source": "Family",
+      "leadStatus": "Active",
+      "jobCount": 1,
+      "jobNumbers": [
+        "R-11235"
+      ],
+      "totalActivities": 7,
+      "activitiesAfterCreate": 5,
+      "repActivities": 1,
+      "firstRepActivity": {
+        "type": "Phone Call",
+        "author": "Travis Wages",
+        "date": "2026-05-18T16:09:32.000Z",
+        "noteSnip": "Outgoing call to (256) 889-4724 for 2m 53s @TiaMuseMorris sookento homeowner",
+        "minutesAfterLead": 57
+      },
+      "allActivityTypes": [
+        "Contact Created",
+        "Assigned Contact",
+        "Related to job",
+        "Job Created",
+        "Assigned Job",
+        "Status Changed",
+        "Phone Call"
+      ],
+      "allAuthors": [
+        "Tia Muse Morris",
+        "Automation (Job)",
+        "Travis Wages"
+      ],
+      "activities": [
+        {
+          "type": "Contact Created",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-18T15:12:53.000Z",
+          "noteSnip": "Contact Created"
+        },
+        {
+          "type": "Assigned Contact",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-18T15:12:53.000Z",
+          "noteSnip": "Date:5/18/2026 9:12:53 AM --> Type:Assigned Contact:Contact # C-12019:Maria Brown"
+        },
+        {
+          "type": "Related to job",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-18T15:16:15.000Z",
+          "noteSnip": "Related to job: Maria Brown Chimney #R-11235"
+        },
+        {
+          "type": "Job Created",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-18T15:16:15.000Z",
+          "noteSnip": "Job Created",
+          "onJobNumber": "R-11235"
+        },
+        {
+          "type": "Assigned Job",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-18T15:16:15.000Z",
+          "noteSnip": "Assigned Job: Maria Brown Chimney #R-11235",
+          "onJobNumber": "R-11235"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Automation (Job)",
+          "date": "2026-05-18T15:16:16.000Z",
+          "noteSnip": "Contact Updated\nStatus: Lead => Active\n"
+        },
+        {
+          "type": "Phone Call",
+          "author": "Travis Wages",
+          "date": "2026-05-18T16:09:32.000Z",
+          "noteSnip": "Outgoing call to (256) 889-4724 for 2m 53s @TiaMuseMorris sookento homeowner",
+          "onJobNumber": "R-11235"
+        }
+      ]
+    },
+    {
+      "contactJnid": "853aa205382d4b0297e2eddf5d1a5a8f",
+      "contactName": "Donald Shore",
+      "contactCreatedAt": "2026-05-15T17:59:11.000Z",
+      "createdBy": "Tia Muse Morris",
+      "rep": "Aaron Lussi",
+      "source": "Yard Sign",
+      "leadStatus": "Active",
+      "jobCount": 1,
+      "jobNumbers": [
+        "R-11234"
+      ],
+      "totalActivities": 14,
+      "activitiesAfterCreate": 11,
+      "repActivities": 5,
+      "firstRepActivity": {
+        "type": "Phone Call",
+        "author": "Aaron Lussi",
+        "date": "2026-05-15T21:16:23.000Z",
+        "noteSnip": "Outgoing call to (310) 926-5217 for 1m 12s\nCalled, set appt \n@TiaMuseMorris \n@De",
+        "minutesAfterLead": 197
+      },
+      "allActivityTypes": [
+        "Contact Created",
+        "Assigned Contact",
+        "Related to job",
+        "Status Changed",
+        "Job Created",
+        "Assigned Job",
+        "Phone Call",
+        "Unassigned Contact",
+        "Note",
+        "Email"
+      ],
+      "allAuthors": [
+        "Tia Muse Morris",
+        "Automation (Job)",
+        "Aaron Lussi",
+        "Destin McCary"
+      ],
+      "activities": [
+        {
+          "type": "Contact Created",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-15T17:59:11.000Z",
+          "noteSnip": "Contact Created"
+        },
+        {
+          "type": "Assigned Contact",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-15T17:59:11.000Z",
+          "noteSnip": "Date:5/15/2026 11:59:11 AM --> Type:Assigned Contact:Contact # C-12018:Donald Shore"
+        },
+        {
+          "type": "Assigned Contact",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-15T17:59:11.000Z",
+          "noteSnip": "Date:5/15/2026 11:59:11 AM --> Type:Assigned Contact:Contact # C-12018:Donald Shore"
+        },
+        {
+          "type": "Related to job",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-15T18:00:34.000Z",
+          "noteSnip": "Related to job: Donald Shore #R-11234"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Automation (Job)",
+          "date": "2026-05-15T18:00:34.000Z",
+          "noteSnip": "Contact Updated\nStatus: Lead => Active\n"
+        },
+        {
+          "type": "Job Created",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-15T18:00:34.000Z",
+          "noteSnip": "Job Created",
+          "onJobNumber": "R-11234"
+        },
+        {
+          "type": "Assigned Job",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-15T18:00:34.000Z",
+          "noteSnip": "Assigned Job: Donald Shore #R-11234",
+          "onJobNumber": "R-11234"
+        },
+        {
+          "type": "Phone Call",
+          "author": "Aaron Lussi",
+          "date": "2026-05-15T21:16:23.000Z",
+          "noteSnip": "Outgoing call to (310) 926-5217 for 1m 12s\nCalled, set appt \n@TiaMuseMorris \n@DestinMccary"
+        },
+        {
+          "type": "Unassigned Contact",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-19T15:49:35.000Z",
+          "noteSnip": "Date:5/19/2026 9:49:35 AM --> Unassigned Contact: #C-12018:Donald Shore"
+        },
+        {
+          "type": "Note",
+          "author": "Aaron Lussi",
+          "date": "2026-05-19T21:49:27.000Z",
+          "noteSnip": "4/12\nClay trim \n\nMush x2 \n3-1 x3 (board over obsolete plumbing vent)\nSlant x1\nZip x1",
+          "onJobNumber": "R-11234"
+        },
+        {
+          "type": "Note",
+          "author": "Aaron Lussi",
+          "date": "2026-05-19T22:01:23.000Z",
+          "noteSnip": "Can I get an EV on this one please? \n@DestinMccary \n@SaraHill",
+          "onJobNumber": "R-11234"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Destin McCary",
+          "date": "2026-05-20T12:54:08.000Z",
+          "noteSnip": "Job Updated\nStatus: Lead => Aerial Measurements\n",
+          "onJobNumber": "R-11234"
+        },
+        {
+          "type": "Note",
+          "author": "Aaron Lussi",
+          "date": "2026-05-20T15:38:05.000Z",
+          "noteSnip": "Board over obsolete (capped) plumbing vent.\nPhoto uploaded",
+          "onJobNumber": "R-11234"
+        },
+        {
+          "type": "Email",
+          "author": "Aaron Lussi",
+          "date": "2026-05-20T15:38:22.000Z",
+          "noteSnip": "<b>Donald Shore Estimate #E 13089</b>\nHello Donald Shore,\n     \n     \n    Your estimate is attached to this email. \n     \n    Thank you, \n     \n    Aaron Lussi\nEmail sent to: Donald Shore (donalddshor"
+        }
+      ]
+    },
+    {
+      "contactJnid": "9515644c6f7c44eb9fa59b2a24056d22",
+      "contactName": "Samantha Smith",
+      "contactCreatedAt": "2026-05-14T19:29:38.000Z",
+      "createdBy": "Destin McCary",
+      "rep": "Travis Wages",
+      "source": "Google",
+      "leadStatus": "Active",
+      "jobCount": 1,
+      "jobNumbers": [
+        "R-11231"
+      ],
+      "totalActivities": 11,
+      "activitiesAfterCreate": 9,
+      "repActivities": 5,
+      "firstRepActivity": {
+        "type": "Phone Call",
+        "author": "Travis Wages",
+        "date": "2026-05-14T19:49:02.000Z",
+        "noteSnip": "Outgoing call to (256) 466-4277 for 2m 1s @DestinMccary spoke to homeowner",
+        "minutesAfterLead": 19
+      },
+      "allActivityTypes": [
+        "Contact Created",
+        "Assigned Contact",
+        "Related to job",
+        "Job Created",
+        "Assigned Job",
+        "Phone Call",
+        "Note",
+        "Automation",
+        "Email"
+      ],
+      "allAuthors": [
+        "Destin McCary",
+        "Travis Wages",
+        "Automation (Note)"
+      ],
+      "activities": [
+        {
+          "type": "Contact Created",
+          "author": "Destin McCary",
+          "date": "2026-05-14T19:29:38.000Z",
+          "noteSnip": "Contact Created"
+        },
+        {
+          "type": "Assigned Contact",
+          "author": "Destin McCary",
+          "date": "2026-05-14T19:29:38.000Z",
+          "noteSnip": "Date:5/14/2026 1:29:38 PM --> Type:Assigned Contact:Contact # C-12016:Samantha Smith"
+        },
+        {
+          "type": "Related to job",
+          "author": "Destin McCary",
+          "date": "2026-05-14T19:30:20.000Z",
+          "noteSnip": "Related to job: Samantha Smith #R-11231"
+        },
+        {
+          "type": "Job Created",
+          "author": "Destin McCary",
+          "date": "2026-05-14T19:30:20.000Z",
+          "noteSnip": "Job Created",
+          "onJobNumber": "R-11231"
+        },
+        {
+          "type": "Assigned Job",
+          "author": "Destin McCary",
+          "date": "2026-05-14T19:30:20.000Z",
+          "noteSnip": "Assigned Job: Samantha Smith #R-11231",
+          "onJobNumber": "R-11231"
+        },
+        {
+          "type": "Phone Call",
+          "author": "Travis Wages",
+          "date": "2026-05-14T19:49:02.000Z",
+          "noteSnip": "Outgoing call to (256) 466-4277 for 2m 1s @DestinMccary spoke to homeowner",
+          "onJobNumber": "R-11231"
+        },
+        {
+          "type": "Note",
+          "author": "Travis Wages",
+          "date": "2026-05-14T19:49:31.000Z",
+          "noteSnip": "Soffit, Fascia, Gable ends",
+          "onJobNumber": "R-11231"
+        },
+        {
+          "type": "Note",
+          "author": "Travis Wages",
+          "date": "2026-05-15T15:15:02.000Z",
+          "noteSnip": "95 ft fasciaPaint gable ends",
+          "onJobNumber": "R-11231"
+        },
+        {
+          "type": "Automation",
+          "author": "Automation (Note)",
+          "date": "2026-05-19T15:24:42.000Z",
+          "noteSnip": "<b>Doc Fully Signed</b>\nA document has been fully signed and is ready for viewing.  Samantha Smith  3101 Cornville Road Southwest  Decatur AL 35603\nEmail sent to: Destin McCary (destin@rivercityroofin"
+        },
+        {
+          "type": "Email",
+          "author": "Travis Wages",
+          "date": "2026-05-19T15:26:06.000Z",
+          "noteSnip": "<b>Estimate from River City Roofing</b>\nThe estimate is attached to this email.\n  \nThank you,\n \nTravis Wages\n  \n——\n \nSent from River City Roofing Solutions, Inc. via  JobNimbus\nEmail sent to:  (Samant"
+        },
+        {
+          "type": "Note",
+          "author": "Travis Wages",
+          "date": "2026-05-19T15:27:20.000Z",
+          "noteSnip": "She wants the work to be done middle of July. Will be dropping off deposit sometime this week - Will get paint color and metal color from her as well. Friday 5/22/2026",
+          "onJobNumber": "R-11231"
+        }
+      ]
+    },
+    {
+      "contactJnid": "05b93b8ace6740eb9345784255513982",
+      "contactName": "Lisa Espy",
+      "contactCreatedAt": "2026-05-12T18:59:51.000Z",
+      "createdBy": "Destin McCary",
+      "rep": "Travis Wages",
+      "source": "Insurance Agent",
+      "leadStatus": "Active",
+      "jobCount": 1,
+      "jobNumbers": [
+        "R-11226"
+      ],
+      "totalActivities": 9,
+      "activitiesAfterCreate": 7,
+      "repActivities": 3,
+      "firstRepActivity": {
+        "type": "Phone Call",
+        "author": "Travis Wages",
+        "date": "2026-05-12T19:06:52.000Z",
+        "noteSnip": "Outgoing call to (256) 342-8183 for 1m 26s @DestinMccary spoke with homeowner",
+        "minutesAfterLead": 7
+      },
+      "allActivityTypes": [
+        "Contact Created",
+        "Assigned Contact",
+        "Related to job",
+        "Job Created",
+        "Assigned Job",
+        "Phone Call",
+        "Note",
+        "Status Changed"
+      ],
+      "allAuthors": [
+        "Destin McCary",
+        "Travis Wages"
+      ],
+      "activities": [
+        {
+          "type": "Contact Created",
+          "author": "Destin McCary",
+          "date": "2026-05-12T18:59:51.000Z",
+          "noteSnip": "Contact Created"
+        },
+        {
+          "type": "Assigned Contact",
+          "author": "Destin McCary",
+          "date": "2026-05-12T18:59:51.000Z",
+          "noteSnip": "Date:5/12/2026 12:59:51 PM --> Type:Assigned Contact:Contact # C-12012:Lisa Espy"
+        },
+        {
+          "type": "Related to job",
+          "author": "Destin McCary",
+          "date": "2026-05-12T19:00:31.000Z",
+          "noteSnip": "Related to job: Lisa Epsy #R-11226"
+        },
+        {
+          "type": "Job Created",
+          "author": "Destin McCary",
+          "date": "2026-05-12T19:00:31.000Z",
+          "noteSnip": "Job Created",
+          "onJobNumber": "R-11226"
+        },
+        {
+          "type": "Assigned Job",
+          "author": "Destin McCary",
+          "date": "2026-05-12T19:00:31.000Z",
+          "noteSnip": "Assigned Job: Lisa Epsy #R-11226",
+          "onJobNumber": "R-11226"
+        },
+        {
+          "type": "Phone Call",
+          "author": "Travis Wages",
+          "date": "2026-05-12T19:06:52.000Z",
+          "noteSnip": "Outgoing call to (256) 342-8183 for 1m 26s @DestinMccary spoke with homeowner",
+          "onJobNumber": "R-11226"
+        },
+        {
+          "type": "Note",
+          "author": "Travis Wages",
+          "date": "2026-05-13T14:57:49.000Z",
+          "noteSnip": "1 - 1.51 - 2\n1 - 3 \nGas Vent\n750",
+          "onJobNumber": "R-11226"
+        },
+        {
+          "type": "Note",
+          "author": "Travis Wages",
+          "date": "2026-05-13T15:10:05.000Z",
+          "noteSnip": "@DestinMccary could you order me an EV on this please?",
+          "onJobNumber": "R-11226"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Destin McCary",
+          "date": "2026-05-13T15:12:22.000Z",
+          "noteSnip": "Job Updated\nStatus: Lead => Aerial Measurements\n",
+          "onJobNumber": "R-11226"
+        }
+      ]
+    },
+    {
+      "contactJnid": "f33dc3372a5343568ba97d03c2ed18aa",
+      "contactName": "Brenda Langham",
+      "contactCreatedAt": "2026-05-11T21:23:24.000Z",
+      "createdBy": "Tia Muse Morris",
+      "rep": "Greg Muse",
+      "source": "Family",
+      "leadStatus": "In Progress",
+      "jobCount": 1,
+      "jobNumbers": [
+        "R-11223"
+      ],
+      "totalActivities": 28,
+      "activitiesAfterCreate": 26,
+      "repActivities": 12,
+      "firstRepActivity": {
+        "type": "Note",
+        "author": "Greg Muse",
+        "date": "2026-05-11T22:31:43.000Z",
+        "noteSnip": "1-1”\n2-2”\n1-3”\n2 mushroom\n2 gas\n1-zipper",
+        "minutesAfterLead": 68
+      },
+      "allActivityTypes": [
+        "Contact Created",
+        "Assigned Contact",
+        "Related to job",
+        "Status Changed",
+        "Job Created",
+        "Assigned Job",
+        "Note",
+        "Email",
+        "email",
+        "Automation"
+      ],
+      "allAuthors": [
+        "Tia Muse Morris",
+        "Automation (Job)",
+        "Greg Muse",
+        "Destin McCary",
+        "Brenda Langham",
+        "JobNimbus",
+        "Automation (Note)",
+        "Bart Roberts",
+        "Automation (Material Order)",
+        "John Cordonis"
+      ],
+      "activities": [
+        {
+          "type": "Contact Created",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-11T21:23:24.000Z",
+          "noteSnip": "Contact Created"
+        },
+        {
+          "type": "Assigned Contact",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-11T21:23:24.000Z",
+          "noteSnip": "Date:5/11/2026 3:23:24 PM --> Type:Assigned Contact:Contact # C-12010:Brenda Langham"
+        },
+        {
+          "type": "Related to job",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-11T21:25:33.000Z",
+          "noteSnip": "Related to job: Brenda Langham #R-11223"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Automation (Job)",
+          "date": "2026-05-11T21:25:33.000Z",
+          "noteSnip": "Contact Updated\nStatus: Lead => Active\n"
+        },
+        {
+          "type": "Job Created",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-11T21:25:33.000Z",
+          "noteSnip": "Job Created",
+          "onJobNumber": "R-11223"
+        },
+        {
+          "type": "Assigned Job",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-11T21:25:33.000Z",
+          "noteSnip": "Assigned Job: Brenda Langham #R-11223",
+          "onJobNumber": "R-11223"
+        },
+        {
+          "type": "Note",
+          "author": "Greg Muse",
+          "date": "2026-05-11T22:31:43.000Z",
+          "noteSnip": "1-1”\n2-2”\n1-3”\n2 mushroom\n2 gas\n1-zipper",
+          "onJobNumber": "R-11223"
+        },
+        {
+          "type": "Note",
+          "author": "Greg Muse",
+          "date": "2026-05-11T22:56:55.000Z",
+          "noteSnip": "@SaraHill @DestinMccary need eagle view for just house",
+          "onJobNumber": "R-11223"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Destin McCary",
+          "date": "2026-05-12T13:09:48.000Z",
+          "noteSnip": "Job Updated\nStatus: Lead => Aerial Measurements\n",
+          "onJobNumber": "R-11223"
+        },
+        {
+          "type": "Note",
+          "author": "Destin McCary",
+          "date": "2026-05-12T13:46:28.000Z",
+          "noteSnip": "@GregMuse Need pitches",
+          "onJobNumber": "R-11223"
+        },
+        {
+          "type": "Email",
+          "author": "Greg Muse",
+          "date": "2026-05-12T20:55:32.000Z",
+          "noteSnip": "<b>Estimate</b>\nThe estimate is attached to this email.\n  \nThank you,\n \nGreg Muse\n  \n——\n \nSent from River City Roofing Solutions, Inc. via  JobNimbus\nEmail sent to: Brenda Langham (langham111@yahoo.co"
+        },
+        {
+          "type": "Email",
+          "author": "Greg Muse",
+          "date": "2026-05-12T20:55:44.000Z",
+          "noteSnip": "<b>Estimate</b>\nThe estimate is attached to this email.\n  \nThank you,\n \nGreg Muse\n  \n——\n \nSent from River City Roofing Solutions, Inc. via  JobNimbus\nEmail sent to: Brenda Langham (langham111@yahoo.co"
+        },
+        {
+          "type": "email",
+          "author": "Greg Muse",
+          "date": "2026-05-14T19:30:21.000Z",
+          "noteSnip": "<b>River City Roofing Solutions, Inc. sent Estimate #E-13063 for you to sign</b>\nRiver City Roofing Solutions, Inc. sent Estimate #E-13063 for you to sign\nEmail sent to: Brenda Langham (langham111@yah"
+        },
+        {
+          "type": "Note",
+          "author": "Brenda Langham",
+          "date": "2026-05-14T19:31:02.000Z",
+          "noteSnip": "Electronic Signature Added to Estimate #E-13063"
+        },
+        {
+          "type": "email",
+          "author": "JobNimbus",
+          "date": "2026-05-14T19:31:02.000Z",
+          "noteSnip": "<b>Estimate #E-13063 is completed and ready to download. Document fully signed.</b>\nEstimate #E-13063 is completed and ready to download. Document fully signed.\nEmail sent to: Brenda Langham (langham1"
+        },
+        {
+          "type": "Automation",
+          "author": "Automation (Note)",
+          "date": "2026-05-14T19:31:03.000Z",
+          "noteSnip": "<b>Doc Fully Signed</b>\nA document has been fully signed and is ready for viewing.  Brenda Langham  733 Nance Ford Road Southwest  Hartselle AL 35640\nEmail sent to: Destin McCary (destin@rivercityroof"
+        },
+        {
+          "type": "Note",
+          "author": "Greg Muse",
+          "date": "2026-05-14T19:36:51.000Z",
+          "noteSnip": "@JohnCordonis  deposit made and Summit Grey is shingle color.  \n@SaraHill  @DestinMccary  @TiaMuseMorris  deposit uploaded , color form and checklist.",
+          "onJobNumber": "R-11223"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Automation (Job)",
+          "date": "2026-05-14T19:38:27.000Z",
+          "noteSnip": "Contact Updated\nStatus: Active => In Progress\n"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Destin McCary",
+          "date": "2026-05-14T19:38:27.000Z",
+          "noteSnip": "Job Updated\nStatus: Aerial Measurements => Approved Jobs\n",
+          "onJobNumber": "R-11223"
+        },
+        {
+          "type": "Note",
+          "author": "Greg Muse",
+          "date": "2026-05-14T19:45:08.000Z",
+          "noteSnip": "@JohnCordonis do not damage roses.  Pic uploaded",
+          "onJobNumber": "R-11223"
+        },
+        {
+          "type": "Email",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-14T19:57:08.000Z",
+          "noteSnip": "<b>Invoice #I 6136</b>\nGood Afternoon, here is a copy of your invoice. Please let me know if there is anything else that we can do for you!  Thank you,   Tia Muse Morris   River City Roofing Solutions"
+        },
+        {
+          "type": "Note",
+          "author": "Bart Roberts",
+          "date": "2026-05-15T16:56:27.000Z",
+          "noteSnip": "permit uploaded\n@SaraHill @DestinMccary",
+          "onJobNumber": "R-11223"
+        },
+        {
+          "type": "Automation",
+          "author": "Automation (Material Order)",
+          "date": "2026-05-18T16:18:02.000Z",
+          "noteSnip": "<b>Brenda LanghamApproved Jobs</b>\nThe materials for this job have been ordered on 5/18/2026 by John Cordonis\nEmail sent to: Greg Muse (greg@rivercityroofingsolutions.com)"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Automation (Material Order)",
+          "date": "2026-05-18T16:18:02.000Z",
+          "noteSnip": "Job Updated\nStatus: Approved Jobs => Materials Ordered/Scheduled\n",
+          "onJobNumber": "R-11223"
+        },
+        {
+          "type": "Automation",
+          "author": "Automation (Material Order)",
+          "date": "2026-05-18T16:34:46.000Z",
+          "noteSnip": "<b>Brenda LanghamMaterials Ordered/Scheduled</b>\nThe materials for this job have been ordered on 5/18/2026 by John Cordonis\nEmail sent to: Greg Muse (greg@rivercityroofingsolutions.com)"
+        },
+        {
+          "type": "Email",
+          "author": "John Cordonis",
+          "date": "2026-05-18T16:47:36.000Z",
+          "noteSnip": "<b>W.O. #W-10204 - Brenda Langham</b>\nNew Work Order Assigned \nEmail sent to roger.gonzalez1969@gmail.com  (subcontractor)\nEmail sent to: Rogelio Gonzalez-Flores (roger.gonzalez1969@gmail.com)"
+        },
+        {
+          "type": "Note",
+          "author": "John Cordonis",
+          "date": "2026-05-19T11:14:29.000Z",
+          "noteSnip": "@GregMuse roof is 2 layers.  Pics uploaded Adrian sent me.  He said he needs 4x OSB. Tae is bringing",
+          "onJobNumber": "R-11223"
+        },
+        {
+          "type": "Note",
+          "author": "Greg Muse",
+          "date": "2026-05-19T12:36:31.000Z",
+          "noteSnip": "@JohnCordonis  10-4",
+          "onJobNumber": "R-11223"
+        }
+      ]
+    },
+    {
+      "contactJnid": "92f09d88256f44b38445fffd11869e4b",
+      "contactName": "Tom Carter",
+      "contactCreatedAt": "2026-05-11T13:49:57.000Z",
+      "createdBy": "Destin McCary",
+      "rep": "Alijah Coleman",
+      "source": "Google",
+      "leadStatus": "Active",
+      "jobCount": 1,
+      "jobNumbers": [
+        "R-11218"
+      ],
+      "totalActivities": 8,
+      "activitiesAfterCreate": 5,
+      "repActivities": 0,
+      "firstRepActivity": null,
+      "allActivityTypes": [
+        "Contact Created",
+        "Assigned Contact",
+        "Related to job",
+        "Job Created",
+        "Assigned Job",
+        "Note"
+      ],
+      "allAuthors": [
+        "Destin McCary"
+      ],
+      "activities": [
+        {
+          "type": "Contact Created",
+          "author": "Destin McCary",
+          "date": "2026-05-11T13:49:57.000Z",
+          "noteSnip": "Contact Created"
+        },
+        {
+          "type": "Assigned Contact",
+          "author": "Destin McCary",
+          "date": "2026-05-11T13:49:57.000Z",
+          "noteSnip": "Date:5/11/2026 7:49:57 AM --> Type:Assigned Contact:Contact # C-12006:Tom Carter"
+        },
+        {
+          "type": "Assigned Contact",
+          "author": "Destin McCary",
+          "date": "2026-05-11T13:49:57.000Z",
+          "noteSnip": "Date:5/11/2026 7:49:57 AM --> Type:Assigned Contact:Contact # C-12006:Tom Carter"
+        },
+        {
+          "type": "Related to job",
+          "author": "Destin McCary",
+          "date": "2026-05-11T13:50:35.000Z",
+          "noteSnip": "Related to job: Tom Carter #R-11218"
+        },
+        {
+          "type": "Job Created",
+          "author": "Destin McCary",
+          "date": "2026-05-11T13:50:35.000Z",
+          "noteSnip": "Job Created",
+          "onJobNumber": "R-11218"
+        },
+        {
+          "type": "Assigned Job",
+          "author": "Destin McCary",
+          "date": "2026-05-11T13:50:35.000Z",
+          "noteSnip": "Assigned Job: Tom Carter #R-11218",
+          "onJobNumber": "R-11218"
+        },
+        {
+          "type": "Assigned Job",
+          "author": "Destin McCary",
+          "date": "2026-05-11T13:50:35.000Z",
+          "noteSnip": "Assigned Job: Tom Carter #R-11218",
+          "onJobNumber": "R-11218"
+        },
+        {
+          "type": "Note",
+          "author": "Destin McCary",
+          "date": "2026-05-11T13:51:00.000Z",
+          "noteSnip": "@BrendonMuse Just adding you to job incase he needs help! Thank you!",
+          "onJobNumber": "R-11218"
+        }
+      ]
+    },
+    {
+      "contactJnid": "e4262e017e2042ad993b97b189441702",
+      "contactName": "Charles Bond",
+      "contactCreatedAt": "2026-05-08T18:32:09.000Z",
+      "createdBy": "Tia Muse Morris",
+      "rep": "Aaron Lussi",
+      "source": "Realtor",
+      "leadStatus": "Active",
+      "jobCount": 1,
+      "jobNumbers": [
+        "R-11215"
+      ],
+      "totalActivities": 8,
+      "activitiesAfterCreate": 6,
+      "repActivities": 2,
+      "firstRepActivity": {
+        "type": "Job Modified",
+        "author": "Aaron Lussi",
+        "date": "2026-05-08T20:12:38.000Z",
+        "noteSnip": "Job Updated\nTags:  => realtor\nTags:  => william stephens\nTags:  => cinder group\n",
+        "minutesAfterLead": 100
+      },
+      "allActivityTypes": [
+        "Contact Created",
+        "Assigned Contact",
+        "Related to job",
+        "Job Created",
+        "Assigned Job",
+        "Note",
+        "Job Modified"
+      ],
+      "allAuthors": [
+        "Tia Muse Morris",
+        "Sara Hill",
+        "Aaron Lussi"
+      ],
+      "activities": [
+        {
+          "type": "Contact Created",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-08T18:32:09.000Z",
+          "noteSnip": "Contact Created"
+        },
+        {
+          "type": "Assigned Contact",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-08T18:32:09.000Z",
+          "noteSnip": "Date:5/8/2026 12:32:09 PM --> Type:Assigned Contact:Contact # C-12004:Charles Bond"
+        },
+        {
+          "type": "Related to job",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-08T18:41:15.000Z",
+          "noteSnip": "Related to job: Charles Bond #R-11215"
+        },
+        {
+          "type": "Job Created",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-08T18:41:15.000Z",
+          "noteSnip": "Job Created",
+          "onJobNumber": "R-11215"
+        },
+        {
+          "type": "Assigned Job",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-08T18:41:15.000Z",
+          "noteSnip": "Assigned Job: Charles Bond #R-11215",
+          "onJobNumber": "R-11215"
+        },
+        {
+          "type": "Note",
+          "author": "Sara Hill",
+          "date": "2026-05-08T19:06:24.000Z",
+          "noteSnip": "@AaronLussi This is the realtor. She has some questions about you coming out please call 256-361-6822 Lydia Caldwell",
+          "onJobNumber": "R-11215"
+        },
+        {
+          "type": "Job Modified",
+          "author": "Aaron Lussi",
+          "date": "2026-05-08T20:12:38.000Z",
+          "noteSnip": "Job Updated\nTags:  => realtor\nTags:  => william stephens\nTags:  => cinder group\nTags:  => Lydia Caldwell",
+          "onJobNumber": "R-11215"
+        },
+        {
+          "type": "Note",
+          "author": "Aaron Lussi",
+          "date": "2026-05-11T18:45:52.000Z",
+          "noteSnip": "Standard architectural \nWeatherwood \nx1\nReseal nails",
+          "onJobNumber": "R-11215"
+        }
+      ]
+    },
+    {
+      "contactJnid": "8a99b60339f64b628a5b7787f16986e1",
+      "contactName": "Anthony Evans",
+      "contactCreatedAt": "2026-05-08T14:08:10.000Z",
+      "createdBy": "Sara Hill",
+      "rep": "Travis Wages",
+      "source": "BBB LEAD",
+      "leadStatus": "Active",
+      "jobCount": 1,
+      "jobNumbers": [
+        "R-11212"
+      ],
+      "totalActivities": 10,
+      "activitiesAfterCreate": 8,
+      "repActivities": 3,
+      "firstRepActivity": {
+        "type": "Phone Call",
+        "author": "Travis Wages",
+        "date": "2026-05-08T14:13:16.000Z",
+        "noteSnip": "Outgoing call to (205) 807-9031 for 2m 30s\n\n@SaraHill spoke to homeowner",
+        "minutesAfterLead": 5
+      },
+      "allActivityTypes": [
+        "Contact Created",
+        "Assigned Contact",
+        "Related to job",
+        "Job Created",
+        "Assigned Job",
+        "Phone Call",
+        "Note",
+        "Status Changed"
+      ],
+      "allAuthors": [
+        "Sara Hill",
+        "Travis Wages",
+        "Destin McCary"
+      ],
+      "activities": [
+        {
+          "type": "Contact Created",
+          "author": "Sara Hill",
+          "date": "2026-05-08T14:08:10.000Z",
+          "noteSnip": "Contact Created"
+        },
+        {
+          "type": "Assigned Contact",
+          "author": "Sara Hill",
+          "date": "2026-05-08T14:08:10.000Z",
+          "noteSnip": "Date:5/8/2026 8:08:10 AM --> Type:Assigned Contact:Contact # C-12001:Anthony Evans"
+        },
+        {
+          "type": "Related to job",
+          "author": "Sara Hill",
+          "date": "2026-05-08T14:09:05.000Z",
+          "noteSnip": "Related to job: Anthony Evans #R-11212"
+        },
+        {
+          "type": "Job Created",
+          "author": "Sara Hill",
+          "date": "2026-05-08T14:09:05.000Z",
+          "noteSnip": "Job Created",
+          "onJobNumber": "R-11212"
+        },
+        {
+          "type": "Assigned Job",
+          "author": "Sara Hill",
+          "date": "2026-05-08T14:09:05.000Z",
+          "noteSnip": "Assigned Job: Anthony Evans #R-11212",
+          "onJobNumber": "R-11212"
+        },
+        {
+          "type": "Phone Call",
+          "author": "Travis Wages",
+          "date": "2026-05-08T14:13:16.000Z",
+          "noteSnip": "Outgoing call to (205) 807-9031 for 2m 30s\n\n@SaraHill spoke to homeowner",
+          "onJobNumber": "R-11212"
+        },
+        {
+          "type": "Note",
+          "author": "Travis Wages",
+          "date": "2026-05-08T15:56:41.000Z",
+          "noteSnip": "2 mushroom\n1 - 2 inch",
+          "onJobNumber": "R-11212"
+        },
+        {
+          "type": "Note",
+          "author": "Travis Wages",
+          "date": "2026-05-08T15:57:17.000Z",
+          "noteSnip": "@SaraHill could you order an EV please?",
+          "onJobNumber": "R-11212"
+        },
+        {
+          "type": "Note",
+          "author": "Sara Hill",
+          "date": "2026-05-08T16:50:11.000Z",
+          "noteSnip": "ORDERED\n\nOn Fri, May 8, 2026 at 10:57 AM Travis Wages via JobNimbus <\nrivercityroofingsolutions@jobnimbusmail.com> wrote:\n\n>  \n> Travis Wages has mentioned you on the Job \"Anthony Evans\"\n>\n> Job #R-11",
+          "onJobNumber": "R-11212"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Destin McCary",
+          "date": "2026-05-11T13:53:45.000Z",
+          "noteSnip": "Job Updated\nStatus: Lead => Aerial Measurements\n",
+          "onJobNumber": "R-11212"
+        }
+      ]
+    },
+    {
+      "contactJnid": "4857cdb530fc4e148bdc9920a166272d",
+      "contactName": "Delaney Burrows",
+      "contactCreatedAt": "2026-05-07T20:51:37.000Z",
+      "createdBy": "Tia Muse Morris",
+      "rep": "Hunter Rivers",
+      "source": "Google",
+      "leadStatus": "In Progress",
+      "jobCount": 1,
+      "jobNumbers": [
+        "R-11211"
+      ],
+      "totalActivities": 19,
+      "activitiesAfterCreate": 17,
+      "repActivities": 8,
+      "firstRepActivity": {
+        "type": "email",
+        "author": "Hunter Rivers",
+        "date": "2026-05-08T16:18:27.000Z",
+        "noteSnip": "<b>River City Roofing Solutions, Inc. sent Estimate #E-13053 for you to sign</b>",
+        "minutesAfterLead": 1167
+      },
+      "allActivityTypes": [
+        "Contact Created",
+        "Assigned Contact",
+        "Related to job",
+        "Status Changed",
+        "Job Created",
+        "Assigned Job",
+        "Note",
+        "email",
+        "Automation",
+        "Contact Modified",
+        "Email"
+      ],
+      "allAuthors": [
+        "Tia Muse Morris",
+        "Automation (Job)",
+        "Hunter Rivers",
+        "Delaney Burrows",
+        "JobNimbus",
+        "Automation (Note)",
+        "Email"
+      ],
+      "activities": [
+        {
+          "type": "Contact Created",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-07T20:51:37.000Z",
+          "noteSnip": "Contact Created"
+        },
+        {
+          "type": "Assigned Contact",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-07T20:51:37.000Z",
+          "noteSnip": "Date:5/7/2026 2:51:37 PM --> Type:Assigned Contact:Contact # C-12000:Delaney Burrows"
+        },
+        {
+          "type": "Related to job",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-07T20:53:31.000Z",
+          "noteSnip": "Related to job: Delaney Burrows #R-11211"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Automation (Job)",
+          "date": "2026-05-07T20:53:31.000Z",
+          "noteSnip": "Contact Updated\nStatus: Lead => Active\n"
+        },
+        {
+          "type": "Job Created",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-07T20:53:31.000Z",
+          "noteSnip": "Job Created",
+          "onJobNumber": "R-11211"
+        },
+        {
+          "type": "Assigned Job",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-07T20:53:31.000Z",
+          "noteSnip": "Assigned Job: Delaney Burrows #R-11211",
+          "onJobNumber": "R-11211"
+        },
+        {
+          "type": "Note",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-08T15:34:20.000Z",
+          "noteSnip": "@HunterRivers Home Buyer called the office again trying to follow up on this lead. Please call",
+          "onJobNumber": "R-11211"
+        },
+        {
+          "type": "email",
+          "author": "Hunter Rivers",
+          "date": "2026-05-08T16:18:27.000Z",
+          "noteSnip": "<b>River City Roofing Solutions, Inc. sent Estimate #E-13053 for you to sign</b>\nRiver City Roofing Solutions, Inc. sent Estimate #E-13053 for you to sign\nEmail sent to: Delaney Burrows (delaneyburrow"
+        },
+        {
+          "type": "Note",
+          "author": "Delaney Burrows",
+          "date": "2026-05-08T16:18:43.000Z",
+          "noteSnip": "Electronic Signature Added to Estimate #E-13053"
+        },
+        {
+          "type": "email",
+          "author": "JobNimbus",
+          "date": "2026-05-08T16:18:54.000Z",
+          "noteSnip": "<b>Estimate #E-13053 is completed and ready to download. Document fully signed.</b>\nEstimate #E-13053 is completed and ready to download. Document fully signed.\nEmail sent to: Delaney Burrows (delaney"
+        },
+        {
+          "type": "Automation",
+          "author": "Automation (Note)",
+          "date": "2026-05-08T16:18:54.000Z",
+          "noteSnip": "<b>Doc Fully Signed</b>\nA document has been fully signed and is ready for viewing.  Delaney Burrows  612 South Mountain Drive  Trinity AL 35673\nEmail sent to: Destin McCary (destin@rivercityroofingsol",
+          "onJobNumber": "R-11211"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Hunter Rivers",
+          "date": "2026-05-08T16:21:18.000Z",
+          "noteSnip": "Job Updated\nStatus: Lead => Submit for Approval",
+          "onJobNumber": "R-11211"
+        },
+        {
+          "type": "Note",
+          "author": "Hunter Rivers",
+          "date": "2026-05-08T16:21:45.000Z",
+          "noteSnip": "@JohnCordonis internal note says I left ice and water. That's a lie. Didn't have it in my truck",
+          "onJobNumber": "R-11211"
+        },
+        {
+          "type": "Contact Modified",
+          "author": "Hunter Rivers",
+          "date": "2026-05-08T16:22:29.000Z",
+          "noteSnip": "Contact Updated\nEmail: delaneyburrows@outllook.com => delaneyburrows@outlook.com"
+        },
+        {
+          "type": "Email",
+          "author": "Hunter Rivers",
+          "date": "2026-05-08T16:22:38.000Z",
+          "noteSnip": "<b>The estimate is attached to this email.</b>\nThe estimate is attached to this email.\n  \nThank you , Hunter Rivers\n  \n——\n \nSent from River City Roofing Solutions, Inc. via  JobNimbus\nEmail sent to:  ",
+          "onJobNumber": "R-11211"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Automation (Job)",
+          "date": "2026-05-08T17:04:41.000Z",
+          "noteSnip": "Contact Updated\nStatus: Active => In Progress\n"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-08T17:04:41.000Z",
+          "noteSnip": "Job Updated\nStatus: Submit for Approval => Approved Jobs\n",
+          "onJobNumber": "R-11211"
+        },
+        {
+          "type": "Email",
+          "author": "Email",
+          "date": "2026-05-13T06:12:14.000Z",
+          "noteSnip": "<b>Re: The estimate is attached to this email.</b>\nHi Hunter,\n\nI apologize for getting back to you so late. This email had ended up in my spam folder and I'm only just now seeing it. I'll have Nate si"
+        },
+        {
+          "type": "Email",
+          "author": "Email",
+          "date": "2026-05-14T17:19:30.000Z",
+          "noteSnip": "<b>Re: The estimate is attached to this email.</b>\nHi Hunter,\n\nI wanted to follow up with you.\n\nAre the repairs scheduled for this week? I have not received a call about scheduling the work, so I just"
+        }
+      ]
+    },
+    {
+      "contactJnid": "c25d871d44874a38b1aca5b666afafa5",
+      "contactName": "Barry & Dawne Roberts",
+      "contactCreatedAt": "2026-05-07T20:36:06.000Z",
+      "createdBy": "Tia Muse Morris",
+      "rep": "Hunter Rivers",
+      "source": "Website",
+      "leadStatus": "Active",
+      "jobCount": 1,
+      "jobNumbers": [
+        "R-11210"
+      ],
+      "totalActivities": 15,
+      "activitiesAfterCreate": 13,
+      "repActivities": 5,
+      "firstRepActivity": {
+        "type": "Note",
+        "author": "Hunter Rivers",
+        "date": "2026-05-08T16:02:16.000Z",
+        "noteSnip": "@DestinMccary EV please",
+        "minutesAfterLead": 1166
+      },
+      "allActivityTypes": [
+        "Contact Created",
+        "Assigned Contact",
+        "Related to job",
+        "Status Changed",
+        "Job Created",
+        "Assigned Job",
+        "Job Modified",
+        "Contact Modified",
+        "Note",
+        "Email"
+      ],
+      "allAuthors": [
+        "Tia Muse Morris",
+        "Automation (Job)",
+        "Hunter Rivers",
+        "Sara Hill",
+        "Destin McCary",
+        "Email"
+      ],
+      "activities": [
+        {
+          "type": "Contact Created",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-07T20:36:06.000Z",
+          "noteSnip": "Contact Created"
+        },
+        {
+          "type": "Assigned Contact",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-07T20:36:06.000Z",
+          "noteSnip": "Date:5/7/2026 2:36:06 PM --> Type:Assigned Contact:Contact # C-11999:Barry & Dawne Roberts"
+        },
+        {
+          "type": "Related to job",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-07T20:42:35.000Z",
+          "noteSnip": "Related to job: Barry & Dawne Roberts #R-11210"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Automation (Job)",
+          "date": "2026-05-07T20:42:35.000Z",
+          "noteSnip": "Contact Updated\nStatus: Lead => Active\n"
+        },
+        {
+          "type": "Job Created",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-07T20:42:35.000Z",
+          "noteSnip": "Job Created",
+          "onJobNumber": "R-11210"
+        },
+        {
+          "type": "Assigned Job",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-07T20:42:35.000Z",
+          "noteSnip": "Assigned Job: Barry & Dawne Roberts #R-11210",
+          "onJobNumber": "R-11210"
+        },
+        {
+          "type": "Job Modified",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-07T20:43:17.000Z",
+          "noteSnip": "Job Updated\nDescription: 13(ish) year old roof put on by Burnett Roofing. Doesn't want to use them again. 30 year shingles in bad shape. Weather has beat down shingles; can see fiberglass from ground.",
+          "onJobNumber": "R-11210"
+        },
+        {
+          "type": "Contact Modified",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-07T20:44:41.000Z",
+          "noteSnip": "Contact Updated\nWork Phone:  => (256) 303-2412\n"
+        },
+        {
+          "type": "Note",
+          "author": "Hunter Rivers",
+          "date": "2026-05-08T16:02:16.000Z",
+          "noteSnip": "@DestinMccary EV please",
+          "onJobNumber": "R-11210"
+        },
+        {
+          "type": "Note",
+          "author": "Hunter Rivers",
+          "date": "2026-05-08T16:02:50.000Z",
+          "noteSnip": "1\"\n2\"\n3\"",
+          "onJobNumber": "R-11210"
+        },
+        {
+          "type": "Note",
+          "author": "Hunter Rivers",
+          "date": "2026-05-08T17:01:14.000Z",
+          "noteSnip": "@SaraHill need EV please",
+          "onJobNumber": "R-11210"
+        },
+        {
+          "type": "Note",
+          "author": "Sara Hill",
+          "date": "2026-05-08T17:07:50.000Z",
+          "noteSnip": "ORDERED\n\nOn Fri, May 8, 2026 at 12:01 PM Hunter Rivers via JobNimbus <\nrivercityroofingsolutions@jobnimbusmail.com> wrote:\n\n>  \n> Hunter Rivers has mentioned you on the Job \"Barry & Dawne Roberts\"\n>\n>",
+          "onJobNumber": "R-11210"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Destin McCary",
+          "date": "2026-05-11T13:52:45.000Z",
+          "noteSnip": "Job Updated\nStatus: Lead => Aerial Measurements\n",
+          "onJobNumber": "R-11210"
+        },
+        {
+          "type": "Email",
+          "author": "Hunter Rivers",
+          "date": "2026-05-12T15:11:37.000Z",
+          "noteSnip": "<b>The estimate is attached to this email.</b>\nThe estimate is attached to this email.\n  \nThank you , Hunter Rivers\n  \n——\n \nSent from River City Roofing Solutions, Inc. via  JobNimbus\nEmail sent to:  "
+        },
+        {
+          "type": "Email",
+          "author": "Email",
+          "date": "2026-05-12T15:29:15.000Z",
+          "noteSnip": "<b>Re: The estimate is attached to this email.</b>\nI will need pics if you have any to upload to state farm.  Thank you.\n    On Tuesday, May 12, 2026 at 10:11:39 AM CDT, Hunter Rivers   wrote:  \n \n Th"
+        }
+      ]
+    },
+    {
+      "contactJnid": "1069c7f0c6514909860f25d9a7b36924",
+      "contactName": "Cody Wooten",
+      "contactCreatedAt": "2026-05-07T13:48:48.000Z",
+      "createdBy": "Destin McCary",
+      "rep": "Aaron Lussi",
+      "source": "Google",
+      "leadStatus": "Active",
+      "jobCount": 1,
+      "jobNumbers": [
+        "R-11209"
+      ],
+      "totalActivities": 14,
+      "activitiesAfterCreate": 12,
+      "repActivities": 4,
+      "firstRepActivity": {
+        "type": "Phone Call",
+        "author": "Aaron Lussi",
+        "date": "2026-05-07T15:05:25.000Z",
+        "noteSnip": "Outgoing call to (256) 996-1872 for 2m 6s\nCalled, set appt \n@DestinMccary \n@TiaM",
+        "minutesAfterLead": 77
+      },
+      "allActivityTypes": [
+        "Contact Created",
+        "Assigned Contact",
+        "Related to job",
+        "Job Created",
+        "Assigned Job",
+        "Contact Modified",
+        "Unassigned Contact",
+        "Note",
+        "Phone Call",
+        "Status Changed",
+        "Email"
+      ],
+      "allAuthors": [
+        "Destin McCary",
+        "Aaron Lussi"
+      ],
+      "activities": [
+        {
+          "type": "Contact Created",
+          "author": "Destin McCary",
+          "date": "2026-05-07T13:48:48.000Z",
+          "noteSnip": "Contact Created"
+        },
+        {
+          "type": "Assigned Contact",
+          "author": "Destin McCary",
+          "date": "2026-05-07T13:48:48.000Z",
+          "noteSnip": "Date:5/7/2026 7:48:48 AM --> Type:Assigned Contact:Contact # C-11997:Cody Wooten"
+        },
+        {
+          "type": "Related to job",
+          "author": "Destin McCary",
+          "date": "2026-05-07T13:49:29.000Z",
+          "noteSnip": "Related to job: Cody Wooten #R-11209"
+        },
+        {
+          "type": "Assigned Contact",
+          "author": "Destin McCary",
+          "date": "2026-05-07T13:49:29.000Z",
+          "noteSnip": "Date:5/7/2026 7:49:29 AM --> Type:Assigned Contact:Contact # C-11997:Cody Wooten"
+        },
+        {
+          "type": "Job Created",
+          "author": "Destin McCary",
+          "date": "2026-05-07T13:49:29.000Z",
+          "noteSnip": "Job Created",
+          "onJobNumber": "R-11209"
+        },
+        {
+          "type": "Assigned Job",
+          "author": "Destin McCary",
+          "date": "2026-05-07T13:49:29.000Z",
+          "noteSnip": "Assigned Job: Cody Wooten #R-11209",
+          "onJobNumber": "R-11209"
+        },
+        {
+          "type": "Contact Modified",
+          "author": "Destin McCary",
+          "date": "2026-05-07T13:49:49.000Z",
+          "noteSnip": "Contact Updated\nSales Rep: Travis Wages => Aaron Lussi\n"
+        },
+        {
+          "type": "Unassigned Contact",
+          "author": "Destin McCary",
+          "date": "2026-05-07T13:49:49.000Z",
+          "noteSnip": "Date:5/7/2026 7:49:49 AM --> Unassigned Contact: #C-11997:Cody Wooten"
+        },
+        {
+          "type": "Note",
+          "author": "Destin McCary",
+          "date": "2026-05-07T13:50:35.000Z",
+          "noteSnip": "@AaronLussi We know its pretty far. Per Chris he said to get all the info over the phone you can and we can order an EV and try to make it a one trip thing. Thank you :)",
+          "onJobNumber": "R-11209"
+        },
+        {
+          "type": "Phone Call",
+          "author": "Aaron Lussi",
+          "date": "2026-05-07T15:05:25.000Z",
+          "noteSnip": "Outgoing call to (256) 996-1872 for 2m 6s\nCalled, set appt \n@DestinMccary \n@TiaMuseMorris"
+        },
+        {
+          "type": "Note",
+          "author": "Aaron Lussi",
+          "date": "2026-05-07T15:24:14.000Z",
+          "noteSnip": "EV on this one too, if you don't mind. :)\n@DestinMccary",
+          "onJobNumber": "R-11209"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Destin McCary",
+          "date": "2026-05-07T15:25:39.000Z",
+          "noteSnip": "Job Updated\nStatus: Lead => Aerial Measurements\n",
+          "onJobNumber": "R-11209"
+        },
+        {
+          "type": "Email",
+          "author": "Aaron Lussi",
+          "date": "2026-05-07T20:36:57.000Z",
+          "noteSnip": "<b>Cody Wooten Estimate #E 13046</b>\nHello Cody Wooten,\n     \n     \n    Your estimate is attached to this email. \n     \n    Thank you, \n     \n    Aaron Lussi\nEmail sent to: Cody Wooten (codywooten41@o"
+        },
+        {
+          "type": "Email",
+          "author": "Aaron Lussi",
+          "date": "2026-05-07T20:44:00.000Z",
+          "noteSnip": "<b>Cody Wooten Estimate #E 13047</b>\nHello Cody Wooten,\n     \n     \n    Your estimate is attached to this email. \n     \n    Thank you, \n     \n    Aaron Lussi\nEmail sent to: Cody Wooten (codywooten41@o"
+        }
+      ]
+    },
+    {
+      "contactJnid": "09f40413fd7b485a97c1a2ed5b23f610",
+      "contactName": "Ralph Parrish",
+      "contactCreatedAt": "2026-05-06T18:03:17.000Z",
+      "createdBy": "Tia Muse Morris",
+      "rep": "Hunter Rivers",
+      "source": "Yard Sign",
+      "leadStatus": "Active",
+      "jobCount": 1,
+      "jobNumbers": [
+        "R-11208"
+      ],
+      "totalActivities": 10,
+      "activitiesAfterCreate": 8,
+      "repActivities": 3,
+      "firstRepActivity": {
+        "type": "Phone Call",
+        "author": "Hunter Rivers",
+        "date": "2026-05-06T21:54:47.000Z",
+        "noteSnip": "Outgoing call to (256) 412-4172 for 1m 24s",
+        "minutesAfterLead": 232
+      },
+      "allActivityTypes": [
+        "Contact Created",
+        "Assigned Contact",
+        "Related to job",
+        "Status Changed",
+        "Job Created",
+        "Assigned Job",
+        "Phone Call",
+        "Note"
+      ],
+      "allAuthors": [
+        "Tia Muse Morris",
+        "Automation (Job)",
+        "Hunter Rivers",
+        "Destin McCary"
+      ],
+      "activities": [
+        {
+          "type": "Contact Created",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-06T18:03:17.000Z",
+          "noteSnip": "Contact Created"
+        },
+        {
+          "type": "Assigned Contact",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-06T18:03:17.000Z",
+          "noteSnip": "Date:5/6/2026 12:03:17 PM --> Type:Assigned Contact:Contact # C-11996:Ralph Parrish"
+        },
+        {
+          "type": "Related to job",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-06T18:04:29.000Z",
+          "noteSnip": "Related to job: Ralph Parrish #R-11208"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Automation (Job)",
+          "date": "2026-05-06T18:04:29.000Z",
+          "noteSnip": "Contact Updated\nStatus: Lead => Active\n"
+        },
+        {
+          "type": "Job Created",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-06T18:04:29.000Z",
+          "noteSnip": "Job Created",
+          "onJobNumber": "R-11208"
+        },
+        {
+          "type": "Assigned Job",
+          "author": "Tia Muse Morris",
+          "date": "2026-05-06T18:04:29.000Z",
+          "noteSnip": "Assigned Job: Ralph Parrish #R-11208",
+          "onJobNumber": "R-11208"
+        },
+        {
+          "type": "Phone Call",
+          "author": "Hunter Rivers",
+          "date": "2026-05-06T21:54:47.000Z",
+          "noteSnip": "Outgoing call to (256) 412-4172 for 1m 24s",
+          "onJobNumber": "R-11208"
+        },
+        {
+          "type": "Note",
+          "author": "Hunter Rivers",
+          "date": "2026-05-18T17:39:49.000Z",
+          "noteSnip": "8/12 main\n3/12 back 2 low slopes\n4/12 back gable\nChim*2\nCricket \n3\"*3\n1\"\nMush*5\n2 story top back",
+          "onJobNumber": "R-11208"
+        },
+        {
+          "type": "Note",
+          "author": "Hunter Rivers",
+          "date": "2026-05-18T17:44:16.000Z",
+          "noteSnip": "@DestinMccary EV please",
+          "onJobNumber": "R-11208"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Destin McCary",
+          "date": "2026-05-18T17:46:13.000Z",
+          "noteSnip": "Job Updated\nStatus: Lead => Aerial Measurements\n",
+          "onJobNumber": "R-11208"
+        }
+      ]
+    },
+    {
+      "contactJnid": "df4174a0998c4277ba7625e7dcc87d64",
+      "contactName": "Randy Perkins",
+      "contactCreatedAt": "2026-05-04T13:53:41.000Z",
+      "createdBy": "Destin McCary",
+      "rep": "Aaron Lussi",
+      "source": "Athens Now- Newspaper",
+      "leadStatus": "Active",
+      "jobCount": 1,
+      "jobNumbers": [
+        "R-11202"
+      ],
+      "totalActivities": 12,
+      "activitiesAfterCreate": 10,
+      "repActivities": 6,
+      "firstRepActivity": {
+        "type": "Note",
+        "author": "Aaron Lussi",
+        "date": "2026-05-04T14:03:44.000Z",
+        "noteSnip": "Called and scheduled appt\n@DestinMccary \n@TiaMuseMorris",
+        "minutesAfterLead": 10
+      },
+      "allActivityTypes": [
+        "Contact Created",
+        "Assigned Contact",
+        "Related to job",
+        "Job Created",
+        "Assigned Job",
+        "Note",
+        "Contact Modified",
+        "Status Changed",
+        "Email"
+      ],
+      "allAuthors": [
+        "Destin McCary",
+        "Aaron Lussi"
+      ],
+      "activities": [
+        {
+          "type": "Contact Created",
+          "author": "Destin McCary",
+          "date": "2026-05-04T13:53:41.000Z",
+          "noteSnip": "Contact Created"
+        },
+        {
+          "type": "Assigned Contact",
+          "author": "Destin McCary",
+          "date": "2026-05-04T13:53:41.000Z",
+          "noteSnip": "Date:5/4/2026 7:53:41 AM --> Type:Assigned Contact:Contact # C-11995:Randy Perkins"
+        },
+        {
+          "type": "Related to job",
+          "author": "Destin McCary",
+          "date": "2026-05-04T13:54:14.000Z",
+          "noteSnip": "Related to job: Randy Perkins #R-11202"
+        },
+        {
+          "type": "Job Created",
+          "author": "Destin McCary",
+          "date": "2026-05-04T13:54:14.000Z",
+          "noteSnip": "Job Created",
+          "onJobNumber": "R-11202"
+        },
+        {
+          "type": "Assigned Job",
+          "author": "Destin McCary",
+          "date": "2026-05-04T13:54:14.000Z",
+          "noteSnip": "Assigned Job: Randy Perkins #R-11202",
+          "onJobNumber": "R-11202"
+        },
+        {
+          "type": "Note",
+          "author": "Aaron Lussi",
+          "date": "2026-05-04T14:03:44.000Z",
+          "noteSnip": "Called and scheduled appt\n@DestinMccary \n@TiaMuseMorris",
+          "onJobNumber": "R-11202"
+        },
+        {
+          "type": "Note",
+          "author": "Aaron Lussi",
+          "date": "2026-05-07T15:16:35.000Z",
+          "noteSnip": "White trim \n6/12\n\n3-1 x2\nSat x2\n1x4 x20ft\nOsb x8\n\nChimney brick small 8\"",
+          "onJobNumber": "R-11202"
+        },
+        {
+          "type": "Contact Modified",
+          "author": "Aaron Lussi",
+          "date": "2026-05-07T15:20:59.000Z",
+          "noteSnip": "Contact Updated\nEmail:  => randyperkins46@gmail.com"
+        },
+        {
+          "type": "Note",
+          "author": "Aaron Lussi",
+          "date": "2026-05-07T15:23:47.000Z",
+          "noteSnip": "Can I get an EV on this one perdy please?\n@DestinMccary",
+          "onJobNumber": "R-11202"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Destin McCary",
+          "date": "2026-05-07T15:24:45.000Z",
+          "noteSnip": "Job Updated\nStatus: Lead => Aerial Measurements\n",
+          "onJobNumber": "R-11202"
+        },
+        {
+          "type": "Note",
+          "author": "Aaron Lussi",
+          "date": "2026-05-07T20:54:32.000Z",
+          "noteSnip": "Roof has 1x4 slats as a base and has already been decked over with osb. A tree fell against the back of the roof and broke some of the slats.",
+          "onJobNumber": "R-11202"
+        },
+        {
+          "type": "Email",
+          "author": "Aaron Lussi",
+          "date": "2026-05-07T20:59:37.000Z",
+          "noteSnip": "<b>Randy Perkins Estimate #E 13049</b>\nHello Randy Perkins,\n     \n     \n    Your estimate is attached to this email. \n     \n    Thank you, \n     \n    Aaron Lussi\nEmail sent to: Randy Perkins (randyper"
+        }
+      ]
+    },
+    {
+      "contactJnid": "3cb85a85f5874d5b9a26c9ca010aca79",
+      "contactName": "Steve Clark",
+      "contactCreatedAt": "2026-04-30T20:33:41.000Z",
+      "createdBy": "Tia Muse Morris",
+      "rep": "Hunter Rivers",
+      "source": "Neighbor",
+      "leadStatus": "Active",
+      "jobCount": 1,
+      "jobNumbers": [
+        "R-11197"
+      ],
+      "totalActivities": 9,
+      "activitiesAfterCreate": 7,
+      "repActivities": 2,
+      "firstRepActivity": {
+        "type": "Phone Call",
+        "author": "Hunter Rivers",
+        "date": "2026-04-30T21:21:50.000Z",
+        "noteSnip": "Outgoing call to (256) 679-5297 for 1m 54s appointment set",
+        "minutesAfterLead": 48
+      },
+      "allActivityTypes": [
+        "Contact Created",
+        "Assigned Contact",
+        "Status Changed",
+        "Related to job",
+        "Job Created",
+        "Assigned Job",
+        "Phone Call",
+        "Note"
+      ],
+      "allAuthors": [
+        "Tia Muse Morris",
+        "Automation (Job)",
+        "Hunter Rivers",
+        "Destin McCary"
+      ],
+      "activities": [
+        {
+          "type": "Contact Created",
+          "author": "Tia Muse Morris",
+          "date": "2026-04-30T20:33:41.000Z",
+          "noteSnip": "Contact Created"
+        },
+        {
+          "type": "Assigned Contact",
+          "author": "Tia Muse Morris",
+          "date": "2026-04-30T20:33:41.000Z",
+          "noteSnip": "Date:4/30/2026 2:33:41 PM --> Type:Assigned Contact:Contact # C-11992:Steve Clark"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Automation (Job)",
+          "date": "2026-04-30T20:35:20.000Z",
+          "noteSnip": "Contact Updated\nStatus: Lead => Active\n"
+        },
+        {
+          "type": "Related to job",
+          "author": "Tia Muse Morris",
+          "date": "2026-04-30T20:35:20.000Z",
+          "noteSnip": "Related to job: Steve Clark #R-11197"
+        },
+        {
+          "type": "Job Created",
+          "author": "Tia Muse Morris",
+          "date": "2026-04-30T20:35:20.000Z",
+          "noteSnip": "Job Created",
+          "onJobNumber": "R-11197"
+        },
+        {
+          "type": "Assigned Job",
+          "author": "Tia Muse Morris",
+          "date": "2026-04-30T20:35:20.000Z",
+          "noteSnip": "Assigned Job: Steve Clark #R-11197",
+          "onJobNumber": "R-11197"
+        },
+        {
+          "type": "Phone Call",
+          "author": "Hunter Rivers",
+          "date": "2026-04-30T21:21:50.000Z",
+          "noteSnip": "Outgoing call to (256) 679-5297 for 1m 54s appointment set",
+          "onJobNumber": "R-11197"
+        },
+        {
+          "type": "Note",
+          "author": "Hunter Rivers",
+          "date": "2026-05-05T14:36:21.000Z",
+          "noteSnip": "@DestinMccary EV please",
+          "onJobNumber": "R-11197"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Destin McCary",
+          "date": "2026-05-05T14:37:35.000Z",
+          "noteSnip": "Job Updated\nStatus: Lead => Aerial Measurements\n",
+          "onJobNumber": "R-11197"
+        }
+      ]
+    },
+    {
+      "contactJnid": "c8de6147c18b403ca1549a85deb269b0",
+      "contactName": "Duane Southerland",
+      "contactCreatedAt": "2026-04-29T13:11:54.000Z",
+      "createdBy": "Destin McCary",
+      "rep": "Brendon Muse",
+      "source": "Google",
+      "leadStatus": "Active",
+      "jobCount": 1,
+      "jobNumbers": [
+        "R-11188"
+      ],
+      "totalActivities": 9,
+      "activitiesAfterCreate": 7,
+      "repActivities": 4,
+      "firstRepActivity": {
+        "type": "Note",
+        "author": "Brendon Muse",
+        "date": "2026-04-29T15:02:34.000Z",
+        "noteSnip": "Called Homeowner set up inspection for tomorrow at 2:30 PM. Probably gonna be re",
+        "minutesAfterLead": 111
+      },
+      "allActivityTypes": [
+        "Contact Created",
+        "Assigned Contact",
+        "Related to job",
+        "Job Created",
+        "Assigned Job",
+        "Note",
+        "Status Changed",
+        "Phone Call"
+      ],
+      "allAuthors": [
+        "Destin McCary",
+        "Brendon Muse"
+      ],
+      "activities": [
+        {
+          "type": "Contact Created",
+          "author": "Destin McCary",
+          "date": "2026-04-29T13:11:54.000Z",
+          "noteSnip": "Contact Created"
+        },
+        {
+          "type": "Assigned Contact",
+          "author": "Destin McCary",
+          "date": "2026-04-29T13:11:54.000Z",
+          "noteSnip": "Date:4/29/2026 7:11:54 AM --> Type:Assigned Contact:Contact # C-11985:Duane Southerland"
+        },
+        {
+          "type": "Related to job",
+          "author": "Destin McCary",
+          "date": "2026-04-29T13:12:16.000Z",
+          "noteSnip": "Related to job: Duane Southerland #R-11188"
+        },
+        {
+          "type": "Job Created",
+          "author": "Destin McCary",
+          "date": "2026-04-29T13:12:16.000Z",
+          "noteSnip": "Job Created",
+          "onJobNumber": "R-11188"
+        },
+        {
+          "type": "Assigned Job",
+          "author": "Destin McCary",
+          "date": "2026-04-29T13:12:16.000Z",
+          "noteSnip": "Assigned Job: Duane Southerland #R-11188",
+          "onJobNumber": "R-11188"
+        },
+        {
+          "type": "Note",
+          "author": "Brendon Muse",
+          "date": "2026-04-29T15:02:34.000Z",
+          "noteSnip": "Called Homeowner set up inspection for tomorrow at 2:30 PM. Probably gonna be retail he has Allstate. @TiaMuseMorris @DestinMccary @SaraHill",
+          "onJobNumber": "R-11188"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Brendon Muse",
+          "date": "2026-04-29T15:03:15.000Z",
+          "noteSnip": "Job Updated\nStatus: Lead => Inspection",
+          "onJobNumber": "R-11188"
+        },
+        {
+          "type": "Phone Call",
+          "author": "Brendon Muse",
+          "date": "2026-04-30T18:04:51.000Z",
+          "noteSnip": "Outgoing call to (256) 221-9450 for 1m 1s",
+          "onJobNumber": "R-11188"
+        },
+        {
+          "type": "Note",
+          "author": "Brendon Muse",
+          "date": "2026-04-30T18:42:41.000Z",
+          "noteSnip": "3-mush remove,\n1-1.5,\n2-2.0,\n1-3.0,\n2-gas reset.",
+          "onJobNumber": "R-11188"
+        }
+      ]
+    },
+    {
+      "contactJnid": "043fa486efed436385da87543490ea10",
+      "contactName": "Seth Gerstman",
+      "contactCreatedAt": "2026-04-28T17:05:46.000Z",
+      "createdBy": "Tia Muse Morris",
+      "rep": "Hunter Rivers",
+      "source": "Family",
+      "leadStatus": "Active",
+      "jobCount": 1,
+      "jobNumbers": [
+        "R-11187"
+      ],
+      "totalActivities": 8,
+      "activitiesAfterCreate": 6,
+      "repActivities": 2,
+      "firstRepActivity": {
+        "type": "Job Modified",
+        "author": "Hunter Rivers",
+        "date": "2026-04-28T18:03:02.000Z",
+        "noteSnip": "Job Updated\nName: Seth Grestman => Seth Gerstman",
+        "minutesAfterLead": 57
+      },
+      "allActivityTypes": [
+        "Contact Created",
+        "Assigned Contact",
+        "Status Changed",
+        "Related to job",
+        "Job Created",
+        "Assigned Job",
+        "Job Modified",
+        "Phone Call"
+      ],
+      "allAuthors": [
+        "Tia Muse Morris",
+        "Automation (Job)",
+        "Hunter Rivers"
+      ],
+      "activities": [
+        {
+          "type": "Contact Created",
+          "author": "Tia Muse Morris",
+          "date": "2026-04-28T17:05:46.000Z",
+          "noteSnip": "Contact Created"
+        },
+        {
+          "type": "Assigned Contact",
+          "author": "Tia Muse Morris",
+          "date": "2026-04-28T17:05:46.000Z",
+          "noteSnip": "Date:4/28/2026 11:05:46 AM --> Type:Assigned Contact:Contact # C-11984:Seth Gerstman"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Automation (Job)",
+          "date": "2026-04-28T17:08:30.000Z",
+          "noteSnip": "Contact Updated\nStatus: Lead => Active\n"
+        },
+        {
+          "type": "Related to job",
+          "author": "Tia Muse Morris",
+          "date": "2026-04-28T17:08:30.000Z",
+          "noteSnip": "Related to job: Seth Grestman #R-11187"
+        },
+        {
+          "type": "Job Created",
+          "author": "Tia Muse Morris",
+          "date": "2026-04-28T17:08:30.000Z",
+          "noteSnip": "Job Created",
+          "onJobNumber": "R-11187"
+        },
+        {
+          "type": "Assigned Job",
+          "author": "Tia Muse Morris",
+          "date": "2026-04-28T17:08:30.000Z",
+          "noteSnip": "Assigned Job: Seth Grestman #R-11187",
+          "onJobNumber": "R-11187"
+        },
+        {
+          "type": "Job Modified",
+          "author": "Hunter Rivers",
+          "date": "2026-04-28T18:03:02.000Z",
+          "noteSnip": "Job Updated\nName: Seth Grestman => Seth Gerstman",
+          "onJobNumber": "R-11187"
+        },
+        {
+          "type": "Phone Call",
+          "author": "Hunter Rivers",
+          "date": "2026-04-28T18:06:12.000Z",
+          "noteSnip": "Outgoing call to (256) 460-2249 for 2m 44s appointment set",
+          "onJobNumber": "R-11187"
+        }
+      ]
+    },
+    {
+      "contactJnid": "a3aa9ce6b9c34f1099ca074e5cce12ac",
+      "contactName": "Candice Franklin",
+      "contactCreatedAt": "2026-04-28T16:06:15.000Z",
+      "createdBy": "Tia Muse Morris",
+      "rep": "Brendon Muse",
+      "source": "Family",
+      "leadStatus": "Active",
+      "jobCount": 1,
+      "jobNumbers": [
+        "R-11186"
+      ],
+      "totalActivities": 14,
+      "activitiesAfterCreate": 12,
+      "repActivities": 7,
+      "firstRepActivity": {
+        "type": "Note",
+        "author": "Brendon Muse",
+        "date": "2026-04-28T16:44:20.000Z",
+        "noteSnip": "2 pm on Thursday",
+        "minutesAfterLead": 38
+      },
+      "allActivityTypes": [
+        "Contact Created",
+        "Assigned Contact",
+        "Related to job",
+        "Status Changed",
+        "Job Created",
+        "Assigned Job",
+        "Note",
+        "Contact Modified",
+        "Email"
+      ],
+      "allAuthors": [
+        "Tia Muse Morris",
+        "Automation (Job)",
+        "Brendon Muse",
+        "Destin McCary"
+      ],
+      "activities": [
+        {
+          "type": "Contact Created",
+          "author": "Tia Muse Morris",
+          "date": "2026-04-28T16:06:15.000Z",
+          "noteSnip": "Contact Created"
+        },
+        {
+          "type": "Assigned Contact",
+          "author": "Tia Muse Morris",
+          "date": "2026-04-28T16:06:15.000Z",
+          "noteSnip": "Date:4/28/2026 10:06:15 AM --> Type:Assigned Contact:Contact # C-11983:Candice Franklin"
+        },
+        {
+          "type": "Related to job",
+          "author": "Tia Muse Morris",
+          "date": "2026-04-28T16:09:26.000Z",
+          "noteSnip": "Related to job: Candice Franklin #R-11186"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Automation (Job)",
+          "date": "2026-04-28T16:09:26.000Z",
+          "noteSnip": "Contact Updated\nStatus: Lead => Active\n"
+        },
+        {
+          "type": "Job Created",
+          "author": "Tia Muse Morris",
+          "date": "2026-04-28T16:09:26.000Z",
+          "noteSnip": "Job Created",
+          "onJobNumber": "R-11186"
+        },
+        {
+          "type": "Assigned Job",
+          "author": "Tia Muse Morris",
+          "date": "2026-04-28T16:09:26.000Z",
+          "noteSnip": "Assigned Job: Candice Franklin #R-11186",
+          "onJobNumber": "R-11186"
+        },
+        {
+          "type": "Note",
+          "author": "Brendon Muse",
+          "date": "2026-04-28T16:44:20.000Z",
+          "noteSnip": "2 pm on Thursday",
+          "onJobNumber": "R-11186"
+        },
+        {
+          "type": "Note",
+          "author": "Brendon Muse",
+          "date": "2026-04-28T16:45:12.000Z",
+          "noteSnip": "I talked to the homeowner on the phone. We set up an appointment for this Thursday at 2 PM. @DestinMccary @TiaMuseMorris @SaraHill",
+          "onJobNumber": "R-11186"
+        },
+        {
+          "type": "Note",
+          "author": "Brendon Muse",
+          "date": "2026-04-28T16:45:42.000Z",
+          "noteSnip": "Please order me an eagleview primary structure only please @SaraHill @DestinMccary @TiaMuseMorris",
+          "onJobNumber": "R-11186"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Destin McCary",
+          "date": "2026-04-28T16:46:15.000Z",
+          "noteSnip": "Job Updated\nStatus: Lead => Aerial Measurements\n",
+          "onJobNumber": "R-11186"
+        },
+        {
+          "type": "Note",
+          "author": "Brendon Muse",
+          "date": "2026-04-28T16:47:20.000Z",
+          "noteSnip": "A lot going on here. Metal over shingles, 8 rotted sheets of decking at least. 2 supporting post/beams in attic are sagging. The roof may need to be jacked as well. They are in the process of buying t",
+          "onJobNumber": "R-11186"
+        },
+        {
+          "type": "Contact Modified",
+          "author": "Brendon Muse",
+          "date": "2026-04-30T14:09:36.000Z",
+          "noteSnip": "Contact Updated\nEmail:  => cfranklin0813@gmail.com"
+        },
+        {
+          "type": "Email",
+          "author": "Brendon Muse",
+          "date": "2026-04-30T14:09:55.000Z",
+          "noteSnip": "<b>Estimate</b>\nThe estimate is attached to this email.\n  \nThank you,\n \nBrendon Muse\n  \n——\n \nSent from River City Roofing Solutions, Inc. via  JobNimbus\nEmail sent to: Candice Franklin (cfranklin0813@"
+        },
+        {
+          "type": "Email",
+          "author": "Brendon Muse",
+          "date": "2026-05-01T17:36:54.000Z",
+          "noteSnip": "<b>Estimate Including All Decking</b>\nThe estimate is attached to this email.\n  \nThank you,\n \nBrendon Muse\n  \n——\n \nSent from River City Roofing Solutions, Inc. via  JobNimbus\nEmail sent to: Candice Fr"
+        }
+      ]
+    },
+    {
+      "contactJnid": "e4f5692f981742d392161c292bcef29e",
+      "contactName": "Larry Osborn",
+      "contactCreatedAt": "2026-04-27T15:47:00.000Z",
+      "createdBy": "Tia Muse Morris",
+      "rep": "Hunter Rivers",
+      "source": "Google",
+      "leadStatus": "Active",
+      "jobCount": 1,
+      "jobNumbers": [
+        "R-11184"
+      ],
+      "totalActivities": 7,
+      "activitiesAfterCreate": 5,
+      "repActivities": 1,
+      "firstRepActivity": {
+        "type": "Phone Call",
+        "author": "Hunter Rivers",
+        "date": "2026-04-27T16:16:43.000Z",
+        "noteSnip": "Outgoing call to (513) 403-1775 for 2m 3s",
+        "minutesAfterLead": 30
+      },
+      "allActivityTypes": [
+        "Contact Created",
+        "Assigned Contact",
+        "Job Created",
+        "Related to job",
+        "Status Changed",
+        "Assigned Job",
+        "Phone Call"
+      ],
+      "allAuthors": [
+        "Tia Muse Morris",
+        "Automation (Job)",
+        "Hunter Rivers"
+      ],
+      "activities": [
+        {
+          "type": "Contact Created",
+          "author": "Tia Muse Morris",
+          "date": "2026-04-27T15:47:00.000Z",
+          "noteSnip": "Contact Created"
+        },
+        {
+          "type": "Assigned Contact",
+          "author": "Tia Muse Morris",
+          "date": "2026-04-27T15:47:00.000Z",
+          "noteSnip": "Date:4/27/2026 9:47:00 AM --> Type:Assigned Contact:Contact # C-11980:Larry Osborn"
+        },
+        {
+          "type": "Job Created",
+          "author": "Tia Muse Morris",
+          "date": "2026-04-27T15:49:04.000Z",
+          "noteSnip": "Job Created",
+          "onJobNumber": "R-11184"
+        },
+        {
+          "type": "Related to job",
+          "author": "Tia Muse Morris",
+          "date": "2026-04-27T15:49:05.000Z",
+          "noteSnip": "Related to job: Larry Osborn #R-11184"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Automation (Job)",
+          "date": "2026-04-27T15:49:05.000Z",
+          "noteSnip": "Contact Updated\nStatus: Lead => Active\n"
+        },
+        {
+          "type": "Assigned Job",
+          "author": "Tia Muse Morris",
+          "date": "2026-04-27T15:49:05.000Z",
+          "noteSnip": "Assigned Job: Larry Osborn #R-11184",
+          "onJobNumber": "R-11184"
+        },
+        {
+          "type": "Phone Call",
+          "author": "Hunter Rivers",
+          "date": "2026-04-27T16:16:43.000Z",
+          "noteSnip": "Outgoing call to (513) 403-1775 for 2m 3s",
+          "onJobNumber": "R-11184"
+        }
+      ]
+    },
+    {
+      "contactJnid": "e69ad914ecf14558a0c81297c305db5e",
+      "contactName": "Brian Hamilton",
+      "contactCreatedAt": "2026-04-24T13:27:46.000Z",
+      "createdBy": "Destin McCary",
+      "rep": "Hunter Rivers",
+      "source": "Neighbor",
+      "leadStatus": "Active",
+      "jobCount": 1,
+      "jobNumbers": [
+        "R-11183"
+      ],
+      "totalActivities": 15,
+      "activitiesAfterCreate": 13,
+      "repActivities": 5,
+      "firstRepActivity": {
+        "type": "Note",
+        "author": "Hunter Rivers",
+        "date": "2026-04-24T13:45:56.000Z",
+        "noteSnip": "@DestinMccary EV please",
+        "minutesAfterLead": 18
+      },
+      "allActivityTypes": [
+        "Contact Created",
+        "Assigned Contact",
+        "Related to job",
+        "Job Created",
+        "Assigned Job",
+        "Note",
+        "Status Changed",
+        "Contact Modified",
+        "Attachment deleted",
+        "Email"
+      ],
+      "allAuthors": [
+        "Destin McCary",
+        "Hunter Rivers"
+      ],
+      "activities": [
+        {
+          "type": "Contact Created",
+          "author": "Destin McCary",
+          "date": "2026-04-24T13:27:46.000Z",
+          "noteSnip": "Contact Created"
+        },
+        {
+          "type": "Assigned Contact",
+          "author": "Destin McCary",
+          "date": "2026-04-24T13:27:46.000Z",
+          "noteSnip": "Date:4/24/2026 7:27:46 AM --> Type:Assigned Contact:Contact # C-11978:Brian Hamilton"
+        },
+        {
+          "type": "Related to job",
+          "author": "Destin McCary",
+          "date": "2026-04-24T13:28:29.000Z",
+          "noteSnip": "Related to job: Brian Hamilton #R-11183"
+        },
+        {
+          "type": "Job Created",
+          "author": "Destin McCary",
+          "date": "2026-04-24T13:28:29.000Z",
+          "noteSnip": "Job Created",
+          "onJobNumber": "R-11183"
+        },
+        {
+          "type": "Assigned Job",
+          "author": "Destin McCary",
+          "date": "2026-04-24T13:28:29.000Z",
+          "noteSnip": "Assigned Job: Brian Hamilton #R-11183",
+          "onJobNumber": "R-11183"
+        },
+        {
+          "type": "Note",
+          "author": "Hunter Rivers",
+          "date": "2026-04-24T13:45:56.000Z",
+          "noteSnip": "@DestinMccary EV please",
+          "onJobNumber": "R-11183"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Destin McCary",
+          "date": "2026-04-24T13:46:37.000Z",
+          "noteSnip": "Job Updated\nStatus: Lead => Aerial Measurements\n",
+          "onJobNumber": "R-11183"
+        },
+        {
+          "type": "Contact Modified",
+          "author": "Hunter Rivers",
+          "date": "2026-04-27T19:42:03.000Z",
+          "noteSnip": "Contact Updated\nEmail:  => brian.hamilton@alacourt.gov"
+        },
+        {
+          "type": "Note",
+          "author": "Hunter Rivers",
+          "date": "2026-04-27T20:01:17.000Z",
+          "noteSnip": "@DestinMccary photos uploaded if you can get the EV please",
+          "onJobNumber": "R-11183"
+        },
+        {
+          "type": "Note",
+          "author": "Destin McCary",
+          "date": "2026-04-27T20:19:08.000Z",
+          "noteSnip": "@HunterRivers Finally found it and got it ordered lol",
+          "onJobNumber": "R-11183"
+        },
+        {
+          "type": "Note",
+          "author": "Destin McCary",
+          "date": "2026-04-28T13:11:23.000Z",
+          "noteSnip": "@HunterRivers Pls check EV",
+          "onJobNumber": "R-11183"
+        },
+        {
+          "type": "Note",
+          "author": "Hunter Rivers",
+          "date": "2026-04-28T13:20:31.000Z",
+          "noteSnip": "@DestinMccary wrong house. That's 601. Needs to be 701",
+          "onJobNumber": "R-11183"
+        },
+        {
+          "type": "Attachment deleted",
+          "author": "Destin McCary",
+          "date": "2026-04-28T18:48:12.000Z",
+          "noteSnip": "Document dff9d0edbe094c5c85472bd69452cb53.pdf deleted.",
+          "onJobNumber": "R-11183"
+        },
+        {
+          "type": "Note",
+          "author": "Destin McCary",
+          "date": "2026-04-28T18:48:52.000Z",
+          "noteSnip": "@HunterRivers New EV uploaded",
+          "onJobNumber": "R-11183"
+        },
+        {
+          "type": "Email",
+          "author": "Hunter Rivers",
+          "date": "2026-04-29T15:17:59.000Z",
+          "noteSnip": "<b>The estimate is attached to this email.</b>\nThe estimate is attached to this email.\n  \nThank you , Hunter Rivers\n  \n——\n \nSent from River City Roofing Solutions, Inc. via  JobNimbus\nEmail sent to:  ",
+          "onJobNumber": "R-11183"
+        }
+      ]
+    },
+    {
+      "contactJnid": "9326927abc73407dba9c07802952b002",
+      "contactName": "Mason Pacella",
+      "contactCreatedAt": "2026-04-23T18:51:45.000Z",
+      "createdBy": "Destin McCary",
+      "rep": "Travis Wages",
+      "source": "Google",
+      "leadStatus": "Active",
+      "jobCount": 1,
+      "jobNumbers": [
+        "R-11182"
+      ],
+      "totalActivities": 12,
+      "activitiesAfterCreate": 12,
+      "repActivities": 5,
+      "firstRepActivity": {
+        "type": "Phone Call",
+        "author": "Travis Wages",
+        "date": "2026-04-23T18:54:42.000Z",
+        "noteSnip": "Outgoing call to (334) 962-6474 for 28s\n\n@DestinMccary called homeowner",
+        "minutesAfterLead": 3
+      },
+      "allActivityTypes": [
+        "Contact Created",
+        "Assigned Contact",
+        "Related to job",
+        "Job Created",
+        "Assigned Job",
+        "Phone Call",
+        "Note",
+        "Status Changed"
+      ],
+      "allAuthors": [
+        "Destin McCary",
+        "Travis Wages"
+      ],
+      "activities": [
+        {
+          "type": "Contact Created",
+          "author": "Destin McCary",
+          "date": "2026-04-23T18:51:46.000Z",
+          "noteSnip": "Contact Created"
+        },
+        {
+          "type": "Assigned Contact",
+          "author": "Destin McCary",
+          "date": "2026-04-23T18:51:46.000Z",
+          "noteSnip": "Date:4/23/2026 12:51:45 PM --> Type:Assigned Contact:Contact # C-11977:Mason Pacella"
+        },
+        {
+          "type": "Related to job",
+          "author": "Destin McCary",
+          "date": "2026-04-23T18:52:10.000Z",
+          "noteSnip": "Related to job: Mason Pacella #R-11182"
+        },
+        {
+          "type": "Job Created",
+          "author": "Destin McCary",
+          "date": "2026-04-23T18:52:10.000Z",
+          "noteSnip": "Job Created",
+          "onJobNumber": "R-11182"
+        },
+        {
+          "type": "Assigned Job",
+          "author": "Destin McCary",
+          "date": "2026-04-23T18:52:10.000Z",
+          "noteSnip": "Assigned Job: Mason Pacella #R-11182",
+          "onJobNumber": "R-11182"
+        },
+        {
+          "type": "Phone Call",
+          "author": "Travis Wages",
+          "date": "2026-04-23T18:54:42.000Z",
+          "noteSnip": "Outgoing call to (334) 962-6474 for 28s\n\n@DestinMccary called homeowner",
+          "onJobNumber": "R-11182"
+        },
+        {
+          "type": "Note",
+          "author": "Travis Wages",
+          "date": "2026-04-23T19:36:36.000Z",
+          "noteSnip": "Dryer vent \n3 mushroom\n\n1.5 - 3\n2 - 1\n3 - 1\n\n750 vent",
+          "onJobNumber": "R-11182"
+        },
+        {
+          "type": "Note",
+          "author": "Travis Wages",
+          "date": "2026-04-23T19:38:28.000Z",
+          "noteSnip": "@DestinMccary could you order an EV on this please?",
+          "onJobNumber": "R-11182"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Destin McCary",
+          "date": "2026-04-23T19:39:18.000Z",
+          "noteSnip": "Job Updated\nStatus: Lead => Aerial Measurements\n",
+          "onJobNumber": "R-11182"
+        },
+        {
+          "type": "Note",
+          "author": "Destin McCary",
+          "date": "2026-04-24T12:41:57.000Z",
+          "noteSnip": "@TravisWages Need pitches pls",
+          "onJobNumber": "R-11182"
+        },
+        {
+          "type": "Note",
+          "author": "Travis Wages",
+          "date": "2026-04-24T14:40:17.000Z",
+          "noteSnip": "6 on house - 5 on detached @DestinMccary",
+          "onJobNumber": "R-11182"
+        },
+        {
+          "type": "Phone Call",
+          "author": "Travis Wages",
+          "date": "2026-04-27T16:16:07.000Z",
+          "noteSnip": "Outgoing call to (334) 962-6474 for 1m 7s",
+          "onJobNumber": "R-11182"
+        }
+      ]
+    },
+    {
+      "contactJnid": "3c03e280de6e44f383e62d4823a1ca0e",
+      "contactName": "Sonya Costanza",
+      "contactCreatedAt": "2026-04-22T15:26:29.000Z",
+      "createdBy": "Tia Muse Morris",
+      "rep": "Greg Muse",
+      "source": "",
+      "leadStatus": "Active",
+      "jobCount": 1,
+      "jobNumbers": [
+        "R-11178"
+      ],
+      "totalActivities": 6,
+      "activitiesAfterCreate": 4,
+      "repActivities": 0,
+      "firstRepActivity": null,
+      "allActivityTypes": [
+        "Contact Created",
+        "Assigned Contact",
+        "Status Changed",
+        "Related to job",
+        "Job Created",
+        "Assigned Job"
+      ],
+      "allAuthors": [
+        "Tia Muse Morris",
+        "Automation (Job)"
+      ],
+      "activities": [
+        {
+          "type": "Contact Created",
+          "author": "Tia Muse Morris",
+          "date": "2026-04-22T15:26:29.000Z",
+          "noteSnip": "Contact Created"
+        },
+        {
+          "type": "Assigned Contact",
+          "author": "Tia Muse Morris",
+          "date": "2026-04-22T15:26:29.000Z",
+          "noteSnip": "Date:4/22/2026 9:26:29 AM --> Type:Assigned Contact:Contact # C-11976:Sonya Costanza"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Automation (Job)",
+          "date": "2026-04-22T15:28:31.000Z",
+          "noteSnip": "Contact Updated\nStatus: Lead => Active\n"
+        },
+        {
+          "type": "Related to job",
+          "author": "Tia Muse Morris",
+          "date": "2026-04-22T15:28:31.000Z",
+          "noteSnip": "Related to job: Sonya Costanza #R-11178"
+        },
+        {
+          "type": "Job Created",
+          "author": "Tia Muse Morris",
+          "date": "2026-04-22T15:28:31.000Z",
+          "noteSnip": "Job Created",
+          "onJobNumber": "R-11178"
+        },
+        {
+          "type": "Assigned Job",
+          "author": "Tia Muse Morris",
+          "date": "2026-04-22T15:28:31.000Z",
+          "noteSnip": "Assigned Job: Sonya Costanza #R-11178",
+          "onJobNumber": "R-11178"
+        }
+      ]
+    },
+    {
+      "contactJnid": "64c6529d129249aca031931786e12b90",
+      "contactName": "Marco Shelby",
+      "contactCreatedAt": "2026-04-21T13:52:54.000Z",
+      "createdBy": "Destin McCary",
+      "rep": "Travis Wages",
+      "source": "Google",
+      "leadStatus": "Active",
+      "jobCount": 1,
+      "jobNumbers": [
+        "R-11169"
+      ],
+      "totalActivities": 12,
+      "activitiesAfterCreate": 10,
+      "repActivities": 5,
+      "firstRepActivity": {
+        "type": "Phone Call",
+        "author": "Travis Wages",
+        "date": "2026-04-21T14:09:17.000Z",
+        "noteSnip": "Outgoing call to (773) 860-0155 for 3m 11s\n\n@DestinMccary spoke to homeowner",
+        "minutesAfterLead": 16
+      },
+      "allActivityTypes": [
+        "Contact Created",
+        "Assigned Contact",
+        "Related to job",
+        "Job Created",
+        "Assigned Job",
+        "Phone Call",
+        "Note",
+        "Status Changed"
+      ],
+      "allAuthors": [
+        "Destin McCary",
+        "Travis Wages",
+        "Sara Hill"
+      ],
+      "activities": [
+        {
+          "type": "Contact Created",
+          "author": "Destin McCary",
+          "date": "2026-04-21T13:52:54.000Z",
+          "noteSnip": "Contact Created"
+        },
+        {
+          "type": "Assigned Contact",
+          "author": "Destin McCary",
+          "date": "2026-04-21T13:52:54.000Z",
+          "noteSnip": "Date:4/21/2026 7:52:54 AM --> Type:Assigned Contact:Contact # C-11970:Marco Shelby"
+        },
+        {
+          "type": "Related to job",
+          "author": "Destin McCary",
+          "date": "2026-04-21T13:53:27.000Z",
+          "noteSnip": "Related to job: Marco Shelby #R-11169"
+        },
+        {
+          "type": "Job Created",
+          "author": "Destin McCary",
+          "date": "2026-04-21T13:53:27.000Z",
+          "noteSnip": "Job Created",
+          "onJobNumber": "R-11169"
+        },
+        {
+          "type": "Assigned Job",
+          "author": "Destin McCary",
+          "date": "2026-04-21T13:53:27.000Z",
+          "noteSnip": "Assigned Job: Marco Shelby #R-11169",
+          "onJobNumber": "R-11169"
+        },
+        {
+          "type": "Phone Call",
+          "author": "Travis Wages",
+          "date": "2026-04-21T14:09:17.000Z",
+          "noteSnip": "Outgoing call to (773) 860-0155 for 3m 11s\n\n@DestinMccary spoke to homeowner",
+          "onJobNumber": "R-11169"
+        },
+        {
+          "type": "Note",
+          "author": "Travis Wages",
+          "date": "2026-04-21T14:39:33.000Z",
+          "noteSnip": "1 - 1.5\n2 - 2\n1 - 3\nGas Vent",
+          "onJobNumber": "R-11169"
+        },
+        {
+          "type": "Note",
+          "author": "Travis Wages",
+          "date": "2026-04-21T14:40:27.000Z",
+          "noteSnip": "@DestinMccary can you order an EV on this for me please?",
+          "onJobNumber": "R-11169"
+        },
+        {
+          "type": "Status Changed",
+          "author": "Destin McCary",
+          "date": "2026-04-21T14:49:24.000Z",
+          "noteSnip": "Job Updated\nStatus: Lead => Aerial Measurements\n",
+          "onJobNumber": "R-11169"
+        },
+        {
+          "type": "Note",
+          "author": "Sara Hill",
+          "date": "2026-04-21T18:33:08.000Z",
+          "noteSnip": "@TravisWages Eagleview uploaded.",
+          "onJobNumber": "R-11169"
+        },
+        {
+          "type": "Note",
+          "author": "Travis Wages",
+          "date": "2026-04-21T18:34:54.000Z",
+          "noteSnip": "@SaraHill thank you",
+          "onJobNumber": "R-11169"
+        },
+        {
+          "type": "Phone Call",
+          "author": "Travis Wages",
+          "date": "2026-04-23T17:22:58.000Z",
+          "noteSnip": "Outgoing call to (773) 860-0155 for 46m 47s",
+          "onJobNumber": "R-11169"
+        }
+      ]
+    }
+  ]
+}
