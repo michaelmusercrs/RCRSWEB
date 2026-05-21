@@ -312,6 +312,29 @@ export const LEAD_REASSIGNMENT_QUEUE_COLUMNS = [
   'status', 'createdAt', 'resolvedAt', 'resolvedBy', 'resolutionNotes',
 ];
 
+/**
+ * Rep profile — bio + photo URLs. Used by the customer welcome portal to
+ * introduce the assigned rep. Sheet-backed so admins can edit through the
+ * UI without redeploys.
+ */
+export interface TeamProfileRecord {
+  repSlug: string;
+  bio: string;
+  headshotUrl: string;
+  truckPicUrl: string;
+  certifications: string;     // comma-separated, e.g. "IKO ROOFPRO Craftsman Premier, OC Preferred"
+  yearsExperience: string;
+  favoriteQuote: string;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export const TEAM_PROFILES_COLUMNS = [
+  'repSlug', 'bio', 'headshotUrl', 'truckPicUrl',
+  'certifications', 'yearsExperience', 'favoriteQuote',
+  'updatedAt', 'updatedBy',
+];
+
 export interface RepAvailabilityRecord {
   repSlug: string;
   isReceivingLeads: string; // 'true'/'false'
@@ -449,6 +472,7 @@ const SHEET_NAMES = {
   LEAD_DISTRIBUTION_LOG: 'Lead_Distribution_Log',
   LEAD_OUTCOME_LOG: 'Lead_Outcome_Log',
   LEAD_REASSIGNMENT_QUEUE: 'Lead_Reassignment_Queue',
+  TEAM_PROFILES: 'Team_Profiles',
   REP_AVAILABILITY: 'Rep_Availability',
   REP_PREFERENCES: 'Rep_Preferences',
   LEAD_RESPONSE_LOG: 'Lead_Response_Log',
@@ -1773,6 +1797,62 @@ class GoogleSheetsService {
       return true;
     } catch (err) {
       console.error('Error resolving reassignment queue entry:', err);
+      return false;
+    }
+  }
+
+  // ===========================================================================
+  // TEAM PROFILES
+  // ===========================================================================
+
+  async getTeamProfiles(): Promise<TeamProfileRecord[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.TEAM_PROFILES, TEAM_PROFILES_COLUMNS);
+      const rows = await sheet.getRows();
+      return rows.map(row => ({
+        repSlug: row.get('repSlug') || '',
+        bio: row.get('bio') || '',
+        headshotUrl: row.get('headshotUrl') || '',
+        truckPicUrl: row.get('truckPicUrl') || '',
+        certifications: row.get('certifications') || '',
+        yearsExperience: row.get('yearsExperience') || '',
+        favoriteQuote: row.get('favoriteQuote') || '',
+        updatedAt: row.get('updatedAt') || '',
+        updatedBy: row.get('updatedBy') || '',
+      }));
+    } catch (err) {
+      console.error('Error fetching team profiles:', err);
+      return [];
+    }
+  }
+
+  async getTeamProfile(repSlug: string): Promise<TeamProfileRecord | null> {
+    const all = await this.getTeamProfiles();
+    return all.find(p => p.repSlug === repSlug) || null;
+  }
+
+  async upsertTeamProfile(profile: TeamProfileRecord): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc || !profile.repSlug) return false;
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.TEAM_PROFILES, TEAM_PROFILES_COLUMNS);
+      const rows = await sheet.getRows();
+      const existing = rows.find(r => r.get('repSlug') === profile.repSlug);
+      const ts = new Date().toISOString();
+      const payload = { ...profile, updatedAt: ts };
+      if (existing) {
+        for (const [k, v] of Object.entries(payload)) {
+          if (v !== undefined) existing.set(k, v as string);
+        }
+        await existing.save();
+      } else {
+        await sheet.addRow(payload as unknown as Record<string, string | number | boolean>);
+      }
+      return true;
+    } catch (err) {
+      console.error('Error upserting team profile:', err);
       return false;
     }
   }

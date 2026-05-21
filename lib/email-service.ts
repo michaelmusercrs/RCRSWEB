@@ -73,7 +73,8 @@ export type EmailTemplate =
   | 'return-credit'
   | 'pipeline-milestone'
   | 'reassign-notify'       // SLA breach → dispatcher team alert
-  | 'response-time-report'; // weekly summary → Chris + Michael
+  | 'response-time-report'  // weekly summary → Chris + Michael
+  | 'customer-welcome-portal'; // post-assignment welcome with portal link
 
 /**
  * A single binary attachment. Maps directly onto Resend's `Attachment`
@@ -121,6 +122,7 @@ const CUSTOMER_FACING_TEMPLATES: ReadonlySet<EmailTemplate> = new Set<EmailTempl
   'storm-report-customer',
   'customer-invoice',
   'pipeline-milestone',
+  'customer-welcome-portal',
   // contact-form: technically the inbound contact form auto-reply — confirm
   // each callsite case-by-case before adding. Today the contact-form template
   // primarily routes to office, not the customer. Leaving OUT for now; if
@@ -571,6 +573,65 @@ class EmailService {
       body,
       replyTo: data.repEmail,
       fromName: 'River City Roofing Solutions',
+    });
+  }
+
+  /**
+   * Customer welcome email — sends after a lead is assigned to a rep.
+   * Links to the welcome portal page (/customer/welcome/[token]) which
+   * introduces the rep (bio + headshot + truck pic) and shows next steps.
+   *
+   * GATED: this template is in CUSTOMER_FACING_TEMPLATES, so it requires
+   * `CUSTOMER_EMAIL_ENABLED=true` to actually send. Until Michael flips
+   * that env var, calls to this method log + drop without sending.
+   *
+   * No automatic trigger is wired — Michael will pick the trigger point
+   * (probably inside distributeLead, after the rep is committed) after
+   * he's tested the welcome page in the browser.
+   */
+  async sendCustomerWelcome(data: {
+    customerEmail: string;
+    customerName: string;
+    portalToken: string;
+    repName: string;
+    repEmail: string;
+    repPhone?: string;
+  }): Promise<{ success: boolean; error?: string }> {
+    const base = process.env.NEXT_PUBLIC_BASE_URL || 'https://rivercityroofingsolutions.com';
+    const welcomeUrl = `${base}/customer/welcome/${encodeURIComponent(data.portalToken)}`;
+    const firstName = data.customerName.split(' ')[0] || 'there';
+
+    const subject = `Welcome, ${firstName} — meet your roofing specialist`;
+    const body = `
+      <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto;">
+        <div style="background: #000; padding: 20px; text-align: center;">
+          <h1 style="color: #39FF14; margin: 0; font-size: 22px;">River City Roofing Solutions</h1>
+        </div>
+        <div style="padding: 28px; background: #fff; color: #222;">
+          <p style="font-size: 16px;">Hi ${firstName},</p>
+          <p>Thanks for reaching out — we're glad to have the opportunity to take care of your roof. Your assigned specialist is <strong>${data.repName}</strong>${data.repPhone ? ` (${data.repPhone})` : ''}.</p>
+          <p>We've put together a short welcome page where you can see ${data.repName}'s profile, what to expect next, and a free tool to visualize new shingles on your home.</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${welcomeUrl}" style="background: #39FF14; color: #000; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+              View Your Welcome Page
+            </a>
+          </div>
+          <p>${data.repName} will be reaching out shortly to schedule your free inspection. In the meantime, you can call or text them directly at the number above with any questions.</p>
+          <p style="margin-top: 24px; color: #666;">— The team at River City Roofing Solutions</p>
+        </div>
+        <div style="background: #f5f5f5; padding: 14px; text-align: center; font-size: 12px; color: #666;">
+          River City Roofing Solutions | (256) 656-7856 | rivercityroofingsolutions.com
+        </div>
+      </div>
+    `;
+
+    return this.send({
+      template: 'customer-welcome-portal',
+      to: data.customerEmail,
+      subject,
+      body,
+      replyTo: data.repEmail,
+      fromName: data.repName ? `${data.repName} (RCRS)` : 'River City Roofing Solutions',
     });
   }
 

@@ -17,6 +17,7 @@ import { useAuth } from '@/lib/auth-context';
 import { TeamRole } from '@/lib/team-roles';
 import WeeklyNumbersWidget from '@/components/portal/WeeklyNumbersWidget';
 import DeptNotesWidget from '@/components/portal/DeptNotesWidget';
+import ResponseTimeWidget from '@/components/portal/ResponseTimeWidget';
 import dynamic from 'next/dynamic';
 const SmartTipsWidget = dynamic(() => import('@/components/portal/SmartTipsWidget'), { ssr: false });
 
@@ -726,6 +727,12 @@ export default function SalesPortal() {
           <div className="mb-6">
             <h3 className="text-sm font-medium text-neutral-400 mb-3">Rep Weekly Numbers</h3>
             <WeeklyNumbersWidget />
+          </div>
+
+          {/* Response Time + Leaderboard */}
+          <div className="mb-6">
+            <h3 className="text-sm font-medium text-neutral-400 mb-3">Response Time</h3>
+            <ResponseTimeWidget />
           </div>
 
           {/* Monday Notes */}

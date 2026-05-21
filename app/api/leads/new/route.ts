@@ -22,6 +22,7 @@ import { riverBot } from '@/lib/river-bot-service';
 import { stormReportService } from '@/lib/storm-report-service';
 import { jnSyncEngine } from '@/lib/jn-sync-engine';
 import { isJobNimbusConfigured, jobNimbusService } from '@/lib/jobnimbus-service';
+import { createJNContactFromLead, isJNAutoCreateEnabled } from '@/lib/jn-auto-create';
 import { roofReportService } from '@/lib/roof-report-service';
 import { checkForSpam } from '@/lib/spam-filter';
 import { checkHoneypot } from '@/lib/honeypot';
@@ -418,6 +419,44 @@ export async function POST(request: NextRequest) {
       jobnimbusId: body.jobnimbusId,
       jobnimbusContactId: body.jobnimbusContactId,
     });
+
+    // ── JN AUTO-CREATE (fire-and-forget, GATED) ─────────────────────────
+    // Gated by JN_AUTOCREATE_ENABLED=true. When OFF (default), the call
+    // logs intent + returns { skipped: true } without making any JN
+    // network call. When ON, pushes a complete contact record to JN
+    // and stores the returned jnid on the local lead record.
+    if (!body.jobnimbusContactId && body.address && body.address !== 'Not provided') {
+      createJNContactFromLead({
+        leadId: lead.leadId || `lead-${Date.now()}`,
+        name: body.name,
+        email: body.email,
+        phone: body.phone,
+        address: body.address,
+        city: body.city,
+        state: body.state,
+        zip: body.zip,
+        source: body.source,
+        recordType: body.serviceType?.toLowerCase().includes('commercial') ? 'Commercial' : 'Customer',
+        description: body.message,
+      }).then(result => {
+        if (result.skipped) {
+          console.log(`[NewLead] JN auto-create skipped: ${result.reason}`);
+        } else if (result.jnid) {
+          console.log(`[NewLead] JN contact created: ${result.jnid}`);
+          // TODO when JN auto-create is enabled: persist result.jnid onto
+          // the lead record. The leadPortalService doesn't expose updateLead
+          // yet — add a method when wiring this for real.
+        } else if (result.error) {
+          console.warn(`[NewLead] JN auto-create error: ${result.error}`);
+        }
+      }).catch(err => {
+        console.warn(`[NewLead] JN auto-create threw: ${err}`);
+      });
+    }
+    if (!isJNAutoCreateEnabled()) {
+      // Surface visibility in the audit trail that we WOULD have written
+      auditLog('JN_AUTOCREATE_GATED', 'system', `Would create JN contact for ${body.name} — JN_AUTOCREATE_ENABLED not set`);
+    }
 
     // ── GEOCODE & SAVE (fire-and-forget) ─────────────────────────────────
     if (body.address && body.address !== 'Not provided') {
