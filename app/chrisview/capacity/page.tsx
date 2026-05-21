@@ -4,7 +4,7 @@
  * Chris View — Crew / Production Capacity.
  *
  * How booked-out are the install crews? Shows weekly event counts by
- * subcalendar (installations, deliveries, inspections, meetings), gap
+ * subcalendar (installations / deliveries / meetings — inspections live in Monday meeting Estimates, not TeamUp), gap
  * days (business days last 30 with zero installs), busiest crew, and
  * upcoming installation queue. Pulls from TeamUp.
  */
@@ -22,7 +22,6 @@ interface WeekBucket {
   week: string;
   installations: number;
   deliveries: number;
-  inspections: number;
   meetings: number;
   general: number;
   total: number;
@@ -31,7 +30,6 @@ interface RepBucket {
   rep: string;
   installations: number;
   deliveries: number;
-  inspections: number;
   meetings: number;
   total: number;
 }
@@ -52,7 +50,6 @@ interface Data {
   configuredSubcalendars: {
     installations: boolean;
     deliveries: boolean;
-    inspections: boolean;
     meetings: boolean;
     general: boolean;
   };
@@ -125,7 +122,6 @@ export default function CapacityPage() {
   if (data) {
     if (!data.configuredSubcalendars.installations) missingSubcals.push('TEAMUP_SUBCAL_INSTALLATIONS');
     if (!data.configuredSubcalendars.deliveries) missingSubcals.push('TEAMUP_SUBCAL_DELIVERIES');
-    if (!data.configuredSubcalendars.inspections) missingSubcals.push('TEAMUP_SUBCAL_INSPECTIONS');
     if (!data.configuredSubcalendars.meetings) missingSubcals.push('TEAMUP_SUBCAL_MEETINGS');
     if (!data.configuredSubcalendars.general) missingSubcals.push('TEAMUP_SUBCAL_GENERAL');
   }
@@ -251,8 +247,8 @@ export default function CapacityPage() {
                 value={data.byRep.reduce((s, r) => s + r.deliveries, 0).toString()}
               />
               <Kpi
-                label="Inspections (last 30d byRep)"
-                value={data.byRep.reduce((s, r) => s + r.inspections, 0).toString()}
+                label="Meetings (last 30d byRep)"
+                value={data.byRep.reduce((s, r) => s + r.meetings, 0).toString()}
               />
             </section>
 
@@ -274,9 +270,8 @@ export default function CapacityPage() {
                     <YAxis stroke="#71717a" fontSize={11} />
                     <Tooltip contentStyle={{ background: '#18181b', border: '1px solid #27272a', borderRadius: 8 }} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Line type="monotone" dataKey="installations" stroke="#39FF14" strokeWidth={2} name="Installations" dot={false} />
-                    <Line type="monotone" dataKey="deliveries" stroke="#8B5CF6" strokeWidth={2} name="Deliveries" dot={false} />
-                    <Line type="monotone" dataKey="inspections" stroke="#60a5fa" strokeWidth={2} name="Inspections" dot={false} />
+                    <Line type="monotone" dataKey="installations" stroke="#39FF14" strokeWidth={2} name="Installations / Jobs" dot={false} />
+                    <Line type="monotone" dataKey="deliveries" stroke="#8B5CF6" strokeWidth={2} name="Deliveries / Driver schedules" dot={false} />
                     <Line type="monotone" dataKey="meetings" stroke="#6366F1" strokeWidth={1.5} name="Meetings" dot={false} strokeDasharray="3 3" />
                     <Line type="monotone" dataKey="general" stroke="#6B7280" strokeWidth={1} name="Other" dot={false} strokeDasharray="2 4" />
                   </LineChart>
@@ -302,21 +297,19 @@ export default function CapacityPage() {
                       <th className="text-left py-2 px-3 font-medium">Crew / Rep</th>
                       <th className="text-right py-2 px-3 font-medium">Installs</th>
                       <th className="text-right py-2 px-3 font-medium">Deliveries</th>
-                      <th className="text-right py-2 px-3 font-medium">Inspections</th>
                       <th className="text-right py-2 px-3 font-medium">Meetings</th>
                       <th className="text-right py-2 px-3 font-medium">Total</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800">
                     {data.byRep.length === 0 && (
-                      <tr><td colSpan={6} className="py-6 text-center text-zinc-500">No events in the last 30 days.</td></tr>
+                      <tr><td colSpan={5} className="py-6 text-center text-zinc-500">No events in the last 30 days.</td></tr>
                     )}
                     {data.byRep.slice(0, 30).map(r => (
                       <tr key={r.rep} className="hover:bg-zinc-800/30">
                         <td className="py-2 px-3 font-medium">{r.rep}</td>
                         <td className="py-2 px-3 text-right tabular-nums text-[#39FF14]">{r.installations || '—'}</td>
                         <td className="py-2 px-3 text-right tabular-nums text-zinc-300">{r.deliveries || '—'}</td>
-                        <td className="py-2 px-3 text-right tabular-nums text-zinc-300">{r.inspections || '—'}</td>
                         <td className="py-2 px-3 text-right tabular-nums text-zinc-500">{r.meetings || '—'}</td>
                         <td className="py-2 px-3 text-right tabular-nums font-bold">{r.total}</td>
                       </tr>
@@ -389,7 +382,7 @@ export default function CapacityPage() {
                 TeamUp subcalendar config
               </h3>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
-                {(['installations', 'deliveries', 'inspections', 'meetings', 'general'] as const).map(k => (
+                {(['installations', 'deliveries', 'meetings', 'general'] as const).map(k => (
                   <div key={k} className={`rounded-lg p-2.5 border ${
                     data.configuredSubcalendars[k]
                       ? 'bg-[#39FF14]/5 border-[#39FF14]/30 text-[#39FF14]'
@@ -407,13 +400,12 @@ export default function CapacityPage() {
         )}
 
         <AboutThisData
-          source="TeamUp Calendar API (lib/teamup-service.ts → teamupService.getEvents). Events filtered by subcalendar IDs from env vars TEAMUP_SUBCAL_INSTALLATIONS / _DELIVERIES / _INSPECTIONS / _MEETINGS / _GENERAL."
+          source="TeamUp Calendar API (lib/teamup-service.ts → teamupService.getEvents). Events filtered by subcalendar IDs from env vars TEAMUP_SUBCAL_INSTALLATIONS / _DELIVERIES / _MEETINGS / _GENERAL. Inspections are NOT tracked in TeamUp (Monday meeting Estimates instead)."
           method="Window = pastDays before today + futureDays after. Events grouped into Mon-anchored ISO weeks via UTC. byRep rollup uses event.who (last 30 days only). Gap days = business days (Mon-Fri UTC) in the last 30 with zero installation events. avgInstallsPerBusinessDay = installs in last 30d / business days in last 30d. busiestRep is the rep with the highest total event count over the last 30 days. upcomingInstallations are sorted ascending by start_dt, capped at 20."
           uses="Spot crew over- or under-utilization before scheduling new jobs. The line chart shows whether installations are clustered ahead or trailing off. Use gap days last-30 to flag a slow stretch worth investigating (rain delay / material shortage / sales slump)."
-          gaps={`Subcalendar IDs missing from env => events fall back to title-keyword classification (best-effort, lower confidence). 'Other' bucket catches anything we can't classify. byRep relies on the 'who' field being populated — events with blank 'who' bucket under '(unassigned)'. Today: ${[
+          gaps={`Inspections are NOT in TeamUp — those are reported to the Monday meeting in the Estimates column, see /chrisview/insights. Future: Rick's insurance-agent visits during free time will land here when set up. Subcalendar IDs missing from env => events fall back to title-keyword classification (best-effort, lower confidence). 'Other' bucket catches anything we can't classify. byRep relies on the 'who' field being populated — events with blank 'who' bucket under '(unassigned)'. Today: ${[
             !data?.configuredSubcalendars.installations ? 'TEAMUP_SUBCAL_INSTALLATIONS' : null,
             !data?.configuredSubcalendars.deliveries ? 'TEAMUP_SUBCAL_DELIVERIES' : null,
-            !data?.configuredSubcalendars.inspections ? 'TEAMUP_SUBCAL_INSPECTIONS' : null,
             !data?.configuredSubcalendars.meetings ? 'TEAMUP_SUBCAL_MEETINGS' : null,
             !data?.configuredSubcalendars.general ? 'TEAMUP_SUBCAL_GENERAL' : null,
           ].filter(Boolean).join(', ') || 'all subcalendar env vars are set'}.`}

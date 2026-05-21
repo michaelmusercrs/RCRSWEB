@@ -1,22 +1,34 @@
 /**
  * Estimate Win/Loss Analysis — per-PROJECT, not per-estimate.
  *
- * Rule from Michael (2026-05-21):
- *   "Compare estimates created vs invoices for that project. Don't count
- *    multiple estimates toward count."
+ * Rule from Michael (2026-05-21 v2):
+ *   "Use the FACT of an estimate to provide evidence of job progression
+ *    and compare to SOLD jobs (deposit, in progress, paid in full,
+ *    closed, etc.). Multiple estimates don't change the count — we
+ *    sometimes present multiple options."
  *
  * Each PROJECT (job R-number) that has at least one estimate counts as 1
- * project. If that project also has at least one invoice → WON. If not
- * → PENDING (could be lost, could be still active, could be install-not-
- * yet-invoiced — pure data can't tell, see AboutThisData gaps).
+ * project regardless of estimate count. Outcome is read from the JN
+ * job's status_name:
  *
- *   win rate = won projects ÷ projects with estimates
+ *   WON     — status matches the sold-progression regex (Contingency
+ *             Signed, Signed Contract, Approved Jobs, Materials
+ *             Ordered/Scheduled, Pending Final Payment, Pending
+ *             Supplement, Roofer Pay Needed, Job Completion Form
+ *             Uploaded, Payouts, Paid & Closed)
+ *   LOST    — status == 'Lost'
+ *   PENDING — everything else (Lead, Aerial Measurements, Inspection,
+ *             Estimate, Pending Approval, etc.) — still in pipeline
+ *
+ *   conversion rate = won ÷ total            (incl. pending in denom)
+ *   close rate      = won ÷ (won + lost)    (resolved only — purer)
  *
  * Linking model (probe-verified 2026-05-21):
  *   - JN /estimates payload carries `related[]` with entries of type='job'
  *     and type='contact'. NOT `primary`.
- *   - JN /invoices same — `related[]` carries job + contact entries.
- *   - The job's R-number lives on the job record itself (`number` field).
+ *   - Job R-number lives on the job record itself (`number` field).
+ *   - Job status_name lives on the job record (`status_name`). Probe-
+ *     verified status vocabulary 2026-05-21 across 3000 jobs.
  *
  * Cost-safe: all JN reads run through redactCostFieldsDeep.
  */
@@ -35,6 +47,12 @@ interface JNEstimate {
   primary?: { id?: string; jnid?: string };
   related?: JNRelated[];
 }
+// Probe-verified JN job status vocabulary (2026-05-21, n=3000 jobs).
+// SOLD statuses are progression markers — the job has crossed the
+// signed/closed threshold even if still in production.
+const SOLD_RE = /^(paid\s*&\s*closed|contingency\s*signed|signed\s*contract|approved\s*jobs?|materials\s*(ordered|scheduled)|materials\s*ordered\/scheduled|payouts?|pending\s*final\s*payment|pending\s*supplement|pending\s*deprecation|roofer\s*pay\s*needed|job\s*completion\s*form|completion\s*form)/i;
+const LOST_RE = /^lost$/i;
+
 interface JNInvoice {
   jnid: string;
   number?: string;
@@ -84,13 +102,15 @@ export interface WinLossProject {
   firstEstimateAt: string;
   /** Total estimates created for this project in window (for visibility). */
   totalEstimates: number;
-  /** Did any invoice fire for this job? */
+  /** Project outcome from JN job status_name. */
+  outcome: 'won' | 'lost' | 'pending';
+  /** Convenience flag = outcome === 'won'. */
   won: boolean;
-  /** Earliest invoice date if won. */
+  /** Earliest invoice date if any invoice exists (separate from won/lost — for time-to-invoice). */
   firstInvoiceAt: string | null;
-  /** Days from first estimate → first invoice (only when won). */
+  /** Days from first estimate → first invoice (only when invoice exists). */
   daysToInvoice: number | null;
-  /** Days from first estimate → today (only when pending). */
+  /** Days from first estimate → today (only when pending/lost — open question). */
   daysPending: number | null;
   /** Rep on the first estimate (or job, as fallback). */
   rep: string;
@@ -98,7 +118,7 @@ export interface WinLossProject {
   source: string;
   /** Insurance flag — job has Claim Number populated. */
   isInsurance: boolean;
-  /** Job status_name for context (so reader can see "Lost" / "Won" / "In progress" etc.). */
+  /** Job status_name for context. */
   jobStatus: string;
 }
 
@@ -106,8 +126,12 @@ export interface WinLossRollup {
   key: string;
   totalProjects: number;
   wonProjects: number;
+  lostProjects: number;
   pendingProjects: number;
-  winRate: number;
+  /** won ÷ total (includes still-pending in denominator). */
+  conversionRate: number;
+  /** won ÷ (won + lost) — closure rate among resolved only. */
+  closeRate: number;
 }
 
 export interface WinLossAnalysis {
@@ -115,12 +139,16 @@ export interface WinLossAnalysis {
   windowDays: number;
   totalProjects: number;
   wonProjects: number;
+  lostProjects: number;
   pendingProjects: number;
-  overallWinRate: number;
+  /** won ÷ total (includes still-pending in denom). */
+  overallConversionRate: number;
+  /** won ÷ (won + lost) — purer "of resolved, what closed". */
+  overallCloseRate: number;
   byRep: WinLossRollup[];
   bySource: WinLossRollup[];
   byInsurance: WinLossRollup[];
-  /** Projects with estimate older than 60 days but no invoice — the "follow up" list. */
+  /** Projects sitting in PENDING status with first estimate > 60 days ago — the "follow up" list. */
   recentLosses: WinLossProject[];
   /** All projects (small payload, sorted newest first). */
   projects: WinLossProject[];
@@ -130,6 +158,8 @@ export interface WinLossAnalysis {
     invoicesFetched: number;
     jobsFetched: number;
     distinctJobIds: number;
+    soldRePattern: string;
+    lostRePattern: string;
   };
 }
 
@@ -264,17 +294,28 @@ export async function analyzeWinLoss(opts: { days?: number } = {}): Promise<WinL
       continue;
     }
 
+    // Outcome read from JN job status_name (not from invoice existence).
+    // Sold/closed-progression statuses → won. "Lost" → lost. Everything
+    // else (Lead, Aerial Measurements, Inspection, Estimate, etc.) → pending.
+    const jobStatusRaw = (job?.status_name || '').trim();
+    let outcome: 'won' | 'lost' | 'pending';
+    if (LOST_RE.test(jobStatusRaw)) outcome = 'lost';
+    else if (SOLD_RE.test(jobStatusRaw)) outcome = 'won';
+    else outcome = 'pending';
+    const won = outcome === 'won';
+
+    // Invoice timing — kept for the time-to-invoice metric, but no longer
+    // determines won/lost.
     const invs = invoicedJobIds.get(jobId) || [];
-    const won = invs.length > 0;
     const firstInv = invs.length > 0
       ? invs.reduce((a, b) => ((a.date_created || 0) < (b.date_created || 0) ? a : b))
       : null;
     const firstInvAt = firstInv?.date_created || 0;
 
-    const daysToInvoice = won && firstEstAt && firstInvAt
+    const daysToInvoice = firstEstAt && firstInvAt
       ? Math.round(((firstInvAt - firstEstAt) / 86400) * 10) / 10
       : null;
-    const daysPending = !won && firstEstAt
+    const daysPending = outcome !== 'won' && firstEstAt
       ? Math.round(((nowSec - firstEstAt) / 86400) * 10) / 10
       : null;
 
@@ -297,6 +338,7 @@ export async function analyzeWinLoss(opts: { days?: number } = {}): Promise<WinL
       jobJnid: jobId,
       firstEstimateAt: firstEstAt ? new Date(firstEstAt * 1000).toISOString() : '',
       totalEstimates: ests.length,
+      outcome,
       won,
       firstInvoiceAt: firstInvAt ? new Date(firstInvAt * 1000).toISOString() : null,
       daysToInvoice,
@@ -304,28 +346,35 @@ export async function analyzeWinLoss(opts: { days?: number } = {}): Promise<WinL
       rep,
       source,
       isInsurance,
-      jobStatus: (job?.status_name || '').trim(),
+      jobStatus: jobStatusRaw,
     });
   }
 
   // 7. Aggregate.
   function rollup(keyFn: (p: WinLossProject) => string): WinLossRollup[] {
-    const m = new Map<string, { total: number; won: number }>();
+    const m = new Map<string, { total: number; won: number; lost: number }>();
     for (const p of projects) {
       const k = keyFn(p) || 'Unknown';
-      const cur = m.get(k) || { total: 0, won: 0 };
+      const cur = m.get(k) || { total: 0, won: 0, lost: 0 };
       cur.total += 1;
-      if (p.won) cur.won += 1;
+      if (p.outcome === 'won') cur.won += 1;
+      else if (p.outcome === 'lost') cur.lost += 1;
       m.set(k, cur);
     }
     return Array.from(m.entries())
-      .map(([key, v]) => ({
-        key,
-        totalProjects: v.total,
-        wonProjects: v.won,
-        pendingProjects: v.total - v.won,
-        winRate: v.total > 0 ? Math.round((v.won / v.total) * 1000) / 10 : 0,
-      }))
+      .map(([key, v]) => {
+        const pending = v.total - v.won - v.lost;
+        const resolved = v.won + v.lost;
+        return {
+          key,
+          totalProjects: v.total,
+          wonProjects: v.won,
+          lostProjects: v.lost,
+          pendingProjects: pending,
+          conversionRate: v.total > 0 ? Math.round((v.won / v.total) * 1000) / 10 : 0,
+          closeRate: resolved > 0 ? Math.round((v.won / resolved) * 1000) / 10 : 0,
+        };
+      })
       .sort((a, b) => b.totalProjects - a.totalProjects);
   }
 
@@ -333,10 +382,10 @@ export async function analyzeWinLoss(opts: { days?: number } = {}): Promise<WinL
   const bySource = rollup(p => p.source || '(no source)');
   const byInsurance = rollup(p => p.isInsurance ? 'Insurance' : 'Retail');
 
-  // "Stalled pipeline" — has estimate, no invoice, first estimate > 60 days ago.
-  const sixtyDaysSec = 60 * 86400;
+  // "Stalled pipeline" — pending status, first estimate > 60 days ago.
+  // (Lost projects already resolved, don't need a follow-up nudge.)
   const recentLosses = projects
-    .filter(p => !p.won && (p.daysPending || 0) >= 60)
+    .filter(p => p.outcome === 'pending' && (p.daysPending || 0) >= 60)
     .sort((a, b) => (b.daysPending || 0) - (a.daysPending || 0))
     .slice(0, 30);
 
@@ -345,11 +394,16 @@ export async function analyzeWinLoss(opts: { days?: number } = {}): Promise<WinL
     (b.firstEstimateAt || '').localeCompare(a.firstEstimateAt || ''),
   ).slice(0, 500);
 
-  const wonProjects = projects.filter(p => p.won).length;
+  const wonProjects = projects.filter(p => p.outcome === 'won').length;
+  const lostProjects = projects.filter(p => p.outcome === 'lost').length;
   const totalProjects = projects.length;
-  const pendingProjects = totalProjects - wonProjects;
-  const overallWinRate = totalProjects > 0
+  const pendingProjects = totalProjects - wonProjects - lostProjects;
+  const resolvedProjects = wonProjects + lostProjects;
+  const overallConversionRate = totalProjects > 0
     ? Math.round((wonProjects / totalProjects) * 1000) / 10
+    : 0;
+  const overallCloseRate = resolvedProjects > 0
+    ? Math.round((wonProjects / resolvedProjects) * 1000) / 10
     : 0;
 
   const result: WinLossAnalysis = {
@@ -357,8 +411,10 @@ export async function analyzeWinLoss(opts: { days?: number } = {}): Promise<WinL
     windowDays: daysWindow,
     totalProjects,
     wonProjects,
+    lostProjects,
     pendingProjects,
-    overallWinRate,
+    overallConversionRate,
+    overallCloseRate,
     byRep,
     bySource,
     byInsurance,
@@ -370,6 +426,8 @@ export async function analyzeWinLoss(opts: { days?: number } = {}): Promise<WinL
       invoicesFetched,
       jobsFetched,
       distinctJobIds: jobIds.length,
+      soldRePattern: SOLD_RE.source,
+      lostRePattern: LOST_RE.source,
     },
   };
 

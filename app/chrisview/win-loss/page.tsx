@@ -23,14 +23,17 @@ interface Rollup {
   key: string;
   totalProjects: number;
   wonProjects: number;
+  lostProjects: number;
   pendingProjects: number;
-  winRate: number;
+  conversionRate: number;
+  closeRate: number;
 }
 interface Project {
   rNumber: string;
   jobJnid: string;
   firstEstimateAt: string;
   totalEstimates: number;
+  outcome: 'won' | 'lost' | 'pending';
   won: boolean;
   firstInvoiceAt: string | null;
   daysToInvoice: number | null;
@@ -45,8 +48,10 @@ interface Data {
   windowDays: number;
   totalProjects: number;
   wonProjects: number;
+  lostProjects: number;
   pendingProjects: number;
-  overallWinRate: number;
+  overallConversionRate: number;
+  overallCloseRate: number;
   byRep: Rollup[];
   bySource: Rollup[];
   byInsurance: Rollup[];
@@ -58,6 +63,8 @@ interface Data {
     invoicesFetched: number;
     jobsFetched: number;
     distinctJobIds: number;
+    soldRePattern: string;
+    lostRePattern: string;
   };
 }
 
@@ -137,17 +144,18 @@ export default function WinLossPage() {
         {data && (
           <>
             {/* KPI strip */}
-            <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <section className="grid grid-cols-2 md:grid-cols-5 gap-3">
               <Kpi label="Projects with estimates" value={data.totalProjects.toString()} sub={`last ${data.windowDays} days`} />
-              <Kpi label="Won (has invoice)" value={data.wonProjects.toString()} sub={`${data.pendingProjects} pending`} />
-              <Kpi label="Overall win rate" value={`${data.overallWinRate}%`} highlight />
-              <Kpi label="Query took" value={`${(data.meta.queryTimeMs / 1000).toFixed(1)}s`} sub={`${data.meta.estimatesFetched} ests · ${data.meta.invoicesFetched} invs`} />
+              <Kpi label="Won (sold)" value={data.wonProjects.toString()} sub="job in sold-progression status" />
+              <Kpi label="Lost" value={data.lostProjects.toString()} sub="job status = Lost" />
+              <Kpi label="Pending" value={data.pendingProjects.toString()} sub="still in pipeline" />
+              <Kpi label="Close rate (resolved)" value={`${data.overallCloseRate}%`} sub={`conversion ${data.overallConversionRate}% incl. pending`} highlight />
             </section>
 
-            {/* Win rate by rep — bar chart */}
+            {/* Close rate by rep — bar chart */}
             <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-              <h3 className="text-sm font-semibold flex items-center gap-2 mb-1"><Users className="w-4 h-4 text-[#39FF14]" />Win Rate by Rep</h3>
-              <p className="text-xs text-zinc-400 mb-3">Per-rep win rate. Bar height = win%, label = (won / total projects).</p>
+              <h3 className="text-sm font-semibold flex items-center gap-2 mb-1"><Users className="w-4 h-4 text-[#39FF14]" />Close Rate by Rep</h3>
+              <p className="text-xs text-zinc-400 mb-3">Per-rep close rate among RESOLVED projects (won + lost). Conversion rate (incl. still-pending in denominator) shown on hover.</p>
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={data.byRep} margin={{ top: 8, right: 16, bottom: 32, left: 8 }}>
@@ -158,12 +166,12 @@ export default function WinLossPage() {
                       contentStyle={{ background: '#18181b', border: '1px solid #27272a', borderRadius: 8 }}
                       formatter={(value, _name, item) => {
                         const p = (item?.payload || {}) as Rollup;
-                        return [`${value}% (${p.wonProjects}/${p.totalProjects})`, 'Win rate'];
+                        return [`${value}% close (${p.wonProjects} won / ${p.lostProjects} lost / ${p.pendingProjects} pending)`, 'Close rate'];
                       }}
                     />
-                    <Bar dataKey="winRate" name="Win rate">
+                    <Bar dataKey="closeRate" name="Close rate">
                       {data.byRep.map((r, i) => (
-                        <Cell key={i} fill={rateColor(r.winRate)} />
+                        <Cell key={i} fill={rateColor(r.closeRate)} />
                       ))}
                     </Bar>
                   </BarChart>
@@ -277,8 +285,10 @@ function RollupCard({ title, icon: Icon, description, rows }: {
               <th className="text-left py-2 px-3 font-medium">Bucket</th>
               <th className="text-right py-2 px-3 font-medium">Projects</th>
               <th className="text-right py-2 px-3 font-medium">Won</th>
+              <th className="text-right py-2 px-3 font-medium">Lost</th>
               <th className="text-right py-2 px-3 font-medium">Pending</th>
-              <th className="text-right py-2 px-3 font-medium">Win %</th>
+              <th className="text-right py-2 px-3 font-medium" title="Won ÷ (Won + Lost) — resolved only">Close %</th>
+              <th className="text-right py-2 px-3 font-medium" title="Won ÷ Total — includes pending in denominator">Conv %</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800">
@@ -287,8 +297,10 @@ function RollupCard({ title, icon: Icon, description, rows }: {
                 <td className="py-2 px-3 font-medium">{r.key || 'Unknown'}</td>
                 <td className="py-2 px-3 text-right tabular-nums text-zinc-400">{r.totalProjects}</td>
                 <td className="py-2 px-3 text-right tabular-nums text-[#39FF14]">{r.wonProjects}</td>
+                <td className="py-2 px-3 text-right tabular-nums text-red-400">{r.lostProjects}</td>
                 <td className="py-2 px-3 text-right tabular-nums text-amber-400">{r.pendingProjects}</td>
-                <td className="py-2 px-3 text-right tabular-nums font-bold" style={{ color: rateColor(r.winRate) }}>{r.winRate}%</td>
+                <td className="py-2 px-3 text-right tabular-nums font-bold" style={{ color: rateColor(r.closeRate) }}>{r.closeRate}%</td>
+                <td className="py-2 px-3 text-right tabular-nums text-zinc-400">{r.conversionRate}%</td>
               </tr>
             ))}
           </tbody>

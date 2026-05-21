@@ -29,7 +29,6 @@ export interface WeekBucket {
   week: string;
   installations: number;
   deliveries: number;
-  inspections: number;
   meetings: number;
   general: number;
   total: number;
@@ -39,7 +38,6 @@ export interface RepBucket {
   rep: string;
   installations: number;
   deliveries: number;
-  inspections: number;
   meetings: number;
   total: number;
 }
@@ -57,7 +55,6 @@ export interface UpcomingInstallation {
 export interface ConfiguredSubcalendars {
   installations: boolean;
   deliveries: boolean;
-  inspections: boolean;
   meetings: boolean;
   general: boolean;
 }
@@ -131,11 +128,16 @@ function countBusinessDays(start: Date, end: Date): number {
 // ---------------------------------------------------------------------------
 // Subcalendar classification
 // ---------------------------------------------------------------------------
-type Bucket = 'installations' | 'deliveries' | 'inspections' | 'meetings' | 'general' | 'other';
+// Per Michael 2026-05-21: TeamUp tracks deliveries, jobs/installations, and
+// driver schedules ONLY. Inspections are NOT in TeamUp — those are reported
+// to the Monday meeting in the Estimates column. So we drop inspections from
+// this view. (Future: Rick's insurance-agent visits during free time will
+// eventually land here; circle back when that's set up.)
+type Bucket = 'installations' | 'deliveries' | 'meetings' | 'general' | 'other';
 
 function bucketForEvent(
   event: TeamUpEvent,
-  ids: { installations: string; deliveries: string; inspections: string; meetings: string; general: string },
+  ids: { installations: string; deliveries: string; meetings: string; general: string },
 ): Bucket {
   // Prefer subcalendar match (handles single + multi-subcalendar events)
   const subIds: string[] = [];
@@ -146,7 +148,6 @@ function bucketForEvent(
   for (const id of subIds) {
     if (ids.installations && id === ids.installations) return 'installations';
     if (ids.deliveries && id === ids.deliveries) return 'deliveries';
-    if (ids.inspections && id === ids.inspections) return 'inspections';
     if (ids.meetings && id === ids.meetings) return 'meetings';
     if (ids.general && id === ids.general) return 'general';
   }
@@ -154,8 +155,7 @@ function bucketForEvent(
   // Fallback: classify by title keywords (best-effort when subcal IDs aren't set)
   const t = (event.title || '').toLowerCase();
   if (/install|installation/.test(t)) return 'installations';
-  if (/deliver|delivery|dropoff|drop-off|tear.?off pickup/.test(t)) return 'deliveries';
-  if (/inspect|inspection|measure|estimate/.test(t)) return 'inspections';
+  if (/deliver|delivery|dropoff|drop-off|tear.?off pickup|driver/.test(t)) return 'deliveries';
   if (/meeting|standup|huddle|review/.test(t)) return 'meetings';
   return 'other';
 }
@@ -175,7 +175,6 @@ function computeCapacity(events: TeamUpEvent[], options: {
   const ids = {
     installations: TEAMUP_SUBCALENDARS.installations || '',
     deliveries: TEAMUP_SUBCALENDARS.deliveries || '',
-    inspections: TEAMUP_SUBCALENDARS.inspections || '',
     meetings: TEAMUP_SUBCALENDARS.meetings || '',
     general: TEAMUP_SUBCALENDARS.general || '',
   };
@@ -183,7 +182,6 @@ function computeCapacity(events: TeamUpEvent[], options: {
   const configuredSubcalendars: ConfiguredSubcalendars = {
     installations: Boolean(ids.installations),
     deliveries: Boolean(ids.deliveries),
-    inspections: Boolean(ids.inspections),
     meetings: Boolean(ids.meetings),
     general: Boolean(ids.general),
   };
@@ -201,7 +199,6 @@ function computeCapacity(events: TeamUpEvent[], options: {
         week: ws,
         installations: 0,
         deliveries: 0,
-        inspections: 0,
         meetings: 0,
         general: 0,
         total: 0,
@@ -240,13 +237,12 @@ function computeCapacity(events: TeamUpEvent[], options: {
     const ws = weekStartIso(start);
     let weekRow = weekMap.get(ws);
     if (!weekRow) {
-      weekRow = { week: ws, installations: 0, deliveries: 0, inspections: 0, meetings: 0, general: 0, total: 0 };
+      weekRow = { week: ws, installations: 0, deliveries: 0, meetings: 0, general: 0, total: 0 };
       weekMap.set(ws, weekRow);
     }
     weekRow.total++;
     if (bucket === 'installations') weekRow.installations++;
     else if (bucket === 'deliveries') weekRow.deliveries++;
-    else if (bucket === 'inspections') weekRow.inspections++;
     else if (bucket === 'meetings') weekRow.meetings++;
     else if (bucket === 'general') weekRow.general++;
 
@@ -255,13 +251,12 @@ function computeCapacity(events: TeamUpEvent[], options: {
       const who = (event.who || '').trim() || '(unassigned)';
       let row = repMap.get(who);
       if (!row) {
-        row = { rep: who, installations: 0, deliveries: 0, inspections: 0, meetings: 0, total: 0 };
+        row = { rep: who, installations: 0, deliveries: 0, meetings: 0, total: 0 };
         repMap.set(who, row);
       }
       row.total++;
       if (bucket === 'installations') row.installations++;
       else if (bucket === 'deliveries') row.deliveries++;
-      else if (bucket === 'inspections') row.inspections++;
       else if (bucket === 'meetings') row.meetings++;
     }
 
