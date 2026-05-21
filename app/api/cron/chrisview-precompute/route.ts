@@ -24,6 +24,10 @@ import { analyzeLeadSources } from '@/lib/jn-lead-sources';
 import { analyzeReferralNetwork } from '@/lib/referral-network';
 import { analyzeEstimateAging } from '@/lib/jn-estimate-aging';
 import { analyzeSegmentedLTV } from '@/lib/segmented-ltv-analysis';
+import { analyzeStormResponse } from '@/lib/storm-response-analysis';
+import { analyzeCapacity } from '@/lib/capacity-analysis';
+import { analyzeCac } from '@/lib/cac-analysis';
+import { analyzeWinLoss } from '@/lib/win-loss-analysis';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -54,6 +58,10 @@ const PAGES: Page[] = [
   { slug: 'referral-network', compute: () => analyzeReferralNetwork({ days: 365 }) },
   { slug: 'aging',            compute: () => analyzeEstimateAging({ days: 180 }) },
   { slug: 'segmented-ltv',    compute: () => analyzeSegmentedLTV() },
+  { slug: 'storm-response',   compute: () => analyzeStormResponse({ days: 90 }) },
+  { slug: 'capacity',         compute: () => analyzeCapacity() },
+  { slug: 'cac',              compute: () => analyzeCac({ days: 365 }) },
+  { slug: 'win-loss',         compute: () => analyzeWinLoss({ days: 180 }) },
 ];
 
 export async function GET(request: NextRequest) {

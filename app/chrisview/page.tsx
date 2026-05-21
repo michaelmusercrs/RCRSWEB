@@ -172,6 +172,8 @@ const HUB_GROUPS: { label: string; items: HubLink[] }[] = [
       { href: '/chrisview/aging', title: 'Estimate Aging Queue', description: 'Open estimates rotting in the pipeline — by days idle', highlight: 'NEW' },
       { href: '/chrisview/leaderboards', title: 'Three Leaderboards', description: 'Commission / Sales accrual / Per-week — three views of the same revenue' },
       { href: '/chrisview/scorecard', title: 'Rep Scorecard', description: 'Composite per-rep card: commissions × reviews × quality' },
+      { href: '/chrisview/win-loss', title: 'Win/Loss Per Project', description: 'Per-project win rate (deduped by R-number — multiple estimates count as 1). Stalled-pipeline follow-up list', highlight: 'NEW' },
+      { href: '/chrisview/storm-response', title: 'Storm → Job Response', description: 'Hail Recon storms overlaid on JN lead/job creation. 14-day / 25-mile match window', highlight: 'NEW' },
     ],
   },
   {
@@ -182,6 +184,7 @@ const HUB_GROUPS: { label: string; items: HubLink[] }[] = [
       { href: '/chrisview/referral-network', title: 'Referral Network', description: 'Who refers leads to whom — source bucketing + top referrer people', highlight: 'NEW' },
       { href: '/chrisview/reviews', title: 'Reviews by Rep', description: '317 reviews 2018-2025 with low-review detail panel' },
       { href: '/chrisview/review-velocity', title: 'Review Ask Rate', description: '9.8% lifetime ask rate, 0% last 90 days. Hunter\'s last review: 2022', highlight: 'NEW' },
+      { href: '/chrisview/cac', title: 'Customer Acquisition Cost', description: 'Lifetime ad spend per channel ÷ customers acquired. LTV-to-CAC ratio. Red flags rows below 3:1', highlight: 'NEW' },
       {
         href: '/chrisview/segmented-ltv',
         title: 'Segmented LTV',
@@ -218,6 +221,7 @@ const HUB_GROUPS: { label: string; items: HubLink[] }[] = [
       { href: '/chrisview/meetings', title: 'Meeting History', description: 'All-time annual funnel, per-rep career, best rep-weeks, attendance trends' },
       { href: '/chrisview/rep-churn', title: 'Rep Churn Early Warning', description: 'Recent activity vs own baseline — composite risk score per rep', highlight: 'NEW' },
       { href: '/chrisview/subs', title: 'Subcontractor Performance', description: 'Lifetime sub spend, check counts, inactive flags ($6.6M / 13 subs)' },
+      { href: '/chrisview/capacity', title: 'Crew Capacity', description: 'Installs/deliveries/inspections scheduled per week via TeamUp; gap days, busiest crew, upcoming installs', highlight: 'NEW' },
       {
         href: '/chrisview/onboarding',
         title: 'Rookie Ramp Curve',

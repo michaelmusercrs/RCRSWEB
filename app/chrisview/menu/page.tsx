@@ -13,7 +13,7 @@ import {
   ArrowLeft, Database, BarChart3, Crown, Brain, Clock, TrendingUp,
   Shield, Wrench, Wallet, HardHat, Megaphone, Heart, ChevronRight, Activity, Star, Trophy, History, Zap,
   AlarmClock, DollarSign, Users, Rocket, MessageSquare, AlertTriangle, GitBranch, Split,
-  Briefcase, Calendar, Layers,
+  Briefcase, Calendar, Layers, CloudRain, Hammer, Target, PiggyBank,
 } from 'lucide-react';
 
 interface Section {
@@ -248,6 +248,38 @@ const SECTIONS: Section[] = [
     icon: Split,
     color: 'from-indigo-500 to-violet-400',
     highlight: '320 splits / $2.15M',
+  },
+  {
+    title: 'Storm → Job Response (NEW)',
+    description: 'Hail Recon storms overlaid on JN leads/jobs. 14-day / 25-mile match window. Surface under-served storm zones',
+    href: '/chrisview/storm-response',
+    icon: CloudRain,
+    color: 'from-blue-500 to-indigo-400',
+    highlight: 'NEW',
+  },
+  {
+    title: 'Crew Capacity (NEW)',
+    description: 'Installs / deliveries / inspections scheduled per week via TeamUp. Gap days, busiest crew, upcoming installs',
+    href: '/chrisview/capacity',
+    icon: Hammer,
+    color: 'from-amber-500 to-orange-400',
+    highlight: 'NEW',
+  },
+  {
+    title: 'Win/Loss Per Project (NEW)',
+    description: 'Per-project win rate. Deduped by R-number — multiple estimates on the same project count as 1. Stalled-pipeline follow-up list',
+    href: '/chrisview/win-loss',
+    icon: Target,
+    color: 'from-emerald-500 to-teal-400',
+    highlight: 'NEW',
+  },
+  {
+    title: 'Customer Acquisition Cost (NEW)',
+    description: 'Lifetime ad spend per channel ÷ customers acquired. LTV-to-CAC ratio. Flags rows where ratio < 3:1 (industry minimum)',
+    href: '/chrisview/cac',
+    icon: PiggyBank,
+    color: 'from-green-500 to-emerald-400',
+    highlight: 'NEW',
   },
 ];
 
