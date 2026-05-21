@@ -117,6 +117,73 @@ export default function FunnelPage() {
               <Kpi label="Paid in full" value={data.leads.filter(l => l.paid).length.toString()} />
             </section>
 
+            {/* NO-RESPONSE WATCHLIST — top of page, can't miss it */}
+            {(() => {
+              const noResp = data.leads
+                .filter(l => !l.firstRepActionAt)
+                .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+              if (noResp.length === 0) {
+                return (
+                  <section className="bg-[#39FF14]/5 border border-[#39FF14]/30 rounded-xl p-4">
+                    <h3 className="text-sm font-semibold text-[#39FF14] flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4" /> No-Response Watchlist
+                    </h3>
+                    <p className="text-xs text-zinc-300 mt-1">
+                      ✓ Every office lead in the last {data.windowDays} days has at least one manual touch from a sales rep. No idle leads.
+                    </p>
+                  </section>
+                );
+              }
+              const todayMs = Date.now();
+              return (
+                <section className="bg-red-500/5 border border-red-500/30 rounded-xl overflow-hidden">
+                  <div className="px-4 py-3 border-b border-red-500/30 flex items-center gap-3">
+                    <AlertTriangle className="w-4 h-4 text-red-400" />
+                    <h3 className="text-sm font-semibold text-red-300">
+                      No-Response Watchlist — {noResp.length} office lead{noResp.length === 1 ? '' : 's'} with ZERO rep activity
+                    </h3>
+                    <span className="ml-auto text-[10px] text-red-300/70">
+                      Triple-verified: pulls every activity on the contact + every related job, filters out auto-events.
+                    </span>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="text-xs text-red-200/70 uppercase tracking-wide bg-red-500/10 border-b border-red-500/20">
+                        <tr>
+                          <th className="text-left py-2 px-3 font-medium">Lead</th>
+                          <th className="text-left py-2 px-3 font-medium">Job#</th>
+                          <th className="text-left py-2 px-3 font-medium">Assigned Rep</th>
+                          <th className="text-left py-2 px-3 font-medium">Source</th>
+                          <th className="text-left py-2 px-3 font-medium">Created By</th>
+                          <th className="text-left py-2 px-3 font-medium">Created</th>
+                          <th className="text-right py-2 px-3 font-medium">Days Idle</th>
+                          <th className="text-left py-2 px-3 font-medium">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-red-500/10">
+                        {noResp.map(l => {
+                          const daysIdle = Math.floor((todayMs - new Date(l.createdAt).getTime()) / 86400000);
+                          const urgency = daysIdle >= 14 ? 'text-red-300 font-bold' : daysIdle >= 7 ? 'text-amber-300 font-semibold' : 'text-zinc-300';
+                          return (
+                            <tr key={l.contactJnid} className="hover:bg-red-500/10">
+                              <td className="py-2 px-3 font-medium">{l.contactName}</td>
+                              <td className="py-2 px-3 font-mono text-xs text-zinc-400">{l.jobNumber || '—'}</td>
+                              <td className="py-2 px-3 text-xs">{l.rep || '—'}</td>
+                              <td className="py-2 px-3 text-xs text-zinc-400">{l.source || <span className="text-zinc-600">(none)</span>}</td>
+                              <td className="py-2 px-3 text-xs text-zinc-400">{l.createdBy}</td>
+                              <td className="py-2 px-3 text-xs text-zinc-400">{l.createdAt.slice(0, 10)}</td>
+                              <td className={`py-2 px-3 text-right tabular-nums ${urgency}`}>{daysIdle}d</td>
+                              <td className="py-2 px-3 text-xs">{l.jobStatus || '—'}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              );
+            })()}
+
             {/* Estimate certainty close rates */}
             <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
               <h3 className="text-sm font-semibold mb-1">Close Rate by Estimate Delivery — Labeled by Certainty</h3>
