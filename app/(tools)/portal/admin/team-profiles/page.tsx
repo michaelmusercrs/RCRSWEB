@@ -13,6 +13,13 @@ interface Profile {
   certifications: string;
   yearsExperience: string;
   favoriteQuote: string;
+  status?: string;            // 'draft' | 'pending-approval' | 'published' | 'needs-changes'
+  pendingDraft?: string;
+  rejectionNotes?: string;
+  version?: string;
+  publishedAt?: string;
+  personalReviewIds?: string;
+  reviewDisplayMode?: string;
   updatedAt: string;
   updatedBy: string;
 }
@@ -57,7 +64,17 @@ export default function TeamProfilesAdmin() {
   useEffect(() => {
     const existing = profiles.get(selected);
     if (existing) {
-      setDraft({ ...existing });
+      // If there's a pendingDraft, render those values for editing
+      // (the rep continues from where the last submission was rejected).
+      let draftFields: Partial<Profile> = {};
+      if (existing.pendingDraft) {
+        try { draftFields = JSON.parse(existing.pendingDraft); } catch { /* ignore */ }
+      }
+      setDraft({
+        ...existing,
+        ...draftFields,
+        repSlug: selected,
+      });
     } else {
       setDraft({
         repSlug: selected,
@@ -67,13 +84,14 @@ export default function TeamProfilesAdmin() {
         certifications: '',
         yearsExperience: '',
         favoriteQuote: '',
+        status: 'draft',
         updatedAt: '',
         updatedBy: '',
       });
     }
   }, [selected, profiles]);
 
-  const save = async () => {
+  const persist = async (intent: 'save-draft' | 'submit-for-approval') => {
     if (!draft) return;
     setSaving(true);
     setMessage(null);
@@ -81,10 +99,16 @@ export default function TeamProfilesAdmin() {
       const res = await fetch('/api/admin/team-profiles', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profile: draft }),
+        body: JSON.stringify({ profile: draft, intent }),
       });
       if (res.ok) {
-        setMessage({ type: 'success', text: 'Profile saved.' });
+        const data = await res.json();
+        setMessage({
+          type: 'success',
+          text: intent === 'submit-for-approval'
+            ? 'Submitted for approval — Chris, Michael, or Sara will review.'
+            : 'Saved as draft. Click "Submit for approval" when you\'re ready.',
+        });
         await load();
       } else {
         const err = await res.json().catch(() => ({}));
@@ -92,9 +116,12 @@ export default function TeamProfilesAdmin() {
       }
     } finally {
       setSaving(false);
-      setTimeout(() => setMessage(null), 4000);
+      setTimeout(() => setMessage(null), 6000);
     }
   };
+
+  const save = () => persist('save-draft');
+  const submit = () => persist('submit-for-approval');
 
   const uploadPhoto = async (kind: 'headshot' | 'truck', file: File) => {
     setUploading(kind);
@@ -146,14 +173,26 @@ export default function TeamProfilesAdmin() {
               <p className="text-sm text-neutral-400">Bio + photos that appear on the customer welcome page</p>
             </div>
           </div>
-          <button
-            onClick={save}
-            disabled={saving || !draft}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-green text-black font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {saving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
-            Save Profile
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={save}
+              disabled={saving || !draft}
+              title="Save as draft (not visible to customers yet)"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-neutral-300 font-medium text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {saving ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
+              Save draft
+            </button>
+            <button
+              onClick={submit}
+              disabled={saving || !draft || draft.status === 'pending-approval'}
+              title="Submit this profile for Chris/Michael/Sara approval. Until approved, the published version stays live."
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-green text-black font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {saving ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle size={16} />}
+              {draft?.status === 'pending-approval' ? 'Awaiting approval' : 'Submit for approval'}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -195,6 +234,22 @@ export default function TeamProfilesAdmin() {
         {/* Profile editor */}
         {draft && (
           <section className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 space-y-5">
+            {/* Status banner */}
+            {draft.status === 'pending-approval' && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs">
+                <Loader2 className="animate-spin" size={14} /> Awaiting approval from Chris, Michael, or Sara. The published version stays live until approved.
+              </div>
+            )}
+            {draft.status === 'needs-changes' && draft.rejectionNotes && (
+              <div className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-300 text-xs">
+                <strong>Needs changes:</strong> {draft.rejectionNotes}
+              </div>
+            )}
+            {draft.status === 'published' && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs">
+                <CheckCircle size={14} /> Published. Any edits below will go to draft state and require approval to publish.
+              </div>
+            )}
             {/* Headshot */}
             <div>
               <label className="block text-sm font-medium text-neutral-300 mb-2 flex items-center gap-2">

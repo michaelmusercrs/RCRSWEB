@@ -325,6 +325,21 @@ export interface TeamProfileRecord {
   certifications: string;     // comma-separated, e.g. "IKO ROOFPRO Craftsman Premier, OC Preferred"
   yearsExperience: string;
   favoriteQuote: string;
+  // Approval workflow (added 2026-05-21 per Michael's stated requirements).
+  // Existing rows with empty status default to 'published' in the loader,
+  // so prior data isn't broken.
+  status: string;             // 'draft' | 'pending-approval' | 'published' | 'needs-changes'
+  pendingDraft: string;       // JSON of {bio, certs, headshotUrl, ...} — unapproved edits
+  submittedAt: string;        // ISO — when rep clicked Submit for Approval
+  submittedBy: string;        // slug of the rep who submitted
+  approvedBy: string;         // slug of the approver (Chris/Michael/Sara)
+  approvedAt: string;         // ISO
+  rejectionNotes: string;     // when approver clicks Needs Changes
+  version: string;            // incrementing integer (as string for sheet compat)
+  publishedAt: string;        // ISO when current published version went live
+  // Review display preferences
+  personalReviewIds: string;  // pipe-delimited list of review IDs the rep selected
+  reviewDisplayMode: string;  // 'personal-only' | 'personal-plus-company-fallback' | 'company-only'
   updatedAt: string;
   updatedBy: string;
 }
@@ -332,6 +347,9 @@ export interface TeamProfileRecord {
 export const TEAM_PROFILES_COLUMNS = [
   'repSlug', 'bio', 'headshotUrl', 'truckPicUrl',
   'certifications', 'yearsExperience', 'favoriteQuote',
+  'status', 'pendingDraft', 'submittedAt', 'submittedBy',
+  'approvedBy', 'approvedAt', 'rejectionNotes', 'version', 'publishedAt',
+  'personalReviewIds', 'reviewDisplayMode',
   'updatedAt', 'updatedBy',
 ];
 
@@ -1819,6 +1837,19 @@ class GoogleSheetsService {
         certifications: row.get('certifications') || '',
         yearsExperience: row.get('yearsExperience') || '',
         favoriteQuote: row.get('favoriteQuote') || '',
+        // Default existing rows (no status set) to 'published' — they were
+        // already considered live before approval workflow shipped.
+        status: row.get('status') || 'published',
+        pendingDraft: row.get('pendingDraft') || '',
+        submittedAt: row.get('submittedAt') || '',
+        submittedBy: row.get('submittedBy') || '',
+        approvedBy: row.get('approvedBy') || '',
+        approvedAt: row.get('approvedAt') || '',
+        rejectionNotes: row.get('rejectionNotes') || '',
+        version: row.get('version') || '1',
+        publishedAt: row.get('publishedAt') || row.get('updatedAt') || '',
+        personalReviewIds: row.get('personalReviewIds') || '',
+        reviewDisplayMode: row.get('reviewDisplayMode') || 'personal-plus-company-fallback',
         updatedAt: row.get('updatedAt') || '',
         updatedBy: row.get('updatedBy') || '',
       }));
@@ -1833,7 +1864,7 @@ class GoogleSheetsService {
     return all.find(p => p.repSlug === repSlug) || null;
   }
 
-  async upsertTeamProfile(profile: TeamProfileRecord): Promise<boolean> {
+  async upsertTeamProfile(profile: Partial<TeamProfileRecord> & { repSlug: string }): Promise<boolean> {
     const ready = await this.init();
     if (!ready || !this.doc || !profile.repSlug) return false;
     try {
@@ -1841,14 +1872,24 @@ class GoogleSheetsService {
       const rows = await sheet.getRows();
       const existing = rows.find(r => r.get('repSlug') === profile.repSlug);
       const ts = new Date().toISOString();
-      const payload = { ...profile, updatedAt: ts };
+      const payload: Record<string, string> = { updatedAt: ts };
+      for (const [k, v] of Object.entries(profile)) {
+        if (v !== undefined && v !== null) payload[k] = String(v);
+      }
       if (existing) {
         for (const [k, v] of Object.entries(payload)) {
-          if (v !== undefined) existing.set(k, v as string);
+          existing.set(k, v);
         }
         await existing.save();
       } else {
-        await sheet.addRow(payload as unknown as Record<string, string | number | boolean>);
+        // Initialize defaults for new rows
+        const full = {
+          status: 'draft',
+          version: '1',
+          reviewDisplayMode: 'personal-plus-company-fallback',
+          ...payload,
+        };
+        await sheet.addRow(full as unknown as Record<string, string | number | boolean>);
       }
       return true;
     } catch (err) {

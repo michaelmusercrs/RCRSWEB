@@ -26,6 +26,7 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
     const profile = body.profile as TeamProfileRecord;
+    const intent = (body.intent || 'save-draft') as 'save-draft' | 'submit-for-approval';
     if (!profile?.repSlug) {
       return NextResponse.json({ success: false, error: 'profile.repSlug required' }, { status: 400 });
     }
@@ -39,12 +40,37 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Forbidden — can only edit own profile' }, { status: 403 });
     }
 
-    profile.updatedBy = auth.user.name || ownSlug || 'admin';
-    const ok = await googleSheetsService.upsertTeamProfile(profile);
+    // Per stated rule (2026-05-21): ALL edits require approval. Save into
+    // pendingDraft, not into the published fields. When intent is
+    // 'submit-for-approval', flip status to pending-approval.
+    const draftFields = {
+      bio: profile.bio,
+      headshotUrl: profile.headshotUrl,
+      truckPicUrl: profile.truckPicUrl,
+      certifications: profile.certifications,
+      yearsExperience: profile.yearsExperience,
+      favoriteQuote: profile.favoriteQuote,
+      personalReviewIds: profile.personalReviewIds,
+      reviewDisplayMode: profile.reviewDisplayMode,
+    };
+
+    const update: Partial<TeamProfileRecord> & { repSlug: string } = {
+      repSlug: profile.repSlug,
+      pendingDraft: JSON.stringify(draftFields),
+      status: intent === 'submit-for-approval' ? 'pending-approval' : 'draft',
+      updatedBy: auth.user.name || ownSlug || 'admin',
+    };
+    if (intent === 'submit-for-approval') {
+      update.submittedAt = new Date().toISOString();
+      update.submittedBy = auth.user.name || ownSlug || 'admin';
+      update.rejectionNotes = ''; // clear any prior rejection notes on resubmit
+    }
+
+    const ok = await googleSheetsService.upsertTeamProfile(update);
     if (!ok) {
       return NextResponse.json({ success: false, error: 'Failed to save profile' }, { status: 500 });
     }
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, status: update.status });
   } catch (err) {
     return NextResponse.json({
       success: false,
