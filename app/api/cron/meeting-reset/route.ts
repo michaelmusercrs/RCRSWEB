@@ -12,6 +12,13 @@ import { meetingNumbersService } from '@/lib/meeting-numbers-service';
 // so the build doesn't time out trying to prerender it.
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+// `meetingNumbersService.syncFromSheet()` reads all 52 weekly tabs from the
+// meeting numbers spreadsheet plus the master sheet. Last successful run
+// 2026-04-13 took 116s. Default Vercel function timeout is 60s — that's
+// why the dashboard shows the cron stuck at the April 13 run: every Monday
+// since has silently timed out before reaching the heartbeat write. Bump
+// to 300s (Vercel Pro cron cap) to match backup-sheets + sync-inventory-tab.
+export const maxDuration = 300;
 
 // Verify the request is from Vercel Cron or has the correct secret
 function verifyCronAuth(request: NextRequest): boolean {

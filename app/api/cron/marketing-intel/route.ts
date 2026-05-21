@@ -34,6 +34,12 @@ import { withCronLock } from '@/lib/cron-lock';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+// Polls 6 external sources (Google reviews, BBB, competitor reviews, SERP,
+// DNS/SSL/SPF/DMARC, Vercel deploys). Default Vercel 60s timeout is
+// insufficient when even one source is slow — the cron-audit doc specifies
+// 60-min `staleMinutes` for the lock to tolerate slow external responses.
+// Match that with a 300s function timeout.
+export const maxDuration = 300;
 
 const CRON_SECRET = process.env.CRON_SECRET;
 
