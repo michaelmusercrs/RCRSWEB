@@ -50,16 +50,19 @@ export async function GET(req: NextRequest) {
     const inspectors = TEAM_MEMBERS
       .filter(m => m.isActive && inspectorRoles.includes(m.role))
       .map(m => ({ id: m.id, name: m.name, initials: m.name.split(' ').map(p => p[0]).join('').toUpperCase() }));
-    // Sales reps (used for auto-populate confirmation)
+    // Sales reps — return BOTH active and inactive so the UI can default
+    // to active-only with a "Show inactive" toggle (owner directive 2026-05-21).
     const salesReps = [...getTeamMembersByRole('sales'), ...getTeamMembersByRole('driver')]
-      .filter(m => m.isActive)
-      .map(m => ({ id: m.id, name: m.name }));
+      .map(m => ({ id: m.id, name: m.name, isActive: m.isActive }));
 
     return NextResponse.json({
       success: true,
       config: {
-        suppliers: config.suppliers.filter(s => s.active),
-        subcontractors: config.subcontractors.filter(s => s.active),
+        // Return all (active + inactive) with `active` flag so UI can do
+        // top-N active + "Show all" + "Show inactive" tiering. The seed
+        // order in breakdown-dropdowns.json represents owner priority.
+        suppliers: config.suppliers,
+        subcontractors: config.subcontractors,
         workersComp: config.workersComp,
         overheadTiers: config.overheadTiers,
         profitSplits: config.profitSplits,

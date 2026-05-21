@@ -114,14 +114,14 @@ interface CalculatedTotals {
 }
 
 interface DropdownConfig {
-  suppliers: Array<{ name: string; category: string }>;
-  subcontractors: Array<{ name: string; trade: string }>;
+  suppliers: Array<{ name: string; category: string; active?: boolean }>;
+  subcontractors: Array<{ name: string; trade: string; active?: boolean }>;
   workersComp: { enabled: boolean; ratePercent: number; displayAs: string };
   overheadTiers: Array<{ threshold: number; rate: number; label: string }>;
   profitSplits: { salesRep: number; pres: number; vp: number };
   newEntryThresholds: { supplier: number; subcontractor: number };
   inspectors: Array<{ id: string; name: string; initials: string }>;
-  salesReps: Array<{ id: string; name: string }>;
+  salesReps: Array<{ id: string; name: string; isActive?: boolean }>;
   canCreate: boolean;
   canViewAdminTier: boolean;
 }
@@ -596,8 +596,55 @@ export default function CustomerBreakdownsPage() {
   const canViewAdmin = config?.canViewAdminTier ?? false;
   const showAdminContent = canViewAdmin && showAdminTier;
 
-  const supplierOptions = useMemo(() => config?.suppliers || [], [config]);
-  const subOptions = useMemo(() => config?.subcontractors || [], [config]);
+  // Tiered dropdown lists (owner directive 2026-05-21):
+  //   1. activeTop  — top 5 active in seed order (priority)
+  //   2. allActive  — all active
+  //   3. all        — including inactive
+  // UI default shows activeTop, with toggles to expand.
+  const supplierAll = useMemo(() => config?.suppliers || [], [config]);
+  const supplierActive = useMemo(
+    () => supplierAll.filter(s => s.active !== false),
+    [supplierAll],
+  );
+  const supplierTop5 = useMemo(() => supplierActive.slice(0, 5), [supplierActive]);
+
+  const subAll = useMemo(() => config?.subcontractors || [], [config]);
+  const subActive = useMemo(
+    () => subAll.filter(s => s.active !== false),
+    [subAll],
+  );
+  const subTop5 = useMemo(() => subActive.slice(0, 5), [subActive]);
+
+  // Per-section "show more" state for vendor + sub pickers.
+  const [vendorExpand, setVendorExpand] = useState<'top' | 'allActive' | 'all'>('top');
+  const [subExpand, setSubExpand] = useState<'top' | 'allActive' | 'all'>('top');
+  const [showInactiveReps, setShowInactiveReps] = useState(false);
+
+  const vendorChips = vendorExpand === 'top'
+    ? supplierTop5
+    : vendorExpand === 'allActive'
+    ? supplierActive
+    : supplierAll;
+  const subChips = subExpand === 'top'
+    ? subTop5
+    : subExpand === 'allActive'
+    ? subActive
+    : subAll;
+
+  // Sales rep options — active by default, with "show inactive" toggle
+  const activeSalesReps = useMemo(
+    () => (config?.salesReps || []).filter(r => r.isActive !== false),
+    [config],
+  );
+  const visibleSalesReps = showInactiveReps ? (config?.salesReps || []) : activeSalesReps;
+
+  // Datalist options — keep typeahead working off the FULL list so power
+  // users can type any name regardless of which tier is currently visible.
+  const supplierOptions = useMemo(() => supplierActive, [supplierActive]);
+  const subOptions = useMemo(() => subActive, [subActive]);
+
+  // Sheet View — opens the master Google Sheet in a new tab.
+  const masterSheetUrl = 'https://docs.google.com/spreadsheets/d/1uMEdtHo3xMu2gs21p7dYAgYiPWuCZ3s4a8YU-gJZ31s/edit';
 
   // ── Render ──────────────────────────────────────────────────
   if (loading) {
@@ -636,24 +683,41 @@ export default function CustomerBreakdownsPage() {
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
       {/* ── Header ────────────────────────────────────────────── */}
-      <header className="border-b border-zinc-800 bg-zinc-950/90 backdrop-blur-sm sticky top-0 z-40">
+      <header className="border-b border-[#39FF14]/20 bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 backdrop-blur-sm sticky top-0 z-40 shadow-lg shadow-[#39FF14]/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-3">
-              <Link href="/portal" className="p-2 hover:bg-zinc-800 rounded-lg">
+              <Link href="/portal" className="p-2 hover:bg-zinc-800 rounded-lg transition-colors">
                 <ArrowLeft className="w-5 h-5 text-zinc-400" />
               </Link>
+              <div className="p-2 rounded-lg bg-[#39FF14]/10 border border-[#39FF14]/30">
+                <Hammer className="w-5 h-5 text-[#39FF14]" />
+              </div>
               <div>
-                <h1 className="text-xl font-bold flex items-center gap-2">
-                  <Hammer className="w-5 h-5 text-[#39FF14]" />
-                  Customer Breakdown
+                <h1 className="text-xl font-bold tracking-tight">
+                  Job Breakdown
+                  {breakdown.rNumber && (
+                    <span className="ml-2 px-2 py-0.5 rounded bg-zinc-800 border border-zinc-700 text-sm font-mono text-[#39FF14]">
+                      {breakdown.rNumber}
+                    </span>
+                  )}
                 </h1>
-                <p className="text-sm text-zinc-500">
-                  Job costing, commission payouts, and vendor tracking
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  Job costing · commission payouts · vendor tracking · 2-way Google Sheet sync
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <a
+                href={masterSheetUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Open the master breakdown spreadsheet in Google Sheets (legacy view)"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-emerald-900/20 text-emerald-300 border border-emerald-700/40 rounded-lg hover:bg-emerald-900/30 transition-colors"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                Sheet View
+              </a>
               {canViewAdmin && (
                 <button
                   onClick={() => setShowAdminTier(s => !s)}
@@ -963,23 +1027,42 @@ export default function CustomerBreakdownsPage() {
               />
             </Field>
             <Field label="Sales Rep / Inspector">
-              <select
-                value={breakdown.salesRep}
-                onChange={e =>
-                  setBreakdown(p => ({
-                    ...p,
-                    salesRep: e.target.value,
-                    // Keep inspector in sync — they're the same person at RCRS
-                    inspector: e.target.value,
-                  }))
-                }
-                className={inputCls}
-              >
-                <option value="">— Select —</option>
-                {config?.salesReps.map(r => (
-                  <option key={r.id} value={r.name}>{r.name}</option>
-                ))}
-              </select>
+              <div className="flex items-stretch gap-1">
+                <select
+                  value={breakdown.salesRep}
+                  onChange={e =>
+                    setBreakdown(p => ({
+                      ...p,
+                      salesRep: e.target.value,
+                      // Keep inspector in sync — they're the same person at RCRS
+                      inspector: e.target.value,
+                    }))
+                  }
+                  className={inputCls + ' flex-1'}
+                >
+                  <option value="">— Select —</option>
+                  {visibleSalesReps.map(r => {
+                    const inactive = r.isActive === false;
+                    return (
+                      <option key={r.id} value={r.name}>
+                        {r.name}{inactive ? ' (inactive)' : ''}
+                      </option>
+                    );
+                  })}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setShowInactiveReps(s => !s)}
+                  title={showInactiveReps ? 'Hide inactive reps' : 'Include inactive reps in the dropdown'}
+                  className={`px-2 rounded border text-[10px] uppercase tracking-wide font-medium ${
+                    showInactiveReps
+                      ? 'bg-amber-900/20 text-amber-300 border-amber-700/40 hover:bg-amber-900/30'
+                      : 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:bg-zinc-700'
+                  }`}
+                >
+                  {showInactiveReps ? 'All' : 'Active'}
+                </button>
+              </div>
             </Field>
             <Field label="Address" className="md:col-span-2">
               <input
@@ -1394,7 +1477,7 @@ export default function CustomerBreakdownsPage() {
                 className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-zinc-800 text-zinc-300 border border-zinc-700 rounded-lg hover:bg-zinc-700"
               >
                 <Plus className="w-3 h-3" />
-                Add Supplier
+                Add Blank
               </button>
               <button
                 onClick={addMaterialCredit}
@@ -1405,9 +1488,64 @@ export default function CustomerBreakdownsPage() {
               </button>
             </div>
           </div>
+          {/* Quick-add vendor chips (top 5 active / all active / all) */}
+          {vendorChips.length > 0 && (
+            <div className="mb-4 p-3 rounded-lg bg-zinc-950/50 border border-zinc-800">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] uppercase tracking-wider text-zinc-500 font-medium">
+                  Quick add vendor
+                </span>
+                <div className="flex items-center gap-1 text-[10px]">
+                  <button
+                    onClick={() => setVendorExpand('top')}
+                    className={`px-2 py-0.5 rounded ${vendorExpand === 'top' ? 'bg-[#39FF14]/20 text-[#39FF14]' : 'text-zinc-500 hover:text-zinc-300'}`}
+                  >
+                    Top 5
+                  </button>
+                  <button
+                    onClick={() => setVendorExpand('allActive')}
+                    className={`px-2 py-0.5 rounded ${vendorExpand === 'allActive' ? 'bg-[#39FF14]/20 text-[#39FF14]' : 'text-zinc-500 hover:text-zinc-300'}`}
+                  >
+                    All Active ({supplierActive.length})
+                  </button>
+                  <button
+                    onClick={() => setVendorExpand('all')}
+                    className={`px-2 py-0.5 rounded ${vendorExpand === 'all' ? 'bg-[#39FF14]/20 text-[#39FF14]' : 'text-zinc-500 hover:text-zinc-300'}`}
+                  >
+                    + Inactive ({supplierAll.length})
+                  </button>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {vendorChips.map(v => {
+                  const inactive = v.active === false;
+                  return (
+                    <button
+                      key={v.name}
+                      onClick={() => {
+                        // Add a new material row pre-filled with this vendor
+                        setBreakdown(p => ({
+                          ...p,
+                          materials: [...p.materials, { supplier: v.name, amount: 0 }],
+                        }));
+                      }}
+                      title={`Add ${v.name} (${v.category})${inactive ? ' — inactive' : ''}`}
+                      className={`px-2.5 py-1 rounded text-xs font-medium border transition-colors ${
+                        inactive
+                          ? 'bg-zinc-900 text-zinc-500 border-zinc-800 hover:bg-zinc-800 italic'
+                          : 'bg-zinc-800 text-zinc-200 border-zinc-700 hover:bg-[#39FF14]/15 hover:border-[#39FF14]/40 hover:text-[#39FF14]'
+                      }`}
+                    >
+                      + {v.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           {breakdown.materials.length === 0 ? (
             <div className="text-center py-6 text-zinc-500 text-sm">
-              No materials yet. Click &quot;Add Supplier&quot; to add a line item.
+              No materials yet. Click a vendor chip above to quick-add, or use &quot;Add Blank&quot; for a free-text row.
             </div>
           ) : (
             <div className="space-y-2">
@@ -1510,7 +1648,7 @@ export default function CustomerBreakdownsPage() {
                 className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-zinc-800 text-zinc-300 border border-zinc-700 rounded-lg hover:bg-zinc-700"
               >
                 <Plus className="w-3 h-3" />
-                Add Subcontractor
+                Add Blank
               </button>
               <button
                 onClick={addWorkersCompLine}
@@ -1521,9 +1659,63 @@ export default function CustomerBreakdownsPage() {
               </button>
             </div>
           </div>
+          {/* Quick-add subcontractor chips (top 5 active / all active / all) */}
+          {subChips.length > 0 && (
+            <div className="mb-4 p-3 rounded-lg bg-zinc-950/50 border border-zinc-800">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] uppercase tracking-wider text-zinc-500 font-medium">
+                  Quick add subcontractor
+                </span>
+                <div className="flex items-center gap-1 text-[10px]">
+                  <button
+                    onClick={() => setSubExpand('top')}
+                    className={`px-2 py-0.5 rounded ${subExpand === 'top' ? 'bg-[#39FF14]/20 text-[#39FF14]' : 'text-zinc-500 hover:text-zinc-300'}`}
+                  >
+                    Top {Math.min(5, subActive.length)}
+                  </button>
+                  <button
+                    onClick={() => setSubExpand('allActive')}
+                    className={`px-2 py-0.5 rounded ${subExpand === 'allActive' ? 'bg-[#39FF14]/20 text-[#39FF14]' : 'text-zinc-500 hover:text-zinc-300'}`}
+                  >
+                    All Active ({subActive.length})
+                  </button>
+                  <button
+                    onClick={() => setSubExpand('all')}
+                    className={`px-2 py-0.5 rounded ${subExpand === 'all' ? 'bg-[#39FF14]/20 text-[#39FF14]' : 'text-zinc-500 hover:text-zinc-300'}`}
+                  >
+                    + Inactive ({subAll.length})
+                  </button>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {subChips.map(s => {
+                  const inactive = s.active === false;
+                  return (
+                    <button
+                      key={s.name}
+                      onClick={() => {
+                        setBreakdown(p => ({
+                          ...p,
+                          labor: [...p.labor, { subcontractor: s.name, amount: 0 }],
+                        }));
+                      }}
+                      title={`Add ${s.name} (${s.trade})${inactive ? ' — inactive' : ''}`}
+                      className={`px-2.5 py-1 rounded text-xs font-medium border transition-colors ${
+                        inactive
+                          ? 'bg-zinc-900 text-zinc-500 border-zinc-800 hover:bg-zinc-800 italic'
+                          : 'bg-zinc-800 text-zinc-200 border-zinc-700 hover:bg-[#39FF14]/15 hover:border-[#39FF14]/40 hover:text-[#39FF14]'
+                      }`}
+                    >
+                      + {s.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           {breakdown.labor.length === 0 ? (
             <div className="text-center py-6 text-zinc-500 text-sm">
-              No labor yet. {config?.workersComp.enabled && (
+              No labor yet. Click a sub chip above to quick-add, or use &quot;Add Blank&quot;. {config?.workersComp.enabled && (
                 <>
                   Workers Comp at <strong>{config.workersComp.ratePercent}%</strong> will be
                   auto-added unless you add an explicit line.
