@@ -6,8 +6,34 @@ The scheduled routine appends an entry per action.
 
 ---
 
+## 2026-05-21
+
+- `04:27` · claude · app/chrisview/summary/page.tsx + route · Add `/chrisview/summary` — one-screen executive snapshot · commit 83f92d3 (main)
+- `04:25` · claude · app/chrisview/leaderboards/page.tsx + route · Add `/chrisview/leaderboards` — 3 leaderboards side-by-side enforcing the never-combine rule · commit 60c42eb (main)
+- `04:19` · claude · lib/meeting-numbers-service.ts · Merge 2026 meeting numbers into all-time history so historical aggregates include this year · commit 2f55768 (main)
+- `04:16` · claude · vercel.json + lib/cron-lock.ts (new) · Cron audit + reusable cron-lock helper · prevents overlapping invocations under Vercel concurrency · commit eef7881 (main)
+- `04:15` · claude · 10-file batch · Idempotency keys + GroupMe `user_id` backfill on TEAM_MEMBERS + dashboard banner + OWNER-SETUP wiring · commit a326e78 (main)
+- `04:14` · claude · app/chrisview/compare/page.tsx + route · Add `/chrisview/compare` — YoY revenue + YTD pace dashboard · commit a432ddc (main)
+- `04:12` · claude · app/chrisview/meetings/page.tsx + route · Add `/chrisview/meetings` — 7 yrs of Monday meeting numbers · commit 6099c5f (main)
+- `01:00` · claude · AGENDA.md + LOG.md · Mark 1.5 (KV-backed per-recipient cap) + 6.1 (LOG bootstrap) done; 2.6b duplicate `[pending]` resolved; 6.2 tightened with non-optional LOG-append line; backfill the chrisview-spree commits the parallel worker skipped · commit pending (main)
+
 ## 2026-05-20
 
+- `21:57` · claude · multi-file audit response · Audit follow-ups M1+M3+M4+M5+M6 + rep notification preferences · commit 22df9d7 (main)
+- `21:45` · claude · AGENDA.md + LOG.md · Phase 10 (GroupMe lockdown + audit + portal messaging) logged · commit d41cde7 (main)
+- `21:43` · claude · lib/groupme-service.ts + lib/river-bot-service.ts + storm-report + docs/2026-05-20-verification-pass.md · GroupMe full-guard pass (4 send paths + raw fetch) + storm-report size-cap + comprehensive audit doc · commit 85701d2 (main)
+- `21:33` · claude · app/chrisview/history/page.tsx + app/chrisview/stats/page.tsx + routes · Add `/chrisview/history` + `/chrisview/stats` — all-time revenue + rep tenure dashboard + records and top-10 lists · commits 959cb20 + 860cf96 (main)
+- `21:28` · claude · lib/groupme-service.ts + river-bot-service.ts · GroupMe master kill-switch + quiet-hours (8pm-7am CT) guard · commit 18b2a55 (main)
+- `21:13` · claude · AGENDA.md + LOG.md · Phase 9.2 bulk backfill done + sweep/insurance-claims branch logged · commit 4a59ed8 (main)
+- `21:00` · claude · scripts/fix-missing-job-breakdowns.mjs · Fix missing job-breakdowns from bulk backfill — 264 breakdowns retroactively created · commit 4926606 (main)
+- `20:59` · claude · lib/groupme + blog/approve route · Notify admins via GroupMe when rep submits blog post for review · commit 22deab6 (main)
+- `20:56` · claude · app/chrisview/scorecard/page.tsx + scripts/reviews-by-method.mjs · Add `/chrisview/scorecard` + reviews-by-method cross-reference script · commit eb8e123 (main)
+- `20:52` · claude · app/chrisview/menu + app/chrisview/reviews · Add `/chrisview/reviews` — reviews quality + per-rep breakdown; link from menu · commits fa7a430 + f8fe6e7 (main)
+- `20:49` · claude · app/chrisview/funnel · No-Response Watchlist section at top · commit 8cb88a9 (main)
+- `20:48` · claude · scripts/bulk-backfill-invoices-and-breakdowns.mjs + app/chrisview/response-times · Bulk backfill (234 invoices) + sync /chrisview/response-times with deep-funnel rules · commits 7bc9fc2 + b5f2b91 (main)
+- `20:43` · claude · vercel.json + app/chrisview/menu · Unblock deploys: move `_disabledCrons` out of vercel.json + add funnel to menu · commit 02298c5 (main)
+- `20:35` · claude · app/chrisview/funnel/page.tsx + lib/jn-deep-funnel.ts (new) · Add `/chrisview/funnel` — deep lead-to-paid analysis + estimate certainty labels · commit 110b4a3 (main)
+- `20:22` · claude · AGENDA.md + LOG.md · Phase 9.6-9.8 logged · commit e23457c (main)
 - `06:00` · claude · sweep/portal-messaging + lib/portal-messaging-service.ts + 11 files · Phase 10.3 portal messaging on GroupMe — group/DM/per-rep-notify; NotifyRepButton in leaderboard; mobile-first; polls GET only; NO automatic sends · commit (sweep)
 - `05:45` · claude · lib/groupme-service.ts + lib/river-bot-service.ts + storm-report + docs/2026-05-20-verification-pass.md · Phase 10.1 GroupMe master kill+quiet hours full-guard pass (4 send paths + raw fetch) + storm-report size cap + comprehensive audit doc shipped · commit 85701d2 (main)
 - `05:00` · claude · sweep/insurance-claims · lib/insurance-claims-service.ts + customer dashboard tab + admin viewer + 2 API routes · self-service insurance claim timeline (10-state linear progression) + admin advance-status flow · solves the highest-impact missing customer-portal surface per audit + research-doc · commit (sweep)
