@@ -26,6 +26,7 @@ export type EmailLogStatus =
   | 'sent'
   | 'dropped_template_not_allowed'
   | 'dropped_kill_switch'
+  | 'dropped_customer_email_disabled'
   | 'dropped_transport_not_configured'
   | 'dropped_rate_limit'
   | 'send_failed';

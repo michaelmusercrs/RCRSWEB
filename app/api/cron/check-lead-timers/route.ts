@@ -13,6 +13,7 @@ import { leadDistributionService } from '@/lib/lead-distribution-service';
 import { riverBot } from '@/lib/river-bot-service';
 import { TEAM_MEMBERS } from '@/lib/team-roles';
 import { withCronLock } from '@/lib/cron-lock';
+import { googleSheetsService } from '@/lib/google-sheets-service';
 
 // Reads request-time auth header; must not be prerendered.
 export const dynamic = 'force-dynamic';
@@ -99,7 +100,17 @@ export async function GET(request: NextRequest) {
       actions.push(`urgent_warning:${timer.leadId}`);
     }
 
-    // Process reassignments
+    // Process SLA breaches — SUGGEST ONLY, never auto-execute. Per stated
+    // policy (Michael 2026-05-21): "if it's not reached out to, then it
+    // needs reassigning, manually for now, the system can suggest a new
+    // rep but it needs to be manually executed."
+    //
+    // For each SLA-breached timer we:
+    //   1. Notify the original rep + the group (so everyone sees it)
+    //   2. Compute a suggested next-best rep
+    //   3. Write a row to Lead_Reassignment_Queue for a dispatcher to confirm
+    //   4. DO NOT call recordReassignment — the lead stays with the original
+    //      rep until a human clicks Confirm in the admin UI
     for (const timer of reassignments) {
       const elapsed = Math.round((Date.now() - timer.assignedAt.getTime()) / (1000 * 60));
 
@@ -112,44 +123,62 @@ export async function GET(request: NextRequest) {
         action: 'reassign',
       });
 
-      // Try to auto-reassign
+      let suggestedRepSlug = '';
+      let suggestedRepName = '';
+      let suggestedReason = '';
+      let customerAddress = '';
       try {
         const leads = await leadPortalService.getLeads({ limit: 500 });
         const leadRecord = leads.find(l => l.leadId === timer.leadId);
-
         if (leadRecord?.customerAddress) {
+          customerAddress = leadRecord.customerAddress;
           const scores = await leadDistributionService.getDistributionPreview(leadRecord.customerAddress);
           const nextBest = scores.find(s => s.isEligible && s.repSlug !== timer.repSlug);
-
           if (nextBest) {
-            await leadResponseTimerService.recordReassignment(
-              timer.leadId,
-              nextBest.repSlug,
-              `Auto-reassigned after ${elapsed}min without response from ${timer.repSlug}`
-            );
-
-            await riverBot.announceToGroup(
-              `[LEAD REASSIGNED] ${timer.customerName} auto-reassigned from ${timer.repSlug} to ${nextBest.repName} after ${elapsed} min.`
-            );
-
-            await riverBot.sendPrivateDM(
-              getRepEmail(nextBest.repSlug),
-              `Lead reassigned to you!\nCustomer: ${timer.customerName}\nAddress: ${leadRecord.customerAddress}\nReason: ${timer.repSlug} did not respond within ${elapsed} minutes.\n\nPlease respond immediately.`
-            );
-          } else {
-            await riverBot.announceToGroup(
-              `[LEAD REASSIGNED] ${timer.customerName} - ${timer.repSlug} missed after ${elapsed} min. No eligible rep for auto-reassign - needs manual assignment.`
-            );
+            suggestedRepSlug = nextBest.repSlug;
+            suggestedRepName = nextBest.repName;
+            // Pick the best contributing factor to explain WHY this rep
+            const topFactor = Object.entries(nextBest.factors)
+              .filter(([, f]) => f.score > 0)
+              .sort((a, b) => b[1].score - a[1].score)[0];
+            suggestedReason = topFactor
+              ? `score ${nextBest.totalScore.toFixed(1)} · ${topFactor[0]} ${topFactor[1].score.toFixed(1)} (${topFactor[1].explanation})`
+              : `score ${nextBest.totalScore.toFixed(1)}`;
           }
         }
       } catch (err) {
-        console.error(`[CronTimer] Auto-reassign failed for ${timer.leadId}:`, err);
-        await riverBot.announceToGroup(
-          `[LEAD REASSIGNED] ${timer.customerName} - ${timer.repSlug} missed after ${elapsed} min. Needs manual reassignment.`
-        );
+        console.warn(`[CronTimer] Suggestion compute failed for ${timer.leadId}:`, err);
       }
 
-      actions.push(`reassign:${timer.leadId}`);
+      // Write to the manual-resolve queue. Idempotent — re-firing for the
+      // same lead just updates the elapsed time + latest suggestion.
+      const queueId = `RQ-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${timer.leadId.slice(0, 8)}`;
+      await googleSheetsService.addReassignmentQueueEntry({
+        queueId,
+        leadId: timer.leadId,
+        customerName: timer.customerName,
+        customerAddress,
+        originalRep: timer.repSlug,
+        minutesElapsed: String(elapsed),
+        suggestedRep: suggestedRepSlug,
+        suggestedRepName,
+        suggestedRepReason: suggestedReason,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+        resolvedAt: '',
+        resolvedBy: '',
+        resolutionNotes: '',
+      }).catch(err => {
+        console.error(`[CronTimer] Failed to write reassignment queue entry for ${timer.leadId}:`, err);
+      });
+
+      await riverBot.announceToGroup(
+        suggestedRepSlug
+          ? `[NEEDS REASSIGNMENT] ${timer.customerName} - ${timer.repSlug} missed after ${elapsed} min. Suggested: ${suggestedRepName}. Manager confirmation required in admin panel.`
+          : `[NEEDS REASSIGNMENT] ${timer.customerName} - ${timer.repSlug} missed after ${elapsed} min. No suggestion available — manager pick required.`
+      );
+
+      actions.push(`needs_reassign:${timer.leadId}`);
     }
 
     const { recordCronHeartbeat } = await import('@/lib/cron-heartbeat');

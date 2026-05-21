@@ -22,6 +22,12 @@
 //   EMAIL_CAP_OWNER_PER_HOUR / DAY  - tighter caps on owner gmail
 //   SANDBOX_MODE=true               - log instead of sending
 //   EMAIL_KILL_SWITCH=true          - legacy env kill (still honored)
+//   CUSTOMER_EMAIL_ENABLED=true     - explicit opt-in for customer-facing
+//                                     templates. DEFAULT is BLOCKED. Per
+//                                     stated rule (2026-05-21): no customer
+//                                     emails fire until Michael approves
+//                                     after thorough testing. Internal team
+//                                     emails are not affected.
 
 import { Resend } from 'resend';
 import {
@@ -93,6 +99,38 @@ export interface EmailOptions {
   fromName?: string;
   /** File attachments (PDF invoices, etc.). Forwarded to Resend. */
   attachments?: Attachment[];
+}
+
+/**
+ * Templates that REACH A CUSTOMER. These require the
+ * CUSTOMER_EMAIL_ENABLED=true env var to fire. Otherwise dropped at the
+ * gate, regardless of the per-template allowlist.
+ *
+ * Hard rule (Michael, 2026-05-21): no automated email reaches a customer
+ * until manual approval after thorough testing.
+ *
+ * Internal-team templates (lead-assignment, weekly-numbers-reminder, etc.)
+ * are NOT in this list and continue to fire normally.
+ */
+const CUSTOMER_FACING_TEMPLATES: ReadonlySet<EmailTemplate> = new Set<EmailTemplate>([
+  'portal-link',
+  'job-status-update',
+  'review-request',
+  'storm-report-customer',
+  'customer-invoice',
+  'pipeline-milestone',
+  // contact-form: technically the inbound contact form auto-reply — confirm
+  // each callsite case-by-case before adding. Today the contact-form template
+  // primarily routes to office, not the customer. Leaving OUT for now; if
+  // any callsite uses it to confirm to the customer, surface here.
+]);
+
+export function isCustomerFacingTemplate(template: EmailTemplate | undefined): boolean {
+  return !!template && CUSTOMER_FACING_TEMPLATES.has(template);
+}
+
+export function isCustomerEmailEnabled(): boolean {
+  return process.env.CUSTOMER_EMAIL_ENABLED === 'true';
 }
 
 function isTemplateAllowed(template: EmailTemplate | undefined): boolean {
@@ -325,6 +363,26 @@ class EmailService {
         error: 'EMAIL_KILL_SWITCH active',
       }).catch(() => {});
       return { success: false, error: 'EMAIL_KILL_SWITCH active' };
+    }
+
+    // Customer-facing template guard. Per stated rule (2026-05-21), no
+    // automated email reaches a customer until Michael explicitly opts in
+    // via CUSTOMER_EMAIL_ENABLED=true. Belt-and-suspenders on top of the
+    // per-template allowlist — even if a customer-facing template is added
+    // to ALLOWED_EMAIL_TEMPLATES by mistake, this guard still drops it.
+    if (isCustomerFacingTemplate(template) && !isCustomerEmailEnabled()) {
+      console.warn('[CUSTOMER EMAIL BLOCKED]', { template, to: options.to, subject: options.subject });
+      logEmailAttempt({
+        template,
+        to: options.to,
+        cc: options.cc,
+        bcc: options.bcc,
+        from: options.fromName ? `${options.fromName} <${this.from}>` : this.from,
+        subject: options.subject,
+        status: 'dropped_customer_email_disabled',
+        error: 'Customer-facing template blocked; set CUSTOMER_EMAIL_ENABLED=true to allow',
+      }).catch(() => {});
+      return { success: false, error: 'Customer-facing email blocked by CUSTOMER_EMAIL_ENABLED gate' };
     }
 
     // Gate 2: transport configured?

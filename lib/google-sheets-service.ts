@@ -282,6 +282,36 @@ export const LEAD_OUTCOME_LOG_COLUMNS = [
   'updatedAt',
 ];
 
+/**
+ * Pending-reassignment queue. The SLA cron writes a row here when a lead
+ * breaches the reassign threshold WITHOUT auto-executing the reassignment.
+ * A dispatcher reviews the suggested next-best rep and either confirms or
+ * declines. Manual execution per stated policy (Michael 2026-05-21).
+ */
+export interface LeadReassignmentQueueRecord {
+  queueId: string;
+  leadId: string;
+  customerName: string;
+  customerAddress: string;
+  originalRep: string;
+  minutesElapsed: string;
+  suggestedRep: string;       // next-best rep slug from the algorithm
+  suggestedRepName: string;
+  suggestedRepReason: string; // why this rep was suggested
+  status: string;             // 'pending' | 'resolved-reassigned' | 'resolved-declined' | 'expired'
+  createdAt: string;
+  resolvedAt: string;
+  resolvedBy: string;
+  resolutionNotes: string;
+}
+
+export const LEAD_REASSIGNMENT_QUEUE_COLUMNS = [
+  'queueId', 'leadId', 'customerName', 'customerAddress',
+  'originalRep', 'minutesElapsed',
+  'suggestedRep', 'suggestedRepName', 'suggestedRepReason',
+  'status', 'createdAt', 'resolvedAt', 'resolvedBy', 'resolutionNotes',
+];
+
 export interface RepAvailabilityRecord {
   repSlug: string;
   isReceivingLeads: string; // 'true'/'false'
@@ -418,6 +448,7 @@ const SHEET_NAMES = {
   GEOCODED_CONTACTS: 'Geocoded_Contacts',
   LEAD_DISTRIBUTION_LOG: 'Lead_Distribution_Log',
   LEAD_OUTCOME_LOG: 'Lead_Outcome_Log',
+  LEAD_REASSIGNMENT_QUEUE: 'Lead_Reassignment_Queue',
   REP_AVAILABILITY: 'Rep_Availability',
   REP_PREFERENCES: 'Rep_Preferences',
   LEAD_RESPONSE_LOG: 'Lead_Response_Log',
@@ -1658,6 +1689,90 @@ class GoogleSheetsService {
       return true;
     } catch (error) {
       console.error('Error upserting lead outcome log:', error);
+      return false;
+    }
+  }
+
+  // ===========================================================================
+  // LEAD REASSIGNMENT QUEUE
+  // ===========================================================================
+
+  async getReassignmentQueue(options?: { status?: string; limit?: number }): Promise<LeadReassignmentQueueRecord[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.LEAD_REASSIGNMENT_QUEUE, LEAD_REASSIGNMENT_QUEUE_COLUMNS);
+      const rows = await sheet.getRows();
+      let records: LeadReassignmentQueueRecord[] = rows.map(row => ({
+        queueId: row.get('queueId') || '',
+        leadId: row.get('leadId') || '',
+        customerName: row.get('customerName') || '',
+        customerAddress: row.get('customerAddress') || '',
+        originalRep: row.get('originalRep') || '',
+        minutesElapsed: row.get('minutesElapsed') || '',
+        suggestedRep: row.get('suggestedRep') || '',
+        suggestedRepName: row.get('suggestedRepName') || '',
+        suggestedRepReason: row.get('suggestedRepReason') || '',
+        status: row.get('status') || 'pending',
+        createdAt: row.get('createdAt') || '',
+        resolvedAt: row.get('resolvedAt') || '',
+        resolvedBy: row.get('resolvedBy') || '',
+        resolutionNotes: row.get('resolutionNotes') || '',
+      }));
+      if (options?.status) records = records.filter(r => r.status === options.status);
+      records.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      if (options?.limit) records = records.slice(0, options.limit);
+      return records;
+    } catch (err) {
+      console.error('Error fetching reassignment queue:', err);
+      return [];
+    }
+  }
+
+  async addReassignmentQueueEntry(record: LeadReassignmentQueueRecord): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.LEAD_REASSIGNMENT_QUEUE, LEAD_REASSIGNMENT_QUEUE_COLUMNS);
+      // Idempotency: skip if there's already an open queue entry for this lead
+      const rows = await sheet.getRows();
+      const existing = rows.find(r => r.get('leadId') === record.leadId && r.get('status') === 'pending');
+      if (existing) {
+        // Update the elapsed time so the queue reflects the latest breach moment
+        existing.set('minutesElapsed', record.minutesElapsed);
+        existing.set('suggestedRep', record.suggestedRep);
+        existing.set('suggestedRepName', record.suggestedRepName);
+        existing.set('suggestedRepReason', record.suggestedRepReason);
+        await existing.save();
+        return true;
+      }
+      await sheet.addRow(record as unknown as Record<string, string | number | boolean>);
+      return true;
+    } catch (err) {
+      console.error('Error adding reassignment queue entry:', err);
+      return false;
+    }
+  }
+
+  async resolveReassignmentQueueEntry(
+    queueId: string,
+    resolution: { status: 'resolved-reassigned' | 'resolved-declined'; resolvedBy: string; resolutionNotes?: string }
+  ): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.LEAD_REASSIGNMENT_QUEUE, LEAD_REASSIGNMENT_QUEUE_COLUMNS);
+      const rows = await sheet.getRows();
+      const row = rows.find(r => r.get('queueId') === queueId);
+      if (!row) return false;
+      row.set('status', resolution.status);
+      row.set('resolvedAt', new Date().toISOString());
+      row.set('resolvedBy', resolution.resolvedBy);
+      row.set('resolutionNotes', resolution.resolutionNotes || '');
+      await row.save();
+      return true;
+    } catch (err) {
+      console.error('Error resolving reassignment queue entry:', err);
       return false;
     }
   }

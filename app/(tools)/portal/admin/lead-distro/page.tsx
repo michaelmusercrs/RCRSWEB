@@ -278,6 +278,54 @@ export default function LeadDistroAdmin() {
   const [repStatus, setRepStatus] = useState<RepStatus[]>([]);
   const [repStatusLoading, setRepStatusLoading] = useState(false);
 
+  // Reassignment queue state (SLA breaches awaiting manual confirmation)
+  interface ReassignmentQueueEntry {
+    queueId: string;
+    leadId: string;
+    customerName: string;
+    customerAddress: string;
+    originalRep: string;
+    minutesElapsed: string;
+    suggestedRep: string;
+    suggestedRepName: string;
+    suggestedRepReason: string;
+    status: string;
+    createdAt: string;
+  }
+  const [reassignQueue, setReassignQueue] = useState<ReassignmentQueueEntry[]>([]);
+  const [reassignBusyId, setReassignBusyId] = useState<string | null>(null);
+
+  const loadReassignmentQueue = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/lead-distro/reassignment-queue?status=pending');
+      if (res.ok) {
+        const data = await res.json();
+        setReassignQueue(data.queue || []);
+      }
+    } catch (err) {
+      console.error('Failed to load reassignment queue:', err);
+    }
+  }, []);
+
+  const resolveReassign = async (queueId: string, action: 'confirm' | 'decline') => {
+    setReassignBusyId(queueId);
+    try {
+      const res = await fetch('/api/admin/lead-distro/reassignment-queue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ queueId, action }),
+      });
+      if (res.ok) {
+        await loadReassignmentQueue();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || 'Action failed.');
+      }
+    } finally {
+      setReassignBusyId(null);
+    }
+  };
+
   // Lead Quality config (BETA) state
   interface QualityWeights {
     hailRisk: number;
@@ -546,7 +594,8 @@ export default function LeadDistroAdmin() {
     loadRepStatus();
     loadCalibration();
     loadQualityConfig();
-  }, [loadConfig, loadHistory, loadRepStatus, loadCalibration, loadQualityConfig]);
+    loadReassignmentQueue();
+  }, [loadConfig, loadHistory, loadRepStatus, loadCalibration, loadQualityConfig, loadReassignmentQueue]);
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
@@ -943,6 +992,92 @@ export default function LeadDistroAdmin() {
                 )}
               </div>
             </div>
+          </section>
+
+          {/* ── Section 0a: Pending Reassignments (SLA breach queue) ─────── */}
+          <section className={`rounded-2xl p-6 border ${
+            reassignQueue.length > 0
+              ? 'bg-red-500/[0.03] border-red-500/30'
+              : 'bg-white/[0.02] border-white/5'
+          }`}>
+            <div className="flex items-start gap-3 mb-4">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                reassignQueue.length > 0 ? 'bg-red-500/15' : 'bg-neutral-500/10'
+              }`}>
+                <AlertTriangle size={20} className={reassignQueue.length > 0 ? 'text-red-400' : 'text-neutral-500'} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <InfoTooltip content={
+                  <>
+                    <div className="font-semibold text-white mb-1">SLA Breach Queue</div>
+                    <div className="text-neutral-300 mb-2">When a rep doesn't make first contact within the reassign timer ({config.timers.reassignMinutes}min), the system stops short of auto-reassigning. Per stated policy, reassignment is manual: the system suggests a next-best rep with reason, and you confirm or decline.</div>
+                    <div className="space-y-1.5 text-neutral-300">
+                      <div><span className="text-emerald-400">Confirm</span> — reassigns the lead to the suggested rep, restarts the timer, logs the reason.</div>
+                      <div><span className="text-neutral-400">Decline</span> — keeps the lead with the original rep, marks the queue entry resolved.</div>
+                    </div>
+                  </>
+                }>
+                  <h2 className="text-lg font-semibold text-white">SLA Breach Queue {reassignQueue.length > 0 && <span className="ml-2 text-xs px-2 py-0.5 rounded-lg bg-red-500/20 text-red-300">{reassignQueue.length}</span>}</h2>
+                </InfoTooltip>
+                <p className="text-sm text-neutral-400 mt-0.5">
+                  Leads that breached the response SLA. Reassignment is manual — pick from the suggestion or decline to keep the lead with the original rep.
+                </p>
+              </div>
+              <button
+                onClick={loadReassignmentQueue}
+                className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
+                title="Refresh queue"
+              >
+                <RefreshCw size={16} className="text-neutral-400" />
+              </button>
+            </div>
+
+            {reassignQueue.length === 0 ? (
+              <p className="text-sm text-neutral-500 italic">No SLA breaches — every assigned lead has been contacted within the response window.</p>
+            ) : (
+              <div className="space-y-3">
+                {reassignQueue.map(entry => (
+                  <div key={entry.queueId} className="p-4 rounded-xl bg-black/30 border border-red-500/20">
+                    <div className="flex flex-wrap items-start justify-between gap-3 mb-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-white truncate">{entry.customerName}</div>
+                        <div className="text-xs text-neutral-400 mt-0.5">{entry.customerAddress || '(address unavailable)'}</div>
+                      </div>
+                      <span className="text-xs px-2 py-1 rounded-lg bg-red-500/15 text-red-300 tabular-nums">{entry.minutesElapsed}min elapsed</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 text-xs">
+                      <div className="bg-white/[0.03] border border-white/5 rounded-lg p-3">
+                        <div className="text-neutral-500 mb-1">Originally assigned to</div>
+                        <div className="text-neutral-300 font-medium">{entry.originalRep}</div>
+                        <div className="text-neutral-500 mt-1">Missed the {config.timers.reassignMinutes}min response window.</div>
+                      </div>
+                      <div className="bg-emerald-500/[0.05] border border-emerald-500/20 rounded-lg p-3">
+                        <div className="text-emerald-300 mb-1">Suggested next rep</div>
+                        <div className="text-white font-medium">{entry.suggestedRepName || '(no suggestion)'}</div>
+                        <div className="text-neutral-500 mt-1 text-[11px] leading-relaxed">{entry.suggestedRepReason || '—'}</div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={() => resolveReassign(entry.queueId, 'confirm')}
+                        disabled={!entry.suggestedRep || reassignBusyId === entry.queueId}
+                        className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {reassignBusyId === entry.queueId ? <Loader2 className="animate-spin inline" size={14} /> : 'Confirm reassign'}
+                      </button>
+                      <button
+                        onClick={() => resolveReassign(entry.queueId, 'decline')}
+                        disabled={reassignBusyId === entry.queueId}
+                        className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-neutral-300 text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        Decline (keep with {entry.originalRep})
+                      </button>
+                      <span className="text-xs text-neutral-600 self-center ml-2">created {entry.createdAt.slice(0, 16).replace('T', ' ')}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
 
           {/* ── Section 0b: Calibration Recommendations ─────────────────── */}
