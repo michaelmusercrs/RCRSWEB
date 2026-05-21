@@ -183,6 +183,73 @@ export default function CustomerBreakdownsPage() {
   }>>([]);
   const [creditMemosLoading, setCreditMemosLoading] = useState(false);
 
+  // Recent breakdowns browse list (audit gap #17 — no list/browse UI on page).
+  interface RecentBreakdown {
+    breakdownId: string;
+    rNumber: string;
+    customerName: string;
+    salesRep: string;
+    status: CustomerBreakdown['status'];
+    jobTotal: number;
+    updatedAt: string;
+  }
+  const [recentList, setRecentList] = useState<RecentBreakdown[]>([]);
+  const [recentLoading, setRecentLoading] = useState(false);
+  const [showRecent, setShowRecent] = useState(false);
+
+  const loadRecent = useCallback(async () => {
+    setRecentLoading(true);
+    try {
+      const res = await fetch('/api/portal/customer-breakdowns', { credentials: 'include' });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.breakdowns)) {
+        const rows: RecentBreakdown[] = data.breakdowns
+          .map((x: { breakdown: CustomerBreakdown }) => ({
+            breakdownId: x.breakdown.breakdownId || '',
+            rNumber: x.breakdown.rNumber || '',
+            customerName: x.breakdown.customerName || '',
+            salesRep: x.breakdown.salesRep || '',
+            status: x.breakdown.status || 'draft',
+            jobTotal: Number(x.breakdown.jobTotal) || 0,
+            updatedAt: (x.breakdown as CustomerBreakdown & { updatedAt?: string }).updatedAt || '',
+          }))
+          .filter((r: RecentBreakdown) => r.breakdownId);
+        rows.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+        setRecentList(rows.slice(0, 20));
+      } else {
+        setRecentList([]);
+      }
+    } catch {
+      setRecentList([]);
+    } finally {
+      setRecentLoading(false);
+    }
+  }, []);
+
+  const loadBreakdownById = useCallback(async (breakdownId: string) => {
+    setLookupLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/portal/customer-breakdowns?breakdownId=${encodeURIComponent(breakdownId)}`,
+        { credentials: 'include' },
+      );
+      const data = await res.json();
+      if (data.success) {
+        setBreakdown(data.breakdown);
+        setTotals(data.totals);
+        setShowRecent(false);
+        setLookupMessage(`Loaded breakdown ${data.breakdown.rNumber}.`);
+      } else {
+        setError(data.error || 'Failed to load breakdown');
+      }
+    } catch (e) {
+      setError('Failed to load: ' + (e as Error).message);
+    } finally {
+      setLookupLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     const r = breakdown.rNumber?.trim();
     if (!r) {
@@ -780,10 +847,22 @@ export default function CustomerBreakdownsPage() {
 
         {/* ── R-Number Lookup ───────────────────────────────── */}
         <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
-          <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
-            <Search className="w-5 h-5 text-[#39FF14]" />
-            Look Up Job
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <Search className="w-5 h-5 text-[#39FF14]" />
+              Look Up Job
+            </h2>
+            <button
+              onClick={() => {
+                if (!showRecent) loadRecent();
+                setShowRecent(s => !s);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-zinc-800 text-zinc-300 border border-zinc-700 rounded-lg hover:bg-zinc-700"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              {showRecent ? 'Hide' : 'Browse'} Saved Breakdowns
+            </button>
+          </div>
           <div className="flex items-center gap-3">
             <div className="flex-1">
               <JobSearchAutocomplete
@@ -811,6 +890,60 @@ export default function CustomerBreakdownsPage() {
               <CheckCircle className="w-3.5 h-3.5 text-[#39FF14]" />
               {lookupMessage}
             </p>
+          )}
+          {showRecent && (
+            <div className="mt-4 pt-4 border-t border-zinc-800">
+              {recentLoading ? (
+                <div className="flex items-center gap-2 text-sm text-zinc-500">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Loading recent breakdowns…
+                </div>
+              ) : recentList.length === 0 ? (
+                <div className="text-sm text-zinc-500 text-center py-4">
+                  No saved breakdowns yet. Look up an R-number above to start one.
+                </div>
+              ) : (
+                <div className="space-y-1 max-h-72 overflow-y-auto">
+                  <div className="grid grid-cols-12 gap-2 text-[10px] uppercase tracking-wider text-zinc-500 pb-1 px-2">
+                    <span className="col-span-2">R-Number</span>
+                    <span className="col-span-3">Customer</span>
+                    <span className="col-span-2">Sales Rep</span>
+                    <span className="col-span-2">Status</span>
+                    <span className="col-span-2 text-right">Job Total</span>
+                    <span className="col-span-1 text-right">Updated</span>
+                  </div>
+                  {recentList.map(r => {
+                    const statusStyle =
+                      r.status === 'completed' || r.status === 'approved'
+                        ? 'bg-emerald-900/30 text-emerald-300 border-emerald-900/50'
+                        : r.status === 'pending_approval' || r.status === 'in_progress'
+                        ? 'bg-amber-900/30 text-amber-300 border-amber-900/50'
+                        : r.status === 'voided'
+                        ? 'bg-red-900/30 text-red-300 border-red-900/50'
+                        : 'bg-zinc-800 text-zinc-400 border-zinc-700';
+                    const updatedShort = r.updatedAt ? r.updatedAt.slice(0, 10) : '—';
+                    return (
+                      <button
+                        key={r.breakdownId}
+                        onClick={() => loadBreakdownById(r.breakdownId)}
+                        className="w-full grid grid-cols-12 gap-2 items-center px-2 py-2 rounded-lg text-sm text-left hover:bg-zinc-800/60 border border-transparent hover:border-zinc-700"
+                      >
+                        <span className="col-span-2 font-mono text-[#39FF14]">{r.rNumber}</span>
+                        <span className="col-span-3 text-zinc-200 truncate" title={r.customerName}>{r.customerName || '—'}</span>
+                        <span className="col-span-2 text-zinc-400 truncate" title={r.salesRep}>{r.salesRep || '—'}</span>
+                        <span className="col-span-2">
+                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] uppercase tracking-wide font-medium border ${statusStyle}`}>
+                            {r.status.replace(/_/g, ' ')}
+                          </span>
+                        </span>
+                        <span className="col-span-2 text-right text-zinc-300">{fmtMoney(r.jobTotal)}</span>
+                        <span className="col-span-1 text-right text-xs text-zinc-500">{updatedShort}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           )}
         </section>
 
