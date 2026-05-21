@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { leadPortalService } from '@/lib/lead-portal-service';
+import { recordServiceRequest } from '@/lib/customer-portal-sheets';
 import crypto from 'crypto';
 
-// TODO: persist to Google Sheets (ServiceRequests tab). For now the route
-// accepts submissions and returns success without storing them.
 interface ServiceRequestRecord {
   id: string;
   customerId: string;
@@ -100,8 +99,26 @@ export async function POST(request: NextRequest) {
       updatedAt: now,
     };
 
-    // TODO: persist serviceRequest once leadPortalService has createServiceRequest.
-    console.log('[service-request] received (not persisted):', serviceRequest.id);
+    // Fire-and-forget sheet append. Never blocks the customer response,
+    // never throws — see lib/customer-portal-sheets.ts.
+    recordServiceRequest({
+      id: serviceRequest.id,
+      customerId: serviceRequest.customerId,
+      customerName: serviceRequest.customerName,
+      customerAddress: serviceRequest.customerAddress,
+      customerPhone: serviceRequest.customerPhone,
+      customerEmail: serviceRequest.customerEmail,
+      repSlug: serviceRequest.repSlug,
+      repName: serviceRequest.repName,
+      type: serviceRequest.type,
+      description: serviceRequest.description,
+      preferredDate: serviceRequest.preferredDate,
+      urgency: serviceRequest.urgency,
+      photos: serviceRequest.photos,
+      status: serviceRequest.status,
+      createdAt: serviceRequest.createdAt,
+      updatedAt: serviceRequest.updatedAt,
+    }).catch(() => {});
 
     return NextResponse.json({
       success: true,

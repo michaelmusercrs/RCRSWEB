@@ -44,6 +44,7 @@ import { trackingService } from '@/lib/tracking-service';
 import ServiceRequestForm from '@/components/customer-portal/ServiceRequestForm';
 import WarrantyClaimForm from '@/components/customer-portal/WarrantyClaimForm';
 import NotificationPreferencesForm from '@/components/customer-portal/NotificationPreferences';
+import ReviewSubmission from '@/components/customer-portal/ReviewSubmission';
 import { Wrench, Bell } from 'lucide-react';
 
 interface CustomerData {
@@ -965,6 +966,15 @@ export default function CustomerDashboard() {
                     </div>
                   </div>
                 )}
+
+                {/* Share Your Experience (customer review submission) */}
+                <div className="bg-white rounded-xl border border-gray-200 p-6">
+                  <ReviewSubmission
+                    customerId={customer.jnid}
+                    repName={salesRep.name}
+                    token={portalToken}
+                  />
+                </div>
 
                 {/* Social Media Links */}
                 {(salesRep.facebook || salesRep.instagram || salesRep.tiktok || salesRep.linkedin) && (

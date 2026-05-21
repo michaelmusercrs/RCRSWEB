@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { warrantyService } from '@/lib/warranty-service';
 import { leadPortalService } from '@/lib/lead-portal-service';
+import { recordWarrantyClaim } from '@/lib/customer-portal-sheets';
 import crypto from 'crypto';
 
-// TODO: persist to Google Sheets (WarrantyClaims tab). warrantyService holds
-// the in-memory copy; this type is shaped for the future Sheets row.
+// warrantyService keeps an in-memory copy; the Sheets row (this shape) is
+// the durable record that survives server restarts.
 interface WarrantyClaimRecord {
   id: string;
   warrantyId: string;
@@ -145,9 +146,28 @@ export async function POST(request: NextRequest) {
       updatedAt: now,
     };
 
-    // TODO: persist sheetClaim once leadPortalService has createWarrantyClaim.
-    // warrantyService already keeps the in-memory/local copy above.
-    console.log('[warranty-claim] received (not persisted to Sheets):', sheetClaim.id);
+    // Fire-and-forget sheet append. Never blocks the customer response,
+    // never throws — see lib/customer-portal-sheets.ts. warrantyService
+    // already holds the in-memory/local copy above.
+    recordWarrantyClaim({
+      id: sheetClaim.id,
+      warrantyId: sheetClaim.warrantyId,
+      customerId: sheetClaim.customerId,
+      customerName: sheetClaim.customerName,
+      customerAddress: sheetClaim.customerAddress,
+      customerPhone: sheetClaim.customerPhone,
+      customerEmail: sheetClaim.customerEmail,
+      repSlug: sheetClaim.repSlug,
+      repName: sheetClaim.repName,
+      jobId: sheetClaim.jobId,
+      category: sheetClaim.category,
+      severity: sheetClaim.severity,
+      issueDescription: sheetClaim.issueDescription,
+      photos: sheetClaim.photos,
+      status: sheetClaim.status,
+      createdAt: sheetClaim.createdAt,
+      updatedAt: sheetClaim.updatedAt,
+    }).catch(() => {});
 
     return NextResponse.json({
       success: true,

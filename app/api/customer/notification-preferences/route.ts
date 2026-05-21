@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { leadPortalService } from '@/lib/lead-portal-service';
+import {
+  getNotificationPreferences,
+  setNotificationPreferences,
+} from '@/lib/customer-portal-sheets';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -41,12 +45,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
     }
 
-    // TODO: persist per-customer preferences. Until then, always return defaults.
+    // Read persisted prefs from the Customer_Notification_Prefs sheet tab.
+    // Falls back to DEFAULT_PREFERENCES when no row exists (first visit),
+    // when env is unconfigured, or when the sheet read fails — the helper
+    // returns null in all of those cases and never throws.
+    const stored = await getNotificationPreferences(token);
     return NextResponse.json({
       preferences: {
         customerId: customer.customerId,
-        ...DEFAULT_PREFERENCES,
-        updatedAt: new Date().toISOString(),
+        emailNotifications: stored?.emailNotifications ?? DEFAULT_PREFERENCES.emailNotifications,
+        smsNotifications: stored?.smsNotifications ?? DEFAULT_PREFERENCES.smsNotifications,
+        weatherAlerts: stored?.weatherAlerts ?? DEFAULT_PREFERENCES.weatherAlerts,
+        statusUpdates: stored?.statusUpdates ?? DEFAULT_PREFERENCES.statusUpdates,
+        updatedAt: stored?.updatedAt || new Date().toISOString(),
       },
     });
   } catch (error) {
@@ -81,7 +92,19 @@ export async function PUT(request: NextRequest) {
       updatedAt: now,
     };
 
-    // TODO: persist updatedPrefs once leadPortalService has upsertNotificationPrefs.
+    // Fire-and-forget sheet upsert. Never blocks the customer response,
+    // never throws — see lib/customer-portal-sheets.ts.
+    setNotificationPreferences(
+      token,
+      {
+        emailNotifications: updatedPrefs.emailNotifications,
+        smsNotifications: updatedPrefs.smsNotifications,
+        weatherAlerts: updatedPrefs.weatherAlerts,
+        statusUpdates: updatedPrefs.statusUpdates,
+      },
+      customer.customerId,
+    ).catch(() => {});
+
     return NextResponse.json({
       success: true,
       preferences: updatedPrefs,
