@@ -150,7 +150,7 @@ export default function InsightsPage() {
               </p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
                 <Kpi label="Recent Signed (4 wk avg)" value={data.prediction.recentSigned.toString()} sub={`baseline ${data.prediction.baselineSigned}`} />
-                <Kpi label="Δ vs baseline" value={`${data.prediction.signedDeltaPct >= 0 ? '+' : ''}${data.prediction.signedDeltaPct}%`} negative={data.prediction.signedDeltaPct < 0} />
+                <Kpi label="Δ vs 12-wk baseline" value={`${data.prediction.signedDeltaPct >= 0 ? '+' : ''}${data.prediction.signedDeltaPct}%`} negative={data.prediction.signedDeltaPct < 0} />
                 <Kpi label="6 mo avg monthly revenue" value={fmtMoney(data.prediction.monthlyAvg)} sub="from QB ledger" />
                 <Kpi label="Projected next month" value={fmtMoney(data.prediction.projectedNextMonth)} sub="signed×0.5 dampened" />
               </div>

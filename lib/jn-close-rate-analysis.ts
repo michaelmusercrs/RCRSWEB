@@ -229,8 +229,13 @@ export async function analyzeCloseRates(opts: { days?: number } = {}): Promise<C
     const firstManual = acts.find(a => {
       const t = (a.record_type_name || '').toLowerCase();
       if (!['note', 'phone call', 'text message', 'email'].includes(t)) return false;
-      const author = (a.created_by_name || '').toLowerCase();
-      if (author.includes('system') || author.includes('automation')) return false;
+      const author = (a.created_by_name || '').trim();
+      if (!author) return false;
+      // Match the broader system/automation exclusion used in jn-response-times.ts
+      if (/system|automation|webhook|portal|jobnimbus\b|^api\b|^email$/i.test(author)) return false;
+      // Exclude office staff so the method reflects the rep's outreach, not office logging
+      const a_lc = author.toLowerCase();
+      if (/^(sara hill|destin mc ?cary|tia (muse )?morris|tia muse|boston|office)$/.test(a_lc)) return false;
       return true;
     });
     const firstContactMethod = firstManual?.record_type_name || 'unknown';

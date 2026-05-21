@@ -71,6 +71,21 @@ function asNumber(v: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+// Carrier name normalization — collapse case + common suffixes so
+// "STATE FARM", "State Farm", "State Farm Insurance" all roll up together.
+function normalizeCarrier(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return '';
+  const lower = trimmed
+    .toLowerCase()
+    .replace(/\b(insurance|insurance co|insurance company|ins co|ins\.?|mutual|grp|group|llc|inc\.?|company|corp|corporation)\b/g, '')
+    .replace(/[.,]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!lower) return trimmed;
+  return lower.replace(/\b\w/g, c => c.toUpperCase());
+}
+
 function extractInsurance(job: JNJob): {
   rcv: number | null; acv: number | null; deductible: number | null;
   adjuster: string; carrier: string; claim: string;
@@ -80,7 +95,7 @@ function extractInsurance(job: JNJob): {
   const acv = asNumber(job.acv) ?? asNumber(summary.acv) ?? asNumber(summary.ACV);
   const ded = asNumber(job.deductible) ?? asNumber(summary.deductible) ?? asNumber(summary.Deductible);
   const adjuster = String(job.adjuster_name || job.adjuster || summary.adjuster || summary.Adjuster || '').trim();
-  const carrier = String(
+  const carrier = normalizeCarrier(String(
     job.insurance_company_name ||
     job.insurance_company ||
     job.insurance_carrier ||
@@ -88,7 +103,7 @@ function extractInsurance(job: JNJob): {
     summary.carrier ||
     summary.Carrier ||
     ''
-  ).trim();
+  ));
   const claim = String(job.claim_number || summary.claim_number || summary.ClaimNumber || '').trim();
   return { rcv, acv, deductible: ded, adjuster, carrier, claim };
 }

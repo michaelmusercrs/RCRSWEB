@@ -161,7 +161,7 @@ export async function getReviewsQuality(): Promise<ReviewsQuality> {
       reviews: reviews.length,
       averageRating: raw.averageRating,
       fiveStarCount: raw.fiveStarCount,
-      fiveStarPct: Math.round((raw.fiveStarCount / reviews.length) * 1000) / 10,
+      fiveStarPct: reviews.length > 0 ? Math.round((raw.fiveStarCount / reviews.length) * 1000) / 10 : 0,
       attributedCount: attributed,
       unattributedCount: reviews.length - attributed,
       distinctReps: byRep.filter(r => r.rep !== '(unattributed)').length,

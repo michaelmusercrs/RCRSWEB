@@ -45,7 +45,7 @@ function isManualByRep(a: { record_type_name?: string; created_by_name?: string 
   const type = (a.record_type_name || '').trim();
   // Real first-contact / engagement actions by a rep
   // Excluding pure assignment events
-  if (/^(Contact Created|Assigned Contact|Job Created|Assigned Job|Related to job|Unassigned|Contact Modified|Job Modified|Attachment deleted)$/i.test(type)) return false;
+  if (/^(Contact Created|Assigned Contact|Job Created|Assigned Job|Related to job|Unassigned|Contact Modified|Job Modified|Attachment deleted|Attachment Added|Document Added|Status Changed)$/i.test(type)) return false;
   return true;
 }
 
