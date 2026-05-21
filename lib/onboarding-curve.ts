@@ -346,17 +346,25 @@ async function computeOnboardingCurve(): Promise<OnboardingResponse> {
     });
   }
 
-  // Baseline: median over reps with >= 12 weeks of meeting history AND a first-signed event
+  // Baseline EXCLUDES "legacy" reps — those whose firstWeek is on or
+  // before the meeting sheet's start date in 2019. Those reps were
+  // already producing on day 1 of the sheet, so their weeks-to-first-
+  // signed is 0/1 and that contaminates the median. Real onboarding
+  // signal only comes from reps who joined while the sheet was already
+  // running. Cutoff = 2020-01-01 — gives 4+ years of post-sheet hires.
+  const POST_SHEET_HIRE_CUTOFF = '2020-01-01';
+  const isPostSheetHire = (r: { firstWeek: string }) => r.firstWeek >= POST_SHEET_HIRE_CUTOFF;
+
   const baselineReps = repsOut.filter(
-    r => r.weeksOfHistory >= MIN_WEEKS_FOR_BASELINE && r.weeksToFirstSigned !== null,
+    r => r.weeksOfHistory >= MIN_WEEKS_FOR_BASELINE && r.weeksToFirstSigned !== null && isPostSheetHire(r),
   );
   const medianWeeksToFirstSigned = median(baselineReps.map(r => r.weeksToFirstSigned!));
   const baselineCommissionReps = repsOut.filter(
-    r => r.weeksOfHistory >= MIN_WEEKS_FOR_BASELINE && r.weeksToFirstCommission !== null,
+    r => r.weeksOfHistory >= MIN_WEEKS_FOR_BASELINE && r.weeksToFirstCommission !== null && isPostSheetHire(r),
   );
   const medianWeeksToFirstCommission = median(baselineCommissionReps.map(r => r.weeksToFirstCommission!));
   const yr1BaselineReps = repsOut.filter(
-    r => r.weeksOfHistory >= YR1_WEEKS,    // full year of data
+    r => r.weeksOfHistory >= YR1_WEEKS && isPostSheetHire(r),
   );
   const totalSignedYr1Median = median(yr1BaselineReps.map(r => r.totalSignedYr1));
 

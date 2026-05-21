@@ -208,8 +208,9 @@ export async function analyzeCloseRates(opts: { days?: number } = {}): Promise<C
     if (activityCache.has(contactId)) return activityCache.get(contactId)!;
     try {
       const filter = { must: [{ term: { 'primary.id': contactId } }] };
-      const res = await jnFetch<{ results?: JNActivity[] }>(`/activities?filter=${encodeURIComponent(JSON.stringify(filter))}&sort=date_created&limit=100`);
-      const acts = res.results || [];
+      const res = await jnFetch<{ results?: JNActivity[]; activity?: JNActivity[] }>(`/activities?filter=${encodeURIComponent(JSON.stringify(filter))}&sort=date_created&limit=100`);
+      // JN /activities returns `activity` (singular), not `results`.
+      const acts = res.results || res.activity || [];
       activitiesFetched += acts.length;
       activityCache.set(contactId, acts);
       return acts;
@@ -222,7 +223,10 @@ export async function analyzeCloseRates(opts: { days?: number } = {}): Promise<C
   const buckets: EstimateBucket[] = [];
 
   for (const est of sample) {
-    const contactId = est.primary?.id || est.primary?.jnid || '';
+    // JN's /estimates response uses `related[]`, not `primary`.
+    const relatedContact = est.related?.find(r => r?.type === 'contact');
+    const relatedJob = est.related?.find(r => r?.type === 'job');
+    const contactId = est.primary?.id || est.primary?.jnid || relatedContact?.id || relatedContact?.jnid || '';
     if (!contactId) continue;
 
     const [jobs, acts] = await Promise.all([

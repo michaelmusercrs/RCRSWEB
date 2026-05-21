@@ -34,6 +34,14 @@ const SYSTEM_AUTHORS_RE = /system|automation|webhook|portal|jobnimbus\b|^api\b|^
 // Anything NOT matching these is "open" — still on the table.
 const CLOSED_STATUS_RE = /signed|approved|accepted|sold|won|rejected|declined|denied|lost|dead|cancel(?:l?ed)?|void|expired|paid|installed|complete|closed/i;
 
+interface JNRelated {
+  id?: string;
+  jnid?: string;
+  name?: string;
+  number?: string;
+  type?: string;
+}
+
 interface JNEstimate {
   jnid: string;
   number?: string;
@@ -42,9 +50,28 @@ interface JNEstimate {
   total?: number;
   date_created?: number;
   date_status_change?: number;
+  // NOTE 2026-05-21: JN's /estimates response does NOT include `primary`;
+  // contact/job linkage comes from `related[]` instead. `primary` is kept
+  // for completeness in case the API ever populates it.
   primary?: { id?: string; jnid?: string; name?: string };
-  related?: Array<{ id?: string; jnid?: string; name?: string; type?: string }>;
+  related?: JNRelated[];
   sales_rep_name?: string;
+}
+
+function relatedContact(est: JNEstimate): JNRelated | undefined {
+  return est.related?.find(r => r?.type === 'contact');
+}
+
+function relatedJob(est: JNEstimate): JNRelated | undefined {
+  return est.related?.find(r => r?.type === 'job');
+}
+
+function estContactId(est: JNEstimate): string {
+  return est.primary?.id || est.primary?.jnid || relatedContact(est)?.id || relatedContact(est)?.jnid || '';
+}
+
+function estCustomerName(est: JNEstimate): string {
+  return est.primary?.name || relatedContact(est)?.name || '';
 }
 
 interface JNContact {
@@ -276,11 +303,12 @@ export async function analyzeEstimateAging(opts: { days?: number } = {}): Promis
       const fP = encodeURIComponent(JSON.stringify({ must: [{ term: { 'primary.id': contactId } }] }));
       const fR = encodeURIComponent(JSON.stringify({ must: [{ term: { 'related.id': contactId } }] }));
       const [byP, byR] = await Promise.all([
-        jnFetch<{ results?: JNActivity[] }>(`/activities?filter=${fP}&sort=-date_created&limit=50`).catch(() => ({ results: [] })),
-        jnFetch<{ results?: JNActivity[] }>(`/activities?filter=${fR}&sort=-date_created&limit=50`).catch(() => ({ results: [] })),
+        jnFetch<{ results?: JNActivity[]; activity?: JNActivity[] }>(`/activities?filter=${fP}&sort=-date_created&limit=50`).catch(() => ({ results: [] as JNActivity[], activity: [] as JNActivity[] })),
+        jnFetch<{ results?: JNActivity[]; activity?: JNActivity[] }>(`/activities?filter=${fR}&sort=-date_created&limit=50`).catch(() => ({ results: [] as JNActivity[], activity: [] as JNActivity[] })),
       ]);
-      addAll(byP.results);
-      addAll(byR.results);
+      // JN's /activities response uses `activity` (singular), not `results`.
+      addAll(byP.results || byP.activity);
+      addAll(byR.results || byR.activity);
     }
 
     for (const jid of jobIds) {
@@ -288,11 +316,11 @@ export async function analyzeEstimateAging(opts: { days?: number } = {}): Promis
       const fP = encodeURIComponent(JSON.stringify({ must: [{ term: { 'primary.id': jid } }] }));
       const fR = encodeURIComponent(JSON.stringify({ must: [{ term: { 'related.id': jid } }] }));
       const [byP, byR] = await Promise.all([
-        jnFetch<{ results?: JNActivity[] }>(`/activities?filter=${fP}&sort=-date_created&limit=50`).catch(() => ({ results: [] })),
-        jnFetch<{ results?: JNActivity[] }>(`/activities?filter=${fR}&sort=-date_created&limit=50`).catch(() => ({ results: [] })),
+        jnFetch<{ results?: JNActivity[]; activity?: JNActivity[] }>(`/activities?filter=${fP}&sort=-date_created&limit=50`).catch(() => ({ results: [] as JNActivity[], activity: [] as JNActivity[] })),
+        jnFetch<{ results?: JNActivity[]; activity?: JNActivity[] }>(`/activities?filter=${fR}&sort=-date_created&limit=50`).catch(() => ({ results: [] as JNActivity[], activity: [] as JNActivity[] })),
       ]);
-      addAll(byP.results);
-      addAll(byR.results);
+      addAll(byP.results || byP.activity);
+      addAll(byR.results || byR.activity);
     }
 
     activitiesFetched += merged.length;
@@ -312,12 +340,14 @@ export async function analyzeEstimateAging(opts: { days?: number } = {}): Promis
 
   for (let i = 0; i < openEstimates.length; i++) {
     const est = openEstimates[i];
-    const contactId = est.primary?.id || est.primary?.jnid || '';
+    const contactId = estContactId(est);
+    const relatedJobId = relatedJob(est)?.id || relatedJob(est)?.jnid;
     const [contact, jobs] = await Promise.all([
       getContact(contactId),
       getJobsForContact(contactId),
     ]);
     const jobIds = jobs.map(j => j.jnid).filter(Boolean);
+    if (relatedJobId && !jobIds.includes(relatedJobId)) jobIds.push(relatedJobId);
     const activities = await getActivitiesFor(contactId, jobIds);
 
     // Most recent manual activity on contact OR any related job.
@@ -365,10 +395,10 @@ export async function analyzeEstimateAging(opts: { days?: number } = {}): Promis
     .sort((a, b) => b.daysIdle - a.daysIdle)
     .slice(0, 50)
     .map(c => {
-      const contactId = c.est.primary?.id || c.est.primary?.jnid || '';
+      const contactId = estContactId(c.est);
       const customer = c.contact?.display_name
         || `${c.contact?.first_name || ''} ${c.contact?.last_name || ''}`.trim()
-        || c.est.primary?.name
+        || estCustomerName(c.est)
         || '(unknown)';
       return {
         estimateJnid: c.est.jnid,

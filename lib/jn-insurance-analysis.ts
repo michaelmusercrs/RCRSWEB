@@ -221,8 +221,9 @@ export async function analyzeInsurance(opts: { days?: number } = {}): Promise<In
     if (!pullActivities || !jobJnid) return 0;
     try {
       const filter = { must: [{ term: { 'related.id': jobJnid } }] };
-      const res = await jnFetch<{ results?: JNActivity[] }>(`/activities?filter=${encodeURIComponent(JSON.stringify(filter))}&limit=50`);
-      const acts = res.results || [];
+      const res = await jnFetch<{ results?: JNActivity[]; activity?: JNActivity[] }>(`/activities?filter=${encodeURIComponent(JSON.stringify(filter))}&limit=50`);
+      // JN /activities returns `activity` (singular), not `results`.
+      const acts = res.results || res.activity || [];
       activitiesFetched += acts.length;
       let n = 0;
       for (const a of acts) {

@@ -213,12 +213,12 @@ export async function analyzeDeepFunnel(opts: { days?: number } = {}): Promise<F
   for (const c of contacts) {
     // Activities by primary + related
     const [actP, actR] = await Promise.all([
-      jnFetch<{ results?: JNActivity[] }>(`/activities?filter=${encodeURIComponent(JSON.stringify({ must: [{ term: { 'primary.id': c.jnid } }] }))}&sort=date_created&limit=100`).catch(() => ({ results: [] })),
-      jnFetch<{ results?: JNActivity[] }>(`/activities?filter=${encodeURIComponent(JSON.stringify({ must: [{ term: { 'related.id': c.jnid } }] }))}&sort=date_created&limit=100`).catch(() => ({ results: [] })),
+      jnFetch<{ results?: JNActivity[]; activity?: JNActivity[] }>(`/activities?filter=${encodeURIComponent(JSON.stringify({ must: [{ term: { 'primary.id': c.jnid } }] }))}&sort=date_created&limit=100`).catch(() => ({ results: [] as JNActivity[], activity: [] as JNActivity[] })),
+      jnFetch<{ results?: JNActivity[]; activity?: JNActivity[] }>(`/activities?filter=${encodeURIComponent(JSON.stringify({ must: [{ term: { 'related.id': c.jnid } }] }))}&sort=date_created&limit=100`).catch(() => ({ results: [] as JNActivity[], activity: [] as JNActivity[] })),
     ]);
     const seenAct = new Set<string>();
     const allActs: JNActivity[] = [];
-    for (const a of [...(actP.results || []), ...(actR.results || [])]) {
+    for (const a of [...(actP.results || actP.activity || []), ...(actR.results || actR.activity || [])]) {
       if (a.jnid && !seenAct.has(a.jnid)) { seenAct.add(a.jnid); allActs.push(a); }
     }
     activitiesFetched += allActs.length;
@@ -234,13 +234,16 @@ export async function analyzeDeepFunnel(opts: { days?: number } = {}): Promise<F
     // Job activities + estimates + invoices
     for (const j of jobs) {
       const [jp, jr] = await Promise.all([
-        jnFetch<{ results?: JNActivity[] }>(`/activities?filter=${encodeURIComponent(JSON.stringify({ must: [{ term: { 'primary.id': j.jnid } }] }))}&sort=date_created&limit=100`).catch(() => ({ results: [] })),
-        jnFetch<{ results?: JNActivity[] }>(`/activities?filter=${encodeURIComponent(JSON.stringify({ must: [{ term: { 'related.id': j.jnid } }] }))}&sort=date_created&limit=100`).catch(() => ({ results: [] })),
+        jnFetch<{ results?: JNActivity[]; activity?: JNActivity[] }>(`/activities?filter=${encodeURIComponent(JSON.stringify({ must: [{ term: { 'primary.id': j.jnid } }] }))}&sort=date_created&limit=100`).catch(() => ({ results: [] as JNActivity[], activity: [] as JNActivity[] })),
+        jnFetch<{ results?: JNActivity[]; activity?: JNActivity[] }>(`/activities?filter=${encodeURIComponent(JSON.stringify({ must: [{ term: { 'related.id': j.jnid } }] }))}&sort=date_created&limit=100`).catch(() => ({ results: [] as JNActivity[], activity: [] as JNActivity[] })),
       ]);
-      for (const a of [...(jp.results || []), ...(jr.results || [])]) {
+      // JN's /activities endpoint uses `activity` (singular) not `results`.
+      const jpActs = jp.results || jp.activity || [];
+      const jrActs = jr.results || jr.activity || [];
+      for (const a of [...jpActs, ...jrActs]) {
         if (a.jnid && !seenAct.has(a.jnid)) { seenAct.add(a.jnid); allActs.push(a); }
       }
-      activitiesFetched += (jp.results?.length || 0) + (jr.results?.length || 0);
+      activitiesFetched += jpActs.length + jrActs.length;
     }
 
     // Pull estimates for this contact

@@ -241,10 +241,22 @@ export async function analyzeJobLifecycle(opts: { days?: number } = {}): Promise
 
   // 2. For each job: activities (for first contact + trip count + rework) and invoices (for paid status)
   async function getActivitiesForJob(jobJnid: string): Promise<JNActivity[]> {
+    // Activities on a job are indexed via BOTH `primary.id` and `related.id`
+    // — checking only one misses half the touches. Matches the pattern in
+    // jn-deep-funnel.ts and jn-response-times.ts.
     try {
-      const filter = { must: [{ term: { 'related.id': jobJnid } }] };
-      const res = await jnFetch<{ results?: JNActivity[] }>(`/activities?filter=${encodeURIComponent(JSON.stringify(filter))}&sort=date_created&limit=100`);
-      const acts = res.results || [];
+      const fP = encodeURIComponent(JSON.stringify({ must: [{ term: { 'primary.id': jobJnid } }] }));
+      const fR = encodeURIComponent(JSON.stringify({ must: [{ term: { 'related.id': jobJnid } }] }));
+      const [byP, byR] = await Promise.all([
+        jnFetch<{ results?: JNActivity[]; activity?: JNActivity[] }>(`/activities?filter=${fP}&sort=date_created&limit=100`).catch(() => ({ results: [] as JNActivity[], activity: [] as JNActivity[] })),
+        jnFetch<{ results?: JNActivity[]; activity?: JNActivity[] }>(`/activities?filter=${fR}&sort=date_created&limit=100`).catch(() => ({ results: [] as JNActivity[], activity: [] as JNActivity[] })),
+      ]);
+      const seen = new Set<string>();
+      const acts: JNActivity[] = [];
+      // JN /activities response uses `activity` not `results`.
+      for (const a of [...(byP.results || byP.activity || []), ...(byR.results || byR.activity || [])]) {
+        if (a.jnid && !seen.has(a.jnid)) { seen.add(a.jnid); acts.push(a); }
+      }
       activitiesFetched += acts.length;
       return acts;
     } catch {
