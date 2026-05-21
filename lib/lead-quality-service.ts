@@ -39,9 +39,8 @@ export interface LeadQualityFactors {
   hailEventCountNearby: number;
   hailLargestSizeInches: number;
   hailMostRecentDays: number | null;  // days since most recent qualifying event
-
-  // Insurance signal
-  dateOfLossWithinYear: boolean;
+  hailDerivedDateOfLoss: string | null; // ISO — most recent hail event date, when within 365d
+  hailDerivedDateOfLossWithinYear: boolean; // shortcut flag
 
   // Source
   sourceName: string;
@@ -55,9 +54,19 @@ export interface LeadQualityFactors {
   areaCloseRateBasis: 'derived' | 'prior';
   areaSampleSize: number;
 
-  // Customer-level
+  // Returning customer — when true, the routing layer should auto-route to
+  // originalRepSlug if that rep is still active (returning customers go back
+  // to the rep who closed them the first time).
   isReturningCustomer: boolean;
+  originalRepSlug: string;            // rep who closed this customer originally; '' if none
+  originalInstallJnid: string;        // jnid of the prior closed job for audit
+
+  // Commercial — separate signal from residential; tracks estimates-delivered
+  // rate per source for commercial leads.
   isCommercial: boolean;
+  commercialEstimatesDeliveredRate: number; // 0..1 for this lead's source, when isCommercial
+  commercialEstimatesDeliveredBasis: 'derived' | 'prior' | 'na';
+  commercialEstimatesDeliveredSampleSize: number;
 
   // Roof / property (filled later by recompute hook)
   roofSqFt: number | null;
@@ -84,7 +93,9 @@ export interface LeadQualityInput {
   zip?: string;
   county?: string;
   source?: string;                  // 'Yard Sign', 'Google', 'Referral', etc.
-  dateOfLoss?: string;              // ISO
+  // dateOfLoss intentionally removed — derived from HailRecon's most recent
+  // event within 365d. JN's Date of Loss field is not trusted (often blank
+  // or stale). The derived value can be pushed back to JN later.
   recordType?: string;              // 'Customer', 'Commercial', etc.
   company?: string;
   email?: string;
@@ -142,20 +153,78 @@ const AREA_CLOSE_RATE_DEFAULT = 0.18;
 const MIN_DERIVATION_SAMPLE = 15;
 
 // ---------------------------------------------------------------------------
-// Weight allocation (sums to 100). BETA — tune as outcome data lands.
+// Weight allocation (sums to 100). BETA — admin-tunable via the settings
+// panel; persisted in data/lead-quality-config.json. Defaults reflect:
+//   - Returning customer is a strong signal (loyal repeat business)
+//   - Hail-derived Date of Loss replaces the old JN-sourced field
+//   - Commercial has its own estimates-delivered signal separate from the
+//     binary "is it commercial" flag
 // ---------------------------------------------------------------------------
 
-const WEIGHTS = {
-  hailRisk: 25,             // recent local hail event presence + severity
-  hailRecency: 10,          // bonus for very recent events (<90d)
-  dateOfLoss: 15,           // insurance signal — known damage event
-  sourceCloseRate: 15,      // historical close-rate by lead source
-  areaCloseRate: 10,        // historical close-rate by city
-  returningCustomer: 5,
-  commercial: 5,
-  estimatedJobValue: 10,    // dollar-value band (when roof measure available)
-  roofComplexity: 5,        // sq ft × pitch (when available)
+export interface LeadQualityWeights {
+  hailRisk: number;
+  hailRecency: number;
+  hailDerivedDateOfLoss: number;
+  sourceCloseRate: number;
+  areaCloseRate: number;
+  returningCustomer: number;
+  commercialIntent: number;
+  commercialEstimatesDelivered: number;
+  estimatedJobValue: number;
+  roofComplexity: number;
+}
+
+export const DEFAULT_QUALITY_WEIGHTS: LeadQualityWeights = {
+  hailRisk: 18,
+  hailRecency: 8,
+  hailDerivedDateOfLoss: 12,
+  sourceCloseRate: 10,
+  areaCloseRate: 8,
+  returningCustomer: 20,       // heavy weight per stated direction — loyal customers matter
+  commercialIntent: 4,          // base flag, low weight
+  commercialEstimatesDelivered: 5,
+  estimatedJobValue: 10,
+  roofComplexity: 5,
 };
+
+export interface LeadQualityConfig {
+  weights: LeadQualityWeights;
+  weightsEnabled?: Partial<Record<keyof LeadQualityWeights, boolean>>;
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+const QUALITY_CONFIG_PATH = 'data/lead-quality-config.json';
+
+// In-memory config cache so we don't re-read disk on every assignment.
+let _configCache: LeadQualityConfig | null = null;
+let _configCacheLoadedAt = 0;
+const CONFIG_CACHE_TTL_MS = 60_000;
+
+export function getQualityConfig(): LeadQualityConfig {
+  if (_configCache && Date.now() - _configCacheLoadedAt < CONFIG_CACHE_TTL_MS) {
+    return _configCache;
+  }
+  try {
+    // Lazy require to keep the service Edge-safe if ever imported in a runtime
+    // without fs. The disk read only happens server-side.
+
+    const fs = require('fs');
+
+    const path = require('path');
+    const raw = fs.readFileSync(path.join(process.cwd(), QUALITY_CONFIG_PATH), 'utf-8');
+    _configCache = JSON.parse(raw);
+    _configCacheLoadedAt = Date.now();
+    return _configCache!;
+  } catch {
+    return { weights: DEFAULT_QUALITY_WEIGHTS };
+  }
+}
+
+export function invalidateQualityConfigCache(): void {
+  _configCache = null;
+  _configCacheLoadedAt = 0;
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -182,16 +251,30 @@ function clamp(v: number, lo: number, hi: number): number {
 // available, falls back to priors.
 // ---------------------------------------------------------------------------
 
+type RateStat = { rate: number; n: number };
+
 let closeRateCache: {
-  bySource: Map<string, { rate: number; n: number }>;
-  byCity: Map<string, { rate: number; n: number }>;
+  bySource: Map<string, RateStat>;
+  byCity: Map<string, RateStat>;
+  // Commercial-only rates: separate close-rate AND estimates-delivered stats.
+  // Estimates-delivered is the more useful short-term signal for commercial
+  // since the close cycle runs months instead of days.
+  commercialBySource: Map<string, RateStat>;
+  commercialByCity: Map<string, RateStat>;
+  commercialEstDeliveredBySource: Map<string, RateStat>;
   computedAt: number;
 } | null = null;
 
 const CLOSE_RATE_CACHE_TTL_MS = 30 * 60 * 1000; // 30 min
 
+function isCommercialContact(c: { company?: string; recordType?: string } | undefined): boolean {
+  if (!c) return false;
+  return !!c.company || /commercial|business|llc|inc/i.test(c.recordType || '');
+}
+
 async function buildCloseRateMaps(): Promise<typeof closeRateCache> {
-  // Pull recent outcome log + distribution log, join, count won/lost by source and city.
+  // Pull recent outcome log + distribution log, join, count won/lost by
+  // source and city, with separate breakouts for commercial leads.
   try {
     const [logs, outcomes, contacts] = await Promise.all([
       googleSheetsService.getDistributionLogs({ limit: 5000 }),
@@ -204,34 +287,70 @@ async function buildCloseRateMaps(): Promise<typeof closeRateCache> {
 
     const bySource = new Map<string, { won: number; total: number }>();
     const byCity = new Map<string, { won: number; total: number }>();
+    const commBySource = new Map<string, { won: number; total: number }>();
+    const commByCity = new Map<string, { won: number; total: number }>();
+    const commEstDeliveredBySource = new Map<string, { delivered: number; total: number }>();
 
     for (const log of logs) {
       const outcome = outcomeByLogId.get(log.logId);
       if (!outcome) continue;
-      const disp = outcome.finalDisposition;
-      if (disp !== 'closed-won' && disp !== 'closed-lost') continue;
-      const won = disp === 'closed-won' ? 1 : 0;
-
       const contact = contactByJnid.get(log.leadId);
       const source = normalizeSource(contact?.source);
       const city = (contact?.city || '').toLowerCase();
+      const commercial = isCommercialContact(contact);
 
-      const s = bySource.get(source) || { won: 0, total: 0 };
-      s.won += won;
-      s.total++;
-      bySource.set(source, s);
+      const disp = outcome.finalDisposition;
+      const isFinal = disp === 'closed-won' || disp === 'closed-lost';
+      const won = disp === 'closed-won' ? 1 : 0;
 
-      if (city) {
-        const c = byCity.get(city) || { won: 0, total: 0 };
-        c.won += won;
-        c.total++;
-        byCity.set(city, c);
+      if (isFinal) {
+        const s = bySource.get(source) || { won: 0, total: 0 };
+        s.won += won;
+        s.total++;
+        bySource.set(source, s);
+
+        if (city) {
+          const c = byCity.get(city) || { won: 0, total: 0 };
+          c.won += won;
+          c.total++;
+          byCity.set(city, c);
+        }
+
+        if (commercial) {
+          const cs = commBySource.get(source) || { won: 0, total: 0 };
+          cs.won += won;
+          cs.total++;
+          commBySource.set(source, cs);
+          if (city) {
+            const cc = commByCity.get(city) || { won: 0, total: 0 };
+            cc.won += won;
+            cc.total++;
+            commByCity.set(city, cc);
+          }
+        }
+      }
+
+      // Commercial estimates-delivered: tracked even before final disposition.
+      // The leading indicator that says "this kind of lead actually GOT TO an
+      // estimate" — for commercial leads, that's a meaningful early signal.
+      if (commercial) {
+        const delivered = outcome.estimateCreatedAt ? 1 : 0;
+        const s = commEstDeliveredBySource.get(source) || { delivered: 0, total: 0 };
+        s.delivered += delivered;
+        s.total++;
+        commEstDeliveredBySource.set(source, s);
       }
     }
 
+    const toRateStat = <T extends Record<string, number>>(map: Map<string, T>, num: keyof T, denom: keyof T): Map<string, RateStat> =>
+      new Map([...map.entries()].map(([k, v]) => [k, { rate: (v[denom] as number) ? (v[num] as number) / (v[denom] as number) : 0, n: v[denom] as number }]));
+
     const out = {
-      bySource: new Map([...bySource.entries()].map(([k, v]) => [k, { rate: v.won / v.total, n: v.total }])),
-      byCity: new Map([...byCity.entries()].map(([k, v]) => [k, { rate: v.won / v.total, n: v.total }])),
+      bySource: toRateStat(bySource, 'won', 'total'),
+      byCity: toRateStat(byCity, 'won', 'total'),
+      commercialBySource: toRateStat(commBySource, 'won', 'total'),
+      commercialByCity: toRateStat(commByCity, 'won', 'total'),
+      commercialEstDeliveredBySource: toRateStat(commEstDeliveredBySource, 'delivered', 'total'),
       computedAt: Date.now(),
     };
     closeRateCache = out;
@@ -253,22 +372,38 @@ async function getCloseRateMaps() {
 // Returning customer lookup
 // ---------------------------------------------------------------------------
 
-async function isReturningCustomer(email?: string, phone?: string): Promise<boolean> {
-  if (!email && !phone) return false;
+interface ReturningCustomerMatch {
+  isReturning: boolean;
+  originalRepSlug: string;      // slug of the rep who closed the original job
+  originalInstallJnid: string;  // jnid of the prior closed job (for audit)
+}
+
+async function findReturningCustomer(email?: string, phone?: string): Promise<ReturningCustomerMatch> {
+  const empty: ReturningCustomerMatch = { isReturning: false, originalRepSlug: '', originalInstallJnid: '' };
+  if (!email && !phone) return empty;
   try {
     const contacts = await googleSheetsService.getGeocodedContacts();
     const emailLc = (email || '').toLowerCase();
     const phoneDigits = (phone || '').replace(/\D/g, '');
-    // Returning if there's any past contact with matching email or phone AND
-    // type is 'install' (means they've closed a job before)
-    return contacts.some(c => {
+    // Returning if there's any past install with matching email or phone.
+    // Prefer the MOST RECENT install (so the rep recorded is current).
+    const matches = contacts.filter(c => {
       if (c.type !== 'install') return false;
       const matchEmail = emailLc && c.email && c.email.toLowerCase() === emailLc;
       const matchPhone = phoneDigits && c.mobilePhone && c.mobilePhone.replace(/\D/g, '') === phoneDigits;
       return matchEmail || matchPhone;
     });
+    if (!matches.length) return empty;
+    // Sort by lastInteraction desc to get the most recent install
+    matches.sort((a, b) => (b.lastInteraction || '').localeCompare(a.lastInteraction || ''));
+    const best = matches[0];
+    return {
+      isReturning: true,
+      originalRepSlug: best.salesRep || '',
+      originalInstallJnid: best.jnid || '',
+    };
   } catch {
-    return false;
+    return empty;
   }
 }
 
@@ -278,8 +413,14 @@ async function isReturningCustomer(email?: string, phone?: string): Promise<bool
 
 export async function computeLeadQuality(input: LeadQualityInput): Promise<LeadQualityResult> {
   const now = new Date().toISOString();
+  const config = getQualityConfig();
+  const W = { ...DEFAULT_QUALITY_WEIGHTS, ...config.weights };
+  const enabled = config.weightsEnabled || {};
+  const isEnabled = (k: keyof LeadQualityWeights) => enabled[k] !== false;
+
   const sourceLc = normalizeSource(input.source);
   const cityLc = (input.city || '').toLowerCase();
+  const isCommercial = !!input.company || /commercial|business|llc|inc/i.test(input.recordType || '');
   const contributions: Record<string, number> = {};
   const unconfirmedNotes: string[] = [];
 
@@ -288,6 +429,7 @@ export async function computeLeadQuality(input: LeadQualityInput): Promise<LeadQ
   let hailEventCountNearby = 0;
   let hailLargestSizeInches = 0;
   let hailMostRecentDays: number | null = null;
+  let hailDerivedDateOfLoss: string | null = null;
 
   try {
     const stormReport = await stormReportService.generateReport({
@@ -303,12 +445,14 @@ export async function computeLeadQuality(input: LeadQualityInput): Promise<LeadQ
     hailEventCountNearby = stormReport.totalHailReports;
     hailLargestSizeInches = stormReport.largestHailSizeNum || 0;
     if (stormReport.hailEvents.length > 0) {
-      const mostRecent = stormReport.hailEvents
-        .map(e => new Date(e.date).getTime())
-        .filter(t => !isNaN(t))
-        .sort((a, b) => b - a)[0];
-      if (mostRecent) {
-        hailMostRecentDays = Math.floor((Date.now() - mostRecent) / 86400000);
+      const sortedEvents = [...stormReport.hailEvents]
+        .map(e => ({ ...e, t: new Date(e.date).getTime() }))
+        .filter(e => !isNaN(e.t))
+        .sort((a, b) => b.t - a.t);
+      if (sortedEvents.length) {
+        const mostRecent = sortedEvents[0];
+        hailMostRecentDays = Math.floor((Date.now() - mostRecent.t) / 86400000);
+        hailDerivedDateOfLoss = new Date(mostRecent.t).toISOString();
       }
       unconfirmedNotes.push(
         `${stormReport.totalHailReports} hail event(s) within 25mi in last 12mo; largest ${stormReport.largestHailSize || 'n/a'}; risk: ${stormReport.riskLevel}.`
@@ -318,52 +462,56 @@ export async function computeLeadQuality(input: LeadQualityInput): Promise<LeadQ
     console.warn('[LeadQuality] Storm report failed:', err);
   }
 
-  if (hailRisk != null) {
-    contributions.hailRisk = Math.round((hailRisk / 100) * WEIGHTS.hailRisk);
-  } else {
-    contributions.hailRisk = 0;
-  }
-  // Recency bonus: full WEIGHTS.hailRecency for events <30d, decay to 0 at 180d
-  if (hailMostRecentDays != null) {
-    const recencyFraction = clamp(1 - hailMostRecentDays / 180, 0, 1);
-    contributions.hailRecency = Math.round(recencyFraction * WEIGHTS.hailRecency);
-  } else {
-    contributions.hailRecency = 0;
-  }
+  contributions.hailRisk = isEnabled('hailRisk') && hailRisk != null
+    ? Math.round((hailRisk / 100) * W.hailRisk)
+    : 0;
+  contributions.hailRecency = isEnabled('hailRecency') && hailMostRecentDays != null
+    ? Math.round(clamp(1 - hailMostRecentDays / 180, 0, 1) * W.hailRecency)
+    : 0;
 
-  // ─── 2. Date of loss signal ──────────────────────────────────────────
-  let dateOfLossWithinYear = false;
-  if (input.dateOfLoss) {
-    const dt = new Date(input.dateOfLoss).getTime();
-    if (!isNaN(dt) && Date.now() - dt < 365 * 86400000) {
-      dateOfLossWithinYear = true;
-      unconfirmedNotes.push(`Lead has a Date of Loss within the last 12 months — insurance signal.`);
-    }
+  // ─── 2. Hail-derived Date of Loss (replaces JN's Date of Loss field) ─
+  // If the most-recent hail event is within 365 days, treat that as the
+  // effective Date of Loss for insurance-signal purposes. We DO NOT trust
+  // JN's Date of Loss field — too often blank or stale. The derived value
+  // can be pushed back to JN later as the authoritative date.
+  const hailWithinYear = hailMostRecentDays != null && hailMostRecentDays < 365;
+  contributions.hailDerivedDateOfLoss = isEnabled('hailDerivedDateOfLoss') && hailWithinYear ? W.hailDerivedDateOfLoss : 0;
+  if (hailWithinYear) {
+    unconfirmedNotes.push(
+      `Date of Loss derived from HailRecon: ${hailDerivedDateOfLoss?.slice(0, 10)} (insurance signal — auto-detected, not from JN).`
+    );
   }
-  contributions.dateOfLoss = dateOfLossWithinYear ? WEIGHTS.dateOfLoss : 0;
 
   // ─── 3. Source historical close rate ────────────────────────────────
   const maps = await getCloseRateMaps();
+
+  // For commercial leads, prefer the commercial-only source rate when we
+  // have enough samples; otherwise fall back to the overall rate.
   let sourceCloseRate = SOURCE_CLOSE_RATE_PRIORS[sourceLc] ?? SOURCE_CLOSE_RATE_PRIORS.unknown;
   let sourceBasis: 'derived' | 'prior' = 'prior';
   let sourceN = 0;
   if (maps) {
-    const derived = maps.bySource.get(sourceLc);
-    if (derived && derived.n >= MIN_DERIVATION_SAMPLE) {
-      sourceCloseRate = derived.rate;
+    const commercialDerived = isCommercial ? maps.commercialBySource.get(sourceLc) : undefined;
+    if (commercialDerived && commercialDerived.n >= MIN_DERIVATION_SAMPLE) {
+      sourceCloseRate = commercialDerived.rate;
       sourceBasis = 'derived';
-      sourceN = derived.n;
-    } else if (derived) {
-      sourceN = derived.n;
+      sourceN = commercialDerived.n;
+    } else {
+      const derived = maps.bySource.get(sourceLc);
+      if (derived && derived.n >= MIN_DERIVATION_SAMPLE) {
+        sourceCloseRate = derived.rate;
+        sourceBasis = 'derived';
+        sourceN = derived.n;
+      } else if (derived) {
+        sourceN = derived.n;
+      }
     }
   }
-  // Normalize: a 0.45 source vs the typical 0.15 = strong signal.
-  // Map rates 0.0-0.6 to 0-1 contribution fraction.
   const sourceFraction = clamp(sourceCloseRate / 0.6, 0, 1);
-  contributions.sourceCloseRate = Math.round(sourceFraction * WEIGHTS.sourceCloseRate);
+  contributions.sourceCloseRate = isEnabled('sourceCloseRate') ? Math.round(sourceFraction * W.sourceCloseRate) : 0;
   if (input.source) {
     unconfirmedNotes.push(
-      `Source "${input.source}" closes at ${(sourceCloseRate * 100).toFixed(0)}% historically (${sourceBasis === 'derived' ? `from ${sourceN} closed jobs` : 'prior estimate — limited data'}).`
+      `Source "${input.source}" closes at ${(sourceCloseRate * 100).toFixed(0)}% historically (${sourceBasis === 'derived' ? `from ${sourceN} ${isCommercial ? 'commercial ' : ''}closed jobs` : 'prior estimate — limited data'}).`
     );
   }
 
@@ -372,53 +520,88 @@ export async function computeLeadQuality(input: LeadQualityInput): Promise<LeadQ
   let areaBasis: 'derived' | 'prior' = 'prior';
   let areaN = 0;
   if (maps && cityLc) {
-    const derived = maps.byCity.get(cityLc);
-    if (derived && derived.n >= MIN_DERIVATION_SAMPLE) {
-      areaCloseRate = derived.rate;
+    const commercialDerived = isCommercial ? maps.commercialByCity.get(cityLc) : undefined;
+    if (commercialDerived && commercialDerived.n >= MIN_DERIVATION_SAMPLE) {
+      areaCloseRate = commercialDerived.rate;
       areaBasis = 'derived';
-      areaN = derived.n;
-    } else if (derived) {
-      areaN = derived.n;
+      areaN = commercialDerived.n;
+    } else {
+      const derived = maps.byCity.get(cityLc);
+      if (derived && derived.n >= MIN_DERIVATION_SAMPLE) {
+        areaCloseRate = derived.rate;
+        areaBasis = 'derived';
+        areaN = derived.n;
+      } else if (derived) {
+        areaN = derived.n;
+      }
     }
   }
-  const areaFraction = clamp(areaCloseRate / 0.35, 0, 1); // 35% is the historical ceiling
-  contributions.areaCloseRate = Math.round(areaFraction * WEIGHTS.areaCloseRate);
+  const areaFraction = clamp(areaCloseRate / 0.35, 0, 1);
+  contributions.areaCloseRate = isEnabled('areaCloseRate') ? Math.round(areaFraction * W.areaCloseRate) : 0;
   if (cityLc) {
     unconfirmedNotes.push(
-      `${input.city} closes at ${(areaCloseRate * 100).toFixed(0)}% historically (${areaBasis === 'derived' ? `from ${areaN} closed jobs in this city` : 'regional prior'}).`
+      `${input.city} closes at ${(areaCloseRate * 100).toFixed(0)}% historically (${areaBasis === 'derived' ? `from ${areaN} ${isCommercial ? 'commercial ' : ''}closed jobs in this city` : 'regional prior'}).`
     );
   }
 
   // ─── 5. Returning customer ───────────────────────────────────────────
-  const returning = await isReturningCustomer(input.email, input.phone);
-  contributions.returningCustomer = returning ? WEIGHTS.returningCustomer : 0;
-  if (returning) {
-    unconfirmedNotes.push(`Returning customer — has a prior closed job in our system.`);
+  const returningMatch = await findReturningCustomer(input.email, input.phone);
+  contributions.returningCustomer = isEnabled('returningCustomer') && returningMatch.isReturning ? W.returningCustomer : 0;
+  if (returningMatch.isReturning) {
+    unconfirmedNotes.push(
+      `Returning customer — has a prior closed job in our system${returningMatch.originalRepSlug ? ` with rep "${returningMatch.originalRepSlug}"` : ''}. Routing layer will auto-route to that rep if still active.`
+    );
   }
 
-  // ─── 6. Commercial flag ──────────────────────────────────────────────
-  const isCommercial = !!input.company || /commercial|business|llc|inc/i.test(input.recordType || '');
-  contributions.commercial = isCommercial ? WEIGHTS.commercial : 0;
+  // ─── 6. Commercial intent (binary) ───────────────────────────────────
+  contributions.commercialIntent = isEnabled('commercialIntent') && isCommercial ? W.commercialIntent : 0;
   if (isCommercial) {
     unconfirmedNotes.push(`Commercial / company lead${input.company ? ` (${input.company})` : ''}.`);
   }
 
-  // ─── 7. Estimated job value (when roof measure is in) ────────────────
+  // ─── 7. Commercial estimates-delivered rate ──────────────────────────
+  // For commercial leads, "did we even get to an estimate" is a leading
+  // indicator that matters more than "did we win" (commercial close cycles
+  // run months, not days).
+  let commEstDeliveredRate = 0;
+  let commEstBasis: 'derived' | 'prior' | 'na' = 'na';
+  let commEstN = 0;
+  if (isCommercial && maps) {
+    const derived = maps.commercialEstDeliveredBySource.get(sourceLc);
+    if (derived && derived.n >= 5) {
+      commEstDeliveredRate = derived.rate;
+      commEstBasis = 'derived';
+      commEstN = derived.n;
+    } else {
+      commEstDeliveredRate = 0.4;
+      commEstBasis = 'prior';
+    }
+  }
+  if (isCommercial && isEnabled('commercialEstimatesDelivered')) {
+    contributions.commercialEstimatesDelivered = Math.round(clamp(commEstDeliveredRate, 0, 1) * W.commercialEstimatesDelivered);
+    if (commEstBasis === 'derived') {
+      unconfirmedNotes.push(
+        `Commercial estimates-delivered rate for this source: ${(commEstDeliveredRate * 100).toFixed(0)}% (from ${commEstN} commercial leads).`
+      );
+    }
+  } else {
+    contributions.commercialEstimatesDelivered = 0;
+  }
+
+  // ─── 8. Estimated job value (when roof measure is in) ────────────────
   let estimatedJobValueScore = 0;
-  if (input.estimatedJobValue && input.estimatedJobValue > 0) {
-    // Map $5k-$50k to 0-1 fraction
+  if (isEnabled('estimatedJobValue') && input.estimatedJobValue && input.estimatedJobValue > 0) {
     const fraction = clamp((input.estimatedJobValue - 5000) / (50000 - 5000), 0, 1);
-    estimatedJobValueScore = Math.round(fraction * WEIGHTS.estimatedJobValue);
+    estimatedJobValueScore = Math.round(fraction * W.estimatedJobValue);
   }
   contributions.estimatedJobValue = estimatedJobValueScore;
 
-  // ─── 8. Roof complexity ──────────────────────────────────────────────
+  // ─── 9. Roof complexity ──────────────────────────────────────────────
   let complexityScore = 0;
-  if (input.roofSqFt && input.roofPitch) {
-    // Big complex roofs are higher-margin. Map sq ft × pitch normalized.
+  if (isEnabled('roofComplexity') && input.roofSqFt && input.roofPitch) {
     const complexity = (input.roofSqFt / 3000) * (input.roofPitch / 6);
     const fraction = clamp(complexity, 0, 1);
-    complexityScore = Math.round(fraction * WEIGHTS.roofComplexity);
+    complexityScore = Math.round(fraction * W.roofComplexity);
   }
   contributions.roofComplexity = complexityScore;
 
@@ -433,7 +616,8 @@ export async function computeLeadQuality(input: LeadQualityInput): Promise<LeadQ
     hailEventCountNearby,
     hailLargestSizeInches,
     hailMostRecentDays,
-    dateOfLossWithinYear,
+    hailDerivedDateOfLoss,
+    hailDerivedDateOfLossWithinYear: hailWithinYear,
     sourceName: input.source || '',
     sourceHistoricalCloseRate: sourceCloseRate,
     sourceCloseRateBasis: sourceBasis,
@@ -442,8 +626,13 @@ export async function computeLeadQuality(input: LeadQualityInput): Promise<LeadQ
     areaHistoricalCloseRate: areaCloseRate,
     areaCloseRateBasis: areaBasis,
     areaSampleSize: areaN,
-    isReturningCustomer: returning,
+    isReturningCustomer: returningMatch.isReturning,
+    originalRepSlug: returningMatch.originalRepSlug,
+    originalInstallJnid: returningMatch.originalInstallJnid,
     isCommercial,
+    commercialEstimatesDeliveredRate: commEstDeliveredRate,
+    commercialEstimatesDeliveredBasis: commEstBasis,
+    commercialEstimatesDeliveredSampleSize: commEstN,
     roofSqFt: input.roofSqFt || null,
     roofPitch: input.roofPitch || null,
     estimatedJobValue: input.estimatedJobValue || null,
@@ -489,7 +678,6 @@ export async function recomputeLeadQuality(params: {
   estimatedJobValue?: number;
   // Other context if available
   county?: string;
-  dateOfLoss?: string;
   recordType?: string;
   company?: string;
   email?: string;
@@ -510,7 +698,6 @@ export async function recomputeLeadQuality(params: {
     zip: params.zip,
     county: params.county,
     source: params.source,
-    dateOfLoss: params.dateOfLoss,
     recordType: params.recordType,
     company: params.company,
     email: params.email,
@@ -543,7 +730,8 @@ export function repSafeUnconfirmedContext(result: LeadQualityResult): {
     hailEventCountNearby: number;
     hailLargestSizeInches: number;
     hailMostRecentDays: number | null;
-    dateOfLossWithinYear: boolean;
+    hailDerivedDateOfLoss: string | null;
+    hailDerivedDateOfLossWithinYear: boolean;
     sourceName: string;
     areaName: string;
     isReturningCustomer: boolean;
@@ -557,7 +745,8 @@ export function repSafeUnconfirmedContext(result: LeadQualityResult): {
       hailEventCountNearby: result.factors.hailEventCountNearby,
       hailLargestSizeInches: result.factors.hailLargestSizeInches,
       hailMostRecentDays: result.factors.hailMostRecentDays,
-      dateOfLossWithinYear: result.factors.dateOfLossWithinYear,
+      hailDerivedDateOfLoss: result.factors.hailDerivedDateOfLoss,
+      hailDerivedDateOfLossWithinYear: result.factors.hailDerivedDateOfLossWithinYear,
       sourceName: result.factors.sourceName,
       areaName: result.factors.areaName,
       isReturningCustomer: result.factors.isReturningCustomer,

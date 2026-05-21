@@ -94,13 +94,16 @@ interface QualityFactorsLite {
   hailEventCountNearby?: number;
   hailLargestSizeInches?: number;
   hailMostRecentDays?: number | null;
-  dateOfLossWithinYear?: boolean;
+  hailDerivedDateOfLoss?: string | null;
+  hailDerivedDateOfLossWithinYear?: boolean;
   sourceName?: string;
   sourceHistoricalCloseRate?: number;
   areaName?: string;
   areaHistoricalCloseRate?: number;
   isReturningCustomer?: boolean;
+  originalRepSlug?: string;
   isCommercial?: boolean;
+  commercialEstimatesDeliveredRate?: number;
 }
 
 interface DistributionLog {
@@ -275,6 +278,61 @@ export default function LeadDistroAdmin() {
   const [repStatus, setRepStatus] = useState<RepStatus[]>([]);
   const [repStatusLoading, setRepStatusLoading] = useState(false);
 
+  // Lead Quality config (BETA) state
+  interface QualityWeights {
+    hailRisk: number;
+    hailRecency: number;
+    hailDerivedDateOfLoss: number;
+    sourceCloseRate: number;
+    areaCloseRate: number;
+    returningCustomer: number;
+    commercialIntent: number;
+    commercialEstimatesDelivered: number;
+    estimatedJobValue: number;
+    roofComplexity: number;
+  }
+  interface QualityConfig {
+    weights: QualityWeights;
+    weightsEnabled?: Partial<Record<keyof QualityWeights, boolean>>;
+  }
+  const DEFAULT_QUALITY_CONFIG: QualityConfig = {
+    weights: {
+      hailRisk: 18, hailRecency: 8, hailDerivedDateOfLoss: 12,
+      sourceCloseRate: 10, areaCloseRate: 8, returningCustomer: 20,
+      commercialIntent: 4, commercialEstimatesDelivered: 5,
+      estimatedJobValue: 10, roofComplexity: 5,
+    },
+    weightsEnabled: {
+      hailRisk: true, hailRecency: true, hailDerivedDateOfLoss: true,
+      sourceCloseRate: true, areaCloseRate: true, returningCustomer: true,
+      commercialIntent: true, commercialEstimatesDelivered: true,
+      estimatedJobValue: true, roofComplexity: true,
+    },
+  };
+  const QUALITY_META: Record<keyof QualityWeights, { label: string; description: string; color: string; tooltip: string; recommended: string }> = {
+    hailRisk: { label: 'Hail Risk Score', description: 'HailRecon 0-100 risk score for the address', color: 'bg-red-500', tooltip: 'Sourced from storm-report-service. Combines NWS alerts, Iowa State Mesonet, and HailRecon. The higher the regional risk, the higher the lead quality.', recommended: '15–25%' },
+    hailRecency: { label: 'Hail Recency Bonus', description: 'Bonus for very recent hail events nearby', color: 'bg-orange-500', tooltip: 'Full bonus for events <30 days old, decays to 0 at 180 days. Fresh hail = active insurance opportunity.', recommended: '5–12%' },
+    hailDerivedDateOfLoss: { label: 'Hail-Derived Date of Loss', description: 'Auto-detected Date of Loss from HailRecon', color: 'bg-violet-500', tooltip: 'Replaces the JN-sourced Date of Loss field (which is often blank or stale). When a hail event was detected within the last 365 days at the address, the most recent event date becomes the effective Date of Loss for insurance-signal scoring. The derived value can be pushed back to JN as the authoritative field.', recommended: '10–15%' },
+    sourceCloseRate: { label: 'Source Historical Close Rate', description: 'How often this lead source actually closes', color: 'bg-emerald-500', tooltip: 'Derived from the outcome log (≥15 samples) or falls back to a defensible prior. For commercial leads, the commercial-specific source rate is preferred when available.', recommended: '8–15%' },
+    areaCloseRate: { label: 'Area Historical Close Rate', description: 'How often leads from this city close', color: 'bg-cyan-500', tooltip: 'City-level close rate derived from the outcome log. Commercial leads use the commercial-specific city rate when available.', recommended: '5–12%' },
+    returningCustomer: { label: 'Returning Customer', description: 'Customer has a prior closed install', color: 'bg-brand-green', tooltip: 'Returning customers automatically route to the original rep when that rep is still active (loyalty trumps algorithm). This weight is the SCORING bonus for cases where the original rep is no longer with us. Recommended high — repeat business is the strongest signal in the model.', recommended: '15–25%' },
+    commercialIntent: { label: 'Commercial Intent (binary)', description: 'Lead is a commercial / company account', color: 'bg-amber-500', tooltip: 'Binary flag — small base bonus when the contact has a company name or commercial record type. Most of the commercial signal is carried by the next factor (estimates-delivered).', recommended: '3–6%' },
+    commercialEstimatesDelivered: { label: 'Commercial Estimates Delivered', description: '% of commercial leads from this source we get to an estimate', color: 'bg-yellow-500', tooltip: 'Leading indicator for commercial. The close cycle for commercial roofing runs months — "did we even get to an estimate?" is a much more responsive signal than win/loss. Only counts when ≥5 commercial leads from this source have been logged.', recommended: '3–7%' },
+    estimatedJobValue: { label: 'Estimated Job Value', description: 'Dollar-band predicted job size', color: 'bg-pink-500', tooltip: 'Populates after roof-measure runs. $5k → 0pts; $50k+ → full weight. When the measure is in, confidence on the lead quality bumps from "preliminary" to "updated".', recommended: '7–12%' },
+    roofComplexity: { label: 'Roof Complexity', description: 'Sq ft × pitch when measure is in', color: 'bg-sky-500', tooltip: 'Bigger / steeper roofs = higher margin. Computed as (sqFt/3000) × (pitch/6), clamped 0-1. Requires roof-measure data.', recommended: '3–7%' },
+  };
+  const [quality, setQuality] = useState<QualityConfig>(DEFAULT_QUALITY_CONFIG);
+  const [qualityLoaded, setQualityLoaded] = useState(false);
+  const [qualitySaving, setQualitySaving] = useState(false);
+  const [qualitySaveMsg, setQualitySaveMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const isQualityFactorEnabled = (k: keyof QualityWeights) =>
+    quality.weightsEnabled?.[k] !== false;
+  const qualitySum = (Object.keys(quality.weights) as (keyof QualityWeights)[])
+    .filter(isQualityFactorEnabled)
+    .reduce((a, k) => a + quality.weights[k], 0);
+  const qualityValid = qualitySum === 100;
+
   // Calibration recommendations state
   interface CalibRec {
     factor: string;
@@ -419,6 +477,57 @@ export default function LeadDistroAdmin() {
     }
   }, []);
 
+  const loadQualityConfig = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/lead-distro/quality-config');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.config) {
+          setQuality({
+            weights: { ...DEFAULT_QUALITY_CONFIG.weights, ...data.config.weights },
+            weightsEnabled: { ...DEFAULT_QUALITY_CONFIG.weightsEnabled, ...data.config.weightsEnabled },
+          });
+          setQualityLoaded(true);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load quality config:', err);
+    }
+  }, []);
+
+  const handleQualityWeightChange = (key: keyof QualityWeights, value: number) => {
+    setQuality(prev => ({ ...prev, weights: { ...prev.weights, [key]: value } }));
+  };
+  const toggleQualityFactor = (key: keyof QualityWeights) => {
+    setQuality(prev => ({
+      ...prev,
+      weightsEnabled: { ...prev.weightsEnabled, [key]: prev.weightsEnabled?.[key] === false ? true : false },
+    }));
+  };
+  const saveQualityConfig = async () => {
+    if (!qualityValid) return;
+    setQualitySaving(true);
+    setQualitySaveMsg(null);
+    try {
+      const res = await fetch('/api/admin/lead-distro/quality-config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ config: quality, updatedBy: user?.name || 'admin' }),
+      });
+      if (res.ok) {
+        setQualitySaveMsg({ type: 'success', text: 'Lead Quality config saved.' });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setQualitySaveMsg({ type: 'error', text: err.error || 'Save failed.' });
+      }
+    } catch {
+      setQualitySaveMsg({ type: 'error', text: 'Network error.' });
+    } finally {
+      setQualitySaving(false);
+      setTimeout(() => setQualitySaveMsg(null), 4000);
+    }
+  };
+
   const loadCalibration = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/lead-distro/recalibrate');
@@ -436,7 +545,8 @@ export default function LeadDistroAdmin() {
     loadHistory();
     loadRepStatus();
     loadCalibration();
-  }, [loadConfig, loadHistory, loadRepStatus, loadCalibration]);
+    loadQualityConfig();
+  }, [loadConfig, loadHistory, loadRepStatus, loadCalibration, loadQualityConfig]);
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
@@ -946,6 +1056,138 @@ export default function LeadDistroAdmin() {
                   How to apply: for each RAISE recommendation, increase that weight by 3–5 points; for each LOWER, decrease by the same. Redistribute to HOLD factors. Verify with Live Preview before saving.
                 </p>
               </>
+            )}
+          </section>
+
+          {/* ── Section 0c: Lead Quality Settings (BETA) ─────────────────── */}
+          <section className="bg-white/[0.02] border border-amber-500/20 rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center shrink-0">
+                  <TrendingUp size={20} className="text-amber-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <InfoTooltip content={
+                    <>
+                      <div className="font-semibold text-white mb-1">Lead Quality Scoring <span className="text-amber-400 text-[10px]">BETA</span></div>
+                      <div className="text-neutral-300 mb-2">A separate 0-100 score per inbound lead, computed from hail recon + source/area history + returning-customer + commercial signals.</div>
+                      <div className="space-y-1.5 text-neutral-300">
+                        <div>Visibility: owner/admin/manager only. Reps see raw inputs as "unconfirmed preliminary intelligence." Customers never see anything.</div>
+                        <div className="text-neutral-400 mt-2">Same rules as the lead-distro weights: enabled factors must total 100. Dismiss a factor to remove it from the sum and the audit log.</div>
+                      </div>
+                    </>
+                  }>
+                    <h2 className="text-lg font-semibold text-white">Lead Quality Scoring <span className="ml-1 text-xs px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 align-middle">BETA</span></h2>
+                  </InfoTooltip>
+                  <p className="text-sm text-neutral-400 mt-0.5">Tune the inputs to the lead-quality score. Hidden from reps & customers.</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className={`px-3 py-1.5 rounded-xl text-xs font-bold tabular-nums ${
+                  qualityValid
+                    ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
+                    : 'bg-red-500/10 border border-red-500/30 text-red-400'
+                }`}>
+                  {qualitySum} / 100
+                </div>
+                <button
+                  onClick={saveQualityConfig}
+                  disabled={qualitySaving || !qualityValid || !qualityLoaded}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-xs transition-all ${
+                    qualityValid && qualityLoaded
+                      ? 'bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300'
+                      : 'bg-neutral-700 text-neutral-400 cursor-not-allowed'
+                  }`}
+                >
+                  {qualitySaving ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
+                  Save Quality Weights
+                </button>
+              </div>
+            </div>
+
+            {qualitySaveMsg && (
+              <div className={`mb-3 px-3 py-2 rounded-lg text-xs ${
+                qualitySaveMsg.type === 'success'
+                  ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+                  : 'bg-red-500/10 border border-red-500/20 text-red-400'
+              }`}>
+                {qualitySaveMsg.text}
+              </div>
+            )}
+
+            <div className="space-y-3">
+              {(Object.keys(QUALITY_META) as (keyof QualityWeights)[]).map((key) => {
+                const meta = QUALITY_META[key];
+                const value = quality.weights[key];
+                const enabled = isQualityFactorEnabled(key);
+                return (
+                  <div key={key} className={enabled ? '' : 'opacity-40'}>
+                    <div className="flex items-center justify-between mb-1.5 gap-2">
+                      <div className="flex-1 min-w-0 flex items-start gap-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleQualityFactor(key)}
+                          aria-label={enabled ? `Disable ${meta.label}` : `Enable ${meta.label}`}
+                          title={enabled ? 'Dismiss this factor' : 'Re-enable this factor'}
+                          className="mt-0.5 shrink-0 transition-colors"
+                        >
+                          {enabled ? (
+                            <ToggleRight size={22} className="text-amber-400" />
+                          ) : (
+                            <ToggleLeft size={22} className="text-neutral-600" />
+                          )}
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <InfoTooltip content={
+                            <>
+                              <div className="font-semibold text-white mb-1">{meta.label}</div>
+                              <div className="text-neutral-300 mb-2">{meta.description}</div>
+                              <div className="space-y-1.5">
+                                <div><span className="text-neutral-500">Recommended:</span> <span className="text-emerald-400">{meta.recommended}</span></div>
+                                <div className="text-neutral-300">{meta.tooltip}</div>
+                              </div>
+                            </>
+                          }>
+                            <span className="text-sm font-medium text-white">{meta.label}</span>
+                          </InfoTooltip>
+                          {!enabled && (
+                            <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-neutral-700/50 text-neutral-400">DISABLED</span>
+                          )}
+                          <span className="ml-2 text-xs text-neutral-500">{meta.description}</span>
+                          <p className="text-xs text-neutral-600 mt-0.5">recommended {meta.recommended}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={value}
+                          disabled={!enabled}
+                          onChange={(e) => handleQualityWeightChange(key, Math.max(0, Math.min(100, parseInt(e.target.value) || 0)))}
+                          className="w-14 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white text-sm text-center focus:outline-none focus:border-amber-500/50 disabled:opacity-40 disabled:cursor-not-allowed"
+                        />
+                        <span className="text-xs text-neutral-500 w-4">%</span>
+                      </div>
+                    </div>
+                    <div className="relative h-1.5 bg-white/5 rounded-full overflow-hidden">
+                      <div
+                        className={`absolute inset-y-0 left-0 rounded-full transition-all duration-200 ${meta.color}`}
+                        style={{ width: enabled ? `${value}%` : '0%' }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {!qualityValid && (
+              <div className="mt-4 flex items-start gap-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
+                <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+                <div>
+                  Enabled quality weights must total 100. Currently {qualitySum} ({qualitySum > 100 ? `${qualitySum - 100} over` : `${100 - qualitySum} under`}).
+                </div>
+              </div>
             )}
           </section>
 
@@ -1615,7 +1857,7 @@ export default function LeadDistroAdmin() {
                                   {(log.qualityFactors.hailEventCountNearby ?? 0) > 0 && (
                                     <div>· Hail events nearby: {log.qualityFactors.hailEventCountNearby}{log.qualityFactors.hailLargestSizeInches ? `, largest ${log.qualityFactors.hailLargestSizeInches}"` : ''}{log.qualityFactors.hailMostRecentDays != null ? `, ${log.qualityFactors.hailMostRecentDays}d ago` : ''}</div>
                                   )}
-                                  {log.qualityFactors.dateOfLossWithinYear && <div>· Date of Loss &lt;12mo (insurance signal)</div>}
+                                  {log.qualityFactors.hailDerivedDateOfLossWithinYear && <div>· Date of Loss derived from hail: {log.qualityFactors.hailDerivedDateOfLoss?.slice(0, 10)} (auto-detected, not from JN)</div>}
                                   {log.qualityFactors.sourceName && <div>· Source: {log.qualityFactors.sourceName} ({((log.qualityFactors.sourceHistoricalCloseRate ?? 0) * 100).toFixed(0)}% historical)</div>}
                                   {log.qualityFactors.areaName && <div>· Area: {log.qualityFactors.areaName} ({((log.qualityFactors.areaHistoricalCloseRate ?? 0) * 100).toFixed(0)}% historical)</div>}
                                   {log.qualityFactors.isReturningCustomer && <div>· Returning customer</div>}

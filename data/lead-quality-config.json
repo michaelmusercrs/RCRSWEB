@@ -1,0 +1,28 @@
+{
+  "weights": {
+    "hailRisk": 18,
+    "hailRecency": 8,
+    "hailDerivedDateOfLoss": 12,
+    "sourceCloseRate": 10,
+    "areaCloseRate": 8,
+    "returningCustomer": 20,
+    "commercialIntent": 4,
+    "commercialEstimatesDelivered": 5,
+    "estimatedJobValue": 10,
+    "roofComplexity": 5
+  },
+  "weightsEnabled": {
+    "hailRisk": true,
+    "hailRecency": true,
+    "hailDerivedDateOfLoss": true,
+    "sourceCloseRate": true,
+    "areaCloseRate": true,
+    "returningCustomer": true,
+    "commercialIntent": true,
+    "commercialEstimatesDelivered": true,
+    "estimatedJobValue": true,
+    "roofComplexity": true
+  },
+  "updatedAt": "",
+  "updatedBy": ""
+}

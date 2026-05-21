@@ -788,6 +788,7 @@ class LeadDistributionService {
     // ─── BETA: Lead Quality compute ───────────────────────────────────────
     // Run in parallel with the rest of the distribution. If it fails, we
     // proceed without — the assignment doesn't depend on the quality score.
+    // dateOfLoss is intentionally NOT passed — it's derived from HailRecon.
     let qualityPromise: Promise<LeadQualityResult | null> = computeLeadQuality({
       leadId,
       address: leadAddress,
@@ -796,7 +797,6 @@ class LeadDistributionService {
       zip: leadContext?.zip,
       county: leadContext?.county,
       source,
-      dateOfLoss: leadContext?.dateOfLoss,
       recordType: leadContext?.recordType,
       company: leadContext?.company,
       email: leadContext?.email,
@@ -805,6 +805,78 @@ class LeadDistributionService {
       console.warn(`[LeadDistro] Quality compute failed for ${leadId}:`, err);
       return null;
     });
+
+    // ─── Returning customer auto-route ────────────────────────────────────
+    // Per policy: returning customers go back to the rep who closed their
+    // original job, when that rep is still active. This pre-empts the
+    // algorithm entirely — loyalty trumps scoring. The 20-point quality
+    // weight applies only as a fallback for cases where the original rep
+    // is no longer with us. Skipped when overrideRepSlug is already set.
+    if (!overrideRepSlug && leadId && leadId !== 'pending') {
+      try {
+        const quality = await qualityPromise;
+        // After awaiting, qualityPromise resolved value is cached; reset the
+        // var so downstream `await qualityPromise` doesn't fire a second time
+        // through Promise semantics (the .then chain still memoizes — safe).
+        qualityPromise = Promise.resolve(quality);
+        if (quality?.factors.isReturningCustomer && quality.factors.originalRepSlug) {
+          // Lenient slug match against the active sales-rep roster (same
+          // permissive matcher we use everywhere else).
+          const activeReps = getSalesReps();
+          const origSlugLc = quality.factors.originalRepSlug.toLowerCase();
+          const origRep = activeReps.find(r => {
+            const rNameSlug = r.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+            return r.slug === origSlugLc ||
+                   rNameSlug === origSlugLc ||
+                   origSlugLc.startsWith(r.slug + '-') || // 'aaron-lussi' starts-with 'aaron-'
+                   r.slug === origSlugLc.split('-')[0];   // fallback to first-name slug
+          });
+          if (origRep) {
+            const loyaltyScore: RepScore = {
+              repSlug: origRep.slug,
+              repName: origRep.name,
+              totalScore: 100,
+              factors: {
+                returningCustomerLoyalty: {
+                  score: 100,
+                  weight: 100,
+                  raw: 1.0,
+                  explanation: `Returning customer — auto-routed to original rep ${origRep.name} (prior install jnid: ${quality.factors.originalInstallJnid})`,
+                },
+              },
+              isAvailable: true,
+              isEligible: true,
+            };
+            const loyaltyReason = `Returning customer — auto-routed to original rep ${origRep.name}`;
+            await this.logDistribution(
+              logId, leadId, customerName, leadAddress, loyaltyScore, [], 'manual',
+              loyaltyReason, null, 'returning-customer-loyalty', config.updatedAt || '',
+              quality
+            );
+            googleSheetsService.upsertLeadOutcomeLog({
+              logId,
+              leadId,
+              assignedRep: origRep.slug,
+              originalAssignedRep: origRep.slug,
+              finalDisposition: 'open',
+            }).catch(err => {
+              console.warn(`[LeadDistro] outcome stub failed for returning-customer route ${leadId}:`, err);
+            });
+            leadResponseTimerService.startTimer(leadId, origRep.slug, customerName).catch(err => {
+              console.warn(`[LeadDistro] timer start failed for returning-customer route ${leadId}:`, err);
+            });
+            return {
+              assignedRep: loyaltyScore,
+              allScores: [loyaltyScore],
+              method: 'manual',
+              logId,
+            };
+          }
+        }
+      } catch (err) {
+        console.warn(`[LeadDistro] Returning-customer check failed for ${leadId}:`, err);
+      }
+    }
 
     // Sync response timer config from lead distribution config
     leadResponseTimerService.setConfig({

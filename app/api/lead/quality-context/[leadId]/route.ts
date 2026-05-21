@@ -78,8 +78,10 @@ export async function GET(
         }.`
       );
     }
-    if (factors.dateOfLossWithinYear) {
-      synthetic.unconfirmedNotes.push('Lead has a Date of Loss within the last 12 months — insurance opportunity.');
+    if (factors.hailDerivedDateOfLossWithinYear) {
+      synthetic.unconfirmedNotes.push(
+        `Hail-derived Date of Loss: ${factors.hailDerivedDateOfLoss?.slice(0, 10) || 'within last 12 months'} — insurance opportunity (auto-detected from HailRecon, not from JN).`
+      );
     }
     if (factors.sourceName) {
       synthetic.unconfirmedNotes.push(
