@@ -1,0 +1,94 @@
+
+=== PHASE 1: open legacy sheet ===
+Legacy doc title: "new inventory"
+Legacy tabs: Items, Login Check, SalesOrder, Users, Employee, Inventory
+Items catalog loaded: 11 entries
+
+=== PHASE 2: parse Inventory log ===
+Inventory tab headers (verbatim): ["Inventory ID","Item ID","DateTime","Amount","R#","Price","Cost","Delivery Photo"]
+Inventory tab total rows: 1868
+
+=== PHASE 3: categorize transactions ===
+Category counts: {"delivery":1694,"restock":107,"return":59,"adjustment":8,"unparseableDate":0,"missingItem":0}
+
+First 5 parsed rows:
+  2025-11-04 | item-132   |     -3 | delivery   | R#=10785
+  2025-11-04 | item-130   |     -2 | delivery   | R#=10785
+  2025-11-04 | item-125   |     -5 | delivery   | R#=10785
+  2025-11-04 | item-126   |     -2 | delivery   | R#=10785
+  2025-11-04 | item-127   |    -32 | delivery   | R#=10785
+
+Last 5 parsed rows:
+  2026-03-30 | item-129   |     -2 | delivery   | R#=10940
+  2026-03-30 | item-130   |     -1 | delivery   | R#=10940
+  2026-03-30 | item-132   |     -5 | delivery   | R#=10940
+  2026-03-31 | item-123   |     -3 | delivery   | R#=11032
+  2026-03-31 | item-124   |     -2 | delivery   | R#=11032
+
+=== PHASE 4: per-SKU aggregation ===
+
+=== PHASE 5: group restocks by date ===
+Distinct restock dates: 20
+First 5 distinct restock dates:
+  2025-02-18: 16 line(s) — item-128x64, item-132x60, item-132x100, item-132x100, item-132x100, item-131x8, item-130x16, item-129x48, item-127x100, item-127x100, item-127x100, item-126x72, item-125x28, item-125x100, item-124x72, item-123x96
+  2025-02-24: 3 line(s) — item-130x1, item-129x1, item-128x1
+  2025-04-10: 1 line(s) — item-133x30
+  2025-05-08: 6 line(s) — item-133x15, item-125x64, item-127x300, item-126x60, item-124x48, item-123x48
+  2025-05-13: 3 line(s) — item-130x32, item-128x32, item-127x300
+Last 5 distinct restock dates:
+  2025-12-17: 1 line(s) — item-124x16
+  2026-02-03: 1 line(s) — item-133x15
+  2026-02-04: 3 line(s) — item-123x48, item-127x450, item-132x48
+  2026-02-19: 2 line(s) — item-127x8, item-128x1
+  2026-03-04: 8 line(s) — item-127x150, item-124x48, item-126x72, item-125x64, item-132x24, item-128x32, item-129x32, item-130x32
+Total restock units across all dated entries: 7884 across 11 SKUs
+
+=== PHASE 6: re-run math vs master sheet ===
+Master Inventory_Products rows: 11
+
+Per-SKU inferred currentQty:
+--------------------------------------------------------------------------------------------------------------------------------------------
+sku        | name                         |   legR   legD legRet portR  portD portCM |  inferred | currentQty |      gap
+--------------------------------------------------------------------------------------------------------------------------------------------
+item-123   | 1 1/4 EG Nails               |    720    748      6   690     57      7 |       618 |          0 |      618
+item-124   | Bottom Caps (plastic)        |    409    396      9   421     10     10 |       443 |         47 |      396
+item-125   | RCRS Syn Felt                |    970    970      8  1044     90     10 |       972 |          0 |      972
+item-126   | Ice & Water Shield           |    594    568      5   607     45      7 |       600 |          0 |      600
+item-127   | Ridge Vent 4LF               |   3668   3940    220  4458   1600    239 |      3045 |          0 |     3045
+item-128   | 1 1/2” Black Bullet Boot     |    293    250      3   268     37      9 |       286 |         17 |      269
+item-129   | 2” Black Bullet Boot         |    243    282     12   313      0     16 |       302 |         39 |      263
+item-130   | 3” Black Bullet Boot         |    162    153      3   171      0      6 |       189 |         33 |      156
+item-131   | 4” Black Bullet Boot         |     21      8      0     8      0      0 |        21 |         13 |        8
+item-132   | Sealant                      |    744    708      0   746     78      0 |       704 |          0 |      704
+item-133   | Zipper Boot                  |     60     53      0    54      2      0 |        59 |          4 |       55
+--------------------------------------------------------------------------------------------------------------------------------------------
+SKUs whose inferred qty is <=0: 0/11  (owner expects 0)
+
+=== PHASE 7: overlap risk analysis (portal vs legacy since 2026-05-15) ===
+Legacy log overall date range: 2025-02-18 → 2026-03-31
+Legacy rows with date >= 2026-05-15: 0 {}
+Legacy rows whose R# starts with TKT- (portal back-sync evidence): 0
+Overlap risk: No TKT-prefixed R#s found in legacy — back-sync likely not active during the data we read.
+
+Alt math (avoiding portal+legacy delivery double-count): inferred = legR - legD + legRet + portR + portCM
+--------------------------------------------------------------------------------------------------------------------------------------------
+sku        |  inferred_alt | currentQty |      gap
+--------------------------------------------------------------------------------------------------------------------------------------------
+item-123   |           675 |          0 |      675
+item-124   |           453 |         47 |      406
+item-125   |          1062 |          0 |     1062
+item-126   |           645 |          0 |      645
+item-127   |          4645 |          0 |     4645
+item-128   |           323 |         17 |      306
+item-129   |           302 |         39 |      263
+item-130   |           189 |         33 |      156
+item-131   |            21 |         13 |        8
+item-132   |           782 |          0 |      782
+item-133   |            61 |          4 |       57
+
+=== PHASE 8: top 3 most-restocked SKUs ===
+  item-127 Ridge Vent 4LF: restock 3668u / 16tx vs delivery 3940u / 183tx
+  item-125 RCRS Syn Felt: restock 970u / 13tx vs delivery 970u / 217tx
+  item-132 Sealant: restock 744u / 10tx vs delivery 708u / 218tx
+
+=== PHASE 9: write outputs ===
