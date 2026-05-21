@@ -32,6 +32,7 @@ import {
 import { LoadingSpinner } from '@/components/command-center';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
+import { NotifyRepButton } from '@/components/portal-messaging/NotifyRepButton';
 
 // =============================================================================
 // Types
@@ -391,6 +392,7 @@ function LeaderboardTable({
               <th className="px-4 py-3 text-right hidden lg:table-cell">Close Rate</th>
               <th className="px-4 py-3 text-center hidden md:table-cell">Streak</th>
               <th className="px-4 py-3 text-center w-12">Trend</th>
+              <th className="px-4 py-3 text-center w-20 hidden md:table-cell">Notify</th>
               <th className="px-4 py-3 w-8"></th>
             </tr>
           </thead>
@@ -524,6 +526,14 @@ function LeaderboardTable({
                     {entry.trend === 'up' && <ArrowUp className="h-4 w-4 text-green-400 mx-auto" />}
                     {entry.trend === 'down' && <ArrowDown className="h-4 w-4 text-red-400 mx-auto" />}
                     {entry.trend === 'steady' && <Minus className="h-4 w-4 text-neutral-500 mx-auto" />}
+                  </td>
+
+                  {/* Notify */}
+                  <td
+                    className="px-4 py-3 text-center hidden md:table-cell"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <NotifyRepButton repSlug={entry.repSlug} repName={entry.repName} />
                   </td>
 
                   {/* Arrow */}
