@@ -65,6 +65,19 @@ function getStaleDays(): number {
   return STALE_DAYS_DEFAULT;
 }
 
+// Maturity threshold (days). Projects whose firstEstimate is younger than
+// this are "fresh" — too young to fairly count in close-rate (the deal
+// hasn't had time to win yet). Probe-derived 2026-05-21 from 12.4K won
+// jobs: only 26% of wins close within 30 days, 54% by day 60, 66% by 90.
+// At 30d default we exclude the youngest cohort where the close-rate
+// calc is most distorted. Admin-overridable via CHRISVIEW_MATURITY_DAYS.
+const MATURITY_DAYS_DEFAULT = 30;
+function getMaturityDays(): number {
+  const env = parseInt(process.env.CHRISVIEW_MATURITY_DAYS || '', 10);
+  if (Number.isFinite(env) && env > 0) return env;
+  return MATURITY_DAYS_DEFAULT;
+}
+
 interface JNInvoice {
   jnid: string;
   number?: string;
@@ -124,6 +137,10 @@ export interface WinLossProject {
   lostReason: 'explicit' | 'stale' | null;
   /** Days since last activity (status_change OR updated OR created). */
   daysSinceActivity: number | null;
+  /** Days since the first estimate was created on this project (= project age). */
+  ageDays: number | null;
+  /** False when ageDays < maturityDays — project is too young to fairly count in close-rate. */
+  isMature: boolean;
   /** Convenience flag = outcome === 'won'. */
   won: boolean;
   /** Earliest invoice date if any invoice exists (separate from won/lost — for time-to-invoice). */
@@ -154,6 +171,11 @@ export interface WinLossRollup {
   closeRate: number;
 }
 
+export interface PendingAgeBucket {
+  bucket: string;
+  count: number;
+}
+
 export interface WinLossAnalysis {
   generatedAt: string;
   windowDays: number;
@@ -165,6 +187,18 @@ export interface WinLossAnalysis {
   overallConversionRate: number;
   /** won ÷ (won + lost) — purer "of resolved, what closed". */
   overallCloseRate: number;
+  /** Mature-subset stats — projects aged >= maturityDays only. Gives a fairer
+   *  short-window close rate by excluding deals too young to have resolved. */
+  matureProjects: number;
+  matureWon: number;
+  matureLost: number;
+  maturePending: number;
+  matureCloseRate: number;
+  matureConversionRate: number;
+  /** Count of projects excluded from the mature subset — they're <maturityDays old. */
+  freshProjects: number;
+  /** Distribution of pending projects by age — shows where active deals are. */
+  pendingByAge: PendingAgeBucket[];
   byRep: WinLossRollup[];
   bySource: WinLossRollup[];
   byInsurance: WinLossRollup[];
@@ -183,6 +217,8 @@ export interface WinLossAnalysis {
     preApprovedRePattern: string;
     /** Days of inactivity threshold for auto-lost classification. */
     staleDays: number;
+    /** Days threshold below which a project is considered too fresh for the close-rate calculation. */
+    maturityDays: number;
     /** Count of projects lost because JN status === 'Lost'. */
     explicitLostCount: number;
     /** Count of projects lost because they aged past staleDays in a pre-Approved status. */
@@ -222,6 +258,7 @@ export async function analyzeWinLoss(opts: { days?: number } = {}): Promise<WinL
   const nowSec = Math.floor(Date.now() / 1000);
   const since = nowSec - daysWindow * 86400;
   const staleDays = getStaleDays();
+  const maturityDays = getMaturityDays();
 
   // 1. Pull /estimates in window (paginate, newest first, stop when out of range).
   const estimates: JNEstimate[] = [];
@@ -387,6 +424,10 @@ export async function analyzeWinLoss(opts: { days?: number } = {}): Promise<WinL
     const rep = (firstEst?.sales_rep_name || job?.sales_rep_name || '').trim();
     const source = (job?.source_name || '').trim();
 
+    // Project age = days since the first estimate landed.
+    const ageDays = firstEstAt ? Math.floor((nowSec - firstEstAt) / 86400) : null;
+    const isMature = ageDays != null && ageDays >= maturityDays;
+
     projects.push({
       rNumber,
       jobJnid: jobId,
@@ -395,6 +436,8 @@ export async function analyzeWinLoss(opts: { days?: number } = {}): Promise<WinL
       outcome,
       lostReason,
       daysSinceActivity,
+      ageDays,
+      isMature,
       won,
       firstInvoiceAt: firstInvAt ? new Date(firstInvAt * 1000).toISOString() : null,
       daysToInvoice,
@@ -462,6 +505,36 @@ export async function analyzeWinLoss(opts: { days?: number } = {}): Promise<WinL
     ? Math.round((wonProjects / resolvedProjects) * 1000) / 10
     : 0;
 
+  // Mature subset — excludes projects too young to fairly count.
+  const mature = projects.filter(p => p.isMature);
+  const matureProjects = mature.length;
+  const matureWon = mature.filter(p => p.outcome === 'won').length;
+  const matureLost = mature.filter(p => p.outcome === 'lost').length;
+  const maturePending = matureProjects - matureWon - matureLost;
+  const matureResolved = matureWon + matureLost;
+  const matureCloseRate = matureResolved > 0
+    ? Math.round((matureWon / matureResolved) * 1000) / 10
+    : 0;
+  const matureConversionRate = matureProjects > 0
+    ? Math.round((matureWon / matureProjects) * 1000) / 10
+    : 0;
+  const freshProjects = projects.filter(p => !p.isMature).length;
+
+  // Pending by age — shows where the still-active deals are.
+  // 0-7d (brand new) / 8-30d (early) / 31-60d (mid) / 60+d (about to stale)
+  const pendingByAge: PendingAgeBucket[] = (() => {
+    const buckets = [
+      { bucket: '0-7d',  min: 0,  max: 7 },
+      { bucket: '8-30d', min: 8,  max: 30 },
+      { bucket: '31-60d',min: 31, max: 60 },
+      { bucket: '60+d',  min: 61, max: Infinity },
+    ];
+    return buckets.map(b => ({
+      bucket: b.bucket,
+      count: projects.filter(p => p.outcome === 'pending' && p.ageDays != null && p.ageDays >= b.min && p.ageDays <= b.max).length,
+    }));
+  })();
+
   const result: WinLossAnalysis = {
     generatedAt: new Date().toISOString().slice(0, 10),
     windowDays: daysWindow,
@@ -471,6 +544,14 @@ export async function analyzeWinLoss(opts: { days?: number } = {}): Promise<WinL
     pendingProjects,
     overallConversionRate,
     overallCloseRate,
+    matureProjects,
+    matureWon,
+    matureLost,
+    maturePending,
+    matureCloseRate,
+    matureConversionRate,
+    freshProjects,
+    pendingByAge,
     byRep,
     bySource,
     byInsurance,
@@ -486,6 +567,7 @@ export async function analyzeWinLoss(opts: { days?: number } = {}): Promise<WinL
       lostRePattern: LOST_RE.source,
       preApprovedRePattern: PRE_APPROVED_RE.source,
       staleDays,
+      maturityDays,
       explicitLostCount: projects.filter(p => p.lostReason === 'explicit').length,
       staleLostCount: projects.filter(p => p.lostReason === 'stale').length,
     },

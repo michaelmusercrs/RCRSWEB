@@ -36,6 +36,8 @@ interface Project {
   outcome: 'won' | 'lost' | 'pending';
   lostReason: 'explicit' | 'stale' | null;
   daysSinceActivity: number | null;
+  ageDays: number | null;
+  isMature: boolean;
   won: boolean;
   firstInvoiceAt: string | null;
   daysToInvoice: number | null;
@@ -44,6 +46,10 @@ interface Project {
   source: string;
   isInsurance: boolean;
   jobStatus: string;
+}
+interface PendingAgeBucket {
+  bucket: string;
+  count: number;
 }
 interface Data {
   generatedAt: string;
@@ -54,6 +60,14 @@ interface Data {
   pendingProjects: number;
   overallConversionRate: number;
   overallCloseRate: number;
+  matureProjects: number;
+  matureWon: number;
+  matureLost: number;
+  maturePending: number;
+  matureCloseRate: number;
+  matureConversionRate: number;
+  freshProjects: number;
+  pendingByAge: PendingAgeBucket[];
   byRep: Rollup[];
   bySource: Rollup[];
   byInsurance: Rollup[];
@@ -69,6 +83,7 @@ interface Data {
     lostRePattern: string;
     preApprovedRePattern: string;
     staleDays: number;
+    maturityDays: number;
     explicitLostCount: number;
     staleLostCount: number;
   };
@@ -149,7 +164,7 @@ export default function WinLossPage() {
         )}
         {data && (
           <>
-            {/* KPI strip */}
+            {/* KPI strip — RAW */}
             <section className="grid grid-cols-2 md:grid-cols-5 gap-3">
               <Kpi label="Projects with estimates" value={data.totalProjects.toString()} sub={`last ${data.windowDays} days`} />
               <Kpi label="Won (Approved+)" value={data.wonProjects.toString()} sub="status ≥ Approved Jobs" />
@@ -159,7 +174,46 @@ export default function WinLossPage() {
                 sub={`${data.meta.explicitLostCount} explicit · ${data.meta.staleLostCount} stale (>${data.meta.staleDays}d)`}
               />
               <Kpi label="Pending" value={data.pendingProjects.toString()} sub={`active within ${data.meta.staleDays}d`} />
-              <Kpi label="Close rate (resolved)" value={`${data.overallCloseRate}%`} sub={`conversion ${data.overallConversionRate}% incl. pending`} highlight />
+              <Kpi label="Close rate (raw)" value={`${data.overallCloseRate}%`} sub={`conversion ${data.overallConversionRate}% incl. pending`} />
+            </section>
+
+            {/* Mature-subset row — fairer for short windows */}
+            <section className="bg-zinc-900 border border-[#39FF14]/20 rounded-xl p-4">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-[#39FF14]">Mature subset (age-adjusted)</h3>
+                  <p className="text-xs text-zinc-400 mt-1">
+                    Excludes the {data.freshProjects} projects younger than {data.meta.maturityDays} days (too fresh to have had time to close).
+                    Wins are slow — p50 is ~54 days from creation to Approved+, p75 is ~116 days. Counting brand-new estimates in the close rate
+                    biases it optimistically. This subset is the fairer read.
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <Kpi label="Mature projects" value={data.matureProjects.toString()} sub={`age ≥ ${data.meta.maturityDays}d`} />
+                <Kpi label="Mature won" value={data.matureWon.toString()} />
+                <Kpi label="Mature lost" value={data.matureLost.toString()} />
+                <Kpi label="Mature pending" value={data.maturePending.toString()} />
+                <Kpi label="Close rate (mature)" value={`${data.matureCloseRate}%`} sub={`conversion ${data.matureConversionRate}% incl. pending`} highlight />
+              </div>
+            </section>
+
+            {/* Pending by age — shows where the active deals are */}
+            <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+              <h3 className="text-sm font-semibold mb-1">Pending by age</h3>
+              <p className="text-xs text-zinc-400 mb-3">
+                Distribution of the {data.pendingProjects} pending projects by how old their first estimate is.
+                Anything past {data.meta.staleDays}d should already be auto-classified as lost — the 60+d bucket here is
+                the edge case (recent activity within staleDays kept them alive).
+              </p>
+              <div className="grid grid-cols-4 gap-3">
+                {data.pendingByAge.map(b => (
+                  <div key={b.bucket} className="bg-zinc-950 border border-zinc-800 rounded-lg p-3">
+                    <div className="text-2xl font-bold text-white">{b.count}</div>
+                    <div className="text-[10px] uppercase tracking-wide text-zinc-500 mt-1">{b.bucket}</div>
+                  </div>
+                ))}
+              </div>
             </section>
 
             {/* Close rate by rep — bar chart */}
