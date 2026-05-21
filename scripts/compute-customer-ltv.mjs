@@ -98,9 +98,12 @@ const out = {
   repeatRevenue: Math.round(repeatRevenue * 100) / 100,
   repeatRate: totalCustomers > 0 ? Math.round((repeatCount / totalCustomers) * 1000) / 10 : 0,
   top10PctRevenueShare: totalRevenue > 0 ? Math.round((top10PctRevenue / totalRevenue) * 1000) / 10 : 0,
-  topCustomers: customers.slice(0, 100), // top 100 by lifetime
+  topCustomers: customers.slice(0, 100), // top 100 by lifetime — UI table sample
   repeatCustomers: repeats.slice(0, 100),
   recentBig: customers.filter(c => c.recentInvoices > 0).slice(0, 100),
+  // Full per-customer rows — consumers like segmented-ltv need the whole
+  // book, not just the top 100. ~3K customers × ~10 fields ≈ 3 MB.
+  allCustomers: customers,
   cohorts: cohortRows,
 };
 

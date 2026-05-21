@@ -210,18 +210,26 @@ async function computeSegmentedLTV(): Promise<SegmentedLTVAnalysis> {
 
   // ---- 1. Build working customer pool from customer-ltv.json ----
   //
-  // The JSON ships top 100 by lifetime + top 100 repeats + 90 recent. Dedupe
-  // by customer string (which is unique - QB record-number suffix guarantees it).
+  // `allCustomers` was added 2026-05-21 to ship the full QB book (~3K rows)
+  // — segmented analysis needs that, not the top-100 slices. Older callers
+  // still get topCustomers / repeatCustomers / recentBig as before.
+  // Fall back to the slice-dedupe path if `allCustomers` is missing (older
+  // cached JSON before the rebuild).
   const pool = new Map<string, LTVRecord>();
   const ltvJson = ltvData as unknown as {
     totalCustomers: number;
+    allCustomers?: LTVRecord[];
     topCustomers: LTVRecord[];
     repeatCustomers: LTVRecord[];
     recentBig: LTVRecord[];
   };
-  for (const c of ltvJson.topCustomers || []) pool.set(c.customer, c);
-  for (const c of ltvJson.repeatCustomers || []) if (!pool.has(c.customer)) pool.set(c.customer, c);
-  for (const c of ltvJson.recentBig || []) if (!pool.has(c.customer)) pool.set(c.customer, c);
+  if (ltvJson.allCustomers && ltvJson.allCustomers.length > 0) {
+    for (const c of ltvJson.allCustomers) pool.set(c.customer, c);
+  } else {
+    for (const c of ltvJson.topCustomers || []) pool.set(c.customer, c);
+    for (const c of ltvJson.repeatCustomers || []) if (!pool.has(c.customer)) pool.set(c.customer, c);
+    for (const c of ltvJson.recentBig || []) if (!pool.has(c.customer)) pool.set(c.customer, c);
+  }
   const workingPool = Array.from(pool.values());
 
   // ---- 2. Pull JN contacts + jobs, build per-contact insurance flag ----
