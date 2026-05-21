@@ -142,5 +142,27 @@ export async function POST(request: NextRequest) {
 
   auditLog('BLOG_CREATE', auth.user.email, `Created blog post "${title}" (${newPost.id}, status: ${status})`, request);
 
+  // Notify admins via GroupMe when a rep submits a post for review.
+  // Fire-and-forget — never block the rep's submit response.
+  if (status === 'review') {
+    (async () => {
+      try {
+        const { groupMeService, getGroupMeConfigFromEnv } = await import('@/lib/groupme-service');
+        const cfg = getGroupMeConfigFromEnv();
+        if (cfg.enabled && cfg.botId) {
+          await groupMeService.sendNotification(cfg, {
+            type: 'custom',
+            title: 'New blog post for review',
+            message: `"${title}" by ${auth.user.name} — review at /command-center/blog/pending`,
+            details: { authorSlug: auth.user.userId, postId: newPost.id, status },
+            priority: 'normal',
+          });
+        }
+      } catch (err) {
+        console.error('[BLOG] GroupMe notify failed:', err);
+      }
+    })();
+  }
+
   return NextResponse.json({ success: true, post: newPost }, { status: 201 });
 }
