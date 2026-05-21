@@ -3,6 +3,13 @@ import { apiError } from '@/lib/api-response';
 import { readBlogPosts, upsertBlogPost, type BlogPost } from '@/lib/blog-posts-store';
 import { withCronLock } from '@/lib/cron-lock';
 
+// Reads request-time auth header; must not be prerendered.
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+// Reads + rewrites two Sheets tabs (Blog_Posts + public blog-posts mirror)
+// per approved post; per-row Sheets writes easily exceed the 60s default.
+export const maxDuration = 300;
+
 // GET /api/cron/publish-blog — Auto-publish approved posts on their scheduled day.
 //
 // Flow (rep-authored blog pipeline):

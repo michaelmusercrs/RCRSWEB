@@ -24,6 +24,9 @@ import { TEAM_MEMBERS } from '@/lib/team-roles';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+// Scans every non-terminal ticket across all statuses + assembles digest email;
+// grows with ticket volume so 60s default is unsafe.
+export const maxDuration = 300;
 
 const CRON_SECRET = process.env.CRON_SECRET;
 const STALL_THRESHOLD_HOURS = 48;

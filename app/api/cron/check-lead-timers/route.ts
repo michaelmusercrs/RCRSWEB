@@ -14,6 +14,12 @@ import { riverBot } from '@/lib/river-bot-service';
 import { TEAM_MEMBERS } from '@/lib/team-roles';
 import { withCronLock } from '@/lib/cron-lock';
 
+// Reads request-time auth header; must not be prerendered.
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+// Fans out to GroupMe + email per timer hit; 60s default was clipping runs.
+export const maxDuration = 300;
+
 // Verify the request is from Vercel Cron or has the correct secret
 function verifyCronAuth(request: NextRequest): boolean {
   const cronSecret = process.env.CRON_SECRET;

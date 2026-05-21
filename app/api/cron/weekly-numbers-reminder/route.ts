@@ -15,6 +15,13 @@ import { TEAM_MEMBERS } from '@/lib/team-roles';
 import { meetingNumbersService } from '@/lib/meeting-numbers-service';
 import { emailService } from '@/lib/email-service';
 
+// Reads request-time auth header; must not be prerendered.
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+// Loops every sales rep, checks meeting-numbers sheet, sends per-rep email —
+// scales with team size and Gmail send latency, so 60s default is too tight.
+export const maxDuration = 300;
+
 // ---------------------------------------------------------------------------
 // AUTH
 // ---------------------------------------------------------------------------

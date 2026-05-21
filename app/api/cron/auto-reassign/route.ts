@@ -17,6 +17,13 @@ import { groupMeService, getGroupMeConfigFromEnv } from '@/lib/groupme-service';
 import { TEAM_MEMBERS, getSalesReps } from '@/lib/team-roles';
 import { withCronLock } from '@/lib/cron-lock';
 
+// Reads request-time auth header; must not be prerendered.
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+// Iterates every active lead timer and fans out reassignment notifications
+// (GroupMe + email) per affected rep — easily exceeds the 60s default.
+export const maxDuration = 300;
+
 // ── Config paths ─────────────────────────────────────────────────────────────
 
 const DISTRO_CONFIG_PATH = path.join(process.cwd(), 'data', 'lead-distro-config.json');

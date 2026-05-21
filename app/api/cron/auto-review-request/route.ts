@@ -35,6 +35,9 @@ import { GoogleSpreadsheet } from 'google-spreadsheet';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+// Iterates all delivered jobs in the 24h window, sends SMS + email per ticket,
+// and writes one ReviewRequests row each — exceeds 60s on big delivery days.
+export const maxDuration = 300;
 
 const CRON_SECRET = process.env.CRON_SECRET;
 const GOOGLE_PLACE_ID = process.env.NEXT_PUBLIC_GOOGLE_PLACE_ID || '';

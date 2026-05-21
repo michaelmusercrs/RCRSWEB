@@ -233,6 +233,10 @@ class JobNimbusService {
             'Content-Type': 'application/json',
           },
           body: safeBody ? JSON.stringify(safeBody) : undefined,
+          // 15s upper bound — JN p95 is well under 3s; a hang here would
+          // multiply through the retry loop and tie up the whole Vercel
+          // function. AbortError surfaces as a normal request failure.
+          signal: AbortSignal.timeout(15000),
         });
 
         if (!response.ok) {

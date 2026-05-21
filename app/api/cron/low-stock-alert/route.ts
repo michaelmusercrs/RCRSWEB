@@ -19,6 +19,11 @@ import { unifiedInventoryService, type StockAlert } from '@/lib/unified-inventor
 import { emailService } from '@/lib/email-service';
 import { TEAM_MEMBERS } from '@/lib/team-roles';
 
+export const runtime = 'nodejs';
+// Walks the full inventory catalog, compares against minStockLevel, writes
+// LowStockAlerts rows, and emails office staff — slow Sheets I/O blows 60s.
+export const maxDuration = 300;
+
 const CRON_SECRET = process.env.CRON_SECRET;
 
 export async function GET(request: NextRequest) {
