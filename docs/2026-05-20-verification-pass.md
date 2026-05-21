@@ -5,6 +5,30 @@
 
 ---
 
+## 🟢 Resolution status — updated 2026-05-21
+
+| ID | Severity | Status | Closed by |
+|---|---|---|---|
+| C1 | CRITICAL — GroupMe `sendBotMessage` bypass | **CLOSED** | commit `85701d2` — full-guard pass on 4 send paths + raw fetch |
+| H1 | HIGH — 17 untagged emailService.send callsites | **CLOSED** | commit `f7bfc49` — 19 callsites tagged + `EmailTemplate` union extended. Default allowlist still drops them; owner enables per-tag via `ALLOWED_EMAIL_TEMPLATES`. |
+| H2 | HIGH — `/api/storm-report` missing spam-filter | **CLOSED** | commit `f7bfc49` — `checkForSpam` added between honeypot and Turnstile, success-shape on block, `logSpamBlock` entry. |
+| H3 | HIGH — `/api/storm-report` missing body-size cap | **CLOSED** | commit `85701d2` — `checkRequestSize(request, '50kb')` added at top of POST. |
+| M1 | MEDIUM — Per-warm-instance rate-bucket Map | **CLOSED** | commit `22df9d7` — KV-backed via lazy `@vercel/kv` import with in-memory fallback. |
+| M2 | MEDIUM — 3 routes missing `checkRequestSize` | **CLOSED** | commit `22df9d7` — added to `/api/contact`, `/api/email-capture`, `/api/webhooks/groupme`. |
+| M3 | MEDIUM — Bot-detected paths differing message strings | open (low-risk timing observation; tolerable) |
+| M4 | MEDIUM — `requireAdmin` no identity allowlist | **CLOSED** | commit `22df9d7` — Richard slug allowlist added to `requireAdmin`. |
+| M5 | MEDIUM — Cache-key segregation in one place only | **CLOSED** | commit `22df9d7` — convention documented in `lib/jn-redact.ts` header; grep confirmed only one cache touches JN-cost data today. |
+| M6 | MEDIUM — Sweep branches not env-inert | **CLOSED** | commit `22df9d7` — `docs/sweep-branches-inert-check.md` catalogs all 11 (10 inert / 1 with explicit gate). |
+| M7 | MEDIUM — Bulk-backfill inventory deduction not idempotent | **CLOSED** | already idempotent via `lib/inventory-deduction-log.mjs` — bulk script checks `wasDeducted(key)` per `${ticketId}::${productName}` before each deduction. Live path uses unified-inventory-service hold/fulfill mechanics. Legacy fallback `deductInventory` is `@deprecated`. |
+| L1-L5 | LOW | open — non-blocking cosmetics |
+| O1-O10 | Optimizations | mixed — O3 closed by H1, O6 closed by M7, others open |
+
+**Plus follow-up cron-audit (2026-05-21) Phase 2 — `withCronLock` adopted on 6 production crons** (commit `c49cdbb`): sync-inventory-tab, auto-reassign, backup-sheets, check-lead-timers, publish-blog, marketing-intel.
+
+Original audit text below is unchanged — it's the point-in-time observation. The status table above is what's actually true today.
+
+---
+
 ## Summary
 
 | Severity | Count |
