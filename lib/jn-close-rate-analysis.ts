@@ -26,7 +26,7 @@ const JN_API_URL = process.env.JOBNIMBUS_API_URL || 'https://app.jobnimbus.com/a
 interface JNEstimate {
   jnid: string;
   number?: string;
-  status?: string;
+  status?: string | number;
   status_name?: string;
   total?: number;
   date_created?: number;
@@ -74,8 +74,10 @@ function jnFetch<T>(endpoint: string): Promise<T> {
   });
 }
 
-function isSigned(status: string | undefined): boolean {
-  const s = (status || '').toLowerCase().trim();
+function isSigned(status: string | number | undefined): boolean {
+  // JN returns numeric status codes (e.g. 2 = "Sent") in addition to status_name strings.
+  if (status == null) return false;
+  const s = String(status).toLowerCase().trim();
   return SIGNED_STATUSES.has(s) || s.includes('signed') || s.includes('won');
 }
 
