@@ -34,6 +34,8 @@ interface Project {
   firstEstimateAt: string;
   totalEstimates: number;
   outcome: 'won' | 'lost' | 'pending';
+  lostReason: 'explicit' | 'stale' | null;
+  daysSinceActivity: number | null;
   won: boolean;
   firstInvoiceAt: string | null;
   daysToInvoice: number | null;
@@ -63,8 +65,12 @@ interface Data {
     invoicesFetched: number;
     jobsFetched: number;
     distinctJobIds: number;
-    soldRePattern: string;
+    wonRePattern: string;
     lostRePattern: string;
+    preApprovedRePattern: string;
+    staleDays: number;
+    explicitLostCount: number;
+    staleLostCount: number;
   };
 }
 
@@ -146,9 +152,13 @@ export default function WinLossPage() {
             {/* KPI strip */}
             <section className="grid grid-cols-2 md:grid-cols-5 gap-3">
               <Kpi label="Projects with estimates" value={data.totalProjects.toString()} sub={`last ${data.windowDays} days`} />
-              <Kpi label="Won (sold)" value={data.wonProjects.toString()} sub="job in sold-progression status" />
-              <Kpi label="Lost" value={data.lostProjects.toString()} sub="job status = Lost" />
-              <Kpi label="Pending" value={data.pendingProjects.toString()} sub="still in pipeline" />
+              <Kpi label="Won (Approved+)" value={data.wonProjects.toString()} sub="status ≥ Approved Jobs" />
+              <Kpi
+                label="Lost"
+                value={data.lostProjects.toString()}
+                sub={`${data.meta.explicitLostCount} explicit · ${data.meta.staleLostCount} stale (>${data.meta.staleDays}d)`}
+              />
+              <Kpi label="Pending" value={data.pendingProjects.toString()} sub={`active within ${data.meta.staleDays}d`} />
               <Kpi label="Close rate (resolved)" value={`${data.overallCloseRate}%`} sub={`conversion ${data.overallConversionRate}% incl. pending`} highlight />
             </section>
 
@@ -238,10 +248,10 @@ export default function WinLossPage() {
         )}
 
         <AboutThisData
-          source="JN /estimates and /invoices created in the last 180 days (default window, 1-730 max). Estimates and invoices are linked to a job via the related[] array (type='job') — NOT primary. Each unique job's R-number is then fetched via /jobs/{id}."
-          method="Dedupe by R-number. Each PROJECT (job) with at least one estimate counts as exactly 1 — multiple estimates on the same project do NOT inflate the count (per Michael). If that project also has at least one invoice → WON. Otherwise → PENDING. Win rate = won ÷ total projects. Insurance = job has Claim Number, Date of Loss, or carrier populated."
-          uses="See which reps actually convert estimates into billed work (vs which just generate paper). Insurance-vs-retail win rate tells you where to put sales effort. The Stalled Pipeline table is a follow-up call list — projects with estimates &gt; 60 days old and no invoice are either lost, slow, or installed-but-not-billed."
-          gaps="A 'pending' project is NOT necessarily lost. It could be (a) actively in negotiation, (b) install scheduled but not yet invoiced, (c) genuinely lost, or (d) the customer ghosted. Pure data can't tell — the JN status_name column is shown to help disambiguate. Also: estimates with no related job (template / orphan) are excluded — they have no R-number to dedupe on."
+          source="JN /estimates and /invoices created in the last 180 days (default window, 1-730 max). Estimates link to a job via related[] (type='job'). Each job's R-number, status_name, date_status_change, date_updated, and date_created are fetched via /jobs/{id}."
+          method={`Dedupe by R-number — each project counts as 1 regardless of estimate count (per Michael; multiple estimates often = multiple options on the same job). Outcome from job status: WON = "Approved Jobs" or any status PAST Approved (Materials Ordered, Pending Final Payment, Pending Supplement, Roofer Pay Needed, Job Completion Form, Payouts, Paid & Closed). LOST = explicit "Lost" status OR pre-Approved status (Lead / Aerial Measurements / Inspection / Estimate / Pending Approval / Contingency Signed / Signed Contract) with no activity for ${data?.meta.staleDays ?? 60} days. PENDING = pre-Approved with recent activity. "Activity" = max(date_status_change, date_updated, date_created). Close rate = won ÷ (won + lost), resolved-only. Conversion rate = won ÷ total, includes pending in denominator. Insurance = job has Claim Number, Date of Loss, or carrier populated.`}
+          uses="See which reps actually push projects to Approved+ (vs generating paper that ages out). Compare insurance vs retail conversion — insurance jobs go through Contingency Signed before Approved, so a high insurance pending count is normal; high stale-lost in insurance means claims aren't getting approved. The Stalled Pipeline table is the follow-up list: pre-Approved projects with no activity for 60+ days that haven't yet been auto-classified as lost."
+          gaps={`Stale threshold is set to ${data?.meta.staleDays ?? 60} days based on historical analysis (Approved Jobs typically clears within 6 weeks, p75 = 114 d). Configurable via CHRISVIEW_STALE_DAYS env var. The threshold trades aggression for accuracy — too low and active leads get mis-counted as lost; too high and dead deals stay in 'pending' forever. Also: estimates with no related job (template / orphan) are excluded — they have no R-number to dedupe on. JN 'date_updated' may not capture every kind of activity (e.g. an attachment may not bump it).`}
           generatedAt={data?.generatedAt}
         />
       </main>

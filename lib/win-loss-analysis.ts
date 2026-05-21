@@ -1,34 +1,30 @@
 /**
  * Estimate Win/Loss Analysis — per-PROJECT, not per-estimate.
  *
- * Rule from Michael (2026-05-21 v2):
- *   "Use the FACT of an estimate to provide evidence of job progression
- *    and compare to SOLD jobs (deposit, in progress, paid in full,
- *    closed, etc.). Multiple estimates don't change the count — we
- *    sometimes present multiple options."
+ * Rule from Michael (2026-05-21 v3 — final):
+ *   - Project = job (deduped by R-number). Multiple estimates on same
+ *     project still count as 1.
+ *   - WON = JN job status is "Approved Jobs" OR any status PAST Approved
+ *     (Materials Ordered/Scheduled, Pending Final Payment, Pending
+ *     Supplement/Deprecation, Roofer Pay Needed, Job Completion Form,
+ *     Payouts, Paid & Closed).
+ *   - LOST = JN status is explicitly "Lost", OR the job is in a
+ *     pre-Approved status (Lead / Aerial Measurements / Inspection /
+ *     Estimate / Pending Approval / Contingency Signed / Signed
+ *     Contract) AND has had no activity for STALE_DAYS days.
+ *   - PENDING = pre-Approved status with recent activity (still alive).
  *
- * Each PROJECT (job R-number) that has at least one estimate counts as 1
- * project regardless of estimate count. Outcome is read from the JN
- * job's status_name:
- *
- *   WON     — status matches the sold-progression regex (Contingency
- *             Signed, Signed Contract, Approved Jobs, Materials
- *             Ordered/Scheduled, Pending Final Payment, Pending
- *             Supplement, Roofer Pay Needed, Job Completion Form
- *             Uploaded, Payouts, Paid & Closed)
- *   LOST    — status == 'Lost'
- *   PENDING — everything else (Lead, Aerial Measurements, Inspection,
- *             Estimate, Pending Approval, etc.) — still in pipeline
+ * STALE_DAYS default = 60 (probe-set from 30K jobs of historical data).
+ * Approved Jobs typically clears within ~6 weeks (p75 = 114 d), so 60 d
+ * with no activity is a strong signal the job didn't convert.
+ * Configurable via env var CHRISVIEW_STALE_DAYS.
  *
  *   conversion rate = won ÷ total            (incl. pending in denom)
  *   close rate      = won ÷ (won + lost)    (resolved only — purer)
  *
- * Linking model (probe-verified 2026-05-21):
- *   - JN /estimates payload carries `related[]` with entries of type='job'
- *     and type='contact'. NOT `primary`.
- *   - Job R-number lives on the job record itself (`number` field).
- *   - Job status_name lives on the job record (`status_name`). Probe-
- *     verified status vocabulary 2026-05-21 across 3000 jobs.
+ * "Activity" timestamp = max(date_status_change, date_updated, date_created)
+ * — whichever is most recent. Status changes count; so do generic updates
+ * (a note added, a file uploaded, etc.) when JN exposes them.
  *
  * Cost-safe: all JN reads run through redactCostFieldsDeep.
  */
@@ -47,11 +43,27 @@ interface JNEstimate {
   primary?: { id?: string; jnid?: string };
   related?: JNRelated[];
 }
-// Probe-verified JN job status vocabulary (2026-05-21, n=3000 jobs).
-// SOLD statuses are progression markers — the job has crossed the
-// signed/closed threshold even if still in production.
-const SOLD_RE = /^(paid\s*&\s*closed|contingency\s*signed|signed\s*contract|approved\s*jobs?|materials\s*(ordered|scheduled)|materials\s*ordered\/scheduled|payouts?|pending\s*final\s*payment|pending\s*supplement|pending\s*deprecation|roofer\s*pay\s*needed|job\s*completion\s*form|completion\s*form)/i;
+// Probe-verified JN job status vocabulary (2026-05-21, n=30000 jobs).
+// WON = "Approved Jobs" is the gateway. Anything PAST that — Materials,
+// Payouts, Pending Final Payment, etc. — is also won. Contingency Signed
+// and Signed Contract are NOT won (they're pre-Approved per Michael).
+const WON_RE = /^(approved\s*jobs?|materials\s*(ordered|scheduled)|materials\s*ordered\s*\/\s*scheduled|payouts?|pending\s*final\s*payment|pending\s*supplement|pending\s*deprecation|roofer\s*pay\s*needed|job\s*completion\s*form|completion\s*form|paid\s*&\s*closed)$/i;
+// Explicit lost status (always lost regardless of age).
 const LOST_RE = /^lost$/i;
+// Pre-Approved statuses (potential lost if stale).
+const PRE_APPROVED_RE = /^(lead|aerial\s*measurements|inspection|estimate|pending\s*approval|contingency\s*signed|signed\s*contract)$/i;
+
+// Stale threshold (days). After this many days with no activity in a
+// pre-Approved status, the job is auto-classified as LOST. Admin-overridable
+// via CHRISVIEW_STALE_DAYS env var. Set from historical analysis: Approved
+// Jobs typically clears within 6 weeks (p75 = 114 d), so 60 d catches ~83%
+// of truly stale pre-Approved jobs while keeping recent leads in pending.
+const STALE_DAYS_DEFAULT = 60;
+function getStaleDays(): number {
+  const env = parseInt(process.env.CHRISVIEW_STALE_DAYS || '', 10);
+  if (Number.isFinite(env) && env > 0) return env;
+  return STALE_DAYS_DEFAULT;
+}
 
 interface JNInvoice {
   jnid: string;
@@ -67,6 +79,10 @@ interface JNJob {
   sales_rep_name?: string;
   source_name?: string;
   date_created?: number;
+  /** Last status transition. Used as the primary "last activity" signal. */
+  date_status_change?: number;
+  /** Any update to the job (note added, file uploaded, etc.). */
+  date_updated?: number;
   // JN custom fields are exposed in the API with their literal label.
   // "Claim Number" (capitalized, with space) is the canonical insurance
   // signal — NOT lowercase claim_number (which exists too but is unreliable).
@@ -102,8 +118,12 @@ export interface WinLossProject {
   firstEstimateAt: string;
   /** Total estimates created for this project in window (for visibility). */
   totalEstimates: number;
-  /** Project outcome from JN job status_name. */
+  /** Project outcome from JN job status_name + staleness rule. */
   outcome: 'won' | 'lost' | 'pending';
+  /** If outcome === 'lost', why: 'explicit' = JN status 'Lost', 'stale' = aged out of pre-Approved. */
+  lostReason: 'explicit' | 'stale' | null;
+  /** Days since last activity (status_change OR updated OR created). */
+  daysSinceActivity: number | null;
   /** Convenience flag = outcome === 'won'. */
   won: boolean;
   /** Earliest invoice date if any invoice exists (separate from won/lost — for time-to-invoice). */
@@ -158,8 +178,15 @@ export interface WinLossAnalysis {
     invoicesFetched: number;
     jobsFetched: number;
     distinctJobIds: number;
-    soldRePattern: string;
+    wonRePattern: string;
     lostRePattern: string;
+    preApprovedRePattern: string;
+    /** Days of inactivity threshold for auto-lost classification. */
+    staleDays: number;
+    /** Count of projects lost because JN status === 'Lost'. */
+    explicitLostCount: number;
+    /** Count of projects lost because they aged past staleDays in a pre-Approved status. */
+    staleLostCount: number;
   };
 }
 
@@ -194,6 +221,7 @@ export async function analyzeWinLoss(opts: { days?: number } = {}): Promise<WinL
   const start = Date.now();
   const nowSec = Math.floor(Date.now() / 1000);
   const since = nowSec - daysWindow * 86400;
+  const staleDays = getStaleDays();
 
   // 1. Pull /estimates in window (paginate, newest first, stop when out of range).
   const estimates: JNEstimate[] = [];
@@ -294,14 +322,40 @@ export async function analyzeWinLoss(opts: { days?: number } = {}): Promise<WinL
       continue;
     }
 
-    // Outcome read from JN job status_name (not from invoice existence).
-    // Sold/closed-progression statuses → won. "Lost" → lost. Everything
-    // else (Lead, Aerial Measurements, Inspection, Estimate, etc.) → pending.
+    // Outcome read from JN job status_name + staleness.
+    // WON   — status is Approved Jobs or anything past Approved.
+    // LOST  — status is explicit "Lost", OR pre-Approved status that's
+    //         been stale (no activity for STALE_DAYS days).
+    // PENDING — pre-Approved status with recent activity (still alive).
     const jobStatusRaw = (job?.status_name || '').trim();
+    const lastActivitySec = Math.max(
+      job?.date_status_change || 0,
+      job?.date_updated || 0,
+      job?.date_created || 0,
+    );
+    const daysSinceActivity = lastActivitySec > 0
+      ? Math.floor((nowSec - lastActivitySec) / 86400)
+      : null;
+
     let outcome: 'won' | 'lost' | 'pending';
-    if (LOST_RE.test(jobStatusRaw)) outcome = 'lost';
-    else if (SOLD_RE.test(jobStatusRaw)) outcome = 'won';
-    else outcome = 'pending';
+    let lostReason: 'explicit' | 'stale' | null = null;
+    if (LOST_RE.test(jobStatusRaw)) {
+      outcome = 'lost';
+      lostReason = 'explicit';
+    } else if (WON_RE.test(jobStatusRaw)) {
+      outcome = 'won';
+    } else if (PRE_APPROVED_RE.test(jobStatusRaw)) {
+      // Pre-Approved: still alive only if recently active.
+      if (daysSinceActivity != null && daysSinceActivity > staleDays) {
+        outcome = 'lost';
+        lostReason = 'stale';
+      } else {
+        outcome = 'pending';
+      }
+    } else {
+      // Unknown status — treat as pending (conservative; don't auto-lose).
+      outcome = 'pending';
+    }
     const won = outcome === 'won';
 
     // Invoice timing — kept for the time-to-invoice metric, but no longer
@@ -339,6 +393,8 @@ export async function analyzeWinLoss(opts: { days?: number } = {}): Promise<WinL
       firstEstimateAt: firstEstAt ? new Date(firstEstAt * 1000).toISOString() : '',
       totalEstimates: ests.length,
       outcome,
+      lostReason,
+      daysSinceActivity,
       won,
       firstInvoiceAt: firstInvAt ? new Date(firstInvAt * 1000).toISOString() : null,
       daysToInvoice,
@@ -426,8 +482,12 @@ export async function analyzeWinLoss(opts: { days?: number } = {}): Promise<WinL
       invoicesFetched,
       jobsFetched,
       distinctJobIds: jobIds.length,
-      soldRePattern: SOLD_RE.source,
+      wonRePattern: WON_RE.source,
       lostRePattern: LOST_RE.source,
+      preApprovedRePattern: PRE_APPROVED_RE.source,
+      staleDays,
+      explicitLostCount: projects.filter(p => p.lostReason === 'explicit').length,
+      staleLostCount: projects.filter(p => p.lostReason === 'stale').length,
     },
   };
 
