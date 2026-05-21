@@ -1,0 +1,247 @@
+
+================================================================================
+R# 10311 — jnid mbf5ybxu3eoo04j4fhlp5z
+================================================================================
+All job keys (with non-empty values):
+  address_line1: 2010 Cliffmanor Cir
+  approved_estimate_total: 83881.15
+  approved_invoice_total: 75470.81
+  attachment_count: 119
+  city: Huntsville
+  country_name: United States
+  created_by: vx7t6
+  created_by_name: Hunter Rivers
+  customer: vx1hk
+  date_created: 1748873208
+  date_status_change: 1765988621
+  date_updated: 1776351610
+  geo: {"lat":34.71795,"lon":-86.55759}
+  image_id: mbf64lo7sy1g2mrbtkdwi
+  is_active: true
+  is_archived: true
+  jnid: mbf5ybxu3eoo04j4fhlp5z
+  last_estimate: 104816.64
+  last_estimate_date_created: 1750352371
+  last_estimate_date_estimate: 1749056400
+  last_estimate_jnid: mc3mlxofu13wkzxiclb3o3f
+  last_estimate_number: E-12044
+  last_invoice: 3332.92
+  last_invoice_date_created: 1759164545
+  last_invoice_date_invoice: 1759165200
+  last_invoice_jnid: mg5d5eceyj2eghvpyt9ejtb
+  last_invoice_number: I-5855
+  location: {"id":1}
+  name: Stephen Cutter
+  number: R-10311
+  owners: [{"id":"vx7t6"}]
+  parent_approved_estimate_total: 83881.15
+  parent_home_phone: 2566534069
+  parent_last_estimate: 104816.64
+  primary: {"id":"mbf5ufw4sm7er7vknxubbns","name":"Stephen Cutter","number":"C-11289","type":"contact","email":"stephen@thecuttergroup.net","subject":null}
+  recid: 10311
+  record_type: 5
+  record_type_name: Residential
+  related: [{"id":"mbf5ufw4sm7er7vknxubbns","name":"Stephen Cutter","number":"C-11289","type":"contact","email":null,"subject":null}]
+  rules: ["3w22bf"]
+  sales_rep: vx7t6
+  sales_rep_name: Hunter Rivers
+  source: 4
+  source_name: Door Knock
+  stage_dates_overrides: {"lead_date":null,"estimating_date":null,"sold_date":null,"in_production_date":null,"account_receivable_date":null,"completed_date":null,"lost_date":null}
+  stage_dates_overrides_on: {"lead_date":null,"estimating_date":null,"sold_date":null,"in_production_date":null,"account_receivable_date":null,"completed_date":null,"lost_date":null}
+  state_text: AL
+  status: 29
+  status_name: Paid & Closed
+  subcontractors: [{"id":"25zu6o","name":"Pablo Compuzano Cruz"},{"id":"11p94n","name":"Patrick Manuel"},{"id":"md3hkgcgdrrj83f6lo2hq1i","name":"Diego Garcia"},{"id":"12krg5","name":"Workers Comp"}]
+  task_count: 5
+  type: job
+  zip: 35801
+
+Estimates (full):
+  E-12044: not found
+  E-12026: not found
+  E-11961: not found
+
+================================================================================
+R# 10365 — jnid mbqvktrch01fld5u6c7bc0r
+================================================================================
+All job keys (with non-empty values):
+  address_line1: 1803 Fairmont Rd
+  approved_estimate_total: 31601.46
+  approved_invoice_total: 63055.46
+  attachment_count: 176
+  city: Huntsville
+  country_name: United States
+  created_by: vx7t6
+  created_by_name: Hunter Rivers
+  customer: vx1hk
+  date_created: 1749581376
+  date_status_change: 1774447649
+  date_updated: 1774651808
+  geo: {"lat":34.71728,"lon":-86.55496}
+  image_id: mbqwhpaaeacnkp6tf3tz3
+  is_active: true
+  is_archived: true
+  jnid: mbqvktrch01fld5u6c7bc0r
+  last_estimate: 31601.46
+  last_estimate_date_created: 1749668744
+  last_estimate_date_estimate: 1749661200
+  last_estimate_jnid: mbsblfmpe1mj6evp94te9hp
+  last_estimate_number: E-11993
+  last_invoice: 2454
+  last_invoice_date_created: 1752093019
+  last_invoice_date_invoice: 1752080400
+  last_invoice_jnid: mcwey1yf9uv6l114axqkk6f
+  last_invoice_number: I-5688
+  location: {"id":1}
+  name: Brandon Phillips
+  number: R-10365
+  owners: [{"id":"vx7t6"}]
+  parent_approved_estimate_total: 31601.46
+  parent_approved_invoice_total: 63055.46
+  parent_home_phone: 2564319668
+  parent_last_estimate: 31601.46
+  parent_last_invoice: 2454
+  primary: {"id":"mbqvkeg58f9r04tj8ylr8xa","name":"Brandon Phillips","number":"C-11329","type":"contact","email":"phillimb@gmail.com","subject":null}
+  recid: 10365
+  record_type: 5
+  record_type_name: Residential
+  related: [{"id":"mbqvkeg58f9r04tj8ylr8xa","name":"Brandon Phillips","number":"C-11329","type":"contact","email":null,"subject":null}]
+  rules: ["3w22bf"]
+  sales_rep: vx7t6
+  sales_rep_name: Hunter Rivers
+  source: 4
+  source_name: Door Knock
+  state_text: AL
+  status: 29
+  status_name: Paid & Closed
+  subcontractors: [{"id":"25zu6o","name":"Pablo Compuzano Cruz"},{"id":"md3hkgcgdrrj83f6lo2hq1i","name":"Diego Garcia"}]
+  task_count: 3
+  type: job
+  zip: 35801
+
+Estimates (full):
+  E-11993: not found
+
+================================================================================
+R# 10549 — jnid mdggzpfuxcr9jzp0h9tbgp9
+================================================================================
+All job keys (with non-empty values):
+  address_line1: 2203 Covemont Dr SE
+  approved_estimate_total: 24717.88
+  approved_invoice_total: 32459.31
+  attachment_count: 101
+  city: Huntsville
+  country_name: United States
+  created_by: lnd9h42nf9921eixoj6156u
+  created_by_name: Tia Muse Morris
+  customer: vx1hk
+  date_created: 1753305779
+  date_status_change: 1763742281
+  date_updated: 1774651808
+  description: Our call got disconnected before I could get anymore information
+  geo: {"lat":34.71537,"lon":-86.55802}
+  is_active: true
+  is_archived: true
+  jnid: mdggzpfuxcr9jzp0h9tbgp9
+  last_estimate: 24717.88
+  last_estimate_date_created: 1757696710
+  last_estimate_date_estimate: 1757696400
+  last_estimate_jnid: mfh38lvfd7q46iaofogktrv
+  last_estimate_number: E-12419
+  last_invoice: 1500
+  last_invoice_date_created: 1763498266
+  last_invoice_date_invoice: 1763488800
+  last_invoice_jnid: mi51c370sut4diykohbr71q
+  last_invoice_number: I-5925
+  location: {"id":1}
+  name: Patty Smith
+  number: R-10549
+  owners: [{"id":"vx7t6"}]
+  parent_approved_estimate_total: 24717.88
+  parent_last_estimate: 24717.88
+  parent_mobile_phone: 2567970771
+  primary: {"id":"mdggxwyxi55ypf4zljv6y7c","name":"Patty Smith","number":"C-11480","type":"contact","email":"psprecious@bellsouth.net","subject":null}
+  recid: 10549
+  record_type: 5
+  record_type_name: Residential
+  related: [{"id":"mdggxwyxi55ypf4zljv6y7c","name":"Patty Smith","number":"C-11480","type":"contact","email":null,"subject":null}]
+  rules: ["3w22bf"]
+  sales_rep: vx7t6
+  sales_rep_name: Hunter Rivers
+  source: 2
+  source_name: Google
+  state_text: AL
+  status: 29
+  status_name: Paid & Closed
+  subcontractors: [{"id":"25zu6o","name":"Pablo Compuzano Cruz"},{"id":"md3hkgcgdrrj83f6lo2hq1i","name":"Diego Garcia"},{"id":"12krg5","name":"Workers Comp"}]
+  task_count: 9
+  type: job
+  zip: 35801
+
+Estimates (full):
+  E-12593: not found
+  E-12419: not found
+
+================================================================================
+R# 10290 — jnid mb9x9pgzgna61rle1spsfw2
+================================================================================
+All job keys (with non-empty values):
+  address_line1: 2211 Naylor Rd SE
+  approved_estimate_total: 38794.62
+  approved_invoice_total: 44244.07
+  attachment_count: 190
+  city: Huntsville
+  country_name: United States
+  created_by: ln8zzn5g1o56jwmxkrjfxcf
+  created_by_name: Greg Muse
+  customer: vx1hk
+  date_created: 1748556291
+  date_status_change: 1771872871
+  date_updated: 1774651808
+  geo: {"lat":34.71369,"lon":-86.55528}
+  image_id: mb9ylngdcnhfkufd
+  is_active: true
+  is_archived: true
+  jnid: mb9x9pgzgna61rle1spsfw2
+  last_estimate: 2849
+  last_estimate_date_created: 1757094312
+  last_estimate_date_estimate: 1757091600
+  last_estimate_jnid: mf74l4pyx5odi5npj1rt1n5
+  last_estimate_number: E-12400
+  last_invoice: 2100
+  last_invoice_date_created: 1763495148
+  last_invoice_date_invoice: 1771351200
+  last_invoice_jnid: mi4zh9b16iha7kc0g8y3ybo
+  last_invoice_number: I-5924
+  location: {"id":1}
+  name: Glenn Toups
+  number: R-10290
+  owners: [{"id":"ln8zzn5g1o56jwmxkrjfxcf"},{"id":"vx7t6"}]
+  parent_approved_estimate_total: 38794.62
+  parent_approved_invoice_total: 44244.07
+  parent_last_estimate: 2849
+  parent_last_invoice: 2100
+  parent_mobile_phone: 2567593885
+  primary: {"id":"mb9x92dorz4th6gdjqu56om","name":"Glenn Toups","number":"C-11271","type":"contact","email":"glennsofhuntsvilleinc@gmail.com","subject":null}
+  recid: 10290
+  record_type: 5
+  record_type_name: Residential
+  related: [{"id":"mb9x92dorz4th6gdjqu56om","name":"Glenn Toups","number":"C-11271","type":"contact","email":null,"subject":null}]
+  rules: ["3w22bf"]
+  sales_rep: ln8zzn5g1o56jwmxkrjfxcf
+  sales_rep_name: Greg Muse
+  state_text: AL
+  status: 29
+  status_name: Paid & Closed
+  subcontractors: [{"id":"mc9bbuzgcy2fwql2dlferef","name":"National Construction Handymen LLC"},{"id":"md3hkgcgdrrj83f6lo2hq1i","name":"Diego Garcia"},{"id":"12krg5","name":"Workers Comp"}]
+  task_count: 2
+  type: job
+  zip: 35801
+
+Estimates (full):
+  E-12400: not found
+  E-12251: not found
+  E-12250: not found
+  E-12249: not found
+  E-11930: not found

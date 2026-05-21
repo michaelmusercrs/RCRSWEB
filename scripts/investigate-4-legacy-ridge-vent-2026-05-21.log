@@ -1,0 +1,154 @@
+=== Open legacy sheet ===
+Legacy doc: "new inventory"
+Tabs: Items, Login Check, SalesOrder, Users, Employee, Inventory
+Ridge Vent (item-127) catalog: {"id":"item-127","name":"Ridge Vent 4LF","price":10.2,"cost":7.15}
+Legacy Inventory rows: 1868
+
+=== Open master sheet ===
+Master doc: "sheets access"
+Material Orders Workflow rows: 0
+
+===============================================================================
+TARGET: R# 10311 (date 2025-08-19, Ridge Vent qty=70)
+===============================================================================
+Legacy rows where R#=10311: 9
+Legacy Ridge Vent rows for R#10311: 1
+  invId=1746a28a date=2025-08-19 amount=-70 price=$0 cost=$-714 photo=no
+Full material makeup for R#10311 (legacy):
+  item-132   Sealant                        amt=    -5 price=$      0 cost=$    -50
+  item-130   3" Black Bullet Boot           amt=    -1 price=$      0 cost=$ -38.29
+  item-129   2" Black Bullet Boot           amt=    -3 price=$      0 cost=$ -67.62
+  item-128   1 1/2" Black Bullet Boot       amt=    -3 price=$      0 cost=$ -62.67
+  item-125   RCRS Syn Felt                  amt=   -10 price=$      0 cost=$ -798.6
+  item-126   Ice & Water Shield             amt=    -7 price=$      0 cost=$-799.54
+  item-127   Ridge Vent 4LF                 amt=   -70 price=$      0 cost=$   -714
+  item-124   Buttom Caps (plastic)          amt=    -4 price=$      0 cost=$ -116.6
+  item-123   1 1/4 EG Nails                 amt=    -6 price=$      0 cost=$ -389.4
+Ridge cost analysis:
+  qty=70, catalog price=$10.2/stick, catalog cost=$7.15/stick
+  recorded price=$0, recorded cost=$-714
+  expected cost if qty=sticks → $500.5
+  expected cost if qty=LF     → $125.13
+Material Orders Workflow rows referencing R#10311: 0
+JN: matched job R-10311 → jnid=mbf5ybxu3eoo04j4fhlp5z
+JN job: Stephen Cutter | 2010 Cliffmanor Cir, Huntsville, AL 35801
+JN status: Paid & Closed, sales rep: Hunter Rivers, type: Residential
+JN description: 
+JN totals: estimate=83881.15, invoice=75470.81, budget_revenue=0
+JN custom fields (sqft/ridge/size related): {}
+JN files: 0
+JN activities: 0
+  activities mentioning ridge/sqft/lf: 0
+JN estimates: 3
+  - E-12044 status=1 total=$104816.64
+  - E-12026 status=1 total=$136259.84
+  - E-11961 status=5 total=$83881.15
+
+===============================================================================
+TARGET: R# 10365 (date 2025-09-16, Ridge Vent qty=70)
+===============================================================================
+Legacy rows where R#=10365: 9
+Legacy Ridge Vent rows for R#10365: 2
+  invId=db3e158c date=2025-10-13 amount=20 price=$0 cost=$204 photo=no
+  invId=ab043a61 date=2025-09-16 amount=-70 price=$0 cost=$-714 photo=no
+Full material makeup for R#10365 (legacy):
+  item-127   Ridge Vent 4LF                 amt=    20 price=$      0 cost=$    204
+  item-132   Sealant                        amt=    -5 price=$      0 cost=$    -50
+  item-131   4" Black Bullet Boot           amt=    -1 price=$      0 cost=$  -42.5
+  item-130   3" Black Bullet Boot           amt=    -2 price=$      0 cost=$ -76.58
+  item-125   RCRS Syn Felt                  amt=    -9 price=$      0 cost=$-718.74
+  item-126   Ice & Water Shield             amt=    -8 price=$      0 cost=$-913.76
+  item-127   Ridge Vent 4LF                 amt=   -70 price=$      0 cost=$   -714
+  item-124   Buttom Caps (plastic)          amt=    -3 price=$      0 cost=$ -87.45
+  item-123   1 1/4 EG Nails                 amt=    -6 price=$      0 cost=$ -389.4
+Ridge cost analysis:
+  qty=20, catalog price=$10.2/stick, catalog cost=$7.15/stick
+  recorded price=$0, recorded cost=$204
+  expected cost if qty=sticks → $143
+  expected cost if qty=LF     → $35.75
+Material Orders Workflow rows referencing R#10365: 0
+JN: matched job R-10365 → jnid=mbqvktrch01fld5u6c7bc0r
+JN job: Brandon Phillips | 1803 Fairmont Rd, Huntsville, AL 35801
+JN status: Paid & Closed, sales rep: Hunter Rivers, type: Residential
+JN description: 
+JN totals: estimate=31601.46, invoice=63055.46, budget_revenue=0
+JN custom fields (sqft/ridge/size related): {}
+JN files: 0
+JN activities: 0
+  activities mentioning ridge/sqft/lf: 0
+JN estimates: 1
+  - E-11993 status=5 total=$31601.46
+
+===============================================================================
+TARGET: R# 10549 (date 2025-09-19, Ridge Vent qty=65)
+===============================================================================
+Legacy rows where R#=10549: 9
+Legacy Ridge Vent rows for R#10549: 2
+  invId=5f372574 date=2025-10-13 amount=40 price=$0 cost=$408 photo=no
+  invId=622c5368 date=2025-09-19 amount=-65 price=$0 cost=$-663 photo=no
+Full material makeup for R#10549 (legacy):
+  item-127   Ridge Vent 4LF                 amt=    40 price=$      0 cost=$    408
+  item-132   Sealant                        amt=    -5 price=$      0 cost=$    -50
+  item-130   3" Black Bullet Boot           amt=    -1 price=$      0 cost=$ -38.29
+  item-129   2" Black Bullet Boot           amt=    -2 price=$      0 cost=$ -45.08
+  item-128   1 1/2" Black Bullet Boot       amt=    -3 price=$      0 cost=$ -62.67
+  item-125   RCRS Syn Felt                  amt=    -5 price=$      0 cost=$ -399.3
+  item-126   Ice & Water Shield             amt=    -3 price=$      0 cost=$-342.66
+  item-127   Ridge Vent 4LF                 amt=   -65 price=$      0 cost=$   -663
+  item-123   1 1/4 EG Nails                 amt=    -3 price=$      0 cost=$ -194.7
+Ridge cost analysis:
+  qty=40, catalog price=$10.2/stick, catalog cost=$7.15/stick
+  recorded price=$0, recorded cost=$408
+  expected cost if qty=sticks → $286
+  expected cost if qty=LF     → $71.5
+Material Orders Workflow rows referencing R#10549: 0
+JN: matched job R-10549 → jnid=mdggzpfuxcr9jzp0h9tbgp9
+JN job: Patty Smith | 2203 Covemont Dr SE, Huntsville, AL 35801
+JN status: Paid & Closed, sales rep: Hunter Rivers, type: Residential
+JN description: Our call got disconnected before I could get anymore information
+JN totals: estimate=24717.88, invoice=32459.31, budget_revenue=0
+JN custom fields (sqft/ridge/size related): {}
+JN files: 0
+JN activities: 0
+  activities mentioning ridge/sqft/lf: 0
+JN estimates: 2
+  - E-12593 status=1 total=$2880
+  - E-12419 status=5 total=$24717.88
+
+===============================================================================
+TARGET: R# 10290 (date 2025-08-22, Ridge Vent qty=55)
+===============================================================================
+Legacy rows where R#=10290: 9
+Legacy Ridge Vent rows for R#10290: 1
+  invId=09d7d420 date=2025-08-22 amount=-55 price=$0 cost=$-561 photo=no
+Full material makeup for R#10290 (legacy):
+  item-132   Sealant                        amt=    -5 price=$      0 cost=$    -50
+  item-130   3" Black Bullet Boot           amt=    -1 price=$      0 cost=$ -38.29
+  item-129   2" Black Bullet Boot           amt=    -5 price=$      0 cost=$ -112.7
+  item-128   1 1/2" Black Bullet Boot       amt=    -3 price=$      0 cost=$ -62.67
+  item-125   RCRS Syn Felt                  amt=    -7 price=$      0 cost=$-559.02
+  item-126   Ice & Water Shield             amt=    -4 price=$      0 cost=$-456.88
+  item-127   Ridge Vent 4LF                 amt=   -55 price=$      0 cost=$   -561
+  item-124   Buttom Caps (plastic)          amt=    -3 price=$      0 cost=$ -87.45
+  item-123   1 1/4 EG Nails                 amt=    -5 price=$      0 cost=$ -324.5
+Ridge cost analysis:
+  qty=55, catalog price=$10.2/stick, catalog cost=$7.15/stick
+  recorded price=$0, recorded cost=$-561
+  expected cost if qty=sticks → $393.25
+  expected cost if qty=LF     → $98.31
+Material Orders Workflow rows referencing R#10290: 0
+JN: matched job R-10290 → jnid=mb9x9pgzgna61rle1spsfw2
+JN job: Glenn Toups | 2211 Naylor Rd SE, Huntsville, AL 35801
+JN status: Paid & Closed, sales rep: Greg Muse, type: Residential
+JN description: 
+JN totals: estimate=38794.62, invoice=44244.07, budget_revenue=0
+JN custom fields (sqft/ridge/size related): {}
+JN files: 0
+JN activities: 0
+  activities mentioning ridge/sqft/lf: 0
+JN estimates: 5
+  - E-12400 status=1 total=$2849
+  - E-12251 status=5 total=$5200
+  - E-12250 status=1 total=$4224.6
+  - E-12249 status=5 total=$33594.62
+  - E-11930 status=1 total=$31482.33
