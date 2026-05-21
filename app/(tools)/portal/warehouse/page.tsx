@@ -815,15 +815,15 @@ export default function WarehousePage() {
                     Use this when you need to start a delivery yourself instead of waiting for the email.
                     Sara will be notified just like the email-driven workflow.
                   </p>
-                  <input name="jobNumber" placeholder="Job # (R-XXXXX)" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
-                  <input name="customerName" placeholder="Customer name" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
-                  <input name="jobName" placeholder="Job name (optional)" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
-                  <input name="jobAddress" placeholder="Address" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
+                  <input name="jobNumber" placeholder="Job # (R-XXXXX)" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                  <input name="customerName" placeholder="Customer name" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                  <input name="jobName" placeholder="Job name (optional)" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                  <input name="jobAddress" placeholder="Address" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
                   <div className="grid grid-cols-2 gap-2">
-                    <input name="city" placeholder="City" required className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
-                    <input name="state" placeholder="State" defaultValue="AL" className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
+                    <input name="city" placeholder="City" required className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                    <input name="state" placeholder="State" defaultValue="AL" className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
                   </div>
-                  <textarea name="notes" placeholder="Special instructions / what you're loading" rows={3} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
+                  <textarea name="notes" placeholder="Special instructions / what you're loading" rows={3} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
                   <button type="submit" disabled={submitting} className="w-full bg-[#39FF14] text-black font-bold py-3 rounded-lg active:bg-lime-500 disabled:opacity-50">
                     {submitting ? 'Creating…' : 'Create Ticket'}
                   </button>
@@ -839,11 +839,11 @@ export default function WarehousePage() {
                     Use when you bring our materials back from a job. Posts a credit
                     memo against the job&apos;s material cost ledger.
                   </p>
-                  <input name="jobNumber" placeholder="Job # (R-XXXXX)" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
-                  <input name="customerName" placeholder="Customer name" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
-                  <input name="jobAddress" placeholder="Pickup address (optional)" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
-                  <input name="city" placeholder="City" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
-                  <textarea name="reason" placeholder="What came back and why" rows={3} required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
+                  <input name="jobNumber" placeholder="Job # (R-XXXXX)" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                  <input name="customerName" placeholder="Customer name" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                  <input name="jobAddress" placeholder="Pickup address (optional)" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                  <input name="city" placeholder="City" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                  <textarea name="reason" placeholder="What came back and why" rows={3} required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
                   <button type="submit" disabled={submitting} className="w-full bg-orange-500 text-white font-bold py-3 rounded-lg active:bg-orange-600 disabled:opacity-50">
                     {submitting ? 'Submitting…' : 'Create Credit Memo'}
                   </button>
@@ -858,21 +858,21 @@ export default function WarehousePage() {
                   <p className="text-xs text-gray-500">
                     Use when you pick up materials from a job that came from an OUTSIDE vendor (SRS, ABC, GAF Direct, etc.) — NOT our inventory. Sara will chase the vendor credit.
                   </p>
-                  <input name="jobNumber" placeholder="Job # (R-XXXXX)" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
-                  <input name="customerName" placeholder="Customer name" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
-                  <input name="pickupAddress" placeholder="Pickup address" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
-                  <input name="vendorName" placeholder="Vendor (SRS, ABC, GAF…)" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
-                  <input name="receiptNumber" placeholder="Vendor receipt # (if known)" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
+                  <input name="jobNumber" placeholder="Job # (R-XXXXX)" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                  <input name="customerName" placeholder="Customer name" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                  <input name="pickupAddress" placeholder="Pickup address" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                  <input name="vendorName" placeholder="Vendor (SRS, ABC, GAF…)" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                  <input name="receiptNumber" placeholder="Vendor receipt # (if known)" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
                   <div className="border-t border-zinc-800 pt-3 space-y-2">
                     <div className="text-xs text-gray-400 font-semibold uppercase">Material picked up</div>
-                    <input name="description" placeholder="Description" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
+                    <input name="description" placeholder="Description" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
                     <div className="grid grid-cols-3 gap-2">
-                      <input name="quantity" type="number" step="1" placeholder="Qty" required className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
-                      <input name="unit" placeholder="Unit" className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
-                      <input name="estValue" type="number" step="0.01" placeholder="Est. $" className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
+                      <input name="quantity" type="number" step="1" placeholder="Qty" required className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                      <input name="unit" placeholder="Unit" className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                      <input name="estValue" type="number" step="0.01" placeholder="Est. $" className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
                     </div>
                   </div>
-                  <textarea name="notes" placeholder="Notes for Sara" rows={2} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm" />
+                  <textarea name="notes" placeholder="Notes for Sara" rows={2} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
                   <button type="submit" disabled={submitting} className="w-full bg-purple-500 text-white font-bold py-3 rounded-lg active:bg-purple-600 disabled:opacity-50">
                     {submitting ? 'Submitting…' : 'Send to Sara'}
                   </button>

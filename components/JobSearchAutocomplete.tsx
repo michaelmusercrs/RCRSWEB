@@ -193,7 +193,7 @@ export default function JobSearchAutocomplete({
           autoFocus={autoFocus}
           autoComplete="off"
           spellCheck={false}
-          className="w-full border border-neutral-300 rounded-lg pl-9 pr-9 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 disabled:bg-neutral-100 disabled:text-neutral-500"
+          className="w-full bg-zinc-900 text-white placeholder-zinc-500 border border-zinc-700 rounded-lg pl-9 pr-9 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 disabled:bg-zinc-800 disabled:text-zinc-500"
         />
         {isSearching && (
           <Loader2 className="w-4 h-4 animate-spin text-green-500 absolute right-3 top-1/2 -translate-y-1/2" />
@@ -207,7 +207,7 @@ export default function JobSearchAutocomplete({
       {showDropdown && hits.length > 0 && (
         <div
           ref={dropdownRef}
-          className="absolute z-50 left-0 right-0 mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg max-h-80 overflow-y-auto"
+          className="absolute z-50 left-0 right-0 mt-1 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl max-h-80 overflow-y-auto"
         >
           {hits.map((hit, idx) => {
             const highlighted = idx === highlightedIndex;
@@ -220,32 +220,32 @@ export default function JobSearchAutocomplete({
                 type="button"
                 onClick={() => handleSelect(hit)}
                 onMouseEnter={() => setHighlightedIndex(idx)}
-                className={`w-full text-left px-3 py-2 border-b border-neutral-100 last:border-b-0 flex items-start gap-3 ${
-                  highlighted ? 'bg-green-50' : 'bg-white hover:bg-neutral-50'
+                className={`w-full text-left px-3 py-2 border-b border-zinc-800 last:border-b-0 flex items-start gap-3 ${
+                  highlighted ? 'bg-[#39FF14]/10' : 'bg-zinc-900 hover:bg-zinc-800/60'
                 }`}
               >
-                <Briefcase className="w-4 h-4 text-neutral-400 mt-0.5 flex-shrink-0" />
+                <Briefcase className="w-4 h-4 text-zinc-500 mt-0.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-2 flex-wrap">
-                    <span className="font-medium text-neutral-900 text-sm">
+                    <span className="font-medium text-[#39FF14] text-sm font-mono">
                       {hit.rNumber || '—'}
                     </span>
-                    <span className="text-sm text-neutral-700 truncate">
+                    <span className="text-sm text-zinc-200 truncate">
                       {hit.customerName || hit.jobName}
                     </span>
                     {hit.status && (
-                      <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-600 flex-shrink-0">
+                      <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700 flex-shrink-0">
                         {hit.status}
                       </span>
                     )}
                   </div>
                   {secondary && (
-                    <div className="text-xs text-neutral-500 truncate">
+                    <div className="text-xs text-zinc-500 truncate">
                       {secondary}
                     </div>
                   )}
                   {hit.salesRep && (
-                    <div className="text-[11px] text-neutral-400">
+                    <div className="text-[11px] text-zinc-500">
                       Rep: {hit.salesRep}
                     </div>
                   )}
