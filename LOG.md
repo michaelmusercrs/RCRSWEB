@@ -8,6 +8,8 @@ The scheduled routine appends an entry per action.
 
 ## 2026-05-20
 
+- `05:00` · claude · sweep/insurance-claims · lib/insurance-claims-service.ts + customer dashboard tab + admin viewer + 2 API routes · self-service insurance claim timeline (10-state linear progression) + admin advance-status flow · solves the highest-impact missing customer-portal surface per audit + research-doc · commit (sweep)
+- `04:30` · claude · scripts/fix-missing-job-breakdowns.mjs + bulk-backfill-invoices-and-breakdowns.mjs · Phase 9.2 — 234 invoices + 264 job breakdowns + 25 delivery schedule rows for ALL historical tickets without invoices. NO inventory deductions for pre-2026-05-15 (avoids historical_close double-count). NO emails per owner directive. $268,909.67 grand total · commits 7bc9fc2 + 4926606 (main); data on master sheet
 - `03:30` · claude · marketing-intel service + cron + admin viewer + suggestion heuristics · Phase 9.8 — daily monitor across 6 sources, 7 heuristics surface actionable items, parked in `_disabledCrons` · commit 9e11d22 (main)
 - `03:15` · claude · lib/customer-portal-sheets.ts + 4 routes · Phase 9.7 customer-portal 3 stubs persist + ReviewSubmission wired · commit 11f7826 (main)
 - `03:00` · claude · auto-blog 2 bugs + lib/social-publish.ts stub + audit doc · Phase 9.6 — pending-reads from sheet not JSON; cron mirrors Blog_Posts → blog-posts; social-publish stubbed per platform · commit 22d630a (main)
