@@ -19,6 +19,13 @@ export interface GroupMeNotification {
   details?: Record<string, string | number | boolean>;
   priority?: 'low' | 'normal' | 'high' | 'urgent';
   mentionAll?: boolean;
+  /**
+   * Bypass owner-imposed guards (master kill switch + quiet hours).
+   * ONLY set true when the owner has explicitly approved the send
+   * or for urgent operational alerts they've pre-authorized.
+   * Defaults to false — guards apply.
+   */
+  force?: boolean;
 }
 
 export interface GroupMeConfig {
@@ -599,6 +606,37 @@ class GroupMeService {
     config: GroupMeConfig,
     notification: GroupMeNotification
   ): Promise<{ success: boolean; error?: string; skipped?: boolean }> {
+    // OWNER GUARD 2026-05-20: master kill switch until explicit approval.
+    // Override with notification.force=true OR env GROUPME_FORCE_SEND=true.
+    if (!notification.force && process.env.GROUPME_FORCE_SEND !== 'true') {
+      console.warn('[GROUPME BLOCKED]', {
+        type: notification.type,
+        title: notification.title,
+        reason: 'master guard active until owner approval',
+      });
+      return { success: false, skipped: true, error: 'GroupMe sends blocked (owner guard active)' };
+    }
+
+    // OWNER GUARD: quiet hours 8pm-7am Central, unless force/explicit.
+    if (!notification.force) {
+      const hourCT = parseInt(
+        new Intl.DateTimeFormat('en-US', {
+          timeZone: 'America/Chicago',
+          hour: '2-digit',
+          hour12: false,
+        }).format(new Date()),
+        10,
+      );
+      if (hourCT >= 20 || hourCT < 7) {
+        console.warn('[GROUPME QUIET HOURS]', {
+          type: notification.type,
+          title: notification.title,
+          hourCT,
+        });
+        return { success: false, skipped: true, error: `Quiet hours (${hourCT}:00 CT — blocked 8pm-7am)` };
+      }
+    }
+
     // Check if notifications are enabled
     if (!config.enabled) {
       return { success: false, skipped: true, error: 'GroupMe notifications disabled' };
