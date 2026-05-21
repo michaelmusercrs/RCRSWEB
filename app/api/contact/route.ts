@@ -15,6 +15,7 @@ import { checkForSpam } from '@/lib/spam-filter';
 import { checkHoneypot } from '@/lib/honeypot';
 import { verifyTurnstileToken, getRequestIp } from '@/lib/turnstile';
 import { logSpamBlock } from '@/lib/spam-log';
+import { checkRequestSize } from '@/lib/request-size-limit';
 
 const contactRateLimiter = createContactFormRateLimiter();
 const globalFormRateLimiter = createGlobalFormRateLimiter();
@@ -34,6 +35,11 @@ const globalFormRateLimiter = createGlobalFormRateLimiter();
  * 5. Return success/error to frontend
  */
 export async function POST(request: NextRequest) {
+  // SECURITY 2026-05-20: body-size cap was missing per verification audit M2.
+  // Aligns this legacy public form with the /api/forms/* cohort (all 50kb).
+  const sizeError = checkRequestSize(request, '50kb');
+  if (sizeError) return sizeError;
+
   // Check the cross-form global cap first so a hot IP can't burn its
   // per-form budget before tripping the global cap.
   return withRateLimit(request, globalFormRateLimiter, async () =>

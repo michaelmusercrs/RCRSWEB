@@ -15,6 +15,26 @@
  *
  * IMPORTANT: fields are DELETED (not nulled). They must not appear in the
  * JSON serialization at all, so a client cannot infer existence from a null.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * CACHE-KEY DISCIPLINE (M4, docs/2026-05-20-verification-pass.md):
+ *
+ * If you cache any JN-derived response at the API-route layer, the cache key
+ * MUST include the viewer's `canSeeCost` flag (or role). Otherwise the first
+ * caller to populate the cache fixes the redaction state for every subsequent
+ * caller, and a rep can hit an owner-tier (cost-bearing) cache entry — or
+ * vice-versa, an owner gets a redacted entry.
+ *
+ * Canonical pattern (see app/api/sheets/customers/route.ts:173):
+ *
+ *     const cacheKey = `jn:thing:${id}:cost=${viewer.canSeeCost ? '1' : '0'}`;
+ *
+ * As of 2026-05-20 the only route-level cache over JN data lives in
+ * `app/api/sheets/customers/route.ts`. Other JN reads (calendar events,
+ * customer messages, geocoded stats, etc.) cache non-cost-bearing
+ * projections, but any NEW route that adds a `cache.set` over JN-derived
+ * data must include the `:cost=0|1` suffix in the key.
+ * ─────────────────────────────────────────────────────────────────────────────
  */
 
 import { canSeeCost } from './cost-visibility';

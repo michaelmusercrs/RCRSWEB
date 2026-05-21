@@ -15,6 +15,7 @@
 // and that token MUST be required (fail-closed) — same pattern as JobNimbus.
 
 import { NextRequest, NextResponse } from 'next/server';
+import { checkRequestSize } from '@/lib/request-size-limit';
 
 interface GroupMeCallback {
   attachments: Array<{ type: string; url?: string; loci?: number[][]; user_ids?: string[] }>;
@@ -62,6 +63,11 @@ const RIVER_COMMANDS: Record<string, { description: string; handler: (msg: Group
 };
 
 export async function POST(request: NextRequest) {
+  // SECURITY 2026-05-20: body-size cap added per verification audit M3.
+  // GroupMe callbacks are small (a single chat message) — 50kb is generous.
+  const sizeError = checkRequestSize(request, '50kb');
+  if (sizeError) return sizeError;
+
   try {
     const callback: GroupMeCallback = await request.json();
 

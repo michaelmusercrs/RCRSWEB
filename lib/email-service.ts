@@ -84,6 +84,21 @@ function isTemplateAllowed(template: EmailTemplate | undefined): boolean {
 
 const OWNER_GMAIL = 'rivercityroofingsolutions@gmail.com';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Per-recipient rate-limit buckets.
+//
+// 2026-05-20 (M1 fix in docs/2026-05-20-verification-pass.md): on Vercel each
+// warm Lambda instance held its own in-memory `rateBuckets` Map, so the
+// effective owner-gmail cap of 5/hr was actually 5×N where N = warm instances.
+// To enforce a global cap we now back the counter with Vercel KV
+// (KV_REST_API_URL / KV_REST_API_TOKEN — same env that powers
+// lib/rate-limiter-kv.ts).
+//
+// Fallback: when KV env is unset (local dev, or KV not provisioned on the
+// project) we silently degrade to the legacy in-memory Map so `npm run dev`
+// keeps working and behavior matches what was shipped before.
+// ─────────────────────────────────────────────────────────────────────────────
+
 type Bucket = { hour: number; hourCount: number; day: number; dayCount: number };
 const rateBuckets = new Map<string, Bucket>();
 
@@ -100,9 +115,49 @@ function capsFor(addr: string): { hour: number; day: number } {
   };
 }
 
-function checkAndBumpRate(rawAddr: string): { allowed: boolean; reason?: string } {
-  const addr = rawAddr.toLowerCase().trim();
-  if (!addr) return { allowed: true };
+// ── KV client (lazy + fail-safe, mirrors lib/rate-limiter-kv.ts:146) ────────
+type KvIncrExpire = {
+  incr: (key: string) => Promise<number>;
+  expire: (key: string, seconds: number) => Promise<number | boolean>;
+};
+
+let kvClient: KvIncrExpire | null = null;
+let kvProbed = false;
+let kvAvailable = false;
+
+function isKvConfigured(): boolean {
+  return Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+}
+
+async function getKvClient(): Promise<KvIncrExpire | null> {
+  if (kvProbed) return kvAvailable ? kvClient : null;
+  kvProbed = true;
+
+  if (!isKvConfigured()) {
+    console.info(
+      '[email-service] KV env vars missing; falling back to in-memory rate buckets.',
+    );
+    kvAvailable = false;
+    return null;
+  }
+
+  try {
+    const mod = (await import('@vercel/kv')) as { kv: KvIncrExpire };
+    kvClient = mod.kv;
+    kvAvailable = true;
+    return kvClient;
+  } catch (err) {
+    console.warn(
+      '[email-service] @vercel/kv import failed; falling back to in-memory rate buckets.',
+      err,
+    );
+    kvAvailable = false;
+    return null;
+  }
+}
+
+// ── In-memory fallback (legacy behavior) ────────────────────────────────────
+function checkAndBumpRateMemory(addr: string): { allowed: boolean; reason?: string } {
   const now = Date.now();
   const hour = Math.floor(now / 3_600_000);
   const day = Math.floor(now / 86_400_000);
@@ -119,13 +174,70 @@ function checkAndBumpRate(rawAddr: string): { allowed: boolean; reason?: string 
   return { allowed: true };
 }
 
-function filterRecipients(addrs: string | undefined, subject: string, field: 'to' | 'cc' | 'bcc'): { kept: string; dropped: string[] } {
+// ── KV-backed implementation ────────────────────────────────────────────────
+// Bucket-per-window pattern (matches lib/rate-limiter-kv.ts): one INCR per
+// send, EXPIRE set only on the first hit of a window so the TTL isn't pushed
+// out by later hits. Two keys per address — one hourly, one daily — so the
+// existing hour/day caps both apply. Over-budget hits still INCR (mirrors
+// the in-memory behavior); the count is checked before the increment is
+// committed by comparing the returned `count` to the cap.
+async function checkAndBumpRateKv(
+  kv: KvIncrExpire,
+  addr: string,
+): Promise<{ allowed: boolean; reason?: string }> {
+  const now = Date.now();
+  const hour = Math.floor(now / 3_600_000);
+  const day = Math.floor(now / 86_400_000);
+  const { hour: hourCap, day: dayCap } = capsFor(addr);
+
+  const hourKey = `email-bucket:${addr}:hour:${hour}`;
+  const dayKey = `email-bucket:${addr}:day:${day}`;
+
+  // Hourly bucket: INCR + set TTL on first hit. Cap check uses the
+  // post-increment count — first call returns 1 and is allowed iff cap >= 1.
+  const hourCount = await kv.incr(hourKey);
+  if (hourCount === 1) {
+    // 1h + small slack so the bucket survives clock skew at the boundary.
+    await kv.expire(hourKey, 3700);
+  }
+  if (hourCount > hourCap) {
+    return { allowed: false, reason: `hourly cap ${hourCap} hit` };
+  }
+
+  const dayCount = await kv.incr(dayKey);
+  if (dayCount === 1) {
+    await kv.expire(dayKey, 86_500);
+  }
+  if (dayCount > dayCap) {
+    return { allowed: false, reason: `daily cap ${dayCap} hit` };
+  }
+
+  return { allowed: true };
+}
+
+async function checkAndBumpRate(rawAddr: string): Promise<{ allowed: boolean; reason?: string }> {
+  const addr = rawAddr.toLowerCase().trim();
+  if (!addr) return { allowed: true };
+  const kv = await getKvClient();
+  if (!kv) return checkAndBumpRateMemory(addr);
+  try {
+    return await checkAndBumpRateKv(kv, addr);
+  } catch (err) {
+    console.warn(
+      '[email-service] KV rate check failed; degrading to in-memory for this send.',
+      err,
+    );
+    return checkAndBumpRateMemory(addr);
+  }
+}
+
+async function filterRecipients(addrs: string | undefined, subject: string, field: 'to' | 'cc' | 'bcc'): Promise<{ kept: string; dropped: string[] }> {
   if (!addrs) return { kept: '', dropped: [] };
   const list = addrs.split(/[;,]/).map(s => s.trim()).filter(Boolean);
   const kept: string[] = [];
   const dropped: string[] = [];
   for (const a of list) {
-    const r = checkAndBumpRate(a);
+    const r = await checkAndBumpRate(a);
     if (r.allowed) {
       kept.push(a);
     } else {
@@ -225,9 +337,10 @@ class EmailService {
     }
 
     // Per-recipient rate limit. Drop capped recipients, continue with the rest.
-    const toF = filterRecipients(options.to, options.subject, 'to');
-    const ccF = filterRecipients(options.cc, options.subject, 'cc');
-    const bccF = filterRecipients(options.bcc, options.subject, 'bcc');
+    // KV-backed when KV env is set, in-memory fallback otherwise (see helpers above).
+    const toF = await filterRecipients(options.to, options.subject, 'to');
+    const ccF = await filterRecipients(options.cc, options.subject, 'cc');
+    const bccF = await filterRecipients(options.bcc, options.subject, 'bcc');
 
     if (!toF.kept) {
       console.warn('[EMAIL DROPPED] All to-recipients rate-limited:', {

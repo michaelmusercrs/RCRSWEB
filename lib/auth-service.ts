@@ -424,14 +424,32 @@ export async function requireAuth(): Promise<
 /**
  * Require admin role for API routes.
  * Returns user if admin, 401 if not authenticated, 403 if wrong role.
+ *
+ * Identity allowlist (2026-05-20, M5 fix): Richard Geahr ("Rick") is
+ * default-allowed by slug even though his stored role is `driver`, to mirror
+ * the same identity-bypass that `requireRoleAtLeast` already applies (see the
+ * commit b789cb5 helper). Pass a custom `allowedSlugs` list to override the
+ * default (e.g., pass `[]` if a surface should be role-only).
  */
-export async function requireAdmin(): Promise<
+export async function requireAdmin(
+  allowedSlugs: string[] = ['richard', 'richard@rcrsal.com']
+): Promise<
   { authenticated: true; user: AuthUser } | { authenticated: false; response: Response }
 > {
   const auth = await requireAuth();
   if (!auth.authenticated) return auth;
 
-  if (auth.user.role !== 'admin' && auth.user.role !== 'owner') {
+  const role = (auth.user.role || '').toLowerCase();
+  const email = (auth.user.email || '').toLowerCase();
+  const userId = (auth.user.userId || '').toLowerCase();
+  const allowedSlugsLower = allowedSlugs.map(s => s.toLowerCase());
+
+  const roleOk = role === 'admin' || role === 'owner';
+  const slugOk =
+    allowedSlugsLower.includes(email) ||
+    allowedSlugsLower.includes(userId);
+
+  if (!roleOk && !slugOk) {
     const { NextResponse } = await import('next/server');
     return {
       authenticated: false,
