@@ -22,6 +22,9 @@ interface Section {
   icon: React.ComponentType<{ className?: string }>;
   color: string;
   highlight?: string;
+  // When set, the tile is rendered greyed out with the reason on hover.
+  // Page still works, but we flag that the data isn't trustworthy yet.
+  wip?: string;
 }
 
 const SECTIONS: Section[] = [
@@ -157,28 +160,31 @@ const SECTIONS: Section[] = [
     highlight: 'NEW',
   },
   {
-    title: 'True Margin Per Job (NEW)',
-    description: 'Revenue minus commission per job, per-rep margin tier. Material/sub-labor coverage gap surfaced — fills in as data backfills',
+    title: 'True Margin Per Job',
+    description: 'Revenue minus materials + subs + commission per job, per-rep margin tier.',
     href: '/chrisview/margin',
     icon: DollarSign,
     color: 'from-emerald-500 to-lime-400',
-    highlight: 'NEW',
+    highlight: 'WIP',
+    wip: 'data/job-costs.json is empty — only commission is deducted so margin reads ~89%. Holding until the post-2026-05-15 material + sub cost backfill lands.',
   },
   {
-    title: 'Segmented LTV (NEW)',
+    title: 'Segmented LTV',
     description: 'Customer lifetime value split insurance vs retail — repeat rates, top customers per segment, cohort comparison',
     href: '/chrisview/segmented-ltv',
     icon: Users,
     color: 'from-violet-500 to-purple-400',
-    highlight: 'NEW',
+    highlight: 'WIP',
+    wip: 'Only ~7.5% of QB customers cleanly match a JN contact, and JN insurance fields are sparse on the matched ones. Need a QB-memo-based insurance classifier.',
   },
   {
-    title: 'Rookie Ramp Curve (NEW)',
+    title: 'Rookie Ramp Curve',
     description: 'Weeks-to-first-signed and yr1 signed counts per rep, normalized to weeks-since-start with baseline median overlay',
     href: '/chrisview/onboarding',
     icon: Rocket,
     color: 'from-cyan-500 to-blue-400',
-    highlight: 'NEW',
+    highlight: 'WIP',
+    wip: 'A rep\'s first meeting-sheet row IS effectively their first signed contract — they only get added once they\'re producing. Need a separate hire-date source before this metric is honest.',
   },
   {
     title: 'Review Ask Rate (NEW)',
@@ -233,29 +239,38 @@ export default function MenuPage() {
       <main className="max-w-7xl mx-auto px-6 py-8">
         <div className="mb-6">
           <h2 className="text-2xl font-bold mb-2">Every Analytics Page</h2>
-          <p className="text-zinc-400 text-sm">11 specialized views over the QB ledger, JN CRM, and Monday meeting data. All public read-only. Cached server-side.</p>
+          <p className="text-zinc-400 text-sm">{SECTIONS.length} specialized views over the QB ledger, JN CRM, and Monday meeting data. Tiles tagged <span className="text-amber-300 font-mono">WIP</span> are still being verified — page loads but the numbers aren&apos;t trustworthy yet. Hover for the gap reason.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {SECTIONS.map(section => {
             const Icon = section.icon;
+            const isWip = !!section.wip;
             return (
               <Link
                 key={section.href}
                 href={section.href}
-                className="group relative bg-zinc-900 border border-zinc-800 rounded-xl p-5 hover:border-[#39FF14]/40 hover:bg-zinc-800/40 transition-all"
+                title={isWip ? section.wip : undefined}
+                className={`group relative rounded-xl p-5 transition-all border ${
+                  isWip
+                    ? 'bg-zinc-950 border-zinc-800/60 opacity-50 hover:opacity-90 hover:border-amber-400/40'
+                    : 'bg-zinc-900 border-zinc-800 hover:border-[#39FF14]/40 hover:bg-zinc-800/40'
+                }`}
               >
-                <div className={`absolute -top-px left-4 right-4 h-px bg-gradient-to-r ${section.color} opacity-50 group-hover:opacity-100 transition-opacity`} />
+                <div className={`absolute -top-px left-4 right-4 h-px bg-gradient-to-r ${section.color} ${isWip ? 'opacity-20' : 'opacity-50 group-hover:opacity-100'} transition-opacity`} />
                 <div className="flex items-start justify-between mb-3">
-                  <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${section.color} flex items-center justify-center`}>
+                  <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${section.color} flex items-center justify-center ${isWip ? 'opacity-60' : ''}`}>
                     <Icon className="w-5 h-5 text-black" />
                   </div>
-                  <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-[#39FF14] transition-colors" />
+                  <ChevronRight className={`w-4 h-4 ${isWip ? 'text-zinc-700 group-hover:text-amber-400' : 'text-zinc-600 group-hover:text-[#39FF14]'} transition-colors`} />
                 </div>
-                <h3 className="text-base font-semibold mb-1">{section.title}</h3>
-                <p className="text-xs text-zinc-400 leading-relaxed mb-2">{section.description}</p>
+                <h3 className={`text-base font-semibold mb-1 ${isWip ? 'text-zinc-300' : ''}`}>{section.title}</h3>
+                <p className={`text-xs leading-relaxed mb-2 ${isWip ? 'text-zinc-500' : 'text-zinc-400'}`}>{section.description}</p>
+                {isWip && (
+                  <p className="text-[10px] text-amber-400/70 italic mb-2">Not yet trustworthy — {section.wip}</p>
+                )}
                 {section.highlight && (
-                  <span className="inline-block text-[10px] font-mono text-[#39FF14] bg-[#39FF14]/10 px-2 py-0.5 rounded">
+                  <span className={`inline-block text-[10px] font-mono px-2 py-0.5 rounded ${isWip ? 'text-amber-300 bg-amber-400/10' : 'text-[#39FF14] bg-[#39FF14]/10'}`}>
                     {section.highlight}
                   </span>
                 )}

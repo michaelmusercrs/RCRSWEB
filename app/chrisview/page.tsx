@@ -52,7 +52,7 @@ import {
 
 const PIE_COLORS = ['#39FF14', '#60a5fa', '#fbbf24', '#fb7185', '#a78bfa', '#22d3ee', '#f97316', '#10b981', '#ec4899', '#6366f1', '#84cc16'];
 
-type TabId = 'overview' | 'charts' | 'transactions' | 'customers' | 'vendors' | 'reps' | 'commissions' | 'inventory' | 'analytics';
+type TabId = 'overview' | 'charts' | 'transactions' | 'customers' | 'vendors' | 'reps' | 'commissions' | 'inventory';
 
 interface InventoryRow {
   id: string; name: string; description: string; category: string; supplier: string;
@@ -151,10 +151,17 @@ function fmtMoneyExact(n: number): string {
 function fmtPercent(n: number): string { return `${(n * 100).toFixed(1)}%`; }
 
 // --- Analytics Hub --------------------------------------------------------
-// The 21 sibling /chrisview/* pages. The main /chrisview file is intentionally
-// untouched for its data tabs above; this hub is the discovery surface so
-// nothing new gets buried at /chrisview/menu.
-interface HubLink { href: string; title: string; description: string; highlight?: string }
+// All sibling /chrisview/* pages, surfaced as the FIRST thing visible on
+// /chrisview itself per the 2026-05-21 owner brief: stop hiding new pages
+// behind a tab. Pages flagged `wip` are greyed out — they exist as routes
+// but the data isn't trustworthy enough to publish until further work.
+interface HubLink {
+  href: string;
+  title: string;
+  description: string;
+  highlight?: string;
+  wip?: string; // when set, render greyed + show the reason on hover
+}
 const HUB_GROUPS: { label: string; items: HubLink[] }[] = [
   {
     label: 'Sales performance',
@@ -171,22 +178,32 @@ const HUB_GROUPS: { label: string; items: HubLink[] }[] = [
     label: 'Customers & growth',
     items: [
       { href: '/chrisview/ltv', title: 'Customer Lifetime Value', description: 'LTV per customer, cohort repeat rate by year', highlight: '32% repeat' },
-      { href: '/chrisview/segmented-ltv', title: 'Segmented LTV', description: 'LTV split insurance vs retail — which segment is more loyal?', highlight: 'NEW' },
       { href: '/chrisview/lead-sources', title: 'Lead Source Effectiveness', description: 'Close rate per source + top reps per source' },
       { href: '/chrisview/referral-network', title: 'Referral Network', description: 'Who refers leads to whom — source bucketing + top referrer people', highlight: 'NEW' },
       { href: '/chrisview/reviews', title: 'Reviews by Rep', description: '317 reviews 2018-2025 with low-review detail panel' },
       { href: '/chrisview/review-velocity', title: 'Review Ask Rate', description: '9.8% lifetime ask rate, 0% last 90 days. Hunter\'s last review: 2022', highlight: 'NEW' },
+      {
+        href: '/chrisview/segmented-ltv',
+        title: 'Segmented LTV',
+        description: 'LTV split insurance vs retail — which segment is more loyal?',
+        wip: 'Only ~7.5% of QB customers cleanly match a JN contact, and JN insurance fields are sparse on the matched ones. Building a QB-memo-based classifier instead.',
+      },
     ],
   },
   {
     label: 'Profit & cashflow',
     items: [
-      { href: '/chrisview/margin', title: 'True Margin Per Job', description: 'Revenue minus commission per job; per-rep tier (~89% until material backfills)', highlight: 'NEW' },
       { href: '/chrisview/cashflow', title: 'Cash Flow Forecast', description: '6-month forecast with seasonal multipliers + runway' },
       { href: '/chrisview/insurance', title: 'Insurance Deep Dive', description: 'Per-carrier RCV/ACV/deductible, days-to-approve, adjuster turnaround' },
       { href: '/chrisview/lifecycle', title: 'Job Lifecycle', description: 'Days to contract/install/paid, trips per job, rework, 90-day unpaid AR' },
       { href: '/chrisview/leaders', title: 'Division Leader Checks', description: 'Recruiter / override commission payments by recipient and year' },
       { href: '/chrisview/multi-rep-splits', title: 'Multi-Rep Commission Splits', description: '320 split jobs / $2.15M / 168 unique pairings', highlight: 'NEW' },
+      {
+        href: '/chrisview/margin',
+        title: 'True Margin Per Job',
+        description: 'Revenue minus materials + subs + commission per job.',
+        wip: 'data/job-costs.json is empty — only commission is deducted right now, which reads ~89% margin. Waiting on the post-2026-05-15 sheet backfill of material + sub cost per job before publishing.',
+      },
     ],
   },
   {
@@ -194,9 +211,14 @@ const HUB_GROUPS: { label: string; items: HubLink[] }[] = [
     items: [
       { href: '/chrisview/insights', title: 'Meeting Insights', description: 'Pattern detection in Monday meeting data — predictions, attendance, goal study' },
       { href: '/chrisview/meetings', title: 'Meeting History', description: 'All-time annual funnel, per-rep career, best rep-weeks, attendance trends' },
-      { href: '/chrisview/onboarding', title: 'Rookie Ramp Curve', description: 'Weeks-to-first-signed per rep vs the historical median baseline', highlight: 'NEW' },
       { href: '/chrisview/rep-churn', title: 'Rep Churn Early Warning', description: 'Recent activity vs own baseline — composite risk score per rep', highlight: 'NEW' },
       { href: '/chrisview/subs', title: 'Subcontractor Performance', description: 'Lifetime sub spend, check counts, inactive flags ($6.6M / 13 subs)' },
+      {
+        href: '/chrisview/onboarding',
+        title: 'Rookie Ramp Curve',
+        description: 'Weeks-to-first-signed per rep vs the historical median baseline.',
+        wip: 'A rep\'s first meeting-sheet appearance IS effectively their first signed contract (they only get added once they\'re producing). Need a separate hire-date data source before this metric is trustworthy.',
+      },
     ],
   },
   {
@@ -206,47 +228,65 @@ const HUB_GROUPS: { label: string; items: HubLink[] }[] = [
       { href: '/chrisview/compare', title: 'Year-over-Year Compare', description: 'Monthly grid year × month, YTD pace, growth rates' },
       { href: '/chrisview/stats', title: 'Stats & Records', description: 'Best months, biggest commission payments, top lifetime earners, all-time superlatives' },
       { href: '/chrisview/summary', title: 'Executive Summary', description: 'One-screen: lifetime, YTD, last-12mo, records, top reps, reviews' },
-      { href: '/chrisview/menu', title: 'Full Menu (formatted list)', description: 'All 29 pages as a printable grid with descriptions' },
+      { href: '/chrisview/menu', title: 'Full Menu (printable list)', description: 'All pages as a flat grid for printing or sharing' },
     ],
   },
 ];
 
 function AnalyticsHub() {
   return (
-    <div className="space-y-6">
-      <div className="bg-gradient-to-br from-zinc-900 to-zinc-950 border border-zinc-800 rounded-xl p-5">
+    <section className="space-y-5 mb-6">
+      <div className="bg-gradient-to-br from-zinc-900 to-zinc-950 border border-[#39FF14]/20 rounded-xl p-5">
         <h2 className="text-xl font-bold mb-1 flex items-center gap-2">
           <LineChartIcon className="w-5 h-5 text-[#39FF14]" />
-          Specialized analytics — 21 pages
+          Specialized analytics
         </h2>
-        <p className="text-zinc-400 text-sm">Each page is a focused view over QB / JN / Monday meeting data. Pages tagged <span className="inline-block text-[10px] font-mono text-[#39FF14] bg-[#39FF14]/10 px-1.5 py-0.5 rounded ml-1">NEW</span> shipped 2026-05-21.</p>
+        <p className="text-zinc-400 text-sm">
+          Each tile is a focused view over QB / JN / Monday meeting data. Tiles with
+          <span className="inline-block text-[10px] font-mono text-amber-300 bg-amber-400/10 px-1.5 py-0.5 rounded mx-1">WIP</span>
+          are still being researched — the data isn't trustworthy yet, so we publish the page but flag it. Hover for the gap reason.
+          The classic database tabs (Overview / Charts / Transactions / etc.) are below.
+        </p>
       </div>
 
       {HUB_GROUPS.map(group => (
         <div key={group.label}>
-          <h3 className="text-sm font-semibold text-zinc-300 mb-3 uppercase tracking-wide">{group.label}</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {group.items.map(item => (
-              <a
-                key={item.href}
-                href={item.href}
-                className="group bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-[#39FF14]/40 hover:bg-zinc-800/40 transition-all"
-              >
-                <div className="flex items-start justify-between mb-1.5">
-                  <h4 className="text-sm font-semibold text-white">{item.title}</h4>
-                  {item.highlight && (
-                    <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${item.highlight === 'NEW' ? 'text-[#39FF14] bg-[#39FF14]/10' : 'text-amber-400 bg-amber-400/10'}`}>
-                      {item.highlight}
-                    </span>
+          <h3 className="text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wide">{group.label}</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
+            {group.items.map(item => {
+              const isWip = !!item.wip;
+              return (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  title={isWip ? item.wip : undefined}
+                  className={`group rounded-lg p-3.5 transition-all border ${
+                    isWip
+                      ? 'bg-zinc-950 border-zinc-800/60 opacity-50 hover:opacity-80 hover:border-amber-400/30'
+                      : 'bg-zinc-900 border-zinc-800 hover:border-[#39FF14]/40 hover:bg-zinc-800/40'
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-1">
+                    <h4 className={`text-sm font-semibold ${isWip ? 'text-zinc-300' : 'text-white'}`}>{item.title}</h4>
+                    {isWip ? (
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded text-amber-300 bg-amber-400/10 shrink-0 ml-2">WIP</span>
+                    ) : item.highlight ? (
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded text-[#39FF14] bg-[#39FF14]/10 shrink-0 ml-2">{item.highlight}</span>
+                    ) : null}
+                  </div>
+                  <p className={`text-xs leading-relaxed ${isWip ? 'text-zinc-500' : 'text-zinc-400'}`}>{item.description}</p>
+                  {isWip && (
+                    <p className="text-[10px] text-amber-400/70 mt-1.5 italic">
+                      Not yet trustworthy — {item.wip}
+                    </p>
                   )}
-                </div>
-                <p className="text-xs text-zinc-400 leading-relaxed">{item.description}</p>
-              </a>
-            ))}
+                </a>
+              );
+            })}
           </div>
         </div>
       ))}
-    </div>
+    </section>
   );
 }
 
@@ -465,7 +505,6 @@ export default function ChrisViewPage() {
             { id: 'reps' as TabId, label: 'Sales Reps', icon: UserCheck },
             { id: 'commissions' as TabId, label: 'Commissions', icon: DollarSign },
             { id: 'inventory' as TabId, label: 'Inventory', icon: Briefcase },
-            { id: 'analytics' as TabId, label: 'Analytics (21 more)', icon: LineChartIcon },
           ].map(t => {
             const Icon = t.icon;
             const active = tab === t.id;
@@ -489,6 +528,10 @@ export default function ChrisViewPage() {
         {error && (
           <div className="px-4 py-3 bg-red-500/10 border border-red-500/30 rounded text-red-300 text-sm">{error}</div>
         )}
+
+        {/* Always-visible analytics hub — surfaces all sibling pages so
+            nothing gets buried behind a tab. WIP tiles are greyed out. */}
+        <AnalyticsHub />
 
         {/* OVERVIEW */}
         {tab === 'overview' && (
@@ -1338,10 +1381,6 @@ export default function ChrisViewPage() {
           </>
         )}
 
-        {/* ANALYTICS HUB — all 21 sibling pages on one screen */}
-        {tab === 'analytics' && (
-          <AnalyticsHub />
-        )}
       </main>
     </div>
   );
