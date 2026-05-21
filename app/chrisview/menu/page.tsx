@@ -11,7 +11,7 @@
 import Link from 'next/link';
 import {
   ArrowLeft, Database, BarChart3, Crown, Brain, Clock, TrendingUp,
-  Shield, Wrench, Wallet, HardHat, Megaphone, Heart, ChevronRight, Activity, Star, Trophy,
+  Shield, Wrench, Wallet, HardHat, Megaphone, Heart, ChevronRight, Activity, Star, Trophy, History,
 } from 'lucide-react';
 
 interface Section {
@@ -98,6 +98,14 @@ const SECTIONS: Section[] = [
     href: '/chrisview/scorecard',
     icon: Trophy,
     color: 'from-yellow-300 to-amber-600',
+    highlight: 'NEW',
+  },
+  {
+    title: 'History — All-Time (NEW)',
+    description: '8 yrs revenue × expense × margin (2018→present), monthly + quarterly trends, cumulative lifetime, seasonality heatmap, rep tenure timeline',
+    href: '/chrisview/history',
+    icon: History,
+    color: 'from-amber-400 to-yellow-600',
     highlight: 'NEW',
   },
   {
