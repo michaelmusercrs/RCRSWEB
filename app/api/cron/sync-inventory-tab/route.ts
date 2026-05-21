@@ -22,6 +22,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleSpreadsheet } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
 import { unifiedInventoryService } from '@/lib/unified-inventory-service';
+import { withCronLock } from '@/lib/cron-lock';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -123,59 +124,61 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // If the legacy sheet ID isn't set, this cron is a no-op.
-  if (!SHEETS_ID) {
-    return NextResponse.json({
-      success: true,
-      configured: false,
-      message: 'LEGACY_INVENTORY_SHEETS_ID not set — sync is disabled. Set the env var to the inventory app spreadsheet ID to enable.',
-    });
-  }
-
-  const start = Date.now();
-
-  try {
-    // ── Portal → Legacy (push portal inventory to legacy sheet for Rick) ──
-    const pushResult = await pushPortalToLegacy();
-
-    // ── Legacy → Portal (DISABLED by default) ───────────────────────────
-    // Previously this cron read rows from the legacy Inventory tab and
-    // created ticket rows in the portal. That path is now disabled because
-    // the legacy sheet is a READ-ONLY mirror maintained by this cron.
-    // Rick uses /portal/inventory/restock to add stock, which flows
-    // through unified-inventory-service and automatically mirrors here.
-    //
-    // To re-enable the old legacy→portal read path (NOT recommended),
-    // set LEGACY_SHEET_READ_ONLY=false in the environment.
-    let legacyReadResult: { message: string } = {
-      message: 'Legacy→portal read DISABLED (LEGACY_SHEET_READ_ONLY=true). All writes go through unified-inventory-service.',
-    };
-
-    if (!LEGACY_READ_ONLY) {
-      legacyReadResult = {
-        message: 'Legacy→portal read path is enabled but has been removed from this cron. Set LEGACY_SHEET_READ_ONLY=true (default) to suppress this message.',
-      };
+  return withCronLock('sync-inventory-tab', { staleMinutes: 15 }, async () => {
+    // If the legacy sheet ID isn't set, this cron is a no-op.
+    if (!SHEETS_ID) {
+      return NextResponse.json({
+        success: true,
+        configured: false,
+        message: 'LEGACY_INVENTORY_SHEETS_ID not set — sync is disabled. Set the env var to the inventory app spreadsheet ID to enable.',
+      });
     }
 
-    const { recordCronHeartbeat } = await import('@/lib/cron-heartbeat');
-    await recordCronHeartbeat('sync-inventory-tab', 'success', Date.now() - start, `Pushed ${pushResult.written} items to legacy sheet`);
+    const start = Date.now();
 
-    return NextResponse.json({
-      success: pushResult.errors.length === 0,
-      syncDirection: 'portal → legacy (one-way)',
-      legacyReadOnly: LEGACY_READ_ONLY,
-      portalToLegacy: {
-        itemsWritten: pushResult.written,
-        errors: pushResult.errors.length > 0 ? pushResult.errors : undefined,
-      },
-      legacyToPortal: legacyReadResult,
-    });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
     try {
+      // ── Portal → Legacy (push portal inventory to legacy sheet for Rick) ──
+      const pushResult = await pushPortalToLegacy();
+
+      // ── Legacy → Portal (DISABLED by default) ───────────────────────────
+      // Previously this cron read rows from the legacy Inventory tab and
+      // created ticket rows in the portal. That path is now disabled because
+      // the legacy sheet is a READ-ONLY mirror maintained by this cron.
+      // Rick uses /portal/inventory/restock to add stock, which flows
+      // through unified-inventory-service and automatically mirrors here.
+      //
+      // To re-enable the old legacy→portal read path (NOT recommended),
+      // set LEGACY_SHEET_READ_ONLY=false in the environment.
+      let legacyReadResult: { message: string } = {
+        message: 'Legacy→portal read DISABLED (LEGACY_SHEET_READ_ONLY=true). All writes go through unified-inventory-service.',
+      };
+
+      if (!LEGACY_READ_ONLY) {
+        legacyReadResult = {
+          message: 'Legacy→portal read path is enabled but has been removed from this cron. Set LEGACY_SHEET_READ_ONLY=true (default) to suppress this message.',
+        };
+      }
+
       const { recordCronHeartbeat } = await import('@/lib/cron-heartbeat');
-      await recordCronHeartbeat('sync-inventory-tab', 'error', Date.now() - start, message);
-    } catch { /* heartbeat failure should not mask the real error */ }
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
-  }
+      await recordCronHeartbeat('sync-inventory-tab', 'success', Date.now() - start, `Pushed ${pushResult.written} items to legacy sheet`);
+
+      return NextResponse.json({
+        success: pushResult.errors.length === 0,
+        syncDirection: 'portal → legacy (one-way)',
+        legacyReadOnly: LEGACY_READ_ONLY,
+        portalToLegacy: {
+          itemsWritten: pushResult.written,
+          errors: pushResult.errors.length > 0 ? pushResult.errors : undefined,
+        },
+        legacyToPortal: legacyReadResult,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      try {
+        const { recordCronHeartbeat } = await import('@/lib/cron-heartbeat');
+        await recordCronHeartbeat('sync-inventory-tab', 'error', Date.now() - start, message);
+      } catch { /* heartbeat failure should not mask the real error */ }
+      return NextResponse.json({ success: false, error: message }, { status: 500 });
+    }
+  });
 }

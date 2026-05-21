@@ -12,6 +12,7 @@ import { leadPortalService } from '@/lib/lead-portal-service';
 import { leadDistributionService } from '@/lib/lead-distribution-service';
 import { riverBot } from '@/lib/river-bot-service';
 import { TEAM_MEMBERS } from '@/lib/team-roles';
+import { withCronLock } from '@/lib/cron-lock';
 
 // Verify the request is from Vercel Cron or has the correct secret
 function verifyCronAuth(request: NextRequest): boolean {
@@ -32,6 +33,7 @@ export async function GET(request: NextRequest) {
     return apiError('Unauthorized', 401);
   }
 
+  return withCronLock('check-lead-timers', { staleMinutes: 5 }, async () => {
   const _hbStart = Date.now();
   try {
     // Sync timer config from lead distribution config on each check
@@ -164,4 +166,5 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
+  });
 }

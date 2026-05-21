@@ -15,6 +15,7 @@ import { leadDistributionService } from '@/lib/lead-distribution-service';
 import { riverBot } from '@/lib/river-bot-service';
 import { groupMeService, getGroupMeConfigFromEnv } from '@/lib/groupme-service';
 import { TEAM_MEMBERS, getSalesReps } from '@/lib/team-roles';
+import { withCronLock } from '@/lib/cron-lock';
 
 // ── Config paths ─────────────────────────────────────────────────────────────
 
@@ -236,6 +237,7 @@ export async function GET(request: NextRequest) {
     return apiError('Unauthorized', 401);
   }
 
+  return withCronLock('auto-reassign', { staleMinutes: 10 }, async () => {
   const _hbStart = Date.now();
   try {
     const reassignConfig = readReassignConfig();
@@ -425,4 +427,5 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
+  });
 }

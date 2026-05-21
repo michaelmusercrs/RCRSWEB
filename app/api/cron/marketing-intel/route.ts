@@ -30,6 +30,7 @@ import {
   writeMarketingIntelRows,
   type MarketingIntelResult,
 } from '@/lib/marketing-intel-service';
+import { withCronLock } from '@/lib/cron-lock';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -73,6 +74,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  return withCronLock('marketing-intel', { staleMinutes: 60 }, async () => {
   const _hbStart = Date.now();
   console.log('[marketing-intel] starting daily run');
 
@@ -185,6 +187,7 @@ export async function GET(request: NextRequest) {
     writeErrors: writeResult.errors,
     sources: results.length,
     okSources: results.filter((r) => r.ok).length,
+  });
   });
 }
 

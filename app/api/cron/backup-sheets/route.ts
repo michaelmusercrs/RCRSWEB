@@ -14,6 +14,7 @@ import { GoogleSpreadsheet } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
+import { withCronLock } from '@/lib/cron-lock';
 
 // Skip static generation — this route hits Google Sheets and Blob storage,
 // which must run at request time, not at build time.
@@ -310,6 +311,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  return withCronLock('backup-sheets', { staleMinutes: 60 }, async () => {
   const _hbStart = Date.now();
   const startTime = Date.now();
   const dateStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
@@ -468,4 +470,5 @@ export async function GET(request: NextRequest) {
       { status: 500 },
     );
   }
+  });
 }
