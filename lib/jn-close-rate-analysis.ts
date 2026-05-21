@@ -82,13 +82,21 @@ function isSigned(status: string | number | undefined): boolean {
 }
 
 function isAppointment(activity: JNActivity): boolean {
+  // In JN, appointments are recorded as "Task Completed" activity events,
+  // not a `record_type_name` of "appointment". Probe-verified 2026-05-21:
+  // the actual values are "Task Created", "Task Modified", "Task Completed",
+  // "Task Incompleted", "Task Deleted".
   const t = (activity.record_type_name || activity.type || '').toLowerCase();
-  return t.includes('appointment') || t === 'task';
+  return t === 'task completed';
 }
 
 function isCompleted(activity: JNActivity): boolean {
-  const s = (activity.status || '').toLowerCase();
-  return s === 'completed' || s === 'done' || s === 'complete';
+  // Kept for compatibility — combined with isAppointment() above this is
+  // already implicit (Task Completed activities are by definition completed).
+  // Any caller doing isAppointment() && isCompleted() now just gates on
+  // isAppointment() since the record_type_name itself carries the completion.
+  const t = (activity.record_type_name || '').toLowerCase();
+  return t === 'task completed';
 }
 
 function noteMentionsMeeting(activity: JNActivity): boolean {

@@ -247,7 +247,9 @@ export async function analyzeDeepFunnel(opts: { days?: number } = {}): Promise<F
     }
 
     // Pull estimates for this contact
-    const estRes = await jnFetch<{ results?: JNEstimate[] }>(`/estimates?filter=${encodeURIComponent(JSON.stringify({ must: [{ term: { 'primary.id': c.jnid } }] }))}&sort=date_created&limit=20`).catch(() => ({ results: [] }));
+    // JN indexes /estimates by `related.id`, NOT `primary.id`. Probe-verified
+    // 2026-05-21: primary.id returns count=0, related.id returns matching estimates.
+    const estRes = await jnFetch<{ results?: JNEstimate[] }>(`/estimates?filter=${encodeURIComponent(JSON.stringify({ must: [{ term: { 'related.id': c.jnid } }] }))}&sort=date_created&limit=20`).catch(() => ({ results: [] }));
     const estimates = estRes.results || [];
     estimatesFetched += estimates.length;
     const firstEst = estimates[0];

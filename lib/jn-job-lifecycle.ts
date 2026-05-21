@@ -301,10 +301,13 @@ export async function analyzeJobLifecycle(opts: { days?: number } = {}): Promise
       ? (j.date_signed || j.date_status_change || j.date_created || null)
       : null;
 
+    // In JN, appointments are surfaced as "Task Completed" / "Task Created"
+    // activity events — NOT a record_type_name of 'appointment'. Probe-
+    // verified 2026-05-21.
     const installEvent = acts.find(a => {
       const t = (a.record_type_name || '').toLowerCase();
       const note = (a.note || '').toLowerCase();
-      return (t === 'appointment' && INSTALL_RE.test(note) && (a.status || '').toLowerCase() === 'completed') ||
+      return (t === 'task completed' && INSTALL_RE.test(note)) ||
         (t === 'note' && /install (complete|done|finished)/i.test(note));
     });
     const installedAt =
@@ -313,10 +316,9 @@ export async function analyzeJobLifecycle(opts: { days?: number } = {}): Promise
       installEvent?.date_created ??
       null;
 
-    // Trip count = completed appointments
+    // Trip count = `Task Completed` events on the job
     const trips = acts.filter(a =>
-      (a.record_type_name || '').toLowerCase() === 'appointment' &&
-      ['completed', 'done', 'complete'].includes((a.status || '').toLowerCase())
+      (a.record_type_name || '').toLowerCase() === 'task completed'
     ).length;
 
     // Rework activities
