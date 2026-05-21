@@ -81,7 +81,14 @@ export default function ChrisAskWidget() {
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
       setHistory([...nextHistory, { role: 'assistant', content: data.answer || '' }]);
     } catch (err) {
-      setAskError(err instanceof Error ? err.message : 'Failed');
+      const msg = err instanceof Error ? err.message : 'Failed';
+      // If the API key isn't configured in prod, give a clear admin-side
+      // pointer rather than just "AI not configured".
+      if (msg.toLowerCase().includes('not configured')) {
+        setAskError('Q&A is not yet enabled. Owner needs to set ANTHROPIC_API_KEY in Vercel project settings, then redeploy. The Flag/Request tab still works.');
+      } else {
+        setAskError(msg);
+      }
       setHistory(nextHistory);
     } finally {
       setAsking(false);

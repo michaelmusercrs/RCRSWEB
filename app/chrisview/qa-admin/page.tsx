@@ -159,6 +159,27 @@ export default function QaAdminPage() {
           <code className="text-zinc-400 mx-1">status</code>, <code className="text-zinc-400 mx-1">reviewedBy</code>,
           <code className="text-zinc-400 mx-1">reviewedAt</code>, and <code className="text-zinc-400 mx-1">resolution</code> columns.
         </p>
+
+        <div className="mt-8 border-t border-zinc-800 pt-6 space-y-4">
+          <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wide">Related master-sheet tabs</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+            <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3">
+              <div className="font-mono text-[#39FF14] mb-1">chrisview_qa</div>
+              <p className="text-zinc-400">Every Q&amp;A from the Ask Claude widget logged here. Audit history of what Chris asked and what Claude answered.</p>
+            </div>
+            <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3">
+              <div className="font-mono text-[#39FF14] mb-1">chrisview_feedback</div>
+              <p className="text-zinc-400">This queue. Mistakes / requests / notes Chris submitted via the Flag tab.</p>
+            </div>
+            <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3">
+              <div className="font-mono text-[#39FF14] mb-1">chrisview_corrections</div>
+              <p className="text-zinc-400">Hand-corrections that overlay raw data. Add a row like <code className="text-amber-300">annual:2024:net</code> with the corrected value and it propagates to every chart. Status must be <code className="text-zinc-300">active</code> to apply.</p>
+            </div>
+          </div>
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 text-xs text-amber-200">
+            <strong>Heads-up:</strong> Q&amp;A widget needs <code className="text-amber-300">ANTHROPIC_API_KEY</code> set in Vercel project env vars (Production scope). Until then it returns &ldquo;AI not configured&rdquo;. To set it: <code className="text-amber-100">vercel env add ANTHROPIC_API_KEY production</code> then <code className="text-amber-100">vercel --prod</code>.
+          </div>
+        </div>
       </main>
     </div>
   );
