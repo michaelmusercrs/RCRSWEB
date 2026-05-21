@@ -98,8 +98,19 @@ export interface MeetingHistoryResponse {
 }
 
 export async function getMeetingHistory(): Promise<MeetingHistoryResponse> {
-  const file = path.join(process.cwd(), 'data', 'meeting-numbers-all.json');
-  const raw = JSON.parse(await fs.readFile(file, 'utf8')) as MeetingRow[];
+  const allFile = path.join(process.cwd(), 'data', 'meeting-numbers-all.json');
+  const yearFile = path.join(process.cwd(), 'data', 'meeting-numbers-2026.json');
+  const [allRaw, yearRaw] = await Promise.all([
+    fs.readFile(allFile, 'utf8').then(JSON.parse) as Promise<MeetingRow[]>,
+    fs.readFile(yearFile, 'utf8').then(JSON.parse).catch(() => [] as MeetingRow[]) as Promise<MeetingRow[]>,
+  ]);
+  // Merge: drop any overlapping (meetingDate + repName) from allRaw so the
+  // current-year file wins for rows it covers.
+  const overlapKeys = new Set(yearRaw.map(r => `${r.meetingDate}|${r.repName}`));
+  const raw: MeetingRow[] = [
+    ...allRaw.filter(r => !overlapKeys.has(`${r.meetingDate}|${r.repName}`)),
+    ...yearRaw,
+  ];
 
   const yearMap = new Map<string, { inspected: number; damage: number; signed: number; revenue: number; approved: number; referrals: number; agents: number; repWeeks: number; reps: Set<string> }>();
   const monthMap = new Map<string, { inspected: number; damage: number; signed: number; revenue: number }>();
