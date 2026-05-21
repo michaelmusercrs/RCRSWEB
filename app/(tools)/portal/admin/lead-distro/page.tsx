@@ -257,6 +257,24 @@ export default function LeadDistroAdmin() {
   const [repStatus, setRepStatus] = useState<RepStatus[]>([]);
   const [repStatusLoading, setRepStatusLoading] = useState(false);
 
+  // Calibration recommendations state
+  interface CalibRec {
+    factor: string;
+    action: string;
+    delta: string;
+    wonAvg: string;
+    lostAvg: string;
+    rationale: string;
+  }
+  const [calib, setCalib] = useState<{
+    hasRecommendations: boolean;
+    generatedAt?: string;
+    totalAssignments?: number;
+    sampleSizes?: Record<string, number>;
+    recommendations?: CalibRec[];
+    message?: string;
+  } | null>(null);
+
   // Geocode sync state
   const [geocodeSyncing, setGeocodeSyncing] = useState(false);
   const [geocodeProgress, setGeocodeProgress] = useState<{
@@ -377,11 +395,24 @@ export default function LeadDistroAdmin() {
     }
   }, []);
 
+  const loadCalibration = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/lead-distro/recalibrate');
+      if (res.ok) {
+        const data = await res.json();
+        setCalib(data);
+      }
+    } catch (err) {
+      console.error('Failed to load calibration:', err);
+    }
+  }, []);
+
   useEffect(() => {
     loadConfig();
     loadHistory();
     loadRepStatus();
-  }, [loadConfig, loadHistory, loadRepStatus]);
+    loadCalibration();
+  }, [loadConfig, loadHistory, loadRepStatus, loadCalibration]);
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
@@ -778,6 +809,120 @@ export default function LeadDistroAdmin() {
                 )}
               </div>
             </div>
+          </section>
+
+          {/* ── Section 0b: Calibration Recommendations ─────────────────── */}
+          <section className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center shrink-0">
+                <TrendingUp size={20} className="text-emerald-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <InfoTooltip content={
+                  <>
+                    <div className="font-semibold text-white mb-1">Calibration Recommendations</div>
+                    <div className="text-neutral-300 mb-2">
+                      Quarterly weight-tuning suggestions generated from the outcome log.
+                    </div>
+                    <div className="space-y-1.5 text-neutral-300">
+                      <div>For each closed outcome, we look at the winning rep's factor breakdown. Factors that average HIGHER in closed-won outcomes than closed-lost = candidates for a weight boost; the inverse = candidates for trimming.</div>
+                      <div className="text-neutral-400 mt-2">Refresh: <code className="text-neutral-200">node scripts/lead-distro-recalibrate.mjs</code> from the project root, then re-load this page.</div>
+                      <div className="text-neutral-400">Never auto-applied — you decide.</div>
+                    </div>
+                  </>
+                }>
+                  <h2 className="text-lg font-semibold text-white">Calibration Recommendations</h2>
+                </InfoTooltip>
+                <p className="text-sm text-neutral-400 mt-0.5">
+                  Quarterly weight-tuning suggestions based on what actually closed. Reviewed manually; never auto-applied.
+                </p>
+              </div>
+            </div>
+
+            {!calib && (
+              <p className="text-sm text-neutral-500 italic">Loading…</p>
+            )}
+
+            {calib && !calib.hasRecommendations && (
+              <div className="rounded-xl bg-amber-500/5 border border-amber-500/10 px-4 py-3">
+                <p className="text-sm text-amber-300 mb-1 font-medium">No analysis run yet</p>
+                <p className="text-xs text-amber-200/70">{calib.message}</p>
+              </div>
+            )}
+
+            {calib && calib.hasRecommendations && (
+              <>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4 text-xs">
+                  <div className="bg-white/[0.03] border border-white/5 rounded-lg p-3 text-center">
+                    <div className="text-lg font-bold text-white tabular-nums">{calib.totalAssignments ?? 0}</div>
+                    <div className="text-neutral-500">Total assignments</div>
+                  </div>
+                  <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-lg p-3 text-center">
+                    <div className="text-lg font-bold text-emerald-400 tabular-nums">{calib.sampleSizes?.closedWon ?? 0}</div>
+                    <div className="text-neutral-500">Closed-won</div>
+                  </div>
+                  <div className="bg-red-500/5 border border-red-500/10 rounded-lg p-3 text-center">
+                    <div className="text-lg font-bold text-red-400 tabular-nums">{calib.sampleSizes?.closedLost ?? 0}</div>
+                    <div className="text-neutral-500">Closed-lost</div>
+                  </div>
+                  <div className="bg-neutral-500/5 border border-neutral-500/10 rounded-lg p-3 text-center">
+                    <div className="text-lg font-bold text-neutral-400 tabular-nums">{calib.sampleSizes?.ghosted ?? 0}</div>
+                    <div className="text-neutral-500">Ghosted</div>
+                  </div>
+                  <div className="bg-sky-500/5 border border-sky-500/10 rounded-lg p-3 text-center">
+                    <div className="text-lg font-bold text-sky-400 tabular-nums">{calib.sampleSizes?.open ?? 0}</div>
+                    <div className="text-neutral-500">Open</div>
+                  </div>
+                </div>
+
+                <div className="text-xs text-neutral-500 mb-2">
+                  Generated: {calib.generatedAt} · window: last 90 days
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-white/5 text-left text-xs text-neutral-500 uppercase tracking-wider">
+                        <th className="pb-2 pr-3">Factor</th>
+                        <th className="pb-2 pr-3">Action</th>
+                        <th className="pb-2 pr-3 text-right">Δ (won − lost)</th>
+                        <th className="pb-2 pr-3 text-right">Won avg</th>
+                        <th className="pb-2 pr-3 text-right">Lost avg</th>
+                        <th className="pb-2">Rationale</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {(calib.recommendations || []).map(r => {
+                        const action = r.action.toLowerCase();
+                        const color =
+                          action.includes('raise') ? 'text-emerald-400 bg-emerald-500/10' :
+                          action.includes('lower') ? 'text-red-400 bg-red-500/10' :
+                          action.includes('hold') ? 'text-neutral-400 bg-neutral-500/10' :
+                          'text-amber-400 bg-amber-500/10';
+                        return (
+                          <tr key={r.factor} className="hover:bg-white/[0.02]">
+                            <td className="py-2 pr-3 font-mono text-neutral-300">{r.factor}</td>
+                            <td className="py-2 pr-3">
+                              <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-semibold ${color}`}>
+                                {r.action.toUpperCase()}
+                              </span>
+                            </td>
+                            <td className="py-2 pr-3 text-right tabular-nums text-neutral-300">{r.delta}</td>
+                            <td className="py-2 pr-3 text-right tabular-nums text-emerald-400/80">{r.wonAvg}</td>
+                            <td className="py-2 pr-3 text-right tabular-nums text-red-400/80">{r.lostAvg}</td>
+                            <td className="py-2 text-xs text-neutral-400">{r.rationale}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <p className="text-xs text-neutral-500 mt-3">
+                  How to apply: for each RAISE recommendation, increase that weight by 3–5 points; for each LOWER, decrease by the same. Redistribute to HOLD factors. Verify with Live Preview before saving.
+                </p>
+              </>
+            )}
           </section>
 
           {/* ── Section 1: Weight Sliders ─────────────────────────────────── */}

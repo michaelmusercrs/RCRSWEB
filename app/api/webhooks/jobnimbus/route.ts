@@ -5,6 +5,7 @@ import { breakdownService } from '@/lib/breakdown-service';
 import { emailService } from '@/lib/email-service';
 import { auditLog } from '@/lib/audit-logger';
 import { jobNimbusService } from '@/lib/jobnimbus-service';
+import { googleSheetsService } from '@/lib/google-sheets-service';
 // Webhook handler is server-internal (JN -> us). Auto-creates breakdowns
 // which DO use cost. Pass owner-tier viewer to underlying JN reads so the
 // raw cost data is preserved through the breakdown pipeline. Anything that
@@ -23,6 +24,72 @@ import crypto from 'crypto';
 
 // Statuses that should trigger auto-creation of a job breakdown sheet
 const BREAKDOWN_TRIGGER_STATUSES = ['approved', 'Approved', 'contract signed', 'Contract Signed', 'in progress', 'In Progress'];
+
+/**
+ * Map a JN status string + dollar fields to an outcome-log update payload.
+ * Returns null if the status doesn't correspond to a tracked outcome event.
+ * Keyword match — defensive against varying JN status vocabularies. The
+ * upsert is idempotent, so re-firing on the same status is safe.
+ */
+function mapStatusToOutcomeUpdate(
+  status: string,
+  estimateTotal: number | undefined,
+  invoiceTotal: number | undefined,
+): Record<string, string> | null {
+  const sl = (status || '').toLowerCase();
+  const now = new Date().toISOString();
+  // closed-won: complete / paid / closed won
+  if (sl.includes('paid') || sl.includes('closed won') || (sl.includes('complete') && !sl.includes('incomplete'))) {
+    return {
+      finalDisposition: 'closed-won',
+      dispositionAt: now,
+      jobSoldAt: now,
+      jobSoldAmount: String(invoiceTotal ?? estimateTotal ?? ''),
+    };
+  }
+  // closed-lost
+  if (sl.includes('closed lost') || sl.includes('no sale') || sl.includes('declined') || sl.includes('cancelled') || sl.includes('canceled') || sl.includes('rejected') || sl === 'lost') {
+    return {
+      finalDisposition: 'closed-lost',
+      dispositionAt: now,
+      jobLostAt: now,
+      jobLostReason: status,
+    };
+  }
+  // sold but not yet collected (contract signed / approved)
+  if (sl.includes('contract signed') || sl.includes('approved') || sl === 'sold' || sl.includes('won')) {
+    return {
+      jobSoldAt: now,
+      jobSoldAmount: String(estimateTotal ?? ''),
+    };
+  }
+  return null;
+}
+
+/**
+ * Fire-and-forget outcome-log upsert from a JN contact webhook payload.
+ * Looks up the distribution log entry by jnid (which is our leadId) and
+ * applies any status → outcome mapping. No-op if there's no matching log.
+ */
+async function maybeUpsertOutcomeFromContactWebhook(data: any): Promise<void> {
+  const jnid = data?.jnid;
+  if (!jnid) return;
+  const status = data?.status_name || data?.status || '';
+  const estimateTotal = typeof data?.approved_estimate_total === 'number' ? data.approved_estimate_total : undefined;
+  const invoiceTotal = typeof data?.approved_invoice_total === 'number' ? data.approved_invoice_total : undefined;
+
+  const update = mapStatusToOutcomeUpdate(status, estimateTotal, invoiceTotal);
+  if (!update) return;
+
+  const logId = await googleSheetsService.findDistributionLogIdByLeadId(jnid);
+  if (!logId) return; // contact was never assigned through our pipeline
+
+  await googleSheetsService.upsertLeadOutcomeLog({
+    logId,
+    leadId: jnid,
+    ...update,
+  });
+}
 
 // SECURITY: Webhook secret for HMAC-SHA256 signature verification.
 // Set JOBNIMBUS_WEBHOOK_SECRET in environment variables to enable validation.
@@ -207,6 +274,13 @@ export async function POST(request: NextRequest) {
             console.warn(`Failed to geocode JN contact ${data.jnid}:`, err);
           });
         }
+
+        // Outcome-log: if this contact's status maps to a known outcome event
+        // (sold / lost / won / paid), upsert the routing feedback row so the
+        // recalibration script has the data it needs.
+        maybeUpsertOutcomeFromContactWebhook(data).catch(err => {
+          console.warn(`[JN webhook] outcome upsert failed for ${data?.jnid}:`, err);
+        });
         break;
       }
 
@@ -267,8 +341,29 @@ export async function POST(request: NextRequest) {
       }
 
       case 'estimate.created':
-      case 'estimate.updated':
+      case 'estimate.updated': {
+        // Outcome-log: record estimate creation against the originating contact.
+        // JN estimate payloads have `customer` or `related[]` linking back to
+        // the contact jnid (= our leadId).
+        const contactJnid = data?.customer || data?.primary_contact_id || data?.related?.[0]?.id || '';
+        const total = typeof data?.total === 'number' ? data.total
+          : typeof data?.subtotal === 'number' ? data.subtotal
+          : undefined;
+        if (contactJnid && eventType === 'estimate.created') {
+          googleSheetsService.findDistributionLogIdByLeadId(contactJnid).then(logId => {
+            if (!logId) return;
+            return googleSheetsService.upsertLeadOutcomeLog({
+              logId,
+              leadId: contactJnid,
+              estimateCreatedAt: new Date().toISOString(),
+              estimateAmount: String(total ?? ''),
+            });
+          }).catch(err => {
+            console.warn(`[JN webhook] estimate outcome upsert failed for ${contactJnid}:`, err);
+          });
+        }
         break;
+      }
 
       case 'note.created':
       case 'activity.created':

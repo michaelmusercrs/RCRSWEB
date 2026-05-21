@@ -1486,6 +1486,21 @@ class GoogleSheetsService {
     }
   }
 
+  /**
+   * Find the most-recent distribution log entry for a given leadId. Used by
+   * outcome-log writers (recordContact, recordReassignment, JN webhook hooks)
+   * to discover which logId to upsert against. Returns '' if no row found.
+   *
+   * Note: O(n) scan today. Fine at current volume (low hundreds of rows).
+   * If the log grows large, add a leadId index column or move to a real DB.
+   */
+  async findDistributionLogIdByLeadId(leadId: string): Promise<string> {
+    if (!leadId) return '';
+    const logs = await this.getDistributionLogs();
+    const match = logs.find(l => l.leadId === leadId);
+    return match?.logId || '';
+  }
+
   // ===========================================================================
   // LEAD OUTCOME LOG
   // ===========================================================================

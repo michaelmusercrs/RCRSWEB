@@ -76,16 +76,25 @@ class LeadResponseTimerService {
     return timer;
   }
 
-  // Record that a rep has made first contact with a lead
-  async recordContact(leadId: string): Promise<{ success: boolean; responseMinutes?: number }> {
+  // Record that a rep has made first contact with a lead.
+  // `method` describes how they reached out (call / sms / email / in-person /
+  // '' = unknown). Also upserts the outcome log so the routing feedback loop
+  // captures first-contact-time per assignment.
+  async recordContact(
+    leadId: string,
+    method: 'call' | 'sms' | 'email' | 'in-person' | '' = ''
+  ): Promise<{ success: boolean; responseMinutes?: number }> {
     const timer = this.activeTimers.get(leadId);
     const now = new Date();
 
     if (!timer) {
       // Timer not in memory (server restart?), try to update sheet directly
-      const responseMinutes = 0; // Unknown since we don't have assignedAt
       await googleSheetsService.updateLeadResponseLog(leadId, {
         firstContactAt: now.toISOString(),
+      });
+      // Best-effort outcome-log upsert
+      this.upsertOutcomeFirstContact(leadId, now, method).catch(err => {
+        console.warn(`[LeadResponseTimer] outcome-log upsert failed for ${leadId}:`, err);
       });
       return { success: true, responseMinutes: undefined };
     }
@@ -101,10 +110,34 @@ class LeadResponseTimerService {
       responseMinutes: String(timer.responseMinutes),
     });
 
+    // Outcome log upsert
+    this.upsertOutcomeFirstContact(leadId, now, method).catch(err => {
+      console.warn(`[LeadResponseTimer] outcome-log upsert failed for ${leadId}:`, err);
+    });
+
     // Remove from active timers
     this.activeTimers.delete(leadId);
 
     return { success: true, responseMinutes: timer.responseMinutes };
+  }
+
+  /**
+   * Look up the distribution-log entry for this lead and upsert the outcome
+   * log with the first-contact-attempt event. Best-effort; never throws.
+   */
+  private async upsertOutcomeFirstContact(
+    leadId: string,
+    at: Date,
+    method: string
+  ): Promise<void> {
+    const logId = await googleSheetsService.findDistributionLogIdByLeadId(leadId);
+    if (!logId) return; // no distribution log row yet — nothing to attach to
+    await googleSheetsService.upsertLeadOutcomeLog({
+      logId,
+      leadId,
+      firstContactAttemptAt: at.toISOString(),
+      firstContactMethod: method || 'unknown',
+    });
   }
 
   // Check all active timers and return actions needed
@@ -173,14 +206,31 @@ class LeadResponseTimerService {
     });
   }
 
-  // Record a reassignment
+  // Record a reassignment. Also upserts the outcome log so the routing
+  // feedback loop captures who ended up with the lead.
   async recordReassignment(leadId: string, newRepSlug: string, reason: string): Promise<void> {
     const timer = this.activeTimers.get(leadId);
+    const now = new Date();
 
     await googleSheetsService.updateLeadResponseLog(leadId, {
-      reassignedAt: new Date().toISOString(),
+      reassignedAt: now.toISOString(),
       reassignedTo: newRepSlug,
       missedReason: reason,
+    });
+
+    // Outcome log upsert — best-effort
+    googleSheetsService.findDistributionLogIdByLeadId(leadId).then(logId => {
+      if (!logId) return;
+      return googleSheetsService.upsertLeadOutcomeLog({
+        logId,
+        leadId,
+        assignedRep: newRepSlug,
+        reassignedAt: now.toISOString(),
+        reassignedTo: newRepSlug,
+        reassignReason: reason,
+      });
+    }).catch(err => {
+      console.warn(`[LeadResponseTimer] reassign outcome-log upsert failed for ${leadId}:`, err);
     });
 
     // Remove old timer and start new one
@@ -190,7 +240,6 @@ class LeadResponseTimerService {
     if (timer) {
       await this.startTimer(leadId, newRepSlug, timer.customerName);
     }
-
   }
 
   // Get all active timers
