@@ -30,6 +30,10 @@
     {
       "path": "/api/cron/chrisview-precompute",
       "schedule": "30 * * * *"
+    },
+    {
+      "path": "/api/cron/weekly-response-time-report",
+      "schedule": "0 12 * * 1"
     }
   ],
   "_disabledCrons": [

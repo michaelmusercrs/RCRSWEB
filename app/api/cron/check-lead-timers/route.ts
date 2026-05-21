@@ -14,6 +14,8 @@ import { riverBot } from '@/lib/river-bot-service';
 import { TEAM_MEMBERS } from '@/lib/team-roles';
 import { withCronLock } from '@/lib/cron-lock';
 import { googleSheetsService } from '@/lib/google-sheets-service';
+import { emailService } from '@/lib/email-service';
+import { getReassignNotifyRecipients, isReassignNotifyEnabled } from '@/lib/reassign-notify-config';
 
 // Reads request-time auth header; must not be prerendered.
 export const dynamic = 'force-dynamic';
@@ -177,6 +179,44 @@ export async function GET(request: NextRequest) {
           ? `[NEEDS REASSIGNMENT] ${timer.customerName} - ${timer.repSlug} missed after ${elapsed} min. Suggested: ${suggestedRepName}. Manager confirmation required in admin panel.`
           : `[NEEDS REASSIGNMENT] ${timer.customerName} - ${timer.repSlug} missed after ${elapsed} min. No suggestion available — manager pick required.`
       );
+
+      // Email the dispatcher team. GATED off by default per stated rule —
+      // requires REASSIGN_NOTIFY_ENABLED=true to actually fire. Recipients
+      // pulled from data/reassign-notify-recipients.json (currently Tia,
+      // Destin, Sara, John, Bart, Chris, Michael).
+      if (isReassignNotifyEnabled()) {
+        const recipients = getReassignNotifyRecipients();
+        const subject = `[SLA Breach] ${timer.customerName} — ${timer.repSlug} missed after ${elapsed}min`;
+        const body = `
+          <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;">
+            <div style="background:#000;padding:16px;text-align:center;">
+              <h2 style="color:#ff6b6b;margin:0;">SLA Breach — Manual Reassignment Needed</h2>
+            </div>
+            <div style="padding:20px;background:#fff;color:#222;">
+              <p><strong>${timer.customerName}</strong> has not been contacted in <strong>${elapsed} minutes</strong>.</p>
+              <table style="width:100%;border-collapse:collapse;margin:12px 0;font-size:14px;">
+                <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;width:40%;">Address</td><td style="padding:6px;border-bottom:1px solid #eee;">${customerAddress || '(unknown)'}</td></tr>
+                <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Originally assigned to</td><td style="padding:6px;border-bottom:1px solid #eee;">${timer.repSlug}</td></tr>
+                <tr><td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">Suggested rep</td><td style="padding:6px;border-bottom:1px solid #eee;">${suggestedRepName || '(no suggestion)'}</td></tr>
+                <tr><td style="padding:6px;font-weight:bold;">Why</td><td style="padding:6px;">${suggestedReason || '—'}</td></tr>
+              </table>
+              <p style="margin-top:16px;"><a href="https://rcrsal.com/portal/admin/lead-distro" style="display:inline-block;background:#39FF14;color:#000;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:bold;">Open SLA Breach Queue</a></p>
+              <p style="color:#666;font-size:12px;margin-top:18px;">Reassignment is manual. The lead stays with the original rep until someone confirms or declines in the admin panel.</p>
+            </div>
+          </div>
+        `;
+        for (const recipient of recipients) {
+          emailService.send({
+            template: 'reassign-notify',
+            to: recipient.email,
+            subject,
+            body,
+            fromName: 'RCRS Lead Distro',
+          }).catch(err => {
+            console.warn(`[CronTimer] Reassign email to ${recipient.email} failed:`, err);
+          });
+        }
+      }
 
       actions.push(`needs_reassign:${timer.leadId}`);
     }

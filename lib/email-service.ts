@@ -71,7 +71,9 @@ export type EmailTemplate =
   | 'customer-invoice'
   | 'new-lead-office'
   | 'return-credit'
-  | 'pipeline-milestone';
+  | 'pipeline-milestone'
+  | 'reassign-notify'       // SLA breach → dispatcher team alert
+  | 'response-time-report'; // weekly summary → Chris + Michael
 
 /**
  * A single binary attachment. Maps directly onto Resend's `Attachment`

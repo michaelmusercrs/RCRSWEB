@@ -1,0 +1,14 @@
+{
+  "_comment": "Recipients of SLA breach / reassignment notifications. Stated by Michael 2026-05-21. Gated by REASSIGN_NOTIFY_ENABLED=true env var — nothing fires until that's flipped on. Edit this file (or via admin UI later) to add/remove people. Slugs map to team-roles.ts.",
+  "recipients": [
+    { "slug": "tia",           "name": "Tia Muse Morris", "email": "tia@rcrsal.com",       "enabled": true },
+    { "slug": "destin",        "name": "Destin Mccary",   "email": "destin@rcrsal.com",    "enabled": true },
+    { "slug": "sara-hill",     "name": "Sara Hill",       "email": "sara@rcrsal.com",      "enabled": true },
+    { "slug": "john",          "name": "John Cordonis",   "email": "john@rcrsal.com",      "enabled": true },
+    { "slug": "bart",          "name": "Bart Roberts",    "email": "bart@rcrsal.com",      "enabled": true },
+    { "slug": "chris-muse",    "name": "Chris Muse",      "email": "chrismuse@rcrsal.com", "enabled": true },
+    { "slug": "michael",       "name": "Michael Muse",    "email": "michaelmuse@rcrsal.com", "enabled": true }
+  ],
+  "updatedAt": "2026-05-21",
+  "updatedBy": "michael"
+}
