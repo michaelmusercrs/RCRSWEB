@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Briefcase, ArrowLeft, Loader2, DollarSign, TrendingUp, Star, Users, Calendar, Award } from 'lucide-react';
+import AboutThisData from '@/components/AboutThisData';
 
 interface Data {
   generatedAt: string;
@@ -140,9 +141,13 @@ export default function SummaryPage() {
               </div>
             </section>
 
-            <p className="text-[10px] text-zinc-500 text-center">
-              Sources: data/transactions-monthly.json (QB, 2018-08 → present), data/commissions.json (1099 1099 paid), data/reviews-master.json (317 Google reviews), data/customer-ltv.json (3,194 customers).
-            </p>
+            <AboutThisData
+              source="data/transactions-monthly.json (QB, 2018-08 → present, with chrisview_corrections overlay applied), data/commissions.json (1099 payments), data/reviews-master.json (317 reviews), data/customer-ltv.json (3,194 customers)."
+              method="Lifetime totals = sum across all months. YTD = completed months only (current in-progress month excluded). Last-12mo = rolling. Records use the same extraction as /stats. Top-5 active reps filtered to a hardcoded active-rep list (hunter rivers, aaron lussi, greg muse, brendon muse, adam rudell, joseph dowd, rick, alijah coleman, travis wages)."
+              uses="One-screen exec snapshot — designed to fit on a laptop without scrolling. Best landing page for a quick health check before drilling into individual analytics."
+              gaps="Active-rep list is hardcoded in lib/exec-summary.ts. Update there if the roster changes — list as of 2026-05-21."
+              generatedAt={data?.generatedAt}
+            />
           </>
         )}
       </main>

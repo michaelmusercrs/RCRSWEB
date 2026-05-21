@@ -64,6 +64,16 @@ export default function SubsPage() {
         {loading && <div className="text-center py-12 text-zinc-500"><Loader2 className="w-5 h-5 animate-spin inline mr-2" />Loading…</div>}
         {data && (
           <>
+            <div className="px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-400 text-xs">
+              <strong className="text-zinc-200">Source: </strong>
+              <code className="text-zinc-300">data/sub-performance.json</code> — a static snapshot of the QB check
+              ledger filtered to subcontractor vendors. Generated <code className="text-zinc-300">{data.generatedAt}</code>.
+              Not live — to refresh, re-run <code className="text-zinc-300">scripts/compute-sub-performance.mjs</code>.
+              {' '}<strong className="text-zinc-200">Inactive flag </strong>= zero checks in the last 90 days.
+              {' '}<strong className="text-zinc-200">Avg check </strong>= lifetime spend ÷ lifetime check count.
+              {' '}<strong className="text-zinc-200">Excluded: </strong>BCM Contracting, Rudys Roofing Insights,
+              Roof Angel — those are rep LLCs (1099 sales reps), not subcontractors. Per project memory rule.
+            </div>
             <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <Kpi label="Active subs" value={data.totalSubs.toString()} highlight />
               <Kpi label="Lifetime sub spend" value={fmtMoney(data.totalSpend)} sub={fmtMoneyExact(data.totalSpend)} />

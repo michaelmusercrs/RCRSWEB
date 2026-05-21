@@ -194,7 +194,12 @@ const HUB_GROUPS: { label: string; items: HubLink[] }[] = [
     label: 'Profit & cashflow',
     items: [
       { href: '/chrisview/cashflow', title: 'Cash Flow Forecast', description: '6-month forecast with seasonal multipliers + runway' },
-      { href: '/chrisview/insurance', title: 'Insurance Deep Dive', description: 'Per-carrier RCV/ACV/deductible, days-to-approve, adjuster turnaround' },
+      {
+        href: '/chrisview/insurance',
+        title: 'Insurance Deep Dive',
+        description: 'Per-carrier RCV/ACV/deductible, days-to-approve, adjuster turnaround.',
+        wip: 'JN custom field "Claim Number" is only populated on ~0.1% of recent jobs (10 of 10K probed 2026-05-21). Office needs to backfill claim numbers + carrier + RCV/ACV/deductible on JN job records for the page to be meaningful.',
+      },
       { href: '/chrisview/lifecycle', title: 'Job Lifecycle', description: 'Days to contract/install/paid, trips per job, rework, 90-day unpaid AR' },
       { href: '/chrisview/leaders', title: 'Division Leader Checks', description: 'Recruiter / override commission payments by recipient and year' },
       { href: '/chrisview/multi-rep-splits', title: 'Multi-Rep Commission Splits', description: '320 split jobs / $2.15M / 168 unique pairings', highlight: 'NEW' },

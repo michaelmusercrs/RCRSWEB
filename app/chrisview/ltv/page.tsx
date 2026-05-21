@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Heart, ArrowLeft, Loader2, Repeat, Calendar } from 'lucide-react';
+import AboutThisData from '@/components/AboutThisData';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, ComposedChart, Line } from 'recharts';
 
 interface Cust {
@@ -180,6 +181,13 @@ export default function LTVPage() {
                 </table>
               </div>
             </section>
+
+            <AboutThisData
+              source="data/customer-ltv.json — computed daily from data/transactions.json by scripts/compute-customer-ltv.mjs. 3,194 distinct QB customers."
+              method="Repeat customer = 2+ invoices in the QB ledger. Top 10% = top 10% of customers BY COUNT (319 of 3,194), not the top-100. Repeat-revenue share = sum of revenue from repeat customers ÷ total revenue. Cohort year = year of customer's first invoice."
+              uses="Identify customer concentration risk. Spot which cohort years have generated the most repeat revenue. Use top-customer tables to recognize the accounts worth nurturing."
+              generatedAt={data?.generatedAt}
+            />
           </>
         )}
       </main>

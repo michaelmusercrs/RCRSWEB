@@ -73,6 +73,8 @@ const SECTIONS: Section[] = [
     href: '/chrisview/insurance',
     icon: Shield,
     color: 'from-indigo-500 to-violet-500',
+    highlight: 'WIP',
+    wip: 'JN custom field "Claim Number" only populated on ~0.1% of jobs (probed 2026-05-21). Need office to backfill claim numbers + carrier + RCV/ACV/deductible on JN job records.',
   },
   {
     title: 'Job Lifecycle',

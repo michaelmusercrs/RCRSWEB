@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Clock, ArrowLeft, Loader2, RefreshCw, AlertTriangle, ExternalLink } from 'lucide-react';
+import AboutThisData from '@/components/AboutThisData';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell,
 } from 'recharts';
@@ -298,6 +299,14 @@ export default function EstimateAgingPage() {
               Generated {data.generatedAt.slice(0, 16).replace('T', ' ')} · pulled {data.meta.estimatesFetched} estimates ·{' '}
               {data.meta.activitiesFetched} activities · {data.meta.queryTimeMs}ms
             </p>
+
+            <AboutThisData
+              source="JN /estimates created in the last 180 days, filtered to OPEN status (anything NOT signed / approved / rejected / cancelled). For each open estimate, walks JN /activities on the contact AND its related jobs to find the latest *manual* touch (exclude Status Changed, Contact Created, Modified, Attachment, Document — these are auto-events)."
+              method="Days idle = days since the latest manual activity. If no manual touch has ever occurred, idle is measured from the estimate's creation date. Buckets: 0–7d (green) / 8–14d (yellow) / 15–30d (orange) / 30+d (red). Per-rep p50 = median days idle on their open estimates (the typical idle case). Per-rep p90 = days-idle below which 90% of their open estimates fall (worst-10% threshold)."
+              uses="Find estimates rotting in the pipeline. Anything 30+ days idle is the priority list — revisit, send a follow-up, or mark dead. Per-rep p50 tells you whose pipeline is healthy; p90 tells you whose worst-case estimates are stalling."
+              gaps="The 'Oldest estimate' KPI is derived from the top-50 aged list (capped for page weight) — if hundreds of estimates are aging, the true oldest may be slightly older than what the KPI shows."
+              generatedAt={data?.generatedAt}
+            />
           </>
         )}
       </main>

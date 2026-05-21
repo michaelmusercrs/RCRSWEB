@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Megaphone, ArrowLeft, Loader2, RefreshCw, Users,
 } from 'lucide-react';
+import AboutThisData from '@/components/AboutThisData';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell,
 } from 'recharts';
@@ -165,6 +166,14 @@ export default function LeadSourcesPage() {
                 </table>
               </div>
             </section>
+
+            <AboutThisData
+              source="JN /contacts + /jobs over the last 180 days (default window). Hits JN live; cached 10 min in-memory + via the chrisview_cache master-sheet tab (hourly precompute)."
+              method="Lead = JN contact created in the window. Converted = contact has a related job whose status matches signed/contract/contingency/approved/sold/won/paid/installed/complete. Close % = converted ÷ leads per source. Days-to-convert = median days from contact created to job's status-change date. Top reps per source = top 3 by converted count."
+              uses="Spot which channels yield the highest close rate (not just volume). Surface reps who quietly dominate a specific source — useful for matching reps to the channels they convert best on."
+              gaps="Source names are taken AS-IS from JN's source_name field. 'Google', 'google', and 'Google Ads' are separate buckets if JN stores them separately. Clean the JN dropdown upstream if you want a cleaner rollup."
+              generatedAt={data?.generatedAt}
+            />
           </>
         )}
       </main>

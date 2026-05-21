@@ -17,6 +17,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   TrendingUp, ArrowLeft, Loader2, RefreshCw, Calendar, Briefcase, Shield, Phone,
 } from 'lucide-react';
+import AboutThisData from '@/components/AboutThisData';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, Legend,
 } from 'recharts';
@@ -123,9 +124,13 @@ export default function CloseRatesPage() {
             <RollupCard title="By Rep" icon={Briefcase} description="Per-rep close rate on estimates they own." rows={data.byRep} />
             <RollupCard title="By First-Contact Method" icon={Phone} description="What the first manual touchpoint was (Phone Call / Text / Email / Note) before the estimate." rows={data.byContactMethod} />
 
-            <p className="text-[10px] text-zinc-500 text-center">
-              Heuristic: in-person delivery = completed appointment OR note mentioning meeting/visit/inspection logged BEFORE estimate date_created. Signed = JN status includes &ldquo;signed&rdquo;, &ldquo;approved&rdquo;, &ldquo;accepted&rdquo;, &ldquo;sold&rdquo;, &ldquo;won&rdquo;.
-            </p>
+            <AboutThisData
+              source="JN /estimates created in the last 90 days (default window). For each estimate, walks /activities on the contact + related jobs to find Task Completed events and meeting-mentioning notes."
+              method="In-person delivery = there was a Task Completed event OR a note mentioning met/meeting/visited/inspection/inperson/onsite logged BEFORE the estimate's creation date. Online delivery = everything else. Insurance = job has Claim Number, Date of Loss, or insurance_summary populated. Signed = JN status matches /signed|approved|accepted|sold|won/i. Close rate = signed ÷ total per bucket."
+              uses="Compare in-person vs online delivery close rates to validate the 'go meet them' playbook. Insurance vs retail close-rate split helps target sales effort by job type. Per-method (phone/text/email/note) shows which first-contact channel converts best."
+              gaps="Sample is capped at the 200 most recent estimates in the window (for response-time reasons). Older estimates in the same window aren't included — recent close rates may not reflect deeper historical performance."
+              generatedAt={data?.generatedAt}
+            />
           </>
         )}
       </main>

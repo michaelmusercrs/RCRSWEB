@@ -133,6 +133,14 @@ export default function OnboardingPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-6 space-y-6">
+        <div className="px-4 py-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-200 text-sm">
+          <strong className="text-amber-300">WIP — numbers below are not yet trustworthy.</strong> A rep&apos;s first
+          meeting-sheet row IS effectively their first signed contract — they only get added to the Monday sheet once
+          they&apos;re already producing. That makes &quot;weeks to first signed&quot; artifactually 0–1 for almost every
+          rep. The baseline below filters to reps hired after 2020-01-01 (when the sheet was already running) to
+          partially correct for legacy reps, but it&apos;s still biased. Until we have a separate hire-date data source,
+          treat the numbers as directional, not absolute.
+        </div>
         {err && (
           <div className="px-4 py-3 bg-red-500/10 border border-red-500/30 rounded text-red-300 text-sm">
             {err}

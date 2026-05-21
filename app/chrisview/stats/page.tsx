@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Zap, ArrowLeft, Loader2, Trophy, Star, DollarSign, TrendingDown, Calendar, Users } from 'lucide-react';
+import AboutThisData from '@/components/AboutThisData';
 
 interface Top { date?: string; month?: string; year?: string; rep?: string; customer?: string; amount?: number; revenue?: number; expense?: number; net?: number; invoices?: number; avgInvoice?: number; margin?: number; total?: number; paymentCount?: number; firstDate?: string; lastDate?: string; jobNumber?: string }
 interface Data {
@@ -197,9 +198,12 @@ export default function StatsPage() {
               </Section>
             )}
 
-            <p className="text-[10px] text-zinc-500 text-center">
-              Sourced from QB monthly transactions (2018-08 → present), 15.5K commission payments, 317 Google reviews, customer LTV snapshot.
-            </p>
+            <AboutThisData
+              source="data/transactions-monthly.json (QB monthly, 2018-08 → present, with chrisview_corrections overlay applied), data/commissions.json (15.5K 1099 payments), data/reviews-master.json (317 Google reviews), data/customer-ltv.json."
+              method="Records are extracted by sorting each source then taking the top/bottom row. Best month / year by gross revenue. Best/worst profit by net cash (revenue - expense). Biggest commission = single highest 1099 payment. Longest-tenure rep = days from first to last commission payment (stops at last payment if rep left). Top customers from the precomputed LTV snapshot."
+              uses="All-time superlatives for context when reviewing current performance. 'Biggest commission ever' is a useful benchmark when negotiating new payouts. 'Worst loss month' helps explain why a particular year shows red on history."
+              generatedAt={data?.generatedAt}
+            />
           </>
         )}
       </main>

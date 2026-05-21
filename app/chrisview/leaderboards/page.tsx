@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Trophy, ArrowLeft, Loader2, Info } from 'lucide-react';
+import AboutThisData from '@/components/AboutThisData';
 
 interface CommRow { rep: string; total: number; paymentCount: number }
 interface AccrualRow { rep: string; total: number; weeks: number; signed: number }
@@ -165,6 +166,14 @@ export default function LeaderboardsPage() {
                 </table>
               </div>
             </section>
+
+            <AboutThisData
+              source="Commission board: data/commissions.json (QB 1099 ledger). Sales accrual board: data/meeting-numbers-all.json + data/meeting-numbers-2026.json ($$$$$ column). Per-week avg: same accrual data, normalized by non-excused weeks."
+              method="Commission = sum of QB payments to rep in the window. Sales accrual = sum of Monday $$$$$ self-report in window. Per-week avg = accrual ÷ weeks on team in window (minimum 4 weeks required to qualify). 'Signed (window)' in the joined table = count of Monday-meeting Signed entries in the window (the rep's self-reported signings, NOT QB invoices). NEVER add the three boards together — same revenue counted three different ways."
+              uses="Commission board = who actually got paid. Sales board = who claimed to sell what (signal of activity vs cash). Per-week board = who's productive on a per-week-of-tenure basis. Side-by-side join reveals reps whose accrual claims diverge from their commission payouts."
+              gaps="Per-week board excludes reps with <4 weeks of data in the window. QB↔Monday name-mapping uses a hardcoded NAME_KEY list — new reps may not match cross-board until added to lib/three-leaderboards.ts."
+              generatedAt={data?.generatedAt}
+            />
           </>
         )}
       </main>

@@ -13,6 +13,7 @@ import {
   Brain, TrendingUp, TrendingDown, Loader2, ArrowLeft, Calendar,
   Target, Users, Activity, AlertTriangle,
 } from 'lucide-react';
+import AboutThisData from '@/components/AboutThisData';
 import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar, ComposedChart,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell,
@@ -292,6 +293,14 @@ export default function InsightsPage() {
                 Attendance = present / (present + absent). Excused weeks don&apos;t count toward the denominator per spec. Reps only appear once they show up on the sheet.
               </p>
             </section>
+
+            <AboutThisData
+              source="data/meeting-insights.json — precomputed by scripts/compute-meeting-insights.mjs from data/meeting-numbers-all.json + data/meeting-numbers-2026.json. Re-run the script to refresh."
+              method="Pearson correlation coefficient across lag windows (1–8 weeks) measuring how strongly inspected/damaged/signed weeks predict signed/approved/revenue later. Forward signal: recent-4-week signed average vs the 12-week historical baseline; the projected next-month revenue dampens the signed delta by 0.5× to avoid overshoot. Goal study buckets weekly goals into small/mid/high and measures hit-rate the following week."
+              uses="Validate that high-inspection weeks DO produce approvals 1-3 weeks later (or don't). Use the forward signal to call upcoming commission pressure 4–6 weeks ahead. Use the goal study to calibrate next week's target — high goals usually overshoot, low goals under-deliver."
+              gaps="Forward signal applies a 0.5× dampening factor to the signed delta; the actual revenue impact may be smaller or larger depending on the close rate at the time. Pearson correlations describe association, not causation — a strong correlation doesn't mean adjusting one number will move the other."
+              generatedAt={data?.generatedAt}
+            />
           </>
         )}
       </main>
