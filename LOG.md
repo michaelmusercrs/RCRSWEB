@@ -8,6 +8,9 @@ The scheduled routine appends an entry per action.
 
 ## 2026-05-20
 
+- `03:30` · claude · marketing-intel service + cron + admin viewer + suggestion heuristics · Phase 9.8 — daily monitor across 6 sources, 7 heuristics surface actionable items, parked in `_disabledCrons` · commit 9e11d22 (main)
+- `03:15` · claude · lib/customer-portal-sheets.ts + 4 routes · Phase 9.7 customer-portal 3 stubs persist + ReviewSubmission wired · commit 11f7826 (main)
+- `03:00` · claude · auto-blog 2 bugs + lib/social-publish.ts stub + audit doc · Phase 9.6 — pending-reads from sheet not JSON; cron mirrors Blog_Posts → blog-posts; social-publish stubbed per platform · commit 22d630a (main)
 - `02:30` · claude · Gmail MCP + scripts/post-invoices-* · Phase 9.1 catch-up invoice batch — 25 invoices ($41,648.06) written to Invoices tab + inventory deducted + Delivery Schedule rows added + Tickets tagged. ONE Gmail draft to stock@rcrsal.com in owner inbox awaiting send. Per [[feedback_purchase_price_visibility]]: PRICE only, cost stripped · scripts commit 7c689f9 (main); invoice rows on master sheet
 - `02:00` · claude · 5 new lib files + 4 modified · Phase 9.3-9.5 inventory app UI (main) + customer-portal audit + profile self-service (sweep) + FreePBX phone-system portal (sweep) · 3 parallel agents · commits 2918c82 (main) + 2 sweep branches
 - `01:30` · claude · 8 files · Phase 8.1 `/admin/system/health` dashboard + Phase 8.2 UnifiedLeaderboards widget · green/yellow/red per subsystem with masked env-var checklist; reusable 3-board widget enforcing never-combine via colored stripes · commit 6d8855b (main)
