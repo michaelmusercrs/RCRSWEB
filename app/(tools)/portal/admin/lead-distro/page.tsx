@@ -90,6 +90,19 @@ interface RepStatus {
   lastActive: string;
 }
 
+interface QualityFactorsLite {
+  hailEventCountNearby?: number;
+  hailLargestSizeInches?: number;
+  hailMostRecentDays?: number | null;
+  dateOfLossWithinYear?: boolean;
+  sourceName?: string;
+  sourceHistoricalCloseRate?: number;
+  areaName?: string;
+  areaHistoricalCloseRate?: number;
+  isReturningCustomer?: boolean;
+  isCommercial?: boolean;
+}
+
 interface DistributionLog {
   id: string;
   timestamp: string;
@@ -98,6 +111,11 @@ interface DistributionLog {
   score: number;
   scores: Record<string, number>;
   method: string;
+  // BETA Lead Quality fields
+  qualityScore?: number;
+  qualityBand?: string;
+  qualityFactors?: QualityFactorsLite;
+  qualityConfidence?: string;
 }
 
 // ── Weight metadata ────────────────────────────────────────────────────────────
@@ -347,6 +365,8 @@ export default function LeadDistroAdmin() {
               : log.algorithmScores || log.scores || {};
           } catch { /* ignore */ }
 
+          let qualityFactors: QualityFactorsLite | undefined;
+          try { qualityFactors = log.leadQualityFactors ? JSON.parse(log.leadQualityFactors) : undefined; } catch { /* ignore */ }
           return {
             id: log.logId || log.id || '',
             timestamp: log.timestamp || '',
@@ -359,6 +379,10 @@ export default function LeadDistroAdmin() {
             method: log.overrideReason
               ? (log.overrideReason.includes('Manual') ? 'manual' : log.overrideReason.includes('Round') ? 'round_robin' : 'auto')
               : 'auto',
+            qualityScore: log.leadQualityScore ? parseInt(log.leadQualityScore, 10) : undefined,
+            qualityBand: log.leadQualityBand || undefined,
+            qualityFactors,
+            qualityConfidence: log.leadQualityConfidence || undefined,
           };
         });
         setHistory(mapped);
@@ -1571,7 +1595,7 @@ export default function LeadDistroAdmin() {
                     className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-white/[0.01] border border-white/5 hover:border-white/10 transition-all gap-3"
                   >
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="text-sm font-medium text-white truncate">{log.address}</span>
                         <span className={`text-xs px-2 py-0.5 rounded-lg ${
                           log.method === 'auto'
@@ -1580,6 +1604,38 @@ export default function LeadDistroAdmin() {
                         }`}>
                           {log.method === 'auto' ? 'Auto' : 'Manual'}
                         </span>
+                        {/* BETA Lead Quality badge — admin/manager only (this whole page is owner/admin gated) */}
+                        {typeof log.qualityScore === 'number' && (
+                          <InfoTooltip content={
+                            <>
+                              <div className="font-semibold text-white mb-1">Lead Quality {log.qualityScore} <span className="text-amber-400 text-[10px]">BETA</span></div>
+                              <div className="text-neutral-300 mb-2">Band: <span className="capitalize">{log.qualityBand}</span> · Confidence: {log.qualityConfidence || 'preliminary'}</div>
+                              {log.qualityFactors && (
+                                <div className="space-y-1 text-neutral-300">
+                                  {(log.qualityFactors.hailEventCountNearby ?? 0) > 0 && (
+                                    <div>· Hail events nearby: {log.qualityFactors.hailEventCountNearby}{log.qualityFactors.hailLargestSizeInches ? `, largest ${log.qualityFactors.hailLargestSizeInches}"` : ''}{log.qualityFactors.hailMostRecentDays != null ? `, ${log.qualityFactors.hailMostRecentDays}d ago` : ''}</div>
+                                  )}
+                                  {log.qualityFactors.dateOfLossWithinYear && <div>· Date of Loss &lt;12mo (insurance signal)</div>}
+                                  {log.qualityFactors.sourceName && <div>· Source: {log.qualityFactors.sourceName} ({((log.qualityFactors.sourceHistoricalCloseRate ?? 0) * 100).toFixed(0)}% historical)</div>}
+                                  {log.qualityFactors.areaName && <div>· Area: {log.qualityFactors.areaName} ({((log.qualityFactors.areaHistoricalCloseRate ?? 0) * 100).toFixed(0)}% historical)</div>}
+                                  {log.qualityFactors.isReturningCustomer && <div>· Returning customer</div>}
+                                  {log.qualityFactors.isCommercial && <div>· Commercial / company lead</div>}
+                                </div>
+                              )}
+                              <div className="text-neutral-500 text-[11px] mt-2">Hidden from reps. Never shown to customers.</div>
+                            </>
+                          }>
+                            <span className={`text-xs px-2 py-0.5 rounded-lg font-semibold tabular-nums ${
+                              log.qualityBand === 'premium' ? 'bg-violet-500/15 text-violet-300' :
+                              log.qualityBand === 'high' ? 'bg-emerald-500/15 text-emerald-300' :
+                              log.qualityBand === 'medium' ? 'bg-amber-500/15 text-amber-300' :
+                              'bg-neutral-500/15 text-neutral-400'
+                            }`}>
+                              Q {log.qualityScore} · {log.qualityBand?.toUpperCase()}
+                              <span className="ml-1 opacity-60 text-[9px]">BETA</span>
+                            </span>
+                          </InfoTooltip>
+                        )}
                       </div>
                       <div className="flex items-center gap-3 text-xs text-neutral-500">
                         <span>{log.timestamp}</span>

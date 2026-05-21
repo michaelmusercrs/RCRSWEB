@@ -225,12 +225,22 @@ export interface LeadDistributionLogRecord {
   runnerUpScore: string;
   weightSetVersion: string; // pin which weight set drove the decision (config.updatedAt)
   tiebreakerApplied: string; // 'longest-since-last' | 'new-rep-boost' | '' | other
+  // BETA — Lead Quality scoring (admin/manager visibility only).
+  // Hidden from sales reps and customers via API-layer redaction.
+  leadQualityScore: string;         // 0-100 or ''
+  leadQualityBand: string;          // 'low' | 'medium' | 'high' | 'premium' | ''
+  leadQualityFactors: string;       // JSON of LeadQualityFactors
+  leadQualityContributions: string; // JSON of per-factor weighted contributions
+  leadQualityConfidence: string;    // 'preliminary' | 'updated' | 'unavailable' | ''
+  leadQualityComputedAt: string;    // ISO
 }
 
 export const LEAD_DISTRIBUTION_LOG_COLUMNS = [
   'logId', 'leadId', 'customerName', 'address', 'assignedRep',
   'algorithmScores', 'factors', 'overrideReason', 'timestamp',
   'reason', 'runnerUpRep', 'runnerUpScore', 'weightSetVersion', 'tiebreakerApplied',
+  'leadQualityScore', 'leadQualityBand', 'leadQualityFactors',
+  'leadQualityContributions', 'leadQualityConfidence', 'leadQualityComputedAt',
 ];
 
 /**
@@ -1467,6 +1477,12 @@ class GoogleSheetsService {
         runnerUpScore: row.get('runnerUpScore') || '',
         weightSetVersion: row.get('weightSetVersion') || '',
         tiebreakerApplied: row.get('tiebreakerApplied') || '',
+        leadQualityScore: row.get('leadQualityScore') || '',
+        leadQualityBand: row.get('leadQualityBand') || '',
+        leadQualityFactors: row.get('leadQualityFactors') || '{}',
+        leadQualityContributions: row.get('leadQualityContributions') || '{}',
+        leadQualityConfidence: row.get('leadQualityConfidence') || '',
+        leadQualityComputedAt: row.get('leadQualityComputedAt') || '',
       }));
 
       if (options?.assignedRep) {
@@ -1499,6 +1515,41 @@ class GoogleSheetsService {
     const logs = await this.getDistributionLogs();
     const match = logs.find(l => l.leadId === leadId);
     return match?.logId || '';
+  }
+
+  /**
+   * Update only the lead-quality fields on a distribution-log row, keyed by
+   * logId. Used by the post-roof-measure recompute hook (and any future
+   * model-update path) so the quality score can be refined after the initial
+   * preliminary computation without rewriting the rest of the row.
+   */
+  async updateDistributionLogQuality(
+    logId: string,
+    quality: {
+      leadQualityScore?: string;
+      leadQualityBand?: string;
+      leadQualityFactors?: string;
+      leadQualityContributions?: string;
+      leadQualityConfidence?: string;
+      leadQualityComputedAt?: string;
+    }
+  ): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc || !logId) return false;
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.LEAD_DISTRIBUTION_LOG, LEAD_DISTRIBUTION_LOG_COLUMNS);
+      const rows = await sheet.getRows();
+      const row = rows.find(r => r.get('logId') === logId);
+      if (!row) return false;
+      for (const [k, v] of Object.entries(quality)) {
+        if (v !== undefined) row.set(k, v);
+      }
+      await row.save();
+      return true;
+    } catch (err) {
+      console.error('[LeadDistro] Failed to update quality fields:', err);
+      return false;
+    }
   }
 
   // ===========================================================================

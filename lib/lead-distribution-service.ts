@@ -17,6 +17,7 @@ import { jnResponseMiner, RepResponseStats } from '@/lib/jn-response-miner';
 import { leadResponseTimerService } from '@/lib/lead-response-timer';
 import { groupMeService, getGroupMeConfigFromEnv } from '@/lib/groupme-service';
 import { riverBot } from '@/lib/river-bot-service';
+import { computeLeadQuality, type LeadQualityResult } from '@/lib/lead-quality-service';
 import defaultConfig from '@/data/lead-distro-config.json';
 
 // =============================================================================
@@ -763,10 +764,47 @@ class LeadDistributionService {
     leadId: string,
     source?: string,
     referralRepSlug?: string,
-    overrideRepSlug?: string
+    overrideRepSlug?: string,
+    /**
+     * Optional structured lead context. If provided, lead-quality-service
+     * gets a richer input (city/zip/dateOfLoss/etc.). If omitted, quality is
+     * still computed but with reduced precision.
+     */
+    leadContext?: {
+      city?: string;
+      state?: string;
+      zip?: string;
+      county?: string;
+      dateOfLoss?: string;
+      recordType?: string;
+      company?: string;
+      email?: string;
+      phone?: string;
+    }
   ): Promise<DistributionResult> {
     const logId = this.generateLogId();
     const config = this.getConfig();
+
+    // ─── BETA: Lead Quality compute ───────────────────────────────────────
+    // Run in parallel with the rest of the distribution. If it fails, we
+    // proceed without — the assignment doesn't depend on the quality score.
+    let qualityPromise: Promise<LeadQualityResult | null> = computeLeadQuality({
+      leadId,
+      address: leadAddress,
+      city: leadContext?.city,
+      state: leadContext?.state,
+      zip: leadContext?.zip,
+      county: leadContext?.county,
+      source,
+      dateOfLoss: leadContext?.dateOfLoss,
+      recordType: leadContext?.recordType,
+      company: leadContext?.company,
+      email: leadContext?.email,
+      phone: leadContext?.phone,
+    }).catch(err => {
+      console.warn(`[LeadDistro] Quality compute failed for ${leadId}:`, err);
+      return null;
+    });
 
     // Sync response timer config from lead distribution config
     leadResponseTimerService.setConfig({
@@ -820,7 +858,8 @@ class LeadDistributionService {
       };
 
       const manualReason = `${overrideRep.name}: manual override by dispatcher${availWarn ? ' (' + availWarn + ')' : ''}`;
-      await this.logDistribution(logId, leadId, customerName, leadAddress, manualScore, [], 'manual', manualReason, null, '', config.updatedAt || '');
+      const qualityForManual = await qualityPromise;
+      await this.logDistribution(logId, leadId, customerName, leadAddress, manualScore, [], 'manual', manualReason, null, '', config.updatedAt || '', qualityForManual);
 
       // Parity with the auto-assign path: write the outcome-log stub so any
       // post-assignment event (first contact, sold, lost) can upsert against it.
@@ -873,10 +912,12 @@ class LeadDistributionService {
           isAvailable: false,
           isEligible: false,
         };
+        const qualityForSuggest = await qualityPromise;
         await this.logDistribution(
           logId, leadId, customerName, leadAddress,
           emptyAssign, allScores, 'algorithm', reason,
-          top[1] || null, 'pending-manager-pick', config.updatedAt || ''
+          top[1] || null, 'pending-manager-pick', config.updatedAt || '',
+          qualityForSuggest
         );
         googleSheetsService.upsertLeadOutcomeLog({
           logId,
@@ -906,7 +947,8 @@ class LeadDistributionService {
 
       if (hasClearWinner) {
         const reason = this.buildReasonString(topScore, '');
-        await this.logDistribution(logId, leadId, customerName, leadAddress, topScore, allScores, 'algorithm', reason, secondScore, '', config.updatedAt || '');
+        const qualityForAuto = await qualityPromise;
+        await this.logDistribution(logId, leadId, customerName, leadAddress, topScore, allScores, 'algorithm', reason, secondScore, '', config.updatedAt || '', qualityForAuto);
 
         result = {
           assignedRep: topScore,
@@ -938,7 +980,8 @@ class LeadDistributionService {
         }
 
         const reason = this.buildReasonString(pick, tiebreakerApplied);
-        await this.logDistribution(logId, leadId, customerName, leadAddress, pick, allScores, 'round_robin', reason, secondScore, tiebreakerApplied, config.updatedAt || '');
+        const qualityForRR = await qualityPromise;
+        await this.logDistribution(logId, leadId, customerName, leadAddress, pick, allScores, 'round_robin', reason, secondScore, tiebreakerApplied, config.updatedAt || '', qualityForRR);
 
         result = {
           assignedRep: pick,
@@ -1085,7 +1128,8 @@ class LeadDistributionService {
 
   /**
    * Log a distribution event to Google Sheets. Persists the winner, runner-up,
-   * weight-set version, tiebreaker (if any), and a human-readable reason.
+   * weight-set version, tiebreaker (if any), a human-readable reason, AND
+   * the BETA lead-quality score + factor breakdown (if quality was computed).
    */
   private async logDistribution(
     logId: string,
@@ -1098,7 +1142,8 @@ class LeadDistributionService {
     reason: string,
     runnerUp: RepScore | null,
     tiebreakerApplied: string,
-    weightSetVersion: string
+    weightSetVersion: string,
+    quality: LeadQualityResult | null
   ): Promise<void> {
     const scoresForLog: Record<string, number> = {};
     for (const score of allScores) {
@@ -1120,6 +1165,12 @@ class LeadDistributionService {
       runnerUpScore: runnerUp ? runnerUp.totalScore.toFixed(2) : '',
       weightSetVersion,
       tiebreakerApplied,
+      leadQualityScore: quality ? String(quality.score) : '',
+      leadQualityBand: quality ? quality.band : '',
+      leadQualityFactors: quality ? JSON.stringify(quality.factors) : '{}',
+      leadQualityContributions: quality ? JSON.stringify(quality.factorContributions) : '{}',
+      leadQualityConfidence: quality ? quality.confidence : 'unavailable',
+      leadQualityComputedAt: quality ? quality.computedAt : '',
     };
 
     try {
