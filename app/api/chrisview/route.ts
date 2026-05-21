@@ -25,6 +25,27 @@ import inventoryProducts from '@/data/inventory-products.json';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+// Clone the imported monthly array + apply sheet-driven corrections.
+// Imports are immutable, and we share the corrected snapshot across the
+// three call sites (buildOverview, buildCharts, buildTransactions).
+async function getCorrectedMonthly(): Promise<Array<{
+  month: string; revenue: number; netRevenue: number; expense: number; invoiceCount: number;
+}>> {
+  const raw = transactionsMonthly as Array<{ month: string; revenue: number; netRevenue: number; expense: number; invoiceCount: number }>;
+  const clone = raw.map(r => ({ ...r }));
+  const { applyMonthlyCorrections } = await import('@/lib/data-corrections');
+  // applyMonthlyCorrections rewrites `revenue` / `expense` based on the
+  // sheet. Mirror the revenue correction onto `netRevenue` so downstream
+  // charts that consume `netRevenue` see the corrected number too.
+  const beforeRev = clone.map(c => c.revenue);
+  await applyMonthlyCorrections(clone as unknown as Array<{ month: string; revenue?: number; expense?: number }>);
+  for (let i = 0; i < clone.length; i++) {
+    const delta = clone[i].revenue - beforeRev[i];
+    if (delta !== 0) clone[i].netRevenue = (clone[i].netRevenue || 0) + delta;
+  }
+  return clone;
+}
+
 interface CommissionRow {
   salesRep: string;
   date: string;
@@ -70,7 +91,7 @@ export async function GET(request: NextRequest) {
   try {
     switch (type) {
       case 'overview':
-        return NextResponse.json(buildOverview());
+        return NextResponse.json(await buildOverview());
       case 'customers':
         return NextResponse.json(paginate(filterCustomers(q), page, pageSize));
       case 'vendors':
@@ -84,11 +105,11 @@ export async function GET(request: NextRequest) {
       case 'transactions':
         return NextResponse.json(await filterTransactions(searchParams, page, pageSize));
       case 'charts':
-        return NextResponse.json(buildCharts());
+        return NextResponse.json(await buildCharts());
       case 'inventory':
         return NextResponse.json(buildInventory(q));
       case 'yearComparison':
-        return NextResponse.json(buildYearComparison());
+        return NextResponse.json(await buildYearComparison());
       case 'recent':
         return NextResponse.json(await buildRecentActivity(20));
       default:
@@ -111,11 +132,9 @@ function paginate<T>(rows: T[], page: number, pageSize: number) {
   };
 }
 
-function buildOverview() {
+async function buildOverview() {
   const o = companyOverview;
-  const monthly = transactionsMonthly as Array<{
-    month: string; netRevenue: number; expense: number; invoiceCount: number;
-  }>;
+  const monthly = await getCorrectedMonthly();
   const last12 = monthly.slice(-12);
 
   // Customer concentration risk — top N customers as % of lifetime invoiced.
@@ -259,10 +278,8 @@ function filterCommissions(q: string, rep: string | null) {
   return [...rows].sort((a, b) => isoOf(b.date).localeCompare(isoOf(a.date)));
 }
 
-function buildCharts() {
-  const monthly = transactionsMonthly as Array<{
-    month: string; netRevenue: number; expense: number; invoiceCount: number;
-  }>;
+async function buildCharts() {
+  const monthly = await getCorrectedMonthly();
 
   // Per-year aggregates (2018-2026)
   const yearly: Record<string, { year: string; revenue: number; expense: number; net: number; invoiceCount: number }> = {};
@@ -561,10 +578,8 @@ function buildInventory(q: string) {
   };
 }
 
-function buildYearComparison() {
-  const monthly = transactionsMonthly as Array<{
-    month: string; netRevenue: number; expense: number; invoiceCount: number;
-  }>;
+async function buildYearComparison() {
+  const monthly = await getCorrectedMonthly();
   // Build a (year, week-of-year) -> revenue map so we can compare apples-to-apples
   const yearTotals: Record<string, { revenue: number; expense: number; invoices: number }> = {};
   for (const m of monthly) {

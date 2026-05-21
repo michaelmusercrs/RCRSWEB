@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import '../globals.css';
+import ChrisAskWidget from '@/components/ChrisAskWidget';
 
 const inter = Inter({ subsets: ['latin'], adjustFontFallback: false });
 
@@ -13,7 +14,10 @@ export const metadata: Metadata = {
 export default function ChrisViewLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-black text-white`}>{children}</body>
+      <body className={`${inter.className} bg-black text-white`}>
+        {children}
+        <ChrisAskWidget />
+      </body>
     </html>
   );
 }

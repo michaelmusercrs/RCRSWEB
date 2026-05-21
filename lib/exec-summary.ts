@@ -39,6 +39,10 @@ export async function getExecSummary(): Promise<ExecSummaryResponse> {
     fs.readFile(path.join(process.cwd(), 'data', 'customer-ltv.json'), 'utf8').catch(() => '{}'),
   ]);
   const monthly: MonthlyTx[] = JSON.parse(txJson);
+  {
+    const { applyMonthlyCorrections } = await import('./data-corrections');
+    await applyMonthlyCorrections(monthly as unknown as Array<{ month: string; revenue?: number; expense?: number }>);
+  }
   const commissions: Commission[] = JSON.parse(commJson);
   const reviewsRaw = JSON.parse(revJson);
   const reviews: Review[] = reviewsRaw.reviews || [];

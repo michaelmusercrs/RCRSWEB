@@ -52,7 +52,7 @@ import {
 
 const PIE_COLORS = ['#39FF14', '#60a5fa', '#fbbf24', '#fb7185', '#a78bfa', '#22d3ee', '#f97316', '#10b981', '#ec4899', '#6366f1', '#84cc16'];
 
-type TabId = 'overview' | 'charts' | 'transactions' | 'customers' | 'vendors' | 'reps' | 'commissions' | 'inventory';
+type TabId = 'overview' | 'charts' | 'transactions' | 'customers' | 'vendors' | 'reps' | 'commissions' | 'inventory' | 'analytics';
 
 interface InventoryRow {
   id: string; name: string; description: string; category: string; supplier: string;
@@ -149,6 +149,106 @@ function fmtMoneyExact(n: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
 }
 function fmtPercent(n: number): string { return `${(n * 100).toFixed(1)}%`; }
+
+// --- Analytics Hub --------------------------------------------------------
+// The 21 sibling /chrisview/* pages. The main /chrisview file is intentionally
+// untouched for its data tabs above; this hub is the discovery surface so
+// nothing new gets buried at /chrisview/menu.
+interface HubLink { href: string; title: string; description: string; highlight?: string }
+const HUB_GROUPS: { label: string; items: HubLink[] }[] = [
+  {
+    label: 'Sales performance',
+    items: [
+      { href: '/chrisview/funnel', title: 'Deep Funnel', description: 'Lead → estimate → signed → paid with certainty labels' },
+      { href: '/chrisview/close-rates', title: 'Estimate Close Rates', description: 'By delivery channel, insurance vs retail, contact method, rep' },
+      { href: '/chrisview/response-times', title: 'Lead Response Times', description: 'How fast each rep contacts office-created leads' },
+      { href: '/chrisview/aging', title: 'Estimate Aging Queue', description: 'Open estimates rotting in the pipeline — by days idle', highlight: 'NEW' },
+      { href: '/chrisview/leaderboards', title: 'Three Leaderboards', description: 'Commission / Sales accrual / Per-week — three views of the same revenue' },
+      { href: '/chrisview/scorecard', title: 'Rep Scorecard', description: 'Composite per-rep card: commissions × reviews × quality' },
+    ],
+  },
+  {
+    label: 'Customers & growth',
+    items: [
+      { href: '/chrisview/ltv', title: 'Customer Lifetime Value', description: 'LTV per customer, cohort repeat rate by year', highlight: '32% repeat' },
+      { href: '/chrisview/segmented-ltv', title: 'Segmented LTV', description: 'LTV split insurance vs retail — which segment is more loyal?', highlight: 'NEW' },
+      { href: '/chrisview/lead-sources', title: 'Lead Source Effectiveness', description: 'Close rate per source + top reps per source' },
+      { href: '/chrisview/referral-network', title: 'Referral Network', description: 'Who refers leads to whom — source bucketing + top referrer people', highlight: 'NEW' },
+      { href: '/chrisview/reviews', title: 'Reviews by Rep', description: '317 reviews 2018-2025 with low-review detail panel' },
+      { href: '/chrisview/review-velocity', title: 'Review Ask Rate', description: '9.8% lifetime ask rate, 0% last 90 days. Hunter\'s last review: 2022', highlight: 'NEW' },
+    ],
+  },
+  {
+    label: 'Profit & cashflow',
+    items: [
+      { href: '/chrisview/margin', title: 'True Margin Per Job', description: 'Revenue minus commission per job; per-rep tier (~89% until material backfills)', highlight: 'NEW' },
+      { href: '/chrisview/cashflow', title: 'Cash Flow Forecast', description: '6-month forecast with seasonal multipliers + runway' },
+      { href: '/chrisview/insurance', title: 'Insurance Deep Dive', description: 'Per-carrier RCV/ACV/deductible, days-to-approve, adjuster turnaround' },
+      { href: '/chrisview/lifecycle', title: 'Job Lifecycle', description: 'Days to contract/install/paid, trips per job, rework, 90-day unpaid AR' },
+      { href: '/chrisview/leaders', title: 'Division Leader Checks', description: 'Recruiter / override commission payments by recipient and year' },
+      { href: '/chrisview/multi-rep-splits', title: 'Multi-Rep Commission Splits', description: '320 split jobs / $2.15M / 168 unique pairings', highlight: 'NEW' },
+    ],
+  },
+  {
+    label: 'Operations & people',
+    items: [
+      { href: '/chrisview/insights', title: 'Meeting Insights', description: 'Pattern detection in Monday meeting data — predictions, attendance, goal study' },
+      { href: '/chrisview/meetings', title: 'Meeting History', description: 'All-time annual funnel, per-rep career, best rep-weeks, attendance trends' },
+      { href: '/chrisview/onboarding', title: 'Rookie Ramp Curve', description: 'Weeks-to-first-signed per rep vs the historical median baseline', highlight: 'NEW' },
+      { href: '/chrisview/rep-churn', title: 'Rep Churn Early Warning', description: 'Recent activity vs own baseline — composite risk score per rep', highlight: 'NEW' },
+      { href: '/chrisview/subs', title: 'Subcontractor Performance', description: 'Lifetime sub spend, check counts, inactive flags ($6.6M / 13 subs)' },
+    ],
+  },
+  {
+    label: 'History & records',
+    items: [
+      { href: '/chrisview/history', title: 'All-Time History', description: '8yr revenue/expense/margin, monthly + quarterly, seasonality heatmap' },
+      { href: '/chrisview/compare', title: 'Year-over-Year Compare', description: 'Monthly grid year × month, YTD pace, growth rates' },
+      { href: '/chrisview/stats', title: 'Stats & Records', description: 'Best months, biggest commission payments, top lifetime earners, all-time superlatives' },
+      { href: '/chrisview/summary', title: 'Executive Summary', description: 'One-screen: lifetime, YTD, last-12mo, records, top reps, reviews' },
+      { href: '/chrisview/menu', title: 'Full Menu (formatted list)', description: 'All 29 pages as a printable grid with descriptions' },
+    ],
+  },
+];
+
+function AnalyticsHub() {
+  return (
+    <div className="space-y-6">
+      <div className="bg-gradient-to-br from-zinc-900 to-zinc-950 border border-zinc-800 rounded-xl p-5">
+        <h2 className="text-xl font-bold mb-1 flex items-center gap-2">
+          <LineChartIcon className="w-5 h-5 text-[#39FF14]" />
+          Specialized analytics — 21 pages
+        </h2>
+        <p className="text-zinc-400 text-sm">Each page is a focused view over QB / JN / Monday meeting data. Pages tagged <span className="inline-block text-[10px] font-mono text-[#39FF14] bg-[#39FF14]/10 px-1.5 py-0.5 rounded ml-1">NEW</span> shipped 2026-05-21.</p>
+      </div>
+
+      {HUB_GROUPS.map(group => (
+        <div key={group.label}>
+          <h3 className="text-sm font-semibold text-zinc-300 mb-3 uppercase tracking-wide">{group.label}</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {group.items.map(item => (
+              <a
+                key={item.href}
+                href={item.href}
+                className="group bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-[#39FF14]/40 hover:bg-zinc-800/40 transition-all"
+              >
+                <div className="flex items-start justify-between mb-1.5">
+                  <h4 className="text-sm font-semibold text-white">{item.title}</h4>
+                  {item.highlight && (
+                    <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${item.highlight === 'NEW' ? 'text-[#39FF14] bg-[#39FF14]/10' : 'text-amber-400 bg-amber-400/10'}`}>
+                      {item.highlight}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-zinc-400 leading-relaxed">{item.description}</p>
+              </a>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function ChrisViewPage() {
   const [tab, setTab] = useState<TabId>('overview');
@@ -365,6 +465,7 @@ export default function ChrisViewPage() {
             { id: 'reps' as TabId, label: 'Sales Reps', icon: UserCheck },
             { id: 'commissions' as TabId, label: 'Commissions', icon: DollarSign },
             { id: 'inventory' as TabId, label: 'Inventory', icon: Briefcase },
+            { id: 'analytics' as TabId, label: 'Analytics (21 more)', icon: LineChartIcon },
           ].map(t => {
             const Icon = t.icon;
             const active = tab === t.id;
@@ -1235,6 +1336,11 @@ export default function ChrisViewPage() {
               )}
             </div>
           </>
+        )}
+
+        {/* ANALYTICS HUB — all 21 sibling pages on one screen */}
+        {tab === 'analytics' && (
+          <AnalyticsHub />
         )}
       </main>
     </div>

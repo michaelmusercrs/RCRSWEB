@@ -47,6 +47,13 @@ export interface YoYResponse {
 export async function getYoYCompare(): Promise<YoYResponse> {
   const txJson = await fs.readFile(path.join(process.cwd(), 'data', 'transactions-monthly.json'), 'utf8');
   const monthly: MonthlyTx[] = JSON.parse(txJson);
+  // Apply sheet-driven corrections on the monthly array up front so every
+  // downstream aggregation (YoY, growth, monthly grid) reflects the same
+  // corrected numbers. See lib/data-corrections.ts.
+  {
+    const { applyMonthlyCorrections } = await import('./data-corrections');
+    await applyMonthlyCorrections(monthly as unknown as Array<{ month: string; revenue?: number; expense?: number }>);
+  }
 
   const allYears = new Set<string>();
   for (const m of monthly) allYears.add(m.month.slice(0, 4));

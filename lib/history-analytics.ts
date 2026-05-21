@@ -258,6 +258,34 @@ export async function getHistoryAnalytics(): Promise<HistoryResponse> {
   const totCommissions = commissions.reduce((s, c) => s + (c.amount || 0), 0);
   const months = monthlyTx.map(m => m.month).sort();
 
+  // Apply sheet-driven hand-corrections. A row in chrisview_corrections
+  // for e.g. annual:2024:net = -280000 will replace the computed -869K
+  // here, and the change flows through to every chart that consumes
+  // byYear/byMonth from this lib.
+  const { applyAnnualCorrections, applyMonthlyCorrections, getCorrection, lifetimeScope } = await import('./data-corrections');
+  // Map to a shape applyAnnualCorrections recognizes (it expects `net` not `netCash`).
+  const yearWithNet = byYear.map(y => ({ ...y, net: y.netCash }));
+  await applyAnnualCorrections(yearWithNet);
+  for (let i = 0; i < byYear.length; i++) {
+    byYear[i].revenue = yearWithNet[i].revenue;
+    byYear[i].expense = yearWithNet[i].expense;
+    byYear[i].netCash = yearWithNet[i].net;
+    // Recompute margin since revenue/expense may have been corrected.
+    byYear[i].margin = byYear[i].revenue > 0 ? Math.round(((byYear[i].revenue - byYear[i].expense) / byYear[i].revenue) * 1000) / 10 : 0;
+  }
+  const monthWithNet = byMonth.map(m => ({ ...m, net: m.netCash }));
+  await applyMonthlyCorrections(monthWithNet);
+  for (let i = 0; i < byMonth.length; i++) {
+    byMonth[i].revenue = monthWithNet[i].revenue;
+    byMonth[i].expense = monthWithNet[i].expense;
+    byMonth[i].netCash = monthWithNet[i].net;
+  }
+  // Lifetime overrides (rare but supported)
+  const totRevCorr = await getCorrection(lifetimeScope('revenue'));
+  const totExpCorr = await getCorrection(lifetimeScope('expense'));
+  const finalTotRev = totRevCorr && Number.isFinite(parseFloat(totRevCorr.correctedValue)) ? parseFloat(totRevCorr.correctedValue) : totRev;
+  const finalTotExp = totExpCorr && Number.isFinite(parseFloat(totExpCorr.correctedValue)) ? parseFloat(totExpCorr.correctedValue) : totExp;
+
   return {
     generatedAt: new Date().toISOString().slice(0, 10),
     byYear,
@@ -266,12 +294,12 @@ export async function getHistoryAnalytics(): Promise<HistoryResponse> {
     seasonality,
     repHistory,
     lifetime: {
-      revenue: Math.round(totRev),
-      expense: Math.round(totExp),
-      netCash: Math.round(totRev - totExp),
-      margin: totRev > 0 ? Math.round(((totRev - totExp) / totRev) * 1000) / 10 : 0,
+      revenue: Math.round(finalTotRev),
+      expense: Math.round(finalTotExp),
+      netCash: Math.round(finalTotRev - finalTotExp),
+      margin: finalTotRev > 0 ? Math.round(((finalTotRev - finalTotExp) / finalTotRev) * 1000) / 10 : 0,
       invoices: totInv,
-      avgInvoice: totInv > 0 ? Math.round(totRev / totInv) : 0,
+      avgInvoice: totInv > 0 ? Math.round(finalTotRev / totInv) : 0,
       commissionPayments: commissions.length,
       totalCommissions: Math.round(totCommissions),
       firstMonth: months[0] || '',
