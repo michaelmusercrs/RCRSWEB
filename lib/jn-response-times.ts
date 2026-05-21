@@ -23,39 +23,21 @@ const JN_API_URL = process.env.JOBNIMBUS_API_URL || 'https://app.jobnimbus.com/a
 const OFFICE_STAFF = [
   'sara hill',
   'destin mccary',
+  'destin mc cary',
   'tia muse morris',
   'tia morris',
   'tia muse',
+  'boston',
+  'office',
 ];
 
-// Sales reps
-const SALES_REPS = [
-  'Aaron Lussi', 'Adam Rudell', 'Brendon Muse', 'Greg Muse',
-  'Hunter Rivers', 'Richard Geahr', 'David Thomas', 'John Cordonis',
-  'Ryan Butcher', 'Wess Cozelos', 'Aaron Boykin', 'Travis Wages',
-  'Brittany Hutchison',
-];
+// Excluded "activity" types that are auto-system events masquerading as activities.
+// Per the deep-audit script (scripts/deep-audit-lead-response.mjs) these never count
+// as first-rep-contact even if they show up in /activities.
+const EXCLUDED_ACTIVITY_TYPES_RE = /^(Contact Created|Assigned Contact|Job Created|Assigned Job|Related to job|Unassigned|Contact Modified|Job Modified|Attachment deleted|Attachment Added|Document Added|Status Changed)$/i;
 
-// Manual action types (exclude automated/system activities). Per Michael's
-// 2026-05-20 correction: appointments and tasks count too — a rep setting
-// an appt IS first-contact even if no note/call/email was logged first.
-const MANUAL_ACTION_TYPES = new Set([
-  'Note',
-  'Phone Call',
-  'Text Message',
-  'Email',
-  'email',
-  'Appointment',
-  'appointment',
-  'Task',
-  'task',
-]);
-
-// System/automation authors to exclude
-const SYSTEM_AUTHORS = [
-  'system', 'automation', 'jobnimbus', 'api', 'webhook',
-  'rcrs portal', 'portal',
-];
+// System/automation authors to exclude (regex form matches jn-deep-funnel.ts)
+const SYSTEM_AUTHORS_RE = /system|automation|webhook|portal|jobnimbus\b|^api\b|^email$/i;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -142,46 +124,40 @@ function isOfficeStaff(name: string): boolean {
   return OFFICE_STAFF.some(s => lower.includes(s));
 }
 
-function isSalesRep(name: string): boolean {
-  const lower = (name || '').toLowerCase().trim();
-  return SALES_REPS.some(r => r.toLowerCase() === lower || lower.includes(r.toLowerCase()));
-}
-
 function isSystemAuthor(name: string): boolean {
-  const lower = (name || '').toLowerCase().trim();
-  return SYSTEM_AUTHORS.some(s => lower.includes(s));
+  return SYSTEM_AUTHORS_RE.test(name || '');
 }
 
+/**
+ * Per Michael 2026-05-19 audit: a "manual rep action" is ANY activity that
+ *   1. Is NOT an excluded auto-generated activity type
+ *      (Contact Created, Assigned, Status Changed, Modified, etc.)
+ *   2. Was authored by someone who is NOT office staff AND NOT a system
+ *      author (automation/webhook/portal/api/jobnimbus).
+ *
+ * We don't whitelist Note/Phone Call/Email/Appointment/Task explicitly,
+ * because if a rep performs anything else (custom record types,
+ * inspection reports, etc.) it should still count. Match the strict
+ * filter used by lib/jn-deep-funnel.ts so /chrisview/response-times and
+ * /chrisview/funnel agree.
+ */
 function isManualAction(activity: JNActivity): boolean {
-  // Must be a manual action type
-  const typeName = activity.record_type_name || '';
-  if (!MANUAL_ACTION_TYPES.has(typeName)) return false;
+  const author = (activity.created_by_name || '').trim();
+  if (!author) return false;
+  if (isOfficeStaff(author)) return false;
+  if (isSystemAuthor(author)) return false;
 
-  // Exclude system/automation sources
+  const typeName = (activity.record_type_name || '').trim();
+  if (EXCLUDED_ACTIVITY_TYPES_RE.test(typeName)) return false;
+
+  // Reject status changes either via the boolean flag or via the type name
+  if (activity.is_status_change) return false;
+
+  // Exclude system/automation sources at the record level
   if (activity.source && (
     activity.source.startsWith('system') ||
     activity.source.includes('automation')
   )) return false;
-
-  // Exclude status changes
-  if (activity.is_status_change) return false;
-
-  // Exclude system authors
-  const author = activity.created_by_name || '';
-  if (isSystemAuthor(author)) return false;
-
-  // For emails, check if it's a system-generated email (estimate sent, etc.)
-  if (typeName === 'Email' || typeName === 'email') {
-    const note = (activity.note || '').toLowerCase();
-    if (note.includes('estimate') && (note.includes('attached') || note.includes('sent'))) {
-      // This is a manual estimate email - count it
-      return true;
-    }
-    // Exclude system-generated emails
-    if (note.includes('document #') || note.includes('invoice') || note.includes('work order')) {
-      return false;
-    }
-  }
 
   return true;
 }
@@ -328,52 +304,52 @@ export async function queryResponseTimes(opts: {
     // rather than the contact directly, so we need to check both — otherwise
     // appts/notes logged on a job are missed.
     try {
-      // JN filter must be JSON-encoded — see lib/jobnimbus-service.ts:318
-      const contactFilter = encodeURIComponent(
-        JSON.stringify({ must: [{ term: { 'related.id': contact.jnid } }] }),
-      );
-      // Primary.id covers activities where the contact is the PRIMARY entity
-      const primaryFilter = encodeURIComponent(
-        JSON.stringify({ must: [{ term: { 'primary.id': contact.jnid } }] }),
-      );
-
-      const [byRelated, byPrimary] = await Promise.all([
-        jnFetch<{ count?: number; results?: JNActivity[]; activity?: JNActivity[] }>(
-          `/activities?filter=${contactFilter}&sort=date_created&limit=50`,
-        ),
-        jnFetch<{ count?: number; results?: JNActivity[]; activity?: JNActivity[] }>(
-          `/activities?filter=${primaryFilter}&sort=date_created&limit=50`,
-        ),
-      ]);
-
-      // Merge + de-dupe by jnid
       const seen = new Set<string>();
       const merged: JNActivity[] = [];
-      for (const r of [...(byRelated.results || byRelated.activity || []), ...(byPrimary.results || byPrimary.activity || [])]) {
-        if (r.jnid && !seen.has(r.jnid)) {
-          seen.add(r.jnid);
-          merged.push(r);
+      const addAll = (arr?: JNActivity[]) => {
+        for (const a of arr || []) {
+          if (a.jnid && !seen.has(a.jnid)) { seen.add(a.jnid); merged.push(a); }
         }
+      };
+
+      // Contact activities (primary + related)
+      const contactPrim = encodeURIComponent(JSON.stringify({ must: [{ term: { 'primary.id': contact.jnid } }] }));
+      const contactRel = encodeURIComponent(JSON.stringify({ must: [{ term: { 'related.id': contact.jnid } }] }));
+      const [byPrimary, byRelated] = await Promise.all([
+        jnFetch<{ count?: number; results?: JNActivity[]; activity?: JNActivity[] }>(`/activities?filter=${contactPrim}&sort=date_created&limit=100`).catch(() => ({ results: [] as JNActivity[], activity: [] as JNActivity[] })),
+        jnFetch<{ count?: number; results?: JNActivity[]; activity?: JNActivity[] }>(`/activities?filter=${contactRel}&sort=date_created&limit=100`).catch(() => ({ results: [] as JNActivity[], activity: [] as JNActivity[] })),
+      ]);
+      addAll(byPrimary.results || byPrimary.activity);
+      addAll(byRelated.results || byRelated.activity);
+
+      // Pull related jobs and also fetch their activities. Some reps log
+      // appts/notes directly on the job — if we only check the contact, we miss them.
+      try {
+        const jobsRes = await jnFetch<{ results?: Array<{ jnid: string }> }>(
+          `/jobs?filter=${encodeURIComponent(JSON.stringify({ must: [{ term: { 'primary.id': contact.jnid } }] }))}&limit=10`,
+        ).catch(() => ({ results: [] as Array<{ jnid: string }> }));
+        const jobs = jobsRes.results || [];
+        for (const j of jobs) {
+          const [jp, jr] = await Promise.all([
+            jnFetch<{ results?: JNActivity[]; activity?: JNActivity[] }>(`/activities?filter=${encodeURIComponent(JSON.stringify({ must: [{ term: { 'primary.id': j.jnid } }] }))}&sort=date_created&limit=100`).catch(() => ({ results: [] as JNActivity[], activity: [] as JNActivity[] })),
+            jnFetch<{ results?: JNActivity[]; activity?: JNActivity[] }>(`/activities?filter=${encodeURIComponent(JSON.stringify({ must: [{ term: { 'related.id': j.jnid } }] }))}&sort=date_created&limit=100`).catch(() => ({ results: [] as JNActivity[], activity: [] as JNActivity[] })),
+          ]);
+          addAll(jp.results || jp.activity);
+          addAll(jr.results || jr.activity);
+        }
+      } catch {
+        // ignore — job activities are best-effort
       }
+
       merged.sort((a, b) => (a.date_created || 0) - (b.date_created || 0));
       const activities = merged;
-      
-      // Find first manual action by the assigned sales rep (or any sales rep)
+
+      // Find first manual action by ANY rep (not office, not system)
       let firstAction: JNActivity | null = null;
-      
+
       for (const act of activities) {
-        // Must be after contact creation
         if ((act.date_created || 0) <= (contact.date_created || 0)) continue;
-        
-        // Must be a manual action
         if (!isManualAction(act)) continue;
-        
-        // Must be by a sales rep (not office staff, not system)
-        const actAuthor = act.created_by_name || '';
-        if (isOfficeStaff(actAuthor)) continue;
-        if (isSystemAuthor(actAuthor)) continue;
-        
-        // Prefer action by the assigned rep, but accept any sales rep
         firstAction = act;
         break;
       }
