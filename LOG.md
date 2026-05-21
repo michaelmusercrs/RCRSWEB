@@ -8,6 +8,8 @@ The scheduled routine appends an entry per action.
 
 ## 2026-05-20
 
+- `06:00` · claude · sweep/portal-messaging + lib/portal-messaging-service.ts + 11 files · Phase 10.3 portal messaging on GroupMe — group/DM/per-rep-notify; NotifyRepButton in leaderboard; mobile-first; polls GET only; NO automatic sends · commit (sweep)
+- `05:45` · claude · lib/groupme-service.ts + lib/river-bot-service.ts + storm-report + docs/2026-05-20-verification-pass.md · Phase 10.1 GroupMe master kill+quiet hours full-guard pass (4 send paths + raw fetch) + storm-report size cap + comprehensive audit doc shipped · commit 85701d2 (main)
 - `05:00` · claude · sweep/insurance-claims · lib/insurance-claims-service.ts + customer dashboard tab + admin viewer + 2 API routes · self-service insurance claim timeline (10-state linear progression) + admin advance-status flow · solves the highest-impact missing customer-portal surface per audit + research-doc · commit (sweep)
 - `04:30` · claude · scripts/fix-missing-job-breakdowns.mjs + bulk-backfill-invoices-and-breakdowns.mjs · Phase 9.2 — 234 invoices + 264 job breakdowns + 25 delivery schedule rows for ALL historical tickets without invoices. NO inventory deductions for pre-2026-05-15 (avoids historical_close double-count). NO emails per owner directive. $268,909.67 grand total · commits 7bc9fc2 + 4926606 (main); data on master sheet
 - `03:30` · claude · marketing-intel service + cron + admin viewer + suggestion heuristics · Phase 9.8 — daily monitor across 6 sources, 7 heuristics surface actionable items, parked in `_disabledCrons` · commit 9e11d22 (main)

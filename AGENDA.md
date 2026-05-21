@@ -111,6 +111,12 @@ Owner explicitly asked for this — look at how others solve the same problems.
 - `[done]` **9.7 Customer-portal 3 stubs persist** — commit 11f7826. lib/customer-portal-sheets.ts: recordServiceRequest → `Service_Requests` tab; recordWarrantyClaim → `Warranty_Claims` tab; get/setNotificationPreferences ↔ `Customer_Notification_Prefs`. All non-blocking. Orphan ReviewSubmission component now mounted in dashboard My-Rep tab.
 - `[done]` **9.8 Marketing intel monitor** — commit 9e11d22. lib/marketing-intel-service.ts polls 6 sources (Google reviews, BBB, competitor reviews, SERP rank `[needs-owner]`, DNS/SSL/SPF/DMARC, Vercel deploys `[needs-owner]`). lib/marketing-intel-suggestions.ts: 7 heuristics fire actionable items (review-velocity gap vs competitors, SERP drops, BBB complaints, SSL expiry, deploy failures, broken-scrape detector, needs-owner backlog). Cron + admin viewer + parked in `_disabledCrons`.
 
+## Phase 10 — GroupMe lockdown + audit + portal messaging
+
+- `[done]` **10.1 GroupMe master kill + quiet hours** — commits 18b2a55 + 85701d2. Owner directive: no sends until later approval, never 8pm-7am Central. Helper `checkOwnerGroupMeGuard()` exported from `lib/groupme-service.ts` and applied at ALL 4 send paths (sendNotification, sendMessage, sendDirectMessage, sendBotMessage) + the raw fetch in `lib/river-bot-service.ts`. Bypass: per-call `{force:true}` OR `GROUPME_FORCE_SEND=true`.
+- `[done]` **10.2 Verification audit of today's work** — `docs/2026-05-20-verification-pass.md`. 1 CRITICAL (FIXED: GroupMe bypassable) + 4 HIGH + 7 MEDIUM + 5 LOW. Identified the GroupMe loophole + storm-report missing size cap; both fixed in commit 85701d2.
+- `[done]` **10.3 Portal messaging on GroupMe (sweep)** — `sweep/portal-messaging` branch. Group chat + 1:1 DM + per-rep notify via `lib/portal-messaging-service.ts`. `<NotifyRepButton>` wired into leaderboard. Mobile-first UI. Polls 15s GET only — NO automatic sends. `[needs-owner]` set `GROUPME_FORCE_SEND=true` to enable outbound; backfill `groupme_user_id` on TEAM_MEMBERS for O(1) rep resolution.
+
 ## Phase 8 — At-a-glance health + reusable widgets
 
 - `[done]` **8.1 `/admin/system/health` dashboard** — single screen showing email/Resend, Turnstile, Vercel KV, Sheets, JN, crons health. Env-var masking (4 chars front / 4 chars back). Read-only pings only. Linked from existing /admin/system page. Overall traffic-light status.
