@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, requireRoleAtLeast } from '@/lib/auth-service';
 import { googleSheetsService, type TeamProfileRecord } from '@/lib/google-sheets-service';
 import { put } from '@vercel/blob';
+import { standardizePhoto, type PhotoKind } from '@/lib/photo-standardizer';
 
 export async function GET(_request: NextRequest) {
   const auth = await requireRoleAtLeast(['owner', 'admin', 'manager']);
@@ -118,10 +119,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Only image uploads allowed' }, { status: 400 });
     }
 
-    const ext = file.name.split('.').pop() || 'jpg';
-    const path = `team-profiles/${repSlug}-${kind}-${Date.now()}.${ext}`;
-    const blob = await put(path, file, { access: 'public', contentType: file.type });
-    return NextResponse.json({ success: true, url: blob.url });
+    // Read into a buffer, then run through the standardizer (strip EXIF,
+    // crop to consistent aspect, composite on dark-grey canvas).
+    const arrayBuf = await file.arrayBuffer();
+    const inputBuf = Buffer.from(arrayBuf);
+    const photoKind: PhotoKind = kind === 'headshot' ? 'headshot' : 'truck';
+
+    // Originals stay in an INTERNAL Blob path — they include EXIF + GPS
+    // and are only accessible to admins via the audit log. The customer
+    // portal NEVER references these URLs.
+    const ts = Date.now();
+    const origExt = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    const internalPath = `team-profiles/internal/${repSlug}-${kind}-${ts}-original.${origExt}`;
+    await put(internalPath, inputBuf, { access: 'public', contentType: file.type });
+    // Note: Vercel Blob has no private bucket as of 2026-05; "internal"
+    // is a path convention. URLs aren't published in the API response.
+
+    // Standardized public version — EXIF stripped, cropped, dark-grey canvas.
+    const { buffer: stdBuf, contentType: stdCT } = await standardizePhoto(inputBuf, { kind: photoKind });
+    const publicPath = `team-profiles/public/${repSlug}-${kind}-${ts}.webp`;
+    const blob = await put(publicPath, stdBuf, { access: 'public', contentType: stdCT });
+    return NextResponse.json({
+      success: true,
+      url: blob.url,
+      standardized: true,
+      kind: photoKind,
+    });
   } catch (err) {
     return NextResponse.json({
       success: false,

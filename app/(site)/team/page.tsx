@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Users, ArrowRight, Mail, Phone } from 'lucide-react';
 import { teamMembers as staticTeamMembers } from '@/lib/teamData';
 import { getAllTeamMembersWithOverrides } from '@/lib/profile-overrides';
+import { getAllPublishedProfiles, type PublishedProfile } from '@/lib/profile-overrides-bridge';
 import StructuredData from '@/components/StructuredData';
 import { generateMetadata as genMeta, generateCollectionPageSchema, generateBreadcrumbSchema } from '@/lib/seo';
 import type { Metadata } from 'next';
@@ -18,7 +19,25 @@ export const metadata: Metadata = genMeta({
 export const revalidate = 60;
 
 export default async function TeamPage() {
-  const teamMembers = await getAllTeamMembersWithOverrides(staticTeamMembers);
+  // Merge layers (later wins): static → legacy blob overrides → sheet bridge.
+  // The bridge is the new canonical source; the legacy override layer stays
+  // as fallback for any rep whose Team_Profiles row doesn't exist yet.
+  const baseMembers = await getAllTeamMembersWithOverrides(staticTeamMembers);
+  const sheetProfiles: Record<string, PublishedProfile> = await getAllPublishedProfiles().catch(() => ({} as Record<string, PublishedProfile>));
+  const teamMembers = baseMembers.map(m => {
+    const sheet = sheetProfiles[m.slug];
+    if (!sheet) return m;
+    // Map sheet fields onto the static TeamMember shape — only fields that
+    // exist in the static shape. Bio + headshot are the most common edits.
+    return {
+      ...m,
+      ...(sheet.bio ? { bio: sheet.bio } : {}),
+      ...(sheet.headshotUrl ? { image: sheet.headshotUrl, photo: sheet.headshotUrl } : {}),
+      ...(sheet.yearsExperience ? { yearsExperience: sheet.yearsExperience } : {}),
+      ...(sheet.certifications ? { certifications: sheet.certifications.split(',').map((c: string) => c.trim()).filter(Boolean) } : {}),
+      ...(sheet.favoriteQuote ? { favoriteQuote: sheet.favoriteQuote } : {}),
+    };
+  });
   const collectionSchema = generateCollectionPageSchema({
     name: 'Our Team - Meet the River City Roofing Professionals',
     description: 'Meet the experienced roofing professionals at River City Roofing Solutions. Our team brings decades of expertise to every roofing project in North Alabama.',

@@ -353,6 +353,33 @@ export const TEAM_PROFILES_COLUMNS = [
   'updatedAt', 'updatedBy',
 ];
 
+/**
+ * Customer portal analytics event. Written by /api/portal/event endpoint
+ * from client-side beacons + page-unload handlers. Keep payload small —
+ * this can fire dozens of times per portal view.
+ */
+export interface CustomerPortalEventRecord {
+  eventId: string;
+  portalToken: string;     // hashed for long-term storage; raw OK for short-lived debugging
+  leadId: string;
+  assignedRep: string;
+  customerName: string;
+  eventType: string;       // portal_view | tile_interact | doc_view | call_clicked | iko_clickthrough | repeat_visit | photo_view
+  tileKey: string;
+  userAgent: string;       // truncated 120 chars
+  ipHash: string;          // SHA256 truncated
+  referrer: string;
+  timeOnPageMs: string;
+  isPreview: string;       // 'true' if from view-as-customer simulator (excluded from real engagement counts)
+  createdAt: string;
+}
+
+export const CUSTOMER_PORTAL_EVENTS_COLUMNS = [
+  'eventId', 'portalToken', 'leadId', 'assignedRep', 'customerName',
+  'eventType', 'tileKey', 'userAgent', 'ipHash', 'referrer',
+  'timeOnPageMs', 'isPreview', 'createdAt',
+];
+
 export interface RepAvailabilityRecord {
   repSlug: string;
   isReceivingLeads: string; // 'true'/'false'
@@ -491,6 +518,8 @@ const SHEET_NAMES = {
   LEAD_OUTCOME_LOG: 'Lead_Outcome_Log',
   LEAD_REASSIGNMENT_QUEUE: 'Lead_Reassignment_Queue',
   TEAM_PROFILES: 'Team_Profiles',
+  CUSTOMER_PORTAL_CONFIG: 'Customer_Portal_Config',
+  CUSTOMER_PORTAL_EVENTS: 'Customer_Portal_Events',
   REP_AVAILABILITY: 'Rep_Availability',
   REP_PREFERENCES: 'Rep_Preferences',
   LEAD_RESPONSE_LOG: 'Lead_Response_Log',
@@ -1895,6 +1924,72 @@ class GoogleSheetsService {
     } catch (err) {
       console.error('Error upserting team profile:', err);
       return false;
+    }
+  }
+
+  // ===========================================================================
+  // CUSTOMER PORTAL EVENTS (analytics)
+  // ===========================================================================
+
+  async addCustomerPortalEvent(event: Partial<CustomerPortalEventRecord> & { eventType: string; createdAt?: string }): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.CUSTOMER_PORTAL_EVENTS, CUSTOMER_PORTAL_EVENTS_COLUMNS);
+      const full: Record<string, string> = {
+        eventId: event.eventId || `EVT-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        portalToken: event.portalToken || '',
+        leadId: event.leadId || '',
+        assignedRep: event.assignedRep || '',
+        customerName: event.customerName || '',
+        eventType: event.eventType,
+        tileKey: event.tileKey || '',
+        userAgent: (event.userAgent || '').slice(0, 120),
+        ipHash: event.ipHash || '',
+        referrer: (event.referrer || '').slice(0, 200),
+        timeOnPageMs: event.timeOnPageMs || '',
+        isPreview: event.isPreview || 'false',
+        createdAt: event.createdAt || new Date().toISOString(),
+      };
+      await sheet.addRow(full as unknown as Record<string, string | number | boolean>);
+      return true;
+    } catch (err) {
+      console.error('Error adding customer-portal event:', err);
+      return false;
+    }
+  }
+
+  async getCustomerPortalEvents(options?: { leadId?: string; assignedRep?: string; eventType?: string; limit?: number; excludePreview?: boolean }): Promise<CustomerPortalEventRecord[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.CUSTOMER_PORTAL_EVENTS, CUSTOMER_PORTAL_EVENTS_COLUMNS);
+      const rows = await sheet.getRows();
+      let events: CustomerPortalEventRecord[] = rows.map(row => ({
+        eventId: row.get('eventId') || '',
+        portalToken: row.get('portalToken') || '',
+        leadId: row.get('leadId') || '',
+        assignedRep: row.get('assignedRep') || '',
+        customerName: row.get('customerName') || '',
+        eventType: row.get('eventType') || '',
+        tileKey: row.get('tileKey') || '',
+        userAgent: row.get('userAgent') || '',
+        ipHash: row.get('ipHash') || '',
+        referrer: row.get('referrer') || '',
+        timeOnPageMs: row.get('timeOnPageMs') || '',
+        isPreview: row.get('isPreview') || 'false',
+        createdAt: row.get('createdAt') || '',
+      }));
+      if (options?.leadId) events = events.filter(e => e.leadId === options.leadId);
+      if (options?.assignedRep) events = events.filter(e => e.assignedRep === options.assignedRep);
+      if (options?.eventType) events = events.filter(e => e.eventType === options.eventType);
+      if (options?.excludePreview !== false) events = events.filter(e => e.isPreview !== 'true');
+      events.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      if (options?.limit) events = events.slice(0, options.limit);
+      return events;
+    } catch (err) {
+      console.error('Error fetching customer-portal events:', err);
+      return [];
     }
   }
 

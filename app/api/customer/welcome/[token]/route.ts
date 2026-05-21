@@ -7,8 +7,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { leadPortalService } from '@/lib/lead-portal-service';
-import { googleSheetsService } from '@/lib/google-sheets-service';
 import { TEAM_MEMBERS } from '@/lib/team-roles';
+import { getPublishedProfile } from '@/lib/profile-overrides-bridge';
 
 export async function GET(
   _request: NextRequest,
@@ -31,7 +31,9 @@ export async function GET(
       repSlug.startsWith(m.slug + '-') ||
       repSlug === m.slug.split('-')[0]
     );
-    const profile = repSlug ? await googleSheetsService.getTeamProfile(repSlug) : null;
+    // PUBLISHED profile only — never expose pendingDraft / draft state to a
+    // customer. Bridge enforces this filter; we cannot accidentally bypass.
+    const profile = member?.slug ? await getPublishedProfile(member.slug) : null;
 
     return NextResponse.json({
       success: true,

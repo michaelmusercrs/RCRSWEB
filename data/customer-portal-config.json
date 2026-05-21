@@ -1,0 +1,45 @@
+{
+  "enabledTiles": [
+    "rep-intro",
+    "next-steps",
+    "iko-visualizer",
+    "contact",
+    "photo-gallery",
+    "about-rcrs",
+    "weather-forecast"
+  ],
+  "allowedRepDataFields": [
+    "name",
+    "phone",
+    "bio",
+    "headshotUrl",
+    "truckPicUrl",
+    "certifications",
+    "yearsExperience",
+    "favoriteQuote"
+  ],
+  "allowedDocTypes": [
+    "inspection-report",
+    "proposal-customer-facing",
+    "warranty",
+    "completion-cert",
+    "before-after-summary"
+  ],
+  "maxPhotosPerJob": 12,
+  "tokenExpiryDays": 90,
+  "layoutOrder": [
+    "rep-intro",
+    "next-steps",
+    "photo-gallery",
+    "iko-visualizer",
+    "weather-forecast",
+    "about-rcrs",
+    "contact"
+  ],
+  "analyticsEnabled": true,
+  "watermarkCustomerName": true,
+  "weatherTileLocation": "Huntsville, AL",
+  "weatherDisclaimer": "This 5-day forecast is general weather for the Huntsville area. It is NOT a guarantee of when your project install will happen. Your sales rep will confirm your schedule directly.",
+  "updatedAt": "2026-05-21",
+  "updatedBy": "system"
+}
