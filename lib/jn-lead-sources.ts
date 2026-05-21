@@ -79,6 +79,23 @@ export async function analyzeLeadSources(opts: { days?: number } = {}): Promise<
   const cacheKey = `days:${days}`;
   if (_cache && _cache.key === cacheKey && Date.now() - _cache.at < CACHE_TTL_MS) return _cache.data;
 
+  // Sheet-cache fast path for the default 180-day window.
+  if (days === 180) {
+    try {
+      const { readChrisviewCache } = await import('./chrisview-sheet-cache');
+      const cached = await readChrisviewCache<LeadSourceAnalysis>('lead-sources');
+      if (cached) {
+        const age = Date.now() - new Date(cached.generatedAt).getTime();
+        if (Number.isFinite(age) && age < 90 * 60 * 1000) {
+          _cache = { key: cacheKey, data: cached.payload, at: Date.now() };
+          return cached.payload;
+        }
+      }
+    } catch (err) {
+      console.warn('[jn-lead-sources] sheet cache read failed:', err);
+    }
+  }
+
   const start = Date.now();
   const since = Math.floor(Date.now() / 1000) - days * 86400;
 

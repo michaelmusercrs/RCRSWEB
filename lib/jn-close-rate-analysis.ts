@@ -130,6 +130,23 @@ export async function analyzeCloseRates(opts: { days?: number } = {}): Promise<C
     return _cache.data;
   }
 
+  // Sheet-cache fast path for the default 90-day window (what the page hits).
+  if (days === 90) {
+    try {
+      const { readChrisviewCache } = await import('./chrisview-sheet-cache');
+      const cached = await readChrisviewCache<CloseRateAnalysis>('close-rates');
+      if (cached) {
+        const age = Date.now() - new Date(cached.generatedAt).getTime();
+        if (Number.isFinite(age) && age < 90 * 60 * 1000) {
+          _cache = { key: cacheKey, data: cached.payload, at: Date.now() };
+          return cached.payload;
+        }
+      }
+    } catch (err) {
+      console.warn('[jn-close-rate-analysis] sheet cache read failed:', err);
+    }
+  }
+
   const start = Date.now();
   const now = Math.floor(Date.now() / 1000);
   const since = now - days * 86400;

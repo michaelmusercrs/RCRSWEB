@@ -237,11 +237,28 @@ export async function queryResponseTimes(opts: {
   const cacheKey = `${days}:${repFilter || 'all'}`;
   
   // Check cache
-  if (responseCache && responseCache.key === cacheKey && 
+  if (responseCache && responseCache.key === cacheKey &&
       Date.now() - responseCache.createdAt < CACHE_TTL_MS) {
     return responseCache.data;
   }
-  
+
+  // Try the precomputed sheet cache for the default no-args case.
+  if (days === 30 && !repFilter) {
+    try {
+      const { readChrisviewCache } = await import('./chrisview-sheet-cache');
+      const cached = await readChrisviewCache<ResponseTimesResult>('response-times');
+      if (cached) {
+        const age = Date.now() - new Date(cached.generatedAt).getTime();
+        if (Number.isFinite(age) && age < 90 * 60 * 1000) {
+          responseCache = { data: cached.payload, createdAt: Date.now(), key: cacheKey };
+          return cached.payload;
+        }
+      }
+    } catch (err) {
+      console.warn('[jn-response-times] sheet cache read failed:', err);
+    }
+  }
+
   const startTime = Date.now();
   const now = Math.floor(Date.now() / 1000);
   const sinceTimestamp = now - (days * 86400);

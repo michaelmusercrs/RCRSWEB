@@ -151,11 +151,32 @@ export interface FunnelAnalysis {
 
 let _cache: { key: string; data: FunnelAnalysis; at: number } | null = null;
 const CACHE_TTL_MS = 10 * 60 * 1000;
+// Accept a sheet-cache row up to 90 min old (one missed cron tick).
+const SHEET_CACHE_MAX_AGE_MS = 90 * 60 * 1000;
 
 export async function analyzeDeepFunnel(opts: { days?: number } = {}): Promise<FunnelAnalysis> {
   const daysWindow = Math.min(opts.days || 30, 365);
   const cacheKey = `days:${daysWindow}`;
   if (_cache && _cache.key === cacheKey && Date.now() - _cache.at < CACHE_TTL_MS) return _cache.data;
+
+  // Try the precomputed sheet cache before paying for live JN walks.
+  // Only applied to the default 30-day window — custom windows aren't precomputed.
+  if (daysWindow === 30) {
+    try {
+      const { readChrisviewCache } = await import('./chrisview-sheet-cache');
+      const cached = await readChrisviewCache<FunnelAnalysis>('funnel');
+      if (cached) {
+        const age = Date.now() - new Date(cached.generatedAt).getTime();
+        if (Number.isFinite(age) && age < SHEET_CACHE_MAX_AGE_MS) {
+          _cache = { key: cacheKey, data: cached.payload, at: Date.now() };
+          return cached.payload;
+        }
+      }
+    } catch (err) {
+      // Sheet cache is best-effort — fall through to live compute on any failure.
+      console.warn('[jn-deep-funnel] sheet cache read failed:', err);
+    }
+  }
 
   const start = Date.now();
   const since = Math.floor(Date.now() / 1000) - daysWindow * 86400;

@@ -195,6 +195,23 @@ export async function analyzeJobLifecycle(opts: { days?: number } = {}): Promise
   const cacheKey = `days:${daysWindow}`;
   if (_cache && _cache.key === cacheKey && Date.now() - _cache.at < CACHE_TTL_MS) return _cache.data;
 
+  // Sheet-cache fast path for the default 180-day window.
+  if (daysWindow === 180) {
+    try {
+      const { readChrisviewCache } = await import('./chrisview-sheet-cache');
+      const cached = await readChrisviewCache<LifecycleAnalysis>('lifecycle');
+      if (cached) {
+        const age = Date.now() - new Date(cached.generatedAt).getTime();
+        if (Number.isFinite(age) && age < 90 * 60 * 1000) {
+          _cache = { key: cacheKey, data: cached.payload, at: Date.now() };
+          return cached.payload;
+        }
+      }
+    } catch (err) {
+      console.warn('[jn-job-lifecycle] sheet cache read failed:', err);
+    }
+  }
+
   const start = Date.now();
   const now = Math.floor(Date.now() / 1000);
   const since = now - daysWindow * 86400;
