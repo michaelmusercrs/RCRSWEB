@@ -132,9 +132,12 @@ export async function POST(request: NextRequest) {
       || (typeof body?.type === 'string' && body.type)
       || '';
 
-    // SECURITY: Validate required fields
-    if (!event || typeof event !== 'string') {
-      console.warn('SECURITY: JN webhook rejected - missing or invalid event field');
+    // SECURITY: Validate required fields. Bugfix 2026-05-21: previously only
+    // checked `event`, which silently rejected legit JN payloads that use the
+    // `type` field (documented JN inconsistency). Now validates the resolved
+    // `eventType` so the documented fallback actually works.
+    if (!eventType) {
+      console.warn('SECURITY: JN webhook rejected - missing or invalid event/type field');
       return NextResponse.json(
         { error: 'Missing or invalid event field' },
         { status: 400 }
@@ -157,7 +160,9 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    switch (event) {
+    // 2026-05-21: switch on `eventType` (with `type` fallback) so JN payloads
+    // using either `event` or `type` field land in the correct case.
+    switch (eventType) {
       case 'contact.created':
       case 'contact.updated': {
         // Match sales rep to team member
@@ -226,7 +231,7 @@ export async function POST(request: NextRequest) {
 
         // Log to audit
         auditLog(
-          `JN_JOB_${event === 'job.created' ? 'CREATED' : 'UPDATED'}`,
+          `JN_JOB_${eventType === 'job.created' ? 'CREATED' : 'UPDATED'}`,
           repSlug || 'jobnimbus-webhook',
           `Job ${jobId}: ${jobName} — Status: ${jobStatus} (${portalStatus})`,
         );
