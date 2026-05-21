@@ -279,14 +279,18 @@ class JNSyncEngine {
       throw new Error('JobNimbus API not configured');
     }
 
-    // Fetch all contacts and filter by sales rep
+    // Walk JN until we've paged through all contacts; cap at MAX_PAGES.
+    // The previous version stopped at `allContacts.length < limit`, which
+    // truncated BEFORE rep-filtering — so reps whose contacts lived past
+    // the first 200 results saw an empty or short list. `limit` is now
+    // applied to the post-filter rep list, not the global pull.
     const allContacts: JobNimbusContact[] = [];
     let offset = 0;
     const pageSize = 100;
     let hasMore = true;
     let pageCount = 0;
 
-    while (hasMore && allContacts.length < limit && pageCount < MAX_PAGES) {
+    while (hasMore && pageCount < MAX_PAGES) {
       const result = await jobNimbusService.getContacts({
         limit: pageSize,
         offset,
@@ -307,7 +311,7 @@ class JNSyncEngine {
       const srn = (c.sales_rep_name || '').toLowerCase();
       return srn.includes(repNameLower) ||
         repNameLower.includes(srn.split(' ')[0]);
-    });
+    }).slice(0, limit);
 
     // Enrich with job counts. The mapper below produces our own shape from
     // JN fields, so cost fields shouldn't surface naturally — but we run the
@@ -343,13 +347,16 @@ class JNSyncEngine {
       throw new Error('JobNimbus API not configured');
     }
 
+    // Same fix as getContactsForRep: walk the full pages first, then
+    // filter by rep, then slice. The previous version capped at
+    // `allJobs.length < limit` and missed reps whose jobs were past page 2.
     const allJobs: JobNimbusJob[] = [];
     let offset = 0;
     const pageSize = 100;
     let hasMore = true;
     let pageCount = 0;
 
-    while (hasMore && allJobs.length < limit && pageCount < MAX_PAGES) {
+    while (hasMore && pageCount < MAX_PAGES) {
       const result = await jobNimbusService.getJobs({
         limit: pageSize,
         offset,
@@ -370,7 +377,7 @@ class JNSyncEngine {
       const srn = (j.sales_rep_name || '').toLowerCase();
       return srn.includes(repNameLower) ||
         repNameLower.includes(srn.split(' ')[0]);
-    });
+    }).slice(0, limit);
 
     const out: RepJobSummary[] = repJobs.map(j => ({
       jnid: j.jnid,

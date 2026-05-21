@@ -46,7 +46,7 @@ const SECTIONS: Section[] = [
     href: '/chrisview/insights',
     icon: Brain,
     color: 'from-purple-500 to-pink-500',
-    highlight: '271 weeks of data',
+    highlight: '252 weeks of data',
   },
   {
     title: 'Lead Response Times',

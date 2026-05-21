@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get('limit') || '200');
+    const limit = parseInt(searchParams.get('limit') || '1000');
     const statusFilter = searchParams.get('status');
 
     // Find the current user's team member record
