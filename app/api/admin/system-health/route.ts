@@ -73,6 +73,9 @@ export interface CronInfo {
 }
 
 export interface CronSubsystem {
+  /** Mirrors SubsystemBase so the dashboard + smoke checks can render a uniform pill. */
+  status: SubsystemStatus;
+  details: string;
   activeCount: number;
   disabledCount: number;
   configuredCrons: CronInfo[];
@@ -550,7 +553,33 @@ export async function GET() {
     });
   }
 
+  // Compute aggregate cron status from per-cron heartbeats.
+  const activeConfigured = configuredCrons.filter((c) => c.active);
+  const errorCount = activeConfigured.filter((c) => c.lastStatus === 'error').length;
+  const unknownCount = activeConfigured.filter((c) => c.lastStatus === 'unknown').length;
+  const successCount = activeConfigured.filter((c) => c.lastStatus === 'success').length;
+  let cronsStatus: SubsystemStatus;
+  let cronsDetails: string;
+  if (activeConfigured.length === 0) {
+    cronsStatus = 'not_configured';
+    cronsDetails = 'No active crons configured in vercel.json.';
+  } else if (errorCount > 0) {
+    cronsStatus = 'degraded';
+    cronsDetails = `${errorCount}/${activeConfigured.length} active crons reporting errors on last run.`;
+  } else if (unknownCount === activeConfigured.length) {
+    cronsStatus = 'degraded';
+    cronsDetails = `${activeConfigured.length} active crons have no heartbeat yet — none have run successfully or this environment lacks heartbeat data.`;
+  } else if (unknownCount > 0) {
+    cronsStatus = 'degraded';
+    cronsDetails = `${successCount}/${activeConfigured.length} active crons healthy, ${unknownCount} without recent heartbeats.`;
+  } else {
+    cronsStatus = 'healthy';
+    cronsDetails = `${successCount}/${activeConfigured.length} active crons reporting success.`;
+  }
+
   const cronsSubsystem: CronSubsystem = {
+    status: cronsStatus,
+    details: cronsDetails,
     activeCount: activeCronEntries.length,
     disabledCount: disabledCronEntries.length,
     configuredCrons,

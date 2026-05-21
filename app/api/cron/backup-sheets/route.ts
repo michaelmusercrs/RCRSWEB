@@ -20,6 +20,11 @@ import { withCronLock } from '@/lib/cron-lock';
 // which must run at request time, not at build time.
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+// Backs up 93+ master-sheet tabs (24k rows) + walks data/*.json to Vercel Blob.
+// Locally runs ~60-90s; on Vercel the default 60s function timeout was killing
+// the cron at 122s (per system-health 2026-05-21). 300s matches Vercel Pro's
+// cron cap and the pattern already used by sync-inventory-tab/route.ts.
+export const maxDuration = 300;
 
 const MASTER_SHEET_ID = process.env.GOOGLE_SHEETS_ID || '1uMEdtHo3xMu2gs21p7dYAgYiPWuCZ3s4a8YU-gJZ31s';
 const MEETINGS_SHEET_ID = '1tEbMVUrvrRIkptISumvIrcgUhSWN5X2ldYro9ADTXF0';
