@@ -11,7 +11,7 @@
 import Link from 'next/link';
 import {
   ArrowLeft, Database, BarChart3, Crown, Brain, Clock, TrendingUp,
-  Shield, Wrench, Wallet, HardHat, Megaphone, Heart, ChevronRight, Activity, Star, Trophy, History,
+  Shield, Wrench, Wallet, HardHat, Megaphone, Heart, ChevronRight, Activity, Star, Trophy, History, Zap,
 } from 'lucide-react';
 
 interface Section {
@@ -106,6 +106,14 @@ const SECTIONS: Section[] = [
     href: '/chrisview/history',
     icon: History,
     color: 'from-amber-400 to-yellow-600',
+    highlight: 'NEW',
+  },
+  {
+    title: 'Stats & Records (NEW)',
+    description: 'Best months ever, best years, biggest commission payments, top lifetime earners, top customers, review momentum, all-time superlatives',
+    href: '/chrisview/stats',
+    icon: Zap,
+    color: 'from-purple-500 to-pink-500',
     highlight: 'NEW',
   },
   {
