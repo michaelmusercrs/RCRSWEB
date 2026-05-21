@@ -3,12 +3,12 @@
 /**
  * Per-Rep Notification Preferences
  *
- * NOTE ON LOCATION: The owner directive asked for this page at
- * `app/(tools)/portal/notifications/page.tsx`, but that path is already a
- * fully built 808-line notification inbox. Overwriting it would destroy
- * real work. This preferences UI lives at
- * `app/(tools)/portal/notifications/preferences/page.tsx` so both
- * pages coexist (inbox vs. settings).
+ * NOTE ON LOCATION: Lives at `/portal/notifications/preferences`. The bare
+ * `/portal/notifications` URL is now a small hub that fans out to this
+ * preferences page and to the inbox (`/portal/notifications/inbox`). The
+ * 808-line inbox previously sat at the bare URL; it was moved into
+ * `/inbox` so that `/notifications` reads as "settings" to a first-time
+ * visitor.
  *
  * Per-rep toggles for the alert types and channels the rep wants. Defaults
  * are every alert ON, every channel ON — reps opt OUT of what they don't

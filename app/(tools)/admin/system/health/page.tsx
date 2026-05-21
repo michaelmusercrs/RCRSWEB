@@ -106,6 +106,25 @@ interface SystemHealthResponse {
   };
 }
 
+// ─── OWNER-SETUP.md checklist (parsed server-side by
+//     /api/admin/owner-setup-checklist). Shape mirrors that route. ─────────────
+
+interface OwnerStep {
+  number: number;
+  title: string;
+  body: string;
+  markedDone: boolean;
+  needsOwnerFlags: string[];
+  checkKey: 'resend' | 'turnstile' | 'kv' | 'dead-code-triage' | 'dead-domain' | 'unknown';
+}
+
+interface OwnerSetupChecklistResponse {
+  steps: OwnerStep[];
+  sweepBranchesAwaiting: Array<{ branch: string; verdict: string; notes: string }>;
+  topFindings: Array<{ id: string; title: string; tag: string }>;
+  source: { ownerSetupPath: string };
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function statusPill(status: SubsystemStatus): { label: string; cls: string; icon: typeof CheckCircle2 } {
@@ -399,6 +418,103 @@ interface ChecklistItemProps {
   link?: { label: string; href: string };
 }
 
+/**
+ * Owner-setup checklist row backed by the markdown body of OWNER-SETUP.md.
+ *
+ * - `done` derived by the parent from system-health env-var state (same
+ *   derivation the legacy ChecklistItem used).
+ * - `markedDone` reflects the `☑` glyph in the source file (manual
+ *   acknowledge — shown as a smaller secondary indicator).
+ * - `needsOwner` true if the step body contains a `[needs-owner]` tag —
+ *   surfaced with a yellow exclamation per spec.
+ * - The expandable "Show steps" panel renders the raw markdown body as
+ *   preformatted text so the owner can read the instructions without
+ *   leaving the page.
+ */
+function OwnerStepRow({
+  step,
+  done,
+}: {
+  step: OwnerStep;
+  done: boolean;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const needsOwner = step.needsOwnerFlags.length > 0;
+  return (
+    <div className="rounded-lg bg-white/5 border border-white/10">
+      <div className="flex items-start gap-3 p-3">
+        <div className="flex-shrink-0 mt-0.5">
+          {done ? (
+            <CheckCircle2 className="w-5 h-5 text-green-400" />
+          ) : (
+            <div className="w-5 h-5 rounded border-2 border-neutral-500" />
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p
+            className={`text-sm font-medium flex items-center gap-2 flex-wrap ${
+              done ? 'text-neutral-400 line-through' : 'text-white'
+            }`}
+          >
+            <span>
+              <span className="text-neutral-500 font-mono">{step.number}.</span>{' '}
+              {step.title}
+            </span>
+            {needsOwner && (
+              <span
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-yellow-500/15 text-yellow-300 border border-yellow-500/30"
+                title={`Step body contains: ${step.needsOwnerFlags.join(', ')}`}
+              >
+                <AlertTriangle className="w-3 h-3" />
+                needs-owner
+              </span>
+            )}
+            {step.markedDone && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-700/40 text-neutral-300 border border-neutral-600">
+                marked ☑
+              </span>
+            )}
+          </p>
+          <p className="text-xs text-neutral-400 mt-1 line-clamp-2">
+            {firstSentence(step.body)}
+          </p>
+          <button
+            type="button"
+            onClick={() => setExpanded((e) => !e)}
+            className="mt-2 text-[11px] text-blue-400 hover:text-blue-300"
+          >
+            {expanded ? 'Hide steps' : 'Show steps'}
+          </button>
+        </div>
+      </div>
+      {expanded && (
+        <div className="border-t border-white/10 px-4 py-3 bg-black/30">
+          <pre className="whitespace-pre-wrap text-xs text-neutral-300 font-mono leading-relaxed">
+            {step.body}
+          </pre>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function firstSentence(md: string): string {
+  // Strip markdown noise and pick the first non-empty paragraph as the
+  // one-line description per the spec.
+  const cleaned = md
+    .replace(/^[\s\-*]+/gm, '')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\*\*?([^*]+)\*\*?/g, '$1');
+  for (const line of cleaned.split(/\r?\n/)) {
+    const t = line.trim();
+    if (t.length > 0) {
+      // Trim to ~140 chars for the one-liner.
+      return t.length > 140 ? t.slice(0, 140) + '…' : t;
+    }
+  }
+  return '';
+}
+
 function ChecklistItem({ done, title, body, link }: ChecklistItemProps) {
   return (
     <div className="flex items-start gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
@@ -434,6 +550,7 @@ function ChecklistItem({ done, title, body, link }: ChecklistItemProps) {
 
 export default function SystemHealthPage() {
   const [data, setData] = useState<SystemHealthResponse | null>(null);
+  const [ownerChecklist, setOwnerChecklist] = useState<OwnerSetupChecklistResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -442,15 +559,25 @@ export default function SystemHealthPage() {
     setRefreshing(true);
     setError(null);
     try {
-      const res = await fetch('/api/admin/system-health', {
-        credentials: 'include',
-        cache: 'no-store',
-      });
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
+      // Fan out both reads in parallel — the OWNER-SETUP fetch failing
+      // should not block the (load-bearing) subsystem grid render. The
+      // /api/admin/system-health response shape is NOT changed; the
+      // OWNER-SETUP payload is sourced from a separate endpoint.
+      const [healthRes, ownerRes] = await Promise.all([
+        fetch('/api/admin/system-health', { credentials: 'include', cache: 'no-store' }),
+        fetch('/api/admin/owner-setup-checklist', { credentials: 'include', cache: 'no-store' }),
+      ]);
+      if (!healthRes.ok) {
+        throw new Error(`HTTP ${healthRes.status}`);
       }
-      const json = (await res.json()) as SystemHealthResponse;
+      const json = (await healthRes.json()) as SystemHealthResponse;
       setData(json);
+      if (ownerRes.ok) {
+        const ownerJson = (await ownerRes.json()) as OwnerSetupChecklistResponse;
+        setOwnerChecklist(ownerJson);
+      } else {
+        setOwnerChecklist(null);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -637,48 +764,82 @@ export default function SystemHealthPage() {
         <CronsCard crons={s.crons} />
       </div>
 
-      {/* Setup checklist */}
+      {/* Setup checklist — markdown-driven by OWNER-SETUP.md (parsed server-side
+          by /api/admin/owner-setup-checklist). Falls back to a static list if
+          the markdown read failed (file moved, perms, etc). */}
       <div className="bg-neutral-900 border border-white/10 rounded-xl p-6 space-y-4">
         <h2 className="text-lg font-semibold text-white flex items-center gap-2">
           <CheckCircle2 className="w-5 h-5" />
           Setup checklist
         </h2>
         <p className="text-sm text-neutral-400">
-          Tasks from <code className="text-neutral-300">OWNER-SETUP.md</code>. Items auto-check when
-          their subsystem reports healthy above.
+          Tasks from <code className="text-neutral-300">OWNER-SETUP.md</code> (read at request
+          time). Each item auto-checks when its subsystem reports healthy above. Expand{' '}
+          <em>Show steps</em> for the original instructions inline.
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <ChecklistItem
-            done={emailDone}
-            title="1. Resend — turn email back on"
-            body="Add domain in Resend dashboard, verify DNS, create API key, set RESEND_API_KEY + EMAIL_FROM on all 4 public Vercel projects, redeploy."
-            link={{ label: 'Open OWNER-SETUP.md §1', href: '/OWNER-SETUP.md' }}
-          />
-          <ChecklistItem
-            done={turnstileDone}
-            title="2. Cloudflare Turnstile"
-            body="Create a Turnstile site for rivercityroofingsolutions.com, set NEXT_PUBLIC_TURNSTILE_SITE_KEY + TURNSTILE_SECRET_KEY on all 4 public projects, redeploy."
-            link={{ label: 'Open OWNER-SETUP.md §2', href: '/OWNER-SETUP.md' }}
-          />
-          <ChecklistItem
-            done={kvDone}
-            title="3. Vercel KV — persistent rate limit"
-            body="Create KV database in Vercel Storage tab, connect to all 4 public projects (auto-injects KV_REST_API_*), redeploy."
-            link={{ label: 'Open OWNER-SETUP.md §3', href: '/OWNER-SETUP.md' }}
-          />
-          <ChecklistItem
-            done={false}
-            title="4. Dead-code triage"
-            body="12 open questions in docs/dead-code-triage.md. Decisions feed Phase 4 cleanup."
-            link={{ label: 'Open dead-code-triage.md', href: '/docs/dead-code-triage.md' }}
-          />
-          <ChecklistItem
-            done={false}
-            title="5. Confirm dead-domain warning"
-            body="Vercel still has a typo alias for rivercityroofingsoutions.com (missing 'l'). Easy typosquat — remove it."
-            link={{ label: 'Vercel Project Domains', href: 'https://vercel.com/dashboard' }}
-          />
-        </div>
+
+        {ownerChecklist && ownerChecklist.steps.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {ownerChecklist.steps.map((step) => {
+              const done = checklistDoneFromHealth(step, {
+                emailDone,
+                turnstileDone,
+                kvDone,
+              });
+              return <OwnerStepRow key={step.number} step={step} done={done} />;
+            })}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <ChecklistItem
+              done={emailDone}
+              title="1. Resend — turn email back on"
+              body="Add domain in Resend dashboard, verify DNS, create API key, set RESEND_API_KEY + EMAIL_FROM on all 4 public Vercel projects, redeploy."
+              link={{ label: 'Open OWNER-SETUP.md §1', href: '/OWNER-SETUP.md' }}
+            />
+            <ChecklistItem
+              done={turnstileDone}
+              title="2. Cloudflare Turnstile"
+              body="Create a Turnstile site for rivercityroofingsolutions.com, set NEXT_PUBLIC_TURNSTILE_SITE_KEY + TURNSTILE_SECRET_KEY on all 4 public projects, redeploy."
+              link={{ label: 'Open OWNER-SETUP.md §2', href: '/OWNER-SETUP.md' }}
+            />
+            <ChecklistItem
+              done={kvDone}
+              title="3. Vercel KV — persistent rate limit"
+              body="Create KV database in Vercel Storage tab, connect to all 4 public projects (auto-injects KV_REST_API_*), redeploy."
+              link={{ label: 'Open OWNER-SETUP.md §3', href: '/OWNER-SETUP.md' }}
+            />
+            <ChecklistItem
+              done={false}
+              title="4. Dead-code triage"
+              body="12 open questions in docs/dead-code-triage.md. Decisions feed Phase 4 cleanup."
+              link={{ label: 'Open dead-code-triage.md', href: '/docs/dead-code-triage.md' }}
+            />
+            <ChecklistItem
+              done={false}
+              title="5. Confirm dead-domain warning"
+              body="Vercel still has a typo alias for rivercityroofingsoutions.com (missing 'l'). Easy typosquat — remove it."
+              link={{ label: 'Vercel Project Domains', href: 'https://vercel.com/dashboard' }}
+            />
+          </div>
+        )}
+
+        {ownerChecklist && ownerChecklist.sweepBranchesAwaiting.length > 0 && (
+          <div className="pt-4 border-t border-white/10">
+            <p className="text-xs uppercase tracking-wider text-neutral-500 font-semibold mb-2">
+              Sweep branches awaiting review
+            </p>
+            <ul className="space-y-1">
+              {ownerChecklist.sweepBranchesAwaiting.map((b) => (
+                <li key={b.branch} className="text-xs text-neutral-300">
+                  <code className="text-neutral-200">{b.branch}</code>
+                  <span className="ml-2 text-yellow-300">{b.verdict}</span>
+                  <span className="ml-2 text-neutral-500">— {b.notes}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className="pt-4 border-t border-white/10">
           <p className="text-xs text-neutral-500">
@@ -692,4 +853,31 @@ export default function SystemHealthPage() {
       </div>
     </div>
   );
+}
+
+/**
+ * Derive checklist done-state from the already-computed system-health booleans.
+ *
+ * The static legacy version did the same mapping by ordinal position; this
+ * version routes on the parsed `checkKey` so re-ordering OWNER-SETUP.md won't
+ * silently break the auto-check behavior.
+ */
+function checklistDoneFromHealth(
+  step: OwnerStep,
+  flags: { emailDone: boolean; turnstileDone: boolean; kvDone: boolean },
+): boolean {
+  if (step.markedDone) return true;
+  switch (step.checkKey) {
+    case 'resend':
+      return flags.emailDone;
+    case 'turnstile':
+      return flags.turnstileDone;
+    case 'kv':
+      return flags.kvDone;
+    case 'dead-code-triage':
+    case 'dead-domain':
+    case 'unknown':
+    default:
+      return false;
+  }
 }

@@ -20,10 +20,17 @@ import { GoogleSpreadsheet } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
 import fs from 'fs';
 import crypto from 'crypto';
+import {
+  ensureInventoryDeductionsLogSheet,
+  loadDeductionKeySet,
+  wasDeducted,
+  appendDeductionLog,
+} from '../lib/inventory-deduction-log.mjs';
 
 config({ path: '.env.local', quiet: true });
 
 const HISTORICAL_CLOSE_CUTOFF = '2026-05-15';
+const DEDUCTION_SOURCE = 'bulk-backfill';
 
 const auth = new JWT({
   email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
@@ -65,6 +72,13 @@ const invByName = new Map(invRows.map(r => [(r.get('productName') || '').toLower
 
 const ticketRows = await ticketsSheet.getRows();
 const ticketRowById = new Map(ticketRows.map(r => [r.get('ticketId'), r]));
+
+// M7 idempotency: lazy-create Inventory_Deductions_Log + load existing keys
+// so we never double-deduct on a re-run (even one that follows a manual
+// Invoice row deletion). See lib/inventory-deduction-log.mjs.
+await ensureInventoryDeductionsLogSheet(doc);
+const deductedKeys = await loadDeductionKeySet(doc);
+console.error(`Existing deduction log entries: ${deductedKeys.size}`);
 
 async function retry(fn, label, attempts = 4) {
   let lastErr;
@@ -224,12 +238,22 @@ for (let idx = 0; idx < drafts.length; idx++) {
     await new Promise(r => setTimeout(r, 400));
   }
 
-  // 5. Inventory deduct (conditional)
+  // 5. Inventory deduct (conditional).
+  //    M7 idempotency: skip any (ticketId, productName) pair already
+  //    present in Inventory_Deductions_Log. Append a log row after every
+  //    successful deduction and update the in-memory key set so
+  //    subsequent materials see the new entry without re-reading.
   if (shouldDeduct) {
     for (const m of materials) {
       const productName = (m.productName || m.name || '').toLowerCase().trim();
       const qty = parseFloat(m.quantity || m.qty || 0);
       if (!productName || !qty) continue;
+
+      if (wasDeducted(deductedKeys, d.ticketId, productName)) {
+        results.skippedDeduct = (results.skippedDeduct || 0) + 1;
+        continue;
+      }
+
       const row = invByName.get(productName);
       if (!row) continue;
       const before = parseFloat(row.get('currentQty') || 0);
@@ -238,6 +262,20 @@ for (let idx = 0; idx < drafts.length; idx++) {
       try {
         await retry(() => row.save(), `deduct ${productName}`);
         results.deducted++;
+        await appendDeductionLog(doc, {
+          ticketId: d.ticketId,
+          productName,
+          productId: row.get('productId') || '',
+          qtyBefore: before,
+          qtyAfter: after,
+          qtyDelta: -qty,
+          invoiceId,
+          source: DEDUCTION_SOURCE,
+        });
+        // Claim the key in-memory regardless of audit-write outcome —
+        // the inventory currentQty has already been decremented; future
+        // runs must skip even if the audit row didn't land.
+        deductedKeys.add(`${d.ticketId.trim()}::${productName}`);
       } catch (err) {
         console.error(`  deduct fail ${productName}: ${err.message}`);
       }
@@ -254,6 +292,7 @@ console.error(`\n=== BULK BACKFILL COMPLETE ===`);
 console.error(`Invoices created: ${results.invoiced}`);
 console.error(`Job breakdowns created: ${results.brokenDown}`);
 console.error(`Inventory deductions: ${results.deducted}`);
+console.error(`Skipped deducts (already logged): ${results.skippedDeduct || 0}`);
 console.error(`Skipped (already invoiced): ${results.skippedDedup}`);
 console.error(`Errors: ${results.errors}`);
 console.error(`Grand total invoiced: $${grandTotal.toFixed(2)}`);

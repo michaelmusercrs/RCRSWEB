@@ -26,6 +26,14 @@ import type { SheetTicket } from './ticket-sheet-service';
 import { inventoryTabSync } from './inventory-tab-sync';
 import { emailService } from './email-service';
 import { jobMaterialCostService } from './job-material-cost-service';
+import {
+  loadDeductionKeySet,
+  wasDeducted,
+  appendDeductionLog,
+  makeDeductionKey,
+} from './inventory-deduction-log';
+
+const DEDUCTION_SOURCE = 'load-verified-aftermath';
 
 export interface AftermathResult {
   deductedItems: number;
@@ -37,14 +45,17 @@ export interface AftermathResult {
 }
 
 async function deductFromMasterInventory(
+  ticketId: string,
   materials: SheetTicket['materials'],
-): Promise<{ deducted: number; missing: string[]; error?: string }> {
+  invoiceIdHint?: string,
+): Promise<{ deducted: number; missing: string[]; skippedIdempotent: number; error?: string }> {
   const sheetsId = process.env.DELIVERY_SHEETS_ID || process.env.GOOGLE_SHEETS_ID;
   const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
   if (!sheetsId || !process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || !privateKey) {
     return {
       deducted: 0,
       missing: materials.map(m => m.productId),
+      skippedIdempotent: 0,
       error: 'Google Sheets credentials not configured',
     };
   }
@@ -61,15 +72,30 @@ async function deductFromMasterInventory(
     return {
       deducted: 0,
       missing: materials.map(m => m.productId),
+      skippedIdempotent: 0,
       error: 'Master Inventory tab not found',
     };
   }
   const rows = await invSheet.getRows();
 
+  // M7 defense-in-depth: even though callers are supposed to guard
+  // against double-invocation, check Inventory_Deductions_Log first so a
+  // duplicate verify-load click (or a retry of a partially-completed
+  // aftermath run) can never double-decrement. Same idempotency key
+  // format as the .mjs scripts: (ticketId, productName lowercased).
+  const deductedKeys = await loadDeductionKeySet(doc);
+
   const missing: string[] = [];
   let deducted = 0;
+  let skippedIdempotent = 0;
   for (const m of materials) {
     if (!m.productId) continue;
+    const productName = (m.productName || '').toLowerCase().trim();
+    if (productName && wasDeducted(deductedKeys, ticketId, productName)) {
+      skippedIdempotent++;
+      continue;
+    }
+
     const row = rows.find(r => r.get('productId') === m.productId);
     if (!row) {
       missing.push(m.productId);
@@ -82,8 +108,23 @@ async function deductFromMasterInventory(
     row.set('totalValue', (newQty * unitCost).toFixed(2));
     await row.save();
     deducted++;
+
+    if (productName) {
+      await appendDeductionLog(doc, {
+        ticketId,
+        productName,
+        productId: m.productId,
+        qtyBefore: currentQty,
+        qtyAfter: newQty,
+        qtyDelta: -m.quantity,
+        invoiceId: invoiceIdHint,
+        source: DEDUCTION_SOURCE,
+      });
+      // Claim the key in-memory regardless of audit-write outcome.
+      deductedKeys.add(makeDeductionKey(ticketId, productName));
+    }
   }
-  return { deducted, missing };
+  return { deducted, missing, skippedIdempotent };
 }
 
 /**
@@ -104,13 +145,26 @@ export async function runLoadVerifiedAftermath(input: {
   const { ticket, verifiedAtIso, verifiedByName, notesPrefix, silent } = input;
   const errors: string[] = [];
 
-  // 1. Deduct from master Inventory tab
+  // 1. Deduct from master Inventory tab.
+  //    Defense-in-depth idempotency: the function checks
+  //    Inventory_Deductions_Log per (ticketId, productName) and skips
+  //    rows it has already deducted, even if the caller invokes twice.
   let deductedItems = 0;
   let missingFromCatalog: string[] = [];
   try {
-    const result = await deductFromMasterInventory(ticket.materials);
+    // invoiceId is resolved in step 3 below — leave the hint undefined
+    // here; the audit row still has the ticketId for cross-reference.
+    const result = await deductFromMasterInventory(
+      ticket.ticketId,
+      ticket.materials,
+    );
     deductedItems = result.deducted;
     missingFromCatalog = result.missing;
+    if (result.skippedIdempotent > 0) {
+      console.warn(
+        `[load-verified-aftermath] Skipped ${result.skippedIdempotent} already-deducted material(s) for ticket ${ticket.ticketId}`,
+      );
+    }
     if (result.error) errors.push(`Deduction: ${result.error}`);
   } catch (err) {
     errors.push(`Deduction threw: ${String(err)}`);
