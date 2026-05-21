@@ -11,7 +11,7 @@
 import Link from 'next/link';
 import {
   ArrowLeft, Database, BarChart3, Crown, Brain, Clock, TrendingUp,
-  Shield, Wrench, Wallet, HardHat, Megaphone, Heart, ChevronRight, Activity, Star,
+  Shield, Wrench, Wallet, HardHat, Megaphone, Heart, ChevronRight, Activity, Star, Trophy,
 } from 'lucide-react';
 
 interface Section {
@@ -90,6 +90,14 @@ const SECTIONS: Section[] = [
     href: '/chrisview/reviews',
     icon: Star,
     color: 'from-yellow-400 to-amber-500',
+    highlight: 'NEW',
+  },
+  {
+    title: 'Rep Scorecard (NEW)',
+    description: 'Unified per-rep card: lifetime + last-12mo + YTD commissions, payment count, days since last pay, reviews count + avg rating + 5★%, rev/pay ratio',
+    href: '/chrisview/scorecard',
+    icon: Trophy,
+    color: 'from-yellow-300 to-amber-600',
     highlight: 'NEW',
   },
   {
