@@ -1,0 +1,98 @@
+========================================
+RCRS End-to-End Audit — 2026-05-21
+========================================
+Sheets ID: 1uMEdtHo3xMu...
+This-week window: 2026-05-14 .. 2026-05-21
+Historical close cutoff: 2026-05-15
+
+Snapshot tabs found: 4
+Primary snapshot: Inventory_Snapshot_2026-05-15_2050_post_restock_recon
+Newest snapshot: Inventory_Snapshot_2026-05-15_2050_post_restock_recon
+
+Loading data...
+  [WARN] "Inventory_Deductions_Log" tab does not exist on master sheet — deduction set will be empty
+  Tickets: 311
+  Invoices: 262
+  Delivery Schedule: 255
+  Inventory_Products: 11
+  Primary snapshot rows: 26
+  Newest extra snapshot rows: 0
+  Deduction-log keys: 0
+
+========================================
+A. THIS-WEEK DELIVERIES (last 7 days)
+========================================
+This-week delivery tickets: 3
+  TKT-R-10997 | R-10997 | Leanna Hooper. 1352 CR-1422  | created         | 2026-05-14 | inv:Y ded:N sched:Y
+  TKT-R-10923 | R-10923 | Chuck Rogers 3707 Choctaw Dr | completed       | 2026-05-14 | inv:Y ded:N sched:Y
+  TKT-R-11223 | R-11223 | Brenda Langham 733 Nance For | created         | 2026-05-18 | inv:Y ded:N sched:Y
+Summary: invoiced 3/3  deducted 0/3  on-sched 3/3
+
+========================================
+B. ALL-TIME TICKET INTEGRITY
+========================================
+Tickets by type:
+  delivery: 260
+  restock: 1
+  return: 50
+Total tickets: 311
+Total invoices: 262
+Delivery tickets without invoice (post-2026-05-15): 0
+Delivery tickets without invoice (pre-2026-05-15):  1
+Delivered status (post-cutoff) but no deduction log entry: 0
+Credit-memo / return tickets without credit-memo invoice: 50
+Restock tickets: 1  (range: 2026-05-16 .. 2026-05-16)
+
+========================================
+C. INVENTORY MATH RECONCILIATION
+========================================
+Deduction log rows (raw, all-time): 0
+Snapshot column mapping: id=productId, name=productName, qty=after  (headers: productId, productName, before, restocked, after, reason)
+SKU | currQty | deliveries+ | restocks- | implied open | snap open | diff | flag
+---
+  INV-0001               |      0 |        0 |        0 |        0 |        0 |    0 | OK
+  INV-0002               |     47 |        0 |        0 |       47 |       43 |    4 | MISMATCH
+  INV-0003               |      0 |        0 |        0 |        0 |        0 |    0 | OK
+  INV-0004               |      0 |        0 |        0 |        0 |        0 |    0 | OK
+  INV-0005               |      0 |        0 |        0 |        0 |        0 |    0 | OK
+  INV-0006               |     17 |        0 |        0 |       17 |        0 |   17 | MISMATCH
+  INV-0007               |     39 |        0 |        0 |       39 |       25 |   14 | MISMATCH
+  INV-0008               |     33 |        0 |        0 |       33 |       30 |    3 | MISMATCH
+  INV-0009               |     13 |        0 |        0 |       13 |      100 |  -87 | MISMATCH
+  INV-0010               |      0 |        0 |        0 |        0 |        0 |    0 | OK
+  INV-0011               |      4 |        0 |        0 |        4 |       59 |  -55 | MISMATCH
+
+========================================
+D. EARLIEST NON-RESTOCK TICKET (backfill anchor)
+========================================
+  Ticket: TKT-9716
+  Date:   2025-02-18T10:35:04.000Z
+  Type:   delivery
+  Cust:   
+  Job:    
+  Items:  1 1/2" Black Bullet Boot x1
+
+========================================
+SUMMARY — Gaps needing owner action
+========================================
+  - Ticket TKT-R-10923 status=completed but NO inventory deduction logged
+  - 50 returns / credit-memo tickets without a credit-memo invoice row
+  -    - CM-10984 (2026-04-01, )
+  -    - CM-10841 (2026-04-01, )
+  -    - CM-10783 (2026-02-19, )
+  -    - CM-10843 (2026-02-11, )
+  -    - CM-10857 (2026-01-22, )
+  -    - CM-10793 (2026-01-12, )
+  -    - CM-10703 (2025-11-19, )
+  -    - CM-10663 (2025-11-06, )
+  - Inventory INV-0002: implied opening 47 vs snapshot 43 (diff 4) — math doesn't reconcile
+  - Inventory INV-0006: implied opening 17 vs snapshot 0 (diff 17) — math doesn't reconcile
+  - Inventory INV-0007: implied opening 39 vs snapshot 25 (diff 14) — math doesn't reconcile
+  - Inventory INV-0008: implied opening 33 vs snapshot 30 (diff 3) — math doesn't reconcile
+  - Inventory INV-0009: implied opening 13 vs snapshot 100 (diff -87) — math doesn't reconcile
+  - Inventory INV-0011: implied opening 4 vs snapshot 59 (diff -55) — math doesn't reconcile
+
+Total actionable gaps: 16
+
+Wrote JSON snapshot: C:\Users\Michael\river-city-roofing\scripts\audit-2026-05-21-results.json
+Audit complete (READ-ONLY — no sheet writes performed).
