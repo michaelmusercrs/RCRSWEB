@@ -198,14 +198,15 @@ export default function StatsPage() {
               </Section>
             )}
 
-            <AboutThisData
-              source="data/transactions-monthly.json (QB monthly, 2018-08 → present, with chrisview_corrections overlay applied), data/commissions.json (15.5K 1099 payments), data/reviews-master.json (317 Google reviews), data/customer-ltv.json."
-              method="Records are extracted by sorting each source then taking the top/bottom row. Best month / year by gross revenue. Best/worst profit by net cash (revenue - expense). Biggest commission = single highest 1099 payment. Longest-tenure rep = days from first to last commission payment (stops at last payment if rep left). Top customers from the precomputed LTV snapshot."
-              uses="All-time superlatives for context when reviewing current performance. 'Biggest commission ever' is a useful benchmark when negotiating new payouts. 'Worst loss month' helps explain why a particular year shows red on history."
-              generatedAt={data?.generatedAt}
-            />
           </>
         )}
+
+        <AboutThisData
+          source="data/transactions-monthly.json (QB monthly, 2018-08 → present, with chrisview_corrections overlay applied), data/commissions.json (15.5K 1099 payments), data/reviews-master.json (317 Google reviews), data/customer-ltv.json."
+          method="Records are extracted by sorting each source then taking the top/bottom row. Best month / year by gross revenue. Best/worst profit by net cash (revenue - expense). Biggest commission = single highest 1099 payment. Longest-tenure rep = days from first to last commission payment (stops at last payment if rep left). Top customers from the precomputed LTV snapshot."
+          uses="All-time superlatives for context when reviewing current performance. 'Biggest commission ever' is a useful benchmark when negotiating new payouts. 'Worst loss month' helps explain why a particular year shows red on history."
+          generatedAt={data?.generatedAt}
+        />
       </main>
     </div>
   );

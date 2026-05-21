@@ -181,15 +181,17 @@ export default function LTVPage() {
                 </table>
               </div>
             </section>
-
-            <AboutThisData
-              source="data/customer-ltv.json — computed daily from data/transactions.json by scripts/compute-customer-ltv.mjs. 3,194 distinct QB customers."
-              method="Repeat customer = 2+ invoices in the QB ledger. Top 10% = top 10% of customers BY COUNT (319 of 3,194), not the top-100. Repeat-revenue share = sum of revenue from repeat customers ÷ total revenue. Cohort year = year of customer's first invoice."
-              uses="Identify customer concentration risk. Spot which cohort years have generated the most repeat revenue. Use top-customer tables to recognize the accounts worth nurturing."
-              generatedAt={data?.generatedAt}
-            />
           </>
         )}
+
+        {/* Render the About panel unconditionally so it ships in initial
+            SSR HTML and stays visible during loading. */}
+        <AboutThisData
+          source="data/customer-ltv.json — computed daily from data/transactions.json by scripts/compute-customer-ltv.mjs. 3,194 distinct QB customers."
+          method="Repeat customer = 2+ invoices in the QB ledger. Top 10% = top 10% of customers BY COUNT (319 of 3,194), not the top-100. Repeat-revenue share = sum of revenue from repeat customers ÷ total revenue. Cohort year = year of customer's first invoice."
+          uses="Identify customer concentration risk. Spot which cohort years have generated the most repeat revenue. Use top-customer tables to recognize the accounts worth nurturing."
+          generatedAt={data?.generatedAt}
+        />
       </main>
     </div>
   );
