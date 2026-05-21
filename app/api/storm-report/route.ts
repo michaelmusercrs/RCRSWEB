@@ -16,6 +16,7 @@ import {
   withRateLimit,
 } from '@/lib/rate-limiter-kv';
 import { cache } from '@/lib/cache';
+import { checkRequestSize } from '@/lib/request-size-limit';
 import { checkHoneypot } from '@/lib/honeypot';
 import { verifyTurnstileToken, getRequestIp } from '@/lib/turnstile';
 import { logSpamBlock } from '@/lib/spam-log';
@@ -30,6 +31,11 @@ const globalFormRateLimiter = createGlobalFormRateLimiter();
 // ---------------------------------------------------------------------------
 
 export async function POST(request: NextRequest) {
+  // SECURITY 2026-05-20: body-size cap was missing per verification audit H2.
+  // Storm-report is the public lead-magnet form — highest bot target.
+  const sizeError = checkRequestSize(request, '50kb');
+  if (sizeError) return sizeError;
+
   // Check the cross-form global cap first so a hot IP can't burn its
   // per-form budget before tripping the global cap.
   return withRateLimit(request, globalFormRateLimiter, async () =>

@@ -43,6 +43,61 @@ export interface GroupMeConfig {
   };
 }
 
+// OWNER GUARD 2026-05-20: shared kill-switch + quiet-hours check applied
+// across ALL GroupMe send paths (sendNotification, sendMessage,
+// sendDirectMessage, sendBotMessage, plus river-bot raw fetch).
+// Per owner directive: no GroupMe sends until later approval; NEVER
+// 8pm-7am Central unless force=true is explicitly passed.
+//
+// Bypass via:
+//   - per-call { force: true } argument
+//   - env GROUPME_FORCE_SEND=true (covers ALL sends)
+// Both bypass require explicit owner action; default = blocked.
+export function checkOwnerGroupMeGuard(opts?: {
+  force?: boolean;
+  label?: string;
+  context?: Record<string, unknown>;
+}): { blocked: boolean; reason?: string } {
+  const force = opts?.force === true || process.env.GROUPME_FORCE_SEND === 'true';
+  if (force) return { blocked: false };
+
+  // Master kill: blocked by default
+  if (process.env.GROUPME_OWNER_GUARD_OFF !== 'true') {
+    console.warn('[GROUPME BLOCKED]', {
+      label: opts?.label || 'unknown',
+      reason: 'master guard active (set GROUPME_FORCE_SEND=true to enable)',
+      ...opts?.context,
+    });
+    return {
+      blocked: true,
+      reason: 'GroupMe sends blocked (owner master guard active)',
+    };
+  }
+
+  // Quiet hours 8pm-7am Central
+  const hourCT = parseInt(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Chicago',
+      hour: '2-digit',
+      hour12: false,
+    }).format(new Date()),
+    10,
+  );
+  if (hourCT >= 20 || hourCT < 7) {
+    console.warn('[GROUPME QUIET HOURS]', {
+      label: opts?.label || 'unknown',
+      hourCT,
+      ...opts?.context,
+    });
+    return {
+      blocked: true,
+      reason: `Quiet hours (${hourCT}:00 CT — blocked 8pm-7am)`,
+    };
+  }
+
+  return { blocked: false };
+}
+
 // Default configuration
 export const DEFAULT_GROUPME_CONFIG: GroupMeConfig = {
   botId: '',
@@ -353,8 +408,12 @@ class GroupMeService {
   async sendMessage(
     groupId: string,
     text: string,
-    attachments?: GroupMeAttachment[]
-  ): Promise<{ success: boolean; data?: { message: GroupMeMessage }; error?: string }> {
+    attachments?: GroupMeAttachment[],
+    options?: { force?: boolean }
+  ): Promise<{ success: boolean; data?: { message: GroupMeMessage }; error?: string; skipped?: boolean }> {
+    const guard = checkOwnerGroupMeGuard({ force: options?.force, label: 'sendMessage', context: { groupId } });
+    if (guard.blocked) return { success: false, skipped: true, error: guard.reason };
+
     const sourceGuid = `rcrs-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
 
     return this.apiPost<{ message: GroupMeMessage }>(`/groups/${groupId}/messages`, {
@@ -386,8 +445,12 @@ class GroupMeService {
   async sendDirectMessage(
     recipientId: string,
     text: string,
-    attachments?: GroupMeAttachment[]
-  ): Promise<{ success: boolean; data?: { direct_message: GroupMeDirectMessage }; error?: string }> {
+    attachments?: GroupMeAttachment[],
+    options?: { force?: boolean }
+  ): Promise<{ success: boolean; data?: { direct_message: GroupMeDirectMessage }; error?: string; skipped?: boolean }> {
+    const guard = checkOwnerGroupMeGuard({ force: options?.force, label: 'sendDirectMessage', context: { recipientId } });
+    if (guard.blocked) return { success: false, skipped: true, error: guard.reason };
+
     const sourceGuid = `rcrs-dm-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
 
     return this.apiPost<{ direct_message: GroupMeDirectMessage }>('/direct_messages', {
@@ -525,8 +588,12 @@ class GroupMeService {
 
   async sendBotMessage(
     botId: string,
-    text: string
-  ): Promise<{ success: boolean; error?: string }> {
+    text: string,
+    options?: { force?: boolean }
+  ): Promise<{ success: boolean; error?: string; skipped?: boolean }> {
+    const guard = checkOwnerGroupMeGuard({ force: options?.force, label: 'sendBotMessage', context: { botId: botId ? '<set>' : '<missing>' } });
+    if (guard.blocked) return { success: false, skipped: true, error: guard.reason };
+
     if (!botId) {
       return { success: false, error: 'Bot ID not configured' };
     }
@@ -606,36 +673,14 @@ class GroupMeService {
     config: GroupMeConfig,
     notification: GroupMeNotification
   ): Promise<{ success: boolean; error?: string; skipped?: boolean }> {
-    // OWNER GUARD 2026-05-20: master kill switch until explicit approval.
-    // Override with notification.force=true OR env GROUPME_FORCE_SEND=true.
-    if (!notification.force && process.env.GROUPME_FORCE_SEND !== 'true') {
-      console.warn('[GROUPME BLOCKED]', {
-        type: notification.type,
-        title: notification.title,
-        reason: 'master guard active until owner approval',
-      });
-      return { success: false, skipped: true, error: 'GroupMe sends blocked (owner guard active)' };
-    }
-
-    // OWNER GUARD: quiet hours 8pm-7am Central, unless force/explicit.
-    if (!notification.force) {
-      const hourCT = parseInt(
-        new Intl.DateTimeFormat('en-US', {
-          timeZone: 'America/Chicago',
-          hour: '2-digit',
-          hour12: false,
-        }).format(new Date()),
-        10,
-      );
-      if (hourCT >= 20 || hourCT < 7) {
-        console.warn('[GROUPME QUIET HOURS]', {
-          type: notification.type,
-          title: notification.title,
-          hourCT,
-        });
-        return { success: false, skipped: true, error: `Quiet hours (${hourCT}:00 CT — blocked 8pm-7am)` };
-      }
-    }
+    // Owner guard (shared helper — also covers sendMessage, sendDirectMessage,
+    // sendBotMessage, river-bot raw fetch).
+    const guard = checkOwnerGroupMeGuard({
+      force: notification.force,
+      label: 'sendNotification',
+      context: { type: notification.type, title: notification.title },
+    });
+    if (guard.blocked) return { success: false, skipped: true, error: guard.reason };
 
     // Check if notifications are enabled
     if (!config.enabled) {
