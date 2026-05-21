@@ -255,7 +255,16 @@ export async function analyzeCloseRates(opts: { days?: number } = {}): Promise<C
     ]);
 
     const job = jobs[0];
-    const hasInsurance = !!(job?.insurance_summary || job?.insurance_company || job?.claim_number);
+    // JN's actual insurance signal is the custom field "Claim Number"
+    // (capitalized, with space). Lowercase fields kept as fallback.
+    const jr = job as unknown as Record<string, unknown> | undefined;
+    const claimNum = jr?.['Claim Number'];
+    const dateOfLoss = jr?.['Date of Loss'];
+    const hasInsurance = !!(
+      (claimNum && claimNum !== 0 && claimNum !== '0') ||
+      (dateOfLoss && dateOfLoss !== 0) ||
+      job?.insurance_summary || job?.insurance_company || job?.claim_number
+    );
 
     // Activities BEFORE this estimate
     const estCreated = est.date_created || 0;

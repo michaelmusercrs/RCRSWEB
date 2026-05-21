@@ -302,7 +302,12 @@ export async function analyzeDeepFunnel(opts: { days?: number } = {}): Promise<F
       );
       const meetingNoteBefore = before.find(a =>
         (a.record_type_name || '') === 'Note' &&
-        /\b(met|meeting|visited|inspection|inspected|in.person|on.site|stopped by|came out|presented)\b/i.test(a.note || ''),
+        // The `.` inside `in.person` / `on.site` is a regex any-char so it
+        // also matches "in person" / "on site" / "inperson" / "onsite".
+        // (Audit 2026-05-21 flagged this — keeping the loose match since it
+        //  reads cleaner than `in[ -]?person` and the false-positive rate is
+        //  effectively zero given the other anchors around it.)
+        /\b(met|meeting|visited|inspection|inspected|in.?person|on.?site|stopped by|came out|presented)\b/i.test(a.note || ''),
       );
       if (completedApptBefore) {
         certainty = 'in_person_high';

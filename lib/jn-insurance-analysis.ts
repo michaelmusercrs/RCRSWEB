@@ -90,27 +90,50 @@ function extractInsurance(job: JNJob): {
   rcv: number | null; acv: number | null; deductible: number | null;
   adjuster: string; carrier: string; claim: string;
 } {
+  // JN's actual schema for insurance signals on jobs is custom fields with
+  // mixed-case / spaces. Probe-verified 2026-05-21 across 10K recent jobs:
+  //
+  //   "Claim Number"  populated on 10 / 10000 jobs (numeric or string)
+  //   "Date of Loss"  populated on 40 / 10000 jobs (unix-second timestamp)
+  //
+  // The lowercase `claim_number`, `insurance_company` etc. fields do NOT
+  // exist in JN's response — they were a phantom guess. There is also
+  // currently NO carrier / adjuster / RCV / ACV / deductible field on the
+  // job — the office is not yet populating these custom fields. Until that
+  // changes, only Claim Number + Date of Loss are detectable. The Insurance
+  // page is flagged WIP with that reason.
+  const jr = job as unknown as Record<string, unknown>;
   const summary = (job.insurance_summary || {}) as Record<string, unknown>;
-  const rcv = asNumber(job.rcv) ?? asNumber(summary.rcv) ?? asNumber(summary.RCV);
-  const acv = asNumber(job.acv) ?? asNumber(summary.acv) ?? asNumber(summary.ACV);
-  const ded = asNumber(job.deductible) ?? asNumber(summary.deductible) ?? asNumber(summary.Deductible);
-  const adjuster = String(job.adjuster_name || job.adjuster || summary.adjuster || summary.Adjuster || '').trim();
+  const rcv = asNumber(jr.rcv) ?? asNumber(jr.RCV) ?? asNumber(summary.rcv) ?? asNumber(summary.RCV);
+  const acv = asNumber(jr.acv) ?? asNumber(jr.ACV) ?? asNumber(summary.acv) ?? asNumber(summary.ACV);
+  const ded = asNumber(jr.deductible) ?? asNumber(jr.Deductible) ?? asNumber(summary.deductible) ?? asNumber(summary.Deductible);
+  const adjuster = String(jr.adjuster_name || jr.adjuster || jr.Adjuster || summary.adjuster || summary.Adjuster || '').trim();
   const carrier = normalizeCarrier(String(
-    job.insurance_company_name ||
-    job.insurance_company ||
-    job.insurance_carrier ||
+    jr['Insurance Carrier'] ||
+    jr.insurance_company_name ||
+    jr.insurance_company ||
+    jr.insurance_carrier ||
     summary.insurance_company ||
     summary.carrier ||
     summary.Carrier ||
     ''
   ));
-  const claim = String(job.claim_number || summary.claim_number || summary.ClaimNumber || '').trim();
+  const claim = String(jr['Claim Number'] || jr.claim_number || summary.claim_number || summary.ClaimNumber || '').trim();
   return { rcv, acv, deductible: ded, adjuster, carrier, claim };
 }
 
 function hasInsuranceData(j: JNJob): boolean {
-  if (j.insurance_company || j.insurance_company_name || j.insurance_carrier) return true;
-  if (j.claim_number) return true;
+  const jr = j as unknown as Record<string, unknown>;
+  // Primary signal: JN custom field "Claim Number" — populated on insurance
+  // jobs only. Treat 0 / '' / null as not-insurance.
+  const claimNum = jr['Claim Number'];
+  if (claimNum && claimNum !== 0 && claimNum !== '0') return true;
+  // Secondary signal: Date of Loss populated.
+  const dateOfLoss = jr['Date of Loss'];
+  if (dateOfLoss && dateOfLoss !== 0) return true;
+  // Legacy fallback: lowercase fields (in case they ever start showing up).
+  if (jr.insurance_company || jr.insurance_company_name || jr.insurance_carrier) return true;
+  if (jr.claim_number) return true;
   if (j.insurance_summary && typeof j.insurance_summary === 'object' && Object.keys(j.insurance_summary).length > 0) return true;
   return false;
 }

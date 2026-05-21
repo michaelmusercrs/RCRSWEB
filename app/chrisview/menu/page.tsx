@@ -13,6 +13,7 @@ import {
   ArrowLeft, Database, BarChart3, Crown, Brain, Clock, TrendingUp,
   Shield, Wrench, Wallet, HardHat, Megaphone, Heart, ChevronRight, Activity, Star, Trophy, History, Zap,
   AlarmClock, DollarSign, Users, Rocket, MessageSquare, AlertTriangle, GitBranch, Split,
+  Briefcase, Calendar, Layers,
 } from 'lucide-react';
 
 interface Section {
@@ -119,6 +120,34 @@ const SECTIONS: Section[] = [
     icon: Zap,
     color: 'from-purple-500 to-pink-500',
     highlight: 'NEW',
+  },
+  {
+    title: 'Year-over-Year Compare',
+    description: 'Monthly grid year × month, YTD pace vs prior year, growth rates. Uses completed months only',
+    href: '/chrisview/compare',
+    icon: Calendar,
+    color: 'from-sky-500 to-cyan-400',
+  },
+  {
+    title: 'Meeting History',
+    description: 'All-time Monday meeting funnel, per-rep career stats, best rep-weeks, annual attendance trends',
+    href: '/chrisview/meetings',
+    icon: BarChart3,
+    color: 'from-violet-500 to-purple-400',
+  },
+  {
+    title: 'Three Leaderboards',
+    description: 'Commission (QB 1099) / Sales accrual (Monday $$$$$) / Per-week avg — three different views of the same revenue. Never sum them',
+    href: '/chrisview/leaderboards',
+    icon: Trophy,
+    color: 'from-amber-500 to-orange-400',
+  },
+  {
+    title: 'Executive Summary',
+    description: 'One-screen lifetime + YTD + last-12mo + records + top-5 reps + reviews — designed to fit on a laptop without scrolling',
+    href: '/chrisview/summary',
+    icon: Briefcase,
+    color: 'from-zinc-400 to-zinc-500',
   },
   {
     title: 'Cash Flow Forecast',

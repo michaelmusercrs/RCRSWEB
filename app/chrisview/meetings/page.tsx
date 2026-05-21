@@ -267,7 +267,7 @@ export default function MeetingsPage() {
             </section>
 
             <p className="text-[10px] text-zinc-500 text-center">
-              Sourced from data/meeting-numbers-all.json — 2,590 rep-weeks from Monday meeting sheet (2019-01 → 2025-12). Per [[project-rcrs-leaderboards]] these are self-reported accrual numbers, NOT QB-booked revenue. Do not combine with the Commission leaderboard.
+              Sourced from data/meeting-numbers-all.json + data/meeting-numbers-2026.json — {data.dateRange.weeks.toLocaleString()} rep-weeks from the Monday meeting sheet ({data.dateRange.first} → {data.dateRange.last}). Per [[project-rcrs-leaderboards]] these are self-reported accrual numbers, NOT QB-booked revenue. Do not combine with the Commission leaderboard.
             </p>
           </>
         )}

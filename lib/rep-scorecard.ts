@@ -70,12 +70,26 @@ export interface ScorecardResponse {
 }
 
 export async function getRepScorecards(): Promise<ScorecardResponse> {
-  const [commJson, reviewJson] = await Promise.all([
-    fs.readFile(path.join(process.cwd(), 'data', 'commissions.json'), 'utf8'),
-    fs.readFile(path.join(process.cwd(), 'data', 'reviews-master.json'), 'utf8'),
-  ]);
-  const commissions: Commission[] = JSON.parse(commJson);
-  const reviews: RawReview[] = JSON.parse(reviewJson).reviews;
+  // Read both data files defensively — a missing/corrupt file should
+  // degrade gracefully (empty array) rather than blow the route to 500.
+  let commJson = '[]';
+  let reviewJson = '{"reviews":[]}';
+  try {
+    commJson = await fs.readFile(path.join(process.cwd(), 'data', 'commissions.json'), 'utf8');
+  } catch (err) {
+    console.warn('[rep-scorecard] commissions.json read failed:', err);
+  }
+  try {
+    reviewJson = await fs.readFile(path.join(process.cwd(), 'data', 'reviews-master.json'), 'utf8');
+  } catch (err) {
+    console.warn('[rep-scorecard] reviews-master.json read failed:', err);
+  }
+  let commissions: Commission[] = [];
+  let reviews: RawReview[] = [];
+  try { commissions = JSON.parse(commJson) as Commission[]; }
+  catch (err) { console.warn('[rep-scorecard] commissions.json parse failed:', err); }
+  try { reviews = (JSON.parse(reviewJson) as { reviews?: RawReview[] }).reviews || []; }
+  catch (err) { console.warn('[rep-scorecard] reviews-master.json parse failed:', err); }
 
   const now = new Date();
   const yearStart = new Date(now.getFullYear(), 0, 1);
