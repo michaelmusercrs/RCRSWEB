@@ -88,7 +88,16 @@ function findUserIdByEmail(email: string): string | undefined {
 
 export const riverBot = {
   // Post announcement to group (events, reminders, updates)
-  async announceToGroup(message: string): Promise<boolean> {
+  async announceToGroup(message: string, options?: { force?: boolean }): Promise<boolean> {
+    // OWNER GUARD 2026-05-20 — honor the same kill-switch + quiet-hours
+    // rule as lib/groupme-service.ts. Lazy-import to avoid a circular dep.
+    const { checkOwnerGroupMeGuard } = await import('./groupme-service');
+    const guard = checkOwnerGroupMeGuard({ force: options?.force, label: 'riverBot.announceToGroup' });
+    if (guard.blocked) {
+      console.warn('River: announceToGroup blocked by owner guard');
+      return false;
+    }
+
     const botId = process.env.GROUPME_BOT_ID;
     if (!botId) {
       console.warn('River: GROUPME_BOT_ID not configured, skipping group announcement');
