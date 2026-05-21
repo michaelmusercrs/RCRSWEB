@@ -810,6 +810,7 @@ class NotificationService {
     if (triggerPrefs.channels.email && email) {
       try {
         const emailResult = await emailService.send({
+          template: 'notification-dispatch',
           to: email,
           subject: payload.emailSubject || `[RCRS] ${title}`,
           body: payload.emailHtml || this.buildEmailHtml(title, message, payload.data),

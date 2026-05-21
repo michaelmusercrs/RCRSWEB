@@ -88,6 +88,7 @@ export async function POST(request: Request) {
     const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || 'https://rcrsal.com';
     for (const email of adminEmails) {
       emailService.send({
+        template: 'profile-edit-request',
         to: email,
         subject: `Profile Edit Request: ${memberName}`,
         body: `<p><strong>${submittedBy}</strong> submitted profile changes for <strong>${memberName}</strong>.</p>

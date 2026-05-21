@@ -173,7 +173,7 @@ export async function GET(request: NextRequest) {
 
   let sent = 0;
   for (const to of recipients) {
-    const res = await emailService.send({ to, subject, body });
+    const res = await emailService.send({ template: 'stalled-tickets-digest', to, subject, body });
     if (res.success) sent++;
   }
 

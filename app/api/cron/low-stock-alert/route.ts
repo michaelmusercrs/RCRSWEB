@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
 
     const results = await Promise.allSettled(
       recipients.map(to =>
-        emailService.send({ to, subject, body, fromName: 'RCRS Inventory' })
+        emailService.send({ template: 'low-stock-alert', to, subject, body, fromName: 'RCRS Inventory' })
       )
     );
 

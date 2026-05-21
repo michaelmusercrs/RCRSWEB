@@ -15,7 +15,8 @@ The scheduled routine appends an entry per action.
 - `04:15` · claude · 10-file batch · Idempotency keys + GroupMe `user_id` backfill on TEAM_MEMBERS + dashboard banner + OWNER-SETUP wiring · commit a326e78 (main)
 - `04:14` · claude · app/chrisview/compare/page.tsx + route · Add `/chrisview/compare` — YoY revenue + YTD pace dashboard · commit a432ddc (main)
 - `04:12` · claude · app/chrisview/meetings/page.tsx + route · Add `/chrisview/meetings` — 7 yrs of Monday meeting numbers · commit 6099c5f (main)
-- `01:00` · claude · AGENDA.md + LOG.md · Mark 1.5 (KV-backed per-recipient cap) + 6.1 (LOG bootstrap) done; 2.6b duplicate `[pending]` resolved; 6.2 tightened with non-optional LOG-append line; backfill the chrisview-spree commits the parallel worker skipped · commit pending (main)
+- `01:30` · claude · 22 files (19 callsites + lib/email-service.ts EmailTemplate union + storm-report) · Phase 10.4 (audit H1: 19 untagged `emailService.send()` callsites now tagged for independent allowlist re-enable — no behavior change today, drops still happen) + Phase 10.5 (audit H2: `/api/storm-report` now runs `checkForSpam` between honeypot and Turnstile with success-shape on block, logged via `logSpamBlock`). Clean `npx tsc --noEmit` · commit pending (main)
+- `01:00` · claude · AGENDA.md + LOG.md · Mark 1.5 (KV-backed per-recipient cap) + 6.1 (LOG bootstrap) done; 2.6b duplicate `[pending]` resolved; 6.2 tightened with non-optional LOG-append line; backfill the chrisview-spree commits the parallel worker skipped · commit b6e20de (main)
 
 ## 2026-05-20
 

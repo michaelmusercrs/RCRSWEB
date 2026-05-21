@@ -469,6 +469,7 @@ async function sendNewVendorAlerts(
   `;
 
   await emailService.send({
+    template: 'vendor-alert',
     to: recipients.join(','),
     subject: `New Vendor Alert: ${breakdown.rNumber} - ${alerts.length} vendor${alerts.length > 1 ? 's' : ''} over threshold`,
     body: html,

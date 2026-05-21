@@ -205,6 +205,7 @@ export async function GET(request: NextRequest) {
     let emailed = false;
     try {
       const sent = await emailService.send({
+        template: 'review-request',
         to: ticket.customerEmail!,
         subject: `How did we do? — Job ${ticket.referenceNumber}`,
         body: buildEmailHtml({

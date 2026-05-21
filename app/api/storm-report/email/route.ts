@@ -455,6 +455,7 @@ export async function POST(request: NextRequest) {
     const [customerResult, salesResult] = await Promise.allSettled([
       // 1. Customer partial report
       emailService.send({
+        template: 'storm-report-customer',
         to: data.customerEmail,
         subject: `Your Storm Damage Risk Report – ${data.riskLevel} Risk | ${COMPANY_NAME}`,
         body: buildCustomerEmailHtml(data),
@@ -463,6 +464,7 @@ export async function POST(request: NextRequest) {
 
       // 2. Sales team full report — routed to assigned rep when known.
       emailService.send({
+        template: 'storm-report-sales',
         to: salesRecipient,
         subject: `New Storm Report Lead - ${data.riskLevel} - ${data.fullAddress}`,
         body: buildSalesEmailHtml(data),

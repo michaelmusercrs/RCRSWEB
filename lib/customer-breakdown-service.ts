@@ -819,6 +819,7 @@ export async function syncReturnToBreakdown(
       )
       .join('');
     await emailService.send({
+      template: 'return-credit',
       to: 'stock@rcrsal.com',
       cc: 'sara@rcrsal.com',
       subject: `Return credited to breakdown: ${rNumber} - $${creditAmount.toFixed(2)}`,

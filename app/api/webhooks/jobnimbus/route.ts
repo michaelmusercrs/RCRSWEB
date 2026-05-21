@@ -234,6 +234,7 @@ export async function POST(request: NextRequest) {
         // Email Michael on job status changes to key statuses
         if (['approved', 'Approved', 'contract signed', 'Contract Signed'].some(s => jobStatus.toLowerCase() === s.toLowerCase())) {
           emailService.send({
+            template: 'job-status-update',
             to: 'michaelmuse@rcrsal.com',
             subject: `Job ${jobStatus}: ${customerName} — ${jobName || jobId}`,
             body: `
@@ -590,6 +591,7 @@ async function handleDepositWebhook(
     // so this routes to Sara's office inbox.
     try {
       await emailService.send({
+        template: 'breakdown-draft',
         to: 'rcrs@rcrsal.com',
         subject: `New breakdown draft: ${rNumber} - ${customerName}`,
         body: `

@@ -1110,6 +1110,7 @@ class WorkOrderService {
 
     try {
       const result = await emailService.send({
+        template: 'work-order',
         to: isAssigned ? wo.assignedDriverEmail! : STOCK_CC,
         cc: isAssigned ? STOCK_CC : undefined,
         subject,

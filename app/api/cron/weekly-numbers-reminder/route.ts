@@ -239,6 +239,7 @@ export async function GET(request: NextRequest) {
       const { subject, body } = buildReminderEmail(rep.name, type);
 
       const result = await emailService.send({
+        template: 'weekly-numbers-reminder',
         to: rep.email,
         subject,
         body,

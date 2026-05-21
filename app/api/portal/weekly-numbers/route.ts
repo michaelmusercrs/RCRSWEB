@@ -478,6 +478,7 @@ async function notifyWeeklyNumbersSubmitted(
   const revenue = record.revenue ? `$${Number(record.revenue).toLocaleString()}` : '$0';
 
   await emailService.send({
+    template: 'weekly-numbers-submitted',
     to: 'michaelmuse@rcrsal.com',
     subject: `Weekly Numbers ${action}: ${repName} (${week})`,
     body: `

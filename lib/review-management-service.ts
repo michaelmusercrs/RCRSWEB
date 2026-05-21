@@ -746,6 +746,7 @@ class ReviewManagementService {
       });
 
       const emailResult = await emailService.send({
+        template: 'review-request',
         to: data.customerEmail,
         subject: 'How was your experience with River City Roofing?',
         body: emailBody,

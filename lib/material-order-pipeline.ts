@@ -1414,7 +1414,7 @@ class MaterialOrderPipelineService {
     // transition, but we still want each individual send to complete.
     const results = await Promise.allSettled(
       Array.from(recipients).map(to =>
-        emailService.send({ to, subject, body, fromName: 'RCRS Delivery' })
+        emailService.send({ template: 'pipeline-milestone', to, subject, body, fromName: 'RCRS Delivery' })
       )
     );
     for (const r of results) {

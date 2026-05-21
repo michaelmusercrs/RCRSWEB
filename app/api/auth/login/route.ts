@@ -98,6 +98,7 @@ export async function POST(request: NextRequest) {
     // 2. Email notification to Michael (skip if Michael himself is logging in)
     if (member.email !== 'michaelmuse@rcrsal.com') {
       emailService.send({
+        template: 'login-alert',
         to: 'michaelmuse@rcrsal.com',
         subject: `Portal Login: ${member.name}`,
         body: `

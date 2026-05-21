@@ -788,6 +788,7 @@ export async function POST(request: NextRequest) {
         `;
 
         const sendResult = await emailService.send({
+          template: 'customer-invoice',
           to: recipient,
           subject,
           body: body_html,

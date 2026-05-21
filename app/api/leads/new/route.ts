@@ -507,6 +507,7 @@ export async function POST(request: NextRequest) {
     for (const officeEmail of OFFICE_NOTIFY_EMAILS) {
       officeNotifyPromises.push(
         emailService.send({
+          template: 'new-lead-office',
           to: officeEmail,
           subject: `New Lead: ${body.name} — ${body.serviceType || body.source}`,
           body: newLeadEmailBody,

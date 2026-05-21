@@ -44,7 +44,28 @@ export type EmailTemplate =
   | 'delivery-order'
   | 'office-material-order'
   | 'vendor-return'
-  | 'delivery-reminder';
+  | 'delivery-reminder'
+  // 2026-05-20 H1 verification-pass fix: tagged ad-hoc callsites so the
+  // allowlist can re-enable them independently. See docs/email-callsite-audit.md.
+  | 'login-alert'
+  | 'job-status-update'
+  | 'breakdown-draft'
+  | 'notification-dispatch'
+  | 'review-request'
+  | 'careers-application'
+  | 'work-order'
+  | 'storm-report-customer'
+  | 'storm-report-sales'
+  | 'weekly-numbers-reminder'
+  | 'stalled-tickets-digest'
+  | 'low-stock-alert'
+  | 'profile-edit-request'
+  | 'vendor-alert'
+  | 'weekly-numbers-submitted'
+  | 'customer-invoice'
+  | 'new-lead-office'
+  | 'return-credit'
+  | 'pipeline-milestone';
 
 /**
  * A single binary attachment. Maps directly onto Resend's `Attachment`

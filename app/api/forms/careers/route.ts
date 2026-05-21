@@ -158,6 +158,7 @@ export async function POST(request: NextRequest) {
 
     // 3. Email Michael about career application
     emailService.send({
+      template: 'careers-application',
       to: 'michaelmuse@rcrsal.com',
       subject: `Career Application: ${name} — ${city}`,
       body: `

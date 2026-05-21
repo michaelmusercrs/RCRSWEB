@@ -20,6 +20,7 @@ import { checkRequestSize } from '@/lib/request-size-limit';
 import { checkHoneypot } from '@/lib/honeypot';
 import { verifyTurnstileToken, getRequestIp } from '@/lib/turnstile';
 import { logSpamBlock } from '@/lib/spam-log';
+import { checkForSpam } from '@/lib/spam-filter';
 
 const STORM_REPORT_TTL = 15 * 60 * 1000; // 15 minutes
 
@@ -59,6 +60,39 @@ export async function POST(request: NextRequest) {
         submitterName: typeof body?.name === 'string' ? body.name : undefined,
       }).catch(() => {});
       return NextResponse.json({ success: true, data: null });
+    }
+
+    // Spam filter (audit H2 2026-05-20). Storm-report was the only public form
+    // skipping this gate — highest bot target because it's the lead-magnet on
+    // /check-my-address. Run between honeypot and Turnstile so flagged bots
+    // never hit the geocoder. Return success-shape on block so bots can't probe.
+    {
+      const candidateEmail = typeof body?.email === 'string' ? body.email : undefined;
+      const candidateName = typeof body?.name === 'string' ? body.name : undefined;
+      if (candidateEmail) {
+        const spamCheck = await checkForSpam({
+          name: candidateName,
+          email: candidateEmail,
+          address: typeof body?.address === 'string' ? body.address : undefined,
+        });
+        if (spamCheck.isSpam) {
+          console.warn('[STORM REPORT SPAM BLOCKED]', {
+            email: candidateEmail,
+            score: spamCheck.spamScore,
+            reasons: spamCheck.reasons,
+          });
+          logSpamBlock({
+            gate: 'spam-filter',
+            route: '/api/storm-report',
+            ip: getRequestIp(request),
+            reason: `score ${spamCheck.spamScore}`,
+            details: JSON.stringify({ reasons: spamCheck.reasons }),
+            submitterEmail: candidateEmail,
+            submitterName: candidateName,
+          }).catch(() => {});
+          return NextResponse.json({ success: true, data: null });
+        }
+      }
     }
 
     // Cloudflare Turnstile — bot fingerprint challenge. INERT until env vars
