@@ -12,6 +12,7 @@ import Link from 'next/link';
 import {
   ArrowLeft, Database, BarChart3, Crown, Brain, Clock, TrendingUp,
   Shield, Wrench, Wallet, HardHat, Megaphone, Heart, ChevronRight, Activity, Star, Trophy, History, Zap,
+  AlarmClock, DollarSign, Users, Rocket,
 } from 'lucide-react';
 
 interface Section {
@@ -146,6 +147,38 @@ const SECTIONS: Section[] = [
     icon: Heart,
     color: 'from-pink-500 to-rose-400',
     highlight: '32% repeat rate',
+  },
+  {
+    title: 'Estimate Aging Queue (NEW)',
+    description: 'Open estimates by days idle — buckets, top-aged list, per-rep p50/p90. Extends the funnel no-response watchlist past first contact',
+    href: '/chrisview/aging',
+    icon: AlarmClock,
+    color: 'from-red-500 to-orange-400',
+    highlight: 'NEW',
+  },
+  {
+    title: 'True Margin Per Job (NEW)',
+    description: 'Revenue minus commission per job, per-rep margin tier. Material/sub-labor coverage gap surfaced — fills in as data backfills',
+    href: '/chrisview/margin',
+    icon: DollarSign,
+    color: 'from-emerald-500 to-lime-400',
+    highlight: 'NEW',
+  },
+  {
+    title: 'Segmented LTV (NEW)',
+    description: 'Customer lifetime value split insurance vs retail — repeat rates, top customers per segment, cohort comparison',
+    href: '/chrisview/segmented-ltv',
+    icon: Users,
+    color: 'from-violet-500 to-purple-400',
+    highlight: 'NEW',
+  },
+  {
+    title: 'Rookie Ramp Curve (NEW)',
+    description: 'Weeks-to-first-signed and yr1 signed counts per rep, normalized to weeks-since-start with baseline median overlay',
+    href: '/chrisview/onboarding',
+    icon: Rocket,
+    color: 'from-cyan-500 to-blue-400',
+    highlight: 'NEW',
   },
 ];
 
