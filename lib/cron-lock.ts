@@ -3,9 +3,17 @@
  * handler when a manual run + scheduled run collide, or when a long-
  * running handler is still working past the next scheduled slot.
  *
- * Sheet-backed (uses existing SystemHealth tab or lazy-creates one).
- * NOT a strong lock — best-effort coordination only; do not rely on
- * for financial / mutating ops that REQUIRE single execution.
+ * Sheet-backed (uses dedicated `CronLocks` tab — lazy-created on first
+ * claim). NOT a strong lock — best-effort coordination only; do not
+ * rely on for financial / mutating ops that REQUIRE single execution.
+ *
+ * Note: pre-2026-05-21 this default was `SystemHealth`, which clashed
+ * with `lib/cron-heartbeat.ts` writing to the same tab with a
+ * different schema (cronName/lastRunAt/status/durationMs/details vs
+ * key/status/lastRunAt/lastRunDurationMs/lastStatus/lastError). The
+ * conflict caused heartbeat rows to silently fail to upsert if the
+ * lock created the tab first. Locks now live in their own tab; the
+ * heartbeat still owns `SystemHealth`.
  *
  * Usage:
  *   import { withCronLock } from '@/lib/cron-lock';
@@ -37,7 +45,7 @@ import { JWT } from 'google-auth-library';
 interface LockOptions {
   /** How many minutes a 'running' row must be older than before treated as stale. */
   staleMinutes?: number;
-  /** Sheet tab name. Defaults to 'SystemHealth'. */
+  /** Sheet tab name. Defaults to 'CronLocks' (kept separate from SystemHealth heartbeats). */
   sheetTab?: string;
 }
 
@@ -65,7 +73,7 @@ async function getSheet(opts?: LockOptions) {
   const doc = new GoogleSpreadsheet(id, auth);
   await doc.loadInfo();
 
-  const tabName = opts?.sheetTab || 'SystemHealth';
+  const tabName = opts?.sheetTab || 'CronLocks';
   let sheet = doc.sheetsByTitle[tabName];
   if (!sheet) {
     sheet = await doc.addSheet({
