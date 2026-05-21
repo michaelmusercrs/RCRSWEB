@@ -1,31 +1,36 @@
 /**
- * NOAA/NWS 5-day forecast for the Huntsville area.
- * Free, no API key required (User-Agent header is the only requirement).
+ * Huntsville-area 5-day forecast.
  *
- * Two-step API:
- *   1. GET /points/{lat},{lon} → returns the gridpoint forecast URL
- *   2. GET that forecast URL → returns 7-day forecast in 12-hour periods
+ * READS FROM the master sheet's Weather_Forecast_Cache tab — a cron
+ * (/api/cron/refresh-weather-forecast) writes the latest forecast there
+ * every ~60 min. That means ONE NWS fetch per refresh interval, regardless
+ * of how many customers view their portal in that window.
  *
- * Cached for 1 hour. The forecast doesn't change frequently and we don't
- * want to pound the NWS API on every customer-portal pageview.
+ * Fallback: if the sheet row is missing or older than 4 hours (cron skipped
+ * or NWS was down at refresh time), we'll do a one-off live fetch and
+ * return that — keeps the customer portal from showing stale data even if
+ * the refresh pipeline broke.
+ *
+ * Future: extend lib/weather-locations.ts with zip-code-precise entries
+ * and call getForecastByLocation(zipKey) here instead of always going to
+ * the Huntsville row.
  */
 
-const HUNTSVILLE_LAT = 34.7304;
-const HUNTSVILLE_LON = -86.5861;
-const USER_AGENT = 'RCRSCustomerPortal/1.0 (michael@rcrsal.com)';
-const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+import { googleSheetsService } from './google-sheets-service';
+
+const STALE_AFTER_MS = 4 * 60 * 60 * 1000; // 4 hours
 
 export interface ForecastPeriod {
-  name: string;            // "Tonight", "Wednesday", etc.
+  name: string;
   isDaytime: boolean;
   tempF: number;
   tempUnit: 'F';
   windSpeed: string;
   windDirection: string;
-  shortForecast: string;   // "Sunny", "Chance of rain showers", etc.
+  shortForecast: string;
   detailedForecast: string;
   icon: string;
-  startTime: string;       // ISO
+  startTime: string;
 }
 
 export interface FiveDayForecast {
@@ -34,36 +39,65 @@ export interface FiveDayForecast {
   periods: ForecastPeriod[];
 }
 
-let _cache: { value: FiveDayForecast; at: number } | null = null;
+const HUNTSVILLE_KEY = 'huntsville-al';
+const HUNTSVILLE_LAT = 34.7304;
+const HUNTSVILLE_LON = -86.5861;
+const USER_AGENT = 'RCRSCustomerPortal/1.0 (michael@rcrsal.com)';
 
 export async function getHuntsvilleForecast(): Promise<FiveDayForecast | null> {
-  if (_cache && Date.now() - _cache.at < CACHE_TTL_MS) return _cache.value;
+  return getForecastByLocation(HUNTSVILLE_KEY);
+}
 
+/**
+ * Read the cached forecast for a given location key from the master sheet.
+ * Falls back to a live NWS fetch if the cache row is missing or stale.
+ *
+ * For zip-code-precise forecasts later: add the location to
+ * lib/weather-locations.ts and call getForecastByLocation(zipKey).
+ */
+export async function getForecastByLocation(locationKey: string): Promise<FiveDayForecast | null> {
   try {
-    // Step 1: get the gridpoint endpoint for Huntsville
-    const pointsRes = await fetch(`https://api.weather.gov/points/${HUNTSVILLE_LAT},${HUNTSVILLE_LON}`, {
+    const cached = await googleSheetsService.getWeatherForecastCache(locationKey);
+    if (cached?.forecastJson) {
+      const fetchedAt = new Date(cached.fetchedAt).getTime();
+      const age = Date.now() - fetchedAt;
+      if (!isNaN(fetchedAt) && age < STALE_AFTER_MS) {
+        try {
+          return JSON.parse(cached.forecastJson) as FiveDayForecast;
+        } catch {
+          // Malformed — fall through to live fetch
+        }
+      }
+      // Cache exists but stale — fall through (cron should've refreshed,
+      // but in the meantime do a one-off live fetch so customer doesn't
+      // see stale data)
+    }
+  } catch (err) {
+    console.warn('[Huntsville Forecast] sheet read failed, falling back to live NWS:', err);
+  }
+
+  // Live fallback — only fires when the cache is empty or stale
+  return liveFetchNWS(HUNTSVILLE_LAT, HUNTSVILLE_LON, 'Huntsville, AL');
+}
+
+async function liveFetchNWS(lat: number, lng: number, locationName: string): Promise<FiveDayForecast | null> {
+  try {
+    const pointsRes = await fetch(`https://api.weather.gov/points/${lat},${lng}`, {
       headers: { 'User-Agent': USER_AGENT, Accept: 'application/geo+json' },
       cache: 'no-store',
     });
-    if (!pointsRes.ok) {
-      console.warn('[Huntsville Forecast] points call failed:', pointsRes.status);
-      return null;
-    }
+    if (!pointsRes.ok) return null;
     const pointsJson = await pointsRes.json();
     const forecastUrl = pointsJson?.properties?.forecast;
     if (!forecastUrl) return null;
 
-    // Step 2: fetch the actual forecast
     const fcRes = await fetch(forecastUrl, {
       headers: { 'User-Agent': USER_AGENT, Accept: 'application/geo+json' },
       cache: 'no-store',
     });
-    if (!fcRes.ok) {
-      console.warn('[Huntsville Forecast] forecast call failed:', fcRes.status);
-      return null;
-    }
+    if (!fcRes.ok) return null;
     const fcJson = await fcRes.json();
-    const allPeriods: ForecastPeriod[] = (fcJson?.properties?.periods || []).map((p: Record<string, unknown>) => ({
+    const periods: ForecastPeriod[] = (fcJson?.properties?.periods || []).map((p: Record<string, unknown>) => ({
       name: String(p.name || ''),
       isDaytime: Boolean(p.isDaytime),
       tempF: Number(p.temperature || 0),
@@ -75,21 +109,18 @@ export async function getHuntsvilleForecast(): Promise<FiveDayForecast | null> {
       icon: String(p.icon || ''),
       startTime: String(p.startTime || ''),
     }));
-
-    // Keep first 10 periods = roughly 5 days of day/night pairs
-    const fiveDay: FiveDayForecast = {
-      location: 'Huntsville, AL',
+    return {
+      location: locationName,
       generatedAt: new Date().toISOString(),
-      periods: allPeriods.slice(0, 10),
+      periods: periods.slice(0, 10),
     };
-    _cache = { value: fiveDay, at: Date.now() };
-    return fiveDay;
   } catch (err) {
-    console.warn('[Huntsville Forecast] fetch failed:', err);
+    console.warn('[Huntsville Forecast] live NWS fetch failed:', err);
     return null;
   }
 }
 
 export function invalidateForecastCache(): void {
-  _cache = null;
+  // No in-memory cache anymore — the sheet IS the cache. Kept as a no-op
+  // for backwards compat with any caller that imported this.
 }

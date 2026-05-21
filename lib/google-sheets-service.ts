@@ -380,6 +380,32 @@ export const CUSTOMER_PORTAL_EVENTS_COLUMNS = [
   'timeOnPageMs', 'isPreview', 'createdAt',
 ];
 
+/**
+ * Cached weather forecast. One row per location. Initially just one row
+ * (huntsville-al). Schema designed to extend to zip-code-precise later
+ * by adding rows keyed on zip (e.g. '35801').
+ *
+ * A cron writes here every ~60 min; the customer-portal forecast endpoint
+ * reads from here. One NWS fetch per refresh, regardless of customer load.
+ */
+export interface WeatherForecastCacheRecord {
+  locationKey: string;     // 'huntsville-al' for now; future: '35801', '35802', etc.
+  displayName: string;     // 'Huntsville, AL' or '35801'
+  lat: string;
+  lng: string;
+  forecastJson: string;    // serialized FiveDayForecast
+  disclaimer: string;
+  fetchedAt: string;       // ISO
+  nextRefreshAt: string;   // ISO — cron skips if not yet due
+  source: string;          // 'NOAA-NWS' for now
+}
+
+export const WEATHER_FORECAST_CACHE_COLUMNS = [
+  'locationKey', 'displayName', 'lat', 'lng',
+  'forecastJson', 'disclaimer',
+  'fetchedAt', 'nextRefreshAt', 'source',
+];
+
 export interface RepAvailabilityRecord {
   repSlug: string;
   isReceivingLeads: string; // 'true'/'false'
@@ -520,6 +546,7 @@ const SHEET_NAMES = {
   TEAM_PROFILES: 'Team_Profiles',
   CUSTOMER_PORTAL_CONFIG: 'Customer_Portal_Config',
   CUSTOMER_PORTAL_EVENTS: 'Customer_Portal_Events',
+  WEATHER_FORECAST_CACHE: 'Weather_Forecast_Cache',
   REP_AVAILABILITY: 'Rep_Availability',
   REP_PREFERENCES: 'Rep_Preferences',
   LEAD_RESPONSE_LOG: 'Lead_Response_Log',
@@ -1923,6 +1950,81 @@ class GoogleSheetsService {
       return true;
     } catch (err) {
       console.error('Error upserting team profile:', err);
+      return false;
+    }
+  }
+
+  // ===========================================================================
+  // WEATHER FORECAST CACHE
+  // ===========================================================================
+
+  async getWeatherForecastCache(locationKey: string): Promise<WeatherForecastCacheRecord | null> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return null;
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.WEATHER_FORECAST_CACHE, WEATHER_FORECAST_CACHE_COLUMNS);
+      const rows = await sheet.getRows();
+      const row = rows.find(r => r.get('locationKey') === locationKey);
+      if (!row) return null;
+      return {
+        locationKey: row.get('locationKey') || '',
+        displayName: row.get('displayName') || '',
+        lat: row.get('lat') || '',
+        lng: row.get('lng') || '',
+        forecastJson: row.get('forecastJson') || '',
+        disclaimer: row.get('disclaimer') || '',
+        fetchedAt: row.get('fetchedAt') || '',
+        nextRefreshAt: row.get('nextRefreshAt') || '',
+        source: row.get('source') || '',
+      };
+    } catch (err) {
+      console.error('Error fetching weather cache:', err);
+      return null;
+    }
+  }
+
+  async getAllWeatherForecastCache(): Promise<WeatherForecastCacheRecord[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.WEATHER_FORECAST_CACHE, WEATHER_FORECAST_CACHE_COLUMNS);
+      const rows = await sheet.getRows();
+      return rows.map(row => ({
+        locationKey: row.get('locationKey') || '',
+        displayName: row.get('displayName') || '',
+        lat: row.get('lat') || '',
+        lng: row.get('lng') || '',
+        forecastJson: row.get('forecastJson') || '',
+        disclaimer: row.get('disclaimer') || '',
+        fetchedAt: row.get('fetchedAt') || '',
+        nextRefreshAt: row.get('nextRefreshAt') || '',
+        source: row.get('source') || '',
+      }));
+    } catch (err) {
+      console.error('Error listing weather cache:', err);
+      return [];
+    }
+  }
+
+  async upsertWeatherForecastCache(record: WeatherForecastCacheRecord): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc || !record.locationKey) return false;
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.WEATHER_FORECAST_CACHE, WEATHER_FORECAST_CACHE_COLUMNS);
+      const rows = await sheet.getRows();
+      const existing = rows.find(r => r.get('locationKey') === record.locationKey);
+      const payload = record as unknown as Record<string, string | number | boolean>;
+      if (existing) {
+        for (const [k, v] of Object.entries(record)) {
+          if (v !== undefined) existing.set(k, v as string);
+        }
+        await existing.save();
+      } else {
+        await sheet.addRow(payload);
+      }
+      return true;
+    } catch (err) {
+      console.error('Error upserting weather cache:', err);
       return false;
     }
   }
