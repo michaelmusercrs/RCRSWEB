@@ -28,13 +28,6 @@
       "schedule": "*/10 * * * *"
     }
   ],
-  "_disabledCrons": [
-    {
-      "path": "/api/cron/marketing-intel",
-      "schedule": "0 8 * * *",
-      "_note": "Daily 3am CT marketing intelligence sweep. PARKED — owner moves to crons[] after smoke-test."
-    }
-  ],
   "headers": [
     {
       "source": "/(.*)",

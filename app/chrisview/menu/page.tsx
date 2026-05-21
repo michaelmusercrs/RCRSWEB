@@ -11,7 +11,7 @@
 import Link from 'next/link';
 import {
   ArrowLeft, Database, BarChart3, Crown, Brain, Clock, TrendingUp,
-  Shield, Wrench, Wallet, HardHat, Megaphone, Heart, ChevronRight,
+  Shield, Wrench, Wallet, HardHat, Megaphone, Heart, ChevronRight, Activity,
 } from 'lucide-react';
 
 interface Section {
@@ -75,6 +75,14 @@ const SECTIONS: Section[] = [
     href: '/chrisview/lifecycle',
     icon: Wrench,
     color: 'from-rose-500 to-red-400',
+  },
+  {
+    title: 'Deep Funnel (NEW)',
+    description: 'Lead → estimate → signed → paid with explicit certainty labels (in-person vs online), status-change follow-ups, per-lead detail',
+    href: '/chrisview/funnel',
+    icon: Activity,
+    color: 'from-yellow-500 to-amber-400',
+    highlight: 'NEW',
   },
   {
     title: 'Cash Flow Forecast',
