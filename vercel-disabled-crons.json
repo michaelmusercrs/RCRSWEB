@@ -1,0 +1,9 @@
+{
+  "_comment": "Parked cron entries — moved here from vercel.json because Vercel's config schema rejects unknown top-level keys. To re-enable a cron, lift the entry back into the `crons` array in vercel.json.",
+  "disabledCrons": [
+    {
+      "path": "/api/cron/reconcile-leads",
+      "schedule": "45 * * * *"
+    }
+  ]
+}
