@@ -217,10 +217,20 @@ export async function analyzeCloseRates(opts: { days?: number } = {}): Promise<C
     if (!contactId) return [];
     if (activityCache.has(contactId)) return activityCache.get(contactId)!;
     try {
-      const filter = { must: [{ term: { 'primary.id': contactId } }] };
-      const res = await jnFetch<{ results?: JNActivity[]; activity?: JNActivity[] }>(`/activities?filter=${encodeURIComponent(JSON.stringify(filter))}&sort=date_created&limit=100`);
-      // JN /activities returns `activity` (singular), not `results`.
-      const acts = res.results || res.activity || [];
+      // JN activities have `primary` set to the object acted on (the email,
+      // the task, etc.) and `related[]` carrying the contact + job. Walking
+      // by primary.id alone misses 95% of touches. Pull both, dedupe.
+      const fP = encodeURIComponent(JSON.stringify({ must: [{ term: { 'primary.id': contactId } }] }));
+      const fR = encodeURIComponent(JSON.stringify({ must: [{ term: { 'related.id': contactId } }] }));
+      const [byP, byR] = await Promise.all([
+        jnFetch<{ results?: JNActivity[]; activity?: JNActivity[] }>(`/activities?filter=${fP}&sort=date_created&limit=100`).catch(() => ({ results: [] as JNActivity[], activity: [] as JNActivity[] })),
+        jnFetch<{ results?: JNActivity[]; activity?: JNActivity[] }>(`/activities?filter=${fR}&sort=date_created&limit=100`).catch(() => ({ results: [] as JNActivity[], activity: [] as JNActivity[] })),
+      ]);
+      const seen = new Set<string>();
+      const acts: JNActivity[] = [];
+      for (const a of [...(byP.results || byP.activity || []), ...(byR.results || byR.activity || [])]) {
+        if (a.jnid && !seen.has(a.jnid)) { seen.add(a.jnid); acts.push(a); }
+      }
       activitiesFetched += acts.length;
       activityCache.set(contactId, acts);
       return acts;
