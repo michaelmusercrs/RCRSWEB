@@ -216,6 +216,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { href: '/admin/inventory', label: 'Inventory', icon: Package },
     { href: '/admin/marketing', label: 'Marketing', icon: Megaphone },
     { href: '/admin/jobnimbus', label: 'JobNimbus CRM', icon: Users },
+    { href: '/admin/insurance-claims', label: 'Insurance Claims', icon: Shield },
     { href: '/admin/team', label: 'Team', icon: UserCog },
     { href: '/admin/blog', label: 'Blog', icon: FileText },
     { href: '/admin/settings', label: 'Settings', icon: Settings },

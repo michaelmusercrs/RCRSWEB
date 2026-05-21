@@ -45,7 +45,8 @@ import ServiceRequestForm from '@/components/customer-portal/ServiceRequestForm'
 import WarrantyClaimForm from '@/components/customer-portal/WarrantyClaimForm';
 import NotificationPreferencesForm from '@/components/customer-portal/NotificationPreferences';
 import ReviewSubmission from '@/components/customer-portal/ReviewSubmission';
-import { Wrench, Bell } from 'lucide-react';
+import { Wrench, Bell, ShieldAlert } from 'lucide-react';
+import { HelpTooltip } from '@/components/inventory/HelpTooltip';
 
 interface CustomerData {
   jnid: string;
@@ -157,6 +158,38 @@ interface SalesRepReview {
   source: string;
 }
 
+interface InsuranceClaimView {
+  claimId: string;
+  customerId: string;
+  customerName: string;
+  customerEmail: string;
+  jobId: string;
+  repSlug: string;
+  repName: string;
+  insuranceCarrier: string;
+  claimNumber: string;
+  adjusterName: string;
+  adjusterPhone: string;
+  adjusterEmail: string;
+  dateOfLoss: string;
+  dateClaimFiled: string;
+  dateAdjusterVisit: string;
+  dateAdjusterAccepted: string;
+  dateSupplementSubmitted: string;
+  dateSupplementApproved: string;
+  dateFinalApproved: string;
+  dateDepreciationReleased: string;
+  initialEstimate: string;
+  supplementAmount: string;
+  finalSettlement: string;
+  depreciationAmount: string;
+  deductible: string;
+  status: string;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface SalesRepData {
   slug: string;
   name: string;
@@ -248,7 +281,7 @@ const JOB_PHASES = [
 
 export default function CustomerDashboard() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'status' | 'appointments' | 'weather' | 'messages' | 'documents' | 'rep' | 'upload' | 'support'>('status');
+  const [activeTab, setActiveTab] = useState<'status' | 'appointments' | 'weather' | 'messages' | 'documents' | 'rep' | 'upload' | 'support' | 'insurance'>('status');
   const [customer, setCustomer] = useState<CustomerData | null>(null);
   const [portalToken, setPortalToken] = useState<string>('');
   const [jobs, setJobs] = useState<JobData[]>([]);
@@ -266,6 +299,9 @@ export default function CustomerDashboard() {
   const [streetViewUrl, setStreetViewUrl] = useState<string>('');
   const [uploadFiles, setUploadFiles] = useState<Array<{ name: string; date: string; url?: string }>>([]);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [insuranceClaim, setInsuranceClaim] = useState<InsuranceClaimView | null>(null);
+  const [insuranceClaims, setInsuranceClaims] = useState<InsuranceClaimView[]>([]);
+  const [insuranceLoading, setInsuranceLoading] = useState(false);
 
   // Fetch appointments from TeamUp calendar
   const fetchCalendarAppointments = async (customerId: string) => {
@@ -397,6 +433,33 @@ export default function CustomerDashboard() {
       setIsLoading(false);
     }
   };
+
+  // Fetch insurance claim once the portal token is available.
+  // The customer-portal API authenticates via the lead access token; it
+  // is set by loadDashboardData() after the dashboard payload arrives.
+  useEffect(() => {
+    if (!portalToken) return;
+    let cancelled = false;
+    setInsuranceLoading(true);
+    fetch(`/api/customer/insurance-claim?token=${encodeURIComponent(portalToken)}`)
+      .then(r => r.json())
+      .then(data => {
+        if (cancelled) return;
+        if (data && data.success) {
+          setInsuranceClaim(data.claim || null);
+          setInsuranceClaims(Array.isArray(data.claims) ? data.claims : []);
+        }
+      })
+      .catch(() => {
+        // Silent — the tab renders an empty-state when no claim exists.
+      })
+      .finally(() => {
+        if (!cancelled) setInsuranceLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [portalToken]);
 
   // Fetch customer documents
   const fetchCustomerDocuments = async (customerId: string) => {
@@ -563,6 +626,7 @@ export default function CustomerDashboard() {
               { id: 'weather', label: 'Weather', icon: Cloud },
               { id: 'messages', label: 'Messages', icon: MessageSquare },
               { id: 'support', label: 'Support', icon: Wrench },
+              { id: 'insurance', label: 'Insurance Claim', icon: ShieldAlert },
             ].map((tab) => {
               const Icon = tab.icon;
               return (
@@ -1905,6 +1969,17 @@ export default function CustomerDashboard() {
                 )}
               </div>
             )}
+
+            {/* Insurance Claim Tab */}
+            {activeTab === 'insurance' && (
+              <InsuranceClaimPanel
+                claim={insuranceClaim}
+                claims={insuranceClaims}
+                loading={insuranceLoading}
+                salesRep={salesRep}
+                customer={customer}
+              />
+            )}
           </>
         )}
       </main>
@@ -1919,6 +1994,7 @@ export default function CustomerDashboard() {
             { id: 'appointments', icon: Calendar },
             { id: 'messages', icon: MessageSquare },
             { id: 'support', icon: Wrench },
+            { id: 'insurance', icon: ShieldAlert },
           ].map((tab) => {
             const Icon = tab.icon;
             return (
@@ -1937,6 +2013,404 @@ export default function CustomerDashboard() {
           })}
         </div>
       </nav>
+    </div>
+  );
+}
+
+// ============================================
+// Insurance Claim Panel (customer-facing)
+// ============================================
+
+const INSURANCE_TIMELINE: Array<{
+  id: string;
+  label: string;
+  help: string;
+  dateField?: keyof InsuranceClaimView;
+}> = [
+  {
+    id: 'damage_reported',
+    label: 'Damage Reported',
+    help: 'You let us know your roof was damaged. Nothing has been filed with insurance yet.',
+    dateField: 'createdAt',
+  },
+  {
+    id: 'claim_filed',
+    label: 'Claim Filed',
+    help: 'Your insurance company received the claim and opened a file.',
+    dateField: 'dateClaimFiled',
+  },
+  {
+    id: 'awaiting_adjuster',
+    label: 'Awaiting Adjuster',
+    help: 'The carrier assigned an adjuster. We are waiting for them to schedule a visit.',
+  },
+  {
+    id: 'adjuster_visited',
+    label: 'Adjuster Visited',
+    help: 'The adjuster inspected your roof in person. We typically meet them on-site.',
+    dateField: 'dateAdjusterVisit',
+  },
+  {
+    id: 'claim_approved',
+    label: 'Claim Approved',
+    help: 'The carrier accepted the initial scope of damage and issued an estimate.',
+    dateField: 'dateAdjusterAccepted',
+  },
+  {
+    id: 'supplement_submitted',
+    label: 'Supplement Submitted',
+    help: 'We submitted additional damages the adjuster missed. This is normal — almost every claim has one.',
+    dateField: 'dateSupplementSubmitted',
+  },
+  {
+    id: 'supplement_approved',
+    label: 'Supplement Approved',
+    help: 'The carrier approved the additional damages. The total payout went up.',
+    dateField: 'dateSupplementApproved',
+  },
+  {
+    id: 'final_settlement',
+    label: 'Final Settlement',
+    help: 'The carrier issued the final payment for the approved scope (minus depreciation withheld).',
+    dateField: 'dateFinalApproved',
+  },
+  {
+    id: 'depreciation_released',
+    label: 'Depreciation Released',
+    help: 'After your roof is replaced, the carrier releases the depreciation they held back. This finishes the payout.',
+    dateField: 'dateDepreciationReleased',
+  },
+  {
+    id: 'complete',
+    label: 'Complete',
+    help: 'Everything is closed out. Your roof is replaced and all insurance money has been paid.',
+  },
+];
+
+function fmtClaimDate(iso: string): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString();
+}
+
+function fmtClaimMoney(s: string): string {
+  if (!s) return '—';
+  const n = Number(String(s).replace(/[^0-9.\-]/g, ''));
+  if (!Number.isFinite(n)) return s;
+  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
+}
+
+function InsuranceClaimPanel({
+  claim,
+  claims,
+  loading,
+  salesRep,
+  customer,
+}: {
+  claim: InsuranceClaimView | null;
+  claims: InsuranceClaimView[];
+  loading: boolean;
+  salesRep: SalesRepData | null;
+  customer: CustomerData;
+}) {
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl p-8 text-center border border-gray-200">
+        <RefreshCw className="w-8 h-8 text-[#0066CC] animate-spin mx-auto mb-3" />
+        <p className="text-gray-500">Loading your insurance claim...</p>
+      </div>
+    );
+  }
+
+  if (!claim) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-xl p-8 text-center border border-gray-200">
+          <ShieldAlert className="w-12 h-12 text-[#0066CC] mx-auto mb-4" />
+          <h3 className="text-xl font-bold text-gray-900 mb-2">No insurance claim on file</h3>
+          <p className="text-gray-500 mb-4 max-w-md mx-auto">
+            If your roof was damaged by a storm and you want us to coordinate with your insurance,
+            your sales rep can help you get the claim started.
+          </p>
+          {salesRep?.email && (
+            <a
+              href={`mailto:${salesRep.email}?subject=${encodeURIComponent('Help starting an insurance claim')}&body=${encodeURIComponent(`Hi ${salesRep.name?.split(' ')[0] || 'there'},\n\nMy roof has storm damage and I would like help filing an insurance claim.\n\nThanks,\n${customer.name}`)}`}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-[#0066CC] text-white font-bold rounded-lg hover:bg-[#0066CC]/90 transition-all"
+            >
+              <Mail className="w-5 h-5" />
+              Email my rep
+            </a>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  const currentIdx = INSURANCE_TIMELINE.findIndex(s => s.id === claim.status);
+  const isDenied = claim.status === 'denied';
+
+  const repMailto = salesRep?.email
+    ? `mailto:${salesRep.email}?subject=${encodeURIComponent(`Question about insurance claim ${claim.claimNumber || claim.claimId}`)}&body=${encodeURIComponent(`Hi ${salesRep.name?.split(' ')[0] || 'there'},\n\nI have a question about my insurance claim with ${claim.insuranceCarrier || 'my carrier'}${claim.claimNumber ? ` (claim #${claim.claimNumber})` : ''}.\n\nThanks,\n${customer.name}`)}`
+    : '';
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h3 className="text-xl font-bold text-gray-900">Insurance Claim</h3>
+        <p className="text-sm text-gray-500 mt-1">
+          Live status of your claim. Updated whenever your rep advances it.
+        </p>
+      </div>
+
+      {isDenied && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-red-900">This claim was denied</p>
+            <p className="text-sm text-red-800 mt-1">
+              A denial isn&apos;t always final. Call your rep — most denials can be appealed.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Status Timeline */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-200">
+          <h4 className="font-bold text-gray-900">Where we are</h4>
+          <p className="text-xs text-gray-500 mt-1">Tap the help icon on each step to see what it means.</p>
+        </div>
+        <div className="p-5">
+          <ol className="relative border-l-2 border-gray-200 ml-3 space-y-4">
+            {INSURANCE_TIMELINE.map((step, idx) => {
+              const isComplete = !isDenied && idx < currentIdx;
+              const isCurrent = !isDenied && idx === currentIdx;
+              const dateValue = step.dateField ? claim[step.dateField] : '';
+              return (
+                <li key={step.id} className="ml-6">
+                  <span
+                    className={`absolute -left-[11px] flex items-center justify-center w-5 h-5 rounded-full ring-4 ring-white ${
+                      isComplete
+                        ? 'bg-green-500'
+                        : isCurrent
+                        ? 'bg-[#0066CC] animate-pulse'
+                        : 'bg-gray-300'
+                    }`}
+                  >
+                    {isComplete && <CheckCircle2 className="w-3 h-3 text-white" />}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <p
+                      className={`font-semibold ${
+                        isCurrent ? 'text-[#0066CC]' : isComplete ? 'text-gray-900' : 'text-gray-500'
+                      }`}
+                    >
+                      {step.label}
+                    </p>
+                    <HelpTooltip text={step.help} side="right" />
+                    {isCurrent && (
+                      <span className="ml-2 px-2 py-0.5 text-[10px] uppercase font-bold bg-[#0066CC]/10 text-[#0066CC] rounded">
+                        You are here
+                      </span>
+                    )}
+                  </div>
+                  {dateValue && (
+                    <p className="text-xs text-gray-500 mt-0.5">{fmtClaimDate(dateValue)}</p>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      </div>
+
+      {/* Key Dates */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-200">
+          <h4 className="font-bold text-gray-900">Key dates</h4>
+        </div>
+        <div className="p-5 grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
+          <div>
+            <div className="text-xs text-gray-500 flex items-center">
+              Date of loss
+              <HelpTooltip text="The day the storm hit and the damage happened." />
+            </div>
+            <div className="font-medium text-gray-900">{fmtClaimDate(claim.dateOfLoss)}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 flex items-center">
+              Claim filed
+              <HelpTooltip text="The day the claim was opened with your insurance company." />
+            </div>
+            <div className="font-medium text-gray-900">{fmtClaimDate(claim.dateClaimFiled)}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 flex items-center">
+              Adjuster visit
+              <HelpTooltip text="The day the carrier&apos;s adjuster inspected the roof." />
+            </div>
+            <div className="font-medium text-gray-900">{fmtClaimDate(claim.dateAdjusterVisit)}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 flex items-center">
+              Claim approved
+              <HelpTooltip text="The day the carrier accepted the initial scope of damage." />
+            </div>
+            <div className="font-medium text-gray-900">{fmtClaimDate(claim.dateAdjusterAccepted)}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 flex items-center">
+              Supplement approved
+              <HelpTooltip text="The day the carrier approved additional damages we found." />
+            </div>
+            <div className="font-medium text-gray-900">{fmtClaimDate(claim.dateSupplementApproved)}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 flex items-center">
+              Final settlement
+              <HelpTooltip text="The day the final payment for the approved scope was issued." />
+            </div>
+            <div className="font-medium text-gray-900">{fmtClaimDate(claim.dateFinalApproved)}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 flex items-center">
+              Depreciation released
+              <HelpTooltip text="The day the carrier released the depreciation they held back. Final payment." />
+            </div>
+            <div className="font-medium text-gray-900">{fmtClaimDate(claim.dateDepreciationReleased)}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Claim details */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-200">
+          <h4 className="font-bold text-gray-900">Claim details</h4>
+        </div>
+        <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+          <div>
+            <div className="text-xs text-gray-500">Insurance carrier</div>
+            <div className="font-medium text-gray-900">{claim.insuranceCarrier || '—'}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500">Claim number</div>
+            <div className="font-mono text-gray-900">{claim.claimNumber || '—'}</div>
+          </div>
+          <div className="sm:col-span-2 border-t border-gray-100 pt-3">
+            <div className="text-xs text-gray-500 mb-1">Your adjuster</div>
+            <div className="font-medium text-gray-900">{claim.adjusterName || '—'}</div>
+            <div className="text-sm text-gray-500 mt-1 flex flex-wrap gap-x-4 gap-y-1">
+              {claim.adjusterPhone && (
+                <a href={`tel:${claim.adjusterPhone}`} className="text-[#0066CC] hover:underline">
+                  {claim.adjusterPhone}
+                </a>
+              )}
+              {claim.adjusterEmail && (
+                <a href={`mailto:${claim.adjusterEmail}`} className="text-[#0066CC] hover:underline">
+                  {claim.adjusterEmail}
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Financial summary (PRICE only) */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-200">
+          <h4 className="font-bold text-gray-900">Financial summary</h4>
+          <p className="text-xs text-gray-500 mt-1">All figures are what the carrier is paying.</p>
+        </div>
+        <div className="p-5 grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
+          <div>
+            <div className="text-xs text-gray-500 flex items-center">
+              Initial estimate
+              <HelpTooltip text="What the adjuster wrote up the first time. Usually goes up after we submit a supplement." />
+            </div>
+            <div className="font-bold text-gray-900">{fmtClaimMoney(claim.initialEstimate)}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 flex items-center">
+              Supplement
+              <HelpTooltip text="Additional damages the adjuster missed that the carrier later approved." />
+            </div>
+            <div className="font-bold text-gray-900">{fmtClaimMoney(claim.supplementAmount)}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 flex items-center">
+              Final settlement
+              <HelpTooltip text="The carrier&apos;s total payout, minus depreciation they hold back until the roof is replaced." />
+            </div>
+            <div className="font-bold text-gray-900">{fmtClaimMoney(claim.finalSettlement)}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 flex items-center">
+              Depreciation
+              <HelpTooltip text="Money the carrier held back. Released to you after the roof is replaced." />
+            </div>
+            <div className="font-bold text-gray-900">{fmtClaimMoney(claim.depreciationAmount)}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 flex items-center">
+              Your deductible
+              <HelpTooltip text="The portion of the cost your insurance does not pay — you pay this directly." />
+            </div>
+            <div className="font-bold text-gray-900">{fmtClaimMoney(claim.deductible)}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Contact rep CTA */}
+      <div className="bg-[#0066CC]/5 border border-[#0066CC]/20 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h4 className="font-bold text-gray-900">Questions about your claim?</h4>
+          <p className="text-sm text-gray-600 mt-0.5">
+            {salesRep?.name ? `${salesRep.name} handles your file personally.` : 'Your rep is one tap away.'}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {salesRep?.phone && (
+            <a
+              href={`tel:${salesRep.phone}`}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#0066CC]/30 text-[#0066CC] rounded-lg hover:bg-[#0066CC]/5 transition-all font-medium"
+            >
+              <Phone className="w-4 h-4" />
+              Call rep
+            </a>
+          )}
+          {repMailto && (
+            <a
+              href={repMailto}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#0066CC] text-white rounded-lg hover:bg-[#0066CC]/90 transition-all font-medium"
+            >
+              <Mail className="w-4 h-4" />
+              Email rep
+            </a>
+          )}
+        </div>
+      </div>
+
+      {/* Older claims (if multiple) */}
+      {claims.length > 1 && (
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-200">
+            <h4 className="font-bold text-gray-900">Earlier claims</h4>
+          </div>
+          <ul className="divide-y divide-gray-100">
+            {claims.slice(1).map(c => (
+              <li key={c.claimId} className="px-5 py-3 text-sm flex items-center justify-between">
+                <div>
+                  <div className="font-medium text-gray-900">{c.insuranceCarrier || 'Claim'} {c.claimNumber && <span className="font-mono text-gray-500">#{c.claimNumber}</span>}</div>
+                  <div className="text-xs text-gray-500">Filed {fmtClaimDate(c.dateClaimFiled || c.createdAt)} · {c.status.replace(/_/g, ' ')}</div>
+                </div>
+                <div className="text-right font-medium text-gray-700">{fmtClaimMoney(c.finalSettlement)}</div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
