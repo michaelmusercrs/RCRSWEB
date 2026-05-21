@@ -70,8 +70,14 @@ export async function POST(request: NextRequest) {
       const candidateEmail = typeof body?.email === 'string' ? body.email : undefined;
       const candidateName = typeof body?.name === 'string' ? body.name : undefined;
       if (candidateEmail) {
+        // `checkForSpam` requires `name: string`; storm-report submissions often
+        // omit name (the form is address-first). Pass '' so the hard-blocked-
+        // domain short-circuit still fires, and the gibberish/url/all-caps name
+        // checks see an empty string instead of crashing on `.trim()`/`.toLowerCase()`.
+        // Empty name yields +30 score on the scoring path which alone is below
+        // the 70 threshold; only combined with other signals can it block.
         const spamCheck = await checkForSpam({
-          name: candidateName,
+          name: candidateName ?? '',
           email: candidateEmail,
           address: typeof body?.address === 'string' ? body.address : undefined,
         });
