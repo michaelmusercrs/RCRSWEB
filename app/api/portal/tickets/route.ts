@@ -9,6 +9,7 @@ import { jobMaterialCostService, type JobMaterialCostLine } from '@/lib/job-mate
 import { inventoryTabSync } from '@/lib/inventory-tab-sync';
 import { unifiedInventoryService } from '@/lib/unified-inventory-service';
 import { upsertDeliveryScheduleEntry } from '@/lib/delivery-schedule-service';
+import { normalizeLineItemQty } from '@/lib/normalize-line-item-qty';
 
 // Helper function to send delivery notification (GroupMe + customer auto-notify)
 async function sendDeliveryNotification(ticket: any, status: string) {
@@ -110,7 +111,31 @@ export async function POST(request: NextRequest) {
         const jobNumberDigits = rawJobNumber.replace(/^[A-Za-z]-?/, '').replace(/\D/g, '');
         const normalizedJobNumber = jobNumberDigits ? `R-${jobNumberDigits}` : rawJobNumber;
 
-        const formMaterials = (data.materials as MaterialItem[]) || [];
+        const rawFormMaterials = (data.materials as MaterialItem[]) || [];
+
+        // UoM normalization: convert PM-entered linear feet to canonical
+        // stock units (e.g., Ridge Vent LF → sticks ÷4) BEFORE the rest of
+        // the pipeline sees the qty. Idempotent + backwards-compatible for
+        // SKUs with no UoM hint. See lib/normalize-line-item-qty.ts.
+        const uomFormAnomalies: string[] = [];
+        const formMaterials: MaterialItem[] = rawFormMaterials.map((m) => {
+          const norm = normalizeLineItemQty({
+            productId: m.productId,
+            productName: m.productName,
+            qty: m.quantity || 0,
+            adjacentText: `${m.productName || ''} ${m.unit || ''}`,
+          });
+          if (norm.converted) {
+            uomFormAnomalies.push(
+              `[UoM-NORMALIZED] ${m.productId || m.productName}: qty ${norm.originalQty} → ${norm.qty} (${norm.reason})${norm.warning ? ` — ${norm.warning}` : ''}`,
+            );
+            console.warn(
+              `[tickets/create] UoM normalize: ${m.productId} qty=${norm.originalQty} → ${norm.qty} (${norm.reason})`,
+            );
+            return { ...m, quantity: norm.qty };
+          }
+          return m;
+        });
 
         // Look up the real unitCost for each material from the inventory
         // catalog. The form passes unitPrice (selling) but not cost — cost
@@ -183,6 +208,10 @@ export async function POST(request: NextRequest) {
 
         // Step 2: mirror into the unified Tickets sheet tab.
         try {
+          // Surface any UoM auto-conversions on the ticket notes so office
+          // staff can see what was changed at a glance.
+          const baseNotes = data.specialInstructions || data.workOrderBody || '';
+          const combinedNotes = [baseNotes, ...uomFormAnomalies].filter(Boolean).join('\n');
           const sheetTicket: SheetTicket = {
             ticketId: ticket.ticketId,
             ticketType: ticket.ticketType,
@@ -202,7 +231,7 @@ export async function POST(request: NextRequest) {
             materials: sheetMaterials,
             totalCost: Math.round(totalCost * 100) / 100,
             totalPrice: Math.round(totalPrice * 100) / 100,
-            notes: data.specialInstructions || data.workOrderBody,
+            notes: combinedNotes,
           };
           await ticketSheetService.upsert(sheetTicket);
         } catch (mirrorErr) {

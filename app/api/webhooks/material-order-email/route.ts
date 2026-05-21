@@ -36,6 +36,7 @@ import { ticketSheetService, type SheetTicket } from '@/lib/ticket-sheet-service
 import { jobMaterialCostService, type JobMaterialCostLine } from '@/lib/job-material-cost-service';
 import { inventoryTabSync } from '@/lib/inventory-tab-sync';
 import { emailService } from '@/lib/email-service';
+import { normalizeLineItemQty } from '@/lib/normalize-line-item-qty';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -101,10 +102,54 @@ export async function POST(request: NextRequest) {
   const nameByItemId = new Map(catalog.map(c => [c.productId, c.productName] as const));
 
   let matched = 0;
+  const uomAnomalies: Array<{
+    itemName: string;
+    itemId: string | null;
+    originalQty: number;
+    normalizedQty: number;
+    reason: string;
+    warning?: string;
+  }> = [];
   const enrichedMaterials = parsed.materials.map(line => {
     const itemId = matchCatalogItem(line.itemName, catalogPairs);
     if (itemId) matched++;
-    return { ...line, itemId };
+    // Defense-in-depth: re-run UoM normalization now that we know the
+    // canonical productId. The parser already did a name-based pass — this
+    // catches anything where the name-substring fallback missed but the
+    // catalog match resolved (e.g., parsed name doesn't contain "Ridge
+    // Vent" but fuzzy-matched INV-0005).
+    const secondPass = normalizeLineItemQty({
+      productId: itemId || undefined,
+      productName: line.itemName,
+      qty: line.quantity,
+      adjacentText: `${line.itemName} ${line.unit || ''}`,
+    });
+    let finalQty = line.quantity;
+    if (secondPass.converted) {
+      finalQty = secondPass.qty;
+      uomAnomalies.push({
+        itemName: line.itemName,
+        itemId,
+        originalQty: secondPass.originalQty,
+        normalizedQty: secondPass.qty,
+        reason: secondPass.reason,
+        warning: secondPass.warning,
+      });
+      console.warn(
+        `[material-order-webhook] UoM second-pass convert: ${itemId || line.itemName} qty=${secondPass.originalQty} → ${secondPass.qty} (${secondPass.reason})`,
+      );
+    } else if (line.originalQuantity !== undefined && line.originalQuantity !== line.quantity) {
+      // First-pass conversion already happened in the parser — still log it.
+      uomAnomalies.push({
+        itemName: line.itemName,
+        itemId,
+        originalQty: line.originalQuantity,
+        normalizedQty: line.quantity,
+        reason: line.uomNormalizationReason || 'parser_first_pass',
+        warning: line.uomNormalizationWarning,
+      });
+    }
+    return { ...line, itemId, quantity: finalQty };
   });
 
   // Build the ticket payload — same shape the /api/portal/tickets create
@@ -137,6 +182,15 @@ export async function POST(request: NextRequest) {
     };
   });
 
+  // Surface UoM normalizations in the ticket notes so office staff can see
+  // at a glance which line items were auto-converted (e.g., Ridge Vent
+  // LF → sticks). DO NOT email or alert — owner directive: direct writes only.
+  const uomNoteLines = uomAnomalies.map(
+    (a) =>
+      `[UoM-NORMALIZED] ${a.itemId || a.itemName}: qty ${a.originalQty} → ${a.normalizedQty} (${a.reason})${a.warning ? ` — ${a.warning}` : ''}`,
+  );
+  const combinedNotes = [parsed.specialInstructions, ...uomNoteLines].filter(Boolean).join('\n');
+
   // Step 1: persist to Tickets sheet
   const sheetTicket: SheetTicket = {
     ticketId,
@@ -157,7 +211,7 @@ export async function POST(request: NextRequest) {
     materials: sheetMaterials,
     totalCost: Math.round(totalCost * 100) / 100,
     totalPrice: Math.round(totalPrice * 100) / 100,
-    notes: parsed.specialInstructions,
+    notes: combinedNotes,
   };
 
   try {

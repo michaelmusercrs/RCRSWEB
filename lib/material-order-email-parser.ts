@@ -34,6 +34,8 @@
  * known field labels rather than positional parsing.
  */
 
+import { normalizeLineItemQty } from './normalize-line-item-qty';
+
 export interface ParsedMaterialLine {
   itemName: string;
   description: string;
@@ -42,6 +44,17 @@ export interface ParsedMaterialLine {
   unitCost: number;
   /** "1 1/4 Coil Nails" matched to a catalog itemId via fuzzy match — set by caller */
   itemId?: string;
+  /**
+   * UoM-normalization annotations (set by the parser when a qty conversion
+   * fires — e.g., Ridge Vent linear-feet → sticks). The webhook handler
+   * surfaces this in the ticket notes and the LineItemAnomalies log when
+   * `originalQuantity` differs from `quantity`.
+   */
+  originalQuantity?: number;
+  /** Reason code from `normalizeLineItemQty` — e.g., 'explicit_lf_text'. */
+  uomNormalizationReason?: string;
+  /** Human-readable warning if conversion was heuristic or still suspect. */
+  uomNormalizationWarning?: string;
 }
 
 export interface ParsedMaterialOrder {
@@ -239,15 +252,44 @@ export function parseMaterialOrderEmail(body: string): ParsedMaterialOrder {
       const head = sectionText.slice(cursor, matchStart).trim();
       cursor = matchStart + whole.length;
       if (!head) continue;
-      // Caller does fuzzy catalog match on itemName — give it the whole
-      // pre-unit chunk; don't truncate at an arbitrary word boundary.
-      materials.push({
+      const parsedQty = parseDollar(qtyStr);
+      // UoM normalization: for SKUs sold in different units than the PM's
+      // input (e.g., Ridge Vent 4LF — stocked by stick, sometimes entered
+      // in linear feet), apply the conversion BEFORE persisting.
+      // adjacentText is the concatenation of the item-name head + unit
+      // token so phrases like "Ridge Vent 88 LF" or "88 linear feet" are
+      // detected. Catalog match hasn't happened yet at this point, so we
+      // rely on the name-substring fallback inside the helper.
+      const normalized = normalizeLineItemQty({
+        productName: head,
+        qty: parsedQty,
+        adjacentText: `${head} ${unit}`,
+      });
+      const line: ParsedMaterialLine = {
         itemName: head,
         description: '',
         unit,
-        quantity: parseDollar(qtyStr),
+        quantity: normalized.qty,
         unitCost: parseDollar(costStr),
-      });
+      };
+      if (normalized.converted) {
+        line.originalQuantity = normalized.originalQty;
+        line.uomNormalizationReason = normalized.reason;
+        if (normalized.warning) line.uomNormalizationWarning = normalized.warning;
+        // Fail-loud log so anomalies surface in Vercel logs even when the
+        // downstream LineItemAnomalies sheet write is absent.
+        console.warn(
+          `[material-order-parser] UoM normalize: "${head}" qty=${normalized.originalQty} → ${normalized.qty} (reason=${normalized.reason})${normalized.warning ? ' :: ' + normalized.warning : ''}`,
+        );
+      } else if (normalized.reason === 'still_suspicious') {
+        // No conversion fired but qty is still suspect — surface it.
+        line.uomNormalizationReason = normalized.reason;
+        line.uomNormalizationWarning = normalized.warning;
+        console.warn(`[material-order-parser] STILL SUSPICIOUS: "${head}" qty=${normalized.qty} — ${normalized.warning}`);
+      }
+      // Caller does fuzzy catalog match on itemName — give it the whole
+      // pre-unit chunk; don't truncate at an arbitrary word boundary.
+      materials.push(line);
     }
   }
 
