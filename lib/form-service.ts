@@ -3,6 +3,7 @@
  * All forms go to Google Sheets + Email notification
  */
 
+import { persistLeadFallback } from './lead-fallback';
 
 const COMPANY_EMAIL = 'rcrs@rivercityroofingsolutions.com';
 // COMPANY_EMAIL_BACKUP (rivercityroofingsolutions@gmail.com) intentionally
@@ -77,7 +78,29 @@ class FormService {
         message: 'Thank you for contacting us! We will get back to you within 24 hours.',
       };
     } catch (error) {
-      console.error('Error submitting contact form:', error);
+      const errMsg = error instanceof Error ? error.message : String(error);
+      console.error('Error submitting contact form:', errMsg);
+      // Owner directive 2026-05-21: persist to blob fallback so the
+      // reconcile-leads cron can replay this write. submitContactForm
+      // is the shared writer for /api/forms/contact, /api/forms/careers
+      // (which routes career applications through this same funnel with
+      // sourcePage='Careers Page'), and /api/forms/bni-partner. We pass
+      // the route-specific source slug so the replay knows which sheet
+      // tab to target. The slug is derived from sourcePage when it's an
+      // exact match for a known funnel; otherwise we fall through to the
+      // generic 'contact' slug.
+      const source =
+        data.sourcePage === 'Careers Page'
+          ? 'careers'
+          : data.sourcePage === 'BNI Partners Page'
+            ? 'bni-partner'
+            : 'contact-form';
+      await persistLeadFallback({
+        source,
+        payload: data as unknown as Record<string, unknown>,
+        reason: 'sheets-write-failed',
+        originalError: errMsg,
+      });
       return {
         success: false,
         message: 'There was a problem submitting your request. Please call us at (256) 274-8530.',
@@ -112,7 +135,16 @@ class FormService {
         message: 'Thank you for your referral! We will contact them soon and keep you updated on your reward.',
       };
     } catch (error) {
-      console.error('Error submitting referral form:', error);
+      const errMsg = error instanceof Error ? error.message : String(error);
+      console.error('Error submitting referral form:', errMsg);
+      // Owner directive 2026-05-21: persist to blob fallback so the
+      // reconcile-leads cron can replay this referral write.
+      await persistLeadFallback({
+        source: 'referral',
+        payload: data as unknown as Record<string, unknown>,
+        reason: 'sheets-write-failed',
+        originalError: errMsg,
+      });
       return {
         success: false,
         message: 'There was a problem submitting your referral. Please call us at (256) 274-8530.',

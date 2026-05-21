@@ -16,6 +16,7 @@ import { checkHoneypot } from '@/lib/honeypot';
 import { verifyTurnstileToken, getRequestIp } from '@/lib/turnstile';
 import { logSpamBlock } from '@/lib/spam-log';
 import { checkRequestSize } from '@/lib/request-size-limit';
+import { persistLeadFallback } from '@/lib/lead-fallback';
 
 const contactRateLimiter = createContactFormRateLimiter();
 const globalFormRateLimiter = createGlobalFormRateLimiter();
@@ -44,8 +45,15 @@ export async function POST(request: NextRequest) {
   // per-form budget before tripping the global cap.
   return withRateLimit(request, globalFormRateLimiter, async () =>
     withRateLimit(request, contactRateLimiter, async () => {
+  // Hoisted so the outer catch can persist the original payload to the
+  // blob fallback when something downstream throws (owner directive
+  // 2026-05-21: never silently lose a lead). Typed as `any` to match
+  // the original implicit-any shape — narrowing happens via destructure
+  // + length/regex checks below.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let body: any = {};
   try {
-    const body = await request.json();
+    body = await request.json();
 
     // Honeypot check — silently drop bot submissions before any real work.
     // Returns the same success shape a real submit would so bots can't probe.
@@ -153,6 +161,18 @@ export async function POST(request: NextRequest) {
 
     if (!googleScriptEndpoint) {
       console.error('NEXT_PUBLIC_GOOGLE_SCRIPT_ENDPOINT not configured');
+
+      // Owner directive 2026-05-21: never silently lose a lead. The
+      // legacy /api/contact route delegates the sheet write to Google
+      // Apps Script — when the GAS endpoint isn't configured the lead
+      // would otherwise vanish (the 503 below tells the customer to
+      // call). Persist to blob so reconcile-leads can replay it.
+      await persistLeadFallback({
+        source: 'contact',
+        payload: { name, email, phone, subject, message, preferredInspector, serviceType, serviceArea, city, sourcePage },
+        reason: 'sheets-not-configured',
+        originalError: 'NEXT_PUBLIC_GOOGLE_SCRIPT_ENDPOINT not set',
+      });
 
       // Log locally for development
 
@@ -303,6 +323,15 @@ export async function POST(request: NextRequest) {
       );
     } else {
       console.error('Google Apps Script returned error:', data);
+      // Owner directive 2026-05-21: persist to blob fallback so the lead
+      // isn't lost when GAS returns an error. The customer still gets a
+      // 500 — reconcile-leads will replay the write once GAS is healthy.
+      await persistLeadFallback({
+        source: 'contact',
+        payload: { name, email, phone, subject, message, preferredInspector, serviceType, serviceArea, city, sourcePage },
+        reason: 'sheets-write-failed',
+        originalError: typeof data === 'object' ? JSON.stringify(data).slice(0, 500) : String(data).slice(0, 500),
+      });
       return apiError(
         'Failed to process your request. Please try calling us directly at (256) 274-8530.',
         500,
@@ -311,6 +340,23 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error('Error processing contact form:', error);
+    // Final safety net: anything that threw between form-validate and
+    // GAS-success goes to blob fallback. We can't trust `name`/`email`
+    // etc. were destructured cleanly here (the try is wide), so we read
+    // straight from the parsed body — best-effort.
+    try {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      const safeBody: Record<string, unknown> =
+        typeof body === 'object' && body !== null ? (body as Record<string, unknown>) : {};
+      await persistLeadFallback({
+        source: 'contact',
+        payload: safeBody,
+        reason: 'sheets-write-failed',
+        originalError: errMsg,
+      });
+    } catch {
+      // persistLeadFallback never throws but be paranoid.
+    }
     return apiError(
       'Failed to process your request. Please try calling us directly at (256) 274-8530.',
       500,

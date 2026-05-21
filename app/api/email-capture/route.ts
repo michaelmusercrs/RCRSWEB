@@ -20,6 +20,7 @@ import { checkHoneypot } from '@/lib/honeypot';
 import { verifyTurnstileToken, getRequestIp } from '@/lib/turnstile';
 import { logSpamBlock } from '@/lib/spam-log';
 import { checkRequestSize } from '@/lib/request-size-limit';
+import { persistLeadFallback } from '@/lib/lead-fallback';
 
 const formRateLimiter = createContactFormRateLimiter();
 const globalFormRateLimiter = createGlobalFormRateLimiter();
@@ -141,13 +142,32 @@ export async function POST(request: NextRequest) {
       status: 'new',
     };
 
-    // Store to Google Sheets if configured
+    // Store to Google Sheets if configured. Owner directive 2026-05-21:
+    // if the sheet write fails, mirror the payload to Vercel Blob so the
+    // reconciliation cron can replay it. Never let a lead silently
+    // disappear. The fallback helper never throws — caller stays on the
+    // happy path even when blob storage itself is misconfigured.
     if (isGoogleSheetsConfigured()) {
       try {
         await saveToGoogleSheets(captureData);
       } catch (sheetsError) {
-        console.error('[Email Capture] Google Sheets save failed:', sheetsError);
+        const errMsg = sheetsError instanceof Error ? sheetsError.message : String(sheetsError);
+        console.error('[Email Capture] Google Sheets save failed:', errMsg);
+        await persistLeadFallback({
+          source: 'email-capture',
+          payload: captureData,
+          reason: 'sheets-write-failed',
+          originalError: errMsg,
+        });
       }
+    } else {
+      // Sheets not configured — also persist for later recovery so the
+      // owner sees these leads in the admin viewer.
+      await persistLeadFallback({
+        source: 'email-capture',
+        payload: captureData,
+        reason: 'sheets-not-configured',
+      });
     }
 
     // Also create a lead so it goes through the full pipeline (email + distribution)

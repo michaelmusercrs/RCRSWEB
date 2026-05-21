@@ -28,6 +28,7 @@ import {
   Eye,
   EyeOff,
   Globe,
+  Inbox,
   Key,
   Mail,
   RefreshCw,
@@ -92,6 +93,12 @@ interface JnSubsystem extends SubsystemBase {
   lastSyncAt: string | null;
 }
 
+interface LeadFallbackSubsystem extends SubsystemBase {
+  pendingCount: number;
+  recoveredCount: number;
+  lastCaptureAt: string | null;
+}
+
 interface SystemHealthResponse {
   timestamp: string;
   overall: OverallStatus;
@@ -103,6 +110,7 @@ interface SystemHealthResponse {
     crons: CronSubsystem;
     jn: JnSubsystem;
     resend: EmailSubsystem;
+    leadFallback: LeadFallbackSubsystem;
   };
 }
 
@@ -758,6 +766,37 @@ export default function SystemHealthPage() {
             s.jn.lastSyncAt
               ? `Last sync: ${relativeTime(s.jn.lastSyncAt)}`
               : 'No cron-based sync (engine runs on request)'
+          }
+        />
+
+        {/* Lead capture — fallback queue depth. Owner directive 2026-05-21.
+            Healthy when 0 pending in last 7 days; degraded 1-10; error >10
+            or BLOB token unset. Links to /admin/lead-fallback viewer. */}
+        <SubsystemCard
+          title="Lead capture (fallback)"
+          Icon={Inbox}
+          status={s.leadFallback.status}
+          details={s.leadFallback.details}
+          envVars={s.leadFallback.envVars}
+          activity={
+            <div className="space-y-1">
+              <div>
+                Pending: <span className="text-yellow-300 font-semibold">{s.leadFallback.pendingCount}</span> ·
+                Recovered (7d): <span className="text-green-300 font-semibold">{s.leadFallback.recoveredCount}</span>
+              </div>
+              {s.leadFallback.lastCaptureAt && (
+                <div className="text-neutral-500 text-[11px]">
+                  Last capture: {relativeTime(s.leadFallback.lastCaptureAt)}
+                </div>
+              )}
+              <Link
+                href="/admin/lead-fallback"
+                className="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 mt-1"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Open fallback queue viewer
+              </Link>
+            </div>
           }
         />
 

@@ -21,6 +21,9 @@ import { checkHoneypot } from '@/lib/honeypot';
 import { verifyTurnstileToken, getRequestIp } from '@/lib/turnstile';
 import { logSpamBlock } from '@/lib/spam-log';
 import { checkForSpam } from '@/lib/spam-filter';
+// NOTE: storm-report's blob-fallback wiring is inside lib/storm-report-service.ts
+// (around the storeReport try/catch). Adding it at the route layer would
+// double-write because generateReport already handles the failure path.
 
 const STORM_REPORT_TTL = 15 * 60 * 1000; // 15 minutes
 

@@ -85,6 +85,24 @@ export interface JnSubsystem extends SubsystemBase {
   lastSyncAt: string | null;
 }
 
+/**
+ * LeadFallbackSubsystem — surfaces the state of the Vercel-Blob lead
+ * recovery queue (lib/lead-fallback.ts + cron reconcile-leads).
+ *
+ * Status logic (per owner directive 2026-05-21):
+ *   - not_configured if BLOB_READ_WRITE_TOKEN unset
+ *   - healthy   if 0 unrecovered fallback blobs in last 7 days
+ *   - degraded  if 1-10 unrecovered in last 7 days
+ *   - error     if >10 unrecovered in last 7 days (something is broken
+ *               or the cron isn't running)
+ */
+export interface LeadFallbackSubsystem extends SubsystemBase {
+  pendingCount: number;
+  recoveredCount: number;
+  /** Most-recent capture timestamp across pending entries — null when none. */
+  lastCaptureAt: string | null;
+}
+
 export interface SystemHealthResponse {
   timestamp: string;
   overall: OverallStatus;
@@ -96,6 +114,7 @@ export interface SystemHealthResponse {
     crons: CronSubsystem;
     jn: JnSubsystem;
     resend: EmailSubsystem;
+    leadFallback: LeadFallbackSubsystem;
   };
 }
 
@@ -291,6 +310,63 @@ async function pingKv(): Promise<{ ok: boolean; ms: number | null; reason: strin
   }
 }
 
+// ─── Lead-fallback queue probe ────────────────────────────────────────────────
+
+/**
+ * Count fallback blobs in the last 7 days, split into pending/recovered.
+ * Cheap operation: a single list() call paginated to ~5k entries max.
+ * Never throws — returns null sentinel on any failure so the caller can
+ * render "not configured" without blowing up the dashboard.
+ */
+async function probeLeadFallback(): Promise<{
+  pending: number;
+  recovered: number;
+  lastCaptureAt: string | null;
+  configured: boolean;
+  reason: string;
+} | null> {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    return { pending: 0, recovered: 0, lastCaptureAt: null, configured: false, reason: 'no-token' };
+  }
+  try {
+    const { list } = await import('@vercel/blob');
+    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    let pending = 0;
+    let recovered = 0;
+    let lastCaptureAt: string | null = null;
+
+    const sweep = async (prefix: string, isRecoveredBucket: boolean) => {
+      let cursor: string | undefined;
+      for (let i = 0; i < 50; i++) {
+        const page = await list({ prefix, cursor, limit: 100 });
+        for (const b of page.blobs) {
+          const ts = b.uploadedAt instanceof Date ? b.uploadedAt.getTime() : Date.parse(String(b.uploadedAt));
+          if (Number.isNaN(ts) || ts < cutoff) continue;
+          if (isRecoveredBucket) {
+            recovered++;
+          } else {
+            pending++;
+            const iso = b.uploadedAt instanceof Date ? b.uploadedAt.toISOString() : String(b.uploadedAt);
+            if (!lastCaptureAt || iso > lastCaptureAt) lastCaptureAt = iso;
+          }
+        }
+        if (!page.cursor) break;
+        cursor = page.cursor;
+      }
+    };
+
+    await Promise.all([
+      sweep('leads-fallback/', false),
+      sweep('leads-recovered/', true),
+    ]);
+
+    return { pending, recovered, lastCaptureAt, configured: true, reason: 'ok' };
+  } catch (err) {
+    console.warn('[system-health] probeLeadFallback failed:', err);
+    return null;
+  }
+}
+
 // ─── Overall rollup ───────────────────────────────────────────────────────────
 
 function rollupOverall(subsystems: SystemHealthResponse['subsystems']): OverallStatus {
@@ -305,6 +381,7 @@ function rollupOverall(subsystems: SystemHealthResponse['subsystems']): OverallS
     subsystems.sheets,
     subsystems.jn,
     subsystems.resend,
+    subsystems.leadFallback,
   ];
 
   if (subsystems.sheets.status === 'error') return 'critical';
@@ -343,9 +420,11 @@ export async function GET() {
   const [
     loaded,
     kvPing,
+    leadFallbackProbe,
   ] = await Promise.all([
     loadSheetsDoc(),
     pingKv(),
+    probeLeadFallback(),
   ]);
 
   const [emailLogTail, heartbeats] = await Promise.all([
@@ -602,6 +681,50 @@ export async function GET() {
     lastSyncAt: null,
   };
 
+  // ── Lead-fallback queue ────────────────────────────────────────────────────
+  const leadFallbackEnvs = [envSnapshot('BLOB_READ_WRITE_TOKEN')];
+  let leadFallbackStatus: SubsystemStatus;
+  let leadFallbackDetails: string;
+  let leadFallbackPending = 0;
+  let leadFallbackRecovered = 0;
+  let leadFallbackLastCapture: string | null = null;
+  if (!leadFallbackProbe) {
+    leadFallbackStatus = 'error';
+    leadFallbackDetails = 'Lead-fallback probe failed — see server logs.';
+  } else if (!leadFallbackProbe.configured) {
+    leadFallbackStatus = 'not_configured';
+    leadFallbackDetails =
+      'BLOB_READ_WRITE_TOKEN not set. Public lead-capture sheet-write failures will be logged but not recoverable.';
+  } else {
+    leadFallbackPending = leadFallbackProbe.pending;
+    leadFallbackRecovered = leadFallbackProbe.recovered;
+    leadFallbackLastCapture = leadFallbackProbe.lastCaptureAt;
+    if (leadFallbackPending === 0) {
+      leadFallbackStatus = 'healthy';
+      leadFallbackDetails =
+        leadFallbackRecovered === 0
+          ? 'No fallback writes in the last 7 days — every primary sheet write has succeeded.'
+          : `0 pending. ${leadFallbackRecovered} recovered in the last 7 days (reconcile-leads cron working).`;
+    } else if (leadFallbackPending <= 10) {
+      leadFallbackStatus = 'degraded';
+      leadFallbackDetails =
+        `${leadFallbackPending} pending fallback ${leadFallbackPending === 1 ? 'lead' : 'leads'} in the last 7 days. Run the reconcile-leads cron (or replay manually).`;
+    } else {
+      leadFallbackStatus = 'error';
+      leadFallbackDetails =
+        `${leadFallbackPending} pending fallback leads in the last 7 days — something is broken (cron stopped, sheets credentials, etc).`;
+    }
+  }
+  const leadFallbackSubsystem: LeadFallbackSubsystem = {
+    configured: leadFallbackProbe?.configured ?? false,
+    status: leadFallbackStatus,
+    details: leadFallbackDetails,
+    envVars: leadFallbackEnvs,
+    pendingCount: leadFallbackPending,
+    recoveredCount: leadFallbackRecovered,
+    lastCaptureAt: leadFallbackLastCapture,
+  };
+
   const subsystems: SystemHealthResponse['subsystems'] = {
     email: emailSubsystem,
     turnstile: turnstileSubsystem,
@@ -610,6 +733,7 @@ export async function GET() {
     crons: cronsSubsystem,
     jn: jnSubsystem,
     resend: resendSubsystem,
+    leadFallback: leadFallbackSubsystem,
   };
 
   const response: SystemHealthResponse = {

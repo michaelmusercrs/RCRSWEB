@@ -32,6 +32,12 @@
       "schedule": "30 * * * *"
     }
   ],
+  "_disabledCrons": [
+    {
+      "path": "/api/cron/reconcile-leads",
+      "schedule": "45 * * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

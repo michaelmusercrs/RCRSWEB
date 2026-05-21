@@ -27,6 +27,7 @@ import { checkForSpam } from '@/lib/spam-filter';
 import { checkHoneypot } from '@/lib/honeypot';
 import { verifyTurnstileToken, getRequestIp } from '@/lib/turnstile';
 import { logSpamBlock } from '@/lib/spam-log';
+import { persistLeadFallback } from '@/lib/lead-fallback';
 
 // Rate limit: 3/hr per IP via shared KV contact-form bucket, plus the
 // cross-form 15/hr global cap.
@@ -239,7 +240,31 @@ export async function POST(request: NextRequest) {
         Status: spamResult.isSpam ? 'spam' : 'new',
       });
     } catch (logErr) {
-      console.error('[NewLead] Sheet logging failed:', logErr);
+      const errMsg = logErr instanceof Error ? logErr.message : String(logErr);
+      console.error('[NewLead] Sheet logging failed:', errMsg);
+      // Owner directive 2026-05-21: never silently lose a lead. Persist
+      // the full submission to Vercel Blob so the reconcile-leads cron
+      // can replay this 'All Lead Submissions' row. Includes the spam
+      // verdict so the replay can preserve it.
+      await persistLeadFallback({
+        source: 'leads-new',
+        payload: {
+          ...body,
+          // Capture computed fields the row writer used so replay is exact.
+          _meta: {
+            timestamp,
+            ip,
+            userAgent: userAgent.substring(0, 200),
+            referer,
+            spamScore: spamResult.spamScore,
+            spamReasons: spamResult.reasons,
+            isSpam: spamResult.isSpam,
+            passedFilter: spamResult.passedFilter,
+          },
+        } as Record<string, unknown>,
+        reason: 'sheets-write-failed',
+        originalError: errMsg,
+      });
     }
 
     // If spam, stop here — logged but no further processing.

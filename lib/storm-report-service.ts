@@ -347,11 +347,40 @@ class StormReportService {
       sharedWithCustomer: false,
     };
 
-    // Store in Google Sheets
+    // Store in Google Sheets. If the write fails, fall back to Vercel
+    // Blob so the reconcile-leads cron can replay it later (owner
+    // directive 2026-05-21). storm-report's PRIMARY work is generating
+    // the report — the customer still gets a useful response — but the
+    // address/email they submitted is a lead and must not be lost.
     try {
       await this.storeReport(report);
     } catch (error) {
-      console.error('Failed to store storm report in Google Sheets:', error);
+      const errMsg = error instanceof Error ? error.message : String(error);
+      console.error('Failed to store storm report in Google Sheets:', errMsg);
+      try {
+        const { persistLeadFallback } = await import('./lead-fallback');
+        await persistLeadFallback({
+          source: 'storm-report',
+          payload: {
+            reportId: report.reportId,
+            address: report.address,
+            city: report.city,
+            state: report.state,
+            zip: report.zip,
+            fullAddress: report.fullAddress,
+            leadId: report.leadId,
+            customerId: report.customerId,
+            // Embed the full generated report so the cron can replay
+            // storeReport() directly without re-running the (expensive)
+            // hail/wind data pulls.
+            generatedReport: report as unknown as Record<string, unknown>,
+          },
+          reason: 'sheets-write-failed',
+          originalError: errMsg,
+        });
+      } catch {
+        // persistLeadFallback never throws but be paranoid.
+      }
       // Report is still valid even if storage fails
     }
 
