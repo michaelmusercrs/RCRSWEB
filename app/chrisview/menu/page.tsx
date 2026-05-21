@@ -11,7 +11,7 @@
 import Link from 'next/link';
 import {
   ArrowLeft, Database, BarChart3, Crown, Brain, Clock, TrendingUp,
-  Shield, Wrench, Wallet, HardHat, Megaphone, Heart, ChevronRight, Activity,
+  Shield, Wrench, Wallet, HardHat, Megaphone, Heart, ChevronRight, Activity, Star,
 } from 'lucide-react';
 
 interface Section {
@@ -82,6 +82,14 @@ const SECTIONS: Section[] = [
     href: '/chrisview/funnel',
     icon: Activity,
     color: 'from-yellow-500 to-amber-400',
+    highlight: 'NEW',
+  },
+  {
+    title: 'Reviews by Rep (NEW)',
+    description: '317 reviews 2018-2025, per-rep avg rating + 5★%, full text of every <=3 star review, yearly trend + source breakdown',
+    href: '/chrisview/reviews',
+    icon: Star,
+    color: 'from-yellow-400 to-amber-500',
     highlight: 'NEW',
   },
   {
