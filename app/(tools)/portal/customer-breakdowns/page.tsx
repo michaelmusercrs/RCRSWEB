@@ -1483,6 +1483,137 @@ export default function CustomerBreakdownsPage() {
           )}
         </section>
 
+        {/* ── Payments In ──────────────────────────────────── */}
+        <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-[#39FF14]" />
+              Payments In ({breakdown.paymentsIn.length})
+            </h2>
+            <div className="flex gap-2">
+              <button
+                onClick={() => addPayment('deposit')}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-zinc-800 text-zinc-300 border border-zinc-700 rounded-lg hover:bg-zinc-700"
+              >
+                <Plus className="w-3 h-3" />
+                Add Deposit
+              </button>
+              <button
+                onClick={() => addPayment('progress')}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-zinc-800 text-zinc-300 border border-zinc-700 rounded-lg hover:bg-zinc-700"
+              >
+                <Plus className="w-3 h-3" />
+                Add Progress
+              </button>
+              <button
+                onClick={() => addPayment('final')}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-zinc-800 text-zinc-300 border border-zinc-700 rounded-lg hover:bg-zinc-700"
+              >
+                <Plus className="w-3 h-3" />
+                Add Final
+              </button>
+            </div>
+          </div>
+          {breakdown.paymentsIn.length === 0 ? (
+            <div className="text-center py-6 text-zinc-500 text-sm">
+              No payments recorded yet. Add the customer&apos;s deposit, progress payments, and final payment as they come in.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {breakdown.paymentsIn.map((p, idx) => {
+                const kindStyle =
+                  p.kind === 'deposit'
+                    ? 'bg-blue-900/20 border-blue-900/40 text-blue-300'
+                    : p.kind === 'progress'
+                    ? 'bg-amber-900/20 border-amber-900/40 text-amber-300'
+                    : 'bg-emerald-900/20 border-emerald-900/40 text-emerald-300';
+                return (
+                  <div
+                    key={idx}
+                    className="grid grid-cols-12 gap-2 items-center p-2 rounded-lg bg-zinc-800/30"
+                  >
+                    <div className="col-span-2">
+                      <select
+                        value={p.kind}
+                        onChange={e => updatePayment(idx, { kind: e.target.value as PaymentLineItem['kind'] })}
+                        className={`w-full px-2 py-1.5 border rounded text-xs font-medium uppercase tracking-wide focus:outline-none focus:border-[#39FF14] ${kindStyle}`}
+                      >
+                        <option value="deposit">Deposit</option>
+                        <option value="progress">Progress</option>
+                        <option value="final">Final</option>
+                      </select>
+                    </div>
+                    <div className="col-span-2">
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={p.amount || ''}
+                        onChange={e => updatePayment(idx, { amount: parseFloat(e.target.value) || 0 })}
+                        placeholder="0.00"
+                        className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-sm text-white text-right focus:outline-none focus:border-[#39FF14]"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <input
+                        type="date"
+                        value={p.date || ''}
+                        onChange={e => updatePayment(idx, { date: e.target.value })}
+                        className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-sm text-white focus:outline-none focus:border-[#39FF14]"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <input
+                        type="text"
+                        value={p.checkNumber || ''}
+                        onChange={e => updatePayment(idx, { checkNumber: e.target.value })}
+                        placeholder="Check #"
+                        className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-sm text-white focus:outline-none focus:border-[#39FF14]"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <select
+                        value={p.method || 'check'}
+                        onChange={e => updatePayment(idx, { method: e.target.value as PaymentLineItem['method'] })}
+                        className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-sm text-white focus:outline-none focus:border-[#39FF14]"
+                      >
+                        <option value="check">Check</option>
+                        <option value="cash">Cash</option>
+                        <option value="card">Card</option>
+                        <option value="ach">ACH</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                    <div className="col-span-1 text-right text-sm text-zinc-300 font-medium">
+                      {fmtMoney(p.amount)}
+                    </div>
+                    <div className="col-span-1 flex justify-end">
+                      <button
+                        onClick={() => removePayment(idx)}
+                        className="p-1.5 hover:bg-red-900/30 rounded text-zinc-500 hover:text-red-400"
+                        aria-label="Remove payment"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+              <div className="pt-3 border-t border-zinc-800 space-y-1 text-sm">
+                <div className="flex justify-end">
+                  <span className="text-zinc-400 mr-3">Received to Date:</span>
+                  <span className="text-white w-28 text-right">{fmtMoney(totals?.paymentsReceived || 0)}</span>
+                </div>
+                <div className="flex justify-end font-semibold">
+                  <span className="text-zinc-400 mr-3">Balance Due:</span>
+                  <span className={`w-28 text-right ${(totals?.balance ?? 0) > 0 ? 'text-amber-400' : 'text-[#39FF14]'}`}>
+                    {fmtMoney(totals?.balance || 0)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+
         {/* ── Financial Summary (sticky bottom-right) ─────── */}
         <section className="bg-zinc-900 border-2 border-[#39FF14]/30 rounded-xl p-6">
           <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
@@ -1496,6 +1627,34 @@ export default function CustomerBreakdownsPage() {
               </span>
             )}
           </h2>
+          {/* Validation warnings (per project_job_breakdowns spec) */}
+          {totals && (() => {
+            const warnings: string[] = [];
+            if (totals.materialSubtotal > totals.jobTotal && totals.jobTotal > 0) {
+              warnings.push(
+                `Material cost (${fmtMoney(totals.materialSubtotal)}) is HIGHER than job total (${fmtMoney(totals.jobTotal)}) — verify invoices or job price.`,
+              );
+            }
+            if (totals.jobTotal > 0 && totals.materialSubtotal > 0 && totals.laborSubtotal === 0) {
+              warnings.push('Materials entered but no labor — add subcontractors or confirm self-install.');
+            }
+            if (totals.jobProfit < 0 && totals.jobTotal > 0) {
+              warnings.push(`Job profit is NEGATIVE (${fmtMoney(totals.jobProfit)}) — review costs.`);
+            }
+            if (warnings.length === 0) return null;
+            return (
+              <div className="mb-4 rounded-lg border border-amber-700/60 bg-amber-900/20 p-3">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                  <div className="space-y-1 text-xs text-amber-200">
+                    {warnings.map((w, i) => (
+                      <p key={i}>{w}</p>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
           {totals ? (
             <div className="space-y-2 text-sm">
               <SummaryRow label="Job Total" value={totals.jobTotal} bold />
