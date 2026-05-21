@@ -37,6 +37,7 @@ interface JobNimbusContact {
   first_name?: string;
   last_name?: string;
   display_name?: string;
+  company?: string;
   email?: string;
   home_phone?: string;
   mobile_phone?: string;
@@ -56,11 +57,24 @@ interface JobNimbusContact {
   number?: string;
   created_by_name?: string;
   date_created?: number;
+  date_updated?: number;
+  date_status_change?: number;
   created_at?: number;
   updated_at?: number;
   is_archived?: boolean;
-  geo?: { lat: number; lng: number };
+  is_closed?: boolean;
+  geo?: { lat: number; lng?: number; lon?: number };
+  record_type?: string;
   record_type_name?: string;
+  tags?: string[];
+  approved_estimate_total?: number;
+  approved_invoice_total?: number;
+  last_budget_revenue?: number;
+  // Custom fields — JN returns these with their human-readable label
+  'Date of Loss'?: number;
+  cf_date_1?: number;
+  cf_date_2?: number;
+  [key: string]: unknown; // tolerate other custom fields without typing them all
 }
 
 interface JobNimbusJob {

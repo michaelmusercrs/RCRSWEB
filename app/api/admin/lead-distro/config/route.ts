@@ -40,12 +40,17 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Validate weights sum to 100
+    // Validate ENABLED weights sum to 100. Disabled (dismissed) factors are
+    // excluded from the sum so admins can turn off a metric without rebalancing
+    // the rest immediately. weightsEnabled is optional; missing = all enabled.
     if (config.weights) {
-      const weightSum = Object.values(config.weights).reduce((sum: number, w: any) => sum + Number(w), 0);
-      if (Math.abs(weightSum - 100) > 0.01) {
+      const enabled = (config.weightsEnabled || {}) as Record<string, boolean>;
+      const enabledSum = Object.entries(config.weights as Record<string, number>)
+        .filter(([k]) => enabled[k] !== false)
+        .reduce((sum, [, w]) => sum + Number(w), 0);
+      if (Math.abs(enabledSum - 100) > 0.01) {
         return NextResponse.json(
-          { success: false, error: `Weights must sum to 100, got ${weightSum}` },
+          { success: false, error: `Enabled weights must sum to 100, got ${enabledSum}` },
           { status: 400 }
         );
       }
@@ -57,6 +62,7 @@ export async function PUT(request: NextRequest) {
       ...existing,
       ...config,
       weights: { ...existing.weights, ...(config.weights || {}) },
+      weightsEnabled: { ...(existing.weightsEnabled || {}), ...(config.weightsEnabled || {}) },
       thresholds: { ...existing.thresholds, ...(config.thresholds || {}) },
       responseTimers: { ...existing.responseTimers, ...(config.responseTimers || {}) },
     };

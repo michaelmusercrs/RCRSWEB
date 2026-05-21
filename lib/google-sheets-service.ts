@@ -161,17 +161,54 @@ export interface SyncResult {
 export interface GeocodedContactRecord {
   jnid: string;
   name: string;
+  firstName: string;
+  lastName: string;
+  company: string;
   address: string;
+  city: string;
+  state: string;
+  zip: string;
   lat: string;
   lng: string;
   placeId: string;
+  email: string;
+  mobilePhone: string;
+  homePhone: string;
   type: string; // contact/install/lead/referral/door_knock
-  salesRep: string;
+  recordType: string; // JN record_type_name (Contact, Job, etc.)
+  salesRep: string; // slug (canonical: first-name slug from team-roles)
+  salesRepName: string; // raw display name from JN
+  salesRepId: string;
   jobStatus: string;
+  isClosed: string;
+  isArchived: string;
+  source: string; // JN source_name
+  tags: string; // pipe-delimited
+  approvedEstimateTotal: string;
+  approvedInvoiceTotal: string;
+  lastBudgetRevenue: string;
+  dateOfLoss: string; // custom field — storm/insurance signal
+  dateCreated: string;
+  dateUpdated: string;
   lastInteraction: string;
   interactionType: string;
   createdAt: string;
 }
+
+export const GEOCODED_CONTACT_COLUMNS = [
+  'jnid', 'name', 'firstName', 'lastName', 'company',
+  'address', 'city', 'state', 'zip',
+  'lat', 'lng', 'placeId',
+  'email', 'mobilePhone', 'homePhone',
+  'type', 'recordType',
+  'salesRep', 'salesRepName', 'salesRepId',
+  'jobStatus', 'isClosed', 'isArchived',
+  'source', 'tags',
+  'approvedEstimateTotal', 'approvedInvoiceTotal', 'lastBudgetRevenue',
+  'dateOfLoss',
+  'dateCreated', 'dateUpdated', 'lastInteraction', 'interactionType',
+  'createdAt',
+];
 
 export interface LeadDistributionLogRecord {
   logId: string;
@@ -183,7 +220,57 @@ export interface LeadDistributionLogRecord {
   factors: string; // JSON
   overrideReason: string;
   timestamp: string;
+  reason: string; // human-readable explanation of why this rep won
+  runnerUpRep: string;
+  runnerUpScore: string;
+  weightSetVersion: string; // pin which weight set drove the decision (config.updatedAt)
+  tiebreakerApplied: string; // 'longest-since-last' | 'new-rep-boost' | '' | other
 }
+
+export const LEAD_DISTRIBUTION_LOG_COLUMNS = [
+  'logId', 'leadId', 'customerName', 'address', 'assignedRep',
+  'algorithmScores', 'factors', 'overrideReason', 'timestamp',
+  'reason', 'runnerUpRep', 'runnerUpScore', 'weightSetVersion', 'tiebreakerApplied',
+];
+
+/**
+ * Per-lead outcome record — what happened AFTER the lead was assigned.
+ * Joined to LeadDistributionLogRecord by `logId`. Written progressively as
+ * events occur (first contact, estimate, sold/lost, reassignment, final).
+ * Source for the quarterly recalibration / "AI improvement" loop.
+ */
+export interface LeadOutcomeLogRecord {
+  logId: string; // FK to LeadDistributionLogRecord.logId
+  leadId: string;
+  assignedRep: string; // current owner (changes on reassignment)
+  originalAssignedRep: string; // who got it first
+  firstContactAttemptAt: string; // ISO
+  firstContactConnectAt: string; // ISO — actual customer reached
+  firstContactMethod: string; // 'call' | 'sms' | 'email' | 'in-person' | ''
+  estimateCreatedAt: string; // ISO
+  estimateAmount: string; // dollar value
+  jobSoldAt: string; // ISO
+  jobSoldAmount: string;
+  jobLostAt: string; // ISO
+  jobLostReason: string;
+  reassignedAt: string; // ISO (most recent)
+  reassignedTo: string;
+  reassignReason: string;
+  finalDisposition: string; // 'closed-won' | 'closed-lost' | 'ghosted' | 'reassigned-out' | 'open' | ''
+  dispositionAt: string; // ISO
+  updatedAt: string; // ISO — last write to this row
+}
+
+export const LEAD_OUTCOME_LOG_COLUMNS = [
+  'logId', 'leadId', 'assignedRep', 'originalAssignedRep',
+  'firstContactAttemptAt', 'firstContactConnectAt', 'firstContactMethod',
+  'estimateCreatedAt', 'estimateAmount',
+  'jobSoldAt', 'jobSoldAmount',
+  'jobLostAt', 'jobLostReason',
+  'reassignedAt', 'reassignedTo', 'reassignReason',
+  'finalDisposition', 'dispositionAt',
+  'updatedAt',
+];
 
 export interface RepAvailabilityRecord {
   repSlug: string;
@@ -320,6 +407,7 @@ const SHEET_NAMES = {
   DELIVERIES: 'Deliveries',
   GEOCODED_CONTACTS: 'Geocoded_Contacts',
   LEAD_DISTRIBUTION_LOG: 'Lead_Distribution_Log',
+  LEAD_OUTCOME_LOG: 'Lead_Outcome_Log',
   REP_AVAILABILITY: 'Rep_Availability',
   REP_PREFERENCES: 'Rep_Preferences',
   LEAD_RESPONSE_LOG: 'Lead_Response_Log',
@@ -1227,22 +1315,41 @@ class GoogleSheetsService {
     if (!ready || !this.doc) return [];
 
     try {
-      const sheet = await this.getOrCreateSheet(SHEET_NAMES.GEOCODED_CONTACTS, [
-        'jnid', 'name', 'address', 'lat', 'lng', 'placeId', 'type',
-        'salesRep', 'jobStatus', 'lastInteraction', 'interactionType', 'createdAt'
-      ]);
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.GEOCODED_CONTACTS, GEOCODED_CONTACT_COLUMNS);
 
       const rows = await sheet.getRows();
       let contacts: GeocodedContactRecord[] = rows.map(row => ({
         jnid: row.get('jnid') || '',
         name: row.get('name') || '',
+        firstName: row.get('firstName') || '',
+        lastName: row.get('lastName') || '',
+        company: row.get('company') || '',
         address: row.get('address') || '',
+        city: row.get('city') || '',
+        state: row.get('state') || '',
+        zip: row.get('zip') || '',
         lat: row.get('lat') || '',
         lng: row.get('lng') || '',
         placeId: row.get('placeId') || '',
+        email: row.get('email') || '',
+        mobilePhone: row.get('mobilePhone') || '',
+        homePhone: row.get('homePhone') || '',
         type: row.get('type') || '',
+        recordType: row.get('recordType') || '',
         salesRep: row.get('salesRep') || '',
+        salesRepName: row.get('salesRepName') || '',
+        salesRepId: row.get('salesRepId') || '',
         jobStatus: row.get('jobStatus') || '',
+        isClosed: row.get('isClosed') || '',
+        isArchived: row.get('isArchived') || '',
+        source: row.get('source') || '',
+        tags: row.get('tags') || '',
+        approvedEstimateTotal: row.get('approvedEstimateTotal') || '',
+        approvedInvoiceTotal: row.get('approvedInvoiceTotal') || '',
+        lastBudgetRevenue: row.get('lastBudgetRevenue') || '',
+        dateOfLoss: row.get('dateOfLoss') || '',
+        dateCreated: row.get('dateCreated') || '',
+        dateUpdated: row.get('dateUpdated') || '',
         lastInteraction: row.get('lastInteraction') || '',
         interactionType: row.get('interactionType') || '',
         createdAt: row.get('createdAt') || '',
@@ -1267,10 +1374,7 @@ class GoogleSheetsService {
     if (!ready || !this.doc) return false;
 
     try {
-      const sheet = await this.getOrCreateSheet(SHEET_NAMES.GEOCODED_CONTACTS, [
-        'jnid', 'name', 'address', 'lat', 'lng', 'placeId', 'type',
-        'salesRep', 'jobStatus', 'lastInteraction', 'interactionType', 'createdAt'
-      ]);
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.GEOCODED_CONTACTS, GEOCODED_CONTACT_COLUMNS);
 
       // Check for existing entry
       const rows = await sheet.getRows();
@@ -1300,10 +1404,7 @@ class GoogleSheetsService {
     let errors = 0;
 
     try {
-      const sheet = await this.getOrCreateSheet(SHEET_NAMES.GEOCODED_CONTACTS, [
-        'jnid', 'name', 'address', 'lat', 'lng', 'placeId', 'type',
-        'salesRep', 'jobStatus', 'lastInteraction', 'interactionType', 'createdAt'
-      ]);
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.GEOCODED_CONTACTS, GEOCODED_CONTACT_COLUMNS);
 
       for (const contact of contacts) {
         try {
@@ -1330,10 +1431,7 @@ class GoogleSheetsService {
     if (!ready || !this.doc) return false;
 
     try {
-      const sheet = await this.getOrCreateSheet(SHEET_NAMES.LEAD_DISTRIBUTION_LOG, [
-        'logId', 'leadId', 'customerName', 'address', 'assignedRep',
-        'algorithmScores', 'factors', 'overrideReason', 'timestamp'
-      ]);
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.LEAD_DISTRIBUTION_LOG, LEAD_DISTRIBUTION_LOG_COLUMNS);
 
       await sheet.addRow(log as unknown as Record<string, string | number | boolean>);
       return true;
@@ -1351,10 +1449,7 @@ class GoogleSheetsService {
     if (!ready || !this.doc) return [];
 
     try {
-      const sheet = await this.getOrCreateSheet(SHEET_NAMES.LEAD_DISTRIBUTION_LOG, [
-        'logId', 'leadId', 'customerName', 'address', 'assignedRep',
-        'algorithmScores', 'factors', 'overrideReason', 'timestamp'
-      ]);
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.LEAD_DISTRIBUTION_LOG, LEAD_DISTRIBUTION_LOG_COLUMNS);
 
       const rows = await sheet.getRows();
       let logs: LeadDistributionLogRecord[] = rows.map(row => ({
@@ -1367,6 +1462,11 @@ class GoogleSheetsService {
         factors: row.get('factors') || '{}',
         overrideReason: row.get('overrideReason') || '',
         timestamp: row.get('timestamp') || '',
+        reason: row.get('reason') || '',
+        runnerUpRep: row.get('runnerUpRep') || '',
+        runnerUpScore: row.get('runnerUpScore') || '',
+        weightSetVersion: row.get('weightSetVersion') || '',
+        tiebreakerApplied: row.get('tiebreakerApplied') || '',
       }));
 
       if (options?.assignedRep) {
@@ -1383,6 +1483,116 @@ class GoogleSheetsService {
     } catch (error) {
       console.error('Error fetching distribution logs:', error);
       return [];
+    }
+  }
+
+  // ===========================================================================
+  // LEAD OUTCOME LOG
+  // ===========================================================================
+
+  async getLeadOutcomeLogs(options?: {
+    logId?: string;
+    assignedRep?: string;
+    finalDisposition?: string;
+    limit?: number;
+  }): Promise<LeadOutcomeLogRecord[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.LEAD_OUTCOME_LOG, LEAD_OUTCOME_LOG_COLUMNS);
+      const rows = await sheet.getRows();
+      let logs: LeadOutcomeLogRecord[] = rows.map(row => ({
+        logId: row.get('logId') || '',
+        leadId: row.get('leadId') || '',
+        assignedRep: row.get('assignedRep') || '',
+        originalAssignedRep: row.get('originalAssignedRep') || '',
+        firstContactAttemptAt: row.get('firstContactAttemptAt') || '',
+        firstContactConnectAt: row.get('firstContactConnectAt') || '',
+        firstContactMethod: row.get('firstContactMethod') || '',
+        estimateCreatedAt: row.get('estimateCreatedAt') || '',
+        estimateAmount: row.get('estimateAmount') || '',
+        jobSoldAt: row.get('jobSoldAt') || '',
+        jobSoldAmount: row.get('jobSoldAmount') || '',
+        jobLostAt: row.get('jobLostAt') || '',
+        jobLostReason: row.get('jobLostReason') || '',
+        reassignedAt: row.get('reassignedAt') || '',
+        reassignedTo: row.get('reassignedTo') || '',
+        reassignReason: row.get('reassignReason') || '',
+        finalDisposition: row.get('finalDisposition') || '',
+        dispositionAt: row.get('dispositionAt') || '',
+        updatedAt: row.get('updatedAt') || '',
+      }));
+
+      if (options?.logId) logs = logs.filter(l => l.logId === options.logId);
+      if (options?.assignedRep) logs = logs.filter(l => l.assignedRep === options.assignedRep);
+      if (options?.finalDisposition) logs = logs.filter(l => l.finalDisposition === options.finalDisposition);
+      logs.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+      if (options?.limit) logs = logs.slice(0, options.limit);
+      return logs;
+    } catch (error) {
+      console.error('Error fetching lead outcome logs:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Upsert by logId. Pass any subset of fields and they will be merged onto
+   * the existing row (or a new row will be created if logId is new). Called
+   * progressively as outcome events fire: first-contact, estimate, sold, lost,
+   * reassign, final disposition.
+   */
+  async upsertLeadOutcomeLog(
+    record: Partial<LeadOutcomeLogRecord> & { logId: string }
+  ): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    if (!record.logId) {
+      console.warn('[OutcomeLog] upsert called without logId');
+      return false;
+    }
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.LEAD_OUTCOME_LOG, LEAD_OUTCOME_LOG_COLUMNS);
+      const rows = await sheet.getRows();
+      const existing = rows.find(r => r.get('logId') === record.logId);
+      const updatedAt = new Date().toISOString();
+
+      if (existing) {
+        for (const [k, v] of Object.entries(record)) {
+          if (v !== undefined && v !== null) existing.set(k, v as string);
+        }
+        existing.set('updatedAt', updatedAt);
+        await existing.save();
+      } else {
+        const full: LeadOutcomeLogRecord = {
+          logId: record.logId,
+          leadId: record.leadId || '',
+          assignedRep: record.assignedRep || '',
+          originalAssignedRep: record.originalAssignedRep || record.assignedRep || '',
+          firstContactAttemptAt: record.firstContactAttemptAt || '',
+          firstContactConnectAt: record.firstContactConnectAt || '',
+          firstContactMethod: record.firstContactMethod || '',
+          estimateCreatedAt: record.estimateCreatedAt || '',
+          estimateAmount: record.estimateAmount || '',
+          jobSoldAt: record.jobSoldAt || '',
+          jobSoldAmount: record.jobSoldAmount || '',
+          jobLostAt: record.jobLostAt || '',
+          jobLostReason: record.jobLostReason || '',
+          reassignedAt: record.reassignedAt || '',
+          reassignedTo: record.reassignedTo || '',
+          reassignReason: record.reassignReason || '',
+          finalDisposition: record.finalDisposition || 'open',
+          dispositionAt: record.dispositionAt || '',
+          updatedAt,
+        };
+        await sheet.addRow(full as unknown as Record<string, string | number | boolean>);
+      }
+      return true;
+    } catch (error) {
+      console.error('Error upserting lead outcome log:', error);
+      return false;
     }
   }
 

@@ -1,14 +1,34 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft, Save, Loader2, Search, MapPin, Clock, Users,
   Sliders, Settings, History, Eye, AlertTriangle, CheckCircle,
-  ToggleLeft, ToggleRight, RefreshCw, Target, Zap, TrendingUp
+  ToggleLeft, ToggleRight, RefreshCw, Target, Zap, TrendingUp, Info
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import AddressAutocomplete, { AddressResult } from '@/components/AddressAutocomplete';
+
+// Hover-tooltip explainer — used throughout the admin panel to surface
+// "what this metric is / how it's calculated / recommended range / what
+// changes if you adjust it." Pattern is system-wide per the design memo.
+function InfoTooltip({ children, content }: { children: ReactNode; content: ReactNode }) {
+  return (
+    <span className="relative inline-flex items-center group">
+      {children}
+      <span className="ml-1.5 inline-flex items-center text-neutral-500 hover:text-neutral-300 transition-colors cursor-help" aria-hidden="false" tabIndex={0}>
+        <Info size={13} />
+      </span>
+      <span
+        role="tooltip"
+        className="pointer-events-none absolute z-50 hidden group-hover:block group-focus-within:block bottom-full left-1/2 -translate-x-1/2 mb-2 w-80 px-3 py-2.5 text-xs text-neutral-200 bg-neutral-950 border border-white/10 rounded-lg shadow-2xl text-left whitespace-normal leading-relaxed"
+      >
+        {content}
+      </span>
+    </span>
+  );
+}
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -27,6 +47,9 @@ interface ThresholdConfig {
   recentInteractionDays: number;
   staleInteractionDays: number;
   minRepsForDistribution: number;
+  clearWinnerGapPercent?: number;
+  newRepTenureDays?: number;
+  newRepDefaultBoost?: number;
 }
 
 interface TimerConfig {
@@ -38,8 +61,11 @@ interface TimerConfig {
 
 interface LeadDistroConfig {
   weights: WeightConfig;
+  weightsEnabled?: Partial<Record<keyof WeightConfig, boolean>>;
   thresholds: ThresholdConfig;
   timers: TimerConfig;
+  routingMode?: 'auto' | 'suggest';
+  suggestionCount?: number;
 }
 
 interface PreviewResult {
@@ -76,15 +102,104 @@ interface DistributionLog {
 
 // ── Weight metadata ────────────────────────────────────────────────────────────
 
-const WEIGHT_META: Record<keyof WeightConfig, { label: string; description: string; color: string; detail?: string }> = {
-  installProximity:  { label: 'Proximity (Nearby Roofs)',    description: 'Completed roofs near the lead address',    color: 'bg-brand-green', detail: 'Scores reps who have done jobs nearby — recency matters (this year > 2yr > 5yr)' },
-  contactProximity:  { label: 'Contact Proximity',    description: 'Rep contacts/customers in area',  color: 'bg-cyan-500', detail: 'Existing customer relationships near the lead' },
-  doorKnockRecency:  { label: 'Door Knocks in Area',   description: 'Recent door knocking activity nearby',    color: 'bg-violet-500', detail: 'Reps who have been actively knocking in the neighborhood' },
-  referralBonus:     { label: 'Lead Type Bonus',        description: 'Office lead vs referral vs door knock',      color: 'bg-amber-500', detail: 'Office leads (created by Sara/Destin) distributed by algorithm. Referrals/self-gen credited to the rep who brought them in.' },
-  meetingAttendance: { label: 'Meeting Attendance',    description: 'Monday meeting attendance — miss = off rotation',      color: 'bg-emerald-500', detail: 'Mandatory Monday 10 AM meetings. Missing = removed from lead rotation that week.' },
-  closeRate:         { label: 'Office Lead Close Rate',            description: 'Closing % on OFFICE LEADS ONLY',         color: 'bg-rose-500', detail: 'Only counts jobs created by office staff (Sara, Destin). Self-gen/referral jobs excluded from this metric.' },
-  responseTime:      { label: 'Response Time',         description: 'Speed of first contact with leads',         color: 'bg-orange-500', detail: 'How quickly the rep makes first human contact (call/text) — not automations' },
+interface WeightMeta {
+  label: string;
+  description: string;
+  color: string;
+  detail: string;
+  recommended: string; // e.g., "20–40%"
+  effectUp: string;    // what happens if weight goes up
+  effectDown: string;  // what happens if weight goes down
+  howCalculated: string;
+}
+
+const WEIGHT_META: Record<keyof WeightConfig, WeightMeta> = {
+  installProximity: {
+    label: 'Install Proximity',
+    description: 'Closeness to a completed roof this rep has done',
+    color: 'bg-brand-green',
+    detail: 'The "we just did your neighbor\'s roof" pitch is the highest-closing line in roofing.',
+    recommended: '20–40%',
+    howCalculated: 'For each completed install within the proximity radius (default 2mi), score = (1 - distance/radius) × recency_multiplier. The rep\'s install score is the best single value. Recency decays smoothly: 1.0 today → 0.55 at 90d → 0.18 at 1yr → 0.10 floor at 2yr+.',
+    effectUp: 'More leads go to reps with recent local installs. Rewards proven local proof.',
+    effectDown: 'Reps with strong relationships but no recent installs (referrals, contacts) start winning more.',
+  },
+  contactProximity: {
+    label: 'Contact Proximity',
+    description: 'Closeness to this rep\'s existing customer/lead conversations',
+    color: 'bg-cyan-500',
+    detail: 'Lower weight than installs because contacts didn\'t close — but still signals territory knowledge.',
+    recommended: '10–20%',
+    howCalculated: 'Same math as install proximity, but counts non-completed records (contact / lead / referral types) within the radius. Best single value wins.',
+    effectUp: 'Reps with deep books in an area get more leads, even without recent installs.',
+    effectDown: 'Newer or transferring reps with thin contact lists have less of a structural disadvantage.',
+  },
+  doorKnockRecency: {
+    label: 'Door Knock Recency',
+    description: 'How recently this rep canvassed the neighborhood',
+    color: 'bg-violet-500',
+    detail: 'Boots-on-the-ground activity gets credit. Drops to 0 if the rep stops knocking.',
+    recommended: '5–15%',
+    howCalculated: 'For each door-knock log entry within radius, scored by distance × recency over 90 days. Decays to 0 after 90d.',
+    effectUp: 'Active canvassers win more nearby leads — incentivizes physical presence.',
+    effectDown: 'Phone-and-referral reps aren\'t penalized for not knocking.',
+  },
+  referralBonus: {
+    label: 'Referral Bonus',
+    description: 'Lead came in via this rep\'s referral source',
+    color: 'bg-amber-500',
+    detail: 'Binary — the bonus applies to the originating rep, or not at all. Honors network-building.',
+    recommended: '15–30%',
+    howCalculated: 'If the lead\'s source matches this rep as the referrer, full weight is awarded. Otherwise 0.',
+    effectUp: 'Strongly rewards reps for bringing in their network. Best for relationship-driven teams.',
+    effectDown: 'Algorithm leans more on objective measures (proximity, response) over relationships.',
+  },
+  meetingAttendance: {
+    label: 'Engagement / Attendance',
+    description: '% of past assigned leads this rep actually engaged with',
+    color: 'bg-emerald-500',
+    detail: 'Reps who consistently respond to assigned leads score higher. Monday meeting check-in coming v2.1.',
+    recommended: '5–15%',
+    howCalculated: '(Responded leads / total assigned leads) over the response log. <3 logs falls to default 0.5 (insufficient data). >90% engagement = 1.0; <25% = 0.1.',
+    effectUp: 'Punishes ghosting. Disengaged reps lose ground.',
+    effectDown: 'Newer reps without history aren\'t penalized; defaults dominate.',
+  },
+  closeRate: {
+    label: 'Close Rate (Lead Response %)',
+    description: 'Lead engagement ratio (proxy for closing skill)',
+    color: 'bg-rose-500',
+    detail: 'Today uses all assigned leads. Office-source-only filtering ships in v2.1 for a fairer comparison.',
+    recommended: '0–10%',
+    howCalculated: 'Responded / total ratio mapped linearly to 0–1. <3 logs falls to default 0.5.',
+    effectUp: 'Top closers win more — rich-get-richer risk; combine with capacity caps when those ship.',
+    effectDown: 'Flatter distribution; outcomes feed back through quarterly recalibration instead.',
+  },
+  responseTime: {
+    label: 'Response Time',
+    description: 'Speed of first contact (call/SMS) to new leads',
+    color: 'bg-orange-500',
+    detail: 'Speed-to-lead under 5min = ~9× more likely to qualify. JN-mined data preferred over portal-logged.',
+    recommended: '0–10%',
+    howCalculated: 'Avg response in minutes mapped to a curve: ≤15min=1.0, ≤30min=0.8, ≤60min=0.6, ≤2hr=0.4, ≤4hr=0.2, >4hr=0.1. Source priority: JN mined > response log > default 0.5.',
+    effectUp: 'Fast reps win more — but easy to game without phone-log verification (planned).',
+    effectDown: 'Slower reps don\'t get penalized at the gate; outcome metrics matter more.',
+  },
 };
+
+function renderWeightTooltip(meta: WeightMeta): ReactNode {
+  return (
+    <>
+      <div className="font-semibold text-white mb-1">{meta.label}</div>
+      <div className="text-neutral-300 mb-2">{meta.description}</div>
+      <div className="space-y-1.5">
+        <div><span className="text-neutral-500">Recommended:</span> <span className="text-emerald-400">{meta.recommended}</span></div>
+        <div><span className="text-neutral-500">How calculated:</span> {meta.howCalculated}</div>
+        <div><span className="text-neutral-500">If you raise it:</span> {meta.effectUp}</div>
+        <div><span className="text-neutral-500">If you lower it:</span> {meta.effectDown}</div>
+      </div>
+    </>
+  );
+}
 
 const DEFAULT_CONFIG: LeadDistroConfig = {
   weights: {
@@ -96,11 +211,23 @@ const DEFAULT_CONFIG: LeadDistroConfig = {
     closeRate: 5,
     responseTime: 5,
   },
+  weightsEnabled: {
+    installProximity: true,
+    contactProximity: true,
+    doorKnockRecency: true,
+    referralBonus: true,
+    meetingAttendance: true,
+    closeRate: true,
+    responseTime: true,
+  },
   thresholds: {
     proximityRadiusMiles: 2.0,
     recentInteractionDays: 90,
     staleInteractionDays: 730,
     minRepsForDistribution: 2,
+    clearWinnerGapPercent: 10,
+    newRepTenureDays: 30,
+    newRepDefaultBoost: 0.7,
   },
   timers: {
     reminderMinutes: 5,
@@ -108,6 +235,8 @@ const DEFAULT_CONFIG: LeadDistroConfig = {
     urgentWarningMinutes: 45,
     reassignMinutes: 60,
   },
+  routingMode: 'auto',
+  suggestionCount: 3,
 };
 
 // ── Component ──────────────────────────────────────────────────────────────────
@@ -148,7 +277,14 @@ export default function LeadDistroAdmin() {
 
   // ── Computed ───────────────────────────────────────────────────────────────
 
-  const weightSum = Object.values(config.weights).reduce((a, b) => a + b, 0);
+  // Only ENABLED factors count toward the 100% sum. Dismissed (disabled)
+  // factors are excluded from scoring and from the constraint.
+  const isFactorEnabled = (k: keyof WeightConfig) =>
+    config.weightsEnabled?.[k] !== false;
+
+  const weightSum = (Object.keys(config.weights) as (keyof WeightConfig)[])
+    .filter(isFactorEnabled)
+    .reduce((a, k) => a + config.weights[k], 0);
   const weightsValid = weightSum === 100;
 
   // ── Data loading ───────────────────────────────────────────────────────────
@@ -163,8 +299,11 @@ export default function LeadDistroAdmin() {
         // Map config fields to local LeadDistroConfig shape
         setConfig({
           weights: cfg.weights || DEFAULT_CONFIG.weights,
+          weightsEnabled: cfg.weightsEnabled || DEFAULT_CONFIG.weightsEnabled,
           thresholds: cfg.thresholds || DEFAULT_CONFIG.thresholds,
           timers: cfg.responseTimers || cfg.timers || DEFAULT_CONFIG.timers,
+          routingMode: cfg.routingMode || 'auto',
+          suggestionCount: cfg.suggestionCount ?? 3,
         });
       }
     } catch (err) {
@@ -257,8 +396,11 @@ export default function LeadDistroAdmin() {
         body: JSON.stringify({
           config: {
             weights: config.weights,
+            weightsEnabled: config.weightsEnabled,
             thresholds: config.thresholds,
             responseTimers: config.timers,
+            routingMode: config.routingMode,
+            suggestionCount: config.suggestionCount,
           },
           updatedBy: user?.name || 'admin',
         }),
@@ -319,10 +461,20 @@ export default function LeadDistroAdmin() {
     }));
   };
 
+  const toggleFactorEnabled = (key: keyof WeightConfig) => {
+    setConfig(prev => ({
+      ...prev,
+      weightsEnabled: {
+        ...prev.weightsEnabled,
+        [key]: prev.weightsEnabled?.[key] === false ? true : false,
+      },
+    }));
+  };
+
   const handleThresholdChange = (key: keyof ThresholdConfig, value: number) => {
     setConfig(prev => ({
       ...prev,
-      thresholds: { ...prev.thresholds, [key]: value },
+      thresholds: { ...prev.thresholds, [key]: value } as ThresholdConfig,
     }));
   };
 
@@ -562,6 +714,72 @@ export default function LeadDistroAdmin() {
 
         <main className="max-w-6xl mx-auto px-6 py-8 space-y-8">
 
+          {/* ── Section 0: Routing Mode ─────────────────────────────────── */}
+          <section className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
+            <div className="flex items-start justify-between gap-6 flex-wrap">
+              <div className="flex items-start gap-3 flex-1 min-w-0">
+                <div className="w-10 h-10 bg-violet-500/10 rounded-xl flex items-center justify-center shrink-0">
+                  <Zap size={20} className="text-violet-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <InfoTooltip content={
+                    <>
+                      <div className="font-semibold text-white mb-1">Routing Mode</div>
+                      <div className="text-neutral-300 mb-2">Switches between immediate auto-assignment and dispatcher-confirmed suggestions.</div>
+                      <div className="space-y-1.5">
+                        <div><span className="text-emerald-400">Auto:</span> algorithm winner is assigned in milliseconds. SLA timer starts. Notifications fire. Best for high-volume, repeatable sources.</div>
+                        <div><span className="text-violet-400">Suggest:</span> algorithm produces top-N candidates with reasons; held as <code className="text-neutral-400">pending-manager-pick</code> until someone confirms. Best for high-value insurance or complex leads.</div>
+                        <div className="pt-1 text-neutral-400">Switchable anytime — existing pending picks keep their state regardless.</div>
+                      </div>
+                    </>
+                  }>
+                    <h2 className="text-lg font-semibold text-white">Routing Mode</h2>
+                  </InfoTooltip>
+                  <p className="text-sm text-neutral-400 mt-0.5">
+                    {config.routingMode === 'suggest'
+                      ? 'Suggest mode — algorithm surfaces top candidates; a dispatcher confirms each assignment manually.'
+                      : 'Auto mode — leads are assigned immediately to the algorithm winner.'}
+                  </p>
+                  <p className="text-xs text-neutral-500 mt-1">
+                    <span className="text-neutral-400">Current behavior:</span>{' '}
+                    {config.routingMode === 'suggest'
+                      ? `Top ${config.suggestionCount ?? 3} candidates surfaced. No assignment until dispatcher confirms. Lead held in pending-pick queue.`
+                      : 'Top-scoring rep assigned immediately. SLA timer + notifications fire instantly.'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <select
+                  value={config.routingMode || 'auto'}
+                  onChange={(e) =>
+                    setConfig(prev => ({ ...prev, routingMode: e.target.value as 'auto' | 'suggest' }))
+                  }
+                  className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-violet-500/50 transition-all"
+                  title="Auto = system assigns immediately. Suggest = top-N candidates surface in dispatch queue for manual confirmation."
+                >
+                  <option value="auto">Auto-assign</option>
+                  <option value="suggest">Suggest (manager picks)</option>
+                </select>
+                {config.routingMode === 'suggest' && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-neutral-500">Top</span>
+                    <input
+                      type="number"
+                      min={2}
+                      max={5}
+                      value={config.suggestionCount ?? 3}
+                      onChange={(e) =>
+                        setConfig(prev => ({ ...prev, suggestionCount: Math.max(2, Math.min(5, parseInt(e.target.value) || 3)) }))
+                      }
+                      className="w-14 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white text-sm text-center focus:outline-none"
+                    />
+                    <span className="text-xs text-neutral-500">candidates</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+
           {/* ── Section 1: Weight Sliders ─────────────────────────────────── */}
           <section className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
             <div className="flex items-center justify-between mb-6">
@@ -587,15 +805,37 @@ export default function LeadDistroAdmin() {
               {(Object.keys(WEIGHT_META) as (keyof WeightConfig)[]).map((key) => {
                 const meta = WEIGHT_META[key];
                 const value = config.weights[key];
+                const enabled = isFactorEnabled(key);
                 return (
-                  <div key={key}>
+                  <div key={key} className={enabled ? '' : 'opacity-40'}>
                     <div className="flex items-center justify-between mb-2">
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm font-medium text-white">{meta.label}</span>
-                        <span className="text-xs text-neutral-500 ml-2">{meta.description}</span>
-                        {meta.detail && (
-                          <p className="text-xs text-neutral-600 mt-0.5">{meta.detail}</p>
-                        )}
+                      <div className="flex-1 min-w-0 flex items-start gap-3">
+                        <button
+                          type="button"
+                          onClick={() => toggleFactorEnabled(key)}
+                          aria-label={enabled ? `Disable ${meta.label}` : `Enable ${meta.label}`}
+                          title={enabled ? 'Dismiss this metric (it will not count toward routing or the 100% sum)' : 'Re-enable this metric'}
+                          className="mt-0.5 shrink-0 transition-colors"
+                        >
+                          {enabled ? (
+                            <ToggleRight size={24} className="text-brand-green" />
+                          ) : (
+                            <ToggleLeft size={24} className="text-neutral-600" />
+                          )}
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <InfoTooltip content={renderWeightTooltip(meta)}>
+                            <span className="text-sm font-medium text-white">{meta.label}</span>
+                          </InfoTooltip>
+                          {!enabled && (
+                            <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-neutral-700/50 text-neutral-400">DISABLED</span>
+                          )}
+                          <span className="text-xs text-neutral-500 ml-2">{meta.description}</span>
+                          <p className="text-xs text-neutral-600 mt-0.5">
+                            {meta.detail}
+                            <span className="ml-2 text-neutral-700">· recommended {meta.recommended}</span>
+                          </p>
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <input
@@ -603,8 +843,9 @@ export default function LeadDistroAdmin() {
                           min={0}
                           max={100}
                           value={value}
+                          disabled={!enabled}
                           onChange={(e) => handleWeightChange(key, Math.max(0, Math.min(100, parseInt(e.target.value) || 0)))}
-                          className="w-16 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white text-sm text-center focus:outline-none focus:border-brand-green/50 transition-all"
+                          className="w-16 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white text-sm text-center focus:outline-none focus:border-brand-green/50 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                         />
                         <span className="text-xs text-neutral-500 w-4">%</span>
                       </div>
@@ -612,7 +853,7 @@ export default function LeadDistroAdmin() {
                     <div className="relative h-2 bg-white/5 rounded-full overflow-hidden">
                       <div
                         className={`absolute inset-y-0 left-0 rounded-full transition-all duration-200 ${meta.color}`}
-                        style={{ width: `${value}%` }}
+                        style={{ width: enabled ? `${value}%` : '0%' }}
                       />
                     </div>
                     <input
@@ -620,8 +861,9 @@ export default function LeadDistroAdmin() {
                       min={0}
                       max={100}
                       value={value}
+                      disabled={!enabled}
                       onChange={(e) => handleWeightChange(key, parseInt(e.target.value))}
-                      className="w-full mt-1 accent-brand-green cursor-pointer opacity-0 hover:opacity-100 focus:opacity-100 h-2 -mt-2 relative z-10"
+                      className="w-full mt-1 accent-brand-green cursor-pointer opacity-0 hover:opacity-100 focus:opacity-100 h-2 -mt-2 relative z-10 disabled:cursor-not-allowed"
                     />
                   </div>
                 );
@@ -629,9 +871,14 @@ export default function LeadDistroAdmin() {
             </div>
 
             {!weightsValid && (
-              <div className="mt-4 flex items-center gap-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
-                <AlertTriangle size={16} />
-                Weights must total exactly 100. Currently {weightSum} ({weightSum > 100 ? `${weightSum - 100} over` : `${100 - weightSum} under`}).
+              <div className="mt-4 flex items-start gap-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
+                <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+                <div>
+                  Enabled weights must total exactly 100. Currently {weightSum} ({weightSum > 100 ? `${weightSum - 100} over` : `${100 - weightSum} under`}).
+                  <div className="text-xs text-red-400/70 mt-1">
+                    Tip: if you just toggled a factor off, redistribute its weight across the remaining enabled factors so they sum to 100. Disabled factors don't count.
+                  </div>
+                </div>
               </div>
             )}
           </section>
@@ -653,20 +900,91 @@ export default function LeadDistroAdmin() {
 
               <div className="space-y-4">
                 {([
-                  { key: 'proximityRadiusMiles' as const, label: 'Proximity Radius', unit: 'miles', desc: 'Max distance for proximity scoring' },
-                  { key: 'recentInteractionDays' as const, label: 'Recent Interaction', unit: 'days', desc: 'Days to consider interactions recent' },
-                  { key: 'staleInteractionDays' as const, label: 'Stale Interaction', unit: 'days', desc: 'Days before interactions are stale' },
-                  { key: 'minRepsForDistribution' as const, label: 'Min Reps Required', unit: 'reps', desc: 'Minimum available reps to distribute' },
-                ]).map(({ key, label, unit, desc }) => (
+                  {
+                    key: 'proximityRadiusMiles' as const,
+                    label: 'Proximity Radius',
+                    unit: 'miles',
+                    desc: 'Max distance for proximity-based scoring',
+                    recommended: '1.0 – 3.0 mi',
+                    tooltip: 'Defines how far we look for nearby installs / contacts / door knocks. 2.0 mi is right for Tennessee Valley density. Increase to 3–5 mi for broader territory (Birmingham). Drop to 1.0 mi for dense urban work where literal neighbors matter most.',
+                  },
+                  {
+                    key: 'recentInteractionDays' as const,
+                    label: 'Recent Interaction Window',
+                    unit: 'days',
+                    desc: 'Window inside which contacts count as "fresh"',
+                    recommended: '60 – 120 days',
+                    tooltip: 'Defines the door-knock recency decay window. The exponential recency curve actually decays smoothly regardless of this value, but this threshold is used inside scoreDoorKnocks. Lower = stricter freshness requirement.',
+                  },
+                  {
+                    key: 'staleInteractionDays' as const,
+                    label: 'Stale Interaction Cutoff',
+                    unit: 'days',
+                    desc: 'Hard cutoff for "too old to count"',
+                    recommended: '365 – 1095 days',
+                    tooltip: 'Future hard-cutoff for distance gating (anti-gaming). Not currently enforced — the exponential recency curve smoothly floors at 0.10 instead. Reserved for v2.1.',
+                  },
+                  {
+                    key: 'minRepsForDistribution' as const,
+                    label: 'Min Eligible Reps',
+                    unit: 'reps',
+                    desc: 'Floor for the assignment pool',
+                    recommended: '2 – 3',
+                    tooltip: 'If fewer than this many reps are eligible (available + within county), the assignment errors out instead of force-assigning. Set higher if you want assignment failures to be loud (better than silently slamming one rep).',
+                  },
+                  {
+                    key: 'clearWinnerGapPercent' as const,
+                    label: 'Clear-Winner Gap',
+                    unit: '%',
+                    desc: 'Score gap required to skip the tiebreaker',
+                    recommended: '5 – 20 %',
+                    tooltip: 'If the top rep\'s score is within this % of the runner-up, treat it as a tie and apply the longest-since-last tiebreaker. Lower = more ties → more even distribution. Higher = top score wins more often → more concentrated.',
+                  },
+                  {
+                    key: 'newRepTenureDays' as const,
+                    label: 'New-Rep Window',
+                    unit: 'days',
+                    desc: 'Days a new rep gets the default-factor boost',
+                    recommended: '14 – 60 days',
+                    tooltip: 'Reps within this window from their createdAt get a higher default score (per below) on factors that need historical data — attendance, close rate, response time. Sunsets automatically. Keeps new hires from starving while they build a book.',
+                  },
+                  {
+                    key: 'newRepDefaultBoost' as const,
+                    label: 'New-Rep Boost Value',
+                    unit: '×',
+                    desc: 'Default factor score for new reps (vs 0.5)',
+                    recommended: '0.6 – 0.8',
+                    tooltip: 'The default value (range 0–1) used in place of 0.5 for attendance / close-rate / response-time when the rep is within the new-rep window. 0.7 means they\'re treated as "above-average" by default. Set lower if you want new reps to earn their position from day 1.',
+                  },
+                ]).map(({ key, label, unit, desc, recommended, tooltip }) => (
                   <div key={key}>
-                    <label className="block text-sm font-medium text-neutral-300 mb-1">{label}</label>
-                    <p className="text-xs text-neutral-500 mb-2">{desc}</p>
+                    <div className="flex items-center mb-1">
+                      <InfoTooltip content={
+                        <>
+                          <div className="font-semibold text-white mb-1">{label}</div>
+                          <div className="text-neutral-300 mb-2">{desc}</div>
+                          <div className="space-y-1.5">
+                            <div><span className="text-neutral-500">Recommended:</span> <span className="text-emerald-400">{recommended}</span></div>
+                            <div className="text-neutral-300">{tooltip}</div>
+                          </div>
+                        </>
+                      }>
+                        <label className="block text-sm font-medium text-neutral-300">{label}</label>
+                      </InfoTooltip>
+                    </div>
+                    <p className="text-xs text-neutral-500 mb-2">{desc} · recommended {recommended}</p>
                     <div className="flex items-center gap-2">
                       <input
                         type="number"
-                        min={1}
-                        value={config.thresholds[key]}
-                        onChange={(e) => handleThresholdChange(key, Math.max(1, parseInt(e.target.value) || 1))}
+                        min={key === 'newRepDefaultBoost' ? 0 : 1}
+                        step={key === 'newRepDefaultBoost' ? 0.05 : 1}
+                        max={key === 'newRepDefaultBoost' ? 1 : undefined}
+                        value={(config.thresholds as any)[key] ?? ''}
+                        onChange={(e) => {
+                          const raw = parseFloat(e.target.value);
+                          const val = isNaN(raw) ? 0 : raw;
+                          handleThresholdChange(key as keyof ThresholdConfig, Math.max(key === 'newRepDefaultBoost' ? 0 : 1, val));
+                        }}
                         className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-brand-green/50 transition-all"
                       />
                       <span className="text-xs text-neutral-500 w-12">{unit}</span>
@@ -690,18 +1008,57 @@ export default function LeadDistroAdmin() {
 
               <div className="space-y-4">
                 {([
-                  { key: 'reminderMinutes' as const, label: 'Reminder', desc: 'Send reminder notification after this many minutes', icon: '1' },
-                  { key: 'warningMinutes' as const, label: 'Warning', desc: 'Escalate warning to manager after this many minutes', icon: '2' },
-                  { key: 'urgentWarningMinutes' as const, label: 'Urgent Warning', desc: 'Final "about to be reassigned" warning after this many minutes', icon: '3' },
-                  { key: 'reassignMinutes' as const, label: 'Reassign', desc: 'Automatically reassign lead after this many minutes', icon: '4' },
-                ]).map(({ key, label, desc, icon }) => (
+                  {
+                    key: 'reminderMinutes' as const,
+                    label: 'Reminder',
+                    desc: 'Gentle nudge to the assigned rep',
+                    recommended: '3 – 10 min',
+                    tooltip: 'Sent to the rep only. Low-pressure. If you make this too short, reps tune out the notifications.',
+                    icon: '1',
+                  },
+                  {
+                    key: 'warningMinutes' as const,
+                    label: 'Warning',
+                    desc: 'Manager cc\'d, rep is on watch',
+                    recommended: '15 – 30 min',
+                    tooltip: 'Manager gets cc\'d. This is the first sign the lead is at risk. Avoid setting this so close to the reassign timer that the rep has no chance to recover.',
+                    icon: '2',
+                  },
+                  {
+                    key: 'urgentWarningMinutes' as const,
+                    label: 'Urgent Warning',
+                    desc: 'Final "about to lose this lead" alert',
+                    recommended: '30 – 60 min',
+                    tooltip: 'Last chance for the rep before auto-reassign. Some teams use this stage to require a phone call (vs SMS-only).',
+                    icon: '3',
+                  },
+                  {
+                    key: 'reassignMinutes' as const,
+                    label: 'Auto-Reassign',
+                    desc: 'Lead transfers to next-best rep',
+                    recommended: '45 – 90 min',
+                    tooltip: 'When this fires, the lead leaves the original rep\'s queue. Don\'t go below 45 min during business hours unless reps have validated the policy. After hours, extend to 2–4 hr.',
+                    icon: '4',
+                  },
+                ]).map(({ key, label, desc, recommended, tooltip, icon }) => (
                   <div key={key} className="flex items-start gap-3">
                     <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400 text-xs font-bold flex-shrink-0 mt-1">
                       {icon}
                     </div>
                     <div className="flex-1">
-                      <label className="block text-sm font-medium text-neutral-300 mb-1">{label}</label>
-                      <p className="text-xs text-neutral-500 mb-2">{desc}</p>
+                      <InfoTooltip content={
+                        <>
+                          <div className="font-semibold text-white mb-1">Stage {icon}: {label}</div>
+                          <div className="text-neutral-300 mb-2">{desc}</div>
+                          <div className="space-y-1.5">
+                            <div><span className="text-neutral-500">Recommended:</span> <span className="text-emerald-400">{recommended}</span></div>
+                            <div className="text-neutral-300">{tooltip}</div>
+                          </div>
+                        </>
+                      }>
+                        <label className="block text-sm font-medium text-neutral-300">{label}</label>
+                      </InfoTooltip>
+                      <p className="text-xs text-neutral-500 mb-2 mt-1">{desc} · recommended {recommended}</p>
                       <div className="flex items-center gap-2">
                         <input
                           type="number"

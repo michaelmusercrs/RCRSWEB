@@ -33,11 +33,32 @@ export interface LeadDistroConfig {
     closeRate: number;
     responseTime: number;
   };
+  // Per-factor enabled flag. Missing or true = factor counts; false = factor
+  // is dismissed entirely (audit log shows "DISABLED (admin)" not "weight=0").
+  // The UI constraint "weights must total 100" applies only to ENABLED factors.
+  weightsEnabled?: {
+    installProximity?: boolean;
+    contactProximity?: boolean;
+    doorKnockRecency?: boolean;
+    referralBonus?: boolean;
+    meetingAttendance?: boolean;
+    closeRate?: boolean;
+    responseTime?: boolean;
+  };
+  // Routing mode. 'auto' = algorithm assigns immediately (legacy behavior).
+  // 'suggest' = algorithm returns top-N candidates with reasons but does NOT
+  // assign or start the response timer; a dispatcher confirms. Default: auto.
+  routingMode?: 'auto' | 'suggest';
+  // Number of suggestions to surface in suggest mode. Default: 3.
+  suggestionCount?: number;
   thresholds: {
     proximityRadiusMiles: number;
     recentInteractionDays: number;
     staleInteractionDays: number;
     minRepsForDistribution: number;
+    clearWinnerGapPercent?: number; // round-robin trigger when gap < N%; default 10
+    newRepTenureDays?: number; // reps younger than this get default-factor boost; default 30
+    newRepDefaultBoost?: number; // boost value for new reps' default factors (vs 0.5); default 0.7
   };
   responseTimers: {
     reminderMinutes: number;
@@ -65,6 +86,9 @@ export interface RepScore {
   isAvailable: boolean;
   isEligible: boolean;
   disqualifyReason?: string;
+  // For tiebreaker / explainability
+  lastAssignedAt?: string; // ISO timestamp from lead-response-log; '' if never
+  isNewRep?: boolean;
 }
 
 export interface DistributionResult {
@@ -173,9 +197,11 @@ class LeadDistributionService {
       preferencesMap.set(rec.repSlug, rec);
     }
 
-    // Convert sheet records to GeocodedContact format with numeric lat/lng
+    // Convert sheet records to GeocodedContact format with numeric lat/lng.
+    // Parse FIRST, then filter NaN — guards against malformed lat/lng strings
+    // ("abc", "34.6N", trailing spaces) that would corrupt downstream haversine
+    // math and propagate NaN scores through the algorithm.
     const contacts: GeocodedContact[] = allContacts
-      .filter(c => c.lat && c.lng)
       .map(c => ({
         jnid: c.jnid,
         name: c.name,
@@ -189,10 +215,23 @@ class LeadDistributionService {
         lastInteraction: c.lastInteraction,
         interactionType: c.interactionType,
         createdAt: c.createdAt,
-      }));
+      }))
+      .filter(c => !Number.isNaN(c.lat) && !Number.isNaN(c.lng));
 
     const salesReps = getSalesReps();
     const scores: RepScore[] = [];
+
+    // Build per-rep "last assigned at" map from the response log (used for tiebreaker)
+    const lastAssignedByRep = new Map<string, string>();
+    for (const log of responseLogs) {
+      const cur = lastAssignedByRep.get(log.repSlug) || '';
+      if (log.assignedAt && (!cur || log.assignedAt > cur)) {
+        lastAssignedByRep.set(log.repSlug, log.assignedAt);
+      }
+    }
+
+    const now = Date.now();
+    const newRepWindow = config.thresholds.newRepTenureDays ?? 30;
 
     for (const rep of salesReps) {
       const score = this.scoreRep(
@@ -207,6 +246,8 @@ class LeadDistributionService {
         config,
         referralRepSlug
       );
+      score.lastAssignedAt = lastAssignedByRep.get(rep.slug) || '';
+      score.isNewRep = this.getTenureDays(rep, now) <= newRepWindow;
       scores.push(score);
     }
 
@@ -214,6 +255,23 @@ class LeadDistributionService {
     scores.sort((a, b) => b.totalScore - a.totalScore);
 
     return scores;
+  }
+
+  /**
+   * Build a short human-readable reason for why a particular rep was chosen.
+   * Picks the two highest-contributing factors and surfaces their explanations.
+   */
+  private buildReasonString(score: RepScore, tiebreaker: string): string {
+    const sortedFactors = Object.entries(score.factors)
+      .filter(([, f]) => f.score > 0)
+      .sort((a, b) => b[1].score - a[1].score);
+    const top = sortedFactors.slice(0, 2);
+    if (top.length === 0) {
+      return `${score.repName}: no positive factor scores; selected via ${tiebreaker || 'round-robin'}`;
+    }
+    const bits = top.map(([k, f]) => `${k} ${f.score.toFixed(1)} (${f.explanation})`);
+    const tail = tiebreaker ? ` · tiebreaker: ${tiebreaker}` : '';
+    return `${score.repName}: ${bits.join(' + ')}${tail}`;
   }
 
   /**
@@ -266,7 +324,28 @@ class LeadDistributionService {
 
     const radius = config.thresholds.proximityRadiusMiles;
     const now = Date.now();
-    const repContacts = allContacts.filter(c => c.salesRep === rep.slug || c.salesRep === rep.name);
+    // Lenient rep match: writers may store first-name slug ('aaron'), full-name
+    // slug ('aaron-lussi'), or the raw display name ('Aaron Lussi'). Accept all.
+    const repFullSlug = rep.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const repContacts = allContacts.filter(c =>
+      c.salesRep === rep.slug ||
+      c.salesRep === rep.name ||
+      c.salesRep === repFullSlug
+    );
+
+    // Per-factor weight access with safe defaults. Guards against the case
+    // where a manual JSON edit removed a weight field — without defaults,
+    // `undefined * score` would propagate NaN through totalScore and corrupt
+    // the sort comparison.
+    const w = {
+      installProximity: config.weights.installProximity ?? 0,
+      contactProximity: config.weights.contactProximity ?? 0,
+      doorKnockRecency: config.weights.doorKnockRecency ?? 0,
+      referralBonus: config.weights.referralBonus ?? 0,
+      meetingAttendance: config.weights.meetingAttendance ?? 0,
+      closeRate: config.weights.closeRate ?? 0,
+      responseTime: config.weights.responseTime ?? 0,
+    };
 
     // --- 1. Install Proximity ---
     const installScore = this.scoreProximity(
@@ -278,8 +357,8 @@ class LeadDistributionService {
       config
     );
     factors.installProximity = {
-      score: installScore.score * config.weights.installProximity,
-      weight: config.weights.installProximity,
+      score: installScore.score * w.installProximity,
+      weight: w.installProximity,
       raw: installScore.score,
       explanation: installScore.explanation,
     };
@@ -294,8 +373,8 @@ class LeadDistributionService {
       config
     );
     factors.contactProximity = {
-      score: contactScore.score * config.weights.contactProximity,
-      weight: config.weights.contactProximity,
+      score: contactScore.score * w.contactProximity,
+      weight: w.contactProximity,
       raw: contactScore.score,
       explanation: contactScore.explanation,
     };
@@ -310,8 +389,8 @@ class LeadDistributionService {
       config
     );
     factors.doorKnockRecency = {
-      score: knockScore.score * config.weights.doorKnockRecency,
-      weight: config.weights.doorKnockRecency,
+      score: knockScore.score * w.doorKnockRecency,
+      weight: w.doorKnockRecency,
       raw: knockScore.score,
       explanation: knockScore.explanation,
     };
@@ -319,43 +398,62 @@ class LeadDistributionService {
     // --- 4. Referral Bonus ---
     const isReferral = referralRepSlug === rep.slug;
     factors.referralBonus = {
-      score: isReferral ? config.weights.referralBonus : 0,
-      weight: config.weights.referralBonus,
+      score: isReferral ? w.referralBonus : 0,
+      weight: w.referralBonus,
       raw: isReferral ? 1.0 : 0.0,
       explanation: isReferral
         ? 'This rep referred the lead - full referral bonus applied'
         : 'No referral bonus',
     };
 
+    // --- New-rep tenure boost ---
+    // Reps within the configured tenure window get a higher default score for
+    // factors that depend on accumulated history (attendance, close rate,
+    // response time). Without this, brand-new reps structurally score at the
+    // floor and only ever win via round-robin.
+    const tenureDays = this.getTenureDays(rep, now);
+    const newRepWindow = config.thresholds.newRepTenureDays ?? 30;
+    const newRepBoost = config.thresholds.newRepDefaultBoost ?? 0.7;
+    const isNewRep = tenureDays <= newRepWindow;
+
     // --- 5. Meeting Attendance ---
-    // Score based on the rep's overall response/engagement rate from lead logs.
-    // Reps who respond to a higher percentage of assigned leads score higher.
-    const attendanceScore = this.scoreMeetingAttendance(repResponseLogs);
+    const attendanceScore = this.scoreMeetingAttendance(repResponseLogs, isNewRep ? newRepBoost : 0.5);
     factors.meetingAttendance = {
-      score: attendanceScore.score * config.weights.meetingAttendance,
-      weight: config.weights.meetingAttendance,
+      score: attendanceScore.score * w.meetingAttendance,
+      weight: w.meetingAttendance,
       raw: attendanceScore.score,
-      explanation: attendanceScore.explanation,
+      explanation: attendanceScore.explanation + (isNewRep ? ' (new-rep boost applied)' : ''),
     };
 
     // --- 6. Close Rate ---
-    // Score based on the rep's responded/total lead ratio from response logs.
-    const closeRateScore = this.scoreCloseRate(repResponseLogs);
+    const closeRateScore = this.scoreCloseRate(repResponseLogs, isNewRep ? newRepBoost : 0.5);
     factors.closeRate = {
-      score: closeRateScore.score * config.weights.closeRate,
-      weight: config.weights.closeRate,
+      score: closeRateScore.score * w.closeRate,
+      weight: w.closeRate,
       raw: closeRateScore.score,
-      explanation: closeRateScore.explanation,
+      explanation: closeRateScore.explanation + (isNewRep ? ' (new-rep boost applied)' : ''),
     };
 
     // --- 7. Response Time (uses JN mined data when available) ---
-    const responseScore = this.scoreResponseTime(repResponseLogs, rep.slug);
+    const responseScore = this.scoreResponseTime(repResponseLogs, rep.slug, isNewRep ? newRepBoost : 0.5);
     factors.responseTime = {
-      score: responseScore.score * config.weights.responseTime,
-      weight: config.weights.responseTime,
+      score: responseScore.score * w.responseTime,
+      weight: w.responseTime,
       raw: responseScore.score,
-      explanation: responseScore.explanation,
+      explanation: responseScore.explanation + (isNewRep ? ' (new-rep boost applied)' : ''),
     };
+
+    // --- Apply dismissible-toggle: zero out any disabled factor ---
+    // weightsEnabled is optional; missing or true = enabled. False = dismissed.
+    const enabledMap = config.weightsEnabled || {};
+    for (const key of Object.keys(factors)) {
+      const isEnabled = enabledMap[key as keyof typeof enabledMap] !== false;
+      if (!isEnabled) {
+        factors[key].score = 0;
+        factors[key].raw = 0;
+        factors[key].explanation = `DISABLED (admin) — ${factors[key].explanation}`;
+      }
+    }
 
     // --- Calculate total score ---
     let totalScore = 0;
@@ -487,26 +585,33 @@ class LeadDistributionService {
   }
 
   /**
-   * Calculate recency multiplier for a contact based on its last interaction date.
-   * Within 90 days = 1.0x, within 1yr = 0.7x, within 2yr = 0.4x, older = 0.1x
+   * Calculate recency multiplier via smooth exponential decay.
+   * `0.1 + 0.9 * exp(-days/180)` — 1.0 today, 0.55 at 90d, 0.32 at 180d, 0.18 at 365d, 0.10 floor.
+   * Smoother than the old 90/365/730-day step cliffs (which dropped 30% in a single day).
    */
   private getRecencyMultiplier(
     lastInteraction: string,
     now: number,
-    config: LeadDistroConfig
+    _config: LeadDistroConfig
   ): number {
     if (!lastInteraction) return 0.1;
-
     const interactionTime = new Date(lastInteraction).getTime();
     if (isNaN(interactionTime)) return 0.1;
+    const daysSince = Math.max(0, (now - interactionTime) / MS_PER_DAY);
+    const decayHalfLifeDays = 180;
+    return Math.max(0.1, 0.1 + 0.9 * Math.exp(-daysSince / decayHalfLifeDays));
+  }
 
-    const daysSince = (now - interactionTime) / MS_PER_DAY;
-    const recentDays = config.thresholds.recentInteractionDays; // 90
-
-    if (daysSince <= recentDays) return 1.0;
-    if (daysSince <= 365) return 0.7;
-    if (daysSince <= 730) return 0.4;
-    return 0.1;
+  /**
+   * Days since the rep was added to the system. Used to give new reps a
+   * tenure-based default-factor boost (avoids structural starvation when
+   * they have no historical performance data yet).
+   */
+  private getTenureDays(rep: TeamMember, now: number): number {
+    if (!rep.createdAt) return Infinity;
+    const created = new Date(rep.createdAt).getTime();
+    if (isNaN(created)) return Infinity;
+    return Math.max(0, (now - created) / MS_PER_DAY);
   }
 
   /**
@@ -524,7 +629,8 @@ class LeadDistributionService {
    */
   private scoreResponseTime(
     responseLogs: { responseMinutes: string }[],
-    repSlug?: string
+    repSlug?: string,
+    defaultScore: number = 0.5
   ): { score: number; explanation: string } {
     // Check JN mined data first (loaded into cache by calculateRepScores)
     if (repSlug && this.jnResponseTimeCache) {
@@ -545,7 +651,7 @@ class LeadDistributionService {
     );
 
     if (validLogs.length === 0) {
-      return { score: 0.5, explanation: 'No response time data - using default 0.5' };
+      return { score: defaultScore, explanation: `No response time data - using default ${defaultScore.toFixed(2)}` };
     }
 
     const totalMinutes = validLogs.reduce(
@@ -570,10 +676,11 @@ class LeadDistributionService {
    * Default 0.5 if fewer than 3 leads (insufficient data).
    */
   private scoreMeetingAttendance(
-    responseLogs: { responseMinutes: string }[]
+    responseLogs: { responseMinutes: string }[],
+    defaultScore: number = 0.5
   ): { score: number; explanation: string } {
     if (responseLogs.length < 3) {
-      return { score: 0.5, explanation: `Insufficient data (${responseLogs.length} leads) - using default 0.5` };
+      return { score: defaultScore, explanation: `Insufficient data (${responseLogs.length} leads) - using default ${defaultScore.toFixed(2)}` };
     }
 
     const responded = responseLogs.filter(
@@ -604,10 +711,11 @@ class LeadDistributionService {
    * Default 0.5 if fewer than 3 leads.
    */
   private scoreCloseRate(
-    responseLogs: { responseMinutes: string }[]
+    responseLogs: { responseMinutes: string }[],
+    defaultScore: number = 0.5
   ): { score: number; explanation: string } {
     if (responseLogs.length < 3) {
-      return { score: 0.5, explanation: `Insufficient data (${responseLogs.length} leads) - using default 0.5` };
+      return { score: defaultScore, explanation: `Insufficient data (${responseLogs.length} leads) - using default ${defaultScore.toFixed(2)}` };
     }
 
     const responded = responseLogs.filter(
@@ -677,6 +785,24 @@ class LeadDistributionService {
         throw new Error(`Override rep "${overrideRepSlug}" not found among active sales reps`);
       }
 
+      // Check rep availability — warn but allow the override (admin's choice).
+      // Audit trail captures the bypass.
+      let availWarn = '';
+      try {
+        const availRecords = await googleSheetsService.getRepAvailability(overrideRep.slug);
+        const rec = availRecords.find(r => r.repSlug === overrideRep.slug);
+        if (rec) {
+          if (rec.isReceivingLeads !== 'true') {
+            availWarn = '[OVERRIDE-AVAIL-WARN] Rep was marked not-receiving-leads';
+          }
+          if (rec.adminOverride === 'true') {
+            availWarn = '[OVERRIDE-AVAIL-WARN] Rep was admin-overridden off';
+          }
+        }
+      } catch {
+        // availability check is best-effort
+      }
+
       const manualScore: RepScore = {
         repSlug: overrideRep.slug,
         repName: overrideRep.name,
@@ -686,15 +812,29 @@ class LeadDistributionService {
             score: 100,
             weight: 100,
             raw: 1.0,
-            explanation: `Manually assigned to ${overrideRep.name}`,
+            explanation: `Manually assigned to ${overrideRep.name}${availWarn ? ' — ' + availWarn : ''}`,
           },
         },
-        isAvailable: true,
+        isAvailable: !availWarn,
         isEligible: true,
       };
 
-      // Log the distribution
-      await this.logDistribution(logId, leadId, customerName, leadAddress, manualScore, [], 'manual');
+      const manualReason = `${overrideRep.name}: manual override by dispatcher${availWarn ? ' (' + availWarn + ')' : ''}`;
+      await this.logDistribution(logId, leadId, customerName, leadAddress, manualScore, [], 'manual', manualReason, null, '', config.updatedAt || '');
+
+      // Parity with the auto-assign path: write the outcome-log stub so any
+      // post-assignment event (first contact, sold, lost) can upsert against it.
+      if (leadId && leadId !== 'pending') {
+        googleSheetsService.upsertLeadOutcomeLog({
+          logId,
+          leadId,
+          assignedRep: overrideRep.slug,
+          originalAssignedRep: overrideRep.slug,
+          finalDisposition: 'open',
+        }).catch(err => {
+          console.warn(`[LeadDistro] Failed to create outcome-log stub for manual override on ${leadId}:`, err);
+        });
+      }
 
       result = {
         assignedRep: manualScore,
@@ -711,16 +851,62 @@ class LeadDistributionService {
         throw new Error('No eligible sales reps available for lead distribution');
       }
 
+      // --- Suggest mode: surface top-N, write a pending-pick outcome stub,
+      // but do NOT actually assign or start a timer. Manager must confirm via
+      // overrideRepSlug to finalize. The distribution log's assignedRep stays
+      // EMPTY in suggest mode — the provisional #1 is captured separately in
+      // the reason field. This way the audit shows the lead was NOT assigned.
+      if ((config.routingMode || 'auto') === 'suggest' && leadId && leadId !== 'pending') {
+        const count = config.suggestionCount ?? 3;
+        const top = eligibleScores.slice(0, count);
+        const winner = top[0]; // for surface purposes only — NOT assigned
+        const candidatesText = top
+          .map((s, i) => `${i + 1}. ${s.repName} (score ${s.totalScore.toFixed(1)})`)
+          .join(' · ');
+        const reason = `Suggest mode — awaiting manager pick. Top ${top.length}: ${candidatesText}`;
+        // Write log with EMPTY assignedRep — explicitly NOT assigned yet
+        const emptyAssign: RepScore = {
+          repSlug: '',
+          repName: '(pending manager pick)',
+          totalScore: 0,
+          factors: winner.factors, // surface the provisional #1's breakdown for context
+          isAvailable: false,
+          isEligible: false,
+        };
+        await this.logDistribution(
+          logId, leadId, customerName, leadAddress,
+          emptyAssign, allScores, 'algorithm', reason,
+          top[1] || null, 'pending-manager-pick', config.updatedAt || ''
+        );
+        googleSheetsService.upsertLeadOutcomeLog({
+          logId,
+          leadId,
+          assignedRep: '',
+          originalAssignedRep: '',
+          finalDisposition: 'pending-manager-pick',
+        }).catch(err => {
+          console.warn(`[LeadDistro] Failed to create pending-pick outcome stub for ${leadId}:`, err);
+        });
+        return {
+          assignedRep: winner, // returned for caller's display purposes (top-1 hint)
+          allScores,
+          method: 'algorithm',
+          logId,
+        };
+      }
+
       const topScore = eligibleScores[0];
       const secondScore = eligibleScores.length > 1 ? eligibleScores[1] : null;
 
-      // Check if there is a clear winner (>10% gap to second place)
+      // Clear-winner gap threshold from config (default 10%)
+      const gapPct = (config.thresholds.clearWinnerGapPercent ?? 10) / 100;
       const hasClearWinner =
         topScore.totalScore > 0 &&
-        (!secondScore || (topScore.totalScore - secondScore.totalScore) / topScore.totalScore > 0.1);
+        (!secondScore || (topScore.totalScore - secondScore.totalScore) / topScore.totalScore > gapPct);
 
       if (hasClearWinner) {
-        await this.logDistribution(logId, leadId, customerName, leadAddress, topScore, allScores, 'algorithm');
+        const reason = this.buildReasonString(topScore, '');
+        await this.logDistribution(logId, leadId, customerName, leadAddress, topScore, allScores, 'algorithm', reason, secondScore, '', config.updatedAt || '');
 
         result = {
           assignedRep: topScore,
@@ -729,13 +915,33 @@ class LeadDistributionService {
           logId,
         };
       } else {
-        // --- Round robin fallback ---
-        const roundRobinRep = this.getNextRoundRobin(eligibleScores);
+        // --- Tiebreaker: longest time since last assignment ---
+        // Take all candidates within `gapPct` of the top, pick the one with the
+        // oldest lastAssignedAt (or never assigned). Falls back to round-robin
+        // counter if everyone has identical history.
+        const threshold = topScore.totalScore * (1 - gapPct);
+        const candidates = eligibleScores.filter(s => s.totalScore >= threshold);
+        const candidateByOldest = [...candidates].sort((a, b) => {
+          const aTime = a.lastAssignedAt ? new Date(a.lastAssignedAt).getTime() : 0;
+          const bTime = b.lastAssignedAt ? new Date(b.lastAssignedAt).getTime() : 0;
+          return aTime - bTime; // ascending: oldest first
+        });
 
-        await this.logDistribution(logId, leadId, customerName, leadAddress, roundRobinRep, allScores, 'round_robin');
+        let tiebreakerApplied = '';
+        let pick: RepScore;
+        if (candidateByOldest.length > 0 && candidateByOldest[0].lastAssignedAt !== candidateByOldest[candidateByOldest.length - 1]?.lastAssignedAt) {
+          pick = candidateByOldest[0];
+          tiebreakerApplied = 'longest-since-last';
+        } else {
+          pick = this.getNextRoundRobin(candidates.length ? candidates : eligibleScores);
+          tiebreakerApplied = 'round-robin-counter';
+        }
+
+        const reason = this.buildReasonString(pick, tiebreakerApplied);
+        await this.logDistribution(logId, leadId, customerName, leadAddress, pick, allScores, 'round_robin', reason, secondScore, tiebreakerApplied, config.updatedAt || '');
 
         result = {
-          assignedRep: roundRobinRep,
+          assignedRep: pick,
           allScores,
           method: 'round_robin',
           logId,
@@ -752,6 +958,18 @@ class LeadDistributionService {
     if (leadId && leadId !== 'pending') {
       leadResponseTimerService.startTimer(leadId, assignedRepSlug, customerName).catch(err => {
         console.warn(`[LeadDistro] Failed to start response timer for ${leadId}:`, err);
+      });
+
+      // Open a stub outcome-log row so downstream events (first contact,
+      // estimate, sold/lost, reassignment) can upsert against this logId.
+      googleSheetsService.upsertLeadOutcomeLog({
+        logId,
+        leadId,
+        assignedRep: assignedRepSlug,
+        originalAssignedRep: assignedRepSlug,
+        finalDisposition: 'open',
+      }).catch(err => {
+        console.warn(`[LeadDistro] Failed to create outcome-log stub for ${leadId}:`, err);
       });
     }
 
@@ -814,6 +1032,28 @@ class LeadDistributionService {
   }
 
   /**
+   * Return top-N eligible candidates with reasons attached, for suggestion-mode
+   * UIs. Doesn't write to any log and doesn't start any timers. Caller picks
+   * one and calls distributeLead with overrideRepSlug to commit.
+   */
+  async getTopSuggestions(
+    address: string,
+    n?: number,
+    source?: string,
+    referralRepSlug?: string,
+  ): Promise<Array<RepScore & { reason: string; rank: number }>> {
+    const config = this.getConfig();
+    const count = n ?? config.suggestionCount ?? 3;
+    const scores = await this.calculateRepScores(address, source, referralRepSlug);
+    const eligible = scores.filter(s => s.isEligible);
+    return eligible.slice(0, count).map((score, idx) => ({
+      ...score,
+      reason: this.buildReasonString(score, ''),
+      rank: idx + 1,
+    }));
+  }
+
+  /**
    * Get recent distribution history from the log sheet.
    */
   async getDistributionHistory(limit?: number, assignedRep?: string): Promise<LeadDistributionLogRecord[]> {
@@ -844,7 +1084,8 @@ class LeadDistributionService {
   }
 
   /**
-   * Log a distribution event to Google Sheets.
+   * Log a distribution event to Google Sheets. Persists the winner, runner-up,
+   * weight-set version, tiebreaker (if any), and a human-readable reason.
    */
   private async logDistribution(
     logId: string,
@@ -853,7 +1094,11 @@ class LeadDistributionService {
     address: string,
     assignedRep: RepScore,
     allScores: RepScore[],
-    method: 'algorithm' | 'round_robin' | 'manual'
+    method: 'algorithm' | 'round_robin' | 'manual',
+    reason: string,
+    runnerUp: RepScore | null,
+    tiebreakerApplied: string,
+    weightSetVersion: string
   ): Promise<void> {
     const scoresForLog: Record<string, number> = {};
     for (const score of allScores) {
@@ -870,6 +1115,11 @@ class LeadDistributionService {
       factors: JSON.stringify(assignedRep.factors),
       overrideReason: method === 'manual' ? 'Manual override' : method === 'round_robin' ? 'Round robin fallback - no clear winner' : '',
       timestamp: new Date().toISOString(),
+      reason,
+      runnerUpRep: runnerUp?.repSlug || '',
+      runnerUpScore: runnerUp ? runnerUp.totalScore.toFixed(2) : '',
+      weightSetVersion,
+      tiebreakerApplied,
     };
 
     try {

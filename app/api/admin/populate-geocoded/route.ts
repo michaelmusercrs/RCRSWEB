@@ -64,8 +64,11 @@ async function populateFromJNGeo(): Promise<PopulateResult> {
           continue;
         }
 
-        // Use JN's built-in geo field
-        if (!c.geo?.lat || !c.geo?.lng) {
+        // Use JN's built-in geo field. JN API returns `lon` (older convention);
+        // accept either `lng` or `lon`.
+        const geoLat = c.geo?.lat;
+        const geoLng = c.geo?.lng ?? c.geo?.lon;
+        if (geoLat == null || geoLng == null) {
           skippedNoGeo++;
           continue;
         }
@@ -74,23 +77,51 @@ async function populateFromJNGeo(): Promise<PopulateResult> {
         const name = c.display_name || `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Unknown';
         const statusLower = (c.status_name || c.status || '').toLowerCase();
         let type = 'contact';
-        if (statusLower.includes('complete') || statusLower.includes('closed')) type = 'install';
+        if (statusLower.includes('complete') || statusLower.includes('closed') || statusLower.includes('paid')) type = 'install';
         else if (statusLower.includes('lead') || statusLower.includes('new')) type = 'lead';
 
         const repName = c.sales_rep_name || '';
         const repSlug = repName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        const isoFromEpoch = (n?: number) => (n ? new Date(n * 1000).toISOString() : '');
+        const lastInteraction =
+          isoFromEpoch(c.date_status_change) ||
+          isoFromEpoch(c.date_updated) ||
+          isoFromEpoch(c.updated_at);
+        const dateOfLossRaw = (c['Date of Loss'] ?? c.cf_date_1) as number | undefined;
 
         newRecords.push({
           jnid: c.jnid,
           name,
+          firstName: c.first_name || '',
+          lastName: c.last_name || '',
+          company: c.company || '',
           address,
-          lat: String(c.geo.lat),
-          lng: String(c.geo.lng),
+          city: c.city || '',
+          state: c.state_text || '',
+          zip: c.zip || '',
+          lat: String(geoLat),
+          lng: String(geoLng),
           placeId: '',
+          email: c.email || '',
+          mobilePhone: c.mobile_phone || '',
+          homePhone: c.home_phone || '',
           type,
+          recordType: c.record_type_name || c.record_type || '',
           salesRep: repSlug,
+          salesRepName: repName,
+          salesRepId: c.sales_rep || '',
           jobStatus: c.status_name || c.status || '',
-          lastInteraction: c.updated_at ? new Date(c.updated_at * 1000).toISOString() : '',
+          isClosed: c.is_closed ? 'true' : 'false',
+          isArchived: c.is_archived ? 'true' : 'false',
+          source: c.source_name || c.source || '',
+          tags: Array.isArray(c.tags) ? c.tags.join('|') : '',
+          approvedEstimateTotal: c.approved_estimate_total != null ? String(c.approved_estimate_total) : '',
+          approvedInvoiceTotal: c.approved_invoice_total != null ? String(c.approved_invoice_total) : '',
+          lastBudgetRevenue: c.last_budget_revenue != null ? String(c.last_budget_revenue) : '',
+          dateOfLoss: isoFromEpoch(dateOfLossRaw),
+          dateCreated: isoFromEpoch(c.date_created),
+          dateUpdated: isoFromEpoch(c.date_updated) || isoFromEpoch(c.updated_at),
+          lastInteraction,
           interactionType: type,
           createdAt: new Date().toISOString(),
         });

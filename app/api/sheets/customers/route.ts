@@ -125,7 +125,7 @@ async function fetchAllJNContacts(maxContacts: number = 10500, viewer?: JNViewer
         status: c.status_name || c.status || '',
         isArchived: c.is_archived || false,
         lat: c.geo?.lat ?? null,
-        lng: c.geo?.lng ?? null,
+        lng: c.geo?.lng ?? c.geo?.lon ?? null,
         jobCount: 0,
         totalSpent: 0,
         lastJobDate: '',

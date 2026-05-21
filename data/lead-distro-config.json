@@ -12,7 +12,10 @@
     "proximityRadiusMiles": 2.0,
     "recentInteractionDays": 90,
     "staleInteractionDays": 730,
-    "minRepsForDistribution": 2
+    "minRepsForDistribution": 2,
+    "clearWinnerGapPercent": 10,
+    "newRepTenureDays": 30,
+    "newRepDefaultBoost": 0.7
   },
   "responseTimers": {
     "reminderMinutes": 5,

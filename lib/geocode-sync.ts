@@ -72,6 +72,25 @@ function buildCustomerAddress(customer: {
   return parts.join(', ');
 }
 
+function emptyGeocodedRecord(): GeocodedContactRecord {
+  return {
+    jnid: '', name: '', firstName: '', lastName: '', company: '',
+    address: '', city: '', state: '', zip: '',
+    lat: '', lng: '', placeId: '',
+    email: '', mobilePhone: '', homePhone: '',
+    type: '', recordType: '',
+    salesRep: '', salesRepName: '', salesRepId: '',
+    jobStatus: '', isClosed: '', isArchived: '',
+    source: '', tags: '',
+    approvedEstimateTotal: '', approvedInvoiceTotal: '', lastBudgetRevenue: '',
+    dateOfLoss: '',
+    dateCreated: '', dateUpdated: '', lastInteraction: '', interactionType: '',
+    createdAt: '',
+  };
+}
+
+const isoFromEpoch = (n?: number) => (n ? new Date(n * 1000).toISOString() : '');
+
 export async function runGeocodeSync(): Promise<SyncProgress> {
   if (currentSync.status === 'fetching' || currentSync.status === 'geocoding' || currentSync.status === 'saving') {
     return currentSync; // Already running
@@ -132,19 +151,45 @@ export async function runGeocodeSync(): Promise<SyncProgress> {
           const salesRep = repNameToSlug(c.sales_rep_name);
           const updatedAt = c.updated_at ? new Date(c.updated_at * 1000).toISOString() : '';
 
-          // If JN already has geo data, save directly without Nominatim
-          if (c.geo?.lat && c.geo?.lng) {
+          // If JN already has geo data, save directly without Nominatim.
+          // JN API returns `lon` (older convention); accept either.
+          const geoLat = c.geo?.lat;
+          const geoLng = c.geo?.lng ?? c.geo?.lon;
+          if (geoLat != null && geoLng != null) {
+            const dateOfLossRaw = (c['Date of Loss'] ?? c.cf_date_1) as number | undefined;
             directGeoRecords.push({
+              ...emptyGeocodedRecord(),
               jnid: c.jnid,
               name,
+              firstName: c.first_name || '',
+              lastName: c.last_name || '',
+              company: c.company || '',
               address,
-              lat: String(c.geo.lat),
-              lng: String(c.geo.lng),
-              placeId: '',
+              city: c.city || '',
+              state: c.state_text || '',
+              zip: c.zip || '',
+              lat: String(geoLat),
+              lng: String(geoLng),
+              email: c.email || '',
+              mobilePhone: c.mobile_phone || '',
+              homePhone: c.home_phone || '',
               type,
+              recordType: c.record_type_name || c.record_type || '',
               salesRep,
-              jobStatus: c.status || c.status_name || '',
-              lastInteraction: updatedAt,
+              salesRepName: c.sales_rep_name || '',
+              salesRepId: c.sales_rep || '',
+              jobStatus: c.status_name || c.status || '',
+              isClosed: c.is_closed ? 'true' : 'false',
+              isArchived: c.is_archived ? 'true' : 'false',
+              source: c.source_name || c.source || '',
+              tags: Array.isArray(c.tags) ? c.tags.join('|') : '',
+              approvedEstimateTotal: c.approved_estimate_total != null ? String(c.approved_estimate_total) : '',
+              approvedInvoiceTotal: c.approved_invoice_total != null ? String(c.approved_invoice_total) : '',
+              lastBudgetRevenue: c.last_budget_revenue != null ? String(c.last_budget_revenue) : '',
+              dateOfLoss: isoFromEpoch(dateOfLossRaw),
+              dateCreated: isoFromEpoch(c.date_created),
+              dateUpdated: isoFromEpoch(c.date_updated) || updatedAt,
+              lastInteraction: isoFromEpoch(c.date_status_change) || updatedAt,
               interactionType: type,
               createdAt: new Date().toISOString(),
             });
@@ -234,6 +279,7 @@ export async function runGeocodeSync(): Promise<SyncProgress> {
           currentSync.geocoded++;
 
           const record: GeocodedContactRecord = {
+            ...emptyGeocodedRecord(),
             jnid: contact.id,
             name: contact.name,
             address: result.displayName || contact.address,
@@ -307,6 +353,7 @@ export async function geocodeAndSaveContact(params: {
     if (!result) return null;
 
     const record: GeocodedContactRecord = {
+      ...emptyGeocodedRecord(),
       jnid: params.id,
       name: params.name,
       address: result.displayName || params.address,
