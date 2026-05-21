@@ -21,6 +21,9 @@ import { analyzeCloseRates } from '@/lib/jn-close-rate-analysis';
 import { analyzeInsurance } from '@/lib/jn-insurance-analysis';
 import { analyzeJobLifecycle } from '@/lib/jn-job-lifecycle';
 import { analyzeLeadSources } from '@/lib/jn-lead-sources';
+import { analyzeReferralNetwork } from '@/lib/referral-network';
+import { analyzeEstimateAging } from '@/lib/jn-estimate-aging';
+import { analyzeSegmentedLTV } from '@/lib/segmented-ltv-analysis';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -48,6 +51,9 @@ const PAGES: Page[] = [
   { slug: 'insurance',      compute: () => analyzeInsurance({ days: 180 }) },
   { slug: 'lifecycle',      compute: () => analyzeJobLifecycle({ days: 180 }) },
   { slug: 'lead-sources',   compute: () => analyzeLeadSources({ days: 180 }) },
+  { slug: 'referral-network', compute: () => analyzeReferralNetwork({ days: 365 }) },
+  { slug: 'aging',            compute: () => analyzeEstimateAging({ days: 180 }) },
+  { slug: 'segmented-ltv',    compute: () => analyzeSegmentedLTV() },
 ];
 
 export async function GET(request: NextRequest) {

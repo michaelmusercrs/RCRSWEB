@@ -12,7 +12,7 @@ import Link from 'next/link';
 import {
   ArrowLeft, Database, BarChart3, Crown, Brain, Clock, TrendingUp,
   Shield, Wrench, Wallet, HardHat, Megaphone, Heart, ChevronRight, Activity, Star, Trophy, History, Zap,
-  AlarmClock, DollarSign, Users, Rocket,
+  AlarmClock, DollarSign, Users, Rocket, MessageSquare, AlertTriangle, GitBranch, Split,
 } from 'lucide-react';
 
 interface Section {
@@ -179,6 +179,38 @@ const SECTIONS: Section[] = [
     icon: Rocket,
     color: 'from-cyan-500 to-blue-400',
     highlight: 'NEW',
+  },
+  {
+    title: 'Review Ask Rate (NEW)',
+    description: 'Reviews per completed job per rep — lifetime / 12mo / 90d. Surfaces reps with high job volume + low recent review ask',
+    href: '/chrisview/review-velocity',
+    icon: MessageSquare,
+    color: 'from-amber-500 to-yellow-400',
+    highlight: '9.8% lifetime',
+  },
+  {
+    title: 'Rep Churn Early Warning (NEW)',
+    description: 'Recent 4-wk activity vs 12-wk baseline — signed/inspected/attendance/commission lag. Composite score per rep with risk tier',
+    href: '/chrisview/rep-churn',
+    icon: AlertTriangle,
+    color: 'from-red-500 to-rose-400',
+    highlight: 'NEW',
+  },
+  {
+    title: 'Referral Network (NEW)',
+    description: 'Who refers leads to whom — source bucketing, per-rep referral haul, top referrer people, signed-conversion + revenue per referrer',
+    href: '/chrisview/referral-network',
+    icon: GitBranch,
+    color: 'from-teal-500 to-emerald-400',
+    highlight: 'NEW',
+  },
+  {
+    title: 'Multi-Rep Commission Splits (NEW)',
+    description: 'Jobs with 2+ reps paid commission. Per-rep split count, top pairings, split job detail with per-payment breakdown',
+    href: '/chrisview/multi-rep-splits',
+    icon: Split,
+    color: 'from-indigo-500 to-violet-400',
+    highlight: '320 splits / $2.15M',
   },
 ];
 
