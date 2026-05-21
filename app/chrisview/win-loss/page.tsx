@@ -37,7 +37,6 @@ interface Project {
   lostReason: 'explicit' | 'stale' | null;
   daysSinceActivity: number | null;
   ageDays: number | null;
-  isMature: boolean;
   won: boolean;
   firstInvoiceAt: string | null;
   daysToInvoice: number | null;
@@ -60,13 +59,6 @@ interface Data {
   pendingProjects: number;
   overallConversionRate: number;
   overallCloseRate: number;
-  matureProjects: number;
-  matureWon: number;
-  matureLost: number;
-  maturePending: number;
-  matureCloseRate: number;
-  matureConversionRate: number;
-  freshProjects: number;
   pendingByAge: PendingAgeBucket[];
   byRep: Rollup[];
   bySource: Rollup[];
@@ -83,7 +75,6 @@ interface Data {
     lostRePattern: string;
     preApprovedRePattern: string;
     staleDays: number;
-    maturityDays: number;
     explicitLostCount: number;
     staleLostCount: number;
   };
@@ -164,7 +155,7 @@ export default function WinLossPage() {
         )}
         {data && (
           <>
-            {/* KPI strip — RAW */}
+            {/* KPI strip */}
             <section className="grid grid-cols-2 md:grid-cols-5 gap-3">
               <Kpi label="Projects with estimates" value={data.totalProjects.toString()} sub={`last ${data.windowDays} days`} />
               <Kpi label="Won (Approved+)" value={data.wonProjects.toString()} sub="status ≥ Approved Jobs" />
@@ -174,28 +165,7 @@ export default function WinLossPage() {
                 sub={`${data.meta.explicitLostCount} explicit · ${data.meta.staleLostCount} stale (>${data.meta.staleDays}d)`}
               />
               <Kpi label="Pending" value={data.pendingProjects.toString()} sub={`active within ${data.meta.staleDays}d`} />
-              <Kpi label="Close rate (raw)" value={`${data.overallCloseRate}%`} sub={`conversion ${data.overallConversionRate}% incl. pending`} />
-            </section>
-
-            {/* Mature-subset row — fairer for short windows */}
-            <section className="bg-zinc-900 border border-[#39FF14]/20 rounded-xl p-4">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h3 className="text-sm font-semibold text-[#39FF14]">Mature subset (age-adjusted)</h3>
-                  <p className="text-xs text-zinc-400 mt-1">
-                    Excludes the {data.freshProjects} projects younger than {data.meta.maturityDays} days (too fresh to have had time to close).
-                    Wins are slow — p50 is ~54 days from creation to Approved+, p75 is ~116 days. Counting brand-new estimates in the close rate
-                    biases it optimistically. This subset is the fairer read.
-                  </p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                <Kpi label="Mature projects" value={data.matureProjects.toString()} sub={`age ≥ ${data.meta.maturityDays}d`} />
-                <Kpi label="Mature won" value={data.matureWon.toString()} />
-                <Kpi label="Mature lost" value={data.matureLost.toString()} />
-                <Kpi label="Mature pending" value={data.maturePending.toString()} />
-                <Kpi label="Close rate (mature)" value={`${data.matureCloseRate}%`} sub={`conversion ${data.matureConversionRate}% incl. pending`} highlight />
-              </div>
+              <Kpi label="Close rate (resolved)" value={`${data.overallCloseRate}%`} sub={`conversion ${data.overallConversionRate}% incl. pending`} highlight />
             </section>
 
             {/* Pending by age — shows where the active deals are */}
