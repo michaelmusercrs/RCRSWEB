@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { roofReportService } from '@/lib/roof-report-service';
 import { stormReportService } from '@/lib/storm-report-service';
+import { leadPortalService } from '@/lib/lead-portal-service';
+import PMTradingCard from '@/components/customer-portal/PMTradingCard';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -52,6 +54,8 @@ interface ReportData {
   components: RoofComponents;
   satelliteImageUrl: string;
   stormReport: StormReportData | null;
+  pmSlug?: string;
+  pmName?: string;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -84,6 +88,20 @@ async function getReport(shareToken: string): Promise<ReportData | null> {
     let components = {} as RoofComponents;
     try { measurements = JSON.parse(report.measurementsJson); } catch {}
     try { components = JSON.parse(report.componentsJson); } catch {}
+
+    // Resolve assigned PM/rep via the linked lead, if any. This lets the
+    // PMTradingCard show "your project manager" on the share view.
+    let pmSlug: string | undefined;
+    let pmName: string | undefined;
+    if (report.leadId) {
+      try {
+        const lead = await leadPortalService.getLeadById(report.leadId);
+        if (lead?.salesRepSlug) {
+          pmSlug = lead.salesRepSlug;
+          pmName = lead.salesRepName;
+        }
+      } catch {}
+    }
 
     let stormReport: StormReportData | null = null;
     if (report.leadId) {
@@ -126,6 +144,8 @@ async function getReport(shareToken: string): Promise<ReportData | null> {
       components,
       satelliteImageUrl: report.satelliteImageUrl,
       stormReport,
+      pmSlug,
+      pmName,
     };
   } catch {
     return null;
@@ -166,6 +186,13 @@ export default async function PublicReportPage({
       </header>
 
       <main className="max-w-4xl mx-auto px-6 py-8 space-y-6">
+        {/* PM trading card — trust-builder before the customer scrolls
+            into the measurement detail. Renders nothing if no PM is
+            linked to this report. */}
+        {report.pmSlug && (
+          <PMTradingCard pmSlug={report.pmSlug} repName={report.pmName} />
+        )}
+
         {/* Property Card */}
         <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">

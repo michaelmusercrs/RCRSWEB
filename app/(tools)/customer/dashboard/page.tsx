@@ -45,6 +45,7 @@ import ServiceRequestForm from '@/components/customer-portal/ServiceRequestForm'
 import WarrantyClaimForm from '@/components/customer-portal/WarrantyClaimForm';
 import NotificationPreferencesForm from '@/components/customer-portal/NotificationPreferences';
 import ReviewSubmission from '@/components/customer-portal/ReviewSubmission';
+import PMTradingCard from '@/components/customer-portal/PMTradingCard';
 import { Wrench, Bell } from 'lucide-react';
 
 interface CustomerData {
@@ -248,7 +249,7 @@ const JOB_PHASES = [
 
 export default function CustomerDashboard() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'status' | 'appointments' | 'weather' | 'messages' | 'documents' | 'rep' | 'upload' | 'support'>('status');
+  const [activeTab, setActiveTab] = useState<'status' | 'appointments' | 'weather' | 'messages' | 'documents' | 'rep' | 'upload' | 'support' | 'billing'>('status');
   const [customer, setCustomer] = useState<CustomerData | null>(null);
   const [portalToken, setPortalToken] = useState<string>('');
   const [jobs, setJobs] = useState<JobData[]>([]);
@@ -266,6 +267,24 @@ export default function CustomerDashboard() {
   const [streetViewUrl, setStreetViewUrl] = useState<string>('');
   const [uploadFiles, setUploadFiles] = useState<Array<{ name: string; date: string; url?: string }>>([]);
   const [uploadingFile, setUploadingFile] = useState(false);
+
+  // Billing tab state — fed by /api/customer/billing (token-authenticated).
+  // Status normalization: pipeline emits 'draft' | 'sent' | 'paid' | 'void'.
+  // We surface 'sent' as "posted" (orange), 'paid' as green, and any 'sent'
+  // invoice older than 30 days as "overdue" (red). 'draft' and 'void' are
+  // filtered out server-side so customers never see them.
+  interface CustomerInvoice {
+    invoiceId: string;
+    ticketId: string;
+    jobName: string;
+    total: number;
+    status: 'posted' | 'paid' | 'overdue';
+    paidAt?: string;
+    createdAt?: string;
+  }
+  const [invoices, setInvoices] = useState<CustomerInvoice[]>([]);
+  const [isLoadingInvoices, setIsLoadingInvoices] = useState(false);
+  const [invoicesError, setInvoicesError] = useState<string | null>(null);
 
   // Fetch appointments from TeamUp calendar
   const fetchCalendarAppointments = async (customerId: string) => {
@@ -333,6 +352,46 @@ export default function CustomerDashboard() {
     setCustomer(customerData);
     loadDashboardData(customerData.jnid);
   }, [router]);
+
+  // Lazy-fetch invoices when the customer opens the Billing tab. Skips the
+  // call when we don't yet have a portal token (token is the auth factor).
+  useEffect(() => {
+    if (activeTab !== 'billing') return;
+    if (!portalToken) return;
+    if (isLoadingInvoices) return;
+
+    let cancelled = false;
+    setIsLoadingInvoices(true);
+    setInvoicesError(null);
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/customer/billing?token=${encodeURIComponent(portalToken)}`);
+        const data = await res.json();
+        if (cancelled) return;
+        if (!res.ok || !data.success) {
+          setInvoicesError(data.error || 'Failed to load invoices');
+          setInvoices([]);
+        } else {
+          setInvoices(Array.isArray(data.invoices) ? data.invoices : []);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error('[customer billing] fetch failed:', err);
+          setInvoicesError('Network error');
+          setInvoices([]);
+        }
+      } finally {
+        if (!cancelled) setIsLoadingInvoices(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // We intentionally exclude isLoadingInvoices to avoid re-trigger on flip.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, portalToken]);
 
   const loadDashboardData = async (customerId: string) => {
     setIsLoading(true);
@@ -560,6 +619,7 @@ export default function CustomerDashboard() {
               { id: 'documents', label: 'Documents', icon: FolderOpen },
               { id: 'upload', label: 'Upload', icon: Upload },
               { id: 'appointments', label: 'Appointments', icon: Calendar },
+              { id: 'billing', label: 'Billing', icon: Receipt },
               { id: 'weather', label: 'Weather', icon: Cloud },
               { id: 'messages', label: 'Messages', icon: MessageSquare },
               { id: 'support', label: 'Support', icon: Wrench },
@@ -595,6 +655,15 @@ export default function CustomerDashboard() {
             {/* Job Status Tab */}
             {activeTab === 'status' && (
               <div className="space-y-6">
+                {/* PM/Rep trading card — trust hero at the top of the portal home.
+                    Per research-portal-seo-design.md Part 1, ranked #2 portal feature.
+                    Renders nothing if salesRep slug doesn't resolve. */}
+                {salesRep?.slug && (
+                  <PMTradingCard
+                    pmSlug={salesRep.slug}
+                    repName={salesRep.name}
+                  />
+                )}
                 {jobs.length === 0 ? (
                   <div className="bg-white rounded-xl p-8 text-center border border-gray-200">
                     <Home className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -1196,6 +1265,149 @@ export default function CustomerDashboard() {
                     )}
                   </>
                 )}
+              </div>
+            )}
+
+            {/* Billing Tab */}
+            {activeTab === 'billing' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-bold text-gray-900">Billing &amp; Invoices</h3>
+                  <span className="text-sm text-gray-500">
+                    {invoices.length} invoice{invoices.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+
+                {!portalToken ? (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-5 flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-yellow-900">Setting up your portal access...</p>
+                      <p className="text-sm text-yellow-800 mt-1">
+                        We&apos;re finalizing your access. Refresh in a few seconds, or call us at{' '}
+                        <a href="tel:2562748530" className="underline">256-274-8530</a>.
+                      </p>
+                    </div>
+                  </div>
+                ) : isLoadingInvoices ? (
+                  <div className="flex items-center justify-center py-12">
+                    <RefreshCw className="w-6 h-6 text-[#0066CC] animate-spin mr-2" />
+                    <span className="text-gray-500 text-sm">Loading invoices...</span>
+                  </div>
+                ) : invoicesError ? (
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-5 flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-red-900">We couldn&apos;t load your invoices.</p>
+                      <p className="text-sm text-red-800 mt-1">
+                        {invoicesError}. Please call us at{' '}
+                        <a href="tel:2562748530" className="underline">256-274-8530</a> for help.
+                      </p>
+                    </div>
+                  </div>
+                ) : invoices.length === 0 ? (
+                  <div className="bg-white rounded-xl p-8 text-center border border-gray-200">
+                    <Receipt className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">No Invoices Yet</h3>
+                    <p className="text-gray-500">
+                      Invoices for your project will appear here as soon as they&apos;re issued.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <div className="divide-y divide-gray-200">
+                      {invoices.map((inv) => {
+                        const statusStyle =
+                          inv.status === 'paid'
+                            ? 'bg-green-100 text-green-800 border-green-200'
+                            : inv.status === 'overdue'
+                              ? 'bg-red-100 text-red-800 border-red-200'
+                              : 'bg-orange-100 text-orange-800 border-orange-200';
+                        const statusLabel = inv.status.toUpperCase();
+                        const isUnpaid = inv.status !== 'paid';
+                        const totalFmt = inv.total.toLocaleString('en-US', {
+                          style: 'currency',
+                          currency: 'USD',
+                        });
+                        // Pay Now — opens a mailto: to the office with invoice ID + total.
+                        // Real payment integration is [needs-owner].
+                        const mailSubject = `Pay invoice ${inv.invoiceId}`;
+                        const mailBody =
+                          `Hi River City Roofing,\n\n` +
+                          `I'd like to pay invoice ${inv.invoiceId}` +
+                          (inv.jobName ? ` for ${inv.jobName}` : '') +
+                          ` (${totalFmt}).\n\n` +
+                          `Please send me payment instructions.\n\n` +
+                          `Thanks,\n${customer?.name || ''}`;
+                        const mailHref =
+                          `mailto:rcrs@rcrsal.com` +
+                          `?subject=${encodeURIComponent(mailSubject)}` +
+                          `&body=${encodeURIComponent(mailBody)}`;
+
+                        return (
+                          <div key={inv.invoiceId} className="p-4 sm:p-5">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-semibold text-gray-900 break-all">
+                                    {inv.invoiceId}
+                                  </span>
+                                  <span
+                                    className={`px-2 py-0.5 rounded-full text-xs font-medium border ${statusStyle}`}
+                                  >
+                                    {statusLabel}
+                                  </span>
+                                </div>
+                                {inv.jobName && (
+                                  <p className="text-sm text-gray-700 mt-1 truncate">
+                                    {inv.jobName}
+                                  </p>
+                                )}
+                                <div className="text-xs text-gray-500 mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                                  {inv.ticketId && <span>Ticket: {inv.ticketId}</span>}
+                                  {inv.paidAt && (
+                                    <span>
+                                      Paid {new Date(inv.paidAt).toLocaleDateString('en-US', {
+                                        month: 'short',
+                                        day: 'numeric',
+                                        year: 'numeric',
+                                      })}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between sm:justify-end gap-3 sm:flex-col sm:items-end">
+                                <span className="text-xl font-bold text-gray-900">
+                                  {totalFmt}
+                                </span>
+                                {isUnpaid && (
+                                  <a
+                                    href={mailHref}
+                                    className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-[#0066CC] hover:bg-[#0066CC]/90 transition-colors"
+                                  >
+                                    Pay Now
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div className="bg-white/50 rounded-lg p-4 border border-gray-200">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-[#0066CC] flex-shrink-0 mt-0.5" />
+                    <p className="text-gray-500 text-sm">
+                      Online payment is coming soon. For now, &quot;Pay Now&quot; opens an email to our
+                      office. We accept check, card, ACH, financing, and insurance proceeds — just
+                      let us know how you&apos;d like to settle up. Questions? Call{' '}
+                      <a href="tel:2562748530" className="text-[#0066CC]">256-274-8530</a>.
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -1917,6 +2129,7 @@ export default function CustomerDashboard() {
             { id: 'documents', icon: FolderOpen },
             { id: 'upload', icon: Upload },
             { id: 'appointments', icon: Calendar },
+            { id: 'billing', icon: Receipt },
             { id: 'messages', icon: MessageSquare },
             { id: 'support', icon: Wrench },
           ].map((tab) => {
