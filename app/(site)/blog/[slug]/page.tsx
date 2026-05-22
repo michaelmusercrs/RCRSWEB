@@ -8,7 +8,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Calendar, User, ArrowLeft, ArrowRight } from 'lucide-react';
 import StructuredData from '@/components/StructuredData';
 import { siteConfig, generateArticleSchema, generateBreadcrumbSchema } from '@/lib/seo';
+import { getImageWithFallback, getOgImage } from '@/lib/site-images';
 import type { Metadata } from 'next';
+
+// Helper: registry key for a blog slug
+const blogKey = (slug: string) => `blog-${slug.replace(/[^a-z0-9-]/g, '')}-cover`;
 
 export const revalidate = 300; // Revalidate every 5 minutes
 
@@ -46,7 +50,13 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
   // Add geo-targeted keywords to every blog post
   const keywords = [...rawKeywords, 'North Alabama', 'Decatur AL', 'Huntsville AL'].filter((k, i, arr) => arr.indexOf(k) === i);
 
-  const postImageUrl = post.image.startsWith('http') ? post.image : `${siteConfig.url}${post.image}`;
+  // OG image: registry first (blog-{slug}-cover → og-blog-default → og-site-default),
+  // fall back to the post's static image when no registry row exists.
+  const ogResolved = await getOgImage(path, blogKey(params.slug));
+  const ogImageUrl = ogResolved?.url
+    ? (ogResolved.url.startsWith('http') ? ogResolved.url : `${siteConfig.url}${ogResolved.url}`)
+    : (post.image.startsWith('http') ? post.image : `${siteConfig.url}${post.image}`);
+  const postImageUrl = ogImageUrl;
 
   return {
     title: `${post.title} | River City Roofing Blog`,
@@ -79,6 +89,13 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   if (!post) {
     notFound();
   }
+
+  // Resolve hero/cover via registry. When admin swaps the sheet row's
+  // URL, this page auto-updates on next request. Today: registry has
+  // no row for most slugs → falls through to post.image.
+  const heroResolved = await getImageWithFallback(blogKey(params.slug), 'blog-default-cover');
+  const heroSrc = heroResolved?.url || post.image;
+  const heroAlt = heroResolved?.alt || post.title;
 
   const allPosts = await getAllBlogPosts();
   const postKeywords = Array.isArray(post.keywords) ? post.keywords : (post.keywords || '').split(',').map((k: string) => k.trim());
@@ -119,8 +136,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         {/* Background Image */}
         <div className="absolute inset-0">
           <Image
-            src={post.image}
-            alt={post.title}
+            src={heroSrc}
+            alt={heroAlt}
             fill
             className="object-cover"
             priority

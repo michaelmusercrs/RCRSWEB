@@ -25,6 +25,91 @@ interface SiteImage {
 
 const CATEGORIES = ['city', 'blog', 'service', 'team', 'gallery', 'hero', 'og', 'icon', 'misc'];
 
+// ─── Detail drawer — inline editable ────────────────────────────────────
+function DetailDrawer({
+  image,
+  onClose,
+  onSaved,
+  onError,
+}: {
+  image: SiteImage;
+  onClose: () => void;
+  onSaved: (updated: SiteImage) => void | Promise<void>;
+  onError: (msg: string) => void;
+}) {
+  const [draft, setDraft] = useState<SiteImage>(image);
+  const [saving, setSaving] = useState(false);
+  const dirty = JSON.stringify(draft) !== JSON.stringify(image);
+  useEffect(() => { setDraft(image); }, [image]);
+  const save = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch('/api/admin/site-images', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: { key: draft.key, alt: draft.alt, intent: draft.intent, notes: draft.notes, subcategory: draft.subcategory } }),
+      });
+      if (res.ok) await onSaved(draft);
+      else {
+        const err = await res.json().catch(() => ({}));
+        onError(err.error || 'Save failed.');
+      }
+    } finally { setSaving(false); }
+  };
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-neutral-950 border border-white/10 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="p-6">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <div className="text-xs text-neutral-500 uppercase tracking-wider">{image.category}</div>
+              <h3 className="text-lg font-mono text-white">{image.key}</h3>
+            </div>
+            <button onClick={onClose} className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center"><X size={14} className="text-neutral-400" /></button>
+          </div>
+          {image.url && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={image.url} alt={draft.alt} className="w-full rounded-xl mb-4 border border-white/10" />
+          )}
+          <div className="space-y-3 text-sm">
+            <div>
+              <label className="text-neutral-500 text-xs uppercase tracking-wider">URL (read-only — to swap, upload a replacement with same key)</label>
+              <div className="text-neutral-400 font-mono text-xs break-all bg-white/[0.03] border border-white/5 rounded px-2 py-1.5 mt-1">{image.url}</div>
+            </div>
+            <div>
+              <label className="text-neutral-500 text-xs uppercase tracking-wider block mb-1">Alt text</label>
+              <input type="text" value={draft.alt} onChange={(e) => setDraft({ ...draft, alt: e.target.value })} placeholder="Descriptive — SEO + accessibility" className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
+            </div>
+            <div>
+              <label className="text-neutral-500 text-xs uppercase tracking-wider block mb-1">Intent (what this should depict)</label>
+              <input type="text" value={draft.intent} onChange={(e) => setDraft({ ...draft, intent: e.target.value })} placeholder="Distinctive Decatur landmark; NOT generic stock" className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
+            </div>
+            <div>
+              <label className="text-neutral-500 text-xs uppercase tracking-wider block mb-1">Subcategory (slug)</label>
+              <input type="text" value={draft.subcategory} onChange={(e) => setDraft({ ...draft, subcategory: e.target.value })} placeholder="decatur" className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm font-mono" />
+            </div>
+            <div>
+              <label className="text-neutral-500 text-xs uppercase tracking-wider block mb-1">Notes (internal)</label>
+              <textarea value={draft.notes} onChange={(e) => setDraft({ ...draft, notes: e.target.value })} rows={2} placeholder="License, credit, replacement reasoning…" className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
+            </div>
+            <div className="grid grid-cols-2 gap-3 pt-2 text-xs">
+              <div><div className="text-neutral-500 uppercase tracking-wider">Aspect</div><div className="text-neutral-300 mt-1">{image.aspectRatio} · {image.standardized === 'true' ? 'standardized' : 'NOT standardized'}</div></div>
+              <div><div className="text-neutral-500 uppercase tracking-wider">Status</div><div className="text-neutral-300 mt-1">{image.approved === 'true' ? `approved` : 'pending'}</div></div>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-6">
+            <button onClick={onClose} className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-neutral-300 text-sm font-medium">Cancel</button>
+            <button onClick={save} disabled={saving || !dirty} className="px-5 py-2 rounded-xl bg-brand-green text-black font-semibold text-sm disabled:opacity-40 inline-flex items-center gap-1.5">
+              {saving ? <Loader2 className="animate-spin" size={14} /> : <Check size={14} />} Save changes
+            </button>
+          </div>
+          <p className="text-xs text-neutral-500 mt-4">To swap the image itself, upload a new file with the same <code>key</code> on the Upload form above.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function SiteImagesAdmin() {
   const { user, isLoading } = useAuth();
   const [images, setImages] = useState<SiteImage[]>([]);
@@ -287,32 +372,16 @@ export default function SiteImagesAdmin() {
 
         {/* Detail/edit drawer */}
         {selected && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setSelected(null)}>
-            <div className="bg-neutral-950 border border-white/10 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <div className="text-xs text-neutral-500 uppercase tracking-wider">{selected.category} / {selected.subcategory || '—'}</div>
-                    <h3 className="text-lg font-mono text-white">{selected.key}</h3>
-                  </div>
-                  <button onClick={() => setSelected(null)} className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center"><X size={14} className="text-neutral-400" /></button>
-                </div>
-                {selected.url && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={selected.url} alt={selected.alt} className="w-full rounded-xl mb-4 border border-white/10" />
-                )}
-                <dl className="text-sm space-y-2">
-                  <div><dt className="text-neutral-500 text-xs">URL</dt><dd className="text-neutral-300 font-mono text-xs break-all">{selected.url}</dd></div>
-                  <div><dt className="text-neutral-500 text-xs">Alt</dt><dd className="text-neutral-300">{selected.alt || <em className="text-neutral-700">none</em>}</dd></div>
-                  <div><dt className="text-neutral-500 text-xs">Intent</dt><dd className="text-neutral-300">{selected.intent || <em className="text-neutral-700">none</em>}</dd></div>
-                  <div><dt className="text-neutral-500 text-xs">Aspect / standardized</dt><dd className="text-neutral-300">{selected.aspectRatio} · {selected.standardized === 'true' ? 'standardized' : 'NOT standardized'}</dd></div>
-                  <div><dt className="text-neutral-500 text-xs">Status</dt><dd className="text-neutral-300">{selected.approved === 'true' ? `approved by ${selected.approvedBy} at ${selected.approvedAt?.slice(0, 16)}` : 'pending approval'}</dd></div>
-                  {selected.notes && <div><dt className="text-neutral-500 text-xs">Notes</dt><dd className="text-neutral-300">{selected.notes}</dd></div>}
-                </dl>
-                <p className="text-xs text-neutral-500 mt-6">To swap this image, upload a new file with the same key — the new row replaces this one on approval. Or edit URL directly in the Site_Images sheet.</p>
-              </div>
-            </div>
-          </div>
+          <DetailDrawer
+            image={selected}
+            onClose={() => setSelected(null)}
+            onSaved={async (updated) => {
+              await load();
+              setSelected(updated);
+              flash('success', 'Saved.');
+            }}
+            onError={(msg) => flash('error', msg)}
+          />
         )}
       </main>
     </div>

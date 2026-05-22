@@ -6,10 +6,13 @@ import { Home, Wrench, Building2, CloudRain, Flame, Shield, Search, AlertTriangl
 import type { Metadata } from 'next';
 import StructuredData from '@/components/StructuredData';
 import { siteConfig, generateServiceSchema, generateBreadcrumbSchema, generateFAQSchema } from '@/lib/seo';
+import { getImageWithFallback, getOgImage } from '@/lib/site-images';
 import {
   COUNTY_CALLOUTS,
   getServiceEnhancement,
 } from '@/lib/serviceEnhancements';
+
+const serviceKey = (slug: string) => `service-${slug.replace(/[^a-z0-9-]/g, '')}-hero`;
 
 const iconMap: { [key: string]: any } = { Home, Wrench, Building2, CloudRain, Flame, Shield, Search, AlertTriangle, Droplet, Wind, Paintbrush };
 
@@ -135,6 +138,12 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
   const Icon = iconMap[service.icon];
   const items = service.whatsIncluded || service.servicesIncluded || service.features || [];
 
+  // Hero image via registry. Falls through to static service.image when no
+  // registry row exists. Swap sheet URL → page auto-updates.
+  const heroResolved = await getImageWithFallback(serviceKey(slug), 'service-default-hero');
+  const heroSrc = heroResolved?.url || service.image;
+  const heroAlt = heroResolved?.alt || service.title;
+
   // Pull the deeper enhancement bundle (process steps, includes/excludes, related
   // services) if this slug is one of the 5 high-value enhanced pages. Falls
   // back to `undefined` for everything else so the page still renders normally.
@@ -198,9 +207,9 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
       {/* Service, Breadcrumb, and FAQ Schema */}
       <StructuredData data={[serviceSchema, breadcrumbSchema, faqSchema]} />
       <section className="relative min-h-[60vh] flex items-center">
-        {service.image && (
+        {heroSrc && (
           <div className="absolute inset-0 z-0">
-            <Image src={service.image} alt={service.title} fill className="object-cover" priority />
+            <Image src={heroSrc} alt={heroAlt} fill className="object-cover" priority />
             <div className="absolute inset-0 bg-black/60" />
           </div>
         )}
