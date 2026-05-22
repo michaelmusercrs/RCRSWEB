@@ -258,43 +258,22 @@ function classifyDelivery(s: {
   taskBeforeForInspection: boolean;
 }): { category: DeliveryCategory; reason: string } {
 
-  // 1. HARD EMAIL
+  // V7 LESSON: "Document Fully Signed" + "Electronic Signature Added"
+  // automation notes fire for EVERY e-signed estimate — in-person tablet
+  // signing AND remote signing both trigger them. Same for "Email" activities
+  // (rep often emails the PDF as a record AFTER an in-person close).
+  //
+  // So those signals can't put estimates in CAT 1 (Certain emailed) by
+  // themselves — they're only Cat 2 (Probably emailed) evidence at best.
+  // Cat 1 should only fire when the signing is provably remote.
+
+  // 1. HARD EMAIL — only when the signing timeline proves remote
   if (s.sigGap !== null && s.sigGap > 86400) {
     return { category: 1, reason: 'Signed > 24 hours after e-sign request — definitively remote signing' };
   }
-  // Remote e-sign automation note + no follow-up visit = pure email delivery
-  if (s.remoteEsignAutomationNote && !s.taskAfterWithin14d && !s.noteMeetingAfter) {
-    return { category: 1, reason: 'JobNimbus automation logged remote e-signature ("Document Fully Signed" / "Electronic Signature Added") with no follow-up in-person visit' };
-  }
-  // Rep emailed the estimate (generic Email activity) + no follow-up visit
-  if (s.emailActivityAboutEstimate && !s.taskAfterWithin14d && !s.noteMeetingAfter && !s.manualSignature) {
-    return { category: 1, reason: 'Rep sent the estimate via email ("estimate is attached" / "sent Estimate for you to sign") + no follow-up Task Completed, meeting note, or manual signature' };
-  }
-  // Formal "Estimate Sent" button + no follow-up
-  if (s.estimateSentActivity && !s.taskAfterWithin14d && !s.noteMeetingAfter && !s.manualSignature) {
-    return { category: 1, reason: '"Estimate Sent" formal email logged; no follow-up Task Completed, meeting note, or manual signature AFTER estimate' };
-  }
 
-  // 2. SOFT EMAIL
-  if (s.emailActivityAboutEstimate || s.remoteEsignAutomationNote || s.estimateSentActivity) {
-    return { category: 2, reason: 'Email activity logged for this estimate but also some in-person evidence — mixed signals' };
-  }
-  if (s.sigStatus === 'Requested' && !s.taskAfterWithin14d && !s.noteMeetingAfter) {
-    return { category: 2, reason: 'E-sign request sent (status: Requested), not yet signed, no in-person follow-up' };
-  }
-  if (s.sigStatus === 'Partially Signed') {
-    return { category: 2, reason: 'Partially signed via e-sign workflow' };
-  }
-  if (s.sigGap !== null && s.sigGap > 7200 && !s.taskAfterWithin14d) {
-    return { category: 2, reason: 'Signed 2–24 hours after e-sign request — likely remote' };
-  }
-  // If there was an inspection but no follow-up visit AND no logged email,
-  // most likely the rep emailed it directly (without JN's button).
-  if (s.taskBeforeForInspection && !s.taskAfterWithin14d && !s.noteMeetingAfter && !s.manualSignature && !s.estimateSentActivity && !s.emailActivityAboutEstimate) {
-    return { category: 2, reason: 'Inspection happened, no follow-up visit logged, no JN email logged — most likely emailed directly outside of JN' };
-  }
-
-  // 3. HARD IN-PERSON (closing-appointment evidence AFTER estimate)
+  // 3. HARD IN-PERSON (check before soft email — in-person signals are
+  //    stronger than ambiguous email-was-sent signals)
   if (s.taskAfterWithin3d) {
     return { category: 5, reason: 'Task Completed within 3 days AFTER estimate creation — closing appointment' };
   }
@@ -305,14 +284,48 @@ function classifyDelivery(s: {
     return { category: 5, reason: 'Signed without e-sign request — physical/manual signature, presented in person' };
   }
 
+  // 2. SOFT EMAIL — evidence of email but no definitive remote-signing proof
+  if (s.sigStatus === 'Requested' && !s.taskAfterWithin14d && !s.noteMeetingAfter) {
+    return { category: 2, reason: 'E-sign request sent (status: Requested), not yet signed, no in-person follow-up' };
+  }
+  if (s.sigStatus === 'Partially Signed') {
+    return { category: 2, reason: 'Partially signed via e-sign workflow' };
+  }
+  if (s.sigGap !== null && s.sigGap > 7200 && !s.taskAfterWithin14d) {
+    return { category: 2, reason: 'Signed 2–24 hours after e-sign request — likely remote' };
+  }
+  // Rep emailed the estimate via JN + no follow-up visit logged. Most likely
+  // an email-only delivery (but we can't be 100% sure the rep didn't ALSO
+  // visit without logging — hence Cat 2 not Cat 1).
+  if (s.emailActivityAboutEstimate && !s.taskAfterWithin14d && !s.noteMeetingAfter) {
+    return { category: 2, reason: 'Rep sent the estimate via email ("estimate is attached" / "sent Estimate for you to sign") + no follow-up visit logged' };
+  }
+  if (s.estimateSentActivity && !s.taskAfterWithin14d && !s.noteMeetingAfter) {
+    return { category: 2, reason: '"Estimate Sent" formal email logged; no follow-up Task Completed or meeting note' };
+  }
+  // E-sign automation note + no follow-up — could be remote OR in-person
+  // tablet. Cat 2 because it's evidence of e-sign workflow but ambiguous
+  // about presentation mode.
+  if (s.remoteEsignAutomationNote && !s.taskAfterWithin14d && !s.noteMeetingAfter) {
+    return { category: 2, reason: 'JN logged "Document Fully Signed" automation + no follow-up visit. Note: this automation fires for both in-person tablet AND remote signing, so categorized as probably-emailed pending further evidence' };
+  }
+  // Inspection + quick estimate + no follow-up + no logged email → rep
+  // probably emailed directly outside JN.
+  if (s.taskBeforeForInspection && !s.taskAfterWithin14d && !s.noteMeetingAfter && !s.manualSignature && !s.estimateSentActivity && !s.emailActivityAboutEstimate && !s.remoteEsignAutomationNote) {
+    return { category: 2, reason: 'Inspection happened, no follow-up visit logged, no JN email logged — most likely emailed directly outside of JN' };
+  }
+
   // 4. SOFT IN-PERSON
   if (s.taskAfterWithin14d) {
     return { category: 4, reason: 'Task Completed within 14 days AFTER estimate — likely closing visit' };
   }
-  // Fast sigGap is now SOFT in-person, only when no remote-esign-automation
-  // note exists. Probe showed fast e-sign can happen remotely too (R-11222).
-  if (s.sigGap !== null && s.sigGap <= 1800 && !s.remoteEsignAutomationNote) {
-    return { category: 4, reason: 'Signed within 30 min of e-sign request, no remote-signing automation note — possibly tablet at customer\'s home' };
+  // Fast sigGap (≤ 30 min) — could be tablet at customer's home OR customer
+  // signed immediately on phone after receiving e-sign. Restored as Cat 4
+  // signal (v5 behavior). The classifier reaches here only if no email
+  // activity was found above — so the "rep on tablet" interpretation is
+  // more likely than not.
+  if (s.sigGap !== null && s.sigGap <= 1800) {
+    return { category: 4, reason: 'Signed within 30 min of e-sign request, no other email activity logged — likely tablet at customer\'s home' };
   }
   if (s.estimateNoteMeetingMatch) {
     return { category: 4, reason: 'Estimate\'s own note mentions a meeting/visit' };
