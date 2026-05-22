@@ -94,3 +94,6 @@ scripts/invoice-batch*.html
 scripts/invoice-batch-results*.json
 scripts/draft-*.json
 scripts/summary-body.html
+
+# Local secrets (do not commit)
+.cron-secret-*.txt
