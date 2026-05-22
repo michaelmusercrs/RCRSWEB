@@ -406,6 +406,47 @@ export const WEATHER_FORECAST_CACHE_COLUMNS = [
   'fetchedAt', 'nextRefreshAt', 'source',
 ];
 
+/**
+ * Site-wide image registry. Single source of truth for every image used
+ * on the public website + customer-facing surfaces. Pages read images via
+ * lib/site-images.ts → getImage(key) instead of hardcoding URLs.
+ *
+ * See docs/site-image-system-spec.md for the full design.
+ */
+export interface SiteImageRecord {
+  imageId: string;           // 'img_01HK…' stable internal ref
+  key: string;               // 'city-decatur-hero' — semantic lookup key
+  category: string;          // 'city' | 'blog' | 'service' | 'team' | 'gallery' | 'hero' | 'og' | 'icon' | 'misc'
+  subcategory: string;       // slug it relates to ('decatur', 'gutter-cleaning-tips') — empty for site-wide defaults
+  url: string;               // canonical (Blob URL or /images/...)
+  alt: string;               // SEO + accessibility
+  caption: string;
+  intent: string;            // one-line "this should depict X" — sanity check
+  aspectRatio: string;       // '16:9' / '4:3' / '1:1' / '21:9' / '1.91:1'
+  widthPx: string;
+  heightPx: string;
+  standardized: string;      // 'true' if through the photo-standardizer pipeline
+  approved: string;          // 'true' = OK to render publicly
+  uploadedBy: string;
+  uploadedAt: string;
+  approvedBy: string;
+  approvedAt: string;
+  usageContexts: string;     // pipe-delimited
+  replacedBy: string;        // imageId of replacement, when swapped
+  tags: string;              // pipe-delimited
+  licenseSource: string;     // 'owned' | 'purchased-stock' | 'customer-permission' | 'vendor-supplied'
+  notes: string;
+}
+
+export const SITE_IMAGES_COLUMNS = [
+  'imageId', 'key', 'category', 'subcategory',
+  'url', 'alt', 'caption', 'intent',
+  'aspectRatio', 'widthPx', 'heightPx',
+  'standardized', 'approved',
+  'uploadedBy', 'uploadedAt', 'approvedBy', 'approvedAt',
+  'usageContexts', 'replacedBy', 'tags', 'licenseSource', 'notes',
+];
+
 export interface RepAvailabilityRecord {
   repSlug: string;
   isReceivingLeads: string; // 'true'/'false'
@@ -547,6 +588,7 @@ const SHEET_NAMES = {
   CUSTOMER_PORTAL_CONFIG: 'Customer_Portal_Config',
   CUSTOMER_PORTAL_EVENTS: 'Customer_Portal_Events',
   WEATHER_FORECAST_CACHE: 'Weather_Forecast_Cache',
+  SITE_IMAGES: 'Site_Images',
   REP_AVAILABILITY: 'Rep_Availability',
   REP_PREFERENCES: 'Rep_Preferences',
   LEAD_RESPONSE_LOG: 'Lead_Response_Log',
@@ -1950,6 +1992,93 @@ class GoogleSheetsService {
       return true;
     } catch (err) {
       console.error('Error upserting team profile:', err);
+      return false;
+    }
+  }
+
+  // ===========================================================================
+  // SITE IMAGES REGISTRY
+  // ===========================================================================
+
+  async getSiteImages(options?: {
+    category?: string;
+    subcategory?: string;
+    approvedOnly?: boolean;
+  }): Promise<SiteImageRecord[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return [];
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.SITE_IMAGES, SITE_IMAGES_COLUMNS);
+      const rows = await sheet.getRows();
+      let records: SiteImageRecord[] = rows.map(row => ({
+        imageId: row.get('imageId') || '',
+        key: row.get('key') || '',
+        category: row.get('category') || '',
+        subcategory: row.get('subcategory') || '',
+        url: row.get('url') || '',
+        alt: row.get('alt') || '',
+        caption: row.get('caption') || '',
+        intent: row.get('intent') || '',
+        aspectRatio: row.get('aspectRatio') || '',
+        widthPx: row.get('widthPx') || '',
+        heightPx: row.get('heightPx') || '',
+        standardized: row.get('standardized') || 'false',
+        approved: row.get('approved') || 'false',
+        uploadedBy: row.get('uploadedBy') || '',
+        uploadedAt: row.get('uploadedAt') || '',
+        approvedBy: row.get('approvedBy') || '',
+        approvedAt: row.get('approvedAt') || '',
+        usageContexts: row.get('usageContexts') || '',
+        replacedBy: row.get('replacedBy') || '',
+        tags: row.get('tags') || '',
+        licenseSource: row.get('licenseSource') || '',
+        notes: row.get('notes') || '',
+      }));
+      if (options?.category) records = records.filter(r => r.category === options.category);
+      if (options?.subcategory) records = records.filter(r => r.subcategory === options.subcategory);
+      if (options?.approvedOnly) records = records.filter(r => r.approved === 'true');
+      return records;
+    } catch (err) {
+      console.error('Error fetching site images:', err);
+      return [];
+    }
+  }
+
+  async getSiteImageByKey(key: string): Promise<SiteImageRecord | null> {
+    const all = await this.getSiteImages();
+    return all.find(r => r.key === key) || null;
+  }
+
+  async upsertSiteImage(image: Partial<SiteImageRecord> & { key: string }): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc || !image.key) return false;
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.SITE_IMAGES, SITE_IMAGES_COLUMNS);
+      const rows = await sheet.getRows();
+      const existing = rows.find(r => r.get('key') === image.key);
+      const now = new Date().toISOString();
+      const payload: Record<string, string> = {};
+      for (const [k, v] of Object.entries(image)) {
+        if (v !== undefined && v !== null) payload[k] = String(v);
+      }
+      if (existing) {
+        for (const [k, v] of Object.entries(payload)) {
+          existing.set(k, v);
+        }
+        await existing.save();
+      } else {
+        const full = {
+          imageId: image.imageId || `img_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+          approved: image.approved ?? 'false',
+          standardized: image.standardized ?? 'false',
+          uploadedAt: image.uploadedAt || now,
+          ...payload,
+        };
+        await sheet.addRow(full as unknown as Record<string, string | number | boolean>);
+      }
+      return true;
+    } catch (err) {
+      console.error('Error upserting site image:', err);
       return false;
     }
   }
