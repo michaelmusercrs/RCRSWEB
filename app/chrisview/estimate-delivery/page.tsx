@@ -45,8 +45,8 @@ interface Data {
     estimateNumber: string;
     rNumber: string;
     rep: string;
-    netScore: number;
     category: Category;
+    classifyReason: string;
     outcome: 'won' | 'lost' | 'pending';
     jobStatus: string;
   }>;
@@ -236,8 +236,8 @@ export default function EstimateDeliveryPage() {
                       <th className="text-left py-2 px-3 font-medium">Est #</th>
                       <th className="text-left py-2 px-3 font-medium">R #</th>
                       <th className="text-left py-2 px-3 font-medium">Rep</th>
-                      <th className="text-right py-2 px-3 font-medium">Net</th>
-                      <th className="text-left py-2 px-3 font-medium">Classified as</th>
+                      <th className="text-left py-2 px-3 font-medium">Bucket</th>
+                      <th className="text-left py-2 px-3 font-medium">Why</th>
                       <th className="text-left py-2 px-3 font-medium">Job status</th>
                       <th className="text-left py-2 px-3 font-medium">Outcome</th>
                     </tr>
@@ -248,12 +248,12 @@ export default function EstimateDeliveryPage() {
                         <td className="py-2 px-3 font-mono text-xs">{s.estimateNumber}</td>
                         <td className="py-2 px-3 font-mono text-xs text-zinc-400">{s.rNumber}</td>
                         <td className="py-2 px-3 text-xs">{s.rep || '—'}</td>
-                        <td className="py-2 px-3 text-right tabular-nums" style={{ color: CAT_COLOR[s.category] }}>{s.netScore >= 0 ? '+' : ''}{s.netScore}</td>
                         <td className="py-2 px-3 text-xs">
                           <span className="text-[10px] font-mono px-1.5 py-0.5 rounded" style={{ background: CAT_COLOR[s.category] + '20', color: CAT_COLOR[s.category] }}>
                             {CAT_SHORT[s.category]}
                           </span>
                         </td>
+                        <td className="py-2 px-3 text-xs text-zinc-400 max-w-md">{s.classifyReason}</td>
                         <td className="py-2 px-3 text-xs text-zinc-400">{s.jobStatus}</td>
                         <td className="py-2 px-3 text-xs">
                           <span className={s.outcome === 'won' ? 'text-[#39FF14]' : s.outcome === 'lost' ? 'text-red-400' : 'text-amber-400'}>
@@ -275,28 +275,26 @@ export default function EstimateDeliveryPage() {
 
         <AboutThisData
           source="JN /estimates over the configured window, plus walks of /activities by contact + related job for each unique entity (cached per id to avoid N+1). Job status fetched via /jobs/{id} for outcome classification."
-          method={`Each estimate scored on two axes:
-            (IN-PERSON points)
-              +3 sig gap ≤ 5 min (sign requested and signed within 5 minutes — rep on tablet at the kitchen table)
-              +2 sig gap 5–30 min
-              +3 Task Completed activity within ±3 days of estimate creation (logged appointment)
-              +1 Task Completed within ±14 days (loose match)
-              +2 Note in ±7 days mentioning met / visited / inspected / on-site / in-person / stopped by / came out / presented / showed
-              +2 manual signature (date_signed populated but date_sign_requested empty — physical sig later marked)
-              +1 estimate's own note or internal_note has meeting keywords
-            (EMAIL points)
-              +3 sig gap > 24 hr (customer signed remotely later)
-              +2 sig gap 2–24 hr
-              +2 signature_status === 'Requested' (e-sign sent, not yet signed)
-              +1 signature_status === 'Partially Signed'
-              +3 "Estimate Sent" activity referencing this estimate's jnid
-              +1 date_sign_requested populated AND no Task Completed in window
-            Bucket by net = IN − OUT:
-              ≥ 3 → 5  Certain — presented in person
-              1–2 → 4  Probably presented
-              0   → 3  Uncertain
-              -1 to -2 → 2  Probably emailed
-              ≤ -3 → 1  Certain — emailed only
+          method={`Decision tree, evaluated in order — first match wins.
+            HARD EMAIL (→ 1 Certain emailed):
+              · Signed > 24 hr after e-sign request (sigGap > 86400s)
+              · "Estimate Sent" activity for this estimate AND no in-person evidence
+            SOFT EMAIL (→ 2 Probably emailed):
+              · "Estimate Sent" activity exists (mixed signals)
+              · signature_status = Requested (e-sign sent, not signed)
+              · signature_status = Partially Signed
+              · Signed 2–24 hr after e-sign request
+            HARD IN-PERSON (→ 5 Certain in-person):
+              · Task Completed activity within ±3 days of estimate
+              · Note within ±7 days mentions met/visited/inspected/on-site/in-person/stopped by/came out/presented/showed
+              · Manual signature (signed without e-sign request — physical contract)
+            SOFT IN-PERSON (→ 4 Probably presented):
+              · Task Completed within ±14 days
+              · Signed within 30 min of e-sign request (likely tablet at customer's home)
+              · Estimate's own note mentions a meeting
+              · signature_status = Not Requested (RCRS default is in-person — no email workflow used)
+            UNCERTAIN (→ 3): none of the above matched.
+            CRITICAL FIX 2026-05-21: "Estimate Sent" activities are now queried per-estimate via /activities?filter=primary.id=estimate.jnid — they don't appear in contact/job activity walks. Previously this signal was effectively invisible and 62% of estimates fell to "Uncertain". Now ~3-5% should be truly uncertain.
             Outcome per estimate's parent job: WON = status ≥ Approved Jobs; LOST = Lost or pre-Approved + stale (${data?.meta.staleDays ?? 60}d); else PENDING. True close rate = won ÷ total. Raw close rate = won ÷ (won + lost) for /win-loss comparability.`}
           uses="Settle the 'should reps go meet customers in person, or is email fine' question with data. The in-person advantage shown in the Headline boxes is the lift from showing up. Bucket 5 (certain in-person) close rate vs bucket 1 (certain emailed) close rate is the clean comparison; the including-probables view widens the sample if 5 vs 1 is too small."
           gaps="Probe-verified signals 2026-05-21 across 1000 estimates. The strongest signal (sig request-to-signed gap) only applies to the 26% of estimates that go through e-sign. For the other 74%, classification leans on Task Completed activities and note text — both depend on rep discipline in JN. If a rep met a customer in person but didn't log a task or note, it'll land in 'Uncertain'. Window also intentionally caps at 2000 estimates pulled — sufficient for 365-day RCRS volume but won't scale if the company doubles."

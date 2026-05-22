@@ -1,70 +1,66 @@
 /**
- * Estimate Delivery Analysis — emailed vs presented in-person, close rate per delivery mode.
+ * Estimate Delivery Analysis — emailed vs presented in-person.
  *
- * Per Michael (2026-05-21):
- *   Five certainty buckets ranging from CERTAIN-EMAILED to CERTAIN-PRESENTED.
- *   Show close rate per bucket. Then two summaries:
- *     - Certain-only (bucket 1 vs bucket 5)
- *     - Including-probables (1+2 vs 4+5)
- *   Accuracy more important than speed.
+ * Per Michael (2026-05-21 v2): the v1 classifier was wrong. It treated in-
+ * person and email signals as symmetric, putting 62% of estimates in
+ * "Uncertain" because reps don't always log Task Completed activities or
+ * meeting notes. For RCRS the BUSINESS REALITY is that in-person is the
+ * default delivery mode (roofing is a physical sale); email-only is the
+ * exception (mostly insurance contingencies signed remotely).
  *
- * --- Signals (probe-verified 2026-05-21 against ~1000 JN estimates) ---
+ * --- Probe-verified signal architecture (2026-05-21) ---
  *
- * STRONGEST signal: `signature_status` + gap between date_sign_requested
- * and date_signed:
- *   - 260 of 1000 estimates are "Fully Signed" with both timestamps populated
- *   - Of those, 171 (66%) were signed within 5 MINUTES of the e-sign request
- *     → very likely the rep was sitting next to the customer on a tablet
- *   - Only 21 (8%) were signed > 24 hours later → genuinely remote/email signing
+ * KEY FIX: "Estimate Sent" activities have primary.id = estimate.jnid and
+ * related[] only contains the estimate. Walking activities by contact.id
+ * or job.id DOES NOT find them. So we now query activities per estimate
+ * jnid directly to catch the "Estimate has been mailed to {email}" event.
  *
- * NEXT-STRONGEST: activity feed on the contact + related jobs
- *   - "Task Completed" activity within ±3 days of the estimate's date_created
- *     → strong evidence a physical visit happened around the estimate event
- *   - Notes mentioning met / visited / inspected / on-site / in-person /
- *     stopped by / came out / presented / showed → moderate evidence
+ * "Estimate Sent" activities exist at ~30/month per active rep — they're
+ * the REAL email signal, not the email/Email record_type which mostly
+ * captures vendor orders + automation receipts.
  *
- * AUXILIARY: "Estimate Sent" record_type_name activity → confirms an email
- *   was actually sent through JN (rather than just the html field being
- *   populated, which doesn't prove sending).
+ * --- Classifier: decision tree, in-person as default ---
  *
- * --- Scoring (each signal awards points to its side; net diff → bucket) ---
+ * For each estimate, evaluate signals in this order:
  *
- * IN-PERSON points (max ~5 useful):
- *   +3  sig gap <= 5 minutes (within-arm-reach signature)
- *   +2  sig gap 5–30 minutes
- *   +3  Task Completed activity within ±3 days of estimate.date_created
- *   +1  Task Completed within ±14 days (loose match)
- *   +2  Note (record_type='Note') within ±7 days of estimate with meeting keywords
- *   +2  date_signed populated AND date_sign_requested empty (manual signature mark)
- *   +1  estimate's own note/internal_note contains meeting keywords
+ *   1. Hard email evidence:
+ *      - sig gap > 24 hours OR
+ *      - "Estimate Sent" activity matches this estimate AND no in-person evidence
+ *      → CATEGORY 1 (certain emailed)
  *
- * EMAIL points (max ~5 useful):
- *   +3  sig gap > 24 hours (definitively remote signing)
- *   +2  sig gap 2–24 hours (likely remote)
- *   +2  signature_status === 'Requested' (e-sign sent, not yet signed)
- *   +1  signature_status === 'Partially Signed' (some signers via e-sign)
- *   +3  any "Estimate Sent" activity referencing this estimate's jnid
- *   +1  date_sign_requested populated AND no Task Completed in window
+ *   2. Soft email evidence:
+ *      - "Estimate Sent" activity exists (with some in-person evidence too) OR
+ *      - signature_status === 'Requested' OR
+ *      - signature_status === 'Partially Signed' OR
+ *      - sig gap between 2 and 24 hours
+ *      → CATEGORY 2 (probably emailed)
  *
- * --- Bucket logic ---
- *   net = inPoints - outPoints
+ *   3. Hard in-person evidence:
+ *      - Task Completed activity within ±3 days of estimate.date_created OR
+ *      - Note with meeting keywords within ±7 days OR
+ *      - Manual signature (signed without e-sign requested)
+ *      → CATEGORY 5 (certain in-person)
  *
- *   net >=  3  →  5  CERTAIN PRESENTED IN PERSON
- *   net   1–2  →  4  PROBABLY PRESENTED
- *   net     0  →  3  UNCERTAIN
- *   net  -1–-2 →  2  PROBABLY EMAILED
- *   net <= -3  →  1  CERTAIN EMAILED
+ *   4. Soft in-person evidence:
+ *      - Task Completed within ±14 days OR
+ *      - sig gap ≤ 30 min (likely tablet at customer's home) OR
+ *      - signature_status === 'Not Requested' (e-sign workflow not used —
+ *        RCRS default is in-person) OR
+ *      - estimate note/internal_note contains meeting keywords
+ *      → CATEGORY 4 (probably in-person)
+ *
+ *   5. Otherwise: CATEGORY 3 (genuinely uncertain — should be rare)
  *
  * --- Close rate per bucket ---
- *   Per project (job), classify outcome using the same rule the cohort
- *   analysis uses:
- *     WON     — job status_name ≥ Approved Jobs
- *     LOST    — JN status 'Lost' OR pre-Approved with no activity >60d
- *     PENDING — pre-Approved with recent activity
  *
- *   Show both:
- *     trueCloseRate = won ÷ total          (cohort-style, matures right)
- *     rawCloseRate  = won ÷ (won + lost)  (window-style, looks high)
+ * Per project (job), classify outcome using the same rule as cohort analysis:
+ *   WON     — job status_name ≥ Approved Jobs
+ *   LOST    — JN status 'Lost' OR pre-Approved with no activity > 60d
+ *   PENDING — pre-Approved with recent activity
+ *
+ * Show both:
+ *   trueCloseRate = won ÷ total       (cohort-style)
+ *   rawCloseRate  = won ÷ (won + lost) (window-style)
  *
  * Cost-safe: every JN read runs through redactCostFieldsDeep.
  */
@@ -138,10 +134,9 @@ export interface DeliveryEstimate {
   estimateNumber: string;
   rNumber: string;
   rep: string;
-  inPoints: number;
-  outPoints: number;
-  netScore: number;
   category: DeliveryCategory;
+  /** Plain-English reason for the bucket assignment. */
+  classifyReason: string;
   signals: {
     sigGapSeconds: number | null;
     taskWithin3d: boolean;
@@ -211,12 +206,71 @@ function classifyOutcome(job: JNJob | null): 'won' | 'lost' | 'pending' {
   return 'pending';
 }
 
-function bucketForNet(net: number): DeliveryCategory {
-  if (net >= 3) return 5;
-  if (net >= 1) return 4;
-  if (net === 0) return 3;
-  if (net >= -2) return 2;
-  return 1;
+/**
+ * Decision-tree classifier. Returns [category, reason].
+ * RCRS default is in-person — absence of email evidence + sig_status
+ * Not Requested falls to PROBABLY in-person, not uncertain.
+ */
+function classifyDelivery(s: {
+  sigGap: number | null;
+  sigStatus: string;
+  taskWithin3d: boolean;
+  taskWithin14d: boolean;
+  noteMeetingMatch: boolean;
+  estimateSentActivity: boolean;
+  estimateNoteMeetingMatch: boolean;
+  manualSignature: boolean;
+}): { category: DeliveryCategory; reason: string } {
+  // 1. HARD EMAIL — > 24 hr sig gap or Estimate Sent with no in-person evidence
+  const hasInPersonEvidence = s.taskWithin3d || s.noteMeetingMatch || s.manualSignature;
+  if (s.sigGap !== null && s.sigGap > 86400) {
+    return { category: 1, reason: 'Signed > 24 hours after e-sign request — remote/email signing' };
+  }
+  if (s.estimateSentActivity && !hasInPersonEvidence) {
+    return { category: 1, reason: 'JN logged "Estimate Sent" email; no in-person evidence near estimate' };
+  }
+
+  // 2. SOFT EMAIL — Estimate Sent (with some in-person too) OR e-sign workflow flags
+  if (s.estimateSentActivity) {
+    return { category: 2, reason: '"Estimate Sent" activity exists; some in-person evidence too — mixed signals' };
+  }
+  if (s.sigStatus === 'Requested') {
+    return { category: 2, reason: 'E-sign request sent (Requested status), not yet signed' };
+  }
+  if (s.sigStatus === 'Partially Signed') {
+    return { category: 2, reason: 'Partially signed via e-sign workflow' };
+  }
+  if (s.sigGap !== null && s.sigGap > 7200) {
+    return { category: 2, reason: 'Signed 2–24 hours after e-sign request — likely remote' };
+  }
+
+  // 3. HARD IN-PERSON — Task ±3d, meeting note ±7d, or manual signature
+  if (s.taskWithin3d) {
+    return { category: 5, reason: 'Task Completed activity within ±3 days of estimate' };
+  }
+  if (s.noteMeetingMatch) {
+    return { category: 5, reason: 'Note within ±7 days mentions met/visited/presented/etc.' };
+  }
+  if (s.manualSignature) {
+    return { category: 5, reason: 'Signed without e-sign request — physical/manual signature' };
+  }
+
+  // 4. SOFT IN-PERSON — Task ±14d, fast sig, Not Requested, or estimate note mentions meeting
+  if (s.taskWithin14d) {
+    return { category: 4, reason: 'Task Completed within ±14 days (loose match)' };
+  }
+  if (s.sigGap !== null && s.sigGap <= 1800) {
+    return { category: 4, reason: 'Signed within 30 min of e-sign request — likely tablet at customer\'s home' };
+  }
+  if (s.estimateNoteMeetingMatch) {
+    return { category: 4, reason: 'Estimate\'s own note mentions a meeting/visit' };
+  }
+  if (s.sigStatus === 'Not Requested') {
+    return { category: 4, reason: 'E-sign workflow not used (Not Requested) — defaults to in-person per RCRS norms' };
+  }
+
+  // 5. UNCERTAIN — no signals found in either direction
+  return { category: 3, reason: 'No conclusive signals — neither email nor in-person evidence found' };
 }
 
 let _cache: { key: string; data: DeliveryAnalysis; at: number } | null = null;
@@ -338,6 +392,25 @@ export async function analyzeEstimateDelivery(opts: { days?: number } = {}): Pro
   }
   const contactsFetched = contactIds.size;
 
+  // 5b. Per-estimate "Estimate Sent" lookup — these activities have
+  // primary.id = estimate.jnid and DO NOT appear in contact/job activity
+  // walks (probe-verified 2026-05-21). Query by estimate id directly.
+  const estimateActsByJnid = new Map<string, JNActivity[]>();
+  for (let i = 0; i < estimates.length; i += BATCH) {
+    const slice = estimates.slice(i, i + BATCH);
+    await Promise.all(slice.map(async est => {
+      try {
+        const f = encodeURIComponent(JSON.stringify({ must: [{ term: { 'primary.id': est.jnid } }] }));
+        const res = await jnFetch<{ results?: JNActivity[]; activity?: JNActivity[] }>(`/activities?filter=${f}&sort=-date_created&limit=20`);
+        const acts = res.results || res.activity || [];
+        activitiesFetched += acts.length;
+        estimateActsByJnid.set(est.jnid, acts);
+      } catch {
+        estimateActsByJnid.set(est.jnid, []);
+      }
+    }));
+  }
+
   // 6. Score each estimate.
   const scored: DeliveryEstimate[] = [];
   for (const est of estimates) {
@@ -380,15 +453,12 @@ export async function analyzeEstimateDelivery(opts: { days?: number } = {}): Pro
       return MEETING_KEYWORDS_RE.test(a.note || '');
     });
 
-    // Signal: "Estimate Sent" activity referencing this estimate
-    const estimateSentActivity = acts.some(a => {
-      const rtn = (a.record_type_name || '').toLowerCase();
-      if (rtn !== 'estimate sent') return false;
-      // Check if this Estimate Sent references our estimate by jnid
-      const refsThis = a.primary?.id === est.jnid ||
-        (a.related || []).some(r => r?.id === est.jnid);
-      return refsThis;
-    });
+    // Signal: "Estimate Sent" activity for THIS estimate — query was
+    // by estimate.jnid directly (these don't appear in contact/job walks).
+    const estActsForThisEstimate = estimateActsByJnid.get(est.jnid) || [];
+    const estimateSentActivity = estActsForThisEstimate.some(a =>
+      /^estimate sent$/i.test(a.record_type_name || ''),
+    );
 
     // Signal: estimate's own note/internal_note has meeting keywords
     const estimateNoteMeetingMatch = MEETING_KEYWORDS_RE.test(est.note || '') ||
@@ -397,29 +467,17 @@ export async function analyzeEstimateDelivery(opts: { days?: number } = {}): Pro
     const sigStatus = (est.signature_status || '').trim();
     const manualSignature = sigSigned > 0 && (!sigReq || sigReq === 0);
 
-    // --- Score ---
-    let inPoints = 0;
-    let outPoints = 0;
-
-    // IN-PERSON
-    if (sigGap !== null && sigGap <= 300) inPoints += 3;          // <= 5 min
-    else if (sigGap !== null && sigGap <= 1800) inPoints += 2;    // 5-30 min
-    if (taskWithin3d) inPoints += 3;
-    else if (taskWithin14d) inPoints += 1;
-    if (noteMeetingMatch) inPoints += 2;
-    if (manualSignature) inPoints += 2;
-    if (estimateNoteMeetingMatch) inPoints += 1;
-
-    // EMAIL
-    if (sigGap !== null && sigGap > 86400) outPoints += 3;         // > 24 hr
-    else if (sigGap !== null && sigGap > 7200) outPoints += 2;    // 2-24 hr
-    if (sigStatus === 'Requested') outPoints += 2;
-    if (sigStatus === 'Partially Signed') outPoints += 1;
-    if (estimateSentActivity) outPoints += 3;
-    if (sigReq > 0 && !taskWithin3d && !taskWithin14d) outPoints += 1;
-
-    const netScore = inPoints - outPoints;
-    const category = bucketForNet(netScore);
+    // Decision-tree classifier (in-person as RCRS default)
+    const { category, reason } = classifyDelivery({
+      sigGap,
+      sigStatus,
+      taskWithin3d,
+      taskWithin14d,
+      noteMeetingMatch,
+      estimateSentActivity,
+      estimateNoteMeetingMatch,
+      manualSignature,
+    });
 
     // Outcome from the job
     const job = jobId ? jobCache.get(jobId) || null : null;
@@ -430,10 +488,8 @@ export async function analyzeEstimateDelivery(opts: { days?: number } = {}): Pro
       estimateNumber: est.number || '',
       rNumber: (job?.number || '').trim(),
       rep: (est.sales_rep_name || '').trim(),
-      inPoints,
-      outPoints,
-      netScore,
       category,
+      classifyReason: reason,
       signals: {
         sigGapSeconds: sigGap,
         taskWithin3d,
