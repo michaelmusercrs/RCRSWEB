@@ -119,12 +119,12 @@ const CACHE_TTL_MS = 30 * 60 * 1000; // expensive query — cache longer
 const SHEET_CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000; // 6 hours; cohorts shift slowly
 
 export async function analyzeCohorts(opts: { months?: number } = {}): Promise<CohortAnalysis> {
-  const windowMonths = Math.min(Math.max(opts.months || 18, 6), 36);
+  const windowMonths = Math.min(Math.max(opts.months || 12, 6), 36);
   const cacheKey = `months:${windowMonths}`;
   if (_cache && _cache.key === cacheKey && Date.now() - _cache.at < CACHE_TTL_MS) return _cache.data;
 
   // Sheet-cache fast path for the default window.
-  if (windowMonths === 18) {
+  if (windowMonths === 12) {
     try {
       const { readChrisviewCache } = await import('./chrisview-sheet-cache');
       const cached = await readChrisviewCache<CohortAnalysis>('cohorts');
@@ -145,12 +145,15 @@ export async function analyzeCohorts(opts: { months?: number } = {}): Promise<Co
   const sinceSec = nowSec - windowMonths * 30 * 86400;
 
   // 1. Pull all estimates in window (newest first, stop when out of range).
+  // Cap at 30 pages = 3000 estimates — generous enough for 18+ months of
+  // RCRS volume (probe shows ~635 distinct projects across 18 mo). Deeper
+  // pagination has timed out in production.
   const estimates: JNEstimate[] = [];
   let estimatesFetched = 0;
   {
     let offset = 0;
     const pageSize = 100;
-    while (offset < 10000) {
+    while (offset < 3000) {
       const res = await jnFetch<{ results?: JNEstimate[] }>(`/estimates?limit=${pageSize}&offset=${offset}&sort=-date_created`);
       const page = res.results || [];
       if (!page.length) break;

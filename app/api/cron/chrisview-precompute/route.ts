@@ -63,7 +63,7 @@ const PAGES: Page[] = [
   { slug: 'capacity',         compute: () => analyzeCapacity() },
   { slug: 'cac',              compute: () => analyzeCac({ days: 365 }) },
   { slug: 'win-loss',         compute: () => analyzeWinLoss({ days: 180 }) },
-  { slug: 'cohorts',          compute: () => analyzeCohorts({ months: 18 }) },
+  { slug: 'cohorts',          compute: () => analyzeCohorts({ months: 12 }) },
 ];
 
 export async function GET(request: NextRequest) {

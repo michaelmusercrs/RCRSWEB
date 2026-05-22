@@ -73,7 +73,7 @@ const MATURITY_LABEL: Record<Maturity, string> = {
 };
 
 export default function CohortsPage() {
-  const [months, setMonths] = useState(18);
+  const [months, setMonths] = useState(12);
   const [data, setData] = useState<Data | null>(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
