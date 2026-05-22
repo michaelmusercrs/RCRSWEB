@@ -241,7 +241,17 @@ function classifyDelivery(s: {
   taskAfterWithin3d: boolean;
   taskAfterWithin14d: boolean;
   noteMeetingAfter: boolean;
+  /** "Estimate Sent" record_type activity (rare — used when rep clicks the
+   *  formal Estimate Sent button). */
   estimateSentActivity: boolean;
+  /** Generic "Email" activity AFTER the estimate, with note text indicating
+   *  this estimate was the email's subject (e.g., "estimate is attached",
+   *  "sent Estimate # for you to sign"). The COMMON email signal at RCRS —
+   *  most reps use plain email, not the Estimate Sent button. */
+  emailActivityAboutEstimate: boolean;
+  /** JobNimbus automation note confirming remote e-sign completion
+   *  ("Document Fully Signed", "Electronic Signature Added to Estimate"). */
+  remoteEsignAutomationNote: boolean;
   estimateNoteMeetingMatch: boolean;
   manualSignature: boolean;
   /** Diagnostic only. NOT used in classification. */
@@ -252,19 +262,36 @@ function classifyDelivery(s: {
   if (s.sigGap !== null && s.sigGap > 86400) {
     return { category: 1, reason: 'Signed > 24 hours after e-sign request — definitively remote signing' };
   }
+  // Remote e-sign automation note + no follow-up visit = pure email delivery
+  if (s.remoteEsignAutomationNote && !s.taskAfterWithin14d && !s.noteMeetingAfter) {
+    return { category: 1, reason: 'JobNimbus automation logged remote e-signature ("Document Fully Signed" / "Electronic Signature Added") with no follow-up in-person visit' };
+  }
+  // Rep emailed the estimate (generic Email activity) + no follow-up visit
+  if (s.emailActivityAboutEstimate && !s.taskAfterWithin14d && !s.noteMeetingAfter && !s.manualSignature) {
+    return { category: 1, reason: 'Rep sent the estimate via email ("estimate is attached" / "sent Estimate for you to sign") + no follow-up Task Completed, meeting note, or manual signature' };
+  }
+  // Formal "Estimate Sent" button + no follow-up
   if (s.estimateSentActivity && !s.taskAfterWithin14d && !s.noteMeetingAfter && !s.manualSignature) {
-    return { category: 1, reason: '"Estimate Sent" email logged; no follow-up Task Completed, meeting note, or manual signature AFTER estimate creation' };
+    return { category: 1, reason: '"Estimate Sent" formal email logged; no follow-up Task Completed, meeting note, or manual signature AFTER estimate' };
   }
 
   // 2. SOFT EMAIL
+  if (s.emailActivityAboutEstimate || s.remoteEsignAutomationNote || s.estimateSentActivity) {
+    return { category: 2, reason: 'Email activity logged for this estimate but also some in-person evidence — mixed signals' };
+  }
   if (s.sigStatus === 'Requested' && !s.taskAfterWithin14d && !s.noteMeetingAfter) {
-    return { category: 2, reason: 'E-sign request sent (status: Requested), not yet signed, no in-person follow-up after estimate' };
+    return { category: 2, reason: 'E-sign request sent (status: Requested), not yet signed, no in-person follow-up' };
   }
   if (s.sigStatus === 'Partially Signed') {
     return { category: 2, reason: 'Partially signed via e-sign workflow' };
   }
   if (s.sigGap !== null && s.sigGap > 7200 && !s.taskAfterWithin14d) {
     return { category: 2, reason: 'Signed 2–24 hours after e-sign request — likely remote' };
+  }
+  // If there was an inspection but no follow-up visit AND no logged email,
+  // most likely the rep emailed it directly (without JN's button).
+  if (s.taskBeforeForInspection && !s.taskAfterWithin14d && !s.noteMeetingAfter && !s.manualSignature && !s.estimateSentActivity && !s.emailActivityAboutEstimate) {
+    return { category: 2, reason: 'Inspection happened, no follow-up visit logged, no JN email logged — most likely emailed directly outside of JN' };
   }
 
   // 3. HARD IN-PERSON (closing-appointment evidence AFTER estimate)
@@ -282,15 +309,17 @@ function classifyDelivery(s: {
   if (s.taskAfterWithin14d) {
     return { category: 4, reason: 'Task Completed within 14 days AFTER estimate — likely closing visit' };
   }
-  if (s.sigGap !== null && s.sigGap <= 1800) {
-    return { category: 4, reason: 'Signed within 30 min of e-sign request — likely tablet at customer\'s home' };
+  // Fast sigGap is now SOFT in-person, only when no remote-esign-automation
+  // note exists. Probe showed fast e-sign can happen remotely too (R-11222).
+  if (s.sigGap !== null && s.sigGap <= 1800 && !s.remoteEsignAutomationNote) {
+    return { category: 4, reason: 'Signed within 30 min of e-sign request, no remote-signing automation note — possibly tablet at customer\'s home' };
   }
   if (s.estimateNoteMeetingMatch) {
     return { category: 4, reason: 'Estimate\'s own note mentions a meeting/visit' };
   }
 
   // 5. UNCERTAIN
-  return { category: 3, reason: 'No AFTER-estimate signals (no closing task, no meeting note, no clear sign pattern, no email logged) — cannot determine delivery mode' };
+  return { category: 3, reason: 'No conclusive AFTER-estimate signals — cannot determine delivery mode from JN data' };
 }
 
 let _cache: { key: string; data: DeliveryAnalysis; at: number } | null = null;
@@ -483,12 +512,56 @@ export async function analyzeEstimateDelivery(opts: { days?: number } = {}): Pro
       return ad < estCreated && ad >= estCreated - 60 * 86400;
     });
 
-    // Signal: "Estimate Sent" activity for THIS estimate — query was
-    // by estimate.jnid directly (these don't appear in contact/job walks).
+    // V6 EMAIL SIGNALS — probe of R-11222 (2026-05-21) revealed three
+    // categories of email evidence I was missing:
+    //
+    //   (a) "Estimate Sent" record_type activity (existing — still rare)
+    //   (b) Generic "Email" / "email" activities with note text like
+    //       "estimate is attached", "sent Estimate # for you to sign",
+    //       "RCRS sent Document/Estimate" — these are the ACTUAL emails
+    //       reps send (most reps use this, not the formal Estimate Sent
+    //       button)
+    //   (c) JobNimbus automation notes confirming e-sign workflow:
+    //       "Document Fully Signed", "Electronic Signature Added to Estimate",
+    //       "Estimate # is completed and ready to download" — these
+    //       confirm REMOTE signing happened (not in-person)
     const estActsForThisEstimate = estimateActsByJnid.get(est.jnid) || [];
-    const estimateSentActivity = estActsForThisEstimate.some(a =>
+
+    // Combined activity pool — contact + job + per-estimate (3 sources)
+    const allActsForEstimate = [
+      ...acts,
+      ...estActsForThisEstimate,
+    ];
+
+    const estimateSentActivity = allActsForEstimate.some(a =>
       /^estimate sent$/i.test(a.record_type_name || ''),
     );
+
+    // Email-record referencing the estimate. Cast wider — multiple shapes.
+    const ESTIMATE_EMAIL_NOTE_RE = new RegExp(
+      'estimate.*attached|sent\\s*estimate|estimate.*emailed|for\\s*you\\s*to\\s*sign|estimate.*#[0-9]+.*sign|estimate.*ready\\s*to\\s*download',
+      'i',
+    );
+    const emailActivityAboutEstimate = allActsForEstimate.some(a => {
+      const rtn = (a.record_type_name || '').toLowerCase();
+      if (rtn !== 'email') return false;
+      const ad = a.date_created || 0;
+      // Only count emails AFTER the estimate was created (so we're not
+      // catching unrelated prior emails to this contact).
+      if (ad < estCreated) return false;
+      return ESTIMATE_EMAIL_NOTE_RE.test(a.note || '');
+    });
+
+    // Automation note confirming e-sign workflow completed remotely.
+    const REMOTE_ESIGN_NOTE_RE = new RegExp(
+      'electronic\\s*signature\\s*added|document\\s*fully\\s*signed|estimate.*completed.*signed|doc\\s*fully\\s*signed',
+      'i',
+    );
+    const remoteEsignAutomationNote = allActsForEstimate.some(a => {
+      const ad = a.date_created || 0;
+      if (ad < estCreated) return false;
+      return REMOTE_ESIGN_NOTE_RE.test(a.note || '');
+    });
 
     // Signal: estimate's own note/internal_note has meeting keywords
     const estimateNoteMeetingMatch = MEETING_KEYWORDS_RE.test(est.note || '') ||
@@ -503,7 +576,7 @@ export async function analyzeEstimateDelivery(opts: { days?: number } = {}): Pro
     const outcome = classifyOutcome(job);
     const jobStatusRaw = (job?.status_name || '').trim();
 
-    // V5 classifier — AFTER-only signals.
+    // V6 classifier — adds email-record + remote-esign-automation signals.
     const { category, reason } = classifyDelivery({
       sigGap,
       sigStatus,
@@ -511,6 +584,8 @@ export async function analyzeEstimateDelivery(opts: { days?: number } = {}): Pro
       taskAfterWithin14d,
       noteMeetingAfter,
       estimateSentActivity,
+      emailActivityAboutEstimate,
+      remoteEsignAutomationNote,
       estimateNoteMeetingMatch,
       manualSignature,
       taskBeforeForInspection,
