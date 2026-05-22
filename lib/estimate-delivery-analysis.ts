@@ -216,35 +216,55 @@ function classifyDelivery(s: {
   sigStatus: string;
   taskWithin3d: boolean;
   taskWithin14d: boolean;
+  /** Any Task Completed activity on the contact or job, anywhere in history.
+   *  CRITICAL: this catches the RCRS workflow where a rep inspects the
+   *  customer's roof first (days/weeks earlier), then writes + emails the
+   *  estimate as a follow-up record. The customer WAS met, just not within
+   *  ±14 days of the estimate timestamp. */
+  taskEverInHistory: boolean;
   noteMeetingMatch: boolean;
+  noteMeetingEverInHistory: boolean;
   estimateSentActivity: boolean;
   estimateNoteMeetingMatch: boolean;
   manualSignature: boolean;
 }): { category: DeliveryCategory; reason: string } {
-  // 1. HARD EMAIL — > 24 hr sig gap or Estimate Sent with no in-person evidence
-  const hasInPersonEvidence = s.taskWithin3d || s.noteMeetingMatch || s.manualSignature;
+  // CRITICAL INSIGHT (Michael 2026-05-21):
+  // For RCRS workflow, "Estimate Sent" via JN is COMMON for in-person sales
+  // too — the rep emails the estimate as a record after meeting the customer.
+  // So "Estimate Sent" alone doesn't mean email-only delivery. The true
+  // email-only test is "Estimate Sent AND zero in-person interaction in the
+  // contact's history".
+
+  // 1. HARD EMAIL
+  //    (a) Customer signed > 24 hr after e-sign request → definitively remote, OR
+  //    (b) Estimate emailed AND the contact has NEVER had an in-person
+  //        interaction logged in JN (no Task Completed, no meeting note, no
+  //        manual sig in their entire history)
+  const inPersonEver = s.taskEverInHistory || s.noteMeetingEverInHistory || s.manualSignature;
   if (s.sigGap !== null && s.sigGap > 86400) {
     return { category: 1, reason: 'Signed > 24 hours after e-sign request — remote/email signing' };
   }
-  if (s.estimateSentActivity && !hasInPersonEvidence) {
-    return { category: 1, reason: 'JN logged "Estimate Sent" email; no in-person evidence near estimate' };
+  if (s.estimateSentActivity && !inPersonEver) {
+    return { category: 1, reason: '"Estimate Sent" email exists; contact has NO in-person interactions logged anywhere in JN history' };
   }
 
-  // 2. SOFT EMAIL — Estimate Sent (with some in-person too) OR e-sign workflow flags
-  if (s.estimateSentActivity) {
-    return { category: 2, reason: '"Estimate Sent" activity exists; some in-person evidence too — mixed signals' };
+  // 2. SOFT EMAIL
+  //    (a) Estimate Sent but contact has SOME in-person history elsewhere → mixed
+  //    (b) E-sign workflow flags without in-person evidence near the estimate
+  if (s.estimateSentActivity && !s.taskWithin14d && !s.noteMeetingMatch && !s.manualSignature) {
+    return { category: 2, reason: '"Estimate Sent" email logged; in-person interactions exist elsewhere in JN but not near this estimate' };
   }
-  if (s.sigStatus === 'Requested') {
-    return { category: 2, reason: 'E-sign request sent (Requested status), not yet signed' };
+  if (s.sigStatus === 'Requested' && !s.taskWithin14d) {
+    return { category: 2, reason: 'E-sign request sent (status: Requested), not yet signed, no recent in-person evidence' };
   }
   if (s.sigStatus === 'Partially Signed') {
     return { category: 2, reason: 'Partially signed via e-sign workflow' };
   }
-  if (s.sigGap !== null && s.sigGap > 7200) {
+  if (s.sigGap !== null && s.sigGap > 7200 && !s.taskWithin14d) {
     return { category: 2, reason: 'Signed 2–24 hours after e-sign request — likely remote' };
   }
 
-  // 3. HARD IN-PERSON — Task ±3d, meeting note ±7d, or manual signature
+  // 3. HARD IN-PERSON
   if (s.taskWithin3d) {
     return { category: 5, reason: 'Task Completed activity within ±3 days of estimate' };
   }
@@ -255,9 +275,9 @@ function classifyDelivery(s: {
     return { category: 5, reason: 'Signed without e-sign request — physical/manual signature' };
   }
 
-  // 4. SOFT IN-PERSON — Task ±14d, fast sig, Not Requested, or estimate note mentions meeting
+  // 4. SOFT IN-PERSON
   if (s.taskWithin14d) {
-    return { category: 4, reason: 'Task Completed within ±14 days (loose match)' };
+    return { category: 4, reason: 'Task Completed within ±14 days of estimate' };
   }
   if (s.sigGap !== null && s.sigGap <= 1800) {
     return { category: 4, reason: 'Signed within 30 min of e-sign request — likely tablet at customer\'s home' };
@@ -265,11 +285,14 @@ function classifyDelivery(s: {
   if (s.estimateNoteMeetingMatch) {
     return { category: 4, reason: 'Estimate\'s own note mentions a meeting/visit' };
   }
+  if (s.taskEverInHistory || s.noteMeetingEverInHistory) {
+    return { category: 4, reason: 'Customer was met in person at some point in JN history (just not within ±14 days of this estimate)' };
+  }
   if (s.sigStatus === 'Not Requested') {
     return { category: 4, reason: 'E-sign workflow not used (Not Requested) — defaults to in-person per RCRS norms' };
   }
 
-  // 5. UNCERTAIN — no signals found in either direction
+  // 5. UNCERTAIN
   return { category: 3, reason: 'No conclusive signals — neither email nor in-person evidence found' };
 }
 
@@ -443,6 +466,11 @@ export async function analyzeEstimateDelivery(opts: { days?: number } = {}): Pro
       const ad = a.date_created || 0;
       return Math.abs(ad - estCreated) <= 14 * 86400;
     });
+    // Signal: ANY Task Completed in this contact's/job's entire history.
+    // For RCRS workflow this is the strongest "was the customer ever met"
+    // signal — reps inspect first, then write the estimate later, often
+    // outside the ±14 day window.
+    const taskEverInHistory = acts.some(a => /^task completed$/i.test(a.record_type_name || ''));
 
     // Signal: meeting-mentioning note within ±7 days
     const noteMeetingMatch = acts.some(a => {
@@ -450,6 +478,12 @@ export async function analyzeEstimateDelivery(opts: { days?: number } = {}): Pro
       if (rtn !== 'note') return false;
       const ad = a.date_created || 0;
       if (Math.abs(ad - estCreated) > 7 * 86400) return false;
+      return MEETING_KEYWORDS_RE.test(a.note || '');
+    });
+    // Signal: ANY meeting-keyword note in the entire history.
+    const noteMeetingEverInHistory = acts.some(a => {
+      const rtn = (a.record_type_name || '').toLowerCase();
+      if (rtn !== 'note') return false;
       return MEETING_KEYWORDS_RE.test(a.note || '');
     });
 
@@ -473,7 +507,9 @@ export async function analyzeEstimateDelivery(opts: { days?: number } = {}): Pro
       sigStatus,
       taskWithin3d,
       taskWithin14d,
+      taskEverInHistory,
       noteMeetingMatch,
+      noteMeetingEverInHistory,
       estimateSentActivity,
       estimateNoteMeetingMatch,
       manualSignature,
