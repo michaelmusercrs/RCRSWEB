@@ -139,13 +139,18 @@ export interface DeliveryEstimate {
   classifyReason: string;
   signals: {
     sigGapSeconds: number | null;
-    taskWithin3d: boolean;
-    taskWithin14d: boolean;
-    noteMeetingMatch: boolean;
+    /** Task Completed STRICTLY AFTER estimate creation, within 3 days
+     *  (closing-appointment evidence — rep returned to present estimate). */
+    taskAfterWithin3d: boolean;
+    taskAfterWithin14d: boolean;
+    noteMeetingAfter: boolean;
     estimateSentActivity: boolean;
     estimateNoteMeetingMatch: boolean;
     sigStatus: string;
     manualSignature: boolean;
+    /** Diagnostic only: a pre-estimate inspection happened. NOT used in
+     *  classification — inspection ≠ estimate-presentation. */
+    taskBeforeForInspection: boolean;
   };
   outcome: 'won' | 'lost' | 'pending';
   jobStatus: string;
@@ -207,84 +212,75 @@ function classifyOutcome(job: JNJob | null): 'won' | 'lost' | 'pending' {
 }
 
 /**
- * Decision-tree classifier. Returns [category, reason].
- * RCRS default is in-person — absence of email evidence + sig_status
- * Not Requested falls to PROBABLY in-person, not uncertain.
+ * V5 classifier — CRITICAL REWORK per Michael 2026-05-21.
+ *
+ * The question is "was the ESTIMATE PRESENTED in person or just EMAILED?"
+ * NOT "did the rep ever visit the property?". Those are different events
+ * separated by days or weeks:
+ *
+ *   - INSPECTION (Task Completed BEFORE estimate)
+ *     Rep visits property, measures, takes photos. The estimate is then
+ *     written back at the office. Does NOT tell us how the estimate
+ *     itself was delivered.
+ *
+ *   - ESTIMATE PRESENTATION (the actual question)
+ *     Either the rep returns to the customer to present the estimate
+ *     (in-person), OR they email the PDF and let customer review remotely.
+ *
+ * So this version ONLY uses AFTER-estimate signals for in-person
+ * presentation. Pre-estimate activities are kept as a diagnostic flag
+ * (taskBeforeForInspection) but don't drive the bucket.
+ *
+ * Also dropped: job-status as evidence (jobIsSold etc). That was outcome-
+ * leak — using "this job sold" to classify delivery mode then measuring
+ * close rate per mode is tautological.
  */
 function classifyDelivery(s: {
   sigGap: number | null;
   sigStatus: string;
-  taskWithin3d: boolean;
-  taskWithin14d: boolean;
-  taskEverInHistory: boolean;
-  noteMeetingMatch: boolean;
-  noteMeetingEverInHistory: boolean;
+  taskAfterWithin3d: boolean;
+  taskAfterWithin14d: boolean;
+  noteMeetingAfter: boolean;
   estimateSentActivity: boolean;
   estimateNoteMeetingMatch: boolean;
   manualSignature: boolean;
-  /** Job status_name. Critical signal: if the job won (status ≥ Approved),
-   *  the rep almost certainly met the customer at some point — closing a
-   *  roofing deal without ever meeting is rare outside of insurance-claim
-   *  contingencies. Reps just don't always log Task Completed for visits. */
-  jobStatus: string;
-  /** True when job_status is past Lead AND past Aerial Measurements.
-   *  In RCRS workflow, jobs progress: Lead → Aerial → Inspection → Estimate
-   *  → ... Past Aerial usually means a physical inspection happened. */
-  jobAdvancedPastAerial: boolean;
-  /** True when job is in a "sold" status (Approved Jobs and beyond). */
-  jobIsSold: boolean;
+  /** Diagnostic only. NOT used in classification. */
+  taskBeforeForInspection: boolean;
 }): { category: DeliveryCategory; reason: string } {
-  // CRITICAL INSIGHTS (Michael 2026-05-21):
-  // (1) "Estimate Sent" via JN is common even for in-person sales — rep
-  //     emails the PDF as a record after meeting the customer.
-  // (2) If the JOB WON (status ≥ Approved Jobs), the rep almost certainly
-  //     met the customer somehow. Closing roofing deals without any face-
-  //     to-face is rare. Reps just don't always log Task Completed.
-  // (3) Jobs that advanced past Aerial Measurements typically had a
-  //     physical inspection — that's the natural workflow step.
-  //
-  // True email-only requires: confirmed remote-signing evidence OR
-  // (Estimate Sent + the job NEVER progressed past Aerial + no in-person
-  // history anywhere). That filter catches the actual cold-lead-only and
-  // insurance-adjuster-only cases.
 
   // 1. HARD EMAIL
-  const inPersonEver = s.taskEverInHistory || s.noteMeetingEverInHistory || s.manualSignature;
   if (s.sigGap !== null && s.sigGap > 86400) {
     return { category: 1, reason: 'Signed > 24 hours after e-sign request — definitively remote signing' };
   }
-  if (s.estimateSentActivity && !inPersonEver && !s.jobAdvancedPastAerial && !s.jobIsSold) {
-    return { category: 1, reason: '"Estimate Sent" email + zero in-person history + job never advanced past Aerial Measurements' };
+  if (s.estimateSentActivity && !s.taskAfterWithin14d && !s.noteMeetingAfter && !s.manualSignature) {
+    return { category: 1, reason: '"Estimate Sent" email logged; no follow-up Task Completed, meeting note, or manual signature AFTER estimate creation' };
   }
 
-  // 2. SOFT EMAIL (mixed signals — email confirmed but some in-person evidence)
-  if (s.estimateSentActivity && !s.taskWithin14d && !s.noteMeetingMatch && !s.manualSignature && !s.jobIsSold) {
-    return { category: 2, reason: '"Estimate Sent" email logged; no in-person evidence near estimate (job not yet sold)' };
-  }
-  if (s.sigStatus === 'Requested' && !s.taskWithin14d && !s.jobIsSold) {
-    return { category: 2, reason: 'E-sign request sent (Requested status), not signed, no recent in-person evidence' };
+  // 2. SOFT EMAIL
+  if (s.sigStatus === 'Requested' && !s.taskAfterWithin14d && !s.noteMeetingAfter) {
+    return { category: 2, reason: 'E-sign request sent (status: Requested), not yet signed, no in-person follow-up after estimate' };
   }
   if (s.sigStatus === 'Partially Signed') {
     return { category: 2, reason: 'Partially signed via e-sign workflow' };
   }
-  if (s.sigGap !== null && s.sigGap > 7200 && !s.taskWithin14d) {
+  if (s.sigGap !== null && s.sigGap > 7200 && !s.taskAfterWithin14d) {
     return { category: 2, reason: 'Signed 2–24 hours after e-sign request — likely remote' };
   }
 
-  // 3. HARD IN-PERSON
-  if (s.taskWithin3d) {
-    return { category: 5, reason: 'Task Completed activity within ±3 days of estimate' };
+  // 3. HARD IN-PERSON (closing-appointment evidence AFTER estimate)
+  if (s.taskAfterWithin3d) {
+    return { category: 5, reason: 'Task Completed within 3 days AFTER estimate creation — closing appointment' };
   }
-  if (s.noteMeetingMatch) {
-    return { category: 5, reason: 'Note within ±7 days mentions met/visited/presented/etc.' };
+  if (s.noteMeetingAfter) {
+    return { category: 5, reason: 'Meeting-keyword note logged AFTER estimate creation — closing visit documented' };
   }
   if (s.manualSignature) {
-    return { category: 5, reason: 'Signed without e-sign request — physical/manual signature' };
+    return { category: 5, reason: 'Signed without e-sign request — physical/manual signature, presented in person' };
   }
 
   // 4. SOFT IN-PERSON
-  if (s.taskWithin14d) {
-    return { category: 4, reason: 'Task Completed within ±14 days of estimate' };
+  if (s.taskAfterWithin14d) {
+    return { category: 4, reason: 'Task Completed within 14 days AFTER estimate — likely closing visit' };
   }
   if (s.sigGap !== null && s.sigGap <= 1800) {
     return { category: 4, reason: 'Signed within 30 min of e-sign request — likely tablet at customer\'s home' };
@@ -292,22 +288,9 @@ function classifyDelivery(s: {
   if (s.estimateNoteMeetingMatch) {
     return { category: 4, reason: 'Estimate\'s own note mentions a meeting/visit' };
   }
-  if (s.taskEverInHistory || s.noteMeetingEverInHistory) {
-    return { category: 4, reason: 'Customer met in person somewhere in JN history (not within ±14d of this estimate)' };
-  }
-  // Job-status-driven defaults for the "rep didn't log the visit" case
-  if (s.jobIsSold) {
-    return { category: 4, reason: `Job sold (status "${s.jobStatus}") — rep almost certainly met the customer at some point; visit just not logged as a task` };
-  }
-  if (s.jobAdvancedPastAerial) {
-    return { category: 4, reason: `Job advanced past Aerial Measurements to "${s.jobStatus}" — physical inspection almost certainly happened` };
-  }
-  if (s.sigStatus === 'Not Requested') {
-    return { category: 4, reason: 'E-sign workflow not used (Not Requested) — defaults to in-person per RCRS norms' };
-  }
 
   // 5. UNCERTAIN
-  return { category: 3, reason: 'No conclusive signals — neither email nor in-person evidence found' };
+  return { category: 3, reason: 'No AFTER-estimate signals (no closing task, no meeting note, no clear sign pattern, no email logged) — cannot determine delivery mode' };
 }
 
 let _cache: { key: string; data: DeliveryAnalysis; at: number } | null = null;
@@ -467,38 +450,37 @@ export async function analyzeEstimateDelivery(opts: { days?: number } = {}): Pro
     const sigSigned = est.date_signed || 0;
     const sigGap = (sigReq > 0 && sigSigned > 0 && sigSigned >= sigReq) ? sigSigned - sigReq : null;
 
-    // Signal: Task Completed near estimate.date_created
-    const taskWithin3d = acts.some(a => {
-      const rtn = (a.record_type_name || '').toLowerCase();
-      if (rtn !== 'task completed') return false;
-      const ad = a.date_created || 0;
-      return Math.abs(ad - estCreated) <= 3 * 86400;
-    });
-    const taskWithin14d = !taskWithin3d && acts.some(a => {
-      const rtn = (a.record_type_name || '').toLowerCase();
-      if (rtn !== 'task completed') return false;
-      const ad = a.date_created || 0;
-      return Math.abs(ad - estCreated) <= 14 * 86400;
-    });
-    // Signal: ANY Task Completed in this contact's/job's entire history.
-    // For RCRS workflow this is the strongest "was the customer ever met"
-    // signal — reps inspect first, then write the estimate later, often
-    // outside the ±14 day window.
-    const taskEverInHistory = acts.some(a => /^task completed$/i.test(a.record_type_name || ''));
+    // V5 SIGNALS — only AFTER-estimate matters for delivery mode.
+    // Inspection visits (BEFORE estimate) say nothing about how the
+    // estimate itself was delivered.
 
-    // Signal: meeting-mentioning note within ±7 days
-    const noteMeetingMatch = acts.some(a => {
+    // Task Completed STRICTLY AFTER estimate creation → closing appointment.
+    const taskAfterWithin3d = acts.some(a => {
+      const rtn = (a.record_type_name || '').toLowerCase();
+      if (rtn !== 'task completed') return false;
+      const ad = a.date_created || 0;
+      return ad >= estCreated && ad <= estCreated + 3 * 86400;
+    });
+    const taskAfterWithin14d = !taskAfterWithin3d && acts.some(a => {
+      const rtn = (a.record_type_name || '').toLowerCase();
+      if (rtn !== 'task completed') return false;
+      const ad = a.date_created || 0;
+      return ad >= estCreated && ad <= estCreated + 14 * 86400;
+    });
+    // Meeting-keyword note STRICTLY AFTER estimate creation.
+    const noteMeetingAfter = acts.some(a => {
       const rtn = (a.record_type_name || '').toLowerCase();
       if (rtn !== 'note') return false;
       const ad = a.date_created || 0;
-      if (Math.abs(ad - estCreated) > 7 * 86400) return false;
+      if (ad < estCreated || ad > estCreated + 14 * 86400) return false;
       return MEETING_KEYWORDS_RE.test(a.note || '');
     });
-    // Signal: ANY meeting-keyword note in the entire history.
-    const noteMeetingEverInHistory = acts.some(a => {
+    // Diagnostic only — pre-estimate inspection happened. Not used to classify.
+    const taskBeforeForInspection = acts.some(a => {
       const rtn = (a.record_type_name || '').toLowerCase();
-      if (rtn !== 'note') return false;
-      return MEETING_KEYWORDS_RE.test(a.note || '');
+      if (rtn !== 'task completed') return false;
+      const ad = a.date_created || 0;
+      return ad < estCreated && ad >= estCreated - 60 * 86400;
     });
 
     // Signal: "Estimate Sent" activity for THIS estimate — query was
@@ -515,31 +497,23 @@ export async function analyzeEstimateDelivery(opts: { days?: number } = {}): Pro
     const sigStatus = (est.signature_status || '').trim();
     const manualSignature = sigSigned > 0 && (!sigReq || sigReq === 0);
 
-    // Outcome from the job (need this BEFORE classification now — the
-    // classifier uses job status as evidence in v4).
+    // Outcome from the job — used ONLY for close-rate measurement,
+    // NOT for delivery classification (v5 dropped that to avoid tautology).
     const job = jobId ? jobCache.get(jobId) || null : null;
     const outcome = classifyOutcome(job);
     const jobStatusRaw = (job?.status_name || '').trim();
-    const jobIsSold = WON_RE.test(jobStatusRaw);
-    const jobAdvancedPastAerial = jobStatusRaw !== '' &&
-      !/^(lead|aerial\s*measurements)$/i.test(jobStatusRaw);
 
-    // Decision-tree classifier (in-person as RCRS default, plus job-status
-    // signals: a sold job means the rep certainly met the customer)
+    // V5 classifier — AFTER-only signals.
     const { category, reason } = classifyDelivery({
       sigGap,
       sigStatus,
-      taskWithin3d,
-      taskWithin14d,
-      taskEverInHistory,
-      noteMeetingMatch,
-      noteMeetingEverInHistory,
+      taskAfterWithin3d,
+      taskAfterWithin14d,
+      noteMeetingAfter,
       estimateSentActivity,
       estimateNoteMeetingMatch,
       manualSignature,
-      jobStatus: jobStatusRaw,
-      jobAdvancedPastAerial,
-      jobIsSold,
+      taskBeforeForInspection,
     });
 
     scored.push({
@@ -551,13 +525,14 @@ export async function analyzeEstimateDelivery(opts: { days?: number } = {}): Pro
       classifyReason: reason,
       signals: {
         sigGapSeconds: sigGap,
-        taskWithin3d,
-        taskWithin14d,
-        noteMeetingMatch,
+        taskAfterWithin3d,
+        taskAfterWithin14d,
+        noteMeetingAfter,
         estimateSentActivity,
         estimateNoteMeetingMatch,
         sigStatus,
         manualSignature,
+        taskBeforeForInspection,
       },
       outcome,
       jobStatus: jobStatusRaw,
