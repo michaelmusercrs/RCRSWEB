@@ -13,7 +13,7 @@ import {
   ArrowLeft, Database, BarChart3, Crown, Brain, Clock, TrendingUp,
   Shield, Wrench, Wallet, HardHat, Megaphone, Heart, ChevronRight, Activity, Star, Trophy, History, Zap,
   AlarmClock, DollarSign, Users, Rocket, MessageSquare, AlertTriangle, GitBranch, Split,
-  Briefcase, Calendar, Layers, CloudRain, Hammer, Target, PiggyBank,
+  Briefcase, Calendar, Layers, CloudRain, Hammer, Target, PiggyBank, Mail,
 } from 'lucide-react';
 
 interface Section {
@@ -288,6 +288,14 @@ const SECTIONS: Section[] = [
     icon: Trophy,
     color: 'from-[#39FF14] to-emerald-400',
     highlight: 'TRUE%',
+  },
+  {
+    title: 'Estimate Delivery — Email vs In-Person (NEW)',
+    description: '5-category certainty scoring (sig gap + Task Completed activities + meeting notes + Estimate Sent events). Compares close rate per delivery mode. Two summaries: certain-only and including-probables',
+    href: '/chrisview/estimate-delivery',
+    icon: Mail,
+    color: 'from-[#39FF14] to-amber-400',
+    highlight: 'NEW',
   },
 ];
 

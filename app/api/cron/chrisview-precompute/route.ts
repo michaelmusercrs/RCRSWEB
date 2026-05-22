@@ -29,6 +29,7 @@ import { analyzeCapacity } from '@/lib/capacity-analysis';
 import { analyzeCac } from '@/lib/cac-analysis';
 import { analyzeWinLoss } from '@/lib/win-loss-analysis';
 import { analyzeCohorts } from '@/lib/cohort-analysis';
+import { analyzeEstimateDelivery } from '@/lib/estimate-delivery-analysis';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -64,6 +65,7 @@ const PAGES: Page[] = [
   { slug: 'cac',              compute: () => analyzeCac({ days: 365 }) },
   { slug: 'win-loss',         compute: () => analyzeWinLoss({ days: 180 }) },
   { slug: 'cohorts',          compute: () => analyzeCohorts({ months: 12 }) },
+  { slug: 'estimate-delivery',compute: () => analyzeEstimateDelivery({ days: 180 }) },
 ];
 
 export async function GET(request: NextRequest) {
