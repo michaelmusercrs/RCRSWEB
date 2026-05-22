@@ -281,6 +281,14 @@ const SECTIONS: Section[] = [
     color: 'from-green-500 to-emerald-400',
     highlight: 'NEW',
   },
+  {
+    title: 'Cohort Close Rate (most accurate)',
+    description: 'Monthly cohorts observed at maturity. won ÷ total per cohort — reveals the TRUE historical close rate (~47% real vs ~75% window-based optical illusion). Trend chart by month',
+    href: '/chrisview/cohorts',
+    icon: Trophy,
+    color: 'from-[#39FF14] to-emerald-400',
+    highlight: 'TRUE%',
+  },
 ];
 
 export default function MenuPage() {

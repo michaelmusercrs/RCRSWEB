@@ -5,7 +5,14 @@ import { getServiceArea, getAllServiceAreaSlugs, getPrimaryServices } from '@/li
 import { MapPin, Clock, CheckCircle2, Phone, ArrowRight, ArrowLeft, Home, Wrench, Building2, CloudRain, Flame, Shield, Search, AlertTriangle } from 'lucide-react';
 import { generateBreadcrumbSchema, generateFAQSchema, siteConfig } from '@/lib/seo';
 import StructuredData from '@/components/StructuredData';
+import { getImageWithFallback, getOgImage } from '@/lib/site-images';
 import type { Metadata } from 'next';
+
+// Derive the Site_Images key from a service-area slug (drops trailing -al,
+// since cities in the registry are keyed without the state suffix).
+function cityKeyFromSlug(slug: string): string {
+  return `city-${slug.replace(/-al$/, '').replace(/[^a-z0-9-]/g, '')}-hero`;
+}
 
 const iconMap: { [key: string]: any } = { Home, Wrench, Building2, CloudRain, Flame, Shield, Search, AlertTriangle };
 
@@ -89,7 +96,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const description = meta?.description || `Professional roofing contractor in ${area.name}, ${area.state}. Roof replacement, storm damage repair, free inspections & insurance claims. Call (256) 274-8530.`;
   const keywords = meta?.keywords || [`roofing contractor ${area.name} ${area.state}`, `roof replacement ${area.name} ${area.state}`, `best roofer ${area.name} ${area.state}`];
 
-  const ogImageUrl = `${siteConfig.url}/og-image.png`;
+  // Per-page OG image — tries Site_Images registry first (city-specific →
+  // og-city-default → og-site-default), falls back to siteConfig default.
+  const ogResolved = await getOgImage(path, cityKeyFromSlug(slug));
+  const ogImageUrl = ogResolved?.url
+    ? (ogResolved.url.startsWith('http') ? ogResolved.url : `${siteConfig.url}${ogResolved.url}`)
+    : `${siteConfig.url}/og-image.png`;
 
   return {
     title,
@@ -128,6 +140,16 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ sl
   const area = getServiceArea(slug);
   if (!area) notFound();
   const services = getPrimaryServices().slice(0, 4);
+
+  // Resolve hero image via Site_Images registry. When admin swaps the
+  // sheet row's URL, the page auto-updates on next request — no code
+  // change needed. Falls back to static area.image when no registry row
+  // exists yet (today: only the seeded rows have a URL, all still
+  // pointing at /uploads/area-*.jpg or /images/north-alabama-generic.jpg).
+  const heroResolved = await getImageWithFallback(
+    cityKeyFromSlug(slug),
+    'city-default-hero',
+  );
 
   // Geo coordinates for service areas
   const geoCoords: Record<string, { lat: number; lng: number }> = {
@@ -270,12 +292,19 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ sl
     <div className="min-h-screen">
       <StructuredData data={[localBusinessSchema, breadcrumbSchema, faqSchema]} />
       <section className="relative min-h-[60vh] flex items-center">
-        {area.image && (
-          <div className="absolute inset-0 z-0">
-            <Image src={area.image} alt={area.altText || area.name + ' roofing services'} fill className="object-cover" priority />
-            <div className="absolute inset-0 bg-black/60" />
-          </div>
-        )}
+        {/* Hero image — Site_Images registry first, falls back to static
+            area.image when registry has no row for this city yet. Swap the
+            sheet URL → new image appears here on next request. */}
+        {(() => {
+          const heroSrc = heroResolved?.url || area.image;
+          const heroAlt = heroResolved?.alt || area.altText || area.name + ' roofing services';
+          return heroSrc ? (
+            <div className="absolute inset-0 z-0">
+              <Image src={heroSrc} alt={heroAlt} fill className="object-cover" priority />
+              <div className="absolute inset-0 bg-black/60" />
+            </div>
+          ) : null;
+        })()}
         <div className="container mx-auto px-4 relative z-10">
           <Link href="/service-areas" className="inline-flex items-center gap-2 text-white/80 hover:text-brand-green mb-6 transition-colors">
             <ArrowLeft size={20} /> All Service Areas

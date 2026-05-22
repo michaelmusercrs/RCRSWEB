@@ -173,6 +173,7 @@ const HUB_GROUPS: { label: string; items: HubLink[] }[] = [
       { href: '/chrisview/leaderboards', title: 'Three Leaderboards', description: 'Commission / Sales accrual / Per-week — three views of the same revenue' },
       { href: '/chrisview/scorecard', title: 'Rep Scorecard', description: 'Composite per-rep card: commissions × reviews × quality' },
       { href: '/chrisview/win-loss', title: 'Win/Loss Per Project', description: 'Per-project win rate (deduped by R-number — multiple estimates count as 1). Stalled-pipeline follow-up list', highlight: 'NEW' },
+      { href: '/chrisview/cohorts', title: 'Cohort Close Rate (most accurate)', description: 'Monthly cohorts observed at maturity — won ÷ total. Reveals the TRUE historical close rate (~47% vs the window-based 75% optical illusion)', highlight: 'TRUE%' },
       { href: '/chrisview/storm-response', title: 'Storm → Job Response', description: 'Hail Recon storms overlaid on JN lead/job creation. 14-day / 25-mile match window', highlight: 'NEW' },
     ],
   },
