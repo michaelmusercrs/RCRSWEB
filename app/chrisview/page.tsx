@@ -9,7 +9,8 @@
  * since this is meant for one-stop drill-down.
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import {
   Search,
   Loader2,
@@ -53,6 +54,8 @@ import {
 const PIE_COLORS = ['#39FF14', '#60a5fa', '#fbbf24', '#fb7185', '#a78bfa', '#22d3ee', '#f97316', '#10b981', '#ec4899', '#6366f1', '#84cc16'];
 
 type TabId = 'overview' | 'charts' | 'transactions' | 'customers' | 'vendors' | 'reps' | 'commissions' | 'inventory';
+
+const VALID_TABS: readonly TabId[] = ['overview', 'charts', 'transactions', 'customers', 'vendors', 'reps', 'commissions', 'inventory'];
 
 interface InventoryRow {
   id: string; name: string; description: string; category: string; supplier: string;
@@ -301,8 +304,25 @@ function AnalyticsHub() {
   );
 }
 
-export default function ChrisViewPage() {
-  const [tab, setTab] = useState<TabId>('overview');
+function ChrisViewPageInner() {
+  // Tab lives in the URL (?tab=charts) so the page is shareable and
+  // browser back/forward navigates between tabs. Falls back to overview
+  // for missing or invalid values.
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const urlTab = searchParams.get('tab');
+  const tab: TabId = urlTab && (VALID_TABS as readonly string[]).includes(urlTab)
+    ? (urlTab as TabId)
+    : 'overview';
+  const setTab = useCallback((newTab: TabId) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (newTab === 'overview') params.delete('tab');
+    else params.set('tab', newTab);
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }, [searchParams, router, pathname]);
+
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
   const pageSize = 50;
@@ -540,9 +560,11 @@ export default function ChrisViewPage() {
           <div className="px-4 py-3 bg-red-500/10 border border-red-500/30 rounded text-red-300 text-sm">{error}</div>
         )}
 
-        {/* Always-visible analytics hub — surfaces all sibling pages so
-            nothing gets buried behind a tab. WIP tiles are greyed out. */}
-        <AnalyticsHub />
+        {/* Analytics hub shown only on the Overview tab. The hub is large
+            enough that always-rendering it on every tab buried the active
+            tab's content below it — making tab clicks feel like nothing
+            happened. Overview is the natural home for the hub. */}
+        {tab === 'overview' && <AnalyticsHub />}
 
         {/* OVERVIEW */}
         {tab === 'overview' && (
@@ -1394,6 +1416,16 @@ export default function ChrisViewPage() {
 
       </main>
     </div>
+  );
+}
+
+// useSearchParams must live inside a Suspense boundary so Next.js doesn't
+// bail out of static optimization at build time.
+export default function ChrisViewPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-black" />}>
+      <ChrisViewPageInner />
+    </Suspense>
   );
 }
 
