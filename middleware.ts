@@ -376,6 +376,11 @@ export function middleware(request: NextRequest) {
     if (pathname === '/chrisview' || pathname.startsWith('/chrisview/') || pathname.startsWith('/api/chrisview')) {
       return NextResponse.next();
     }
+    // /monday is the public Monday meeting slide deck (HTML presentation).
+    // Same intentional-public-link pattern as /trip.
+    if (pathname === '/monday' || pathname.startsWith('/monday/')) {
+      return NextResponse.next();
+    }
     // /division-leaders shows recruiter / division-leader override checks
     // pulled from QB 1099 memos. Same intentional-public-link pattern.
     if (pathname === '/division-leaders' || pathname.startsWith('/division-leaders/') || pathname.startsWith('/api/division-leaders')) {

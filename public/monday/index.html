@@ -1,0 +1,1043 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Monday Meeting â€” June 1, 2026 Â· River City Roofing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;800;900&family=Anton&family=Caveat:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --rcr-green:#7CFC00;
+    --rcr-green-dim:#5fc200;
+    --rcr-dark:#0a0f0a;
+    --rcr-card:#101810;
+    --rcr-soft:#1a221a;
+    --ink:#e8f5e8;
+    --muted:#9fb59f;
+    --accent:#ffd23f;
+    --red:#ff4757;
+    --blue:#5b9fd6;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden;background:#000;color:var(--ink);font-family:'Inter',system-ui,sans-serif}
+  body{
+    background:
+      radial-gradient(1200px 800px at 20% 10%, rgba(124,252,0,.08), transparent 60%),
+      radial-gradient(900px 600px at 80% 90%, rgba(124,252,0,.06), transparent 60%),
+      #050805;
+  }
+
+  /* deck */
+  .deck{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+  .slide{
+    position:absolute;inset:0;
+    display:flex;align-items:center;justify-content:center;
+    padding:48px 64px;
+    opacity:0;visibility:hidden;
+    transform:scale(.96) translateY(20px);
+    transition:opacity .55s ease, transform .65s cubic-bezier(.2,.8,.2,1), visibility 0s linear .65s;
+  }
+  .slide.active{opacity:1;visibility:visible;transform:scale(1) translateY(0);transition:opacity .55s ease, transform .7s cubic-bezier(.2,.8,.2,1), visibility 0s}
+  .slide.exit-left{transform:scale(.95) translateX(-40px);opacity:0}
+  .slide-inner{width:100%;max-width:1400px;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;position:relative}
+
+  h1,h2,h3{line-height:1.05;letter-spacing:-.01em}
+  .display{font-family:'Bebas Neue',sans-serif;letter-spacing:.02em;line-height:.95}
+  .anton{font-family:'Anton',sans-serif;letter-spacing:.01em}
+
+  /* HUD */
+  .hud{position:fixed;left:0;right:0;bottom:0;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;z-index:10;pointer-events:none}
+  .brand{display:flex;align-items:center;gap:10px;color:var(--rcr-green);font-weight:800;letter-spacing:.18em;font-size:11px;text-transform:uppercase}
+  .brand .dot{width:8px;height:8px;border-radius:50%;background:var(--rcr-green);box-shadow:0 0 12px var(--rcr-green)}
+  .nav{display:flex;gap:8px;align-items:center;pointer-events:auto}
+  .nav button{background:rgba(255,255,255,.06);color:#fff;border:1px solid rgba(255,255,255,.12);width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:18px;backdrop-filter:blur(8px)}
+  .nav button:hover{background:rgba(124,252,0,.18);border-color:var(--rcr-green)}
+  .counter{color:var(--muted);font-size:12px;font-weight:600;letter-spacing:.16em;margin:0 8px}
+
+  .progress{position:fixed;left:0;right:0;top:0;height:3px;background:rgba(255,255,255,.04);z-index:11}
+  .progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--rcr-green),#fff,var(--rcr-green));background-size:200% 100%;animation:shine 3s linear infinite;width:0;transition:width .5s ease}
+  @keyframes shine{from{background-position:0 0}to{background-position:200% 0}}
+
+  /* shared */
+  .eyebrow{color:var(--rcr-green);font-weight:800;letter-spacing:.32em;font-size:12px;text-transform:uppercase}
+  .card{background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:24px}
+
+  /* SLIDE 1 â€” Title */
+  .s1{background:
+    radial-gradient(1100px 700px at 30% 30%, rgba(124,252,0,.18), transparent 60%),
+    radial-gradient(900px 700px at 75% 80%, rgba(124,252,0,.10), transparent 60%),
+    linear-gradient(180deg,#020402,#0a120a 60%,#020402)
+  }
+  .title-wrap{text-align:center}
+  .title-eyebrow{color:var(--rcr-green);font-weight:900;letter-spacing:.4em;font-size:14px;text-transform:uppercase;margin-bottom:18px}
+  .title-main{font-family:'Bebas Neue';font-size:clamp(80px,15vw,220px);color:#fff;text-shadow:0 0 60px rgba(124,252,0,.25);line-height:.85}
+  .title-main .accent{color:var(--rcr-green);text-shadow:0 0 40px rgba(124,252,0,.7)}
+  .title-sub{margin-top:24px;font-size:clamp(22px,2.4vw,36px);color:var(--muted);font-weight:600}
+  .title-logo{margin-top:36px;max-width:300px;filter:drop-shadow(0 10px 30px rgba(124,252,0,.4))}
+  .sparkle{position:absolute;width:6px;height:6px;background:var(--rcr-green);border-radius:50%;box-shadow:0 0 16px var(--rcr-green);opacity:0;animation:twinkle 3s infinite}
+  @keyframes twinkle{0%,100%{opacity:0;transform:scale(.5)}50%{opacity:1;transform:scale(1.4)}}
+
+  /* SLIDE 2 â€” Verse */
+  .s2{background:linear-gradient(160deg,#0a1a2a,#06101a 60%,#020608)}
+  .verse-wrap{max-width:1000px;text-align:center;padding:40px}
+  .verse{font-family:'Caveat',cursive;font-size:clamp(34px,4.5vw,64px);color:#eaf2ff;line-height:1.25;text-shadow:0 4px 30px rgba(0,0,0,.6)}
+  .verse-ref{margin-top:30px;font-family:'Bebas Neue';font-size:clamp(22px,2.2vw,34px);color:var(--accent);letter-spacing:.18em}
+  .wave{position:absolute;left:0;right:0;bottom:0;height:140px;background:linear-gradient(180deg,transparent,rgba(91,159,214,.18));pointer-events:none}
+
+  /* SLIDE 3 â€” Weather */
+  .s3{background:linear-gradient(180deg,#06121e,#020812)}
+  .week-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:18px;width:100%;max-width:1300px}
+  .day{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:24px 18px;text-align:center;backdrop-filter:blur(8px);transition:transform .3s, background .3s}
+  .day:hover{transform:translateY(-6px);background:rgba(124,252,0,.08)}
+  .day .dow{color:var(--rcr-green);font-weight:800;letter-spacing:.16em;font-size:13px}
+  .day .date{color:#fff;font-size:14px;margin-top:2px;color:var(--muted)}
+  .day .icon{font-size:64px;margin:18px 0 12px;display:block}
+  .day .hi-lo{font-family:'Bebas Neue';font-size:36px;color:#fff}
+  .day .cond{color:var(--muted);font-size:13px;margin-top:6px;font-weight:600}
+  .day.storm{background:linear-gradient(180deg,rgba(255,71,87,.18),rgba(255,71,87,.04));border-color:rgba(255,71,87,.4)}
+  .day.storm .dow{color:var(--red)}
+
+  /* SLIDE 4 â€” Attendance */
+  .s4{background:radial-gradient(800px 600px at 50% 50%,rgba(255,71,87,.18),transparent 60%),#0a0606}
+  .mandatory{font-family:'Anton';font-size:clamp(120px,18vw,260px);color:var(--red);text-shadow:0 0 40px rgba(255,71,87,.6);letter-spacing:.02em;line-height:.9;animation:pulse-red 1.6s ease-in-out infinite}
+  @keyframes pulse-red{0%,100%{transform:scale(1);text-shadow:0 0 40px rgba(255,71,87,.6)}50%{transform:scale(1.03);text-shadow:0 0 80px rgba(255,71,87,.9)}}
+  .attendance-row{display:grid;grid-template-columns:1.2fr 1fr;gap:40px;align-items:center;width:100%;max-width:1200px}
+  .attendance-text h2{font-family:'Bebas Neue';font-size:clamp(40px,5vw,72px);color:#fff;margin-bottom:16px}
+  .attendance-text p{font-size:clamp(18px,1.6vw,22px);color:var(--ink);line-height:1.5}
+  .attendance-text .warning{color:var(--red);font-weight:800;margin-top:18px;font-size:clamp(18px,1.8vw,24px)}
+  .gif-frame{border-radius:20px;overflow:hidden;border:3px solid var(--red);box-shadow:0 20px 60px rgba(255,71,87,.3)}
+  .gif-frame img{display:block;width:100%}
+  .clock{display:inline-flex;gap:10px;align-items:center;background:rgba(255,71,87,.14);border:1px solid rgba(255,71,87,.45);padding:10px 18px;border-radius:99px;color:#fff;font-weight:800;letter-spacing:.12em;font-size:14px;margin-top:14px}
+
+  /* SLIDE 5 â€” Calendar */
+  .s5{background:linear-gradient(180deg,#06120a,#020804)}
+  .cal-wrap{width:100%;max-width:1400px}
+  .cal-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:18px}
+  .cal-head h2{font-family:'Bebas Neue';font-size:clamp(48px,6vw,84px);color:#fff}
+  .cal-head h2 span{color:var(--rcr-green)}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:10px}
+  .cal-dow{padding:10px 8px;color:var(--rcr-green);font-weight:800;letter-spacing:.16em;font-size:12px;text-align:left}
+  .cal-cell{min-height:120px;background:rgba(0,0,0,.35);border-radius:10px;padding:8px;position:relative;border:1px solid rgba(255,255,255,.04)}
+  .cal-cell.weekend{background:rgba(255,255,255,.02)}
+  .cal-cell.today{outline:2px solid var(--rcr-green);background:rgba(124,252,0,.06)}
+  .cal-num{color:var(--muted);font-size:12px;font-weight:700;position:absolute;top:6px;right:8px}
+  .job{display:block;margin-top:4px;padding:4px 6px;border-radius:6px;font-size:10.5px;line-height:1.2;color:#fff;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .j-red{background:#c93939}.j-brown{background:#7a5a2a}.j-purple{background:#7a3a8a}.j-blue{background:#2a5dbd}.j-pink{background:#c9437a}.j-storm{background:repeating-linear-gradient(45deg,#444,#444 6px,#222 6px,#222 12px)}
+  .legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:14px;font-size:12px;color:var(--muted)}
+  .legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:middle}
+
+  /* Bar chart slides */
+  .chart-card{width:100%;max-width:1300px;background:linear-gradient(180deg,#0c160c,#070d07);border:1px solid rgba(124,252,0,.18);border-radius:24px;padding:30px 36px;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+  .chart-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px}
+  .chart-head h2{font-family:'Bebas Neue';font-size:clamp(50px,5.5vw,80px);color:#fff}
+  .chart-head h2 span{color:var(--rcr-green);text-shadow:0 0 30px rgba(124,252,0,.5)}
+  .chart-head .total{text-align:right}
+  .chart-head .total small{color:var(--muted);font-size:11px;letter-spacing:.18em;font-weight:800;text-transform:uppercase}
+  .chart-head .total b{display:block;font-family:'Bebas Neue';font-size:clamp(34px,3.4vw,48px);color:var(--rcr-green)}
+  .bars{display:flex;align-items:flex-end;justify-content:space-around;gap:12px;height:380px;padding:18px 8px 0;border-bottom:1px solid rgba(255,255,255,.08);position:relative}
+  .bars:before,.bars:after{content:"";position:absolute;left:0;right:0;border-top:1px dashed rgba(255,255,255,.06)}
+  .bars:before{top:33%} .bars:after{top:66%}
+  .bar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;position:relative;gap:6px}
+  .bar .col{width:80%;max-width:90px;background:linear-gradient(180deg,#9fd5ff 0%,#5b9fd6 100%);border-radius:10px 10px 4px 4px;box-shadow:0 0 0 1px rgba(255,255,255,.06) inset, 0 12px 30px rgba(91,159,214,.2);height:0;transition:height 1.2s cubic-bezier(.2,.8,.2,1);position:relative;overflow:hidden}
+  .bar .col:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.18),transparent 40%)}
+  .bar.top .col{background:linear-gradient(180deg,#b7ff7a 0%,var(--rcr-green) 100%);box-shadow:0 0 0 1px rgba(124,252,0,.2) inset, 0 16px 40px rgba(124,252,0,.35)}
+  .bar .amount{font-family:'Bebas Neue';font-size:clamp(18px,1.6vw,26px);color:#fff;letter-spacing:.02em}
+  .bar.top .amount{color:var(--rcr-green)}
+  .bar .name{margin-top:10px;color:var(--ink);font-weight:800;letter-spacing:.08em;font-size:13px;text-transform:uppercase}
+  .bar.top .name{color:var(--rcr-green)}
+  .crown{position:absolute;top:-30px;font-size:24px}
+
+  /* Horizontal goal bars (slides 11/12) */
+  .goalbars{display:flex;flex-direction:column;gap:14px;width:100%;max-width:1300px}
+  .goalrow{display:grid;grid-template-columns:120px 1fr 1fr 130px;gap:14px;align-items:center}
+  .goalrow .who{color:#fff;font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:14px}
+  .goalrow .sold,.goalrow .need{height:34px;border-radius:8px;position:relative;background:rgba(255,255,255,.04);overflow:hidden}
+  .goalrow .sold .fill{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#5b9fd6,#3e7ab5);border-radius:8px;width:0;transition:width 1.4s cubic-bezier(.2,.8,.2,1);display:flex;align-items:center;justify-content:flex-end;padding:0 10px;color:#fff;font-weight:800;font-size:13px;white-space:nowrap}
+  .goalrow .need .fill{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#ff4757,#c9303d);border-radius:8px;width:0;transition:width 1.4s cubic-bezier(.2,.8,.2,1);display:flex;align-items:center;justify-content:flex-end;padding:0 10px;color:#fff;font-weight:800;font-size:13px;white-space:nowrap}
+  .goalrow .pct{font-family:'Bebas Neue';font-size:28px;color:var(--rcr-green);text-align:right}
+  .goalrow .pct.under{color:var(--red)}
+  .goalrow.hit .pct{color:#fff;text-shadow:0 0 18px var(--rcr-green)}
+  .goalrow.hit .sold .fill{background:linear-gradient(90deg,#b7ff7a,var(--rcr-green))}
+  .goalhead{display:grid;grid-template-columns:120px 1fr 1fr 130px;gap:14px;color:var(--muted);font-size:11px;letter-spacing:.16em;font-weight:800;text-transform:uppercase;margin-bottom:4px}
+  .made-it{font-family:'Bebas Neue';font-size:clamp(70px,8vw,120px);color:var(--rcr-green);text-shadow:0 0 50px rgba(124,252,0,.6);text-align:center;margin-bottom:10px}
+
+  /* TRIP SLIDE */
+  .strip{background:radial-gradient(900px 600px at 80% 20%,rgba(255,210,63,.14),transparent 60%),linear-gradient(180deg,#0a0a04,#04060a)}
+  .trip-head{display:flex;justify-content:space-between;align-items:flex-end;width:100%;max-width:1400px;margin-bottom:14px}
+  .trip-head h2{font-family:'Bebas Neue';font-size:clamp(56px,7vw,120px);color:#fff;line-height:.9}
+  .trip-head h2 .gold{color:var(--accent);text-shadow:0 0 40px rgba(255,210,63,.5)}
+  .trip-head .stats{display:flex;gap:18px}
+  .stat{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:12px 18px;min-width:140px;text-align:center}
+  .stat small{display:block;color:var(--muted);font-size:10px;letter-spacing:.18em;font-weight:800;text-transform:uppercase;margin-bottom:4px}
+  .stat b{font-family:'Bebas Neue';font-size:36px;color:#fff;display:block;line-height:1}
+  .stat.gold b{color:var(--accent)}
+  .stat.green b{color:var(--rcr-green)}
+  .trip-grid{display:flex;flex-direction:column;gap:10px;width:100%;max-width:1400px}
+  .trip-row{display:grid;grid-template-columns:30px 110px 1fr 130px 110px;gap:14px;align-items:center;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:10px 14px}
+  .trip-row.qualified{background:linear-gradient(90deg,rgba(255,210,63,.14),rgba(255,210,63,.02));border-color:rgba(255,210,63,.4)}
+  .trip-row.pending{border-color:rgba(124,252,0,.3)}
+  .trip-row .rank{font-family:'Bebas Neue';font-size:28px;color:var(--muted);text-align:center}
+  .trip-row.qualified .rank{color:var(--accent)}
+  .trip-row .who{color:#fff;font-weight:900;letter-spacing:.06em;text-transform:uppercase;font-size:15px}
+  .trip-row .bar-wrap{height:32px;background:rgba(0,0,0,.4);border-radius:8px;position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+  .trip-row .bar-fill{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#5b9fd6,#3e7ab5);border-radius:8px;width:0;transition:width 1.5s cubic-bezier(.2,.8,.2,1);display:flex;align-items:center;padding:0 12px;color:#fff;font-weight:800;font-size:13px;white-space:nowrap}
+  .trip-row.qualified .bar-fill{background:linear-gradient(90deg,#ffe066,#ffb800);color:#1a1100}
+  .trip-row .badge{text-align:center;font-family:'Bebas Neue';letter-spacing:.1em;font-size:18px;padding:6px 10px;border-radius:99px;background:rgba(255,255,255,.06);color:#fff}
+  .trip-row.qualified .badge{background:linear-gradient(135deg,#ffe066,#ffb800);color:#1a1100}
+  .trip-row.pending .badge{background:rgba(124,252,0,.2);color:var(--rcr-green)}
+  .trip-row.behind .badge{background:rgba(255,71,87,.18);color:#ff7b87}
+  .trip-row .pot{font-family:'Bebas Neue';font-size:26px;color:var(--accent);text-align:right;letter-spacing:.02em}
+  .trip-marker{position:absolute;top:-4px;bottom:-4px;border-left:2px dashed var(--accent);z-index:2}
+  .trip-foot{display:flex;gap:30px;align-items:center;justify-content:center;margin-top:14px;color:var(--muted);font-size:13px;text-align:center;max-width:1100px;line-height:1.5}
+  .trip-foot b{color:var(--rcr-green)}
+
+  /* UPDATE NUMBERS FORM SLIDE */
+  .form-card{width:100%;max-width:1450px;background:linear-gradient(180deg,#0c160c,#070d07);border:1px solid rgba(124,252,0,.18);border-radius:20px;padding:22px 26px}
+  .form-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:14px;flex-wrap:wrap}
+  .form-head h2{font-family:'Bebas Neue';font-size:clamp(36px,4vw,56px);color:#fff;line-height:1}
+  .form-head h2 span{color:var(--rcr-green)}
+  .form-actions{display:flex;gap:8px;align-items:center}
+  .btn{background:rgba(124,252,0,.12);color:var(--rcr-green);border:1px solid rgba(124,252,0,.4);padding:8px 14px;border-radius:10px;cursor:pointer;font-weight:800;letter-spacing:.08em;font-size:11px;text-transform:uppercase}
+  .btn:hover{background:rgba(124,252,0,.22)}
+  .btn.ghost{background:rgba(255,255,255,.04);color:#fff;border-color:rgba(255,255,255,.18)}
+  .btn.danger{background:rgba(255,71,87,.12);color:#ff7b87;border-color:rgba(255,71,87,.4)}
+  .saved-note{color:var(--muted);font-size:11px;letter-spacing:.16em;font-weight:700;text-transform:uppercase;margin-right:8px}
+  .saved-note.flash{color:var(--rcr-green)}
+  .numtable{width:100%;border-collapse:separate;border-spacing:2px}
+  .numtable th,.numtable td{padding:0;text-align:center}
+  .numtable thead th{font-family:'Bebas Neue';font-size:14px;letter-spacing:.06em;color:var(--rcr-green);padding:8px 4px;border-bottom:1px solid rgba(124,252,0,.18);font-weight:400}
+  .numtable thead th:first-child{text-align:left;padding-left:8px}
+  .numtable tbody td:first-child{text-align:left;padding-left:10px;color:#fff;font-weight:800;letter-spacing:.06em;text-transform:uppercase;font-size:13px;background:rgba(255,255,255,.03);border-radius:8px 0 0 8px}
+  .numtable tbody tr.total td{background:rgba(124,252,0,.06);font-weight:900}
+  .numtable tbody tr.total td:first-child{color:var(--rcr-green);border-radius:8px 0 0 8px}
+  .numtable input{width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);color:#fff;text-align:center;padding:9px 6px;border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;transition:border-color .15s, background .15s}
+  .numtable input:focus{outline:none;border-color:var(--rcr-green);background:rgba(124,252,0,.08);box-shadow:0 0 0 2px rgba(124,252,0,.12)}
+  .numtable input.dollar::before{content:"$"}
+  .numtable .totalcell{display:block;color:#fff;padding:9px 6px;font-weight:800;font-size:14px}
+  .numtable tr.total .totalcell{color:var(--rcr-green);font-family:'Bebas Neue';font-size:20px}
+
+  /* SLIDE 10 â€” Raise the Roof */
+  .s10{background:linear-gradient(135deg,#1a0a0a,#0a1a0a)}
+  .roof-grid{display:grid;grid-template-columns:1fr 1.4fr;gap:50px;align-items:center;max-width:1300px;width:100%}
+  .roof-grid img{width:100%;max-width:380px;border-radius:18px;box-shadow:0 30px 80px rgba(0,0,0,.6);justify-self:center}
+  .roof-text h2{font-family:'Bebas Neue';font-size:clamp(56px,7vw,110px);line-height:.9;color:#fff;margin-bottom:14px}
+  .roof-text h2 span{color:var(--rcr-green)}
+  .steps{display:flex;flex-direction:column;gap:14px;margin-top:18px}
+  .step{display:flex;gap:16px;align-items:flex-start;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px 18px}
+  .step .num{font-family:'Bebas Neue';font-size:36px;color:var(--rcr-green);min-width:34px;line-height:1}
+  .step p{font-size:17px;line-height:1.4;color:var(--ink)}
+  .step b{color:var(--rcr-green)}
+  .tag{display:inline-block;background:var(--rcr-green);color:#000;font-weight:900;padding:4px 10px;border-radius:6px;font-size:12px;letter-spacing:.1em}
+
+  /* SLIDE 13 â€” EOM */
+  .s13{background:radial-gradient(900px 700px at 50% 30%,rgba(255,210,63,.15),transparent 60%),#0a0a04}
+  .eom-wrap{text-align:center;width:100%;max-width:1300px}
+  .eom-eyebrow{color:var(--accent);font-weight:900;letter-spacing:.4em;font-size:14px;text-transform:uppercase;margin-bottom:8px}
+  .eom-title{font-family:'Bebas Neue';font-size:clamp(60px,8vw,130px);color:#fff;line-height:.95}
+  .eom-name{font-family:'Bebas Neue';font-size:clamp(70px,9vw,150px);color:var(--accent);text-shadow:0 0 50px rgba(255,210,63,.5);margin:6px 0 24px}
+  .eom-photos{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:14px}
+  .eom-photos img{width:100%;height:340px;object-fit:cover;border-radius:14px;border:3px solid rgba(255,210,63,.5);box-shadow:0 20px 50px rgba(0,0,0,.5)}
+  .eom-photos div:nth-child(2) img{transform:scale(1.05)}
+  .crown-big{font-size:60px;margin-bottom:6px;display:inline-block;animation:bob 2s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+
+  /* SLIDE 14 â€” Quarterly */
+  .s14{background:radial-gradient(900px 600px at 50% 40%,rgba(124,252,0,.18),transparent 60%),#040804}
+  .q-eyebrow{color:var(--rcr-green);letter-spacing:.4em;font-weight:900;font-size:14px;margin-bottom:8px}
+  .q-title{font-family:'Anton';font-size:clamp(80px,12vw,200px);color:#fff;line-height:.9;text-align:center}
+  .q-title span{color:var(--rcr-green);text-shadow:0 0 40px rgba(124,252,0,.6)}
+  .q-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:40px;align-items:center;max-width:1300px;width:100%;margin-top:30px}
+  .q-card{background:linear-gradient(180deg,rgba(124,252,0,.08),rgba(124,252,0,.02));border:1px solid rgba(124,252,0,.3);border-radius:20px;padding:28px 30px}
+  .q-card p{font-size:20px;line-height:1.5;color:var(--ink)}
+  .q-card .big{font-family:'Bebas Neue';font-size:64px;color:var(--rcr-green);line-height:1;margin:8px 0}
+  .bonus-tiles{display:flex;gap:14px;margin-top:16px}
+  .bonus{flex:1;background:#fff;color:#000;border-radius:14px;padding:18px;text-align:center}
+  .bonus .who{font-weight:900;letter-spacing:.1em;font-size:14px;text-transform:uppercase}
+  .bonus .amt{font-family:'Bebas Neue';font-size:48px;line-height:1;margin-top:6px}
+  .bonus.gold{background:linear-gradient(135deg,#ffe066,#ffb800);color:#1a1100}
+  .q-gif{border-radius:18px;overflow:hidden;border:3px solid var(--rcr-green);box-shadow:0 20px 50px rgba(124,252,0,.3)}
+  .q-gif img{display:block;width:100%}
+
+  /* SLIDE 15 â€” Closing */
+  .s15{background:linear-gradient(160deg,#0a1a2a,#020608)}
+  .close-wrap{text-align:center;max-width:1100px}
+  .close-quote{font-family:'Caveat',cursive;font-size:clamp(40px,5vw,72px);color:#eaf2ff;line-height:1.2}
+  .close-attr{margin-top:18px;font-family:'Bebas Neue';font-size:22px;letter-spacing:.3em;color:#5fbfff}
+  .close-cta{margin-top:50px;font-family:'Bebas Neue';font-size:clamp(60px,8vw,130px);color:var(--rcr-green);text-shadow:0 0 50px rgba(124,252,0,.5)}
+  .close-sub{color:var(--muted);margin-top:8px;letter-spacing:.3em;font-weight:800;font-size:12px;text-transform:uppercase}
+
+  /* enter animations */
+  .reveal>*{opacity:0;transform:translateY(20px);transition:opacity .6s ease, transform .8s cubic-bezier(.2,.8,.2,1)}
+  .slide.active .reveal>*{opacity:1;transform:translateY(0)}
+  .slide.active .reveal>*:nth-child(1){transition-delay:.1s}
+  .slide.active .reveal>*:nth-child(2){transition-delay:.25s}
+  .slide.active .reveal>*:nth-child(3){transition-delay:.4s}
+  .slide.active .reveal>*:nth-child(4){transition-delay:.55s}
+  .slide.active .reveal>*:nth-child(5){transition-delay:.7s}
+  .slide.active .reveal>*:nth-child(6){transition-delay:.85s}
+
+  /* confetti */
+  canvas.confetti{position:absolute;inset:0;pointer-events:none}
+
+  /* keyboard hint */
+  .hint{position:fixed;top:18px;right:24px;color:var(--muted);font-size:11px;letter-spacing:.18em;font-weight:700;text-transform:uppercase;z-index:10;opacity:.6}
+
+  @media (max-width:900px){
+    .slide{padding:24px}
+    .week-grid{grid-template-columns:repeat(2,1fr)}
+    .attendance-row,.roof-grid,.q-grid{grid-template-columns:1fr}
+    .cal-grid{grid-template-columns:repeat(7,1fr);font-size:8px}
+    .goalrow{grid-template-columns:80px 1fr 1fr 70px}
+  }
+</style>
+</head>
+<body>
+
+<div class="progress"><i id="prog"></i></div>
+<div class="hint">â—€ â–¶ Space Â· F=Fullscreen</div>
+
+<div class="deck" id="deck">
+
+  <!-- 1. TITLE -->
+  <section class="slide s1" data-slide="1">
+    <div class="slide-inner reveal">
+      <div class="title-eyebrow">River City Roofing Solutions Inc.</div>
+      <div class="title-main">MONDAY<br><span class="accent">MEETING</span></div>
+      <div class="title-sub">Monday Â· June 1st, 2026 Â· 10:00 AM</div>
+      <img src="/monday/assets/image2.png" alt="River City Roofing" class="title-logo">
+      <span class="sparkle" style="top:14%;left:18%;animation-delay:.3s"></span>
+      <span class="sparkle" style="top:24%;right:12%;animation-delay:1s"></span>
+      <span class="sparkle" style="bottom:24%;left:10%;animation-delay:1.8s"></span>
+      <span class="sparkle" style="bottom:18%;right:18%;animation-delay:.7s"></span>
+      <span class="sparkle" style="top:40%;left:50%;animation-delay:2.2s"></span>
+    </div>
+  </section>
+
+  <!-- 2. VERSE -->
+  <section class="slide s2" data-slide="2">
+    <div class="slide-inner reveal verse-wrap">
+      <div class="eyebrow">Word of the Week</div>
+      <p class="verse">"I remain confident of this:<br>I will see the goodness of the Lord in the land of the living!<br>Wait for the Lord; be strong and take heart and wait for the Lord."</p>
+      <div class="verse-ref">â€” Psalm 27:13-14</div>
+    </div>
+    <div class="wave"></div>
+  </section>
+
+  <!-- 3. WEATHER -->
+  <section class="slide s3" data-slide="3">
+    <div class="slide-inner reveal">
+      <div style="text-align:center">
+        <div class="eyebrow">This Week's Forecast</div>
+        <h2 class="display" style="font-size:clamp(50px,6vw,84px);color:#fff;margin-top:4px">WHAT'S THE WEATHER?</h2>
+      </div>
+      <div class="week-grid">
+        <div class="day storm">
+          <div class="dow">MON</div><div class="date">Jun 1</div>
+          <span class="icon">â›ˆï¸</span>
+          <div class="hi-lo">91Â° / 68Â°</div>
+          <div class="cond">70% Chance of Storms</div>
+        </div>
+        <div class="day">
+          <div class="dow">TUE</div><div class="date">Jun 2</div>
+          <span class="icon">â›…</span>
+          <div class="hi-lo">88Â° / 61Â°</div>
+          <div class="cond">Mostly Cloudy</div>
+        </div>
+        <div class="day">
+          <div class="dow">WED</div><div class="date">Jun 3</div>
+          <span class="icon">â˜€ï¸</span>
+          <div class="hi-lo">83Â° / 59Â°</div>
+          <div class="cond">Sunny</div>
+        </div>
+        <div class="day">
+          <div class="dow">THU</div><div class="date">Jun 4</div>
+          <span class="icon">ðŸŒ¤ï¸</span>
+          <div class="hi-lo">85Â° / 60Â°</div>
+          <div class="cond">Mostly Sunny</div>
+        </div>
+        <div class="day">
+          <div class="dow">FRI</div><div class="date">Jun 5</div>
+          <span class="icon">ðŸŒ¤ï¸</span>
+          <div class="hi-lo">87Â° / 65Â°</div>
+          <div class="cond">Mostly Sunny</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. ATTENDANCE -->
+  <section class="slide s4" data-slide="4">
+    <div class="slide-inner reveal">
+      <div class="mandatory">MANDATORY</div>
+      <div class="attendance-row" style="margin-top:30px">
+        <div class="attendance-text">
+          <h2>Attendance Policy</h2>
+          <p>Meetings are <b style="color:var(--rcr-green)">Mondays at 10:00 AM</b>. Attendance is <b style="color:var(--red)">MANDATORY</b>.</p>
+          <p class="warning">âš  Late or unexcused absence = <u>NO lead rotation that week</u>.</p>
+          <span class="clock">ðŸ•™ 10:00 AM SHARP</span>
+        </div>
+        <div class="gif-frame">
+          <img src="/monday/assets/image11.gif" alt="You, on time? Interesting.">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. TEAMUP CALENDAR -->
+  <section class="slide s5" data-slide="5">
+    <div class="slide-inner reveal">
+      <div class="cal-wrap">
+        <div class="cal-head">
+          <h2>THIS WEEK <span>Â· TeamUp</span></h2>
+          <div class="eyebrow">June 1 â€“ June 13</div>
+        </div>
+        <div class="cal-grid">
+          <div class="cal-dow">SUN</div><div class="cal-dow">MON</div><div class="cal-dow">TUE</div><div class="cal-dow">WED</div><div class="cal-dow">THU</div><div class="cal-dow">FRI</div><div class="cal-dow">SAT</div>
+
+          <div class="cal-cell weekend"><span class="cal-num">31</span></div>
+          <div class="cal-cell today">
+            <span class="cal-num">1</span>
+            <span class="job j-red">â›ˆ RAINING (Storms)</span>
+          </div>
+          <div class="cal-cell">
+            <span class="cal-num">2</span>
+            <span class="job j-brown">R10997 Stain fence (Hooper)</span>
+            <span class="job j-purple">R7707 Full Roof (Parrish)</span>
+            <span class="job j-red">R11222 Full Roof (Sebring)</span>
+          </div>
+          <div class="cal-cell">
+            <span class="cal-num">3</span>
+            <span class="job j-brown">R10997 Stain fence (Hooper)</span>
+            <span class="job j-purple">R7707 Full Roof (Parrish)</span>
+            <span class="job j-pink">R11191 Â½ Roof (R. Baker)</span>
+          </div>
+          <div class="cal-cell">
+            <span class="cal-num">4</span>
+            <span class="job j-brown">R11207 Fascia/Soffit (Rogers)</span>
+            <span class="job j-purple">R7707 Full Roof (Parrish)</span>
+            <span class="job j-blue">R10929 Re-screw/Metal (Styles)</span>
+            <span class="job j-red">R9891 Full Roof (D. Robin)</span>
+          </div>
+          <div class="cal-cell">
+            <span class="cal-num">5</span>
+            <span class="job j-brown">R11207 Fascia/Soffit (Rogers)</span>
+          </div>
+          <div class="cal-cell weekend"><span class="cal-num">6</span></div>
+
+          <div class="cal-cell weekend"><span class="cal-num">7</span></div>
+          <div class="cal-cell">
+            <span class="cal-num">8</span>
+            <span class="job j-red">R11207 Fascia/Soffit (Rogers)</span>
+            <span class="job j-storm">R10516 Standing Seam (Cornerstone)</span>
+            <span class="job j-red">R11107 Full Roof (Sigle)</span>
+          </div>
+          <div class="cal-cell">
+            <span class="cal-num">9</span>
+            <span class="job j-storm">R10516 Standing Seam (Cornerstone)</span>
+            <span class="job j-red">R11107 Full Roof (Sigle)</span>
+          </div>
+          <div class="cal-cell">
+            <span class="cal-num">10</span>
+            <span class="job j-storm">R10516 Standing Seam (Cornerstone)</span>
+            <span class="job j-red">R11107 Full Roof (Sigle)</span>
+          </div>
+          <div class="cal-cell">
+            <span class="cal-num">11</span>
+            <span class="job j-storm">R10516 Standing Seam (Cornerstone)</span>
+          </div>
+          <div class="cal-cell"><span class="cal-num">12</span></div>
+          <div class="cal-cell weekend"><span class="cal-num">13</span></div>
+        </div>
+        <div class="legend">
+          <span><i style="background:#c93939"></i>Aaron L. crew</span>
+          <span><i style="background:#7a5a2a"></i>Greg crew</span>
+          <span><i style="background:#7a3a8a"></i>Travis crew</span>
+          <span><i style="background:#2a5dbd"></i>Hunter crew</span>
+          <span><i style="background:repeating-linear-gradient(45deg,#444,#444 4px,#222 4px,#222 8px)"></i>Multi-day</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5B. UPDATE NUMBERS FORM -->
+  <section class="slide s5" data-slide="5b">
+    <div class="slide-inner reveal" style="max-width:1500px">
+      <div class="form-card">
+        <div class="form-head">
+          <h2>UPDATE THE <span>NUMBERS</span></h2>
+          <div class="form-actions">
+            <span id="savedNote" class="saved-note">Auto-saved</span>
+            <button class="btn ghost" id="loadLast">â†º Load Last Week</button>
+            <button class="btn" id="exportCsv">â¬‡ Export CSV</button>
+            <button class="btn danger" id="clearAll">âœ• Clear</button>
+          </div>
+        </div>
+        <table class="numtable" id="numTable">
+          <thead>
+            <tr>
+              <th>Rep</th>
+              <th>Inspected</th>
+              <th>Damage</th>
+              <th>Signed</th>
+              <th>Repair</th>
+              <th>Gutter</th>
+              <th>$$$$$</th>
+              <th>Approved</th>
+              <th>Goal</th>
+              <th>Referrals</th>
+              <th>Agents</th>
+              <th>Present</th>
+              <th>Home Show</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. MAY SALES -->
+  <section class="slide s6" data-slide="6">
+    <div class="slide-inner reveal">
+      <div class="chart-card">
+        <div class="chart-head">
+          <h2>MAY <span>SALES</span></h2>
+          <div class="total"><small>May Total</small><b>$522,173.22</b></div>
+        </div>
+        <div class="bars" data-max="200000">
+          <div class="bar top" data-val="185825"><span class="crown">ðŸ‘‘</span><span class="amount">$185,825</span><div class="col"></div><span class="name">Aaron</span></div>
+          <div class="bar top" data-val="181575"><span class="amount">$181,575</span><div class="col"></div><span class="name">Greg</span></div>
+          <div class="bar" data-val="65530"><span class="amount">$65,530</span><div class="col"></div><span class="name">Hunter</span></div>
+          <div class="bar" data-val="51004"><span class="amount">$51,004</span><div class="col"></div><span class="name">Alijah</span></div>
+          <div class="bar" data-val="32845"><span class="amount">$32,845</span><div class="col"></div><span class="name">Travis</span></div>
+          <div class="bar" data-val="6395"><span class="amount">$6,395</span><div class="col"></div><span class="name">Boston</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. MAY COMMISSIONS -->
+  <section class="slide s7" data-slide="7">
+    <div class="slide-inner reveal">
+      <div class="chart-card">
+        <div class="chart-head">
+          <h2>MAY <span>COMMISSIONS</span></h2>
+          <div class="total"><small>May Comm. Total</small><b>$42,534.29</b></div>
+        </div>
+        <div class="bars" data-max="20000">
+          <div class="bar top" data-val="16449"><span class="crown">ðŸ‘‘</span><span class="amount">$16,449</span><div class="col"></div><span class="name">Greg</span></div>
+          <div class="bar" data-val="9799"><span class="amount">$9,799</span><div class="col"></div><span class="name">Hunter</span></div>
+          <div class="bar" data-val="8105"><span class="amount">$8,105</span><div class="col"></div><span class="name">Aaron</span></div>
+          <div class="bar" data-val="3982"><span class="amount">$3,982</span><div class="col"></div><span class="name">Rudy</span></div>
+          <div class="bar" data-val="2100"><span class="amount">$2,100</span><div class="col"></div><span class="name">Alijah</span></div>
+          <div class="bar" data-val="2099"><span class="amount">$2,099</span><div class="col"></div><span class="name">Travis</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. 2026 YTD SALES -->
+  <section class="slide s8" data-slide="8">
+    <div class="slide-inner reveal">
+      <div class="chart-card">
+        <div class="chart-head">
+          <h2>2026 <span>SALES</span> Â· YTD</h2>
+          <div class="total"><small>YTD Total</small><b>$1,806,473</b></div>
+        </div>
+        <div class="bars" data-max="800000">
+          <div class="bar top" data-val="650006"><span class="crown">ðŸ‘‘</span><span class="amount">$650,006</span><div class="col"></div><span class="name">Greg</span></div>
+          <div class="bar" data-val="394512"><span class="amount">$394,512</span><div class="col"></div><span class="name">Aaron</span></div>
+          <div class="bar" data-val="365690"><span class="amount">$365,690</span><div class="col"></div><span class="name">Hunter</span></div>
+          <div class="bar" data-val="176480"><span class="amount">$176,480</span><div class="col"></div><span class="name">Alijah</span></div>
+          <div class="bar" data-val="105039"><span class="amount">$105,039</span><div class="col"></div><span class="name">Travis</span></div>
+          <div class="bar" data-val="101161"><span class="amount">$101,161</span><div class="col"></div><span class="name">Rudy</span></div>
+          <div class="bar" data-val="7190"><span class="amount">$7,190</span><div class="col"></div><span class="name">Rick</span></div>
+          <div class="bar" data-val="6395"><span class="amount">$6,395</span><div class="col"></div><span class="name">Boston</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. 2026 YTD COMMISSIONS -->
+  <section class="slide s9" data-slide="9">
+    <div class="slide-inner reveal">
+      <div class="chart-card">
+        <div class="chart-head">
+          <h2>2026 <span>COMMISSIONS</span> Â· YTD</h2>
+          <div class="total"><small>YTD Comm. Total</small><b>$185,395</b></div>
+        </div>
+        <div class="bars" data-max="80000">
+          <div class="bar top" data-val="69856"><span class="crown">ðŸ‘‘</span><span class="amount">$69,856</span><div class="col"></div><span class="name">Greg</span></div>
+          <div class="bar" data-val="44389"><span class="amount">$44,389</span><div class="col"></div><span class="name">Hunter</span></div>
+          <div class="bar" data-val="27554"><span class="amount">$27,554</span><div class="col"></div><span class="name">Aaron</span></div>
+          <div class="bar" data-val="24670"><span class="amount">$24,670</span><div class="col"></div><span class="name">Rudy</span></div>
+          <div class="bar" data-val="10068"><span class="amount">$10,068</span><div class="col"></div><span class="name">Travis</span></div>
+          <div class="bar" data-val="6672"><span class="amount">$6,672</span><div class="col"></div><span class="name">Alijah</span></div>
+          <div class="bar" data-val="2806"><span class="amount">$2,806</span><div class="col"></div><span class="name">Rick</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9B. TRIP PROGRESS -->
+  <section class="slide strip" data-slide="9b">
+    <div class="slide-inner reveal" style="max-width:1500px;gap:14px">
+      <div class="trip-head">
+        <div>
+          <div class="eyebrow" style="color:var(--accent)">H1 INCENTIVE TRIP Â· QUALIFY @ $400K</div>
+          <h2>THE <span class="gold">TRIP</span> Â· YOU'RE ALMOST THERE</h2>
+        </div>
+        <div class="stats">
+          <div class="stat"><small>Days Left</small><b>29</b></div>
+          <div class="stat green"><small>Qualified</small><b>1 / 7</b></div>
+          <div class="stat gold"><small>Trip Pot</small><b>$5,950</b></div>
+        </div>
+      </div>
+      <div class="trip-grid" id="tripGrid">
+        <div class="trip-row qualified" data-pct="100" data-ytd="650006">
+          <div class="rank">ðŸ†</div>
+          <div class="who">Greg</div>
+          <div class="bar-wrap"><div class="bar-fill" data-w="100">$650,006 Â· OVER GOAL</div></div>
+          <div class="badge">QUALIFIED</div>
+          <div class="pot">$2,700</div>
+        </div>
+        <div class="trip-row pending" data-pct="98.6" data-ytd="394512">
+          <div class="rank">2</div>
+          <div class="who">Aaron</div>
+          <div class="bar-wrap"><div class="bar-fill" data-w="98.6">$394,512 Â· $5,488 to go</div></div>
+          <div class="badge">SO CLOSE</div>
+          <div class="pot">$1,100</div>
+        </div>
+        <div class="trip-row pending" data-pct="91.4" data-ytd="365690">
+          <div class="rank">3</div>
+          <div class="who">Hunter</div>
+          <div class="bar-wrap"><div class="bar-fill" data-w="91.4">$365,690 Â· $34,310 to go</div></div>
+          <div class="badge">CLOSING IN</div>
+          <div class="pot">$1,400</div>
+        </div>
+        <div class="trip-row behind" data-pct="44.2" data-ytd="176670">
+          <div class="rank">4</div>
+          <div class="who">Alijah</div>
+          <div class="bar-wrap"><div class="bar-fill" data-w="44.2">$176,670</div></div>
+          <div class="badge">PUSH IT</div>
+          <div class="pot">$650</div>
+        </div>
+        <div class="trip-row behind" data-pct="26.3" data-ytd="105039">
+          <div class="rank">5</div>
+          <div class="who">Travis</div>
+          <div class="bar-wrap"><div class="bar-fill" data-w="26.3">$105,039</div></div>
+          <div class="badge">PUSH IT</div>
+          <div class="pot">$0</div>
+        </div>
+        <div class="trip-row behind" data-pct="25.3" data-ytd="101161">
+          <div class="rank">6</div>
+          <div class="who">Rudy</div>
+          <div class="bar-wrap"><div class="bar-fill" data-w="25.3">$101,161</div></div>
+          <div class="badge">PUSH IT</div>
+          <div class="pot">$100</div>
+        </div>
+        <div class="trip-row behind" data-pct="1.8" data-ytd="7190">
+          <div class="rank">7</div>
+          <div class="who">Rick</div>
+          <div class="bar-wrap"><div class="bar-fill" data-w="1.8">$7,190</div></div>
+          <div class="badge">START</div>
+          <div class="pot">$0</div>
+        </div>
+      </div>
+      <div class="trip-foot">
+        <span>ðŸ“… <b>Book 30â€“60 days after H1 close</b> Â· pick your destination</span>
+        <span>ðŸ’µ Cash-out option: <b>75% of trip pot</b></span>
+        <span>ðŸ“ˆ Tier bonuses grow the pot every month</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. RAISE THE ROOF -->
+  <section class="slide s10" data-slide="10">
+    <div class="slide-inner reveal">
+      <div class="roof-grid">
+        <img src="/monday/assets/image13.png" alt="Raise the Roof â€” Lady Devils">
+        <div class="roof-text">
+          <div class="eyebrow" style="color:var(--rcr-green)">JobNimbus Â· New Workflow</div>
+          <h2>RAISE THE <span>ROOF</span></h2>
+          <p style="color:var(--muted);font-size:18px;max-width:560px">A new document is live in JobNimbus for the <b style="color:#fff">Raise the Roof</b> program. Here's the play:</p>
+          <div class="steps">
+            <div class="step"><span class="num">1</span><p>Open the <b>NEW DOCUMENT</b> in JobNimbus for <b>Raise the Roof</b>.</p></div>
+            <div class="step"><span class="num">2</span><p>Fill it out completely and have the <b>customer sign</b> it.</p></div>
+            <div class="step"><span class="num">3</span><p>Tag <span class="tag">SARA</span> &nbsp; <span class="tag">DESTIN</span> in a note â€” let us know <b>which school + sport</b> the donation goes to.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11. MADE IT - Tier 1 -->
+  <section class="slide s6" data-slide="11">
+    <canvas class="confetti" id="confetti1"></canvas>
+    <div class="slide-inner reveal">
+      <div class="made-it">MADE IT! ðŸŽ‰</div>
+      <div class="chart-card" style="border-color:rgba(124,252,0,.35)">
+        <div class="chart-head">
+          <h2>2ND HALF Â· TIER 1 GOAL <span>$400K</span></h2>
+          <div class="total"><small>Inspectors at/above goal</small><b style="color:var(--rcr-green)">3 of 7</b></div>
+        </div>
+        <div class="goalhead"><div></div><div>Sold</div><div>What You Need</div><div style="text-align:right">% of $400K</div></div>
+        <div class="goalbars">
+          <div class="goalrow hit"><div class="who">Greg</div>
+            <div class="sold"><div class="fill" data-w="100">$406,725</div></div>
+            <div class="need"><div class="fill" data-w="0"></div></div>
+            <div class="pct">102%</div></div>
+          <div class="goalrow hit"><div class="who">Hunter</div>
+            <div class="sold"><div class="fill" data-w="78">$314,770</div></div>
+            <div class="need"><div class="fill" data-w="21">$85,230</div></div>
+            <div class="pct">79%</div></div>
+          <div class="goalrow hit"><div class="who">Rudy</div>
+            <div class="sold"><div class="fill" data-w="72">$288,230</div></div>
+            <div class="need"><div class="fill" data-w="28">$111,770</div></div>
+            <div class="pct">72%</div></div>
+          <div class="goalrow"><div class="who">Rick</div>
+            <div class="sold"><div class="fill" data-w="35">$139,870</div></div>
+            <div class="need"><div class="fill" data-w="65">$260,130</div></div>
+            <div class="pct under">35%</div></div>
+          <div class="goalrow"><div class="who">Brendon</div>
+            <div class="sold"><div class="fill" data-w="32">$126,927</div></div>
+            <div class="need"><div class="fill" data-w="68">$273,073</div></div>
+            <div class="pct under">32%</div></div>
+          <div class="goalrow"><div class="who">Travis</div>
+            <div class="sold"><div class="fill" data-w="18">$72,412</div></div>
+            <div class="need"><div class="fill" data-w="82">$327,588</div></div>
+            <div class="pct under">18%</div></div>
+          <div class="goalrow"><div class="who">Joseph</div>
+            <div class="sold"><div class="fill" data-w="4">$14,503</div></div>
+            <div class="need"><div class="fill" data-w="96">$385,497</div></div>
+            <div class="pct under">4%</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12. WOW - Tier 3 -->
+  <section class="slide s6" data-slide="12">
+    <canvas class="confetti" id="confetti2"></canvas>
+    <div class="slide-inner reveal">
+      <div class="made-it" style="font-size:clamp(90px,11vw,180px)">WOW! ðŸš€</div>
+      <div class="chart-card" style="border-color:rgba(124,252,0,.45);background:linear-gradient(180deg,rgba(124,252,0,.06),#070d07)">
+        <div class="chart-head">
+          <h2>2ND HALF Â· TIER 3 GOAL <span>$600K</span></h2>
+          <div class="total"><small>Above Tier 3</small><b style="color:var(--rcr-green)">AARON ðŸ†</b></div>
+        </div>
+        <div class="goalhead"><div></div><div>Sold</div><div>Over the Top</div><div style="text-align:right">% of $600K</div></div>
+        <div class="goalbars">
+          <div class="goalrow hit"><div class="who">Aaron</div>
+            <div class="sold"><div class="fill" data-w="100">$610,919</div></div>
+            <div class="need"><div class="fill" data-w="2" style="background:linear-gradient(90deg,#b7ff7a,var(--rcr-green))">+$10,919</div></div>
+            <div class="pct">102%</div></div>
+        </div>
+        <p style="text-align:center;color:var(--muted);margin-top:24px;font-size:18px">Aaron crossed the <b style="color:var(--rcr-green)">$600,000</b> Tier 3 threshold for the second half. Absolute machine.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13. EMPLOYEE OF THE MONTH -->
+  <section class="slide s13" data-slide="13">
+    <canvas class="confetti" id="confetti3"></canvas>
+    <div class="slide-inner reveal">
+      <div class="eom-wrap">
+        <div class="crown-big">ðŸ‘‘</div>
+        <div class="eom-eyebrow">Employee of the Month Â· MAY 2026</div>
+        <div class="eom-title">JOHN</div>
+        <div class="eom-name">CORDONIS</div>
+        <div class="eom-photos">
+          <div><img src="/monday/assets/image8.png" alt="John with family"></div>
+          <div><img src="/monday/assets/image7.png" alt="John with team"></div>
+          <div><img src="/monday/assets/image10.png" alt="John at Notre Dame"></div>
+        </div>
+        <p style="color:var(--muted);margin-top:18px;font-size:16px;letter-spacing:.16em;font-weight:700;text-transform:uppercase">Congratulations, John â€” thank you for everything you do.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14. QUARTERLY BONUS -->
+  <section class="slide s14" data-slide="14">
+    <div class="slide-inner reveal">
+      <div style="text-align:center">
+        <div class="q-eyebrow">QUARTERLY INSPECTOR INCENTIVE</div>
+        <div class="q-title">QUARTERLY <span>BONUS</span></div>
+      </div>
+      <div class="q-grid">
+        <div class="q-card">
+          <p>If inspectors sell over <b style="color:var(--rcr-green)">$1,000,000</b> in a quarter, then for <b>every $100,000</b> over that mark:</p>
+          <div class="big">+ $200 / +$100 BONUS</div>
+          <div class="bonus-tiles">
+            <div class="bonus gold"><div class="who">Sara</div><div class="amt">$200</div></div>
+            <div class="bonus gold"><div class="who">Destin</div><div class="amt">$200</div></div>
+            <div class="bonus"><div class="who">Tia</div><div class="amt">$100</div></div>
+          </div>
+          <p style="margin-top:18px;font-size:16px;color:var(--muted)">Paid per every $100K over $1M sold in the quarter. Let's go push past that line. <b style="color:var(--rcr-green)">THANK YOU!</b></p>
+        </div>
+        <div class="q-gif">
+          <img src="/monday/assets/image15.gif" alt="Help a brother out">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15. CLOSING -->
+  <section class="slide s15" data-slide="15">
+    <div class="slide-inner reveal close-wrap">
+      <div class="eyebrow" style="color:#5fbfff">One More Thing</div>
+      <p class="close-quote">"Life is like riding a bicycle.<br>To keep your balance, you must keep moving."</p>
+      <div class="close-attr">â€” Albert Einstein</div>
+      <div class="close-cta">LET'S GO,<br>RIVER CITY.</div>
+      <div class="close-sub">Have a great week Â· 256-274-8530</div>
+    </div>
+  </section>
+
+</div>
+
+<div class="hud">
+  <div class="brand"><span class="dot"></span>RCR Â· Monday Meeting Â· 06.01.2026</div>
+  <div class="nav">
+    <button id="prev" aria-label="Previous">â—€</button>
+    <span class="counter"><span id="cur">1</span> / <span id="tot">15</span></span>
+    <button id="next" aria-label="Next">â–¶</button>
+    <button id="full" aria-label="Fullscreen" title="Fullscreen">â›¶</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const total = slides.length;
+  document.getElementById('tot').textContent = total;
+  let i = 0;
+
+  function show(n){
+    n = Math.max(0, Math.min(total-1, n));
+    slides.forEach((s,idx)=>{
+      s.classList.toggle('active', idx===n);
+    });
+    i = n;
+    document.getElementById('cur').textContent = n+1;
+    document.getElementById('prog').style.width = ((n+1)/total*100)+'%';
+    // animate bars after slide visible
+    requestAnimationFrame(()=>setTimeout(()=>animate(slides[n]), 200));
+    // confetti
+    const conf = slides[n].querySelector('canvas.confetti');
+    if(conf) burst(conf);
+  }
+
+  function animate(slide){
+    // vertical bars
+    slide.querySelectorAll('.bars').forEach(group=>{
+      const max = parseFloat(group.dataset.max||0);
+      group.querySelectorAll('.bar').forEach(bar=>{
+        const v = parseFloat(bar.dataset.val||0);
+        const pct = Math.min(100, (v/max)*100);
+        const col = bar.querySelector('.col');
+        col.style.height = '0%';
+        void col.offsetWidth;
+        col.style.height = pct + '%';
+      });
+    });
+    // goal bars
+    slide.querySelectorAll('.goalrow .fill').forEach(f=>{
+      const w = parseFloat(f.dataset.w||0);
+      f.style.width = '0%';
+      void f.offsetWidth;
+      f.style.width = w + '%';
+    });
+    // trip bars
+    slide.querySelectorAll('.trip-row .bar-fill').forEach(f=>{
+      const w = parseFloat(f.dataset.w||0);
+      f.style.width = '0%';
+      void f.offsetWidth;
+      f.style.width = Math.min(100,w) + '%';
+    });
+  }
+
+  // ---- Update Numbers form ----
+  const REPS = ['Aaron','Brendon','Greg','Hunter','John','Joseph','Rick','Rudy','Travis'];
+  const COLS = ['Inspected','Damage','Signed','Repair','Gutter','$$$$$','Approved','Goal','Referrals','Agents','Present','Home Show'];
+  const DOLLAR_COLS = new Set(['$$$$$','Goal']);
+  const LAST_WEEK = { // 5.25.2026 placeholder defaults â€” overwrite as needed
+    // Aaron:{Inspected:0,Damage:0,Signed:0,...}
+  };
+  const STORAGE_KEY = 'rcr-monday-numbers-2026-06-01';
+
+  function buildForm(){
+    const tbody = document.querySelector('#numTable tbody');
+    if(!tbody || tbody.children.length) return;
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    REPS.forEach(rep=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${rep}</td>` + COLS.map(col=>{
+        const v = (saved[rep]||{})[col] ?? '';
+        return `<td><input data-rep="${rep}" data-col="${col}" type="text" inputmode="decimal" value="${v}" placeholder="0"></td>`;
+      }).join('');
+      tbody.appendChild(tr);
+    });
+    const tot = document.createElement('tr');
+    tot.className = 'total';
+    tot.innerHTML = '<td>Total</td>' + COLS.map(c=>`<td><span class="totalcell" data-total="${c}">0</span></td>`).join('');
+    tbody.appendChild(tot);
+    tbody.addEventListener('input', e=>{
+      if(e.target.matches('input')) save();
+    });
+    recalc();
+  }
+  function parseNum(s){
+    if(!s) return 0;
+    const n = parseFloat(String(s).replace(/[$,\s]/g,''));
+    return isFinite(n) ? n : 0;
+  }
+  function recalc(){
+    const totals = Object.fromEntries(COLS.map(c=>[c,0]));
+    document.querySelectorAll('#numTable input').forEach(inp=>{
+      totals[inp.dataset.col] += parseNum(inp.value);
+    });
+    document.querySelectorAll('#numTable [data-total]').forEach(el=>{
+      const c = el.dataset.total;
+      const v = totals[c];
+      el.textContent = DOLLAR_COLS.has(c) ? (v ? '$'+v.toLocaleString() : '0') : (v||0);
+    });
+  }
+  function save(){
+    const data = {};
+    document.querySelectorAll('#numTable input').forEach(inp=>{
+      const r = inp.dataset.rep, c = inp.dataset.col;
+      data[r] = data[r] || {};
+      if(inp.value !== '') data[r][c] = inp.value;
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    const note = document.getElementById('savedNote');
+    if(note){ note.textContent = 'âœ“ Saved'; note.classList.add('flash'); clearTimeout(window._svT); window._svT = setTimeout(()=>{note.textContent='Auto-saved';note.classList.remove('flash')},1200); }
+    recalc();
+  }
+  function exportCsv(){
+    const rows = [['Rep',...COLS]];
+    document.querySelectorAll('#numTable tbody tr').forEach(tr=>{
+      const cells = [tr.children[0].textContent];
+      tr.querySelectorAll('input,[data-total]').forEach(el=>cells.push(el.value!==undefined?el.value:el.textContent));
+      rows.push(cells);
+    });
+    const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv],{type:'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const d = new Date().toISOString().slice(0,10);
+    a.href = url; a.download = `rcr-meeting-numbers-${d}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  }
+  function clearAll(){
+    if(!confirm('Clear all numbers on this page?')) return;
+    document.querySelectorAll('#numTable input').forEach(i=>i.value='');
+    save();
+  }
+  function loadLast(){
+    if(!confirm('Load last week\'s numbers (5.25.2026) as a starting point? This will overwrite what you have typed.')) return;
+    document.querySelectorAll('#numTable input').forEach(inp=>{
+      const r = inp.dataset.rep, c = inp.dataset.col;
+      inp.value = (LAST_WEEK[r]||{})[c] ?? '';
+    });
+    save();
+  }
+  document.addEventListener('DOMContentLoaded', ()=>{
+    buildForm();
+    document.getElementById('exportCsv')?.addEventListener('click', exportCsv);
+    document.getElementById('clearAll')?.addEventListener('click', clearAll);
+    document.getElementById('loadLast')?.addEventListener('click', loadLast);
+  });
+
+  // Keyboard â€” ignore when typing in a form
+  document.addEventListener('keydown', e=>{
+    const tag = (e.target.tagName||'').toLowerCase();
+    if(tag==='input' || tag==='textarea' || tag==='select') return;
+    if(e.key==='ArrowRight' || e.key===' ' || e.key==='PageDown'){e.preventDefault();show(i+1)}
+    else if(e.key==='ArrowLeft' || e.key==='PageUp'){e.preventDefault();show(i-1)}
+    else if(e.key==='Home'){show(0)}
+    else if(e.key==='End'){show(total-1)}
+    else if(e.key==='f' || e.key==='F'){toggleFull()}
+    else if(e.key==='Escape' && document.fullscreenElement){document.exitFullscreen()}
+  });
+  document.getElementById('prev').onclick = ()=>show(i-1);
+  document.getElementById('next').onclick = ()=>show(i+1);
+  document.getElementById('full').onclick = toggleFull;
+  function toggleFull(){
+    if(!document.fullscreenElement){document.documentElement.requestFullscreen()}
+    else{document.exitFullscreen()}
+  }
+
+  // Swipe (mobile)
+  let sx=0;
+  document.addEventListener('touchstart', e=>sx=e.touches[0].clientX);
+  document.addEventListener('touchend', e=>{
+    const dx = e.changedTouches[0].clientX - sx;
+    if(Math.abs(dx)>50) show(i + (dx<0?1:-1));
+  });
+
+  // Click on edges
+  document.addEventListener('click', e=>{
+    if(e.target.closest('.nav, .hud, button, a, img, input, table, .form-card')) return;
+    const x = e.clientX, w = window.innerWidth;
+    if(x > w*0.7) show(i+1);
+    else if(x < w*0.3) show(i-1);
+  });
+
+  // Confetti
+  function burst(canvas){
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width = canvas.offsetWidth;
+    const H = canvas.height = canvas.offsetHeight;
+    const colors = ['#7CFC00','#ffd23f','#5b9fd6','#ff4757','#ffffff'];
+    const parts = [];
+    for(let k=0;k<140;k++){
+      parts.push({
+        x: W/2 + (Math.random()-.5)*200,
+        y: H*0.4,
+        vx: (Math.random()-.5)*8,
+        vy: -Math.random()*12 - 4,
+        g: .35 + Math.random()*.2,
+        r: 4 + Math.random()*5,
+        c: colors[Math.floor(Math.random()*colors.length)],
+        rot: Math.random()*Math.PI,
+        vr: (Math.random()-.5)*.3,
+        life: 0
+      });
+    }
+    let t0 = performance.now();
+    function step(t){
+      const dt = (t - t0)/16; t0 = t;
+      ctx.clearRect(0,0,W,H);
+      let alive = false;
+      parts.forEach(p=>{
+        p.vy += p.g*dt;
+        p.x += p.vx*dt;
+        p.y += p.vy*dt;
+        p.rot += p.vr*dt;
+        p.life += dt;
+        if(p.y < H+30 && p.life < 200){
+          alive = true;
+          ctx.save();
+          ctx.translate(p.x,p.y);
+          ctx.rotate(p.rot);
+          ctx.fillStyle = p.c;
+          ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r*1.6);
+          ctx.restore();
+        }
+      });
+      if(alive) requestAnimationFrame(step);
+      else ctx.clearRect(0,0,W,H);
+    }
+    requestAnimationFrame(step);
+  }
+
+  // Init
+  show(0);
+})();
+</script>
+
+</body>
+</html>
