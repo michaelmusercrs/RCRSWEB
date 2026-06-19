@@ -445,7 +445,8 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - /ram/* (standalone public diagnostic page — bypass auth entirely)
+     * - /mazda/* (standalone diagnostic page — bypass auth/redirects entirely)
      */
-    '/((?!_next/static|_next/image|favicon\\.ico|ram(?:/|$)).*)',
+    '/((?!_next/static|_next/image|favicon\\.ico|ram(?:/|$)|mazda(?:/|$)).*)',
   ],
 };
