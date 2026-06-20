@@ -304,8 +304,6 @@ export default function MazdaPage() {
       {/* Header */}
       <div style={{ borderBottom: `1px solid ${C.line}`, background: 'linear-gradient(180deg,#0e141b,#0b0f14)' }}>
         <div style={{ maxWidth: 1080, margin: '0 auto', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-nobg.png" alt="River City Roofing Solutions" style={{ height: 44, width: 'auto' }} />
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: .2 }}>
               Mazda 3 <span style={{ color: C.green }}>Diagnostic Assistant</span>
@@ -478,7 +476,7 @@ export default function MazdaPage() {
       </div>
 
       <div style={{ maxWidth: 1080, margin: '0 auto', padding: '0 18px 28px', color: C.mut, fontSize: 11.5 }}>
-        Built from real XTOOL D7 scan data (06-16/17). No placeholder values. River City Roofing Solutions internal tool.
+        Built from real XTOOL D7 scan data (06-16/17 → 06-20). No placeholder values. Personal vehicle diagnostic tool.
       </div>
     </div>
   );
