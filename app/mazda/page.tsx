@@ -303,7 +303,12 @@ export default function MazdaPage() {
     <div style={{ minHeight: '100vh', background: C.bg, color: C.txt, fontFamily: 'system-ui,Segoe UI,Roboto,Arial,sans-serif' }}>
       {/* Header */}
       <div style={{ borderBottom: `1px solid ${C.line}`, background: 'linear-gradient(180deg,#0e141b,#0b0f14)' }}>
-        <div style={{ maxWidth: 1080, margin: '0 auto', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+        {/* Company brand bar */}
+        <div style={{ maxWidth: 1080, margin: '0 auto', padding: '10px 18px 0' }}>
+          <div style={{ fontSize: 17, fontWeight: 900, letterSpacing: .3, color: C.green }}>WiggerRigging Inc.</div>
+          <div style={{ fontSize: 12, fontStyle: 'italic', color: C.mut }}>If you want it right, it better be White.</div>
+        </div>
+        <div style={{ maxWidth: 1080, margin: '0 auto', padding: '8px 18px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: .2 }}>
               Mazda 3 <span style={{ color: C.green }}>Diagnostic Assistant</span>
@@ -476,7 +481,7 @@ export default function MazdaPage() {
       </div>
 
       <div style={{ maxWidth: 1080, margin: '0 auto', padding: '0 18px 28px', color: C.mut, fontSize: 11.5 }}>
-        Built from real XTOOL D7 scan data (06-16/17 → 06-20). No placeholder values. Personal vehicle diagnostic tool.
+        Built from real XTOOL D7 scan data (06-16/17 → 06-20). No placeholder values. WiggerRigging Inc. — If you want it right, it better be White.
       </div>
     </div>
   );
