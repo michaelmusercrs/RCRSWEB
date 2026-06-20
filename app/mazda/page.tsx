@@ -16,28 +16,44 @@ const C = {
 
 /* ---------- REAL vehicle + findings (verified from scanner data) ---------- */
 const VEHICLE = {
-  name: 'Mazda 3',
-  detail: '3rd-gen (BN, ~2017–2018) · Skyactiv-G 4-cyl · Direct Injection · 6-spd Skyactiv-Drive auto',
-  vinStart: '3MZBN1…',
+  name: '2017 Mazda 3 / Axela',
+  detail: '2017 Mazda 3 / Axela · 2.0L Skyactiv-G (PE engine) · 6-spd Skyactiv-Drive auto',
+  vinStart: '3MZBN1U71HM108446',
   pcmSw: 'PSAP-188K2-A',
   mileage: '≈157,865 (TCM counter — verify on dash)',
   software: 'XTOOL D7 · MAZDA V14.20',
 };
 
+// Post-repair status (06-20): loose negative ground found + tightened → misfire resolved.
+const STATUS = {
+  headline: 'ROOT CAUSE FOUND & FIXED — loose negative (ground) battery terminal',
+  detail:
+    'After tightening the ground + reset + a drive, a full Automatic Scan shows the engine, transmission, ' +
+    'brakes (ABS), airbags, power steering and parking brake all PASS / No DTC. The all-cylinder misfire ' +
+    '(which had normal fuel trims — the tell-tale of an electrical/ground cause) and the limp-mode are gone, ' +
+    'and the check-engine light has not returned.',
+  remaining:
+    'Only 4 communication codes remain (all stored, from the electrical event): U0156 (Instrument Cluster ↔ ' +
+    'Information Center) and U0513 ×3 (Blind-Spot modules — "invalid data from yaw-rate sensor"). ' +
+    'These don’t strand the car, but Blind-Spot Monitoring may be off until cleared. Next: clean the ground ' +
+    'properly, Clear All DTCs, drive, and re-scan to confirm nothing returns.',
+};
+
 const KNOWN: { label: string; value: string; tone: keyof typeof TONE; note: string }[] = [
-  { label: 'Misfire — all 4 cylinders', value: 'Trip total 5 (AM) → 24/26 (PM) on 06-17', tone: 'bad',
-    note: 'Catalyst-damage counts Cyl1=6 Cyl2=8 Cyl3=7 Cyl4=5. Even spread = one shared cause, not 4 bad parts.' },
-  { label: 'Fuel trims', value: 'LTFT 0.0–0.8% · STFT +5.5% · λ 1.01/0.99', tone: 'good',
-    note: 'Essentially perfect. Rules OUT vacuum leak / fuel starvation as the misfire cause.' },
-  { label: 'Knock retard / KCS', value: '−1.2 to −2.6° · KCS learn −0.11', tone: 'good', note: 'Within normal range.' },
-  { label: 'Oil pressure', value: 'No proven fault', tone: 'good',
-    note: '"Low Oil Pressure: Detected" appeared ONLY engine-off (load 0.43%). Running = "Never Detected".' },
-  { label: 'Transmission', value: 'Self-test Normal', tone: 'good',
-    note: 'Fluid temp, solenoids, voltage all normal. Limp mode is engine-side (PCM fail-safe).' },
-  { label: 'DTC found (Instrument Cluster)', value: 'U0156 — current + stored', tone: 'warn',
-    note: '"Communication With Information Center A Is Lost." CAN-network code; secondary, not the misfire cause.' },
-  { label: 'Engine/PCM DTCs', value: 'NOT digitally captured', tone: 'warn',
-    note: 'No Read-DTC results screen was recorded; saved reports are in the D7 app’s internal storage. Enter them in Step 1.' },
+  { label: 'Engine / PCM (after ground fix)', value: 'PASS — No DTC', tone: 'good',
+    note: '06-20 full Automatic Scan: PCM clean. The all-cylinder misfire codes are GONE after tightening the loose negative ground.' },
+  { label: 'Misfire history (before fix)', value: 'All 4 cyl, trip total 5 → 24', tone: 'info',
+    note: 'Pre-fix (06-16/17). Even spread + normal fuel trims pointed to an electrical/ground cause — confirmed by the fix.' },
+  { label: 'Safety systems (after fix)', value: 'ABS · Airbags · EPS · EPB · Trans — all PASS', tone: 'good',
+    note: '06-20 scan: brakes, restraints, power steering, parking brake, transmission all No DTC.' },
+  { label: 'Remaining: blind-spot comms', value: 'U0513 ×3 (BSM/BSML/BSML)', tone: 'warn',
+    note: '"Invalid data from yaw-rate sensor" — stored, from the electrical event. Blind-spot may be off until cleared; check mirrors manually.' },
+  { label: 'Remaining: cluster comms', value: 'U0156 (current + stored)', tone: 'warn',
+    note: 'Instrument cluster ↔ information center. Convenience/display network; not a powertrain/safety fault.' },
+  { label: 'Root cause', value: 'Loose negative ground — FIXED', tone: 'good',
+    note: 'Explains the all-cyl misfire + normal trims + limp mode + lost-comm codes all at once.' },
+  { label: 'Check-engine light', value: 'Has not returned', tone: 'good',
+    note: 'Post-repair, after a drive. Strong sign the drivability fault is resolved.' },
 ];
 
 const TIMELINE = [
@@ -72,7 +88,8 @@ const DTC_DB: Record<string, { t: string; sys: string; note: string }> = {
   P0171: { t: 'System Too Lean (Bank 1)', sys: 'Air/Fuel', note: 'This car’s trims are normal, so a big lean code would be new info — check vacuum/intake.' },
   P0420: { t: 'Catalyst Efficiency Below Threshold', sys: 'Emissions', note: 'Often a CONSEQUENCE of prolonged misfire damaging the cat. Fix misfire first.' },
   P2096: { t: 'Post-Cat Fuel Trim Too Lean (Bank 1)', sys: 'Exhaust/Fuel', note: 'Can follow misfire/exhaust issues.' },
-  U0156: { t: 'Lost Communication With Information Center "A"', sys: 'Network (CAN)', note: 'Found on this car (Instrument Cluster). Network/wiring/module dropout; not the misfire cause.' },
+  U0156: { t: 'Lost Communication With Information Center "A"', sys: 'Network (CAN)', note: 'Found on this car (Instrument Cluster), current + stored. Network/wiring/ground dropout — classic loose-ground symptom; not the misfire cause.' },
+  U0513: { t: 'Invalid/Lost Data — Yaw Rate Sensor (to Blind-Spot modules)', sys: 'Network / ADAS', note: 'Found on this car ×3 (BSM/BSML/BSMR): "Received Not Valid Data From Yaw Rate Sensor Module." ABS/DSC itself passed → almost certainly stored from the electrical event. Blind-Spot may be disabled until cleared.' },
 };
 
 /* ---------- Analysis helpers (the "logic") ---------- */
@@ -309,6 +326,12 @@ export default function MazdaPage() {
       </div>
 
       <div style={{ maxWidth: 1080, margin: '0 auto', padding: 18 }}>
+        {/* Post-repair status banner */}
+        <div style={{ background: 'rgba(57,255,20,.08)', border: `1px solid ${C.green}`, borderRadius: 12, padding: '14px 16px', marginBottom: 16 }}>
+          <div style={{ color: C.green, fontWeight: 800, fontSize: 14.5, marginBottom: 6 }}>✓ {STATUS.headline}</div>
+          <div style={{ fontSize: 13, lineHeight: 1.55, color: C.txt }}>{STATUS.detail}</div>
+          <div style={{ fontSize: 12.5, lineHeight: 1.5, color: C.amber, marginTop: 8 }}>{STATUS.remaining}</div>
+        </div>
         {tab === 'diag' && (
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 300px', gap: 16, alignItems: 'start' }}>
             <div>
