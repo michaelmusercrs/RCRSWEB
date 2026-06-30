@@ -321,44 +321,7 @@ export function parseMaterialOrderEmail(body: string): ParsedMaterialOrder {
   };
 }
 
-/**
- * Match a parsed item name to a catalog product. Uses substring + token
- * intersection scoring; returns the best match above a threshold or null.
- *
- * The catalog comes from inventoryData.ts (item-123 through item-133).
- */
-export function matchCatalogItem(
-  parsedName: string,
-  catalog: Array<{ productId: string; productName: string }>,
-): string | null {
-  if (!parsedName) return null;
-  const target = parsedName.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').trim();
-  if (!target) return null;
-  const targetTokens = new Set(target.split(/\s+/).filter(t => t.length > 1));
-
-  let bestId: string | null = null;
-  let bestScore = 0;
-  for (const item of catalog) {
-    const candidate = item.productName.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').trim();
-    if (!candidate) continue;
-    const candidateTokens = new Set(candidate.split(/\s+/).filter(t => t.length > 1));
-
-    // Token intersection
-    let overlap = 0;
-    for (const t of targetTokens) if (candidateTokens.has(t)) overlap++;
-    if (overlap === 0) continue;
-
-    // Bonus for substring match in either direction
-    const substringBonus =
-      candidate.includes(target) || target.includes(candidate) ? 2 : 0;
-
-    const score = overlap + substringBonus;
-    if (score > bestScore) {
-      bestScore = score;
-      bestId = item.productId;
-    }
-  }
-
-  // Threshold: at least one token match
-  return bestScore >= 1 ? bestId : null;
-}
+// matchCatalogItem lives in its own dependency-free module so it can be
+// unit-tested in isolation. Re-exported here to preserve the existing
+// import path (`@/lib/material-order-email-parser`).
+export { matchCatalogItem } from './match-catalog-item';
