@@ -38,6 +38,14 @@
     {
       "path": "/api/cron/refresh-weather-forecast",
       "schedule": "5 * * * *"
+    },
+    {
+      "path": "/api/cron/auto-finalize-tickets",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/stalled-tickets-digest",
+      "schedule": "0 12 * * *"
     }
   ],
   "headers": [
