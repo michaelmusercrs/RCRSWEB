@@ -6,6 +6,9 @@ The scheduled routine appends an entry per action.
 
 ---
 
+- `2026-07-02 14:50` · claude (interactive w/ owner) · auth · Password-change gate reinstated per owner: dynamic gate (login with hardcoded default → forced change; changed passwords never prompted, nothing reset). Legacy /api/auth/login now verifies via credentialService. AGENDA 3.11 resolved · commit f410449
+- `2026-07-02 14:45` · claude (interactive w/ owner) · inventory · Credit memo CM11192-1 ($83.56, 4x 1-1/2" boots) created via return ticket RTN-20260702-1MRK through the live portal API (Rick's credit-memo flow) — closes the R-11192 boot-swap loop. Gmail draft to Sara re TKT-R-10997 invoice decision placed in owner inbox (she's back Monday) · sheet writes, no commit
+
 - `2026-07-02 14:20` · claude (interactive w/ owner) · warehouse portal VERIFIED · Full E2E on PRODUCTION as richard@rcrsal.com (real login): create → pull (Tickets tab flips) → verify-load (invoice INV-20260702-0003 posted + breakdown + Inventory_Products deduction; idempotent on second click) → en-route → arrived — all mirrored to the dashboard's sheet. Only expected failure: office email (Resend not yet configured). Test rows cleaned up. Rick's portal is live and working at rcrsal.com/portal/warehouse · deploy rcrs-portal-9mmsg3qof
 - `2026-07-02 14:15` · claude (interactive w/ owner) · SEO · Fresh full audit: 97.2/100 (A+), up from 85.4 April baseline. PageSpeed mobile 97, desktop 97, SEO 100, a11y 100, CWV 93, security 100, structured-data 100, content 100. Weakest: review_presence 80 (gated on Resend + review automation). Bogus rate-limited 34.0 entry scrubbed from history · seo-monitor
 
