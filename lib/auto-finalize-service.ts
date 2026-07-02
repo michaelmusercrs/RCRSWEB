@@ -234,8 +234,12 @@ export async function autoFinalizeStuckTickets(
         await pause();
       }
 
-      // 4. Flip ticket to load_verified
-      t.set('status', 'load_verified');
+      // 4. Close the ticket out. These are catch-up finalizations — the
+      //    physical delivery happened days ago (>48h stall by definition),
+      //    so 'completed' is the truthful end state. Using 'load_verified'
+      //    here used to leave every catch-up permanently on the driver's
+      //    "active" board (fixed 2026-07-02, owner request).
+      t.set('status', 'completed');
       t.set('completedAt', t.get('completedAt') || stamp);
       await t.save();
       await pause();

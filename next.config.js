@@ -184,6 +184,9 @@ const nextConfig = {
   reactStrictMode: true,
   experimental: {
     optimizePackageImports: ['lucide-react'],
+    // Enables instrumentation.ts — carries the googleapis fetch no-store
+    // patch that keeps Sheets reads live in GET route handlers.
+    instrumentationHook: true,
   },
   typescript: {
     ignoreBuildErrors: false,

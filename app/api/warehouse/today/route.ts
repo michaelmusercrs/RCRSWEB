@@ -22,6 +22,10 @@ import { weatherService } from '@/lib/weather-service';
 import { filterCostByRole } from '@/lib/cost-visibility';
 
 export const dynamic = 'force-dynamic';
+// Belt-and-suspenders with the instrumentation.ts googleapis patch: the
+// sheets client passes cache:'default', which a GET handler would otherwise
+// happily serve from the per-deployment Data Cache — freezing the board.
+export const fetchCache = 'force-no-store';
 export const runtime = 'nodejs';
 
 const ACTIVE_STATUSES = new Set([
