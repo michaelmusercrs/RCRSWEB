@@ -4,10 +4,18 @@
  * Single source of truth for what happens after a delivery ticket is
  * verified loaded at the warehouse:
  *
- *   1. Deduct each material line from the master `Inventory` tab
- *   2. Dual-write negative transactions to the legacy external inventory
+ *   1. Write an Invoices row (status='posted') — idempotent per ticketId
+ *   2. Write a Job_Breakdowns row if the job has none
+ *   3. Deduct each material line from `Inventory_Products` (canonical stock)
+ *   4. Dual-write negative transactions to the legacy external inventory
  *      app (no-op when `LEGACY_INVENTORY_SHEETS_ID` is unset)
- *   3. Send a price-only invoice to the office (rcrs@rcrsal.com)
+ *   5. Send a price-only invoice to the office (rcrs@rcrsal.com)
+ *
+ * This mirrors the auto-finalize cron (`lib/auto-finalize-service.ts`) and
+ * the 2026-06-30 backfill exactly — the three paths MUST stay consistent.
+ * Historical bug (fixed 2026-07-02): this path used to deduct from the
+ * `Inventory` tab (job-materials catalog, NOT stock) and never wrote an
+ * Invoices row, so organic verify-load clicks diverged from the cron.
  *
  * Two call sites use this:
  *   - app/api/portal/tickets/route.ts (verify-load case) — when Rick clicks
@@ -15,18 +23,18 @@
  *   - app/api/admin/stock-backfill/route.ts — when admin runs the historical
  *     email backfill from /admin/stock-backfill
  *
- * Idempotency: callers should check ticket status before invoking so this
- * isn't run twice for the same ticket. The deduction itself is NOT
- * idempotent (each call subtracts again).
+ * Idempotency: safe to call twice. Invoices are deduped by ticketId,
+ * deductions by (ticketId, productName) via Inventory_Deductions_Log.
  */
 
 import { JWT } from 'google-auth-library';
 import { GoogleSpreadsheet } from 'google-spreadsheet';
+import crypto from 'crypto';
 import type { SheetTicket } from './ticket-sheet-service';
 import { inventoryTabSync } from './inventory-tab-sync';
 import { emailService } from './email-service';
-import { jobMaterialCostService } from './job-material-cost-service';
 import {
+  ensureInventoryDeductionsLogSheet,
   loadDeductionKeySet,
   wasDeducted,
   appendDeductionLog,
@@ -36,76 +44,201 @@ import {
 const DEDUCTION_SOURCE = 'load-verified-aftermath';
 
 export interface AftermathResult {
+  invoiceCreated: boolean;
+  invoiceId: string;
+  breakdownCreated: boolean;
   deductedItems: number;
   missingFromCatalog: string[];
   legacyWritten: number;
   invoiceSent: boolean;
-  invoiceId: string;
   errors: string[];
 }
 
-async function deductFromMasterInventory(
-  ticketId: string,
-  materials: SheetTicket['materials'],
-  invoiceIdHint?: string,
-): Promise<{ deducted: number; missing: string[]; skippedIdempotent: number; error?: string }> {
-  const sheetsId = process.env.DELIVERY_SHEETS_ID || process.env.GOOGLE_SHEETS_ID;
-  const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-  if (!sheetsId || !process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || !privateKey) {
-    return {
-      deducted: 0,
-      missing: materials.map(m => m.productId),
-      skippedIdempotent: 0,
-      error: 'Google Sheets credentials not configured',
-    };
-  }
+function num(v: unknown): number {
+  return parseFloat(String(v ?? '').replace(/[$,]/g, '')) || 0;
+}
 
+async function openMasterDoc(): Promise<GoogleSpreadsheet | null> {
+  const sheetsId =
+    process.env.GOOGLE_SHEETS_ID ||
+    process.env.DELIVERY_SHEETS_ID ||
+    process.env.GOOGLE_SHEET_ID;
+  const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n').replace(/\r\n/g, '\n').trim();
+  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL?.trim();
+  if (!sheetsId || !email || !privateKey) return null;
   const auth = new JWT({
-    email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+    email,
     key: privateKey,
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   });
   const doc = new GoogleSpreadsheet(sheetsId, auth);
   await doc.loadInfo();
-  const invSheet = doc.sheetsByTitle['Inventory'];
-  if (!invSheet) {
+  return doc;
+}
+
+/**
+ * Write the Invoices row (idempotent per ticketId) and a Job_Breakdowns row
+ * if the job doesn't have one. Same schema + numbering as the auto-finalize
+ * cron (`INV-YYYYMMDD-####`, next free sequence for today).
+ */
+async function writeInvoiceAndBreakdown(
+  doc: GoogleSpreadsheet,
+  ticket: SheetTicket,
+  verifiedAtIso: string,
+): Promise<{ invoiceId: string; invoiceCreated: boolean; breakdownCreated: boolean; error?: string }> {
+  const invoicesSheet = doc.sheetsByTitle['Invoices'];
+  const breakdownsSheet = doc.sheetsByTitle['Job_Breakdowns'];
+  if (!invoicesSheet) {
+    return { invoiceId: ticket.ticketId, invoiceCreated: false, breakdownCreated: false, error: 'Invoices tab not found' };
+  }
+
+  const invoiceRows = await invoicesSheet.getRows();
+
+  // Idempotency: an invoice already exists for this ticket → reuse its id.
+  const existing = invoiceRows.find(r => r.get('ticketId') === ticket.ticketId);
+  if (existing) {
     return {
-      deducted: 0,
-      missing: materials.map(m => m.productId),
-      skippedIdempotent: 0,
-      error: 'Master Inventory tab not found',
+      invoiceId: existing.get('invoiceId') || ticket.ticketId,
+      invoiceCreated: false,
+      breakdownCreated: false,
     };
   }
-  const rows = await invSheet.getRows();
 
-  // M7 defense-in-depth: even though callers are supposed to guard
-  // against double-invocation, check Inventory_Deductions_Log first so a
-  // duplicate verify-load click (or a retry of a partially-completed
-  // aftermath run) can never double-decrement. Same idempotency key
-  // format as the .mjs scripts: (ticketId, productName lowercased).
+  // Collision-proof numbering: next sequence after today's max.
+  const dateTag = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const todayPrefix = `INV-${dateTag}-`;
+  let seq = 0;
+  for (const r of invoiceRows) {
+    const id = r.get('invoiceId') || '';
+    if (id.startsWith(todayPrefix)) {
+      const n = parseInt(id.slice(todayPrefix.length), 10);
+      if (Number.isFinite(n) && n > seq) seq = n;
+    }
+  }
+  const invoiceId = `${todayPrefix}${String(seq + 1).padStart(4, '0')}`;
+  const total = num(ticket.totalPrice);
+
+  await invoicesSheet.addRow({
+    invoiceId,
+    ticketId: ticket.ticketId,
+    jobId: ticket.jobId || '',
+    jobName: ticket.jobName || '',
+    customerName: ticket.customerName || '',
+    customerEmail: ticket.customerEmail || '',
+    createdAt: verifiedAtIso,
+    dueDate: '',
+    paidAt: '',
+    subtotal: total.toFixed(2),
+    taxRate: '0',
+    taxAmount: '0.00',
+    deliveryFee: '0.00',
+    rushFee: '0.00',
+    total: total.toFixed(2),
+    status: 'posted',
+    paymentMethod: '',
+    paymentReference: '',
+    notes: `Created at verify-load by ${DEDUCTION_SOURCE}. Inventory deducted from Inventory_Products.`,
+    internalNotes: '',
+  });
+
+  // Breakdown row if the job has none.
+  let breakdownCreated = false;
+  if (breakdownsSheet && (ticket.jobId || ticket.jobName)) {
+    const breakdownRows = await breakdownsSheet.getRows();
+    const hasBd = breakdownRows.some(
+      r =>
+        (ticket.jobId && r.get('jobId') === ticket.jobId) ||
+        (ticket.jobName && r.get('jobName') === ticket.jobName),
+    );
+    if (!hasBd) {
+      const breakdownId = `BD-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+      const materialsSummary = ticket.materials
+        .slice(0, 6)
+        .map(m => `${m.quantity || 0} ${m.productName || ''}`)
+        .join('; ');
+      const address = [ticket.jobAddress, ticket.city, ticket.state].filter(Boolean).join(', ');
+      await breakdownsSheet.addRow({
+        breakdownId,
+        jobId: ticket.jobId || '',
+        jobName: ticket.jobName || '',
+        customerName: ticket.customerName || '',
+        address,
+        projectType: 'delivery',
+        status: 'auto-created',
+        materials: materialsSummary,
+        labor: '',
+        materialTotal: total.toFixed(2),
+        laborTotal: '',
+        deliveryFees: '0',
+        overhead: '',
+        profit: '',
+        totalEstimate: total.toFixed(2),
+        estimatedStartDate: (ticket.createdAt || verifiedAtIso).slice(0, 10),
+        estimatedEndDate: (ticket.createdAt || verifiedAtIso).slice(0, 10),
+        createdBy: DEDUCTION_SOURCE,
+        createdAt: verifiedAtIso,
+        updatedAt: verifiedAtIso,
+        notes: `Auto-created from delivery ticket ${ticket.ticketId}. Linked invoice ${invoiceId}.`,
+      });
+      breakdownCreated = true;
+    }
+  }
+
+  return { invoiceId, invoiceCreated: true, breakdownCreated };
+}
+
+/**
+ * Deduct material lines from `Inventory_Products` (canonical stock).
+ * Matches by productName (lowercased) first, productId fallback — same as
+ * the auto-finalize cron. Idempotent via Inventory_Deductions_Log.
+ */
+async function deductFromStock(
+  doc: GoogleSpreadsheet,
+  ticketId: string,
+  materials: SheetTicket['materials'],
+  invoiceIdHint?: string,
+): Promise<{ deducted: number; missing: string[]; skippedIdempotent: number; error?: string }> {
+  const invProdSheet = doc.sheetsByTitle['Inventory_Products'];
+  if (!invProdSheet) {
+    return {
+      deducted: 0,
+      missing: materials.map(m => m.productName || m.productId).filter(Boolean) as string[],
+      skippedIdempotent: 0,
+      error: 'Inventory_Products tab not found',
+    };
+  }
+  const rows = await invProdSheet.getRows();
+  const byName = new Map(rows.map(r => [(r.get('productName') || '').toLowerCase().trim(), r]));
+  const byId = new Map(rows.map(r => [r.get('productId'), r]));
+
+  // Defense-in-depth: check Inventory_Deductions_Log so a duplicate
+  // verify-load click (or a retry of a partially-completed aftermath run)
+  // can never double-decrement. Same key format as the cron + .mjs scripts.
+  await ensureInventoryDeductionsLogSheet(doc);
   const deductedKeys = await loadDeductionKeySet(doc);
 
   const missing: string[] = [];
   let deducted = 0;
   let skippedIdempotent = 0;
   for (const m of materials) {
-    if (!m.productId) continue;
     const productName = (m.productName || '').toLowerCase().trim();
+    const qty = num(m.quantity);
+    if (!qty || (!productName && !m.productId)) continue;
     if (productName && wasDeducted(deductedKeys, ticketId, productName)) {
       skippedIdempotent++;
       continue;
     }
 
-    const row = rows.find(r => r.get('productId') === m.productId);
+    const row = byName.get(productName) || byId.get(m.productId || '');
     if (!row) {
-      missing.push(m.productId);
+      missing.push(m.productName || m.productId || 'unknown');
       continue;
     }
-    const currentQty = parseFloat(row.get('currentQty')) || 0;
-    const newQty = Math.max(0, currentQty - m.quantity);
-    const unitCost = parseFloat(row.get('unitCost')) || 0;
-    row.set('currentQty', newQty.toString());
-    row.set('totalValue', (newQty * unitCost).toFixed(2));
+    const before = num(row.get('currentQty'));
+    const after = Math.max(0, before - qty);
+    const unitCost = num(row.get('unitCost'));
+    row.set('currentQty', String(after));
+    row.set('totalValue', (after * unitCost).toFixed(2));
     await row.save();
     deducted++;
 
@@ -113,10 +246,10 @@ async function deductFromMasterInventory(
       await appendDeductionLog(doc, {
         ticketId,
         productName,
-        productId: m.productId,
-        qtyBefore: currentQty,
-        qtyAfter: newQty,
-        qtyDelta: -m.quantity,
+        productId: row.get('productId') || '',
+        qtyBefore: before,
+        qtyAfter: after,
+        qtyDelta: -qty,
         invoiceId: invoiceIdHint,
         source: DEDUCTION_SOURCE,
       });
@@ -128,8 +261,8 @@ async function deductFromMasterInventory(
 }
 
 /**
- * Run the full load-verified aftermath for a single ticket. Caller is
- * responsible for idempotency (don't call twice for the same ticket).
+ * Run the full load-verified aftermath for a single ticket. Safe to call
+ * twice — invoice write and deductions are both idempotent.
  */
 export async function runLoadVerifiedAftermath(input: {
   ticket: SheetTicket;
@@ -145,33 +278,53 @@ export async function runLoadVerifiedAftermath(input: {
   const { ticket, verifiedAtIso, verifiedByName, notesPrefix, silent } = input;
   const errors: string[] = [];
 
-  // 1. Deduct from master Inventory tab.
-  //    Defense-in-depth idempotency: the function checks
-  //    Inventory_Deductions_Log per (ticketId, productName) and skips
-  //    rows it has already deducted, even if the caller invokes twice.
-  let deductedItems = 0;
-  let missingFromCatalog: string[] = [];
-  try {
-    // invoiceId is resolved in step 3 below — leave the hint undefined
-    // here; the audit row still has the ticketId for cross-reference.
-    const result = await deductFromMasterInventory(
-      ticket.ticketId,
-      ticket.materials,
-    );
-    deductedItems = result.deducted;
-    missingFromCatalog = result.missing;
-    if (result.skippedIdempotent > 0) {
-      console.warn(
-        `[load-verified-aftermath] Skipped ${result.skippedIdempotent} already-deducted material(s) for ticket ${ticket.ticketId}`,
-      );
-    }
-    if (result.error) errors.push(`Deduction: ${result.error}`);
-  } catch (err) {
-    errors.push(`Deduction threw: ${String(err)}`);
+  const result: AftermathResult = {
+    invoiceCreated: false,
+    invoiceId: ticket.ticketId,
+    breakdownCreated: false,
+    deductedItems: 0,
+    missingFromCatalog: [],
+    legacyWritten: 0,
+    invoiceSent: false,
+    errors,
+  };
+
+  const doc = await openMasterDoc();
+  if (!doc) {
+    errors.push('Google Sheets credentials not configured');
+    return result;
   }
 
-  // 2. Mirror to legacy external inventory app (no-op if env unset)
-  let legacyWritten = 0;
+  // 1+2. Invoices row (idempotent) + Job_Breakdowns row if missing.
+  try {
+    const inv = await writeInvoiceAndBreakdown(doc, ticket, verifiedAtIso);
+    result.invoiceId = inv.invoiceId;
+    result.invoiceCreated = inv.invoiceCreated;
+    result.breakdownCreated = inv.breakdownCreated;
+    if (inv.error) errors.push(`Invoice: ${inv.error}`);
+  } catch (err) {
+    errors.push(`Invoice threw: ${String(err)}`);
+  }
+
+  // 3. Deduct from Inventory_Products — skipped entirely for other_vendor
+  //    tickets (those materials never entered our stock).
+  if (ticket.orderSource !== 'other_vendor') {
+    try {
+      const ded = await deductFromStock(doc, ticket.ticketId, ticket.materials, result.invoiceId);
+      result.deductedItems = ded.deducted;
+      result.missingFromCatalog = ded.missing;
+      if (ded.skippedIdempotent > 0) {
+        console.warn(
+          `[load-verified-aftermath] Skipped ${ded.skippedIdempotent} already-deducted material(s) for ticket ${ticket.ticketId}`,
+        );
+      }
+      if (ded.error) errors.push(`Deduction: ${ded.error}`);
+    } catch (err) {
+      errors.push(`Deduction threw: ${String(err)}`);
+    }
+  }
+
+  // 4. Mirror to legacy external inventory app (no-op if env unset)
   try {
     const legacyResult = await inventoryTabSync.pushTransactions({
       referenceNumber: ticket.referenceNumber,
@@ -184,28 +337,15 @@ export async function runLoadVerifiedAftermath(input: {
           unitPrice: m.unitPrice,
         })),
     });
-    legacyWritten = legacyResult.written;
+    result.legacyWritten = legacyResult.written;
     if (legacyResult.error) errors.push(`Legacy sync: ${legacyResult.error}`);
   } catch (err) {
     errors.push(`Legacy sync threw: ${String(err)}`);
   }
 
-  // 3. Resolve invoice ID then send the price-only office email
-  //    Skip the email entirely when silent=true (historical backfill mode).
-  //    Inventory deduction + invoice record still happen — only the outbound
-  //    email is suppressed.
-  let invoiceSent = false;
-  let invoiceId = ticket.ticketId;
-  try {
-    const invoiceRecords = await jobMaterialCostService.getByTicket(ticket.ticketId);
-    const interofficeInvoice = invoiceRecords.find(r => r.type === 'invoice');
-    if (interofficeInvoice?.invoiceId) invoiceId = interofficeInvoice.invoiceId;
-
-    if (silent) {
-      // Silent mode: invoice record exists (or will be created by job-material-cost-service
-      // elsewhere); we just don't email the office. Mark "sent" as false but no error.
-      invoiceSent = false;
-    } else {
+  // 5. Price-only office email. Skipped when silent=true (backfill mode).
+  if (!silent) {
+    try {
       const fullAddress = [ticket.jobAddress, ticket.city, ticket.state]
         .filter(Boolean)
         .join(', ');
@@ -223,7 +363,7 @@ export async function runLoadVerifiedAftermath(input: {
 
       const res = await emailService.sendLoadVerifiedInvoice({
         ticketId: ticket.ticketId,
-        invoiceId,
+        invoiceId: result.invoiceId,
         jobNumber: ticket.referenceNumber,
         customerName: ticket.customerName || '',
         address: fullAddress,
@@ -234,19 +374,12 @@ export async function runLoadVerifiedAftermath(input: {
         totalPrice: Math.round(totalPrice * 100) / 100,
         notes,
       });
-      invoiceSent = res.success;
+      result.invoiceSent = res.success;
       if (!res.success && res.error) errors.push(`Invoice email: ${res.error}`);
+    } catch (err) {
+      errors.push(`Invoice email threw: ${String(err)}`);
     }
-  } catch (err) {
-    errors.push(`Invoice email threw: ${String(err)}`);
   }
 
-  return {
-    deductedItems,
-    missingFromCatalog,
-    legacyWritten,
-    invoiceSent,
-    invoiceId,
-    errors,
-  };
+  return result;
 }
