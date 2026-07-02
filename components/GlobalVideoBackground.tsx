@@ -61,11 +61,14 @@ export default function GlobalVideoBackground({
     >
       {/* Video Background — loaded after hydration on desktop only */}
       {showVideo && (
+        {/* No `loop` (owner request 2026-07-02): the shingle animation plays
+            ONCE per page change, then holds on its final frame. The
+            route-change effect above resets currentTime and replays it on
+            every navigation. Bonus: a paused video costs zero CPU/battery. */}
         <video
           ref={videoRef}
           key={`video-${animationKey}`}
           autoPlay
-          loop
           muted
           playsInline
           preload="none"
