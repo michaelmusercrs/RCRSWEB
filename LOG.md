@@ -6,6 +6,8 @@ The scheduled routine appends an entry per action.
 
 ---
 
+- `2026-07-02 15:30` · claude (interactive w/ owner) · EMAIL LIVE · Resend account provisioned by owner; typo domain `riverityroofingsolutions.com` deleted from Resend; **rcrsal.com** added + DKIM/SPF written via `vercel dns` + verified in ~1 min; direct test send delivered to owner gmail (Resend id ad0ec69a); `RESEND_API_KEY` + `EMAIL_FROM=noreply@rcrsal.com` set on rcrs-portal production; redeploy kicked. Allowlist unchanged (contact-form, load-verified-invoice, driver-new-order). Public-domain sender deferred to Squarespace DNS session · AGENDA 1.7
+
 - `2026-07-02 14:50` · claude (interactive w/ owner) · auth · Password-change gate reinstated per owner: dynamic gate (login with hardcoded default → forced change; changed passwords never prompted, nothing reset). Legacy /api/auth/login now verifies via credentialService. AGENDA 3.11 resolved · commit f410449
 - `2026-07-02 14:45` · claude (interactive w/ owner) · inventory · Credit memo CM11192-1 ($83.56, 4x 1-1/2" boots) created via return ticket RTN-20260702-1MRK through the live portal API (Rick's credit-memo flow) — closes the R-11192 boot-swap loop. Gmail draft to Sara re TKT-R-10997 invoice decision placed in owner inbox (she's back Monday) · sheet writes, no commit
 
