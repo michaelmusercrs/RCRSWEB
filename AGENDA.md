@@ -158,6 +158,10 @@ Every change made by the routine, on any platform, is appended to `LOG.md` (sibl
 
 ---
 
+## Verification watch (routine: check these, then mark done)
+
+- `[pending]` **V1 — Confirm auto-finalize cron fired on schedule.** After 2026-07-03 13:17 UTC, check the `CronLocks` tab for a `cron-lock:auto-finalize-tickets` row with lastStatus=success and lastRunAt ≥ 2026-07-03T13:17Z. It had NEVER fired before (quota collision at 13:00, fixed + rescheduled 2026-07-02). If the row is missing or errored, this is HIGH priority — investigate and note findings here.
+
 ## Routine instructions (read me first on every scheduled run)
 
 1. `git pull origin main` — sync.
