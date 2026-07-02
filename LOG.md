@@ -6,6 +6,8 @@ The scheduled routine appends an entry per action.
 
 ---
 
+- `2026-07-02 17:10` · claude (interactive w/ owner) · warehouse board · Owner flagged inflated "active" count → THREE fixes: (1) closed 18 stale load_verified tickets (historical deliveries finalized for bookkeeping, stuck on the active board); (2) auto-finalize now closes catch-ups to 'completed'; (3) CRITICAL: GET route handlers served frozen sheet data — google-spreadsheet's ky client passes cache:'default' which Next.js Data-Caches per deployment in GET handlers (POST was always fresh) — instrumentation.ts now forces no-store on all googleapis fetches + today route declares fetchCache force-no-store. Live board verified: exactly 4 real work orders · commit 4a1ade4
+
 - `2026-07-02 16:05` · claude (interactive w/ owner) · training · Interactive role-lesson system shipped: lesson player at /portal/training/lesson/[slug] (structured blocks, inline quizzes, completion → Training_Progress tab) + 4 lessons written against today's verified behavior (rick-warehouse FIRST per owner, sara-office, john-pm, chris-owner). Fixed mapAuthRoleToTrainingRoles: 'office' auth role saw sales training, 'project_manager' had no mapping · commit ac7224c
 
 - `2026-07-02 15:30` · claude (interactive w/ owner) · EMAIL LIVE · Resend account provisioned by owner; typo domain `riverityroofingsolutions.com` deleted from Resend; **rcrsal.com** added + DKIM/SPF written via `vercel dns` + verified in ~1 min; direct test send delivered to owner gmail (Resend id ad0ec69a); `RESEND_API_KEY` + `EMAIL_FROM=noreply@rcrsal.com` set on rcrs-portal production; redeploy kicked. Allowlist unchanged (contact-form, load-verified-invoice, driver-new-order). Public-domain sender deferred to Squarespace DNS session · AGENDA 1.7
