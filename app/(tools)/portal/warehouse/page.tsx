@@ -680,9 +680,9 @@ export default function WarehousePage() {
                         <ExternalLink className="w-4 h-4" /> JN Job
                       </a>
                     )}
-                    {t.status === 'created' && (
+                    {(t.status === 'created' || t.status === 'assigned') && (
                       <button
-                        onClick={() => updateStatus(t.ticketId, 'pull-materials', { pulledBy: 'rick' })}
+                        onClick={() => updateStatus(t.ticketId, 'pull-materials')}
                         className="bg-yellow-500 text-black text-sm font-bold py-2.5 rounded-lg active:bg-yellow-600"
                       >
                         Pull Materials
@@ -690,7 +690,7 @@ export default function WarehousePage() {
                     )}
                     {t.status === 'materials_pulled' && (
                       <button
-                        onClick={() => updateStatus(t.ticketId, 'verify-load', { verifiedBy: 'rick' })}
+                        onClick={() => updateStatus(t.ticketId, 'verify-load')}
                         className="bg-orange-500 text-white text-sm font-bold py-2.5 rounded-lg active:bg-orange-600"
                       >
                         Mark Loaded

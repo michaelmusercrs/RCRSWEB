@@ -13,13 +13,15 @@
  *   3. PIPELINE   — Stage-by-stage ticket counts
  *   4. TICKETS    — Scrolling list of active work orders
  *
- * Open in a kiosk-mode browser:
- *   chromium --kiosk https://rcrsal.com/portal/warehouse/display
+ * Open in a kiosk-mode browser (key required — set WAREHOUSE_DISPLAY_KEY
+ * on Vercel and pass the same value in the URL):
+ *   chromium --kiosk "https://rcrsal.com/portal/warehouse/display?key=<WAREHOUSE_DISPLAY_KEY>"
  *
- * The page has NO authentication — the X88 runs as an anonymous kiosk.
- * The /api/warehouse/today endpoint is also anonymous for the same reason.
- * All sensitive data (cost, prices) is server-side filtered before the
- * payload reaches the page.
+ * The page itself has NO login — the X88 runs as an anonymous kiosk. The
+ * ?key= query param is forwarded to /api/warehouse/today, which accepts it
+ * in place of a session (env-gated). Without the key the API returns 401
+ * and the display shows "Display offline". All sensitive data (cost,
+ * prices) is server-side filtered before the payload reaches the page.
  */
 
 import { useState, useEffect, useRef } from 'react';
@@ -100,7 +102,13 @@ export default function WarehouseDisplayPage() {
 
     const load = async () => {
       try {
-        const res = await fetch('/api/warehouse/today', { cache: 'no-store' });
+        // Forward the kiosk display key (if present in the page URL) so the
+        // X88 can authenticate without a login session.
+        const key = new URLSearchParams(window.location.search).get('key');
+        const url = key
+          ? `/api/warehouse/today?key=${encodeURIComponent(key)}`
+          : '/api/warehouse/today';
+        const res = await fetch(url, { cache: 'no-store' });
         if (!res.ok) throw new Error(`API error ${res.status}`);
         const payload = await res.json();
         if (!cancelled) {

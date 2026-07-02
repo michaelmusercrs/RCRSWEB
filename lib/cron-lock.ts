@@ -91,7 +91,15 @@ export async function withCronLock<T>(
   options: LockOptions,
   handler: () => Promise<T>,
 ): Promise<T | NextResponse> {
-  const sheet = await getSheet(options);
+  // getSheet can THROW (not just return null) — e.g. a Sheets quota 429 when
+  // several crons land on the same minute. The lock is best-effort, so a
+  // failure to reach the lock sheet must never abort the cron itself.
+  let sheet: Awaited<ReturnType<typeof getSheet>> = null;
+  try {
+    sheet = await getSheet(options);
+  } catch (err) {
+    console.error('[CRON LOCK] getSheet threw; running without lock for', cronName, err);
+  }
 
   // If sheets unavailable, fall through (best-effort means we run anyway).
   if (!sheet) {
@@ -104,8 +112,15 @@ export async function withCronLock<T>(
   const now = Date.now();
   const startedAt = new Date(now).toISOString();
 
-  const rows = await sheet.getRows();
-  const existing = rows.find((r) => r.get('key') === key);
+  let existing;
+  try {
+    const rows = await sheet.getRows();
+    existing = rows.find((r) => r.get('key') === key);
+  } catch (err) {
+    // Same best-effort rule: a read failure must not abort the cron.
+    console.error('[CRON LOCK] getRows threw; running without lock for', cronName, err);
+    return handler();
+  }
 
   if (existing) {
     const existingStatus = existing.get('status');

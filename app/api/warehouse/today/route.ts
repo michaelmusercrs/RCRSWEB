@@ -41,14 +41,29 @@ function greetingForHour(h: number): string {
   return 'Late shift';
 }
 
-export async function GET(_request: NextRequest) {
-  const auth = await requireAuth();
-  if (!auth.authenticated) return auth.response;
+export async function GET(request: NextRequest) {
+  // X88 kiosk path: the warehouse wall display runs chromium --kiosk with no
+  // login session. It authenticates with ?key=<WAREHOUSE_DISPLAY_KEY>
+  // (env-gated; anonymous access stays impossible until the env var is set).
+  // The payload is operational status only — no cost data.
+  const displayKey = process.env.WAREHOUSE_DISPLAY_KEY;
+  const providedKey =
+    new URL(request.url).searchParams.get('key') ||
+    request.headers.get('x-display-key');
+  const kioskAuthorized = Boolean(displayKey && providedKey && providedKey === displayKey);
 
-  // Allowed roles: driver (Rick/Tae), admin, owner, manager, office
-  const allowed = new Set(['driver', 'admin', 'owner', 'manager', 'office']);
-  if (!allowed.has(auth.user.role)) {
-    return NextResponse.json({ error: 'Warehouse access required' }, { status: 403 });
+  // Kiosk requests have no role → filterCostByRole strips all cost fields.
+  let viewerRole: string | undefined;
+  if (!kioskAuthorized) {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
+    // Allowed roles: driver (Rick/Tae), admin, owner, manager, office
+    const allowed = new Set(['driver', 'admin', 'owner', 'manager', 'office']);
+    if (!allowed.has(auth.user.role)) {
+      return NextResponse.json({ error: 'Warehouse access required' }, { status: 403 });
+    }
+    viewerRole = auth.user.role;
   }
 
   // Pull active tickets and weather in parallel
@@ -133,5 +148,5 @@ export async function GET(_request: NextRequest) {
     })),
   };
 
-  return NextResponse.json(filterCostByRole(payload, auth.user.role));
+  return NextResponse.json(filterCostByRole(payload, viewerRole));
 }

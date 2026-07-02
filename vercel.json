@@ -41,7 +41,7 @@
     },
     {
       "path": "/api/cron/auto-finalize-tickets",
-      "schedule": "0 13 * * *"
+      "schedule": "17 13 * * *"
     },
     {
       "path": "/api/cron/stalled-tickets-digest",

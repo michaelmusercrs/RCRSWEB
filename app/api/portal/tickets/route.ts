@@ -11,6 +11,21 @@ import { unifiedInventoryService } from '@/lib/unified-inventory-service';
 import { upsertDeliveryScheduleEntry } from '@/lib/delivery-schedule-service';
 import { normalizeLineItemQty } from '@/lib/normalize-line-item-qty';
 
+// Best-effort mirror of a status change onto the master Tickets tab — the
+// sheet the warehouse dashboard (/api/warehouse/today) reads. Without this,
+// status actions that go through deliveryWorkflowService only reach the
+// Delivery Tickets sheet and the driver's phone never sees the change.
+async function syncTicketsTabStatus(
+  ticketId: string,
+  status: import('@/lib/ticket-sheet-service').TicketStatus,
+) {
+  try {
+    await ticketSheetService.updateStatus(ticketId, status);
+  } catch (err) {
+    console.warn(`[tickets] Failed to mirror status '${status}' to Tickets tab:`, err);
+  }
+}
+
 // Helper function to send delivery notification (GroupMe + customer auto-notify)
 async function sendDeliveryNotification(ticket: any, status: string) {
   try {
@@ -361,11 +376,20 @@ export async function POST(request: NextRequest) {
           data.scheduledDate,
           data.scheduledTime
         );
+        await syncTicketsTabStatus(data.ticketId, 'assigned');
         return NextResponse.json({ success: true, ticket });
       }
 
       case 'pull-materials': {
-        const ticket = await deliveryWorkflowService.pullMaterials(data.ticketId, data.pulledBy);
+        // Prefer the authenticated identity over the client-supplied name
+        // (the warehouse UI used to hardcode 'rick').
+        const pulledBy = auth.user?.name || data.pulledBy || 'driver';
+        const ticket = await deliveryWorkflowService.pullMaterials(data.ticketId, pulledBy);
+        // The warehouse dashboard reads status from the master Tickets tab,
+        // while deliveryWorkflowService writes only to Delivery Tickets.
+        // Without this mirror the Pull button is a silent no-op on Rick's
+        // phone and the ticket strands at 'created' forever.
+        await syncTicketsTabStatus(data.ticketId, 'materials_pulled');
         return NextResponse.json({ success: true, ticket });
       }
 
@@ -380,8 +404,14 @@ export async function POST(request: NextRequest) {
 
         // Idempotency: skip the aftermath if this ticket has already been
         // verified. Status reflects the prior state because we haven't
-        // updated it yet.
-        const alreadyVerified = sheetTicket.status !== 'created';
+        // updated it yet. Pre-verify statuses (created / assigned /
+        // materials_pulled) all still need the aftermath — the Tickets tab
+        // now mirrors those earlier steps too. The aftermath itself is also
+        // internally idempotent (invoice dedup + deduction log) as a second
+        // layer of protection.
+        const alreadyVerified = !['created', 'assigned', 'materials_pulled'].includes(
+          sheetTicket.status,
+        );
         const verifiedAtIso = new Date().toISOString();
 
         // Assemble a driver-report string from the loading-checklist
@@ -445,7 +475,7 @@ export async function POST(request: NextRequest) {
             aftermath = await runLoadVerifiedAftermath({
               ticket: { ...sheetTicket, notes: driverReport || sheetTicket.notes },
               verifiedAtIso,
-              verifiedByName: data.verifiedBy || 'driver',
+              verifiedByName: auth.user?.name || data.verifiedBy || 'driver',
             });
           } catch (err) {
             console.error('[verify-load] Aftermath threw:', err);
@@ -457,6 +487,7 @@ export async function POST(request: NextRequest) {
 
       case 'start-delivery': {
         const ticket = await deliveryWorkflowService.startDelivery(data.ticketId);
+        await syncTicketsTabStatus(data.ticketId, 'en_route');
         if (ticket) {
           await sendDeliveryNotification(ticket, 'En Route');
         }
@@ -465,6 +496,7 @@ export async function POST(request: NextRequest) {
 
       case 'mark-arrived': {
         const ticket = await deliveryWorkflowService.markArrived(data.ticketId, data.gpsLocation);
+        await syncTicketsTabStatus(data.ticketId, 'arrived');
         if (ticket) {
           await sendDeliveryNotification(ticket, 'Arrived');
         }
@@ -473,6 +505,7 @@ export async function POST(request: NextRequest) {
 
       case 'complete-delivery': {
         const ticket = await deliveryWorkflowService.completeDelivery(data.ticketId, data.notes);
+        await syncTicketsTabStatus(data.ticketId, 'delivered');
         if (ticket) {
           await sendDeliveryNotification(ticket, 'Delivered');
         }
@@ -496,6 +529,7 @@ export async function POST(request: NextRequest) {
 
       case 'complete-ticket': {
         const ticket = await deliveryWorkflowService.completeTicket(data.ticketId);
+        await syncTicketsTabStatus(data.ticketId, 'completed');
         if (ticket) {
           await sendDeliveryNotification(ticket, 'Completed');
         }
