@@ -50,10 +50,12 @@ if (process.env.E2E_LOGIN_EMAIL) {
 }
 
 async function api(action, body) {
+  // Route does `const { action, ...data } = body` — params must be FLAT,
+  // exactly like the warehouse page sends them.
   const res = await fetch(`${BASE}/api/portal/tickets`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...(sessionCookie ? { Cookie: sessionCookie } : {}) },
-    body: JSON.stringify({ action, data: body }),
+    body: JSON.stringify({ action, ...body }),
   });
   const json = await res.json().catch(() => ({}));
   return { status: res.status, json };
