@@ -142,9 +142,16 @@ export async function POST(request: NextRequest) {
         // Include loginSetupComplete so client knows whether to show setup
         const creds = await credentialService.getUserCredentials(data.email);
 
+        // Password-change gate (owner directive 2026-07-02): force a change
+        // ONLY when the password used is still the hardcoded team-roles
+        // default. Users who already changed theirs log in with a different
+        // password and never see the prompt.
+        const mustChangePassword = password === member.password;
+
         return NextResponse.json(
           {
             success: true,
+            mustChangePassword,
             user: { ...user, loginSetupComplete: creds?.loginSetupComplete === 'true' },
           },
           { headers: getSecurityHeaders() }

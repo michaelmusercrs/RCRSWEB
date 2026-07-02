@@ -348,8 +348,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: false, error: result.error || 'Login failed' };
     }
 
+    // Server is the source of truth (true when the password used is still
+    // the hardcoded default). Fall back to the legacy static-flag +
+    // localStorage computation only if the server didn't say.
     const passwordChanged = localStorage.getItem(`passwordChanged_${member.id}`) === 'true';
-    const mustChange = member.mustChangePassword && !passwordChanged;
+    const mustChange =
+      typeof result.mustChangePassword === 'boolean'
+        ? result.mustChangePassword
+        : member.mustChangePassword && !passwordChanged;
 
     const authUser: AuthUser = {
       userId: member.id,

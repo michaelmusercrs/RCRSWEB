@@ -29,11 +29,22 @@ export async function POST(request: NextRequest) {
 
     let member;
 
-    // Login by email + password (only supported auth method)
+    // Login by email + password (only supported auth method). Verification
+    // goes through credentialService (Sheets-backed PBKDF2 hashes, auto-
+    // migrated from team-roles defaults) so a user who CHANGED their
+    // password can log in with the new one — and the old hardcoded default
+    // stops working the moment they change it. Previously this endpoint
+    // only compared against the hardcoded team-roles password, which kept
+    // stale defaults alive forever.
     if (email && password) {
-      member = TEAM_MEMBERS.find(
-        m => m.email?.toLowerCase() === email.toLowerCase() && m.password === password && m.isActive
+      const candidate = TEAM_MEMBERS.find(
+        m => m.email?.toLowerCase() === email.toLowerCase() && m.isActive
       );
+      if (candidate) {
+        const { credentialService } = await import('@/lib/credential-service');
+        const verified = await credentialService.verifyPassword(candidate.email, password);
+        if (verified) member = candidate;
+      }
     }
 
     if (!member) {
@@ -54,7 +65,10 @@ export async function POST(request: NextRequest) {
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
 
-    const mustChangePassword = member.mustChangePassword || false;
+    // Force a password change ONLY when the login used the hardcoded
+    // team-roles default (owner directive 2026-07-02). Changed passwords
+    // never trigger the gate.
+    const mustChangePassword = password === member.password || member.mustChangePassword || false;
 
     const response = NextResponse.json({
       success: true,
