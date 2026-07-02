@@ -801,7 +801,77 @@ const INVENTORY_APP_MODULES: TrainingModuleDef[] = [
 // Combined exports
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Interactive role lessons (2026-07-02) — rendered by the lesson player at
+// /portal/training/lesson/[slug] (content in lib/lessons/). These are the
+// "start here" modules per person, written against verified current system
+// behavior. Completion + quiz score record to Training_Progress.
+// ---------------------------------------------------------------------------
+
+const ROLE_LESSON_MODULES: TrainingModuleDef[] = [
+  {
+    id: 'lesson-rick-warehouse-2026',
+    title: 'Your Warehouse App — The Complete Guide',
+    description:
+      'START HERE. Logging in (new password), the 5-tap delivery flow, why Mark Loaded matters, photos, returns, and what to do when something looks wrong.',
+    role: 'driver',
+    estimatedMinutes: 20,
+    status: 'ready',
+    category: 'Start Here',
+    order: 0,
+    contentType: 'lesson',
+    contentUrl: '/portal/training/lesson/rick-warehouse',
+    icon: 'truck',
+  },
+  {
+    id: 'lesson-sara-office-2026',
+    title: 'Office Operations — Invoices, Email & Oversight',
+    description:
+      'START HERE. How invoices auto-create at verify-load, the rebuilt email pipeline and its logs, ticket oversight, credit memos, and password resets.',
+    role: 'admin',
+    additionalRoles: ['office_staff'],
+    estimatedMinutes: 25,
+    status: 'ready',
+    category: 'Start Here',
+    order: 0,
+    contentType: 'lesson',
+    contentUrl: '/portal/training/lesson/sara-office',
+    icon: 'clipboard',
+  },
+  {
+    id: 'lesson-john-pm-2026',
+    title: 'Project Manager — Material Orders Done Right',
+    description:
+      'START HERE. What happens when you submit an order, the R-##### and unit-conversion rules, cost visibility, and how changes/returns work.',
+    role: 'admin',
+    additionalRoles: ['office_staff', 'owner', 'manager'],
+    estimatedMinutes: 15,
+    status: 'ready',
+    category: 'Project Managers',
+    order: 1,
+    contentType: 'lesson',
+    contentUrl: '/portal/training/lesson/john-pm',
+    icon: 'package',
+  },
+  {
+    id: 'lesson-chris-owner-2026',
+    title: "Owner's Map — Your Screens, Your Numbers, Your Controls",
+    description:
+      'START HERE. The five screens that answer owner questions, the three leaderboards (and why they never combine), and the safety systems underneath.',
+    role: 'owner',
+    additionalRoles: ['manager'],
+    estimatedMinutes: 15,
+    status: 'ready',
+    category: 'Start Here',
+    order: 0,
+    contentType: 'lesson',
+    contentUrl: '/portal/training/lesson/chris-owner',
+    icon: 'chart',
+  },
+];
+
 export const ALL_TRAINING_MODULES: TrainingModuleDef[] = [
+  ...ROLE_LESSON_MODULES,
   ...SALES_REP_MODULES,
   ...ADMIN_MODULES,
   ...DRIVER_MODULES,
@@ -833,13 +903,24 @@ export function mapAuthRoleToTrainingRoles(authRole: string): TrainingRole[] {
     case 'owner':
       return ['owner'];
     case 'manager':
-      return ['owner']; // managers see owner/manager modules
+      return ['owner', 'manager']; // managers see owner/manager modules
+    // Real auth roles from types/roles.ts are 'sales' and 'office' — the
+    // legacy 'sales_rep'/'office_staff' cases are kept for callers that
+    // pass training-role strings directly. (Fixed 2026-07-02: 'office'
+    // previously fell through to the sales default.)
+    case 'sales':
     case 'sales_rep':
       return ['sales_rep'];
     case 'driver':
       return ['driver'];
+    case 'office':
     case 'office_staff':
-      return ['admin']; // office staff see admin modules
+      return ['admin', 'office_staff'];
+    case 'project_manager':
+    case 'pm':
+      // PMs see the admin-tagged operational modules (their PM lesson and
+      // the inventory PM module are tagged there).
+      return ['admin', 'office_staff'];
     default:
       return ['sales_rep']; // default fallback
   }
