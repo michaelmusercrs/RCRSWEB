@@ -140,7 +140,7 @@ class JobSyncService {
       'createdAt', 'updatedAt', 'syncedToJobNimbus', 'lastJobNimbusSync', 'notes'
     ]);
 
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const existingRow = rows.find(r => r.get('jobId') === data.jobId);
     const now = new Date().toISOString();
 
@@ -231,7 +231,7 @@ class JobSyncService {
 
   async getJob(jobId: string): Promise<JobRecord | null> {
     const sheet = await this.getOrCreateSheet('Jobs_Master', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('jobId') === jobId);
 
     if (!row) return null;
@@ -246,7 +246,7 @@ class JobSyncService {
     limit?: number;
   }): Promise<JobRecord[]> {
     const sheet = await this.getOrCreateSheet('Jobs_Master', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     let jobs = rows.map(r => this.rowToJobRecord(r));
 

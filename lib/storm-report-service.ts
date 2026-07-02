@@ -600,7 +600,7 @@ class StormReportService {
   async getReportById(reportId: string): Promise<StormReport | null> {
     try {
       const sheet = await this.getOrCreateSheet('Storm_Reports', STORM_REPORT_HEADERS);
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       const row = rows.find(r => r.get('reportId') === reportId);
 
       if (!row) return null;
@@ -615,7 +615,7 @@ class StormReportService {
   async getReportByAddress(address: string, zip: string): Promise<StormReport | null> {
     try {
       const sheet = await this.getOrCreateSheet('Storm_Reports', STORM_REPORT_HEADERS);
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
 
       // Find most recent report for this address/zip combo
       const matching = rows
@@ -637,7 +637,7 @@ class StormReportService {
   async getReportsByLeadId(leadId: string): Promise<StormReport[]> {
     try {
       const sheet = await this.getOrCreateSheet('Storm_Reports', STORM_REPORT_HEADERS);
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
 
       return rows
         .filter(r => r.get('leadId') === leadId)
@@ -652,7 +652,7 @@ class StormReportService {
   async getReportsByCustomerId(customerId: string): Promise<StormReport[]> {
     try {
       const sheet = await this.getOrCreateSheet('Storm_Reports', STORM_REPORT_HEADERS);
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
 
       return rows
         .filter(r => r.get('customerId') === customerId)
@@ -671,7 +671,7 @@ class StormReportService {
   async shareReport(reportId: string, sharedBy: string): Promise<boolean> {
     try {
       const sheet = await this.getOrCreateSheet('Storm_Reports', STORM_REPORT_HEADERS);
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       const row = rows.find(r => r.get('reportId') === reportId);
 
       if (!row) return false;
@@ -695,7 +695,7 @@ class StormReportService {
   async linkReportToLead(reportId: string, leadId: string, customerId?: string): Promise<boolean> {
     try {
       const sheet = await this.getOrCreateSheet('Storm_Reports', STORM_REPORT_HEADERS);
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       const row = rows.find(r => r.get('reportId') === reportId);
 
       if (!row) return false;
@@ -720,7 +720,7 @@ class StormReportService {
   async getSharedReportsForCustomer(customerId: string): Promise<StormReport[]> {
     try {
       const sheet = await this.getOrCreateSheet('Storm_Reports', STORM_REPORT_HEADERS);
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
 
       return rows
         .filter(r =>

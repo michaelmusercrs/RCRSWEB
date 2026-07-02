@@ -318,7 +318,7 @@ class MaterialOrderPipelineService {
       ]);
 
       if (result) {
-        const rows = await result.sheet.getRows();
+        const rows = await result.sheet.getRows({ limit: 100000 });
         for (const row of rows) {
           const orderId = row.get('orderId');
           if (!orderId) continue;
@@ -402,7 +402,7 @@ class MaterialOrderPipelineService {
         'pulledQty', 'verifiedQty', 'deliveredQty', 'returnedQty', 'holdId', 'notes'
       ]);
       if (!result) return [];
-      const rows = await result.sheet.getRows();
+      const rows = await result.sheet.getRows({ limit: 100000 });
       return rows
         .filter((r: GoogleSpreadsheetRow) => r.get('orderId') === orderId)
         .map((r: GoogleSpreadsheetRow) => ({
@@ -437,7 +437,7 @@ class MaterialOrderPipelineService {
         'gpsLatitude', 'gpsLongitude', 'gpsAddress', 'notes', 'metadata'
       ]);
       if (!result) return [];
-      const rows = await result.sheet.getRows();
+      const rows = await result.sheet.getRows({ limit: 100000 });
       return rows
         .filter((r: GoogleSpreadsheetRow) => r.get('orderId') === orderId)
         .map((r: GoogleSpreadsheetRow) => ({
@@ -469,7 +469,7 @@ class MaterialOrderPipelineService {
         'status', 'createdAt', 'sentAt', 'paidAt', 'paidAmount', 'notes'
       ]);
       if (!result) return;
-      const rows = await result.sheet.getRows();
+      const rows = await result.sheet.getRows({ limit: 100000 });
       this.invoices = rows.map((r: GoogleSpreadsheetRow) => ({
         invoiceId: r.get('invoiceId') || '',
         orderId: r.get('orderId') || '',
@@ -517,7 +517,7 @@ class MaterialOrderPipelineService {
     ]);
     if (!result) return;
     try {
-      const rows = await result.sheet.getRows();
+      const rows = await result.sheet.getRows({ limit: 100000 });
       const existing = rows.find((r: GoogleSpreadsheetRow) => r.get('orderId') === order.orderId);
       const data: Record<string, string> = {
         orderId: order.orderId,
@@ -646,7 +646,7 @@ class MaterialOrderPipelineService {
     ]);
     if (!result) return;
     try {
-      const rows = await result.sheet.getRows();
+      const rows = await result.sheet.getRows({ limit: 100000 });
       for (const item of items) {
         const existing = rows.find((r: GoogleSpreadsheetRow) =>
           r.get('orderId') === orderId && r.get('itemId') === item.itemId
@@ -703,7 +703,7 @@ class MaterialOrderPipelineService {
     ]);
     if (!result) return;
     try {
-      const rows = await result.sheet.getRows();
+      const rows = await result.sheet.getRows({ limit: 100000 });
       const existing = rows.find((r: GoogleSpreadsheetRow) => r.get('invoiceId') === invoice.invoiceId);
       const data: Record<string, string> = {
         invoiceId: invoice.invoiceId,

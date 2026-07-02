@@ -63,7 +63,7 @@ async function resolveToken(token: string): Promise<{
     const accessSheet = doc.sheetsByTitle['Customer_Portal_Access'];
     if (!accessSheet) return { valid: false };
 
-    const accessRows = await accessSheet.getRows();
+    const accessRows = await accessSheet.getRows({ limit: 100000 });
     const row = accessRows.find(r => r.get('accessToken') === token);
 
     if (row && row.get('isActive')?.toString().toLowerCase() === 'true') {
@@ -107,7 +107,7 @@ export async function GET(
 
       const doc = resolved.doc || await getDoc();
       const msgSheet = await getOrCreateSheet(doc, 'Customer_Messages', MSG_HEADERS);
-      const msgRows = await msgSheet.getRows();
+      const msgRows = await msgSheet.getRows({ limit: 100000 });
 
       const messages = msgRows
         .filter(r => r.get('customerId') === resolved.customerId)

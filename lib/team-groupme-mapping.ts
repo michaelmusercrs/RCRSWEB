@@ -81,7 +81,7 @@ export async function listMappings(
   doc: GoogleSpreadsheet,
 ): Promise<TeamGroupMeMapping[]> {
   const sheet = await ensureTeamGroupMeMappingSheet(doc);
-  const rows = await sheet.getRows();
+  const rows = await sheet.getRows({ limit: 100000 });
   const out: TeamGroupMeMapping[] = [];
   for (const row of rows) {
     const slug = (row.get('slug') || '').trim().toLowerCase();
@@ -125,7 +125,7 @@ export async function upsertMapping(
   entry: Omit<TeamGroupMeMapping, 'mappedAt'>,
 ): Promise<{ updated: boolean; skipped?: 'manual-override' }> {
   const sheet = await ensureTeamGroupMeMappingSheet(doc);
-  const rows = await sheet.getRows();
+  const rows = await sheet.getRows({ limit: 100000 });
   const targetSlug = entry.slug.trim().toLowerCase();
   const existing = rows.find(r => (r.get('slug') || '').trim().toLowerCase() === targetSlug);
 

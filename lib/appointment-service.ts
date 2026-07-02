@@ -363,7 +363,7 @@ class AppointmentService {
   }): Promise<Appointment[]> {
     try {
       const sheet = await this.getOrCreateSheet();
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
 
       let appointments: Appointment[] = rows.map(row => ({
         appointmentId: row.get('appointmentId') || '',
@@ -448,7 +448,7 @@ class AppointmentService {
   async getAppointment(appointmentId: string): Promise<Appointment | null> {
     try {
       const sheet = await this.getOrCreateSheet();
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       const row = rows.find(r => r.get('appointmentId') === appointmentId);
       if (!row) return null;
 
@@ -504,7 +504,7 @@ class AppointmentService {
   ): Promise<Appointment | null> {
     try {
       const sheet = await this.getOrCreateSheet();
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       const row = rows.find(r => r.get('appointmentId') === appointmentId);
       if (!row) return null;
 

@@ -334,7 +334,7 @@ class JNResponseMiner {
     const sheet = await this.getOrCreateSheet('JN_Response_Times', RESPONSE_TIMES_HEADERS);
 
     // Clear existing rows
-    const existingRows = await sheet.getRows();
+    const existingRows = await sheet.getRows({ limit: 100000 });
     if (existingRows.length > 0) {
       // Delete in reverse order to avoid index shifting
       for (let i = existingRows.length - 1; i >= 0; i--) {
@@ -364,7 +364,7 @@ class JNResponseMiner {
   async getStoredResponseTimes(): Promise<RepResponseStats[]> {
     try {
       const sheet = await this.getOrCreateSheet('JN_Response_Times', RESPONSE_TIMES_HEADERS);
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
 
       return rows.map(row => ({
         repSlug: row.get('repSlug') || '',

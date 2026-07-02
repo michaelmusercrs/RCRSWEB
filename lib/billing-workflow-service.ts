@@ -439,7 +439,7 @@ class BillingWorkflowService {
     reason?: string
   ): Promise<BillingRecord | null> {
     const sheet = await this.getOrCreateSheet('Billing_Records', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('billingId') === billingId);
 
     if (!row) return null;
@@ -515,7 +515,7 @@ class BillingWorkflowService {
     unbilledOnly?: boolean;
   }): Promise<BillingRecord[]> {
     const sheet = await this.getOrCreateSheet('Billing_Records', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     let records = rows.map(row => this.rowToBillingRecord(row));
 
@@ -674,7 +674,7 @@ class BillingWorkflowService {
       });
 
       // Update purchase with billing record link
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       const row = rows.find(r => r.get('purchaseId') === purchaseId);
       if (row) {
         row.set('billingRecordId', billingRecord.billingId);
@@ -704,7 +704,7 @@ class BillingWorkflowService {
     unbilledOnly?: boolean;
   }): Promise<VendorPurchase[]> {
     const sheet = await this.getOrCreateSheet('Vendor_Purchases', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     let purchases = rows.map(row => ({
       purchaseId: row.get('purchaseId'),
@@ -812,7 +812,7 @@ class BillingWorkflowService {
     alertType?: BillingAlert['alertType'];
   }): Promise<BillingAlert[]> {
     const sheet = await this.getOrCreateSheet('Billing_Alerts', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     let alerts: BillingAlert[] = rows.map(row => ({
       alertId: row.get('alertId'),
@@ -861,7 +861,7 @@ class BillingWorkflowService {
     resolution: string
   ): Promise<BillingAlert | null> {
     const sheet = await this.getOrCreateSheet('Billing_Alerts', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('alertId') === alertId);
 
     if (!row) return null;
@@ -1154,7 +1154,7 @@ class BillingWorkflowService {
 
   async getOfficeNotifications(unreadOnly = true): Promise<OfficeNotification[]> {
     const sheet = await this.getOrCreateSheet('Office_Notifications', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     let notifications = rows.map(row => ({
       notificationId: row.get('notificationId'),

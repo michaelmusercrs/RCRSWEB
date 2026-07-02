@@ -114,7 +114,7 @@ export async function withCronLock<T>(
 
   let existing;
   try {
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     existing = rows.find((r) => r.get('key') === key);
   } catch (err) {
     // Same best-effort rule: a read failure must not abort the cron.
@@ -189,7 +189,7 @@ async function updateLockRow(
 ): Promise<void> {
   if (!sheet) return;
   try {
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find((r) => r.get('key') === key);
     if (!row) return;
     row.set('status', status);
@@ -207,7 +207,7 @@ async function updateLockRow(
 export async function getCronLockStates(): Promise<LockState[]> {
   const sheet = await getSheet();
   if (!sheet) return [];
-  const rows = await sheet.getRows();
+  const rows = await sheet.getRows({ limit: 100000 });
   return rows
     .filter((r) => (r.get('key') || '').startsWith('cron-lock:'))
     .map((r) => ({

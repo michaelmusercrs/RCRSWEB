@@ -195,7 +195,7 @@ export async function GET(request: NextRequest) {
 
         const msgSheet = doc.sheetsByTitle['Customer_Messages'];
         if (msgSheet) {
-          const rows = await msgSheet.getRows();
+          const rows = await msgSheet.getRows({ limit: 100000 });
           const customerRows = rows.filter(r => r.get('customerId') === customerId);
 
           for (const row of customerRows) {

@@ -538,7 +538,7 @@ export async function saveBreakdown(
         name: string,
         headers: string[]
       ) => Promise<{
-        getRows: () => Promise<Array<{ get: (k: string) => string; set: (k: string, v: string) => void; save: () => Promise<void> }>>;
+        getRows: (opts?: { limit?: number }) => Promise<Array<{ get: (k: string) => string; set: (k: string, v: string) => void; save: () => Promise<void> }>>;
         addRow: (row: Record<string, string>) => Promise<void>;
       }>;
     };
@@ -552,7 +552,7 @@ export async function saveBreakdown(
     const record = toSheetRecord(breakdown, totals);
 
     // Update-or-insert by breakdownId
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const existing = rows.find(r => r.get('breakdownId') === breakdown.breakdownId);
     if (existing) {
       for (const [k, v] of Object.entries(record)) {
@@ -605,7 +605,7 @@ export async function listBreakdowns(filter?: {
     const sheetsService = googleSheetsService as unknown as {
       init: () => Promise<boolean>;
       getOrCreateSheet: (name: string, headers: string[]) => Promise<{
-        getRows: () => Promise<Array<{ get: (k: string) => string }>>;
+        getRows: (opts?: { limit?: number }) => Promise<Array<{ get: (k: string) => string }>>;
       }>;
     };
     const ready = await sheetsService.init();
@@ -615,7 +615,7 @@ export async function listBreakdowns(filter?: {
       CUSTOMER_BREAKDOWNS_TAB,
       CUSTOMER_BREAKDOWNS_HEADERS
     );
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     const records: CustomerBreakdownRecord[] = rows.map(r => ({
       breakdownId: r.get('breakdownId') || '',

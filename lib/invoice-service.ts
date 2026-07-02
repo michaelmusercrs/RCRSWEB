@@ -370,7 +370,7 @@ class InvoiceService {
     if (!sheet) return [];
 
     try {
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       return rows.map((row) => rowToInvoice(row as unknown as InvoiceRowLike)).filter((inv: Invoice) => inv.invoiceId);
     } catch (error) {
       console.error('[InvoiceService] Error reading invoices from Sheets:', error);
@@ -386,7 +386,7 @@ class InvoiceService {
     if (!sheet) return null;
 
     try {
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       return rows.find((row) => row.get('invoiceId') === invoiceId) || null;
     } catch (error) {
       console.error('[InvoiceService] Error finding row:', error);

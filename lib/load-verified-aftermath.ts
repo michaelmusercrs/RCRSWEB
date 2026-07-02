@@ -92,7 +92,7 @@ async function writeInvoiceAndBreakdown(
     return { invoiceId: ticket.ticketId, invoiceCreated: false, breakdownCreated: false, error: 'Invoices tab not found' };
   }
 
-  const invoiceRows = await invoicesSheet.getRows();
+  const invoiceRows = await invoicesSheet.getRows({ limit: 100000 });
 
   // Idempotency: an invoice already exists for this ticket → reuse its id.
   const existing = invoiceRows.find(r => r.get('ticketId') === ticket.ticketId);
@@ -144,7 +144,7 @@ async function writeInvoiceAndBreakdown(
   // Breakdown row if the job has none.
   let breakdownCreated = false;
   if (breakdownsSheet && (ticket.jobId || ticket.jobName)) {
-    const breakdownRows = await breakdownsSheet.getRows();
+    const breakdownRows = await breakdownsSheet.getRows({ limit: 100000 });
     const hasBd = breakdownRows.some(
       r =>
         (ticket.jobId && r.get('jobId') === ticket.jobId) ||
@@ -207,7 +207,7 @@ async function deductFromStock(
       error: 'Inventory_Products tab not found',
     };
   }
-  const rows = await invProdSheet.getRows();
+  const rows = await invProdSheet.getRows({ limit: 100000 });
   const byName = new Map(rows.map(r => [(r.get('productName') || '').toLowerCase().trim(), r]));
   const byId = new Map(rows.map(r => [r.get('productId'), r]));
 

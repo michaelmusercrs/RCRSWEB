@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
   const statusFilter = searchParams.get('status');
   const sheet = await getSheet();
   if (!sheet) return NextResponse.json({ rows: [] });
-  const rows = await sheet.getRows();
+  const rows = await sheet.getRows({ limit: 100000 });
   const out = rows
     .map(r => {
       const obj: Record<string, string> = {};

@@ -618,7 +618,7 @@ export async function readMarketingIntelRows(): Promise<MarketingIntelRow[]> {
     await doc.loadInfo();
     const sheet = doc.sheetsByTitle[MARKETING_INTEL_TAB];
     if (!sheet) return [];
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     return rows.map((r) => ({
       timestamp: String(r.get('timestamp') ?? ''),
       source: String(r.get('source') ?? ''),

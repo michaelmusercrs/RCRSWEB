@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ portals: [] });
     }
 
-    const rows = await accessSheet.getRows();
+    const rows = await accessSheet.getRows({ limit: 100000 });
     const portals = rows.map(r => {
       // Parse settings from JSON or use defaults
       let settings = DEFAULT_PORTAL_SETTINGS;
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
     let salesRepInfo = { id: '', slug: salesRepSlug || 'chris-muse', name: 'River City Roofing' };
     const teamSheet = doc.sheetsByTitle['team-members-import'];
     if (teamSheet && salesRepSlug) {
-      const teamRows = await teamSheet.getRows();
+      const teamRows = await teamSheet.getRows({ limit: 100000 });
       const repRow = teamRows.find(r => r.get('slug') === salesRepSlug);
       if (repRow) {
         salesRepInfo = {
@@ -226,7 +226,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Portal not found' }, { status: 404 });
     }
 
-    const rows = await accessSheet.getRows();
+    const rows = await accessSheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('accessToken') === accessToken);
 
     if (!row) {
@@ -301,7 +301,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Portal not found' }, { status: 404 });
     }
 
-    const rows = await accessSheet.getRows();
+    const rows = await accessSheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('accessToken') === accessToken);
 
     if (!row) {

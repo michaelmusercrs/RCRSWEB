@@ -101,7 +101,7 @@ async function getCronStatuses(doc: GoogleSpreadsheet): Promise<CronStatus[]> {
     return knownCrons.map(name => ({ name, lastRunAt: null, status: 'unknown' as const }));
   }
 
-  const rows = await sheet.getRows();
+  const rows = await sheet.getRows({ limit: 100000 });
   const rowMap = new Map<string, { lastRunAt: string; status: string; durationMs: string; details: string }>();
   for (const row of rows) {
     const cronName = row.get('cronName');

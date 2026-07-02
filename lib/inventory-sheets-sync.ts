@@ -70,7 +70,7 @@ class InventorySheetsSync {
       }
 
       // Clear existing data and add fresh
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       for (const row of rows) {
         await row.delete();
       }
@@ -108,7 +108,7 @@ class InventorySheetsSync {
       const sheet = this.doc.sheetsByTitle['inventory'];
       if (!sheet) return inventoryProducts;
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       return rows.map(row => ({
         productId: row.get('productId'),
         productName: row.get('productName'),
@@ -152,7 +152,7 @@ class InventorySheetsSync {
       }
 
       // Clear and resync
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       for (const row of rows) {
         await row.delete();
       }
@@ -187,7 +187,7 @@ class InventorySheetsSync {
       const sheet = this.doc.sheetsByTitle['transactions'];
       if (!sheet) return inventoryTransactions;
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       return rows.map(row => ({
         inventoryId: row.get('inventoryId'),
         itemId: row.get('itemId'),
@@ -232,7 +232,7 @@ class InventorySheetsSync {
       }
 
       // Clear and resync
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       for (const row of rows) {
         await row.delete();
       }
@@ -290,7 +290,7 @@ class InventorySheetsSync {
       }
 
       // Clear and resync
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       for (const row of rows) {
         await row.delete();
       }
@@ -323,7 +323,7 @@ class InventorySheetsSync {
       const sheet = this.doc.sheetsByTitle['employees'];
       if (!sheet) return TEAM_MEMBERS;
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       return rows.map(row => ({
         id: row.get('id'),
         name: row.get('name'),
@@ -429,7 +429,7 @@ class InventorySheetsSync {
       const sheet = this.doc.sheetsByTitle['inventory'];
       if (!sheet) return false;
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       const existingRow = rows.find(row => row.get('productId') === product.productId);
 
       if (existingRow) {

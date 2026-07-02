@@ -493,7 +493,7 @@ class OrderWorkflowService {
 
   async getOrderById(orderId: string): Promise<MaterialOrderFull | null> {
     const sheet = await this.getOrCreateSheet(SHEETS.MATERIAL_ORDERS, this.getOrderHeaders());
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('orderId') === orderId);
     if (!row) return null;
 
@@ -503,7 +503,7 @@ class OrderWorkflowService {
 
   private async getOrderItems(orderId: string): Promise<OrderItem[]> {
     const sheet = await this.getOrCreateSheet(SHEETS.ORDER_ITEMS, this.getOrderItemHeaders());
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     return rows
       .filter(r => r.get('orderId') === orderId)
@@ -594,7 +594,7 @@ class OrderWorkflowService {
     limit?: number;
   }): Promise<MaterialOrderFull[]> {
     const sheet = await this.getOrCreateSheet(SHEETS.MATERIAL_ORDERS, this.getOrderHeaders());
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     let orders: MaterialOrderFull[] = [];
 
@@ -640,7 +640,7 @@ class OrderWorkflowService {
 
   private async getOrderRow(orderId: string): Promise<GoogleSpreadsheetRow | null> {
     const sheet = await this.getOrCreateSheet(SHEETS.MATERIAL_ORDERS, this.getOrderHeaders());
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     return rows.find(r => r.get('orderId') === orderId) || null;
   }
 
@@ -736,7 +736,7 @@ class OrderWorkflowService {
 
   async getLoadingManifest(orderId: string): Promise<LoadingManifest | null> {
     const sheet = await this.getOrCreateSheet(SHEETS.LOADING_MANIFEST, this.getManifestHeaders());
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('orderId') === orderId);
     if (!row) return null;
 
@@ -762,7 +762,7 @@ class OrderWorkflowService {
 
   async updateManifestItem(manifestId: string, productId: string, pulledBy: string): Promise<void> {
     const sheet = await this.getOrCreateSheet(SHEETS.LOADING_MANIFEST, this.getManifestHeaders());
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('manifestId') === manifestId);
     if (!row) return;
 
@@ -793,7 +793,7 @@ class OrderWorkflowService {
 
   async verifyLoad(manifestId: string, verifiedBy: string): Promise<void> {
     const sheet = await this.getOrCreateSheet(SHEETS.LOADING_MANIFEST, this.getManifestHeaders());
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('manifestId') === manifestId);
     if (!row) return;
 
@@ -868,7 +868,7 @@ class OrderWorkflowService {
 
   async getInvoice(invoiceId: string): Promise<OrderInvoice | null> {
     const sheet = await this.getOrCreateSheet(SHEETS.ORDER_INVOICES, this.getInvoiceHeaders());
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('invoiceId') === invoiceId);
     if (!row) return null;
 
@@ -907,7 +907,7 @@ class OrderWorkflowService {
   async ensureCustomerBreakdownSheet(order: MaterialOrderFull): Promise<CustomerBreakdownSheet> {
     const sheet = await this.getOrCreateSheet(SHEETS.CUSTOMER_BREAKDOWN, this.getBreakdownHeaders());
 
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     let existingRow = rows.find(r =>
       r.get('customerId') === order.customerId && r.get('jobId') === order.jobId
     );
@@ -1005,7 +1005,7 @@ class OrderWorkflowService {
 
   async attachInvoiceToBreakdown(customerId: string, invoiceId: string): Promise<void> {
     const sheet = await this.getOrCreateSheet(SHEETS.CUSTOMER_BREAKDOWN, this.getBreakdownHeaders());
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('customerId') === customerId);
     if (!row) return;
 
@@ -1073,7 +1073,7 @@ class OrderWorkflowService {
     limit?: number;
   }): Promise<ReturnOrder[]> {
     const sheet = await this.getOrCreateSheet(SHEETS.RETURNS, this.getReturnHeaders());
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     let returns = rows.map(r => {
       let items = [];
@@ -1233,7 +1233,7 @@ class OrderWorkflowService {
 
   async getRoute(routeId: string): Promise<DeliveryRoute | null> {
     const sheet = await this.getOrCreateSheet(SHEETS.DELIVERY_ROUTES, this.getRouteHeaders());
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('routeId') === routeId);
     if (!row) return null;
 
@@ -1263,7 +1263,7 @@ class OrderWorkflowService {
 
   async getDriverRoutes(driverId: string, date?: string): Promise<DeliveryRoute[]> {
     const sheet = await this.getOrCreateSheet(SHEETS.DELIVERY_ROUTES, this.getRouteHeaders());
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     let routes = rows
       .filter(r => r.get('driverId') === driverId)

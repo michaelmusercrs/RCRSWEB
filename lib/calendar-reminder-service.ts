@@ -495,7 +495,7 @@ class CalendarReminderService {
         'Calendar_Reminders',
         this.reminderHeaders
       );
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       const keys = new Set<string>();
 
       for (const row of rows) {
@@ -517,7 +517,7 @@ class CalendarReminderService {
         'Calendar_Reminders',
         this.reminderHeaders
       );
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
 
       return rows
         .map((row) => ({

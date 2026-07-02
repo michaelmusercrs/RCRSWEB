@@ -534,7 +534,7 @@ class CustomerPortalService {
         return this.getGlobalSettings();
       }
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       if (rows.length > 0) {
         const row = rows[0];
         const loaded: Record<string, boolean> = {};
@@ -575,7 +575,7 @@ class CustomerPortalService {
         sheet = await doc.addSheet({ title: 'Portal_Global_Settings', headerValues: headers });
       }
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       const rowData: Record<string, string> = {};
       for (const key of PORTAL_SETTING_KEYS) {
         rowData[key] = String(settings[key]);
@@ -610,7 +610,7 @@ class CustomerPortalService {
       const sheet = doc.sheetsByTitle['Portal_Rep_Settings'];
       if (!sheet) return null;
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       const row = rows.find((r: SheetRow) => r.get('repSlug') === repSlug);
       if (!row) return null;
 
@@ -642,7 +642,7 @@ class CustomerPortalService {
       const sheet = doc.sheetsByTitle['Portal_Rep_Settings'];
       if (!sheet) return [];
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       return rows.map((row: SheetRow) => {
         const result: Record<string, string | boolean | null> = {
           repSlug: row.get('repSlug') || '',
@@ -681,7 +681,7 @@ class CustomerPortalService {
         sheet = await doc.addSheet({ title: 'Portal_Rep_Settings', headerValues: headers });
       }
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       const existingRow = rows.find((r: SheetRow) => r.get('repSlug') === repSlug);
 
       const serializeNullable = (val: boolean | null | undefined): string => {
@@ -781,7 +781,7 @@ class CustomerPortalService {
       const sheet = doc.sheetsByTitle['Portal_Customer_Settings'];
       if (!sheet) return null;
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       const row = rows.find((r: SheetRow) => r.get('customerId') === customerId);
       if (!row) return null;
 
@@ -821,7 +821,7 @@ class CustomerPortalService {
         sheet = await doc.addSheet({ title: 'Portal_Customer_Settings', headerValues: headers });
       }
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       const existingRow = rows.find((r: SheetRow) => r.get('customerId') === customerId);
 
       const serializeNullable = (val: boolean | null | undefined): string => {
@@ -865,7 +865,7 @@ class CustomerPortalService {
       const sheet = doc.sheetsByTitle['Portal_Customer_Settings'];
       if (!sheet) return [];
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       return rows
         .filter((r: SheetRow) => r.get('repSlug') === repSlug)
         .map((row: SheetRow) => {

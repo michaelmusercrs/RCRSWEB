@@ -63,7 +63,7 @@ async function resolveToken(token: string): Promise<{
     const accessSheet = doc.sheetsByTitle['Customer_Portal_Access'];
     if (!accessSheet) return { valid: false };
 
-    const accessRows = await accessSheet.getRows();
+    const accessRows = await accessSheet.getRows({ limit: 100000 });
     const accessRow = accessRows.find(r => r.get('accessToken') === token);
 
     if (accessRow && accessRow.get('isActive') === 'true') {
@@ -238,7 +238,7 @@ export async function GET(
       return NextResponse.json({ documents: [] });
     }
 
-    const docRows = await docSheet.getRows();
+    const docRows = await docSheet.getRows({ limit: 100000 });
     const documents = docRows
       .filter(r => r.get('customerId') === customerId && r.get('uploadSource') === 'customer_portal')
       .map(r => ({

@@ -130,7 +130,7 @@ class CMSSheetsService {
       'id', 'slug', 'title', 'date', 'author', 'image', 'keywords', 'excerpt', 'content', 'published'
     ]);
 
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     return rows.map(row => ({
       id: row.get('id') || '',
       slug: row.get('slug') || '',
@@ -176,7 +176,7 @@ class CMSSheetsService {
 
   async updateBlogPost(slug: string, updates: Partial<BlogPost>): Promise<BlogPost | null> {
     const sheet = await this.getOrCreateSheet(SHEETS.BLOG_POSTS, []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('slug') === slug);
 
     if (!row) return null;
@@ -207,7 +207,7 @@ class CMSSheetsService {
 
   async deleteBlogPost(slug: string): Promise<boolean> {
     const sheet = await this.getOrCreateSheet(SHEETS.BLOG_POSTS, []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('slug') === slug);
 
     if (row) {
@@ -228,7 +228,7 @@ class CMSSheetsService {
       'truckImage', 'facebook', 'instagram', 'x', 'tiktok', 'linkedin'
     ]);
 
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     return rows.map(row => ({
       slug: row.get('slug') || '',
       name: row.get('name') || '',
@@ -293,7 +293,7 @@ class CMSSheetsService {
 
   async updateTeamMember(slug: string, updates: Partial<TeamMember>): Promise<TeamMember | null> {
     const sheet = await this.getOrCreateSheet(SHEETS.TEAM_MEMBERS, []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('slug') === slug);
 
     if (!row) return null;
@@ -332,7 +332,7 @@ class CMSSheetsService {
 
   async deleteTeamMember(slug: string): Promise<boolean> {
     const sheet = await this.getOrCreateSheet(SHEETS.TEAM_MEMBERS, []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('slug') === slug);
 
     if (row) {
@@ -351,7 +351,7 @@ class CMSSheetsService {
       'id', 'filename', 'path', 'category', 'uploadedBy', 'uploadedAt', 'altText'
     ]);
 
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     return rows.map(row => ({
       id: row.get('id') || '',
       filename: row.get('filename') || '',
@@ -380,7 +380,7 @@ class CMSSheetsService {
 
   async deleteImage(id: string): Promise<boolean> {
     const sheet = await this.getOrCreateSheet(SHEETS.IMAGES, []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('id') === id);
 
     if (row) {
@@ -400,7 +400,7 @@ class CMSSheetsService {
     ]);
 
     // Check if already has data
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     if (rows.length > 0) {
       return;
     }
@@ -432,7 +432,7 @@ class CMSSheetsService {
     ]);
 
     // Check if already has data
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     if (rows.length > 0) {
       return;
     }
@@ -471,7 +471,7 @@ class CMSSheetsService {
       'id', 'path', 'timestamp', 'referrer'
     ]);
 
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     return rows.map(row => ({
       id: row.get('id') || '',
       path: row.get('path') || '',
@@ -495,7 +495,7 @@ class CMSSheetsService {
     await sheet.addRow(newView as unknown as Record<string, string>);
 
     // Keep only last 10,000 views to prevent sheet from growing too large
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     if (rows.length > 10000) {
       const toDelete = rows.slice(0, rows.length - 10000);
       for (const row of toDelete) {
@@ -557,7 +557,7 @@ class CMSSheetsService {
       'id', 'slug', 'teamMemberName', 'timestamp', 'source'
     ]);
 
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     return rows.map(row => ({
       id: row.get('id') || '',
       slug: row.get('slug') || '',
@@ -583,7 +583,7 @@ class CMSSheetsService {
     await sheet.addRow(newView as unknown as Record<string, string>);
 
     // Keep only last 10,000 views
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     if (rows.length > 10000) {
       const toDelete = rows.slice(0, rows.length - 10000);
       for (const row of toDelete) {

@@ -122,7 +122,7 @@ async function backupSheet(
     const safeName = tabName.replace(/[^a-zA-Z0-9_.-]/g, '_');
 
     try {
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       const headers = sheet.headerValues || [];
 
       // Convert rows to plain objects

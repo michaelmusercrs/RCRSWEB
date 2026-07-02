@@ -66,7 +66,7 @@ export async function recordCronHeartbeat(
       }
     }
 
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const existing = rows.find(r => r.get('cronName') === cronName);
 
     const now = new Date().toISOString();

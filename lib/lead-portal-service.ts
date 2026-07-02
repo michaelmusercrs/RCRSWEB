@@ -325,7 +325,7 @@ class LeadPortalService {
   // Get lead by lead ID
   async getLeadById(leadId: string): Promise<LeadRecord | null> {
     const sheet = await this.getOrCreateSheet('Customer Leads', LEAD_HEADERS);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('leadId') === leadId);
 
     if (!row) return null;
@@ -335,7 +335,7 @@ class LeadPortalService {
 
   async getLeadByToken(accessToken: string): Promise<LeadRecord | null> {
     const sheet = await this.getOrCreateSheet('Customer Leads', LEAD_HEADERS);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('accessToken') === accessToken);
 
     if (!row) return null;
@@ -346,7 +346,7 @@ class LeadPortalService {
   // Get lead by short code
   async getLeadByShortCode(shortCode: string): Promise<LeadRecord | null> {
     const sheet = await this.getOrCreateSheet('Customer Leads', LEAD_HEADERS);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('shortCode') === shortCode);
 
     if (!row) return null;
@@ -357,7 +357,7 @@ class LeadPortalService {
   // Get lead by customer ID
   async getLeadByCustomerId(customerId: string): Promise<LeadRecord | null> {
     const sheet = await this.getOrCreateSheet('Customer Leads', LEAD_HEADERS);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('customerId') === customerId);
 
     if (!row) return null;
@@ -368,7 +368,7 @@ class LeadPortalService {
   // Get lead by email
   async getLeadByEmail(email: string): Promise<LeadRecord | null> {
     const sheet = await this.getOrCreateSheet('Customer Leads', LEAD_HEADERS);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r =>
       r.get('customerEmail')?.toLowerCase() === email.toLowerCase()
     );
@@ -381,7 +381,7 @@ class LeadPortalService {
   // Get lead by address (normalized comparison)
   async getLeadByAddress(address: string): Promise<LeadRecord | null> {
     const sheet = await this.getOrCreateSheet('Customer Leads', LEAD_HEADERS);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     const normalize = (addr: string) =>
       (addr || '').toLowerCase().replace(/[.,#]/g, '').replace(/\s+/g, ' ').trim();
@@ -401,7 +401,7 @@ class LeadPortalService {
   // Get lead by name + address combination
   async getLeadByNameAndAddress(name: string, address: string): Promise<LeadRecord | null> {
     const sheet = await this.getOrCreateSheet('Customer Leads', LEAD_HEADERS);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     const normalize = (str: string) =>
       (str || '').toLowerCase().replace(/[.,#]/g, '').replace(/\s+/g, ' ').trim();
@@ -436,7 +436,7 @@ class LeadPortalService {
     // Check phone
     if (params.phone) {
       const sheet = await this.getOrCreateSheet('Customer Leads', LEAD_HEADERS);
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       const normalizePhone = (ph: string) => (ph || '').replace(/\D/g, '');
       const inputPhone = normalizePhone(params.phone);
       if (inputPhone.length >= 10) {
@@ -502,7 +502,7 @@ class LeadPortalService {
   // Get leads by sales rep
   async getLeadsBySalesRep(salesRepSlug: string, limit?: number): Promise<LeadRecord[]> {
     const sheet = await this.getOrCreateSheet('Customer Leads', LEAD_HEADERS);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     let leads = rows
       .filter(r => r.get('salesRepSlug') === salesRepSlug)
@@ -526,7 +526,7 @@ class LeadPortalService {
     limit?: number;
   }): Promise<LeadRecord[]> {
     const sheet = await this.getOrCreateSheet('Customer Leads', LEAD_HEADERS);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     let leads = rows.map(r => this.rowToLead(r));
 
@@ -560,7 +560,7 @@ class LeadPortalService {
   // Update lead's JobNimbus contact ID
   async updateLeadJNContactId(leadId: string, jnContactId: string): Promise<boolean> {
     const sheet = await this.getOrCreateSheet('Customer Leads', LEAD_HEADERS);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('leadId') === leadId);
 
     if (!row) return false;
@@ -585,7 +585,7 @@ class LeadPortalService {
     performedBy?: string
   ): Promise<boolean> {
     const sheet = await this.getOrCreateSheet('Customer Leads', LEAD_HEADERS);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('leadId') === leadId);
 
     if (!row) return false;
@@ -609,7 +609,7 @@ class LeadPortalService {
   // Record portal view
   async recordPortalView(accessToken: string): Promise<boolean> {
     const sheet = await this.getOrCreateSheet('Customer Leads', LEAD_HEADERS);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('accessToken') === accessToken);
 
     if (!row) return false;
@@ -634,7 +634,7 @@ class LeadPortalService {
     type: 'intro_email' | 'portal_email' | 'intro_sms' | 'portal_sms'
   ): Promise<boolean> {
     const sheet = await this.getOrCreateSheet('Customer Leads', LEAD_HEADERS);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('leadId') === leadId);
 
     if (!row) return false;
@@ -797,7 +797,7 @@ class LeadPortalService {
 
   async getServiceRequestsByCustomer(customerId: string): Promise<ServiceRequestRecord[]> {
     const sheet = await this.getOrCreateSheet('CustomerServiceRequests', SERVICE_REQUEST_HEADERS);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     return rows
       .filter(r => r.get('customerId') === customerId)
       .map(r => this.rowToServiceRequest(r))
@@ -834,7 +834,7 @@ class LeadPortalService {
 
   async getNotificationPrefs(customerId: string): Promise<NotificationPrefsRecord | null> {
     const sheet = await this.getOrCreateSheet('CustomerNotificationPrefs', NOTIFICATION_PREFS_HEADERS);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('customerId') === customerId);
     if (!row) return null;
     return {
@@ -849,7 +849,7 @@ class LeadPortalService {
 
   async upsertNotificationPrefs(prefs: NotificationPrefsRecord): Promise<void> {
     const sheet = await this.getOrCreateSheet('CustomerNotificationPrefs', NOTIFICATION_PREFS_HEADERS);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const existing = rows.find(r => r.get('customerId') === prefs.customerId);
     const payload = {
       customerId: prefs.customerId,
@@ -882,7 +882,7 @@ class LeadPortalService {
 
   async getWarrantyClaimsByCustomer(customerId: string): Promise<WarrantyClaimRecord[]> {
     const sheet = await this.getOrCreateSheet('CustomerWarrantyClaims', WARRANTY_CLAIM_HEADERS);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     return rows
       .filter(r => r.get('customerId') === customerId)
       .map(r => this.rowToWarrantyClaim(r))

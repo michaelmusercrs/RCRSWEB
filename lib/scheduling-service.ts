@@ -283,7 +283,7 @@ class SchedulingService {
     notes?: string
   ): Promise<ScheduledEvent | null> {
     const sheet = await this.getOrCreateSheet('Calendar_Events', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('eventId') === eventId);
 
     if (!row) return null;
@@ -336,7 +336,7 @@ class SchedulingService {
 
   async getEventsForDate(date: string, driverId?: string): Promise<ScheduledEvent[]> {
     const sheet = await this.getOrCreateSheet('Calendar_Events', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     let events = rows
       .filter(r => r.get('scheduledDate') === date)
@@ -354,7 +354,7 @@ class SchedulingService {
 
   async getEventsForWeek(startDate: string, endDate: string, driverId?: string): Promise<ScheduledEvent[]> {
     const sheet = await this.getOrCreateSheet('Calendar_Events', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     let events = rows
       .filter(r => {
@@ -608,7 +608,7 @@ class SchedulingService {
     gpsLongitude?: number;
   }): Promise<void> {
     const sheet = await this.getOrCreateSheet('Calendar_Events', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('eventId') === eventId);
 
     if (row) {
@@ -629,7 +629,7 @@ class SchedulingService {
       'startLocation', 'endLocation', 'status', 'startedAt', 'completedAt'
     ]);
 
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const existingRow = rows.find(r => r.get('routeId') === route.routeId);
 
     const rowData = {
@@ -662,7 +662,7 @@ class SchedulingService {
 
   async getDailyRoute(driverId: string, date: string): Promise<DailyRoute | null> {
     const sheet = await this.getOrCreateSheet('Daily_Routes', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const routeId = `RTE-${driverId}-${date}`;
     const row = rows.find(r => r.get('routeId') === routeId);
 
@@ -739,7 +739,7 @@ class SchedulingService {
 
   async getGPSActivityForTicket(ticketId: string): Promise<GPSActivityLog[]> {
     const sheet = await this.getOrCreateSheet('GPS_Activity_Log', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     return rows
       .filter(r => r.get('ticketId') === ticketId)
@@ -768,7 +768,7 @@ class SchedulingService {
     const endDate = `${year}-${(month).toString().padStart(2, '0')}-31`;
 
     const sheet = await this.getOrCreateSheet('Calendar_Events', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     const calendar = new Map<string, ScheduledEvent[]>();
 

@@ -503,7 +503,7 @@ class UnifiedInventoryService {
       ];
       const result = await getOrCreateSheet(SHEET_TABS.INVENTORY, INVENTORY_HEADERS);
       if (result) {
-        const rows = await result.sheet.getRows();
+        const rows = await result.sheet.getRows({ limit: 100000 });
         if (rows.length > 0) {
           this.inventory = rows.map((row: GoogleSpreadsheetRow) => this._rowToItem(row));
           // Update next ID
@@ -640,7 +640,7 @@ class UnifiedInventoryService {
     ]);
     if (!result) return;
     try {
-      const rows = await result.sheet.getRows();
+      const rows = await result.sheet.getRows({ limit: 100000 });
       this.transactions = rows.map((row: GoogleSpreadsheetRow) => ({
         transactionId: row.get('transactionId') || '',
         productId: row.get('productId') || '',
@@ -676,7 +676,7 @@ class UnifiedInventoryService {
     ]);
     if (!result) return;
     try {
-      const rows = await result.sheet.getRows();
+      const rows = await result.sheet.getRows({ limit: 100000 });
       this.countSessions = rows.map((row: GoogleSpreadsheetRow) => ({
         sessionId: row.get('sessionId') || '',
         startedAt: row.get('startedAt') || '',
@@ -706,7 +706,7 @@ class UnifiedInventoryService {
     ]);
     if (!result) return;
     try {
-      const rows = await result.sheet.getRows();
+      const rows = await result.sheet.getRows({ limit: 100000 });
       this.returnTickets = rows.map((row: GoogleSpreadsheetRow) => ({
         ticketId: row.get('ticketId') || '',
         type: (row.get('type') || 'return_to_warehouse') as ReturnType,
@@ -747,7 +747,7 @@ class UnifiedInventoryService {
     ]);
     if (!result) return;
     try {
-      const rows = await result.sheet.getRows();
+      const rows = await result.sheet.getRows({ limit: 100000 });
       this.materialHolds = rows.map((row: GoogleSpreadsheetRow) => ({
         holdId: row.get('holdId') || '',
         productId: row.get('productId') || '',
@@ -793,7 +793,7 @@ class UnifiedInventoryService {
       return;
     }
     try {
-      const rows = await result.sheet.getRows();
+      const rows = await result.sheet.getRows({ limit: 100000 });
       const existing = rows.find((r: GoogleSpreadsheetRow) => r.get('productId') === item.productId);
       const data = {
         productId: item.productId,
@@ -876,7 +876,7 @@ class UnifiedInventoryService {
     ]);
     if (!result) return;
     try {
-      const rows = await result.sheet.getRows();
+      const rows = await result.sheet.getRows({ limit: 100000 });
       const existing = rows.find((r: GoogleSpreadsheetRow) => r.get('holdId') === hold.holdId);
       const data = {
         holdId: hold.holdId,
@@ -954,7 +954,7 @@ class UnifiedInventoryService {
     ]);
     if (!result) return;
     try {
-      const rows = await result.sheet.getRows();
+      const rows = await result.sheet.getRows({ limit: 100000 });
       const existing = rows.find((r: GoogleSpreadsheetRow) => r.get('sessionId') === session.sessionId);
       const data = {
         sessionId: session.sessionId,
@@ -990,7 +990,7 @@ class UnifiedInventoryService {
     ]);
     if (!result) return;
     try {
-      const rows = await result.sheet.getRows();
+      const rows = await result.sheet.getRows({ limit: 100000 });
       const existing = rows.find((r: GoogleSpreadsheetRow) => r.get('ticketId') === ticket.ticketId);
       const data = {
         ticketId: ticket.ticketId,

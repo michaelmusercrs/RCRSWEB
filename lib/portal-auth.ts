@@ -280,7 +280,7 @@ class PortalAuthService {
       'updatedAt', 'failedAttempts', 'lockoutUntil'
     ]);
 
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     return rows.map(row => ({
       userId: row.get('userId'),
       name: row.get('name'),
@@ -353,7 +353,7 @@ class PortalAuthService {
 
   async updateUser(userId: string, updates: Partial<PortalUser>, updatedBy: string): Promise<void> {
     const sheet = await this.getOrCreateSheet('Portal Users', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('userId') === userId);
 
     if (row) {
@@ -546,7 +546,7 @@ class PortalAuthService {
     limit?: number;
   }): Promise<AuditLogEntry[]> {
     const sheet = await this.getOrCreateSheet('Audit Log', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     let entries = rows.map(row => ({
       logId: row.get('logId'),
@@ -654,7 +654,7 @@ class PortalAuthService {
 
   async getWorkflowById(workflowId: string): Promise<WorkflowStep | null> {
     const sheet = await this.getOrCreateSheet('Workflows', this.getWorkflowHeaders());
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('workflowId') === workflowId);
 
     if (!row) return null;
@@ -692,7 +692,7 @@ class PortalAuthService {
 
   async getWorkflowsByType(type: WorkflowType): Promise<WorkflowStep[]> {
     const sheet = await this.getOrCreateSheet('Workflows', this.getWorkflowHeaders());
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     return rows
       .filter(row => row.get('workflowType') === type)
@@ -702,7 +702,7 @@ class PortalAuthService {
 
   async getWorkflowSteps(resourceId: string): Promise<WorkflowStep[]> {
     const sheet = await this.getOrCreateSheet('Workflows', this.getWorkflowHeaders());
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     return rows
       .filter(row => row.get('resourceId') === resourceId)
@@ -717,7 +717,7 @@ class PortalAuthService {
     notes?: string
   ): Promise<{ success: boolean; workflow?: WorkflowStep; error?: string }> {
     const sheet = await this.getOrCreateSheet('Workflows', this.getWorkflowHeaders());
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('workflowId') === workflowId);
 
     if (!row) {
@@ -753,7 +753,7 @@ class PortalAuthService {
     reason?: string
   ): Promise<{ success: boolean; error?: string }> {
     const sheet = await this.getOrCreateSheet('Workflows', this.getWorkflowHeaders());
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('workflowId') === workflowId);
 
     if (!row) {
@@ -785,7 +785,7 @@ class PortalAuthService {
 
   async getPendingApprovals(role: UserRole): Promise<WorkflowStep[]> {
     const sheet = await this.getOrCreateSheet('Workflows', this.getWorkflowHeaders());
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     // Get role hierarchy for approval permissions
     const canApproveRoles: Record<UserRole, UserRole[]> = {
@@ -814,7 +814,7 @@ class PortalAuthService {
     limit?: number;
   }): Promise<WorkflowStep[]> {
     const sheet = await this.getOrCreateSheet('Workflows', this.getWorkflowHeaders());
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     let workflows = rows.map(row => this.rowToWorkflow(row));
 

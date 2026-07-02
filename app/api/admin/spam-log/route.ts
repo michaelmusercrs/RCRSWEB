@@ -58,7 +58,7 @@ async function readSpamLogRows(): Promise<SpamLogRow[]> {
   const sheet = doc.sheetsByTitle[SHEET_TAB];
   if (!sheet) return [];
 
-  const rows = await sheet.getRows();
+  const rows = await sheet.getRows({ limit: 100000 });
   return rows.map((r) => ({
     timestamp: String(r.get('timestamp') ?? ''),
     gate: String(r.get('gate') ?? ''),

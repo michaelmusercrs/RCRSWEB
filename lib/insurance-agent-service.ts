@@ -151,7 +151,7 @@ class InsuranceAgentService {
       ]);
 
       if (result) {
-        const rows = await result.sheet.getRows();
+        const rows = await result.sheet.getRows({ limit: 100000 });
         if (rows.length > 0) {
           this.agents = rows.map((r: GoogleSpreadsheetRow) => ({
             agentId: r.get('agentId') || '',
@@ -241,7 +241,7 @@ class InsuranceAgentService {
     ]);
     if (!result) return;
     try {
-      const rows = await result.sheet.getRows();
+      const rows = await result.sheet.getRows({ limit: 100000 });
       this.visits = rows.map((r: GoogleSpreadsheetRow) => ({
         visitId: r.get('visitId') || '',
         agentId: r.get('agentId') || '',
@@ -433,7 +433,7 @@ class InsuranceAgentService {
     ]);
     if (!result) return;
     try {
-      const rows = await result.sheet.getRows();
+      const rows = await result.sheet.getRows({ limit: 100000 });
       const existing = rows.find((r: GoogleSpreadsheetRow) => r.get('agentId') === agent.agentId);
       const data: Record<string, string> = {
         agentId: agent.agentId,

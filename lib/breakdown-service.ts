@@ -391,7 +391,7 @@ class BreakdownService {
 
   async getBreakdown(breakdownId: string): Promise<CustomerBreakdown | null> {
     const sheet = await this.getOrCreateSheet('Customer_Breakdowns', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('breakdownId') === breakdownId);
 
     if (!row) return null;
@@ -401,7 +401,7 @@ class BreakdownService {
 
   async getBreakdownByCustomer(customerId: string): Promise<CustomerBreakdown[]> {
     const sheet = await this.getOrCreateSheet('Customer_Breakdowns', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     return rows
       .filter(r => r.get('customerId') === customerId)
@@ -411,7 +411,7 @@ class BreakdownService {
 
   async getBreakdownByJob(jobId: string): Promise<CustomerBreakdown | null> {
     const sheet = await this.getOrCreateSheet('Customer_Breakdowns', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('jobId') === jobId);
 
     if (!row) return null;
@@ -426,7 +426,7 @@ class BreakdownService {
     dateTo?: string;
   }): Promise<BreakdownSummary[]> {
     const sheet = await this.getOrCreateSheet('Customer_Breakdowns', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     let breakdowns = rows.map(r => this.rowToBreakdown(r));
 
@@ -601,7 +601,7 @@ class BreakdownService {
     userName: string
   ): Promise<CustomerBreakdown | null> {
     const sheet = await this.getOrCreateSheet('Customer_Breakdowns', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('breakdownId') === breakdownId);
 
     if (!row) return null;
@@ -640,7 +640,7 @@ class BreakdownService {
     userId: string
   ): Promise<CustomerBreakdown | null> {
     const sheet = await this.getOrCreateSheet('Customer_Breakdowns', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('breakdownId') === breakdownId);
 
     if (!row) return null;
@@ -691,7 +691,7 @@ class BreakdownService {
     submittedByName: string
   ): Promise<CustomerBreakdown | null> {
     const sheet = await this.getOrCreateSheet('Customer_Breakdowns', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('breakdownId') === breakdownId);
 
     if (!row) return null;
@@ -739,7 +739,7 @@ class BreakdownService {
     approvedByName: string
   ): Promise<CustomerBreakdown | null> {
     const sheet = await this.getOrCreateSheet('Customer_Breakdowns', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('breakdownId') === breakdownId);
 
     if (!row) return null;
@@ -788,7 +788,7 @@ class BreakdownService {
     reason: string
   ): Promise<CustomerBreakdown | null> {
     const sheet = await this.getOrCreateSheet('Customer_Breakdowns', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('breakdownId') === breakdownId);
 
     if (!row) return null;
@@ -840,7 +840,7 @@ class BreakdownService {
     }
   ): Promise<CustomerBreakdown | null> {
     const sheet = await this.getOrCreateSheet('Customer_Breakdowns', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('breakdownId') === breakdownId);
 
     if (!row) return null;
@@ -931,7 +931,7 @@ class BreakdownService {
     }
   ): Promise<CustomerBreakdown | null> {
     const sheet = await this.getOrCreateSheet('Customer_Breakdowns', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('breakdownId') === breakdownId);
 
     if (!row) return null;
@@ -1004,7 +1004,7 @@ class BreakdownService {
     removedByName: string
   ): Promise<CustomerBreakdown | null> {
     const sheet = await this.getOrCreateSheet('Customer_Breakdowns', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('breakdownId') === breakdownId);
 
     if (!row) return null;
@@ -1073,7 +1073,7 @@ class BreakdownService {
     }
   ): Promise<CustomerBreakdown | null> {
     const sheet = await this.getOrCreateSheet('Customer_Breakdowns', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('breakdownId') === breakdownId);
 
     if (!row) return null;
@@ -1141,7 +1141,7 @@ class BreakdownService {
     removedByName: string
   ): Promise<CustomerBreakdown | null> {
     const sheet = await this.getOrCreateSheet('Customer_Breakdowns', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('breakdownId') === breakdownId);
 
     if (!row) return null;
@@ -1200,7 +1200,7 @@ class BreakdownService {
     appliedByName: string
   ): Promise<CustomerBreakdown | null> {
     const sheet = await this.getOrCreateSheet('Customer_Breakdowns', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('breakdownId') === breakdownId);
 
     if (!row) return null;
@@ -1398,7 +1398,7 @@ class BreakdownService {
 
     // Update breakdown with invoice link
     const breakdownSheet = await this.getOrCreateSheet('Customer_Breakdowns', []);
-    const breakdownRows = await breakdownSheet.getRows();
+    const breakdownRows = await breakdownSheet.getRows({ limit: 100000 });
     const breakdownRow = breakdownRows.find(r => r.get('breakdownId') === breakdownId);
 
     if (breakdownRow) {
@@ -1417,7 +1417,7 @@ class BreakdownService {
 
   async getInvoice(invoiceId: string): Promise<Invoice | null> {
     const sheet = await this.getOrCreateSheet('Invoices', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('invoiceId') === invoiceId);
 
     if (!row) return null;
@@ -1427,7 +1427,7 @@ class BreakdownService {
 
   async getInvoiceByNumber(invoiceNumber: string): Promise<Invoice | null> {
     const sheet = await this.getOrCreateSheet('Invoices', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('invoiceNumber') === invoiceNumber);
 
     if (!row) return null;
@@ -1437,7 +1437,7 @@ class BreakdownService {
 
   async getInvoicesByCustomer(customerId: string): Promise<Invoice[]> {
     const sheet = await this.getOrCreateSheet('Invoices', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     return rows
       .filter(r => r.get('customerId') === customerId)
@@ -1452,7 +1452,7 @@ class BreakdownService {
     dateTo?: string;
   }): Promise<Invoice[]> {
     const sheet = await this.getOrCreateSheet('Invoices', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     let invoices = rows.map(r => this.rowToInvoice(r));
 
@@ -1531,7 +1531,7 @@ class BreakdownService {
     }
   ): Promise<Invoice | null> {
     const sheet = await this.getOrCreateSheet('Invoices', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('invoiceId') === invoiceId);
 
     if (!row) return null;
@@ -1573,7 +1573,7 @@ class BreakdownService {
     sentByName: string
   ): Promise<Invoice | null> {
     const sheet = await this.getOrCreateSheet('Invoices', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('invoiceId') === invoiceId);
 
     if (!row) return null;
@@ -1626,7 +1626,7 @@ class BreakdownService {
 
     // Update breakdown
     const sheet = await this.getOrCreateSheet('Customer_Breakdowns', []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('breakdownId') === breakdownId);
 
     if (row) {

@@ -72,7 +72,7 @@ async function pushPortalToLegacy(): Promise<{
 
   // Clear existing data rows and rewrite — ensures legacy sheet is a
   // perfect mirror of portal state with no stale rows.
-  const existingRows = await sheet.getRows();
+  const existingRows = await sheet.getRows({ limit: 100000 });
   if (existingRows.length > 0) {
     // Delete rows from bottom up to avoid index shifting issues
     for (let i = existingRows.length - 1; i >= 0; i--) {

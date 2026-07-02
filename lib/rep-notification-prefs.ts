@@ -143,7 +143,7 @@ export async function getRepNotificationPrefs(
       return defaultRepPrefs(slug, repName);
     }
 
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const match = rows.find(r => String(r.get('repSlug') || '').trim().toLowerCase() === slug);
     if (!match) return defaultRepPrefs(slug, repName);
 
@@ -212,7 +212,7 @@ export async function saveRepNotificationPrefs(
       updatedAt,
     };
 
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const existing = rows.find(r => String(r.get('repSlug') || '').trim().toLowerCase() === slug);
     if (existing) {
       for (const [k, v] of Object.entries(rowData)) existing.set(k, v);

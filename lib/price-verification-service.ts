@@ -171,7 +171,7 @@ class PriceVerificationService {
       'discountPercent', 'listPrice', 'notes', 'lastVerified', 'verifiedBy'
     ]);
 
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     let items = rows.map(row => ({
       productId: row.get('productId'),
       productName: row.get('productName'),
@@ -211,7 +211,7 @@ class PriceVerificationService {
 
   async updateSupplierPricing(productId: string, updates: Partial<SupplierPricing>): Promise<void> {
     const sheet = await this.getOrCreateSheet(SHEETS.SUPPLIER_PRICING, []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('productId') === productId);
 
     if (row) {
@@ -359,7 +359,7 @@ class PriceVerificationService {
 
   async getPriceAlerts(status?: PriceAlert['status']): Promise<PriceAlert[]> {
     const sheet = await this.getOrCreateSheet(SHEETS.PRICE_ALERTS, []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     let alerts = rows.map(row => ({
       alertId: row.get('alertId'),
@@ -391,7 +391,7 @@ class PriceVerificationService {
 
   async updatePriceAlert(alertId: string, updates: Partial<PriceAlert>): Promise<void> {
     const sheet = await this.getOrCreateSheet(SHEETS.PRICE_ALERTS, []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('alertId') === alertId);
 
     if (row) {
@@ -428,7 +428,7 @@ class PriceVerificationService {
 
   async getInvoiceRecords(supplier?: string, status?: InvoiceRecord['status']): Promise<InvoiceRecord[]> {
     const sheet = await this.getOrCreateSheet(SHEETS.INVOICE_RECORDS, []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     let invoices = rows.map(row => ({
       invoiceId: row.get('invoiceId'),
@@ -461,7 +461,7 @@ class PriceVerificationService {
 
   async updateInvoiceRecord(invoiceId: string, updates: Partial<InvoiceRecord>): Promise<void> {
     const sheet = await this.getOrCreateSheet(SHEETS.INVOICE_RECORDS, []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('invoiceId') === invoiceId);
 
     if (row) {

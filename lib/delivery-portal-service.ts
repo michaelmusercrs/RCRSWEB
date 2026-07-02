@@ -287,7 +287,7 @@ class DeliveryPortalService {
       'id', 'name', 'phone', 'email', 'vehicle', 'licensePlate', 'status', 'currentLocation'
     ]);
 
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     return rows.map(row => ({
       id: row.get('id'),
       name: row.get('name'),
@@ -302,7 +302,7 @@ class DeliveryPortalService {
 
   async updateDriverStatus(driverId: string, status: Driver['status'], location?: string): Promise<void> {
     const sheet = await this.getOrCreateSheet(SHEETS.DRIVERS, []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('id') === driverId);
 
     if (row) {
@@ -548,7 +548,7 @@ class DeliveryPortalService {
   /** @deprecated Use pipeline event photos for delivery photo tracking. */
   async getDeliveryPhotos(deliveryId: string): Promise<DeliveryPhoto[]> {
     const sheet = await this.getOrCreateSheet(SHEETS.DELIVERY_PHOTOS, []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     return rows
       .filter(row => row.get('deliveryId') === deliveryId)
@@ -579,7 +579,7 @@ class DeliveryPortalService {
       'lastCountDate', 'lastRestockDate', 'notes'
     ]);
 
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     let items = rows.map(row => ({
       productId: row.get('productId'),
       productName: row.get('productName'),
@@ -612,7 +612,7 @@ class DeliveryPortalService {
 
   async updateInventoryQty(productId: string, qtyChange: number, _reason?: string): Promise<void> {
     const sheet = await this.getOrCreateSheet(SHEETS.INVENTORY, []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('productId') === productId);
 
     if (row) {
@@ -638,7 +638,7 @@ class DeliveryPortalService {
       'expectedQty', 'actualQty', 'variance', 'variancePercent', 'notes', 'approvedBy'
     ]);
 
-    const invRows = await invSheet.getRows();
+    const invRows = await invSheet.getRows({ limit: 100000 });
     const invRow = invRows.find(r => r.get('productId') === productId);
 
     if (!invRow) throw new Error('Product not found');
@@ -695,7 +695,7 @@ class DeliveryPortalService {
 
   async getRestockRequests(status?: RestockRequest['status']): Promise<RestockRequest[]> {
     const sheet = await this.getOrCreateSheet(SHEETS.RESTOCK_REQUESTS, []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     let requests = rows.map(row => ({
       requestId: row.get('requestId'),
@@ -725,7 +725,7 @@ class DeliveryPortalService {
 
   async approveRestockRequest(requestId: string, approvedBy: string): Promise<void> {
     const sheet = await this.getOrCreateSheet(SHEETS.RESTOCK_REQUESTS, []);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('requestId') === requestId);
 
     if (row) {

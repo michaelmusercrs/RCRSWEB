@@ -95,7 +95,7 @@ export async function loadCorrections(): Promise<DataCorrection[]> {
       _cache = { rows: [], at: Date.now() };
       return [];
     }
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const out: DataCorrection[] = rows.map(r => ({
       id: String(r.get('id') || ''),
       scope: String(r.get('scope') || '').trim(),

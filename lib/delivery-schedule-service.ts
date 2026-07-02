@@ -108,7 +108,7 @@ export async function upsertDeliveryScheduleEntry(
   if (!sheet) return false;
   const now = new Date().toISOString();
   try {
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const existing = rows.find(
       (r: GoogleSpreadsheetRow) => String(r.get('ticketId') || '') === entry.ticketId,
     );
@@ -149,7 +149,7 @@ export async function updateDeliveryScheduleStatus(
   const sheet = await getOrCreateScheduleSheet();
   if (!sheet) return false;
   try {
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const existing = rows.find(
       (r: GoogleSpreadsheetRow) => String(r.get('ticketId') || '') === ticketId,
     );
@@ -179,7 +179,7 @@ export async function listDeliverySchedule(filter?: {
   const sheet = await getOrCreateScheduleSheet();
   if (!sheet) return [];
   try {
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     let entries: DeliveryScheduleEntry[] = rows.map((r: GoogleSpreadsheetRow) => ({
       ticketId: String(r.get('ticketId') || ''),
       jobNumber: String(r.get('jobNumber') || ''),

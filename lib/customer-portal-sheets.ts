@@ -264,7 +264,7 @@ export async function getNotificationPreferences(
     if (!doc) return null;
     const sheet = await getOrCreateSheet(doc, NOTIFICATION_PREFS_TAB, NOTIFICATION_PREFS_HEADERS);
     if (!sheet) return null;
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('customerToken') === customerToken);
     if (!row) return null;
     return {
@@ -304,7 +304,7 @@ export async function setNotificationPreferences(
     if (!doc) return;
     const sheet = await getOrCreateSheet(doc, NOTIFICATION_PREFS_TAB, NOTIFICATION_PREFS_HEADERS);
     if (!sheet) return;
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const existing = rows.find(r => r.get('customerToken') === customerToken);
     const updatedAt = new Date().toISOString();
     const payload = {

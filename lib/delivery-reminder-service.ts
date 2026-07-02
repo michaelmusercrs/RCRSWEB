@@ -457,7 +457,7 @@ class DeliveryReminderService {
     status?: DeliveryReminder['status'];
   }): Promise<DeliveryReminder[]> {
     const sheet = await this.getOrCreateSheet('Delivery Reminders', this.getReminderHeaders());
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
 
     let reminders: DeliveryReminder[] = rows.map(row => ({
       reminderId: row.get('reminderId'),

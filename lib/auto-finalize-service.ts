@@ -107,10 +107,10 @@ export async function autoFinalizeStuckTickets(
   }
 
   const [ticketRows, invoiceRows, breakdownRows, invProdRows] = await Promise.all([
-    ticketsSheet.getRows(),
-    invoicesSheet.getRows(),
-    breakdownsSheet.getRows(),
-    invProdSheet.getRows(),
+    ticketsSheet.getRows({ limit: 100000 }),
+    invoicesSheet.getRows({ limit: 100000 }),
+    breakdownsSheet.getRows({ limit: 100000 }),
+    invProdSheet.getRows({ limit: 100000 }),
   ]);
 
   const invoicedTickets = new Set(invoiceRows.map(r => r.get('ticketId')).filter(Boolean));

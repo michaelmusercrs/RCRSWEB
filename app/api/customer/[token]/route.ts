@@ -108,7 +108,7 @@ async function validateTokenOwnership(token: string): Promise<{
       'customerAddress', 'salesRepId', 'salesRepName', 'salesRepSlug', 'jobId',
       'createdAt', 'expiresAt', 'lastAccessedAt', 'isActive'
     ]);
-    const accessRows = await accessSheet.getRows();
+    const accessRows = await accessSheet.getRows({ limit: 100000 });
     const accessRow = accessRows.find(r => r.get('accessToken') === token);
 
     if (accessRow && accessRow.get('isActive') === 'true') {
@@ -396,7 +396,7 @@ export async function GET(
       'createdAt', 'expiresAt', 'lastAccessedAt', 'isActive'
     ]);
 
-    const accessRows = await accessSheet.getRows();
+    const accessRows = await accessSheet.getRows({ limit: 100000 });
     const accessRow = accessRows.find(r => r.get('accessToken') === token);
 
     if (!accessRow || accessRow.get('isActive') !== 'true') {
@@ -447,7 +447,7 @@ export async function GET(
       'appointmentId', 'customerId', 'type', 'title', 'description',
       'scheduledDate', 'scheduledTime', 'duration', 'status', 'assignedTo', 'notes', 'createdAt'
     ]);
-    const apptRows = await apptSheet.getRows();
+    const apptRows = await apptSheet.getRows({ limit: 100000 });
     const appointments = apptRows
       .filter(r => r.get('customerId') === customerId)
       .map(r => ({
@@ -470,7 +470,7 @@ export async function GET(
       'documentId', 'customerId', 'type', 'title', 'description',
       'fileUrl', 'fileType', 'fileSize', 'uploadedAt', 'uploadedBy', 'isVisible'
     ]);
-    const docRows = await docSheet.getRows();
+    const docRows = await docSheet.getRows({ limit: 100000 });
     const documents = docRows
       .filter(r => r.get('customerId') === customerId && r.get('isVisible') === 'true')
       .map(r => ({
@@ -491,7 +491,7 @@ export async function GET(
     const msgSheet = await getOrCreateSheet(doc, 'Customer_Messages', [
       'messageId', 'customerId', 'direction', 'channel', 'subject', 'content', 'sentAt', 'readAt', 'sentBy'
     ]);
-    const msgRows = await msgSheet.getRows();
+    const msgRows = await msgSheet.getRows({ limit: 100000 });
     const messages = msgRows
       .filter(r => r.get('customerId') === customerId)
       .map(r => ({
@@ -584,7 +584,7 @@ export async function GET(
     if (!jobStatus && jobNimbusJobId) {
       const jobSheet = doc.sheetsByTitle['Jobs_Master'];
       if (jobSheet) {
-        const jobRows = await jobSheet.getRows();
+        const jobRows = await jobSheet.getRows({ limit: 100000 });
         const jobRow = jobRows.find(r => r.get('jobId') === jobNimbusJobId);
         if (jobRow) {
           const phases = customerPortalService.getJobPhases();
@@ -626,7 +626,7 @@ export async function GET(
 
     const teamSheet = doc.sheetsByTitle['team-members-import'];
     if (teamSheet) {
-      const teamRows = await teamSheet.getRows();
+      const teamRows = await teamSheet.getRows({ limit: 100000 });
       const repRow = teamRows.find(r => r.get('slug') === accessRow.get('salesRepSlug'));
       if (repRow) {
         salesRep = {
@@ -778,7 +778,7 @@ export async function POST(
       return NextResponse.json({ error: 'Portal not configured' }, { status: 500 });
     }
 
-    const accessRows = await accessSheet.getRows();
+    const accessRows = await accessSheet.getRows({ limit: 100000 });
     const accessRow = accessRows.find(r => r.get('accessToken') === token);
 
     if (!accessRow || accessRow.get('isActive') !== 'true') {

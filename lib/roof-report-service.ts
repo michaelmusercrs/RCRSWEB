@@ -246,7 +246,7 @@ class RoofReportService {
    */
   async getReportsByLeadId(leadId: string): Promise<RoofReportRecord[]> {
     const sheet = await this.getOrCreateSheet();
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     return rows
       .filter(r => r.get('leadId') === leadId)
       .map(r => this.rowToRecord(r))
@@ -258,7 +258,7 @@ class RoofReportService {
    */
   async getReportByShareToken(shareToken: string): Promise<RoofReportRecord | null> {
     const sheet = await this.getOrCreateSheet();
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('shareToken') === shareToken);
     if (!row) return null;
     return this.rowToRecord(row);
@@ -269,7 +269,7 @@ class RoofReportService {
    */
   async getReportById(reportId: string): Promise<RoofReportRecord | null> {
     const sheet = await this.getOrCreateSheet();
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('reportId') === reportId);
     if (!row) return null;
     return this.rowToRecord(row);
@@ -280,7 +280,7 @@ class RoofReportService {
    */
   async togglePublic(reportId: string, isPublic: boolean, sharedBy?: string): Promise<boolean> {
     const sheet = await this.getOrCreateSheet();
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('reportId') === reportId);
     if (!row) return false;
 

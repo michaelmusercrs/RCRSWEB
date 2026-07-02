@@ -74,7 +74,7 @@ async function loadSentTicketIds(): Promise<Set<string>> {
   await doc.loadInfo();
   const tab = doc.sheetsByTitle['ReviewRequests'];
   if (!tab) return new Set();
-  const rows = await tab.getRows();
+  const rows = await tab.getRows({ limit: 100000 });
   return new Set(rows.map(r => r.get('ticketId')).filter(Boolean));
 }
 

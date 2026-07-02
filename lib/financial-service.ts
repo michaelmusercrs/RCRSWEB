@@ -413,7 +413,7 @@ class FinancialService {
     try {
       const sheet = await this.getOrCreateSheet('Vendor_Purchases', []);
       if (!sheet) return [];
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       return rows.map(r => ({
         amount: parseFloat(r.get('total')) || 0,
         status: r.get('paymentStatus') || 'unknown',
@@ -1299,7 +1299,7 @@ class FinancialService {
     const sheet = await this.getOrCreateSheet('Approval_Requests', []);
     if (!sheet) return null;
 
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const row = rows.find(r => r.get('requestId') === requestId);
 
     if (!row) return null;
@@ -1336,7 +1336,7 @@ class FinancialService {
     if (!sheet) return [];
 
     try {
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       return rows
         .filter(r => r.get('status') === 'pending')
         .map(r => ({

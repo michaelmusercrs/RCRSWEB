@@ -127,7 +127,7 @@ export async function loadDeductionKeySet(
   doc: GoogleSpreadsheet,
 ): Promise<Set<string>> {
   const sheet = await ensureInventoryDeductionsLogSheet(doc);
-  const rows = await sheet.getRows();
+  const rows = await sheet.getRows({ limit: 100000 });
   const keys = new Set<string>();
   for (const row of rows) {
     const ticketId = row.get('ticketId');

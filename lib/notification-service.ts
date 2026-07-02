@@ -334,7 +334,7 @@ class NotificationService {
       }
 
       await sheet.loadHeaderRow();
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       let preferences = { ...DEFAULT_ADMIN_PREFERENCES };
       let reminderTiming = { ...DEFAULT_REMINDER_TIMING };
       let updatedAt = new Date().toISOString();
@@ -386,7 +386,7 @@ class NotificationService {
       }
 
       await sheet.loadHeaderRow();
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       const now = new Date().toISOString();
 
       // Update or create preferences row
@@ -449,7 +449,7 @@ class NotificationService {
       if (!sheet) return null;
 
       await sheet.loadHeaderRow();
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       const row = rows.find((r: SheetRow) => r.get('repSlug') === repSlug);
 
       if (!row) {
@@ -490,7 +490,7 @@ class NotificationService {
       if (!sheet) return [];
 
       await sheet.loadHeaderRow();
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       return rows.map((row: SheetRow) => {
         const override: RepNotificationOverride = {
           repSlug: row.get('repSlug') || '',
@@ -530,7 +530,7 @@ class NotificationService {
       }
 
       await sheet.loadHeaderRow();
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       const existingRow = rows.find((r: SheetRow) => r.get('repSlug') === repSlug);
       const now = new Date().toISOString();
 
@@ -577,7 +577,7 @@ class NotificationService {
       if (!sheet) return null;
 
       await sheet.loadHeaderRow();
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       const row = rows.find((r: SheetRow) => r.get('customerId') === customerId);
 
       if (!row) {
@@ -619,7 +619,7 @@ class NotificationService {
       if (!sheet) return [];
 
       await sheet.loadHeaderRow();
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       return rows
         .filter((r: SheetRow) => r.get('repSlug') === repSlug)
         .map((row: SheetRow) => {
@@ -663,7 +663,7 @@ class NotificationService {
       }
 
       await sheet.loadHeaderRow();
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       const existingRow = rows.find((r: SheetRow) => r.get('customerId') === customerId);
       const now = new Date().toISOString();
 
@@ -980,7 +980,7 @@ class NotificationService {
         if (!sheet) return [];
 
         await sheet.loadHeaderRow();
-        const rows = await sheet.getRows();
+        const rows = await sheet.getRows({ limit: 100000 });
         let notifications: InAppNotification[] = rows
           .filter((r: SheetRow) => r.get('recipientId') === recipientId)
           .map((r: SheetRow) => ({
@@ -1035,7 +1035,7 @@ class NotificationService {
         const sheet = doc.sheetsByTitle[NOTIF_INBOX_SHEET];
         if (sheet) {
           await sheet.loadHeaderRow();
-          const rows = await sheet.getRows();
+          const rows = await sheet.getRows({ limit: 100000 });
           const row = rows.find((r: SheetRow) => r.get('notificationId') === notificationId);
           if (row) {
             row.set('read', 'true');
@@ -1070,7 +1070,7 @@ class NotificationService {
         const sheet = doc.sheetsByTitle[NOTIF_INBOX_SHEET];
         if (sheet) {
           await sheet.loadHeaderRow();
-          const rows = await sheet.getRows();
+          const rows = await sheet.getRows({ limit: 100000 });
           for (const row of rows) {
             if (row.get('recipientId') === recipientId && row.get('read') !== 'true') {
               row.set('read', 'true');

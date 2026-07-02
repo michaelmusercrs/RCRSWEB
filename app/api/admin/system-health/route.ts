@@ -236,7 +236,7 @@ async function readHeartbeats(loaded: SheetsLoaded | null): Promise<Map<string, 
     } catch {
       return map;
     }
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     for (const r of rows) {
       const cronName = r.get('cronName');
       if (typeof cronName === 'string' && cronName.length > 0) {

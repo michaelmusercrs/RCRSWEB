@@ -167,7 +167,7 @@ class CredentialService {
 
     try {
       const sheet = await this.getSheet();
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       const row = rows.find((r: any) => r.get('email')?.toLowerCase() === email.toLowerCase());
 
       if (row) {
@@ -368,7 +368,7 @@ class CredentialService {
 
     try {
       const sheet = await this.getSheet();
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
       const row = rows.find((r: any) => r.get('userId') === userId);
 
       if (row) {
@@ -383,7 +383,7 @@ class CredentialService {
 
         await this.migrateFromTeamRoles(member.id, member.email, member.password);
         // Re-fetch and update
-        const rows2 = await sheet.getRows();
+        const rows2 = await sheet.getRows({ limit: 100000 });
         const newRow = rows2.find((r: any) => r.get('userId') === userId);
         if (newRow) {
           for (const [key, value] of Object.entries(updates)) {

@@ -559,7 +559,7 @@ class InventoryReconciliationService {
       const sheet = await this.getOrCreateSheet(RECONCILIATION_SHEET, this.getReconciliationHeaders());
 
       // Clear existing rows and write fresh reconciliation data
-      const existingRows = await sheet.getRows();
+      const existingRows = await sheet.getRows({ limit: 100000 });
       for (const row of existingRows) {
         await row.delete();
       }
@@ -601,7 +601,7 @@ class InventoryReconciliationService {
   async getStoredReconciliation(): Promise<JobReconciliation[]> {
     try {
       const sheet = await this.getOrCreateSheet(RECONCILIATION_SHEET, this.getReconciliationHeaders());
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: 100000 });
 
       return rows.map(row => {
         let materials: MaterialReconciliationItem[] = [];

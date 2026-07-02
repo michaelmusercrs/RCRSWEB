@@ -58,7 +58,7 @@ export async function readChrisviewCache<T>(page: string): Promise<CacheRow<T> |
   try {
     const sheet = await getSheet();
     if (!sheet) return null;
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const match = rows.find(r => String(r.get('page') || '').trim() === page);
     if (!match) return null;
     const payloadJson = String(match.get('payloadJson') || '');
@@ -86,7 +86,7 @@ export async function writeChrisviewCache<T>(
   try {
     const sheet = await getSheet();
     if (!sheet) return { success: false, error: 'sheets not configured' };
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: 100000 });
     const generatedAt = new Date().toISOString();
     const payloadJson = JSON.stringify(payload);
     const existing = rows.find(r => String(r.get('page') || '').trim() === page);
