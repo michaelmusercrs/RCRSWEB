@@ -153,9 +153,10 @@ export const ROLE_PERMISSIONS: Readonly<Record<Role, readonly Permission[]>> = {
     'sales.view',
     'sales.viewOwn',
     // Note: No sales.viewCommissions
-    // Inventory - View only (no costs)
+    // Inventory - View with costs (owner rule: cost OK for office — AGENDA 3.8)
     'inventory.view',
-    // Note: No inventory.viewCosts, inventory.edit, inventory.delete
+    'inventory.viewCosts',
+    // Note: No inventory.edit, inventory.delete
     // Marketing - No access
     // Phone - View own
     'phone.view',

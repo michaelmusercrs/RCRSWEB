@@ -6,6 +6,9 @@ The scheduled routine appends an entry per action.
 
 ---
 
+- `2026-07-02 12:49` · claude (interactive w/ owner) · cost-visibility · AGENDA 3.8 closed: PMs stripped from cost allowlist (lib/cost-visibility.ts), Office granted inventory.viewCosts (lib/permissions.ts), both command-center inventory showCost gates fixed to owner/admin/office/manager · owner decision 2026-07-02: PMs do NOT see purchase cost · commit pending
+- `2026-07-02 12:49` · claude (interactive w/ owner) · warehouse/verify-load · lib/load-verified-aftermath.ts unified with auto-finalize cron: now writes Invoices row (idempotent per ticketId) + Job_Breakdowns row, deducts from Inventory_Products (was wrong `Inventory` tab), skips deduction for other_vendor tickets · fixes latent divergence so Rick's Verify Load click matches cron/backfill behavior · commit pending
+
 ## 2026-05-21
 
 - `04:27` · claude · app/chrisview/summary/page.tsx + route · Add `/chrisview/summary` — one-screen executive snapshot · commit 83f92d3 (main)

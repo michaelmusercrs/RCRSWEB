@@ -25,18 +25,18 @@
  * inventory and needs to enter what we paid the supplier.
  *
  * Reports (the inventory cost reports) are visible to:
- *   Michael, Chris (owner), Sara (admin), Destin (manager),
- *   Tia (office), John, Bart (manager / project_manager).
+ *   Michael, Chris (owner), Sara (admin), Destin (manager), Tia (office).
  *
- * In role terms: owner, admin, office, manager. NOT driver.
+ * In role terms: owner, admin, office, manager. NOT driver, NOT
+ * project_manager (owner re-confirmed 2026-07-02 — AGENDA 3.8: PMs do not
+ * see purchase cost; Richard's driver slug is whitelisted separately in
+ * lib/auth-service.ts requireRoleAtLeast).
  */
 const COST_VISIBLE_ROLES = new Set([
   'owner',
   'admin',
   'office',
   'manager',
-  'project_manager',
-  'pm',
 ]);
 
 /**

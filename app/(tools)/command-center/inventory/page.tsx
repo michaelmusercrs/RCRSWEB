@@ -127,8 +127,10 @@ function InventoryPage() {
   const userRole = user?.role;
   // Only Owner and Admin can delete inventory items
   const canDelete = userRole === 'owner' || userRole === 'admin';
-  const showCost = canViewCosts || userRole === 'owner' || userRole === 'admin' || userRole === 'project_manager';
-  const showPrice = canViewCosts || userRole === 'owner' || userRole === 'admin' || userRole === 'office' || userRole === 'project_manager';
+  // Purchase-cost rule (AGENDA 3.8): owner/admin/office/manager only — NOT project_manager.
+  // Selling PRICE is not gated by that rule, so PMs keep price visibility.
+  const showCost = canViewCosts || userRole === 'owner' || userRole === 'admin' || userRole === 'office' || userRole === 'manager';
+  const showPrice = showCost || userRole === 'project_manager';
 
   // =============================================================================
   // DATA FETCHING
