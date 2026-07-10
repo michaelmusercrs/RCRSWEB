@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "scan:images": "node scripts/scan-served-image-dupes.mjs",
+    "scan:images:all": "node scripts/scan-duplicate-images.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.74.0",

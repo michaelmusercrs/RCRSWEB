@@ -279,7 +279,7 @@ export const services: Service[] = [
   {
     id: 8,
     slug: 'emergency-roof-services',
-    image: '/uploads/service-storm.jpg',
+    image: '/uploads/service-emergency-roof-services.jpg',
     title: 'Emergency Roof Services',
     category: 'Primary',
     description: '24/7 emergency roof repair in Decatur, Huntsville & North Alabama. Same-day tarping, water damage mitigation and rapid storm damage response when you need help now.',
@@ -307,7 +307,7 @@ export const services: Service[] = [
   {
     id: 9,
     slug: 'gutter-repair-replacement',
-    image: '/uploads/service-leafx.png',
+    image: '/uploads/service-gutter-repair.jpg',
     title: 'Gutter Repair and Replacement',
     category: 'Additional',
     description: 'Professional gutter repair, seamless gutter replacement and downspout services in Decatur, Huntsville & North Alabama. Protect your foundation from water damage.',
@@ -346,7 +346,7 @@ export const services: Service[] = [
   {
     id: 11,
     slug: 'roof-coating-treatment',
-    image: '/uploads/service-residential.png',
+    image: '/uploads/service-roof-coating.jpg',
     title: 'Roof Coating and Treatment',
     category: 'Additional',
     description: 'Protective roof coatings and treatments in Decatur, Huntsville & North Alabama. Algae-resistant, UV protection, waterproof sealants and reflective coatings to extend your roof\'s lifespan.',
