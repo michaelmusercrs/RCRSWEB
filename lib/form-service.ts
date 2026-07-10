@@ -5,9 +5,19 @@
 
 import { persistLeadFallback } from './lead-fallback';
 
-const COMPANY_EMAIL = 'rcrs@rivercityroofingsolutions.com';
-// COMPANY_EMAIL_BACKUP (rivercityroofingsolutions@gmail.com) intentionally
-// removed 2026-05-20 — see CC removal note below.
+// Primary recipient: rcrs@rivercityroofingsolutions.com — the company's main
+// monitored inbox. (Both rivercityroofingsolutions.com and rcrsal.com are
+// attached to the same Google Workspace accounts, so either domain reaches
+// the team; we keep the historical main address.) Overridable via env.
+const COMPANY_EMAIL =
+  process.env.LEAD_NOTIFY_TO || 'rcrs@rivercityroofingsolutions.com';
+// Owner visibility copy. The 2026-05-20 flood was Google Apps Script
+// amplifying spam to this gmail; that channel is gone. Now every send is
+// spam-filtered upstream (honeypot + spam-filter + Turnstile in the route)
+// and the gmail is rate-capped (5/hr, 30/day in email-service), so a cc is
+// safe. Set LEAD_NOTIFY_CC='' to disable.
+const OWNER_CC =
+  process.env.LEAD_NOTIFY_CC ?? 'rivercityroofingsolutions@gmail.com';
 
 export interface ContactFormData {
   name: string;
@@ -303,6 +313,7 @@ class FormService {
       await emailService.send({
         template: 'contact-form',
         to: COMPANY_EMAIL,
+        cc: OWNER_CC || undefined,
         subject,
         body,
         replyTo,

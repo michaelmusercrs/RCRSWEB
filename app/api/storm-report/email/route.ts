@@ -82,6 +82,12 @@ const COMPANY_NAME = 'River City Roofing Solutions';
 const COMPANY_PHONE = '256-274-8530';
 const COMPANY_URL = 'https://www.rivercityroofingsolutions.com';
 const SALES_TEAM_EMAIL = process.env.SALES_TEAM_EMAIL || 'michaelmuse@rcrsal.com';
+// Owner-visibility cc on the internal (sales) storm-report lead — mirrors the
+// contact-form cc in lib/form-service.ts so storm-report / free-inspection
+// requests reach the owner's inbox too. Set LEAD_NOTIFY_CC='' to disable.
+// Rate-capped (5/hr, 30/day) in email-service. 2026-07-10.
+const LEAD_NOTIFY_CC =
+  process.env.LEAD_NOTIFY_CC ?? 'rivercityroofingsolutions@gmail.com';
 
 function riskColor(level: string): string {
   switch (level) {
@@ -462,10 +468,12 @@ export async function POST(request: NextRequest) {
         fromName: COMPANY_NAME,
       }),
 
-      // 2. Sales team full report — routed to assigned rep when known.
+      // 2. Sales team full report — routed to assigned rep when known,
+      //    with the owner cc'd for visibility.
       emailService.send({
         template: 'storm-report-sales',
         to: salesRecipient,
+        cc: LEAD_NOTIFY_CC || undefined,
         subject: `New Storm Report Lead - ${data.riskLevel} - ${data.fullAddress}`,
         body: buildSalesEmailHtml(data),
         replyTo: data.customerEmail,
