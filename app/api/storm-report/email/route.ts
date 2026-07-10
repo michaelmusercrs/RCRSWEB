@@ -8,7 +8,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { emailService } from '@/lib/email-service';
-import { TEAM_MEMBERS } from '@/lib/team-roles';
 import { checkForSpam } from '@/lib/spam-filter';
 import { checkHoneypot } from '@/lib/honeypot';
 import { verifyTurnstileToken, getRequestIp } from '@/lib/turnstile';
@@ -50,8 +49,9 @@ interface StormReportPayload {
   customerPhone: string;
 
   // Assignment — optional. Set when the lead-capture page was loaded with
-  // ?rep=<slug> (rep-specific landing URLs). Used to route the "full report"
-  // email to the actual rep instead of falling back to SALES_TEAM_EMAIL.
+  // ?rep=<slug> (rep-specific landing URLs). Retained for the lead record;
+  // NOTE (2026-07-10): no longer routes email — storm-report leads go to the
+  // company inbox only, never to an individual rep.
   assignedRep?: string;
 
   // Report data
@@ -81,7 +81,12 @@ interface StormReportPayload {
 const COMPANY_NAME = 'River City Roofing Solutions';
 const COMPANY_PHONE = '256-274-8530';
 const COMPANY_URL = 'https://www.rivercityroofingsolutions.com';
-const SALES_TEAM_EMAIL = process.env.SALES_TEAM_EMAIL || 'michaelmuse@rcrsal.com';
+// Owner directive 2026-07-10: storm-report / free-inspection lead notifications
+// go to the COMPANY inbox, never to an individual rep. The assignedRep field is
+// still accepted on the payload but no longer routes email — rep-specific
+// auto-emails are deferred until they're set up later. Override via env.
+const LEAD_NOTIFY_TO =
+  process.env.LEAD_NOTIFY_TO || 'rcrs@rivercityroofingsolutions.com';
 // Owner-visibility cc on the internal (sales) storm-report lead — mirrors the
 // contact-form cc in lib/form-service.ts so storm-report / free-inspection
 // requests reach the owner's inbox too. Set LEAD_NOTIFY_CC='' to disable.
@@ -432,32 +437,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Resolve the sales rep recipient. Per owner directive "reminders to
-    // sales reps should go to the sales rep, not the comp email":
-    //   1. If the lead-capture page passed `assignedRep` (from ?rep=<slug>),
-    //      look the rep up in team-roles and email them directly.
-    //   2. Otherwise fall back to SALES_TEAM_EMAIL (last resort) and log a
-    //      warning so we know it happened.
-    let salesRecipient = SALES_TEAM_EMAIL;
-    if (data.assignedRep) {
-      const slug = data.assignedRep.toLowerCase().trim();
-      const rep = TEAM_MEMBERS.find(
-        m => m.isActive && (m.slug === slug || m.email.toLowerCase().startsWith(`${slug}@`))
-      );
-      if (rep?.email) {
-        salesRecipient = rep.email;
-      } else {
-        console.warn(
-          `[storm-report/email] assignedRep="${data.assignedRep}" did not resolve to a team member — falling back to SALES_TEAM_EMAIL (${SALES_TEAM_EMAIL})`
-        );
-      }
-    } else {
-      console.warn(
-        `[storm-report/email] No assignedRep on payload for ${data.reportId} — falling back to SALES_TEAM_EMAIL (${SALES_TEAM_EMAIL})`
-      );
-    }
+    // Recipient is the company inbox — no automatic emails to individual reps
+    // (owner directive 2026-07-10). assignedRep is ignored for routing.
 
-    // Fire both emails in parallel via Google Apps Script
+    // Fire both emails in parallel
     const [customerResult, salesResult] = await Promise.allSettled([
       // 1. Customer partial report
       emailService.send({
@@ -468,11 +451,10 @@ export async function POST(request: NextRequest) {
         fromName: COMPANY_NAME,
       }),
 
-      // 2. Sales team full report — routed to assigned rep when known,
-      //    with the owner cc'd for visibility.
+      // 2. Internal storm-report lead — company inbox + owner cc (no rep).
       emailService.send({
         template: 'storm-report-sales',
-        to: salesRecipient,
+        to: LEAD_NOTIFY_TO,
         cc: LEAD_NOTIFY_CC || undefined,
         subject: `New Storm Report Lead - ${data.riskLevel} - ${data.fullAddress}`,
         body: buildSalesEmailHtml(data),

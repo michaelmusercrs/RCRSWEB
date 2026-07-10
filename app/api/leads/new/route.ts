@@ -34,13 +34,19 @@ import { persistLeadFallback } from '@/lib/lead-fallback';
 const leadRateLimiter = createContactFormRateLimiter();
 const globalFormRateLimiter = createGlobalFormRateLimiter();
 
-// Office staff + Michael who receive new lead notifications
-const OFFICE_NOTIFY_EMAILS = [
-  'michaelmuse@rcrsal.com',
-  'sara@rcrsal.com',
-  'destin@rcrsal.com',
-  'tia@rcrsal.com',
-];
+// Owner directive 2026-07-10: new-lead notifications go to the COMPANY inbox
+// only (+ owner cc) — NOT to individual reps/staff. Per-person auto-emails are
+// deferred until they're set up later. Override the recipient(s) via
+// LEAD_NOTIFY_TO (comma-separated) and the owner cc via LEAD_NOTIFY_CC
+// ('' disables the cc).
+const OFFICE_NOTIFY_EMAILS = (
+  process.env.LEAD_NOTIFY_TO || 'rcrs@rivercityroofingsolutions.com'
+)
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+const LEAD_NOTIFY_CC =
+  process.env.LEAD_NOTIFY_CC ?? 'rivercityroofingsolutions@gmail.com';
 
 interface NewLeadRequest {
   // Required fields
@@ -572,6 +578,7 @@ export async function POST(request: NextRequest) {
         emailService.send({
           template: 'new-lead-office',
           to: officeEmail,
+          cc: LEAD_NOTIFY_CC || undefined,
           subject: `New Lead: ${body.name} — ${body.serviceType || body.source}`,
           body: newLeadEmailBody,
           fromName: 'RCRS New Leads',
