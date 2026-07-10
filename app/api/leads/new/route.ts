@@ -18,7 +18,6 @@ import { geocodeAndSaveContact } from '@/lib/geocode-sync';
 import { googleSheetsService } from '@/lib/google-sheets-service';
 import { leadPipelineOrchestrator } from '@/lib/lead-pipeline-orchestrator';
 import { emailService } from '@/lib/email-service';
-import { riverBot } from '@/lib/river-bot-service';
 import { stormReportService } from '@/lib/storm-report-service';
 import { jnSyncEngine } from '@/lib/jn-sync-engine';
 import { isJobNimbusConfigured, jobNimbusService } from '@/lib/jobnimbus-service';
@@ -582,21 +581,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Also notify via GroupMe so office sees it immediately
-    officeNotifyPromises.push(
-      riverBot.notifyNewLead({
-        leadName: body.name,
-        leadId: lead.leadId,
-        address: body.address || 'Not provided',
-        source: body.source,
-        assignedRep: 'UNASSIGNED — Needs Review',
-        assignedRepEmail: '',
-        riskScore: undefined,
-        portalUrl: `${process.env.NEXT_PUBLIC_PORTAL_URL || 'https://rcrsal.com'}/command-center/leads`,
-      }).catch(err => {
-        console.warn(`[Lead ${lead.leadId}] GroupMe notification failed:`, err);
-      })
-    );
+    // GroupMe lead notification intentionally REMOVED (owner directive,
+    // 2026-07-10): new leads must NEVER be posted to GroupMe. Lead
+    // notifications go by email only — see the new-lead-office sends above
+    // (office inboxes) plus the contact-form cc to the owner in
+    // lib/form-service.ts. Do not re-add riverBot.notifyNewLead here.
 
     // Fire all office notifications without blocking response
     Promise.allSettled(officeNotifyPromises).catch(() => {});
