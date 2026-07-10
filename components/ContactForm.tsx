@@ -208,7 +208,7 @@ export default function ContactForm({
           </div>
         )}
 
-        <form onSubmit={handleSubmit} onFocus={handleFormInteraction} className="space-y-4">
+        <form onSubmit={handleSubmit} onFocus={handleFormInteraction} className={`space-y-4 ${darkMode ? 'rcrs-autofill-dark' : ''}`}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="name" className={`block text-sm font-medium mb-1 ${labelClass}`}>

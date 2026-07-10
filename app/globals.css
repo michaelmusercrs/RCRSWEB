@@ -575,6 +575,25 @@ textarea {
   min-width: auto;
 }
 
+/* Fix invisible autofilled text on dark forms. Browser autofill forces its
+   own pale background onto the field while the text stays white, making the
+   value white-on-white. Scope to .rcrs-autofill-dark so light/portal forms
+   are unaffected. The inset box-shadow trick repaints the field background
+   dark; -webkit-text-fill-color keeps the value legible. */
+.rcrs-autofill-dark input:-webkit-autofill,
+.rcrs-autofill-dark input:-webkit-autofill:hover,
+.rcrs-autofill-dark input:-webkit-autofill:focus,
+.rcrs-autofill-dark input:-webkit-autofill:active,
+.rcrs-autofill-dark textarea:-webkit-autofill,
+.rcrs-autofill-dark select:-webkit-autofill {
+  -webkit-text-fill-color: #ffffff;
+  caret-color: #ffffff;
+  -webkit-box-shadow: 0 0 0 1000px #171717 inset; /* neutral-900 */
+  box-shadow: 0 0 0 1000px #171717 inset;
+  border-color: #404040; /* neutral-700, matches the form inputs */
+  transition: background-color 9999s ease-in-out 0s;
+}
+
 /* Small buttons can have smaller min-height */
 button.btn-sm,
 a.btn-sm,
