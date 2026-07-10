@@ -11,6 +11,7 @@
     "scan:images": "node scripts/scan-served-image-dupes.mjs",
     "scan:images:all": "node scripts/scan-duplicate-images.mjs",
     "scan:images:perceptual": "python scripts/scan-perceptual-dupes.py",
+    "scan:images:refs": "node scripts/scan-broken-image-refs.mjs",
     "scan:alt": "node scripts/scan-alt-text.mjs"
   },
   "dependencies": {
