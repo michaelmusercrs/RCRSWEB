@@ -47,3 +47,10 @@ for (const [h, g] of dupeGroups) {
   for (const it of g) console.log(`   ${it.kind}: ${it.slug}`);
 }
 console.log(`\nTOTAL pages showing a non-unique image: ${affected}`);
+
+// --strict: fail the process (and thus the build) if any missing or duplicate images.
+if (process.argv.includes('--strict') && (missing.length > 0 || dupeGroups.length > 0)) {
+  console.error(`\n✗ image hygiene check FAILED: ${missing.length} missing, ${dupeGroups.length} duplicate group(s). Fix before building.`);
+  process.exit(1);
+}
+

@@ -4,11 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/scan-served-image-dupes.mjs --strict",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "scan:images": "node scripts/scan-served-image-dupes.mjs",
-    "scan:images:all": "node scripts/scan-duplicate-images.mjs"
+    "scan:images:all": "node scripts/scan-duplicate-images.mjs",
+    "scan:images:perceptual": "python scripts/scan-perceptual-dupes.py",
+    "scan:alt": "node scripts/scan-alt-text.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.74.0",

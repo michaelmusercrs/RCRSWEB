@@ -234,7 +234,7 @@ export const blogPostIndex: BlogPostMeta[] = [
     title: "How Long Does a Roof Really Last in Alabama?",
     date: "March 4, 2025",
     author: "Michael Muse",
-    image: "/uploads/blog-how-long-roof-lasts-alabama.png",
+    image: "/uploads/blog-how-long-roof-lasts-alabama.jpg",
     keywords: ["roof lifespan","roof age","when to replace roof","Alabama roofing","shingle life"],
     excerpt: "The lifespan of your roof depends on materials, installation quality, and our unique Southern climate. Here's what you can expect.",
   },
