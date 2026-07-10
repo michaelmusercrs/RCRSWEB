@@ -43,6 +43,14 @@ const serviceAccountAuth = new JWT({
 // untrimmed sheet ID corrupts the API URL and makes init() silently fail.
 const SHEETS_ID = process.env.GOOGLE_SHEETS_ID?.trim();
 
+// CRITICAL (2026-07-02): every getRows() must pass { limit: ROWS_READ_LIMIT }.
+// google-spreadsheet v5 bounds a bare getRows() by gridProperties.rowCount
+// CACHED at loadInfo() time. This service keeps its doc for the lifetime of
+// a warm serverless instance, so rows appended after init landed OUTSIDE the
+// cached range and were INVISIBLE to reads (and upserts dup-appended). The
+// values API clamps oversized ranges, so a large explicit limit is free.
+const ROWS_READ_LIMIT = 100000;
+
 // Check if Google Sheets is properly configured
 export function isGoogleSheetsConfigured(): boolean {
   return !!(
@@ -649,6 +657,12 @@ const SHEET_NAMES = {
   WARRANTIES: 'Warranties',
   ESTIMATES: 'Estimates',
   TICKETS: 'Tickets',
+  // Diagnostic log of material-order emails that could NOT be turned into a
+  // delivery ticket (missing job #, catalog mismatch, sheet write failure).
+  // Each row is a root-cause record; the webhook also emails the order creator
+  // + Michael. The email format is highly standardized so rows here should be
+  // rare and each one is a bug to fix.
+  PARSE_FAILURES: 'Parse_Failures',
   // Interoffice invoices created automatically when materials leave the
   // warehouse. Cost-side only. Customer NEVER sees these. Feeds the
   // job material cost line in the job breakdown.
@@ -794,7 +808,7 @@ class GoogleSheetsService {
         return [];
       }
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
 
       return rows.map(row => ({
         slug: row.get('slug') || '',
@@ -830,7 +844,7 @@ class GoogleSheetsService {
       const sheet = this.doc.sheetsByTitle[SHEET_NAMES.TEAM_MEMBERS];
       if (!sheet) return false;
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const existingRow = rows.find(row => row.get('slug') === member.slug);
 
       if (existingRow) {
@@ -857,7 +871,7 @@ class GoogleSheetsService {
       const sheet = this.doc.sheetsByTitle[SHEET_NAMES.TEAM_MEMBERS];
       if (!sheet) return false;
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const rowToDelete = rows.find(row => row.get('slug') === slug);
 
       if (rowToDelete) {
@@ -890,7 +904,7 @@ class GoogleSheetsService {
         'location', 'imageUrl', 'lastUpdated', 'updatedBy'
       ]);
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       let items: InventoryItem[] = rows.map(row => ({
         sku: row.get('sku') || '',
         name: row.get('name') || '',
@@ -945,7 +959,7 @@ class GoogleSheetsService {
       const sheet = this.doc.sheetsByTitle[SHEET_NAMES.INVENTORY];
       if (!sheet) return false;
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const existingRow = rows.find(row => row.get('sku') === item.sku);
 
       const now = new Date().toISOString();
@@ -993,7 +1007,7 @@ class GoogleSheetsService {
       const sheet = this.doc.sheetsByTitle[SHEET_NAMES.INVENTORY];
       if (!sheet) return false;
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const rowToDelete = rows.find(row => row.get('sku') === sku);
 
       if (rowToDelete) {
@@ -1056,7 +1070,7 @@ class GoogleSheetsService {
         'salesRep', 'date', 'amount', 'balance', 'jobId', 'jobName', 'description', 'status'
       ]);
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       let entries: CommissionEntry[] = rows.map(row => ({
         salesRep: row.get('salesRep') || '',
         date: row.get('date') || '',
@@ -1223,7 +1237,7 @@ class GoogleSheetsService {
         'createdAt', 'updatedAt'
       ]);
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       let customers: CustomerRecord[] = rows.map(row => ({
         customerId: row.get('customerId') || '',
         name: row.get('name') || '',
@@ -1275,7 +1289,7 @@ class GoogleSheetsService {
       const sheet = this.doc.sheetsByTitle[SHEET_NAMES.CUSTOMERS];
       if (!sheet) return false;
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const existingRow = rows.find(row => row.get('customerId') === customer.customerId);
       const now = new Date().toISOString();
 
@@ -1312,7 +1326,7 @@ class GoogleSheetsService {
       const sheet = this.doc.sheetsByTitle[SHEET_NAMES.CUSTOMERS];
       if (!sheet) return false;
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const rowToDelete = rows.find(row => row.get('customerId') === customerId);
 
       if (rowToDelete) {
@@ -1344,7 +1358,7 @@ class GoogleSheetsService {
         'notes', 'deliveryDate', 'deliveredBy'
       ]);
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       let orders: OrderRecord[] = rows.map(row => ({
         orderId: row.get('orderId') || '',
         customerId: row.get('customerId') || '',
@@ -1387,7 +1401,7 @@ class GoogleSheetsService {
       const sheet = this.doc.sheetsByTitle[SHEET_NAMES.ORDERS];
       if (!sheet) return false;
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const existingRow = rows.find(row => row.get('orderId') === order.orderId);
       const now = new Date().toISOString();
 
@@ -1498,7 +1512,7 @@ class GoogleSheetsService {
     try {
       const sheet = await this.getOrCreateSheet(SHEET_NAMES.GEOCODED_CONTACTS, GEOCODED_CONTACT_COLUMNS);
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       let contacts: GeocodedContactRecord[] = rows.map(row => ({
         jnid: row.get('jnid') || '',
         name: row.get('name') || '',
@@ -1558,7 +1572,7 @@ class GoogleSheetsService {
       const sheet = await this.getOrCreateSheet(SHEET_NAMES.GEOCODED_CONTACTS, GEOCODED_CONTACT_COLUMNS);
 
       // Check for existing entry
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const existing = rows.find(r => r.get('jnid') === contact.jnid);
 
       if (existing) {
@@ -1632,7 +1646,7 @@ class GoogleSheetsService {
     try {
       const sheet = await this.getOrCreateSheet(SHEET_NAMES.LEAD_DISTRIBUTION_LOG, LEAD_DISTRIBUTION_LOG_COLUMNS);
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       let logs: LeadDistributionLogRecord[] = rows.map(row => ({
         logId: row.get('logId') || '',
         leadId: row.get('leadId') || '',
@@ -1709,7 +1723,7 @@ class GoogleSheetsService {
     if (!ready || !this.doc || !logId) return false;
     try {
       const sheet = await this.getOrCreateSheet(SHEET_NAMES.LEAD_DISTRIBUTION_LOG, LEAD_DISTRIBUTION_LOG_COLUMNS);
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const row = rows.find(r => r.get('logId') === logId);
       if (!row) return false;
       for (const [k, v] of Object.entries(quality)) {
@@ -1738,7 +1752,7 @@ class GoogleSheetsService {
 
     try {
       const sheet = await this.getOrCreateSheet(SHEET_NAMES.LEAD_OUTCOME_LOG, LEAD_OUTCOME_LOG_COLUMNS);
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       let logs: LeadOutcomeLogRecord[] = rows.map(row => ({
         logId: row.get('logId') || '',
         leadId: row.get('leadId') || '',
@@ -1792,7 +1806,7 @@ class GoogleSheetsService {
 
     try {
       const sheet = await this.getOrCreateSheet(SHEET_NAMES.LEAD_OUTCOME_LOG, LEAD_OUTCOME_LOG_COLUMNS);
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const existing = rows.find(r => r.get('logId') === record.logId);
       const updatedAt = new Date().toISOString();
 
@@ -1842,7 +1856,7 @@ class GoogleSheetsService {
     if (!ready || !this.doc) return [];
     try {
       const sheet = await this.getOrCreateSheet(SHEET_NAMES.LEAD_REASSIGNMENT_QUEUE, LEAD_REASSIGNMENT_QUEUE_COLUMNS);
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       let records: LeadReassignmentQueueRecord[] = rows.map(row => ({
         queueId: row.get('queueId') || '',
         leadId: row.get('leadId') || '',
@@ -1875,7 +1889,7 @@ class GoogleSheetsService {
     try {
       const sheet = await this.getOrCreateSheet(SHEET_NAMES.LEAD_REASSIGNMENT_QUEUE, LEAD_REASSIGNMENT_QUEUE_COLUMNS);
       // Idempotency: skip if there's already an open queue entry for this lead
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const existing = rows.find(r => r.get('leadId') === record.leadId && r.get('status') === 'pending');
       if (existing) {
         // Update the elapsed time so the queue reflects the latest breach moment
@@ -1902,7 +1916,7 @@ class GoogleSheetsService {
     if (!ready || !this.doc) return false;
     try {
       const sheet = await this.getOrCreateSheet(SHEET_NAMES.LEAD_REASSIGNMENT_QUEUE, LEAD_REASSIGNMENT_QUEUE_COLUMNS);
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const row = rows.find(r => r.get('queueId') === queueId);
       if (!row) return false;
       row.set('status', resolution.status);
@@ -1926,7 +1940,7 @@ class GoogleSheetsService {
     if (!ready || !this.doc) return [];
     try {
       const sheet = await this.getOrCreateSheet(SHEET_NAMES.TEAM_PROFILES, TEAM_PROFILES_COLUMNS);
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       return rows.map(row => ({
         repSlug: row.get('repSlug') || '',
         bio: row.get('bio') || '',
@@ -1967,7 +1981,7 @@ class GoogleSheetsService {
     if (!ready || !this.doc || !profile.repSlug) return false;
     try {
       const sheet = await this.getOrCreateSheet(SHEET_NAMES.TEAM_PROFILES, TEAM_PROFILES_COLUMNS);
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const existing = rows.find(r => r.get('repSlug') === profile.repSlug);
       const ts = new Date().toISOString();
       const payload: Record<string, string> = { updatedAt: ts };
@@ -2009,7 +2023,7 @@ class GoogleSheetsService {
     if (!ready || !this.doc) return [];
     try {
       const sheet = await this.getOrCreateSheet(SHEET_NAMES.SITE_IMAGES, SITE_IMAGES_COLUMNS);
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       let records: SiteImageRecord[] = rows.map(row => ({
         imageId: row.get('imageId') || '',
         key: row.get('key') || '',
@@ -2054,7 +2068,7 @@ class GoogleSheetsService {
     if (!ready || !this.doc || !image.key) return false;
     try {
       const sheet = await this.getOrCreateSheet(SHEET_NAMES.SITE_IMAGES, SITE_IMAGES_COLUMNS);
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const existing = rows.find(r => r.get('key') === image.key);
       const now = new Date().toISOString();
       const payload: Record<string, string> = {};
@@ -2092,7 +2106,7 @@ class GoogleSheetsService {
     if (!ready || !this.doc) return null;
     try {
       const sheet = await this.getOrCreateSheet(SHEET_NAMES.WEATHER_FORECAST_CACHE, WEATHER_FORECAST_CACHE_COLUMNS);
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const row = rows.find(r => r.get('locationKey') === locationKey);
       if (!row) return null;
       return {
@@ -2117,7 +2131,7 @@ class GoogleSheetsService {
     if (!ready || !this.doc) return [];
     try {
       const sheet = await this.getOrCreateSheet(SHEET_NAMES.WEATHER_FORECAST_CACHE, WEATHER_FORECAST_CACHE_COLUMNS);
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       return rows.map(row => ({
         locationKey: row.get('locationKey') || '',
         displayName: row.get('displayName') || '',
@@ -2140,7 +2154,7 @@ class GoogleSheetsService {
     if (!ready || !this.doc || !record.locationKey) return false;
     try {
       const sheet = await this.getOrCreateSheet(SHEET_NAMES.WEATHER_FORECAST_CACHE, WEATHER_FORECAST_CACHE_COLUMNS);
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const existing = rows.find(r => r.get('locationKey') === record.locationKey);
       const payload = record as unknown as Record<string, string | number | boolean>;
       if (existing) {
@@ -2195,7 +2209,7 @@ class GoogleSheetsService {
     if (!ready || !this.doc) return [];
     try {
       const sheet = await this.getOrCreateSheet(SHEET_NAMES.CUSTOMER_PORTAL_EVENTS, CUSTOMER_PORTAL_EVENTS_COLUMNS);
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       let events: CustomerPortalEventRecord[] = rows.map(row => ({
         eventId: row.get('eventId') || '',
         portalToken: row.get('portalToken') || '',
@@ -2238,7 +2252,7 @@ class GoogleSheetsService {
         'adminOverrideReason', 'autoResumeAt', 'scheduleJson', 'updatedAt'
       ]);
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       let records: RepAvailabilityRecord[] = rows.map(row => ({
         repSlug: row.get('repSlug') || '',
         isReceivingLeads: row.get('isReceivingLeads') || 'true',
@@ -2271,7 +2285,7 @@ class GoogleSheetsService {
         'adminOverrideReason', 'autoResumeAt', 'scheduleJson', 'updatedAt'
       ]);
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const existing = rows.find(r => r.get('repSlug') === record.repSlug);
 
       if (existing) {
@@ -2308,7 +2322,7 @@ class GoogleSheetsService {
         'excludedAreas', 'updatedAt'
       ]);
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       let records: RepPreferencesRecord[] = rows.map(row => ({
         repSlug: row.get('repSlug') || '',
         countiesEnabled: row.get('countiesEnabled') || '{}',
@@ -2339,7 +2353,7 @@ class GoogleSheetsService {
         'excludedAreas', 'updatedAt'
       ]);
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const existing = rows.find(r => r.get('repSlug') === record.repSlug);
 
       if (existing) {
@@ -2394,7 +2408,7 @@ class GoogleSheetsService {
         'reminderSentAt', 'warningSentAt', 'reassignedAt', 'reassignedTo', 'missedReason'
       ]);
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const existing = rows.find(r => r.get('leadId') === leadId);
 
       if (!existing) return false;
@@ -2426,7 +2440,7 @@ class GoogleSheetsService {
         'reminderSentAt', 'warningSentAt', 'reassignedAt', 'reassignedTo', 'missedReason'
       ]);
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       let logs: LeadResponseLogRecord[] = rows.map(row => ({
         leadId: row.get('leadId') || '',
         repSlug: row.get('repSlug') || '',
@@ -2459,6 +2473,75 @@ class GoogleSheetsService {
   }
 
   // ===========================================================================
+  // MATERIAL-ORDER PARSE FAILURES (diagnostic log)
+  // ===========================================================================
+
+  private static readonly PARSE_FAILURE_HEADERS = [
+    'timestamp', 'stage', 'subject', 'from', 'jobNumber',
+    'error', 'materialsMatched', 'materialsTotal', 'rawExcerpt', 'notified',
+  ];
+
+  /**
+   * Append one root-cause row for a material-order email that could not be
+   * turned into a delivery ticket. Best-effort — never throws, so a logging
+   * failure can't mask the original parse failure.
+   */
+  async logMaterialOrderParseFailure(record: {
+    timestamp: string;
+    stage: string;
+    subject: string;
+    from: string;
+    jobNumber: string;
+    error: string;
+    materialsMatched: number | string;
+    materialsTotal: number | string;
+    rawExcerpt: string;
+    notified: string;
+  }): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.PARSE_FAILURES,
+        GoogleSheetsService.PARSE_FAILURE_HEADERS,
+      );
+      await sheet.addRow(record as unknown as Record<string, string | number | boolean>);
+      return true;
+    } catch (error) {
+      console.error('[parse-failure-log] Failed to append row:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Returns true if a parse failure with the same dedupe key (subject|from)
+   * was already logged within the last `withinHours`. Used to suppress
+   * duplicate creator notifications. Best-effort — on any read error returns
+   * false (i.e., allow the notification) so we never silently swallow alerts.
+   */
+  async hasRecentParseFailure(dedupeKey: string, withinHours: number): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+    try {
+      const sheet = await this.getOrCreateSheet(
+        SHEET_NAMES.PARSE_FAILURES,
+        GoogleSheetsService.PARSE_FAILURE_HEADERS,
+      );
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
+      const cutoffMs = Date.now() - withinHours * 3600 * 1000;
+      const [wantSubject, wantFrom] = dedupeKey.split('|');
+      return rows.some(r => {
+        const ts = Date.parse(r.get('timestamp') || '');
+        if (isNaN(ts) || ts < cutoffMs) return false;
+        return (r.get('subject') || '') === wantSubject && (r.get('from') || '') === wantFrom;
+      });
+    } catch (error) {
+      console.error('[parse-failure-log] Dedupe read failed (allowing notify):', error);
+      return false;
+    }
+  }
+
+  // ===========================================================================
   // JOB BREAKDOWNS
   // ===========================================================================
 
@@ -2476,7 +2559,7 @@ class GoogleSheetsService {
         'salesRep', 'status', 'materialsJson', 'totals', 'createdAt', 'updatedAt'
       ]);
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       let breakdowns: JobBreakdownRecord[] = rows.map(row => ({
         breakdownId: row.get('breakdownId') || '',
         jobId: row.get('jobId') || '',
@@ -2539,7 +2622,7 @@ class GoogleSheetsService {
       const sheet = this.doc.sheetsByTitle[SHEET_NAMES.JOB_BREAKDOWNS];
       if (!sheet) return false;
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const existing = rows.find(r => r.get('breakdownId') === breakdownId);
 
       if (!existing) return false;
@@ -2576,7 +2659,7 @@ class GoogleSheetsService {
         this.accessOverrideHeaders
       );
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       let records: TeamAccessOverrideRecord[] = rows.map(row => ({
         memberId: row.get('memberId') || '',
         moduleOverrides: row.get('moduleOverrides') || '{}',
@@ -2606,7 +2689,7 @@ class GoogleSheetsService {
         this.accessOverrideHeaders
       );
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const existing = rows.find(r => r.get('memberId') === record.memberId);
 
       if (existing) {
@@ -2637,7 +2720,7 @@ class GoogleSheetsService {
       const sheet = this.doc.sheetsByTitle[SHEET_NAMES.TEAM_ACCESS_OVERRIDES];
       if (!sheet) return false;
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const row = rows.find(r => r.get('memberId') === memberId);
 
       if (row) {
@@ -2675,7 +2758,7 @@ class GoogleSheetsService {
         this.agentHeaders
       );
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       return rows.map(row => {
         const record: Record<string, string> = {};
         for (const h of this.agentHeaders) {
@@ -2699,7 +2782,7 @@ class GoogleSheetsService {
         this.agentHeaders
       );
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const existing = rows.find(r => r.get('id') === agent.id);
 
       if (existing) {
@@ -2733,7 +2816,7 @@ class GoogleSheetsService {
         this.visitHeaders
       );
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       let records = rows.map(row => {
         const record: Record<string, string> = {};
         for (const h of this.visitHeaders) {
@@ -2794,7 +2877,7 @@ class GoogleSheetsService {
         this.trainingProgressHeaders
       );
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       let records = rows.map(row => {
         const record: Record<string, string> = {};
         for (const h of this.trainingProgressHeaders) {
@@ -2825,7 +2908,7 @@ class GoogleSheetsService {
       );
 
       // Check for existing completion of same module by same user
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const existing = rows.find(
         r => r.get('userId') === record.userId && r.get('moduleId') === record.moduleId
       );
@@ -2876,7 +2959,7 @@ class GoogleSheetsService {
         this.weeklyNumbersHeaders
       );
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       let records: RepWeeklyNumbersRecord[] = rows.map(row => ({
         week: row.get('week') || '',
         repName: row.get('repName') || '',
@@ -2961,7 +3044,7 @@ class GoogleSheetsService {
         this.weeklyNumbersHeaders
       );
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const existing = rows.find(
         r => r.get('week') === week && r.get('repEmail')?.toLowerCase() === repEmail.toLowerCase()
       );
@@ -3014,7 +3097,7 @@ class GoogleSheetsService {
         this.dailyActivityHeaders
       );
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       let records: DailyActivityRecord[] = rows.map(row => ({
         date: row.get('date') || '',
         week: row.get('week') || '',
@@ -3152,7 +3235,7 @@ class GoogleSheetsService {
         this.portalLogHeaders
       );
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       let logs: CustomerPortalLogRecord[] = rows.map(row => ({
         logId: row.get('logId') || '',
         customerName: row.get('customerName') || '',
@@ -3228,7 +3311,7 @@ class GoogleSheetsService {
         this.portalDataHeaders
       );
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       let records: CustomerPortalDataRecord[] = rows.map(row => ({
         customerId: row.get('customerId') || '',
         customerName: row.get('customerName') || '',
@@ -3267,7 +3350,7 @@ class GoogleSheetsService {
         this.portalDataHeaders
       );
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const existing = rows.find(r => r.get('customerId') === record.customerId);
 
       if (existing) {
@@ -3320,7 +3403,7 @@ class GoogleSheetsService {
         this.portalDataHeaders
       );
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const existing = rows.find(r => r.get('customerId') === customerId);
 
       if (existing) {
@@ -3351,7 +3434,7 @@ class GoogleSheetsService {
         this.portalDataHeaders
       );
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const existing = rows.find(r => r.get('customerId') === customerId);
 
       if (existing) {
@@ -3395,7 +3478,7 @@ class GoogleSheetsService {
         this.mondayNotesHeaders
       );
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       let records = rows.map(row => {
         const record: Record<string, string> = {};
         for (const h of this.mondayNotesHeaders) {
@@ -3434,7 +3517,7 @@ class GoogleSheetsService {
         this.mondayNotesHeaders
       );
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const existing = rows.find(r => r.get('id') === note.id);
 
       if (existing) {
@@ -3463,7 +3546,7 @@ class GoogleSheetsService {
       const sheet = this.doc.sheetsByTitle[SHEET_NAMES.MONDAY_NOTES];
       if (!sheet) return false;
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const row = rows.find(r => r.get('id') === noteId);
 
       if (row) {
@@ -3489,7 +3572,7 @@ class GoogleSheetsService {
     try {
       await this.init();
       const sheet = await this.getOrCreateSheet(SHEET_NAMES.REVIEWS, this.REVIEW_HEADERS);
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
 
       let results = rows.map(row => {
         const record: Record<string, string> = {};
@@ -3567,7 +3650,7 @@ class GoogleSheetsService {
         this.marchMadnessHeaders
       );
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       return rows.map(row => ({
         repName: row.get('repName') || '',
         seed: parseInt(row.get('seed')) || 0,
@@ -3598,7 +3681,7 @@ class GoogleSheetsService {
         this.marchMadnessHeaders
       );
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const row = rows.find(r => r.get('repName') === repName);
 
       if (row) {
@@ -3635,7 +3718,7 @@ class GoogleSheetsService {
       );
 
       // Clear existing rows
-      const existing = await sheet.getRows();
+      const existing = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       for (const row of existing) {
         await row.delete();
       }
@@ -3671,7 +3754,7 @@ class GoogleSheetsService {
 
     const headers = Object.keys(data[0]);
     const sheet = await this.getOrCreateSheet(sheetName, headers);
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
     if (rows.length > 0) await sheet.clearRows();
     await sheet.addRows(data);
   }
@@ -3733,7 +3816,7 @@ class GoogleSheetsService {
 
     try {
       const sheet = await this.getOrCreateSheet(SHEET_NAMES.INVOICES, this.invoiceHeaders);
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
 
       let records = rows.map(row => {
         const record: Record<string, string> = {};
@@ -3781,7 +3864,7 @@ class GoogleSheetsService {
 
     try {
       const sheet = await this.getOrCreateSheet(SHEET_NAMES.INVOICES, this.invoiceHeaders);
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const existing = rows.find(r => r.get('invoiceId') === invoiceId);
 
       if (!existing) return false;
@@ -3856,7 +3939,7 @@ class GoogleSheetsService {
 
     try {
       const sheet = await this.getOrCreateSheet(SHEET_NAMES.AUDIT_LOG, this.auditLogHeaders);
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
 
       let records = rows.map(row => {
         const record: Record<string, string> = {};
@@ -3924,7 +4007,7 @@ class GoogleSheetsService {
       ];
 
       const sheet = await this.getOrCreateSheet(tabName, HEADERS);
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const existing = rows.find(
         (r: any) => r.get('repName') === record.repName && r.get('meetingDate') === record.meetingDate
       );
@@ -3995,7 +4078,7 @@ class GoogleSheetsService {
         this.meetingPrepHeaders
       );
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const row = rows.find(r => r.get('meetingDate') === meetingDate);
 
       if (!row) return null;
@@ -4021,7 +4104,7 @@ class GoogleSheetsService {
         this.meetingPrepHeaders
       );
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const existing = rows.find(r => r.get('meetingDate') === data.meetingDate);
 
       if (existing) {
@@ -4058,7 +4141,7 @@ class GoogleSheetsService {
         this.meetingPrepHeaders
       );
 
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       let records = rows.map(row => {
         const record: Record<string, string> = {};
         for (const h of this.meetingPrepHeaders) {
@@ -4171,7 +4254,7 @@ class GoogleSheetsService {
 
     try {
       const sheet = await this.getOrCreateSheet(SHEET_NAMES.NUMBER_SESSIONS, this.numberSessionHeaders);
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
 
       let records = rows.map(row => {
         const record: Record<string, string> = {};
@@ -4211,7 +4294,7 @@ class GoogleSheetsService {
 
     try {
       const sheet = await this.getOrCreateSheet(SHEET_NAMES.NUMBER_SESSIONS, this.numberSessionHeaders);
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
 
       const row = rows.find(r => r.get('id') === id);
       if (row) {
@@ -4259,7 +4342,7 @@ class GoogleSheetsService {
 
     try {
       const sheet = await this.getOrCreateSheet(tabName, headers);
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       return rows.map((row) => {
         const obj: Record<string, string> = {};
         for (const h of headers) {
@@ -4333,7 +4416,7 @@ class GoogleSheetsService {
 
     try {
       const sheet = await this.getOrCreateSheet(tabName, headers);
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const row = rows.find((r) => String(r.get(idField) || '') === idValue);
       if (!row) return false;
 
@@ -4370,7 +4453,7 @@ class GoogleSheetsService {
 
       try {
         const sheet = await this.getOrCreateSheet(tabName, headers);
-        const rows = await sheet.getRows();
+        const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
         const idValue = String(data[idField] ?? '');
         if (!idValue) {
           console.warn(`upsertGenericRow("${tabName}"): missing ${idField}`);
@@ -4420,7 +4503,7 @@ class GoogleSheetsService {
     try {
       const sheet = this.doc.sheetsByTitle[tabName];
       if (!sheet) return false;
-      const rows = await sheet.getRows();
+      const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       const row = rows.find((r) => String(r.get(idField) || '') === idValue);
       if (!row) return false;
       await row.delete();
@@ -4450,7 +4533,7 @@ class GoogleSheetsService {
     try {
       const sheet = await this.getOrCreateSheet(tabName, headers);
       // Clear everything below the header row.
-      const existing = await sheet.getRows();
+      const existing = await sheet.getRows({ limit: ROWS_READ_LIMIT });
       for (const r of existing) {
         await r.delete();
       }

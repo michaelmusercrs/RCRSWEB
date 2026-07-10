@@ -120,7 +120,7 @@ export const employeeDirectory: Employee[] = [
     name: 'Rick',
     role: 'Sales Inspector',
     phone: '256-701-7376',
-    email: 'rick@RiverCityRoofingSolutions.com',
+    email: 'richard@rcrsal.com',
     imageUrl: 'https://drive.google.com/file/d/1-KZ8OQaK5QbuK_VZDNejQJG8QIu8Ffaz/view?usp=drive_link',
     department: 'Sales',
     active: true, notes: "Driver / Warehouse Manager"

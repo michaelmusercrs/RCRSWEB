@@ -64,6 +64,7 @@ export type EmailTemplate =
   | 'storm-report-sales'
   | 'weekly-numbers-reminder'
   | 'stalled-tickets-digest'
+  | 'material-order-parse-failure'
   | 'low-stock-alert'
   | 'profile-edit-request'
   | 'vendor-alert'
@@ -139,6 +140,14 @@ export function isCustomerEmailEnabled(): boolean {
 
 function isTemplateAllowed(template: EmailTemplate | undefined): boolean {
   if (!template) return false;
+  // Internal failure/ops alerts are ALWAYS allowed (fail-open) — we never
+  // want an env misconfiguration to silence a "material order could not be
+  // processed" alert. Customer-facing templates are handled by a separate,
+  // fail-closed guard (isCustomerFacingTemplate) so this can't leak to them.
+  const ALWAYS_ALLOWED: ReadonlySet<EmailTemplate> = new Set<EmailTemplate>([
+    'material-order-parse-failure',
+  ]);
+  if (ALWAYS_ALLOWED.has(template)) return true;
   const list = (process.env.ALLOWED_EMAIL_TEMPLATES ||
     'contact-form,load-verified-invoice,driver-new-order')
     .split(',').map(s => s.trim()).filter(Boolean);

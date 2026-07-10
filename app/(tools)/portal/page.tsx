@@ -591,7 +591,7 @@ export default function PortalLogin() {
     const dualRoleUsers: Record<string, { role: string; label: string; route: string; icon: string }[]> = {
       'richard@rcrsal.com': [
         { role: 'sales', label: 'Sales', route: '/portal/dashboard', icon: '💰' },
-        { role: 'driver', label: 'Delivery', route: '/portal/driver', icon: '🚛' },
+        { role: 'driver', label: 'Delivery', route: '/portal/warehouse', icon: '🚛' },
       ],
     };
 

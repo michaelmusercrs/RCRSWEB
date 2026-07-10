@@ -87,7 +87,8 @@ const ROLE_ROUTES: Record<TeamRole, string[]> = {
     '/command-center',
   ],
   driver: [
-    '/portal/dashboard', '/portal/driver', '/portal/inventory',
+    '/portal/dashboard', '/portal/warehouse', '/portal/driver', '/portal/delivery',
+    '/portal/inventory',
     '/portal/monday-notes', '/portal/chat', '/portal/my-profile',
     '/portal/insurance-agents', '/portal/sales', '/portal/sales/leads',
     '/portal/sales/customers', '/portal/sales/performance',
@@ -108,7 +109,7 @@ export const ROLE_DEFAULT_ROUTES: Record<TeamRole, string> = {
   sales: '/portal/dashboard',
   office: '/portal/dashboard',
   project_manager: '/portal/pm',
-  driver: '/portal/driver',
+  driver: '/portal/warehouse',
   viewer: '/portal/dashboard',
 };
 

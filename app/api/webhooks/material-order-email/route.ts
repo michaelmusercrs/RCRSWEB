@@ -37,6 +37,7 @@ import { jobMaterialCostService, type JobMaterialCostLine } from '@/lib/job-mate
 import { inventoryTabSync } from '@/lib/inventory-tab-sync';
 import { emailService } from '@/lib/email-service';
 import { normalizeLineItemQty } from '@/lib/normalize-line-item-qty';
+import { googleSheetsService } from '@/lib/google-sheets-service';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -49,6 +50,101 @@ interface WebhookPayload {
   receivedAt?: string;
   body?: string;
   attachments?: Array<{ name: string; url?: string }>;
+}
+
+// Owner always gets failure alerts. Add John/Bart (the people who create
+// material orders) via MATERIAL_ORDER_ALERT_EMAILS (comma-separated) so their
+// real addresses can be set without a code change.
+const OWNER_ALERT_EMAIL = 'rivercityroofingsolutions@gmail.com';
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+/**
+ * Owner decision (2026-07-10): if a material-order email cannot become a
+ * delivery ticket, automatically (a) notify whoever created the order, (b) log
+ * the root cause so it can be fixed, (c) alert Michael. The order-email format
+ * is highly standardized, so every row here is a bug to investigate.
+ *
+ * Best-effort and non-throwing — a notification failure must never mask the
+ * original error or crash the webhook. Deduplicates repeat emails for the same
+ * (subject|from) within 24h but always writes the diagnostic row.
+ */
+async function notifyParseFailure(opts: {
+  payload: WebhookPayload;
+  stage: string;
+  error: string;
+  jobNumber?: string;
+  materialsMatched?: number;
+  materialsTotal?: number;
+}): Promise<void> {
+  try {
+    const { payload, stage, error } = opts;
+    const subject = payload.subject || '(no subject)';
+    const from = (payload.from || '').trim();
+    const jobNumber = opts.jobNumber || '';
+    const rawExcerpt = (payload.body || '').slice(0, 2000);
+
+    const alreadyNotified = await googleSheetsService
+      .hasRecentParseFailure(`${subject}|${from}`, 24)
+      .catch(() => false);
+
+    const fromIsEmail = EMAIL_RE.test(from);
+    const envList = (process.env.MATERIAL_ORDER_ALERT_EMAILS || '')
+      .split(',').map(s => s.trim()).filter(Boolean);
+    const recipients = Array.from(new Set([
+      ...(fromIsEmail ? [from] : []),
+      ...envList,
+      OWNER_ALERT_EMAIL,
+    ]));
+
+    // Always record the root-cause row (even when the email is suppressed).
+    await googleSheetsService.logMaterialOrderParseFailure({
+      timestamp: new Date().toISOString(),
+      stage,
+      subject,
+      from,
+      jobNumber,
+      error,
+      materialsMatched: opts.materialsMatched ?? '',
+      materialsTotal: opts.materialsTotal ?? '',
+      rawExcerpt,
+      notified: alreadyNotified ? 'suppressed_duplicate_24h' : recipients.join(', '),
+    }).catch(() => {});
+
+    if (alreadyNotified) return;
+
+    const esc = (s: string) =>
+      s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:640px">
+        <h2 style="color:#b91c1c;margin:0 0 8px">Material order could NOT be processed</h2>
+        <p>An email sent to <strong>stock@rcrsal.com</strong> could not be turned into a
+        delivery ticket, so nothing was created for the warehouse. Please review and resend
+        a corrected order, or reply to this message.</p>
+        <table style="border-collapse:collapse;font-size:14px;margin:12px 0">
+          <tr><td style="padding:4px 12px 4px 0;color:#555">What failed</td><td><strong>${esc(stage)}</strong></td></tr>
+          <tr><td style="padding:4px 12px 4px 0;color:#555">Detail</td><td>${esc(error)}</td></tr>
+          <tr><td style="padding:4px 12px 4px 0;color:#555">Order subject</td><td>${esc(subject)}</td></tr>
+          <tr><td style="padding:4px 12px 4px 0;color:#555">Sent by</td><td>${esc(from || '(unknown)')}</td></tr>
+          ${jobNumber ? `<tr><td style="padding:4px 12px 4px 0;color:#555">Job #</td><td>${esc(jobNumber)}</td></tr>` : ''}
+          ${opts.materialsTotal !== undefined ? `<tr><td style="padding:4px 12px 4px 0;color:#555">Items matched</td><td>${opts.materialsMatched ?? 0} of ${opts.materialsTotal}</td></tr>` : ''}
+        </table>
+        <p style="color:#555;font-size:13px;margin:12px 0 4px">First 2KB of the order text:</p>
+        <pre style="background:#f6f6f6;border:1px solid #e5e5e5;padding:10px;font-size:12px;white-space:pre-wrap;overflow-x:auto">${esc(rawExcerpt) || '(empty)'}</pre>
+        <p style="color:#888;font-size:12px">Logged to the Parse_Failures sheet. — RCRS Inventory System</p>
+      </div>`;
+
+    await emailService.send({
+      template: 'material-order-parse-failure',
+      to: recipients.join(', '),
+      subject: `[PARSE FAILURE] Material order not processed — ${subject}`,
+      body: html,
+      replyTo: fromIsEmail ? from : undefined,
+      fromName: 'RCRS Inventory System',
+    }).catch(() => {});
+  } catch (err) {
+    // Never let alerting throw into the request path.
+    console.error('[material-order-webhook] notifyParseFailure failed:', err);
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -81,9 +177,23 @@ export async function POST(request: NextRequest) {
   }
 
   // Parse the email body
-  const parsed = parseMaterialOrderEmail(payload.body);
+  let parsed: ReturnType<typeof parseMaterialOrderEmail>;
+  try {
+    parsed = parseMaterialOrderEmail(payload.body);
+  } catch (err) {
+    await notifyParseFailure({ payload, stage: 'parser_exception', error: String(err) });
+    return NextResponse.json(
+      { error: 'Parser threw while reading the email body', detail: String(err) },
+      { status: 422 },
+    );
+  }
 
   if (!parsed.jobNumber) {
+    await notifyParseFailure({
+      payload,
+      stage: 'no_job_number',
+      error: 'Could not extract a job number (expected e.g. "Job #R-11011 - Customer Name").',
+    });
     return NextResponse.json(
       {
         error: 'Could not extract job number from email body',
@@ -220,6 +330,14 @@ export async function POST(request: NextRequest) {
       // upsertGenericRow swallows errors and returns false. Surface that as
       // a 500 so the caller (Apps Script) doesn't think the write succeeded.
       console.error('[material-order-webhook] ticketSheetService.upsert returned false (Sheets init or write failed silently)');
+      await notifyParseFailure({
+        payload,
+        stage: 'sheet_write_returned_false',
+        error: 'ticketSheetService.upsert returned false (check GOOGLE_SHEETS_ID + credentials).',
+        jobNumber: parsed.jobNumber,
+        materialsMatched: matched,
+        materialsTotal: enrichedMaterials.length,
+      });
       return NextResponse.json(
         { error: 'Failed to persist ticket (sheets write returned false — check GOOGLE_SHEETS_ID and credentials)' },
         { status: 500 },
@@ -227,6 +345,14 @@ export async function POST(request: NextRequest) {
     }
   } catch (err) {
     console.error('[material-order-webhook] Failed to upsert ticket:', err);
+    await notifyParseFailure({
+      payload,
+      stage: 'sheet_write_exception',
+      error: String(err),
+      jobNumber: parsed.jobNumber,
+      materialsMatched: matched,
+      materialsTotal: enrichedMaterials.length,
+    });
     return NextResponse.json(
       { error: 'Failed to persist ticket', detail: String(err) },
       { status: 500 },
@@ -303,6 +429,21 @@ export async function POST(request: NextRequest) {
   // NOTE: stock@rcrsal.com already received the email — that's how we got
   // here. So we do NOT re-send the delivery order email back to stock.
   // We DO send a parsed-confirmation as a separate concern if needed.
+
+  // Soft alert (non-blocking): the ticket was created, but if NONE of the
+  // parsed lines matched the catalog, there is nothing to deduct and the
+  // delivery is effectively empty — flag it so office/Michael can fix the
+  // catalog match, without holding up Rick's ticket.
+  if (enrichedMaterials.length > 0 && matched === 0) {
+    await notifyParseFailure({
+      payload,
+      stage: 'zero_catalog_matches',
+      error: `Ticket ${ticketId} created but 0 of ${enrichedMaterials.length} line items matched the catalog — no inventory will deduct. Check catalog names / match-catalog-item.ts.`,
+      jobNumber: parsed.jobNumber,
+      materialsMatched: 0,
+      materialsTotal: enrichedMaterials.length,
+    });
+  }
 
   return NextResponse.json({
     success: true,
