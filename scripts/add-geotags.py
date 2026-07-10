@@ -19,6 +19,16 @@ COORDS = {
     'north-alabama': (34.6059, -86.9833),
     'birmingham': (33.5207, -86.8025),
     'nashville': (36.1627, -86.7816),
+    'albertville': (34.2676, -86.2089),
+    'guntersville': (34.3581, -86.2947),
+    'arab': (34.3181, -86.4958),
+    'scottsboro': (34.6723, -86.0344),
+    'fort-payne': (34.4443, -85.7197),
+    'muscle-shoals': (34.7448, -87.6675),
+    'meridianville': (34.8515, -86.5722),
+    'hazel-green': (34.9315, -86.5680),
+    'priceville': (34.5140, -86.8875),
+    'somerville': (34.4726, -86.7994),
 }
 
 DEFAULT_COORDS = COORDS['decatur']  # blog-* and service-* default

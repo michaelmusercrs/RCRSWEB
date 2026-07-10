@@ -165,6 +165,16 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ sl
     'north-alabama': { lat: 34.6059, lng: -86.9833 },
     'birmingham-al': { lat: 33.5207, lng: -86.8025 },
     'nashville-tn': { lat: 36.1627, lng: -86.7816 },
+    'albertville-al': { lat: 34.2676, lng: -86.2089 },
+    'guntersville-al': { lat: 34.3581, lng: -86.2947 },
+    'arab-al': { lat: 34.3181, lng: -86.4958 },
+    'scottsboro-al': { lat: 34.6723, lng: -86.0344 },
+    'fort-payne-al': { lat: 34.4443, lng: -85.7197 },
+    'muscle-shoals-al': { lat: 34.7448, lng: -87.6675 },
+    'meridianville-al': { lat: 34.8515, lng: -86.5722 },
+    'hazel-green-al': { lat: 34.9315, lng: -86.5680 },
+    'priceville-al': { lat: 34.5140, lng: -86.8875 },
+    'somerville-al': { lat: 34.4726, lng: -86.7994 },
   };
 
   const coords = geoCoords[slug] || { lat: 34.6059, lng: -86.9833 };
