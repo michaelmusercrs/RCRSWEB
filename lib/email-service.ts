@@ -148,8 +148,19 @@ function isTemplateAllowed(template: EmailTemplate | undefined): boolean {
     'material-order-parse-failure',
   ]);
   if (ALWAYS_ALLOWED.has(template)) return true;
+  // Default allowlist covers the INTERNAL lead-notification templates that
+  // must always fire so website leads reach the team:
+  //   contact-form        - contact / free-inspection / referral / careers / BNI
+  //   new-lead-office      - office-staff alert from /api/leads/new
+  //   storm-report-sales   - storm-report request -> assigned rep / sales team
+  // (storm-report-customer stays OUT — customer-facing, gated separately by
+  //  CUSTOMER_EMAIL_ENABLED per Michael's 2026-05-21 no-customer-email rule.)
+  // Plus the operational templates: load-verified-invoice, driver-new-order.
+  // 2026-07-10: added new-lead-office + storm-report-sales — they were being
+  // dropped as 'template_not_allowed', silently killing every storm-report
+  // lead and the office copy of every website lead. See email-callsite-audit.
   const list = (process.env.ALLOWED_EMAIL_TEMPLATES ||
-    'contact-form,load-verified-invoice,driver-new-order')
+    'contact-form,new-lead-office,storm-report-sales,load-verified-invoice,driver-new-order')
     .split(',').map(s => s.trim()).filter(Boolean);
   return list.includes(template);
 }
