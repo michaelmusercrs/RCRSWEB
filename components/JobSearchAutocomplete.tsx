@@ -34,6 +34,11 @@ export interface JobSearchHit {
 
 interface JobSearchAutocompleteProps {
   onSelect: (hit: JobSearchHit) => void;
+  /**
+   * Fired on every keystroke with the raw input text. Lets a consuming form
+   * still capture a manually-typed job number when JobNimbus has no match.
+   */
+  onInputChange?: (value: string) => void;
   defaultValue?: string;
   placeholder?: string;
   className?: string;
@@ -46,6 +51,7 @@ interface JobSearchAutocompleteProps {
 
 export default function JobSearchAutocomplete({
   onSelect,
+  onInputChange,
   defaultValue = '',
   placeholder = 'R-number, customer name, or address…',
   className = '',
@@ -103,10 +109,11 @@ export default function JobSearchAutocomplete({
   const handleInputChange = useCallback(
     (value: string) => {
       setInputValue(value);
+      onInputChange?.(value);
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => fetchHits(value), 250);
     },
-    [fetchHits],
+    [fetchHits, onInputChange],
   );
 
   const handleSelect = useCallback(

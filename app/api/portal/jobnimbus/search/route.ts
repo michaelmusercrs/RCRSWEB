@@ -16,6 +16,37 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
+import { ticketSheetService } from '@/lib/ticket-sheet-service';
+
+// Fallback for R-number queries when JobNimbus is unreachable or has no match:
+// look the job up in our own canonical Tickets tab (populated by every material
+// order). Returns a synthetic hit (jnid 'sheet:R-XXXXX' so consuming forms get
+// a stable, non-empty key) or [] if we have nothing either.
+async function sheetFallbackHits(raw: string): Promise<JobSearchHit[]> {
+  const m = raw.match(/^r-?(\d+)$/i) || raw.match(/^(\d{3,})$/);
+  if (!m) return [];
+  const ref = `R-${m[1]}`;
+  try {
+    const t = await ticketSheetService.getByReferenceNumber(ref);
+    if (!t) return [];
+    return [{
+      jnid: `sheet:${ref}`,
+      rNumber: t.referenceNumber || ref,
+      jobName: t.jobName || '',
+      customerName: t.customerName || '',
+      address: t.jobAddress || '',
+      city: t.city || '',
+      state: t.state || '',
+      zip: '',
+      phone: t.customerPhone || '',
+      email: t.customerEmail || '',
+      salesRep: '',
+      status: t.status || '',
+    }];
+  } catch {
+    return [];
+  }
+}
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -138,6 +169,8 @@ export async function GET(request: NextRequest) {
     if (!res.ok) {
       const body = await res.text();
       console.warn('[jn-search] non-200', res.status, body.slice(0, 200));
+      const fb = await sheetFallbackHits(raw);
+      if (fb.length) return NextResponse.json({ success: true, hits: fb, source: 'sheet' });
       return NextResponse.json(
         { success: false, error: `JN ${res.status}` },
         { status: 502 },
@@ -159,9 +192,16 @@ export async function GET(request: NextRequest) {
       return 0;
     });
 
+    if (ranked.length === 0) {
+      const fb = await sheetFallbackHits(raw);
+      if (fb.length) return NextResponse.json({ success: true, hits: fb, source: 'sheet' });
+    }
+
     return NextResponse.json({ success: true, hits: ranked.slice(0, limit) });
   } catch (err) {
     console.error('[jn-search] error', err);
+    const fb = await sheetFallbackHits(raw);
+    if (fb.length) return NextResponse.json({ success: true, hits: fb, source: 'sheet' });
     return NextResponse.json(
       { success: false, error: err instanceof Error ? err.message : String(err) },
       { status: 500 },

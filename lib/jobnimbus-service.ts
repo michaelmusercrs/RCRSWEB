@@ -532,6 +532,45 @@ class JobNimbusService {
     });
   }
 
+  /**
+   * Upload a file (e.g. a delivery photo) directly onto a JN job via
+   * POST /files.
+   *
+   * ⚠️ UNVERIFIED PAYLOAD SHAPE — DO NOT WIRE INTO PRODUCTION PATHS YET.
+   * The api1 docs for file creation are thin and we have not run a live
+   * write-probe (a POST creates a real file on a real customer job). The
+   * shipping mechanism for delivery photos is the note-link written by
+   * lib/jn-photo-sync.ts (createNoteOnJob — prod-proven). This method exists
+   * so that, once the payload is confirmed via scripts/test-jn-file-upload.mjs,
+   * the sync can be upgraded to a real file attachment in one line.
+   *
+   * Payload informed by a real GET /files probe (2026-07-10, see
+   * scripts/test-jn-file-upload.mjs): file records return `related` as an
+   * ARRAY of { id, type } (job first), `primary` mirrors the job (JN derives
+   * it), `record_type_name` is a JN file category ('Photo', 'Permit', …),
+   * and the list response key is `files`, NOT `results`. What remains
+   * unverified is the WRITE side: whether POST accepts base64 in `data` as
+   * JSON (per api1 docs) or requires multipart — hence the disabled
+   * write-probe in the script.
+   */
+  async uploadFileToJob(
+    jobJnid: string,
+    contactJnid: string,
+    file: { filename: string; contentType: string; base64: string },
+  ): Promise<JobNimbusAttachment> {
+    return this.apiRequest('/files', 'POST', {
+      data: file.base64,
+      filename: file.filename,
+      content_type: file.contentType,
+      // Relate to the job (primary is derived by JN) + the contact so the
+      // file surfaces on both records — mirrors how real files come back.
+      related: [{ id: jobJnid }, { id: contactJnid }],
+      record_type_name: 'Photo',
+      persist: true,
+      is_active: true,
+    });
+  }
+
   // Get all files/attachments
   async getFiles(params?: {
     limit?: number;
@@ -845,6 +884,7 @@ const jnSandboxProxy = new Proxy(_realJNService, {
       updateJobStatus: async (...args: unknown[]) => { sandboxLog('JobNimbus', 'updateJobStatus', args); return true; },
       createNote: async (...args: unknown[]) => { sandboxLog('JobNimbus', 'createNote', args[0]); return { jnid: `jn-note-sandbox-${Date.now()}` }; },
       createNoteOnJob: async (...args: unknown[]) => { sandboxLog('JobNimbus', 'createNoteOnJob', args); return { jnid: `jn-note-sandbox-${Date.now()}` }; },
+      uploadFileToJob: async (...args: unknown[]) => { sandboxLog('JobNimbus', 'uploadFileToJob', args); return { jnid: `jn-file-sandbox-${Date.now()}` }; },
       createPortalMessage: async (...args: unknown[]) => { sandboxLog('JobNimbus', 'createPortalMessage', args[0]); return { jnid: `jn-msg-sandbox-${Date.now()}` }; },
       syncContacts: async () => { sandboxLog('JobNimbus', 'syncContacts'); return { added: 0, updated: 0, errors: 0 }; },
       getApiStats: async () => { sandboxLog('JobNimbus', 'getApiStats'); return { contacts: 6, jobs: 3, estimates: 0, tasks: 0 }; },

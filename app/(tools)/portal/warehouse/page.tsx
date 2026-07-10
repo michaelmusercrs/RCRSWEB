@@ -35,7 +35,9 @@ import {
   Circle,
   ChevronRight,
   ClipboardCheck,
+  Search,
 } from 'lucide-react';
+import JobSearchAutocomplete, { type JobSearchHit } from '@/components/JobSearchAutocomplete';
 
 interface Ticket {
   ticketId: string;
@@ -121,6 +123,10 @@ export default function WarehousePage() {
   const [submitting, setSubmitting] = useState(false);
   // Pull-checklist: which line-item indices Rick has checked off as pulled.
   const [checkedItems, setCheckedItems] = useState<Set<number>>(new Set());
+  // Autofill from JobNimbus by R-number (New Work Order / Credit Memo / Vendor Return).
+  const [jobPrefill, setJobPrefill] = useState<Partial<JobSearchHit>>({});
+  // Credit-memo return lines pulled from the job's original delivery ticket.
+  const [returnLines, setReturnLines] = useState<Array<{ productId: string; productName: string; quantity: number; unit?: string; checked: boolean; returnQty: number }>>([]);
 
   // Suggested agents widget
   const [suggestedAgents, setSuggestedAgents] = useState<SuggestedAgent[]>([]);
@@ -176,6 +182,8 @@ export default function WarehousePage() {
 
   const openModal = (type: ModalType, ctx: typeof modalContext = {}) => {
     if (type === 'pullList') setCheckedItems(new Set());
+    setJobPrefill({});
+    setReturnLines([]);
     setModalContext(ctx);
     setModal(type);
   };
@@ -184,7 +192,28 @@ export default function WarehousePage() {
     setModalContext({});
     setSubmitting(false);
     setCheckedItems(new Set());
+    setJobPrefill({});
+    setReturnLines([]);
   };
+
+  // When a JobNimbus job is picked in the Credit Memo modal, pull that job's
+  // original delivery materials so Rick checks off what's coming back instead
+  // of typing line items. Reads the canonical Tickets tab via ?reference=.
+  const loadReturnLines = useCallback(async (rNumber: string) => {
+    if (!rNumber) { setReturnLines([]); return; }
+    try {
+      const res = await fetch(`/api/portal/tickets?reference=${encodeURIComponent(rNumber)}`);
+      if (!res.ok) { setReturnLines([]); return; }
+      const t = await res.json();
+      const mats = (t?.materials || []) as Array<{ productId: string; productName: string; quantity: number; unit?: string }>;
+      setReturnLines(mats.map(m => ({
+        productId: m.productId, productName: m.productName, quantity: m.quantity || 0,
+        unit: m.unit, checked: false, returnQty: m.quantity || 0,
+      })));
+    } catch {
+      setReturnLines([]);
+    }
+  }, []);
 
   const toggleItem = (idx: number) => {
     setCheckedItems(prev => {
@@ -393,9 +422,17 @@ export default function WarehousePage() {
   };
 
   const submitCreditMemo = async (form: FormData) => {
+    // Credit memo = return ticket. It MUST carry the actual line items coming
+    // back, or the credit posts $0 and restocks nothing (the old bug).
+    const lines = returnLines
+      .filter(l => l.checked && l.returnQty > 0)
+      .map(l => ({ productId: l.productId, productName: l.productName, quantity: l.returnQty, unit: l.unit }));
+    if (lines.length === 0) {
+      alert('Select at least one item being returned (with a quantity).');
+      return;
+    }
     setSubmitting(true);
     try {
-      // Credit memo = return ticket. Same endpoint, ticketType=return.
       const res = await fetch('/api/portal/tickets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -405,22 +442,23 @@ export default function WarehousePage() {
           createdBy: 'driver-self',
           createdByName: 'Warehouse',
           createdByRole: 'driver',
-          jobNumber: form.get('jobNumber'),
-          customerName: form.get('customerName'),
-          jobAddress: form.get('jobAddress') || '',
-          city: form.get('city') || '',
-          state: 'AL',
+          jobNumber: form.get('jobNumber') || jobPrefill.rNumber || '',
+          customerName: form.get('customerName') || jobPrefill.customerName || '',
+          jobAddress: form.get('jobAddress') || jobPrefill.address || '',
+          city: form.get('city') || jobPrefill.city || '',
+          state: (form.get('state') as string) || jobPrefill.state || 'AL',
           returnReason: form.get('reason'),
-          materials: [],
+          materials: lines,
           requestedDate: new Date().toISOString().slice(0, 10),
         }),
       });
+      const result = await res.json().catch(() => ({}));
       if (res.ok) {
         closeModal();
         refresh();
-        alert('Credit memo created. Sara has been notified.');
+        alert(`Credit memo created${result.interofficeInvoiceId ? ` (${result.interofficeInvoiceId})` : ''}. Inventory restocked & posted to the credit ledger.`);
       } else {
-        alert('Failed to create credit memo');
+        alert(`Failed: ${result.error || res.statusText}`);
       }
     } catch (e) {
       alert(`Error: ${e instanceof Error ? e.message : String(e)}`);
@@ -883,13 +921,23 @@ export default function WarehousePage() {
                     Use this when you need to start a delivery yourself instead of waiting for the email.
                     Sara will be notified just like the email-driven workflow.
                   </p>
-                  <input name="jobNumber" placeholder="Job # (R-XXXXX)" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
-                  <input name="customerName" placeholder="Customer name" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
-                  <input name="jobName" placeholder="Job name (optional)" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
-                  <input name="jobAddress" placeholder="Address" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
-                  <div className="grid grid-cols-2 gap-2">
-                    <input name="city" placeholder="City" required className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
-                    <input name="state" placeholder="State" defaultValue="AL" className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                  <div className="text-[11px] text-[#39FF14] font-semibold flex items-center gap-1">
+                    <Search className="w-3 h-3" /> Type the R-number to auto-fill from JobNimbus
+                  </div>
+                  <JobSearchAutocomplete
+                    onSelect={setJobPrefill}
+                    onInputChange={v => setJobPrefill(p => ({ ...p, rNumber: v }))}
+                    placeholder="R-number, customer, or address…"
+                  />
+                  <input type="hidden" name="jobNumber" value={jobPrefill.rNumber || ''} readOnly />
+                  <div key={jobPrefill.jnid || 'blank'} className="space-y-3">
+                    <input name="customerName" defaultValue={jobPrefill.customerName || ''} placeholder="Customer name" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                    <input name="jobName" defaultValue={jobPrefill.jobName || ''} placeholder="Job name (optional)" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                    <input name="jobAddress" defaultValue={jobPrefill.address || ''} placeholder="Address" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                    <div className="grid grid-cols-2 gap-2">
+                      <input name="city" defaultValue={jobPrefill.city || ''} placeholder="City" required className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                      <input name="state" defaultValue={jobPrefill.state || 'AL'} placeholder="State" className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                    </div>
                   </div>
                   <textarea name="notes" placeholder="Special instructions / what you're loading" rows={3} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
                   <button type="submit" disabled={submitting} className="w-full bg-[#39FF14] text-black font-bold py-3 rounded-lg active:bg-lime-500 disabled:opacity-50">
@@ -907,11 +955,57 @@ export default function WarehousePage() {
                     Use when you bring our materials back from a job. Posts a credit
                     memo against the job&apos;s material cost ledger.
                   </p>
-                  <input name="jobNumber" placeholder="Job # (R-XXXXX)" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
-                  <input name="customerName" placeholder="Customer name" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
-                  <input name="jobAddress" placeholder="Pickup address (optional)" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
-                  <input name="city" placeholder="City" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
-                  <textarea name="reason" placeholder="What came back and why" rows={3} required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                  <div className="text-[11px] text-[#39FF14] font-semibold flex items-center gap-1">
+                    <Search className="w-3 h-3" /> Type the R-number to pull the job &amp; its delivered items
+                  </div>
+                  <JobSearchAutocomplete
+                    onSelect={hit => { setJobPrefill(hit); loadReturnLines(hit.rNumber); }}
+                    onInputChange={v => setJobPrefill(p => ({ ...p, rNumber: v }))}
+                    placeholder="R-number, customer, or address…"
+                  />
+                  <input type="hidden" name="jobNumber" value={jobPrefill.rNumber || ''} readOnly />
+                  <div key={jobPrefill.jnid || 'blank'} className="space-y-3">
+                    <input name="customerName" defaultValue={jobPrefill.customerName || ''} placeholder="Customer name" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                    <input name="jobAddress" defaultValue={jobPrefill.address || ''} placeholder="Pickup address (optional)" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                    <input name="city" defaultValue={jobPrefill.city || ''} placeholder="City" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                    <input type="hidden" name="state" value={jobPrefill.state || 'AL'} readOnly />
+                  </div>
+                  <div className="border-t border-zinc-800 pt-3">
+                    <div className="text-xs text-gray-400 font-semibold uppercase mb-2">Items coming back</div>
+                    {returnLines.length === 0 ? (
+                      <div className="text-xs text-gray-500 bg-zinc-900 rounded-lg p-3 text-center">
+                        Pick a job above to load its delivered items, then check what&apos;s returning.
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {returnLines.map((l, i) => (
+                          <div key={i} className={`flex items-center gap-2 rounded-lg border px-2 py-2 ${l.checked ? 'bg-[#39FF14]/10 border-[#39FF14]/40' : 'bg-zinc-900 border-zinc-700'}`}>
+                            <button
+                              type="button"
+                              onClick={() => setReturnLines(rl => rl.map((x, j) => (j === i ? { ...x, checked: !x.checked } : x)))}
+                            >
+                              {l.checked ? <CheckCircle2 className="w-5 h-5 text-[#39FF14]" /> : <Circle className="w-5 h-5 text-zinc-500" />}
+                            </button>
+                            <span className="flex-1 text-sm text-white truncate">{l.productName}</span>
+                            <input
+                              type="number"
+                              min={0}
+                              max={l.quantity}
+                              step={1}
+                              value={l.returnQty}
+                              onChange={e => {
+                                const v = Math.max(0, Math.min(l.quantity, Number(e.target.value) || 0));
+                                setReturnLines(rl => rl.map((x, j) => (j === i ? { ...x, returnQty: v, checked: v > 0 } : x)));
+                              }}
+                              className="w-16 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-sm text-white text-right"
+                            />
+                            <span className="text-[10px] text-gray-500 w-10">/ {l.quantity}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <textarea name="reason" placeholder="What came back and why" rows={2} required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
                   <button type="submit" disabled={submitting} className="w-full bg-orange-500 text-white font-bold py-3 rounded-lg active:bg-orange-600 disabled:opacity-50">
                     {submitting ? 'Submitting…' : 'Create Credit Memo'}
                   </button>
@@ -926,9 +1020,19 @@ export default function WarehousePage() {
                   <p className="text-xs text-gray-500">
                     Use when you pick up materials from a job that came from an OUTSIDE vendor (SRS, ABC, GAF Direct, etc.) — NOT our inventory. Sara will chase the vendor credit.
                   </p>
-                  <input name="jobNumber" placeholder="Job # (R-XXXXX)" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
-                  <input name="customerName" placeholder="Customer name" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
-                  <input name="pickupAddress" placeholder="Pickup address" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                  <div className="text-[11px] text-[#39FF14] font-semibold flex items-center gap-1">
+                    <Search className="w-3 h-3" /> Type the R-number to auto-fill from JobNimbus
+                  </div>
+                  <JobSearchAutocomplete
+                    onSelect={setJobPrefill}
+                    onInputChange={v => setJobPrefill(p => ({ ...p, rNumber: v }))}
+                    placeholder="R-number, customer, or address…"
+                  />
+                  <input type="hidden" name="jobNumber" value={jobPrefill.rNumber || ''} readOnly />
+                  <div key={jobPrefill.jnid || 'blank'} className="space-y-3">
+                    <input name="customerName" defaultValue={jobPrefill.customerName || ''} placeholder="Customer name" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                    <input name="pickupAddress" defaultValue={jobPrefill.address || ''} placeholder="Pickup address" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                  </div>
                   <input name="vendorName" placeholder="Vendor (SRS, ABC, GAF…)" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
                   <input name="receiptNumber" placeholder="Vendor receipt # (if known)" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
                   <div className="border-t border-zinc-800 pt-3 space-y-2">

@@ -11,6 +11,7 @@ import { unifiedInventoryService } from '@/lib/unified-inventory-service';
 import { upsertDeliveryScheduleEntry } from '@/lib/delivery-schedule-service';
 import { normalizeLineItemQty } from '@/lib/normalize-line-item-qty';
 import { filterCostByRole } from '@/lib/cost-visibility';
+import { syncTicketPhotoToJN } from '@/lib/jn-photo-sync';
 
 // Best-effort mirror of a status change onto the master Tickets tab — the
 // sheet the warehouse dashboard (/api/warehouse/today) reads. Without this,
@@ -71,6 +72,18 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Ticket not found' }, { status: 404 });
       }
       return NextResponse.json(ticket);
+    }
+
+    // Single ticket by JN reference (R-XXXXX) from the canonical Tickets tab —
+    // used by the Credit Memo form to prefill the return line items from the
+    // job's original delivery. Cost-filtered by role.
+    const reference = searchParams.get('reference');
+    if (reference) {
+      const t = await ticketSheetService.getByReferenceNumber(reference);
+      if (!t) {
+        return NextResponse.json({ error: 'No delivery found for that job number' }, { status: 404 });
+      }
+      return NextResponse.json(filterCostByRole(t, auth.user.role));
     }
 
     // Canonical history source: read the authoritative 'Tickets' tab
@@ -264,7 +277,7 @@ export async function POST(request: NextRequest) {
         try {
           // Surface any UoM auto-conversions on the ticket notes so office
           // staff can see what was changed at a glance.
-          const baseNotes = data.specialInstructions || data.workOrderBody || '';
+          const baseNotes = data.specialInstructions || data.workOrderBody || data.returnReason || '';
           const combinedNotes = [baseNotes, ...uomFormAnomalies].filter(Boolean).join('\n');
           const sheetTicket: SheetTicket = {
             ticketId: ticket.ticketId,
@@ -585,6 +598,13 @@ export async function POST(request: NextRequest) {
           uploadedBy: data.uploadedBy,
           gpsLocation: data.gpsLocation,
           description: data.description,
+        });
+        // Best-effort: surface the delivery photo on the JobNimbus job (as a
+        // note link). Fire-and-forget — never blocks or fails the driver flow.
+        void syncTicketPhotoToJN({
+          ticketId: data.ticketId,
+          photoUrl: data.photoUrl,
+          photoType: data.photoType,
         });
         return NextResponse.json({ success: true, photo });
       }

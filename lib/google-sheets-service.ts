@@ -580,6 +580,31 @@ export interface TeamAccessOverrideRecord {
   updatedAt: string;
 }
 
+/** One delivery-photo → JobNimbus sync attempt (see lib/jn-photo-sync.ts). */
+export interface JnPhotoSyncLogRecord {
+  timestamp: string;
+  ticketId: string;
+  jobNumber: string;
+  photoType: string;
+  photoUrl: string;
+  /** How the photo reached JN — currently always 'note-link'. */
+  mechanism: string;
+  /** 'success' | 'no_job' | 'error' */
+  status: string;
+  error: string;
+}
+
+const JN_PHOTO_SYNC_LOG_COLUMNS = [
+  'timestamp',
+  'ticketId',
+  'jobNumber',
+  'photoType',
+  'photoUrl',
+  'mechanism',
+  'status',
+  'error',
+];
+
 const SHEET_NAMES = {
   TEAM_MEMBERS: 'team-members-import',
   INVENTORY: 'Inventory',
@@ -675,6 +700,10 @@ const SHEET_NAMES = {
   // Driver GPS pings persisted so the office can see Rick on a map.
   DRIVER_LOCATIONS: 'Driver_Locations',
   SYSTEM_HEALTH: 'SystemHealth',
+  // Audit trail for delivery-photo → JobNimbus sync attempts (lib/jn-photo-sync.ts).
+  // One row per attempt, success or failure. Fire-and-forget path, so this log
+  // is the only place failures are visible.
+  JN_PHOTO_SYNC_LOG: 'JN_Photo_Sync_Log',
 } as const;
 
 export type SheetName = (typeof SHEET_NAMES)[keyof typeof SHEET_NAMES];
@@ -4549,6 +4578,30 @@ class GoogleSheetsService {
       return false;
     }
   }
+
+  // ===========================================================================
+  // JN PHOTO SYNC LOG
+  // ===========================================================================
+
+  /**
+   * Append one delivery-photo → JobNimbus sync attempt to JN_Photo_Sync_Log.
+   * Called from lib/jn-photo-sync.ts (fire-and-forget path) — never throws,
+   * returns false on any failure so the caller can't be blocked by a Sheets
+   * outage.
+   */
+  async logJnPhotoSync(record: JnPhotoSyncLogRecord): Promise<boolean> {
+    const ready = await this.init();
+    if (!ready || !this.doc) return false;
+
+    try {
+      const sheet = await this.getOrCreateSheet(SHEET_NAMES.JN_PHOTO_SYNC_LOG, JN_PHOTO_SYNC_LOG_COLUMNS);
+      await sheet.addRow(record as unknown as Record<string, string | number | boolean>);
+      return true;
+    } catch (error) {
+      console.error('Error adding JN photo sync log:', error);
+      return false;
+    }
+  }
 }
 
 // =============================================================================
@@ -4634,6 +4687,7 @@ const sandboxProxy = new Proxy(_realService, {
       'triggerFullSync',
       'saveMeetingPrep', 'updateMeetingPrep',
       'appendNumberSession', 'deleteNumberSession',
+      'logJnPhotoSync',
       // Generic CRUD added 2026-04-09 for the persistence migration:
       'appendGenericRow', 'updateGenericRow', 'upsertGenericRow',
       'deleteGenericRow', 'replaceAllGenericRows',
