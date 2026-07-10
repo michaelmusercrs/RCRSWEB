@@ -138,6 +138,14 @@ export async function GET(request: NextRequest) {
       status: t.status,
       itemCount: (t.materials || []).length,
       totalPieces: (t.materials || []).reduce((sum, m) => sum + (m.quantity || 0), 0),
+      // Driver-safe line items for the pull checklist — name + qty only, NO
+      // cost/price (those are stripped by filterCostByRole anyway, but we
+      // never even include them here).
+      materials: (t.materials || []).map(m => ({
+        productName: m.productName,
+        quantity: m.quantity,
+        unit: (m as { unit?: string }).unit || '',
+      })),
       totalCost: t.totalCost,
       totalPrice: t.totalPrice,
       notes: t.notes,

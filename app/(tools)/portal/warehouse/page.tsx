@@ -32,6 +32,9 @@ import {
   Users,
   X,
   ImageIcon,
+  Circle,
+  ChevronRight,
+  ClipboardCheck,
 } from 'lucide-react';
 
 interface Ticket {
@@ -52,6 +55,7 @@ interface Ticket {
    */
   orderSource?: 'stock' | 'other_vendor';
   supplierName?: string;
+  materials?: Array<{ productName: string; quantity: number; unit?: string }>;
 }
 
 interface TodayPayload {
@@ -96,7 +100,7 @@ interface SuggestedAgent {
   daysSinceVisit: number | null;
 }
 
-type ModalType = null | 'newTicket' | 'creditMemo' | 'vendorReturn' | 'photo';
+type ModalType = null | 'newTicket' | 'creditMemo' | 'vendorReturn' | 'photo' | 'pullList';
 type PhotoMode = 'job_site_before' | 'delivery_proof' | 'job_site_after';
 
 export default function WarehousePage() {
@@ -115,6 +119,8 @@ export default function WarehousePage() {
     photoMode?: PhotoMode;
   }>({});
   const [submitting, setSubmitting] = useState(false);
+  // Pull-checklist: which line-item indices Rick has checked off as pulled.
+  const [checkedItems, setCheckedItems] = useState<Set<number>>(new Set());
 
   // Suggested agents widget
   const [suggestedAgents, setSuggestedAgents] = useState<SuggestedAgent[]>([]);
@@ -169,6 +175,7 @@ export default function WarehousePage() {
   }, [data, fetchSuggestedAgents]);
 
   const openModal = (type: ModalType, ctx: typeof modalContext = {}) => {
+    if (type === 'pullList') setCheckedItems(new Set());
     setModalContext(ctx);
     setModal(type);
   };
@@ -176,6 +183,58 @@ export default function WarehousePage() {
     setModal(null);
     setModalContext({});
     setSubmitting(false);
+    setCheckedItems(new Set());
+  };
+
+  const toggleItem = (idx: number) => {
+    setCheckedItems(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx); else next.add(idx);
+      return next;
+    });
+  };
+
+  // Finalize the pull: (1) upload the "loaded truck" photo, (2) attach it,
+  // (3) advance the ticket to materials_pulled if needed, (4) fire verify-load
+  // (which runs the load-verified aftermath: invoice + breakdown + deduction).
+  const submitLoaded = async (ticket: Ticket, file: File) => {
+    setSubmitting(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('customerId', ticket.ticketId);
+      fd.append('customerName', ticket.jobNumber || '');
+      const upload = await fetch('/api/customer/upload', { method: 'POST', body: fd });
+      if (!upload.ok) throw new Error('Photo upload failed');
+      const { url } = await upload.json();
+
+      await fetch('/api/portal/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add-photo', ticketId: ticket.ticketId,
+          photoType: 'truck_loaded', photoUrl: url, uploadedBy: 'driver',
+        }),
+      });
+
+      if (ticket.status === 'created' || ticket.status === 'assigned') {
+        await fetch('/api/portal/tickets', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'pull-materials', ticketId: ticket.ticketId }),
+        });
+      }
+
+      const res = await fetch('/api/portal/tickets', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'verify-load', ticketId: ticket.ticketId, proofPhotoUrl: url }),
+      });
+      if (!res.ok) throw new Error('Failed to mark loaded');
+      closeModal();
+      refresh();
+    } catch (e) {
+      alert(`Error: ${e instanceof Error ? e.message : String(e)}`);
+      setSubmitting(false);
+    }
   };
 
   useEffect(() => {
@@ -661,9 +720,17 @@ export default function WarehousePage() {
                     <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
                     <span className="truncate">{t.address}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
-                    <Package className="w-3.5 h-3.5" /> {t.itemCount} items · {t.totalPieces} pieces
-                  </div>
+                  <button
+                    onClick={() => openModal('pullList', { ticketId: t.ticketId, jobNumber: t.jobNumber })}
+                    className="w-full flex items-center justify-between gap-2 bg-zinc-800/60 border border-zinc-700 rounded-lg px-3 py-2.5 mb-3 active:bg-zinc-800"
+                  >
+                    <span className="flex items-center gap-2 text-sm text-gray-200">
+                      <Package className="w-4 h-4 text-[#39FF14]" /> {t.itemCount} items · {t.totalPieces} pieces
+                    </span>
+                    <span className="flex items-center gap-1 text-[#39FF14] font-bold text-xs">
+                      Open Pull List <ChevronRight className="w-4 h-4" />
+                    </span>
+                  </button>
                   {t.notes && (
                     <div className="bg-yellow-900/20 border border-yellow-700/30 rounded-lg p-2 text-xs text-yellow-200 mb-3">
                       {t.notes}
@@ -794,6 +861,7 @@ export default function WarehousePage() {
                 {modal === 'newTicket' && 'New Work Order'}
                 {modal === 'creditMemo' && 'Create Credit Memo'}
                 {modal === 'vendorReturn' && 'Vendor Return'}
+                {modal === 'pullList' && 'Pull List'}
                 {modal === 'photo' && (
                   modalContext.photoMode === 'job_site_before' ? 'Pre-Delivery Photo' :
                   modalContext.photoMode === 'delivery_proof' ? 'Drop-Off Proof Photo' :
@@ -906,6 +974,83 @@ export default function WarehousePage() {
                   )}
                 </div>
               )}
+
+              {modal === 'pullList' && (() => {
+                const plTicket = data?.tickets.find(t => t.ticketId === modalContext.ticketId);
+                if (!plTicket) return <div className="text-sm text-gray-400">Ticket not found — pull to refresh.</div>;
+                const mats = plTicket.materials || [];
+                const allChecked = mats.length > 0 && mats.every((_, i) => checkedItems.has(i));
+                return (
+                  <div className="space-y-3">
+                    <div>
+                      <div className="text-base font-bold">{plTicket.customerName}</div>
+                      <div className="text-xs text-gray-400 flex items-center gap-1.5 mt-0.5">
+                        <MapPin className="w-3.5 h-3.5" /> {plTicket.address}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1.5 text-gray-400">
+                        <ClipboardCheck className="w-3.5 h-3.5" /> Check each item as you pull it
+                      </span>
+                      <span className={`font-bold ${allChecked ? 'text-[#39FF14]' : 'text-gray-300'}`}>
+                        {checkedItems.size} / {mats.length} pulled
+                      </span>
+                    </div>
+                    {mats.length === 0 ? (
+                      <div className="text-sm text-gray-500 bg-zinc-900 rounded-lg p-4 text-center">
+                        No line items on this ticket.
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {mats.map((m, i) => {
+                          const done = checkedItems.has(i);
+                          return (
+                            <button
+                              key={i}
+                              onClick={() => toggleItem(i)}
+                              className={`w-full flex items-center gap-3 rounded-lg border px-3 py-3 text-left ${done ? 'bg-[#39FF14]/10 border-[#39FF14]/40' : 'bg-zinc-900 border-zinc-700'}`}
+                            >
+                              {done
+                                ? <CheckCircle2 className="w-6 h-6 text-[#39FF14] flex-shrink-0" />
+                                : <Circle className="w-6 h-6 text-zinc-500 flex-shrink-0" />}
+                              <span className={`flex-1 text-sm font-semibold ${done ? 'text-gray-300 line-through' : 'text-white'}`}>
+                                {m.productName}
+                              </span>
+                              <span className="text-sm font-bold text-[#39FF14] flex-shrink-0">
+                                {m.quantity}{m.unit ? ` ${m.unit}` : ''}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <div className="border-t border-zinc-800 pt-3">
+                      {!allChecked ? (
+                        <div className="text-center text-xs text-gray-500 py-2">
+                          {mats.length === 0 ? 'Nothing to pull.' : `Check off all ${mats.length} items to load the truck.`}
+                        </div>
+                      ) : (
+                        <label className={`block bg-zinc-900 border-2 border-dashed border-[#39FF14]/50 rounded-2xl p-6 text-center cursor-pointer active:bg-zinc-800 ${submitting ? 'opacity-50 pointer-events-none' : ''}`}>
+                          <Camera className="w-9 h-9 text-[#39FF14] mx-auto mb-2" />
+                          <div className="font-bold">Take Photo of Loaded Truck</div>
+                          <div className="text-xs text-gray-500 mt-1">Required — proof it&apos;s loaded</div>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            className="hidden"
+                            disabled={submitting}
+                            onChange={e => { const f = e.target.files?.[0]; if (f) submitLoaded(plTicket, f); }}
+                          />
+                        </label>
+                      )}
+                      {submitting && (
+                        <div className="text-center text-sm text-gray-400 mt-2">Loading truck & posting invoice…</div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>

@@ -223,41 +223,47 @@ export async function POST(request: NextRequest) {
   const enrichedMaterials = parsed.materials.map(line => {
     const itemId = matchCatalogItem(line.itemName, catalogPairs);
     if (itemId) matched++;
-    // Defense-in-depth: re-run UoM normalization now that we know the
-    // canonical productId. The parser already did a name-based pass — this
-    // catches anything where the name-substring fallback missed but the
-    // catalog match resolved (e.g., parsed name doesn't contain "Ridge
-    // Vent" but fuzzy-matched INV-0005).
-    const secondPass = normalizeLineItemQty({
-      productId: itemId || undefined,
-      productName: line.itemName,
-      qty: line.quantity,
-      adjacentText: `${line.itemName} ${line.unit || ''}`,
-    });
+    // CRITICAL: if the parser's first pass ALREADY normalized this line's UoM
+    // (e.g. Ridge Vent 160 LF → 40 sticks), do NOT run the second pass.
+    // normalizeLineItemQty divides by linearFeetPerUnit unconditionally when
+    // it sees "LF"/"ft" text, so a second pass on an already-converted qty
+    // divides AGAIN (40 → 10) — a silent under-delivery. The second pass is
+    // defense-in-depth ONLY for lines the name-based first pass MISSED but the
+    // catalog match now resolves.
+    const firstPassConverted =
+      line.originalQuantity !== undefined && line.originalQuantity !== line.quantity;
     let finalQty = line.quantity;
-    if (secondPass.converted) {
-      finalQty = secondPass.qty;
+    if (firstPassConverted) {
+      // Already converted by the parser — log the anomaly, do NOT re-convert.
       uomAnomalies.push({
         itemName: line.itemName,
         itemId,
-        originalQty: secondPass.originalQty,
-        normalizedQty: secondPass.qty,
-        reason: secondPass.reason,
-        warning: secondPass.warning,
-      });
-      console.warn(
-        `[material-order-webhook] UoM second-pass convert: ${itemId || line.itemName} qty=${secondPass.originalQty} → ${secondPass.qty} (${secondPass.reason})`,
-      );
-    } else if (line.originalQuantity !== undefined && line.originalQuantity !== line.quantity) {
-      // First-pass conversion already happened in the parser — still log it.
-      uomAnomalies.push({
-        itemName: line.itemName,
-        itemId,
-        originalQty: line.originalQuantity,
+        originalQty: line.originalQuantity!,
         normalizedQty: line.quantity,
         reason: line.uomNormalizationReason || 'parser_first_pass',
         warning: line.uomNormalizationWarning,
       });
+    } else {
+      const secondPass = normalizeLineItemQty({
+        productId: itemId || undefined,
+        productName: line.itemName,
+        qty: line.quantity,
+        adjacentText: `${line.itemName} ${line.unit || ''}`,
+      });
+      if (secondPass.converted) {
+        finalQty = secondPass.qty;
+        uomAnomalies.push({
+          itemName: line.itemName,
+          itemId,
+          originalQty: secondPass.originalQty,
+          normalizedQty: secondPass.qty,
+          reason: secondPass.reason,
+          warning: secondPass.warning,
+        });
+        console.warn(
+          `[material-order-webhook] UoM second-pass convert: ${itemId || line.itemName} qty=${secondPass.originalQty} → ${secondPass.qty} (${secondPass.reason})`,
+        );
+      }
     }
     return { ...line, itemId, quantity: finalQty };
   });
