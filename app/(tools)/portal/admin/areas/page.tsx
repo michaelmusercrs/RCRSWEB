@@ -299,7 +299,7 @@ function AreaEditor({
                   '/uploads/area-madison.jpg',
                   '/uploads/area-athens.jpg',
                   '/uploads/area-birmingham.jpg',
-                  '/uploads/area-nashville.webp',
+                  '/uploads/area-nashville.jpg',
                   '/uploads/area-north-alabama.png',
                 ].map(img => (
                   <button

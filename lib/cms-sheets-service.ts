@@ -441,8 +441,8 @@ class CMSSheetsService {
     const defaultImages = [
       { filename: 'chris-muse.png', path: '/uploads/chris-muse.png', category: 'Team' },
       { filename: 'michael-muse.png', path: '/uploads/michael-muse.png', category: 'Team' },
-      { filename: 'service-residential.png', path: '/uploads/service-residential.png', category: 'Services' },
-      { filename: 'service-commercial.png', path: '/uploads/service-commercial.png', category: 'Services' },
+      { filename: 'service-residential.png', path: '/uploads/service-residential.jpg', category: 'Services' },
+      { filename: 'service-commercial.png', path: '/uploads/service-commercial.jpg', category: 'Services' },
       { filename: 'service-storm.jpg', path: '/uploads/service-storm.jpg', category: 'Services' },
       { filename: 'cert-iko.png', path: '/uploads/cert-iko.png', category: 'Certifications' },
       { filename: 'cert-owens-corning.png', path: '/uploads/cert-owens-corning.png', category: 'Certifications' },

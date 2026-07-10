@@ -681,11 +681,11 @@ export default async function HomePage() {
                 <div className="grid grid-cols-2">
                   <div className="relative h-40 sm:h-56">
                     <div className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-red-600 text-white px-2 py-0.5 rounded-md font-bold text-xs z-10">BEFORE</div>
-                    <Image src="/uploads/service-residential.png" alt="Before: Aging residential roof in Madison" fill className="object-cover" loading="lazy" sizes="(max-width: 768px) 50vw, 25vw" />
+                    <Image src="/uploads/service-residential.jpg" alt="Before: Aging residential roof in Madison" fill className="object-cover" loading="lazy" sizes="(max-width: 768px) 50vw, 25vw" />
                   </div>
                   <div className="relative h-40 sm:h-56">
                     <div className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-brand-green text-black px-2 py-0.5 rounded-md font-bold text-xs z-10">AFTER</div>
-                    <Image src="/uploads/service-commercial.png" alt="After: Premium roof installation in Madison" fill className="object-cover" loading="lazy" sizes="(max-width: 768px) 50vw, 25vw" />
+                    <Image src="/uploads/service-commercial.jpg" alt="After: Premium roof installation in Madison" fill className="object-cover" loading="lazy" sizes="(max-width: 768px) 50vw, 25vw" />
                   </div>
                 </div>
                 <CardContent className="p-5">

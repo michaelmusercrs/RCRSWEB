@@ -42,7 +42,7 @@ export const services: Service[] = [
   {
     id: 1,
     slug: 'residential-roof-replacement',
-    image: '/uploads/service-residential.png',
+    image: '/uploads/service-residential.jpg',
     title: 'Residential Roof Replacement',
     category: 'Primary',
     description: 'Complete residential roof replacement in Decatur, Huntsville & North Alabama with IKO Dynasty, Owens Corning & premium architectural shingles. 5-year workmanship warranty included.',
@@ -124,7 +124,7 @@ export const services: Service[] = [
   {
     id: 3,
     slug: 'commercial-roofing',
-    image: '/uploads/service-commercial.png',
+    image: '/uploads/service-commercial.jpg',
     title: 'Commercial Roofing',
     category: 'Primary',
     description: 'Commercial roofing contractor in Huntsville, Decatur & North Alabama. TPO, EPDM, modified bitumen & metal roofing for flat and low-slope commercial buildings.',
@@ -194,7 +194,7 @@ export const services: Service[] = [
   {
     id: 5,
     slug: 'chimney-services',
-    image: '/uploads/service-chimney.png',
+    image: '/uploads/service-chimney.jpg',
     title: 'Chimney Services',
     category: 'Primary',
     description: 'Professional chimney cap installation, chimney crown repair and flashing services in Decatur, Huntsville & North Alabama. Prevent water damage and pest intrusion.',
@@ -221,7 +221,7 @@ export const services: Service[] = [
   {
     id: 6,
     slug: 'leafx-gutter-protection',
-    image: '/uploads/service-leafx.png',
+    image: '/uploads/service-leafx.jpg',
     title: 'LeafX® Gutter Protection',
     category: 'Primary',
     description: 'LeafX gutter guard installation in Decatur, Huntsville & North Alabama by a Boral Certified LeafX Dealer & Pro Installer. .024-gauge aluminum gutter protection with a lifetime clog-free guarantee. Stop cleaning gutters forever.',
@@ -863,7 +863,7 @@ export const serviceAreas: ServiceArea[] = [
     id: 8,
     slug: 'nashville-tn',
     mapQuery: 'Nashville,+TN',
-    image: '/uploads/area-nashville.webp',
+    image: '/uploads/area-nashville.jpg',
     altText: 'Nashville Tennessee skyline - roofing services expansion area',
     description: 'Future expansion to Music City. Commercial and residential roofing services coming 2026.',
     name: 'Nashville',

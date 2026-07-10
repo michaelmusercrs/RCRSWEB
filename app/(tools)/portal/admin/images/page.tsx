@@ -37,11 +37,11 @@ const sampleImages: ImageFile[] = [
   { name: 'danny-ray-muse.png', path: '/uploads/danny-ray-muse.png', category: 'Team' },
 
   // Services
-  { name: 'service-residential.png', path: '/uploads/service-residential.png', category: 'Services' },
-  { name: 'service-commercial.png', path: '/uploads/service-commercial.png', category: 'Services' },
+  { name: 'service-residential.png', path: '/uploads/service-residential.jpg', category: 'Services' },
+  { name: 'service-commercial.png', path: '/uploads/service-commercial.jpg', category: 'Services' },
   { name: 'service-storm.jpg', path: '/uploads/service-storm.jpg', category: 'Services' },
-  { name: 'service-chimney.png', path: '/uploads/service-chimney.png', category: 'Services' },
-  { name: 'service-leafx.png', path: '/uploads/service-leafx.png', category: 'Services' },
+  { name: 'service-chimney.png', path: '/uploads/service-chimney.jpg', category: 'Services' },
+  { name: 'service-leafx.png', path: '/uploads/service-leafx.jpg', category: 'Services' },
 
   // Certifications
   { name: 'cert-iko.png', path: '/uploads/cert-iko.png', category: 'Certifications' },
@@ -57,15 +57,15 @@ const sampleImages: ImageFile[] = [
   { name: 'area-madison.jpg', path: '/uploads/area-madison.jpg', category: 'Areas' },
   { name: 'area-athens.jpg', path: '/uploads/area-athens.jpg', category: 'Areas' },
   { name: 'area-birmingham.jpg', path: '/uploads/area-birmingham.jpg', category: 'Areas' },
-  { name: 'area-nashville.webp', path: '/uploads/area-nashville.webp', category: 'Areas' },
+  { name: 'area-nashville.webp', path: '/uploads/area-nashville.jpg', category: 'Areas' },
   { name: 'area-north-alabama.png', path: '/uploads/area-north-alabama.png', category: 'Areas' },
 
   // Blog Images
-  { name: 'blog-choosing-the-right-roofing-material.png', path: '/uploads/blog-choosing-the-right-roofing-material.png', category: 'Blog' },
-  { name: 'blog-signs-you-need-a-new-roof.png', path: '/uploads/blog-signs-you-need-a-new-roof.png', category: 'Blog' },
-  { name: 'blog-summer-heat-roof-damage.png', path: '/uploads/blog-summer-heat-roof-damage.png', category: 'Blog' },
-  { name: 'blog-benefits-of-local-roofing-contractor.png', path: '/uploads/blog-benefits-of-local-roofing-contractor.png', category: 'Blog' },
-  { name: 'blog-commercial-roof-maintenance-cullman.png', path: '/uploads/blog-commercial-roof-maintenance-cullman.png', category: 'Blog' },
+  { name: 'blog-choosing-the-right-roofing-material.png', path: '/uploads/blog-choosing-the-right-roofing-material.jpg', category: 'Blog' },
+  { name: 'blog-signs-you-need-a-new-roof.png', path: '/uploads/blog-signs-you-need-a-new-roof.jpg', category: 'Blog' },
+  { name: 'blog-summer-heat-roof-damage.png', path: '/uploads/blog-summer-heat-roof-damage.jpg', category: 'Blog' },
+  { name: 'blog-benefits-of-local-roofing-contractor.png', path: '/uploads/blog-benefits-of-local-roofing-contractor.jpg', category: 'Blog' },
+  { name: 'blog-commercial-roof-maintenance-cullman.png', path: '/uploads/blog-commercial-roof-maintenance-cullman.jpg', category: 'Blog' },
   { name: 'blog-roof-leaks-and-your-attic.jpg', path: '/uploads/blog-roof-leaks-and-your-attic.jpg', category: 'Blog' },
 ];
 

@@ -277,11 +277,11 @@ function ServiceEditor({
               {/* Quick Select */}
               <div className="flex flex-wrap gap-2">
                 {[
-                  '/uploads/service-residential.png',
-                  '/uploads/service-commercial.png',
+                  '/uploads/service-residential.jpg',
+                  '/uploads/service-commercial.jpg',
                   '/uploads/service-storm.jpg',
-                  '/uploads/service-chimney.png',
-                  '/uploads/service-leafx.png',
+                  '/uploads/service-chimney.jpg',
+                  '/uploads/service-leafx.jpg',
                 ].map(img => (
                   <button
                     key={img}
