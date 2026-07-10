@@ -160,7 +160,7 @@ function isTemplateAllowed(template: EmailTemplate | undefined): boolean {
   // dropped as 'template_not_allowed', silently killing every storm-report
   // lead and the office copy of every website lead. See email-callsite-audit.
   const list = (process.env.ALLOWED_EMAIL_TEMPLATES ||
-    'contact-form,new-lead-office,storm-report-sales,load-verified-invoice,driver-new-order')
+    'contact-form,new-lead-office,storm-report-sales,load-verified-invoice,driver-new-order,return-credit')
     .split(',').map(s => s.trim()).filter(Boolean);
   return list.includes(template);
 }
@@ -1027,6 +1027,92 @@ class EmailService {
 
     return this.send({
       template: 'vendor-return',
+      to: recipient,
+      subject,
+      body,
+      fromName: 'RCRS Inventory',
+    });
+  }
+
+  // Notify the office when a STOCK credit memo posts — Rick brought OUR
+  // materials back from a job. Mirrors the material-order invoice email:
+  // PRICE side only, NEVER cost (belt-and-suspenders on the cost rule —
+  // callers must not pass cost fields). INTERNAL ONLY — never goes to the
+  // customer or sales rep. Uses the internal 'return-credit' template tag
+  // (not in CUSTOMER_FACING_TEMPLATES); to actually fire it must be present
+  // in the ALLOWED_EMAIL_TEMPLATES allowlist env.
+  async sendCreditMemoNotification(data: {
+    officeEmail?: string;
+    ticketId: string;
+    invoiceId: string;
+    jobNumber: string;
+    customerName: string;
+    lines: Array<{ name: string; qty: number; unit?: string; unitPrice: number; linePrice: number }>;
+    totalPrice: number;
+    reason?: string;
+    createdByName?: string;
+  }): Promise<{ success: boolean; error?: string }> {
+    const recipient = data.officeEmail || process.env.OFFICE_NOTIFY_EMAIL || 'rcrs@rcrsal.com';
+
+    const subject = `Credit Memo ${data.invoiceId || data.ticketId} — ${data.jobNumber} ${data.customerName}`;
+
+    const fmt = (n: number) => `$${(n || 0).toFixed(2)}`;
+    const tableRows = data.lines.map(l => `
+      <tr>
+        <td style="padding: 6px 8px; border-bottom: 1px solid #eee;">${l.qty} ${l.unit || ''} ${l.name}</td>
+        <td style="padding: 6px 8px; border-bottom: 1px solid #eee; text-align: right;">${fmt(l.unitPrice)}</td>
+        <td style="padding: 6px 8px; border-bottom: 1px solid #eee; text-align: right;">${fmt(l.linePrice)}</td>
+      </tr>
+    `).join('');
+
+    const body = `
+      <div style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto;">
+        <div style="background: #000; padding: 20px; text-align: center;">
+          <h1 style="color: #39FF14; margin: 0;">Credit Memo Posted</h1>
+        </div>
+        <div style="padding: 30px; background: #fff;">
+          <p style="font-size: 14px; color: #555;">
+            Our materials came back to the warehouse from this job. Inventory has been
+            restocked and a credit memo posted against the job's material ledger.
+          </p>
+
+          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+            <tr><td style="padding: 4px 8px;"><strong>Credit Memo:</strong></td><td style="padding: 4px 8px;">${data.invoiceId || '—'}</td></tr>
+            <tr><td style="padding: 4px 8px;"><strong>Ticket:</strong></td><td style="padding: 4px 8px;">${data.ticketId}</td></tr>
+            <tr><td style="padding: 4px 8px;"><strong>Job:</strong></td><td style="padding: 4px 8px;">${data.jobNumber} — ${data.customerName}</td></tr>
+            ${data.createdByName ? `<tr><td style="padding: 4px 8px;"><strong>Posted by:</strong></td><td style="padding: 4px 8px;">${data.createdByName}</td></tr>` : ''}
+          </table>
+
+          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+            <thead>
+              <tr style="background: #f5f5f5;">
+                <th style="padding: 8px; text-align: left;">Item Returned</th>
+                <th style="padding: 8px; text-align: right;">Unit Price</th>
+                <th style="padding: 8px; text-align: right;">Credit</th>
+              </tr>
+            </thead>
+            <tbody>${tableRows}</tbody>
+            <tfoot>
+              <tr style="font-weight: bold; background: #f5f5f5;">
+                <td style="padding: 8px;">TOTAL CREDIT</td>
+                <td style="padding: 8px;"></td>
+                <td style="padding: 8px; text-align: right;">${fmt(data.totalPrice)}</td>
+              </tr>
+            </tfoot>
+          </table>
+
+          ${data.reason ? `<div style="background: #fffbe6; border-left: 3px solid #f0ad4e; padding: 12px; margin: 16px 0;"><strong>Reason:</strong><br>${data.reason.replace(/\n/g, '<br>')}</div>` : ''}
+
+          <p style="font-size: 12px; color: #888; margin-top: 20px;">
+            INTERNAL ONLY. Do not forward to the customer. Amounts shown are the
+            selling price of the returned material (no purchase cost on this email).
+          </p>
+        </div>
+      </div>
+    `;
+
+    return this.send({
+      template: 'return-credit',
       to: recipient,
       subject,
       body,

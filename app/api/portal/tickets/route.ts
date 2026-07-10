@@ -206,11 +206,16 @@ export async function POST(request: NextRequest) {
 
         // Look up the real unitCost for each material from the inventory
         // catalog. The form passes unitPrice (selling) but not cost — cost
-        // lives in the catalog and is the source of truth.
+        // lives in the catalog and is the source of truth. We also keep a
+        // unitPrice lookup as a fallback: the warehouse Return / Credit Memo
+        // form sends bare {productId, qty} lines with no price (Rick's UI is
+        // cost/price-free), so the selling price comes from the catalog.
         const catalog = await unifiedInventoryService.getInventory();
         const costLookup = new Map<string, number>();
+        const priceLookup = new Map<string, number>();
         for (const item of catalog) {
           costLookup.set(item.productId, item.unitCost || 0);
+          priceLookup.set(item.productId, item.unitPrice || 0);
         }
 
         // Step 1: persist via the existing delivery workflow service so the
@@ -251,7 +256,7 @@ export async function POST(request: NextRequest) {
         const sheetMaterials = formMaterials.map(m => {
           const qty = m.quantity || 0;
           const unitCost = costLookup.get(m.productId) || 0;
-          const unitPrice = m.unitPrice || 0;
+          const unitPrice = m.unitPrice || priceLookup.get(m.productId) || 0;
           const lineCost = Math.round(unitCost * qty * 100) / 100;
           const linePrice = Math.round(unitPrice * qty * 100) / 100;
           totalCost += lineCost;
@@ -365,6 +370,65 @@ export async function POST(request: NextRequest) {
           interofficeInvoiceId = record.invoiceId;
         } catch (invErr) {
           console.warn('[tickets] Failed to auto-create interoffice invoice:', invErr);
+        }
+
+        // Step 4b (returns only): email the office the credit memo, like the
+        // material-order invoice email. PRICE side only — never cost. The JN
+        // job note is posted inside createCreditMemoFromReturn (also
+        // best-effort, no cost). Never blocks the response.
+        if (isReturn) {
+          try {
+            const unitByProduct = new Map(formMaterials.map(f => [f.productId, f.unit]));
+            await emailService.sendCreditMemoNotification({
+              ticketId: ticket.ticketId,
+              invoiceId: interofficeInvoiceId,
+              jobNumber: normalizedJobNumber || referenceNumber,
+              customerName: data.customerName || '',
+              lines: sheetMaterials.map(m => ({
+                name: m.productName,
+                qty: m.quantity,
+                unit: unitByProduct.get(m.productId),
+                unitPrice: m.unitPrice,
+                linePrice: m.totalPrice,
+              })),
+              totalPrice: Math.round(totalPrice * 100) / 100,
+              reason: data.returnReason || '',
+              createdByName: auth.user.name,
+            });
+          } catch (cmEmailErr) {
+            console.warn('[tickets] Failed to send credit-memo office email:', cmEmailErr);
+          }
+        }
+
+        // Step 4c (returns only): reduce the job's Job_Breakdowns material
+        // total (PRICE side) by the returned amount. The warehouse form only
+        // carries the R-number, so resolve jobId/jobName from the job's
+        // original delivery ticket when the form didn't send them.
+        // Idempotent per credit-memo id; best-effort.
+        if (isReturn && interofficeInvoiceId) {
+          try {
+            let origDelivery: SheetTicket | null = null;
+            try {
+              const orig = await ticketSheetService.getByReferenceNumber(referenceNumber);
+              if (orig && orig.ticketType === 'delivery') origDelivery = orig;
+            } catch {
+              // fall through with form-supplied identifiers only
+            }
+            const adj = await jobMaterialCostService.applyCreditMemoToBreakdown({
+              creditMemoId: interofficeInvoiceId,
+              jobId: data.jobId || origDelivery?.jobId || '',
+              jobName: data.jobName || origDelivery?.jobName || '',
+              customerName: data.customerName || origDelivery?.customerName || '',
+              creditPrice: Math.round(totalPrice * 100) / 100,
+            });
+            if (!adj.applied) {
+              console.warn(
+                `[tickets] Credit memo ${interofficeInvoiceId} not applied to breakdown: ${adj.reason}`,
+              );
+            }
+          } catch (bdErr) {
+            console.warn('[tickets] Failed to adjust job breakdown for credit memo:', bdErr);
+          }
         }
 
         // Step 5: email stock@rcrsal.com the work order. NO cost in the

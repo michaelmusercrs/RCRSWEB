@@ -102,7 +102,11 @@ interface SuggestedAgent {
   daysSinceVisit: number | null;
 }
 
-type ModalType = null | 'newTicket' | 'creditMemo' | 'vendorReturn' | 'photo' | 'pullList';
+// 'returnMemo' is the merged Return / Credit Memo modal — a STOCK vs OUTSIDE
+// toggle inside it replaces the old separate 'creditMemo' / 'vendorReturn'
+// modals.
+type ModalType = null | 'newTicket' | 'returnMemo' | 'photo' | 'pullList';
+type ReturnMode = 'stock' | 'outside';
 type PhotoMode = 'job_site_before' | 'delivery_proof' | 'job_site_after';
 
 export default function WarehousePage() {
@@ -125,8 +129,15 @@ export default function WarehousePage() {
   const [checkedItems, setCheckedItems] = useState<Set<number>>(new Set());
   // Autofill from JobNimbus by R-number (New Work Order / Credit Memo / Vendor Return).
   const [jobPrefill, setJobPrefill] = useState<Partial<JobSearchHit>>({});
-  // Credit-memo return lines pulled from the job's original delivery ticket.
-  const [returnLines, setReturnLines] = useState<Array<{ productId: string; productName: string; quantity: number; unit?: string; checked: boolean; returnQty: number }>>([]);
+  // Credit-memo return lines. `fromDelivery` lines are autopopulated from the
+  // job's original delivery ticket (returnQty capped at delivered qty);
+  // non-fromDelivery lines were added from the stock-catalog dropdown (no cap).
+  const [returnLines, setReturnLines] = useState<Array<{ productId: string; productName: string; quantity: number; unit?: string; checked: boolean; returnQty: number; fromDelivery: boolean }>>([]);
+  // STOCK (our inventory → credit memo) vs OUTSIDE (vendor return → Sara).
+  const [returnMode, setReturnMode] = useState<ReturnMode>('stock');
+  // Stock catalog for the add-item dropdown (names + units only — no cost).
+  const [catalogItems, setCatalogItems] = useState<Array<{ productId: string; productName: string; unit?: string }>>([]);
+  const [addProductId, setAddProductId] = useState('');
 
   // Suggested agents widget
   const [suggestedAgents, setSuggestedAgents] = useState<SuggestedAgent[]>([]);
@@ -180,8 +191,33 @@ export default function WarehousePage() {
     }
   }, [data, fetchSuggestedAgents]);
 
+  // Fetch the stock catalog for the Return / Credit Memo add-item dropdown.
+  // Driver role — the API strips cost server-side; we only keep id/name/unit.
+  const loadCatalog = useCallback(async () => {
+    try {
+      const res = await fetch('/api/portal/inventory?action=list');
+      if (!res.ok) return;
+      const data = await res.json();
+      const items = ((data.items || []) as Array<Record<string, unknown>>)
+        .map(i => ({
+          productId: String(i.productId || ''),
+          productName: String(i.productName || ''),
+          unit: i.unit ? String(i.unit) : undefined,
+        }))
+        .filter(i => i.productId && i.productName);
+      setCatalogItems(items);
+    } catch {
+      // best-effort — dropdown just stays empty
+    }
+  }, []);
+
   const openModal = (type: ModalType, ctx: typeof modalContext = {}) => {
     if (type === 'pullList') setCheckedItems(new Set());
+    if (type === 'returnMemo') {
+      setReturnMode('stock');
+      setAddProductId('');
+      if (catalogItems.length === 0) void loadCatalog();
+    }
     setJobPrefill({});
     setReturnLines([]);
     setModalContext(ctx);
@@ -194,26 +230,48 @@ export default function WarehousePage() {
     setCheckedItems(new Set());
     setJobPrefill({});
     setReturnLines([]);
+    setAddProductId('');
   };
 
   // When a JobNimbus job is picked in the Credit Memo modal, pull that job's
   // original delivery materials so Rick checks off what's coming back instead
   // of typing line items. Reads the canonical Tickets tab via ?reference=.
   const loadReturnLines = useCallback(async (rNumber: string) => {
-    if (!rNumber) { setReturnLines([]); return; }
+    // Replace only the delivery-sourced lines — dropdown-added stock lines
+    // survive a job (re)pick.
+    if (!rNumber) { setReturnLines(prev => prev.filter(l => !l.fromDelivery)); return; }
     try {
       const res = await fetch(`/api/portal/tickets?reference=${encodeURIComponent(rNumber)}`);
-      if (!res.ok) { setReturnLines([]); return; }
+      if (!res.ok) { setReturnLines(prev => prev.filter(l => !l.fromDelivery)); return; }
       const t = await res.json();
       const mats = (t?.materials || []) as Array<{ productId: string; productName: string; quantity: number; unit?: string }>;
-      setReturnLines(mats.map(m => ({
+      const deliveryLines = mats.map(m => ({
         productId: m.productId, productName: m.productName, quantity: m.quantity || 0,
-        unit: m.unit, checked: false, returnQty: m.quantity || 0,
-      })));
+        unit: m.unit, checked: false, returnQty: m.quantity || 0, fromDelivery: true,
+      }));
+      setReturnLines(prev => [
+        ...deliveryLines,
+        ...prev.filter(l => !l.fromDelivery && !deliveryLines.some(d => d.productId === l.productId)),
+      ]);
     } catch {
-      setReturnLines([]);
+      setReturnLines(prev => prev.filter(l => !l.fromDelivery));
     }
   }, []);
+
+  // Add a stock item from the catalog dropdown to the return lines.
+  // Rick picks the item; qty defaults to 1 (no delivered-qty cap since this
+  // item wasn't on the original delivery ticket).
+  const addStockLine = () => {
+    const item = catalogItems.find(c => c.productId === addProductId);
+    if (!item) return;
+    setReturnLines(prev => prev.some(l => l.productId === item.productId)
+      ? prev
+      : [...prev, {
+          productId: item.productId, productName: item.productName, quantity: 0,
+          unit: item.unit, checked: true, returnQty: 1, fromDelivery: false,
+        }]);
+    setAddProductId('');
+  };
 
   const toggleItem = (idx: number) => {
     setCheckedItems(prev => {
@@ -659,18 +717,11 @@ export default function WarehousePage() {
             <div className="font-bold text-xs text-center">New Ticket</div>
           </button>
           <button
-            onClick={() => openModal('creditMemo')}
+            onClick={() => openModal('returnMemo')}
             className="bg-zinc-900 rounded-2xl p-3 border border-zinc-800 active:bg-zinc-800 flex flex-col items-center gap-1.5"
           >
             <RotateCcw className="w-6 h-6 text-orange-400" />
-            <div className="font-bold text-xs text-center">Credit Memo</div>
-          </button>
-          <button
-            onClick={() => openModal('vendorReturn')}
-            className="bg-zinc-900 rounded-2xl p-3 border border-zinc-800 active:bg-zinc-800 flex flex-col items-center gap-1.5"
-          >
-            <Building2 className="w-6 h-6 text-purple-400" />
-            <div className="font-bold text-xs text-center">Vendor Return</div>
+            <div className="font-bold text-xs text-center">Return / Credit Memo</div>
           </button>
           <Link
             href="/portal/inventory/restock"
@@ -897,8 +948,7 @@ export default function WarehousePage() {
             <div className="sticky top-0 bg-zinc-950 border-b border-zinc-800 px-5 py-4 flex items-center justify-between">
               <h2 className="text-lg font-bold">
                 {modal === 'newTicket' && 'New Work Order'}
-                {modal === 'creditMemo' && 'Create Credit Memo'}
-                {modal === 'vendorReturn' && 'Vendor Return'}
+                {modal === 'returnMemo' && 'Return / Credit Memo'}
                 {modal === 'pullList' && 'Pull List'}
                 {modal === 'photo' && (
                   modalContext.photoMode === 'job_site_before' ? 'Pre-Delivery Photo' :
@@ -946,109 +996,167 @@ export default function WarehousePage() {
                 </form>
               )}
 
-              {modal === 'creditMemo' && (
-                <form
-                  onSubmit={e => { e.preventDefault(); submitCreditMemo(new FormData(e.currentTarget)); }}
-                  className="space-y-3"
-                >
-                  <p className="text-xs text-gray-500">
-                    Use when you bring our materials back from a job. Posts a credit
-                    memo against the job&apos;s material cost ledger.
-                  </p>
-                  <div className="text-[11px] text-[#39FF14] font-semibold flex items-center gap-1">
-                    <Search className="w-3 h-3" /> Type the R-number to pull the job &amp; its delivered items
+              {modal === 'returnMemo' && (
+                <div className="space-y-3">
+                  {/* STOCK vs OUTSIDE toggle */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setReturnMode('stock')}
+                      className={`rounded-xl px-3 py-2.5 border text-sm font-bold flex flex-col items-center gap-0.5 ${
+                        returnMode === 'stock'
+                          ? 'bg-[#39FF14]/15 border-[#39FF14]/50 text-[#39FF14]'
+                          : 'bg-zinc-900 border-zinc-700 text-gray-400'
+                      }`}
+                    >
+                      <span className="flex items-center gap-1.5"><Package className="w-4 h-4" /> STOCK</span>
+                      <span className="text-[10px] font-normal">Our inventory → credit memo</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReturnMode('outside')}
+                      className={`rounded-xl px-3 py-2.5 border text-sm font-bold flex flex-col items-center gap-0.5 ${
+                        returnMode === 'outside'
+                          ? 'bg-purple-500/15 border-purple-500/50 text-purple-300'
+                          : 'bg-zinc-900 border-zinc-700 text-gray-400'
+                      }`}
+                    >
+                      <span className="flex items-center gap-1.5"><Building2 className="w-4 h-4" /> OUTSIDE</span>
+                      <span className="text-[10px] font-normal">Vendor material → Sara</span>
+                    </button>
                   </div>
-                  <JobSearchAutocomplete
-                    onSelect={hit => { setJobPrefill(hit); loadReturnLines(hit.rNumber); }}
-                    onInputChange={v => setJobPrefill(p => ({ ...p, rNumber: v }))}
-                    placeholder="R-number, customer, or address…"
-                  />
-                  <input type="hidden" name="jobNumber" value={jobPrefill.rNumber || ''} readOnly />
-                  <div key={jobPrefill.jnid || 'blank'} className="space-y-3">
-                    <input name="customerName" defaultValue={jobPrefill.customerName || ''} placeholder="Customer name" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
-                    <input name="jobAddress" defaultValue={jobPrefill.address || ''} placeholder="Pickup address (optional)" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
-                    <input name="city" defaultValue={jobPrefill.city || ''} placeholder="City" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
-                    <input type="hidden" name="state" value={jobPrefill.state || 'AL'} readOnly />
-                  </div>
-                  <div className="border-t border-zinc-800 pt-3">
-                    <div className="text-xs text-gray-400 font-semibold uppercase mb-2">Items coming back</div>
-                    {returnLines.length === 0 ? (
-                      <div className="text-xs text-gray-500 bg-zinc-900 rounded-lg p-3 text-center">
-                        Pick a job above to load its delivered items, then check what&apos;s returning.
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {returnLines.map((l, i) => (
-                          <div key={i} className={`flex items-center gap-2 rounded-lg border px-2 py-2 ${l.checked ? 'bg-[#39FF14]/10 border-[#39FF14]/40' : 'bg-zinc-900 border-zinc-700'}`}>
-                            <button
-                              type="button"
-                              onClick={() => setReturnLines(rl => rl.map((x, j) => (j === i ? { ...x, checked: !x.checked } : x)))}
-                            >
-                              {l.checked ? <CheckCircle2 className="w-5 h-5 text-[#39FF14]" /> : <Circle className="w-5 h-5 text-zinc-500" />}
-                            </button>
-                            <span className="flex-1 text-sm text-white truncate">{l.productName}</span>
-                            <input
-                              type="number"
-                              min={0}
-                              max={l.quantity}
-                              step={1}
-                              value={l.returnQty}
-                              onChange={e => {
-                                const v = Math.max(0, Math.min(l.quantity, Number(e.target.value) || 0));
-                                setReturnLines(rl => rl.map((x, j) => (j === i ? { ...x, returnQty: v, checked: v > 0 } : x)));
-                              }}
-                              className="w-16 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-sm text-white text-right"
-                            />
-                            <span className="text-[10px] text-gray-500 w-10">/ {l.quantity}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <textarea name="reason" placeholder="What came back and why" rows={2} required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
-                  <button type="submit" disabled={submitting} className="w-full bg-orange-500 text-white font-bold py-3 rounded-lg active:bg-orange-600 disabled:opacity-50">
-                    {submitting ? 'Submitting…' : 'Create Credit Memo'}
-                  </button>
-                </form>
-              )}
 
-              {modal === 'vendorReturn' && (
-                <form
-                  onSubmit={e => { e.preventDefault(); submitVendorReturn(new FormData(e.currentTarget)); }}
-                  className="space-y-3"
-                >
-                  <p className="text-xs text-gray-500">
-                    Use when you pick up materials from a job that came from an OUTSIDE vendor (SRS, ABC, GAF Direct, etc.) — NOT our inventory. Sara will chase the vendor credit.
-                  </p>
-                  <div className="text-[11px] text-[#39FF14] font-semibold flex items-center gap-1">
-                    <Search className="w-3 h-3" /> Type the R-number to auto-fill from JobNimbus
-                  </div>
-                  <JobSearchAutocomplete
-                    onSelect={setJobPrefill}
-                    onInputChange={v => setJobPrefill(p => ({ ...p, rNumber: v }))}
-                    placeholder="R-number, customer, or address…"
-                  />
-                  <input type="hidden" name="jobNumber" value={jobPrefill.rNumber || ''} readOnly />
-                  <div key={jobPrefill.jnid || 'blank'} className="space-y-3">
-                    <input name="customerName" defaultValue={jobPrefill.customerName || ''} placeholder="Customer name" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
-                    <input name="pickupAddress" defaultValue={jobPrefill.address || ''} placeholder="Pickup address" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
-                  </div>
-                  <input name="vendorName" placeholder="Vendor (SRS, ABC, GAF…)" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
-                  <input name="receiptNumber" placeholder="Vendor receipt # (if known)" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
-                  <div className="border-t border-zinc-800 pt-3 space-y-2">
-                    <div className="text-xs text-gray-400 font-semibold uppercase">Material picked up</div>
-                    <input name="description" placeholder="Description" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
-                    <div className="grid grid-cols-3 gap-2">
-                      <input name="quantity" type="number" step="1" placeholder="Qty" required className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
-                      <input name="unit" placeholder="Unit" className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
-                      <input name="estValue" type="number" step="0.01" placeholder="Est. $" className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
-                    </div>
-                  </div>
-                  <textarea name="notes" placeholder="Notes for Sara" rows={2} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
-                  <button type="submit" disabled={submitting} className="w-full bg-purple-500 text-white font-bold py-3 rounded-lg active:bg-purple-600 disabled:opacity-50">
-                    {submitting ? 'Submitting…' : 'Send to Sara'}
-                  </button>
-                </form>
+                  {returnMode === 'stock' && (
+                    <form
+                      onSubmit={e => { e.preventDefault(); submitCreditMemo(new FormData(e.currentTarget)); }}
+                      className="space-y-3"
+                    >
+                      <p className="text-xs text-gray-500">
+                        Use when you bring OUR materials back from a job. Restocks inventory and posts a credit
+                        memo against the job&apos;s material ledger.
+                      </p>
+                      <div className="text-[11px] text-[#39FF14] font-semibold flex items-center gap-1">
+                        <Search className="w-3 h-3" /> Type the R-number to pull the job &amp; its delivered items
+                      </div>
+                      <JobSearchAutocomplete
+                        onSelect={hit => { setJobPrefill(hit); loadReturnLines(hit.rNumber); }}
+                        onInputChange={v => setJobPrefill(p => ({ ...p, rNumber: v }))}
+                        placeholder="R-number, customer, or address…"
+                      />
+                      <input type="hidden" name="jobNumber" value={jobPrefill.rNumber || ''} readOnly />
+                      <div key={jobPrefill.jnid || 'blank'} className="space-y-3">
+                        <input name="customerName" defaultValue={jobPrefill.customerName || ''} placeholder="Customer name" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                        <input name="jobAddress" defaultValue={jobPrefill.address || ''} placeholder="Pickup address (optional)" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                        <input name="city" defaultValue={jobPrefill.city || ''} placeholder="City" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                        <input type="hidden" name="state" value={jobPrefill.state || 'AL'} readOnly />
+                      </div>
+                      <div className="border-t border-zinc-800 pt-3">
+                        <div className="text-xs text-gray-400 font-semibold uppercase mb-2">Items coming back</div>
+                        {returnLines.length === 0 ? (
+                          <div className="text-xs text-gray-500 bg-zinc-900 rounded-lg p-3 text-center">
+                            Pick a job above to load its delivered items, or add stock items below.
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {returnLines.map((l, i) => (
+                              <div key={i} className={`flex items-center gap-2 rounded-lg border px-2 py-2 ${l.checked ? 'bg-[#39FF14]/10 border-[#39FF14]/40' : 'bg-zinc-900 border-zinc-700'}`}>
+                                <button
+                                  type="button"
+                                  onClick={() => setReturnLines(rl => rl.map((x, j) => (j === i ? { ...x, checked: !x.checked } : x)))}
+                                >
+                                  {l.checked ? <CheckCircle2 className="w-5 h-5 text-[#39FF14]" /> : <Circle className="w-5 h-5 text-zinc-500" />}
+                                </button>
+                                <span className="flex-1 text-sm text-white truncate">{l.productName}</span>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  {...(l.fromDelivery ? { max: l.quantity } : {})}
+                                  step={1}
+                                  value={l.returnQty}
+                                  onChange={e => {
+                                    const raw = Math.max(0, Number(e.target.value) || 0);
+                                    const v = l.fromDelivery ? Math.min(l.quantity, raw) : raw;
+                                    setReturnLines(rl => rl.map((x, j) => (j === i ? { ...x, returnQty: v, checked: v > 0 } : x)));
+                                  }}
+                                  className="w-16 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-sm text-white text-right"
+                                />
+                                <span className="text-[10px] text-gray-500 w-10">
+                                  {l.fromDelivery ? `/ ${l.quantity}` : (l.unit || 'added')}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {/* Add any stock item from the catalog (not on the delivery) */}
+                        <div className="flex items-center gap-2 mt-2">
+                          <select
+                            value={addProductId}
+                            onChange={e => setAddProductId(e.target.value)}
+                            className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-2 text-sm text-white"
+                          >
+                            <option value="">+ Add stock item…</option>
+                            {catalogItems
+                              .filter(c => !returnLines.some(l => l.productId === c.productId))
+                              .map(c => (
+                                <option key={c.productId} value={c.productId}>{c.productName}</option>
+                              ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={addStockLine}
+                            disabled={!addProductId}
+                            className="px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-sm font-bold text-[#39FF14] disabled:opacity-40"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <textarea name="reason" placeholder="What came back and why" rows={2} required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                      <button type="submit" disabled={submitting} className="w-full bg-orange-500 text-white font-bold py-3 rounded-lg active:bg-orange-600 disabled:opacity-50">
+                        {submitting ? 'Submitting…' : 'Create Credit Memo'}
+                      </button>
+                    </form>
+                  )}
+
+                  {returnMode === 'outside' && (
+                    <form
+                      onSubmit={e => { e.preventDefault(); submitVendorReturn(new FormData(e.currentTarget)); }}
+                      className="space-y-3"
+                    >
+                      <p className="text-xs text-gray-500">
+                        Use when you pick up materials from a job that came from an OUTSIDE vendor (SRS, ABC, GAF Direct, etc.) — NOT our inventory. Sara will chase the vendor credit. Our stock is NOT restocked.
+                      </p>
+                      <div className="text-[11px] text-[#39FF14] font-semibold flex items-center gap-1">
+                        <Search className="w-3 h-3" /> Type the R-number to auto-fill from JobNimbus
+                      </div>
+                      <JobSearchAutocomplete
+                        onSelect={setJobPrefill}
+                        onInputChange={v => setJobPrefill(p => ({ ...p, rNumber: v }))}
+                        placeholder="R-number, customer, or address…"
+                      />
+                      <input type="hidden" name="jobNumber" value={jobPrefill.rNumber || ''} readOnly />
+                      <div key={jobPrefill.jnid || 'blank'} className="space-y-3">
+                        <input name="customerName" defaultValue={jobPrefill.customerName || ''} placeholder="Customer name" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                        <input name="pickupAddress" defaultValue={jobPrefill.address || ''} placeholder="Pickup address" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                      </div>
+                      <input name="vendorName" placeholder="Vendor (SRS, ABC, GAF…)" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                      <input name="receiptNumber" placeholder="Vendor receipt # (if known)" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                      <div className="border-t border-zinc-800 pt-3 space-y-2">
+                        <div className="text-xs text-gray-400 font-semibold uppercase">Material picked up</div>
+                        <input name="description" placeholder="Description" required className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                        <div className="grid grid-cols-3 gap-2">
+                          <input name="quantity" type="number" step="1" placeholder="Qty" required className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                          <input name="unit" placeholder="Unit" className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                          <input name="estValue" type="number" step="0.01" placeholder="Est. $" className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                        </div>
+                      </div>
+                      <textarea name="notes" placeholder="Notes for Sara" rows={2} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-500" />
+                      <button type="submit" disabled={submitting} className="w-full bg-purple-500 text-white font-bold py-3 rounded-lg active:bg-purple-600 disabled:opacity-50">
+                        {submitting ? 'Submitting…' : 'Send to Sara'}
+                      </button>
+                    </form>
+                  )}
+                </div>
               )}
 
               {modal === 'photo' && (

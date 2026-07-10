@@ -297,23 +297,25 @@ export default function RestockPage() {
       return;
     }
 
+    // Cost is OPTIONAL — Rick just enters what came in (qty). If he knows the
+    // supplier price he can type it, but it's not required; the office
+    // cost-verifies the shipment afterward. Only qty + product are mandatory.
     const validLines = lines
       .map((l) => {
         const quantity = parseFloat(l.quantity);
-        const unitCost = parseFloat(l.unitCost);
+        const parsedCost = parseFloat(l.unitCost);
+        const unitCost = Number.isFinite(parsedCost) && parsedCost >= 0 ? parsedCost : 0;
         return { line: l, quantity, unitCost };
       })
       .filter(
         (x) =>
           x.line.productId &&
           Number.isFinite(x.quantity) &&
-          x.quantity > 0 &&
-          Number.isFinite(x.unitCost) &&
-          x.unitCost >= 0,
+          x.quantity > 0,
       );
 
     if (validLines.length === 0) {
-      setSubmitError('Add at least one item with a product, quantity, and unit cost.');
+      setSubmitError('Add at least one item with a product and quantity.');
       return;
     }
 
@@ -338,7 +340,7 @@ export default function RestockPage() {
             notes:
               `Restock from ${supplier.trim()}` +
               (receiptNumber.trim() ? ` (receipt ${receiptNumber.trim()})` : '') +
-              ` @ $${unitCost.toFixed(2)}/${line.unit || 'unit'}`,
+              (unitCost > 0 ? ` @ $${unitCost.toFixed(2)}/${line.unit || 'unit'}` : ''),
           }),
         });
         if (!res.ok) {
@@ -672,7 +674,7 @@ export default function RestockPage() {
                     </div>
                     <div>
                       {/* THE one cost field visible to the driver. */}
-                      <label className="text-xs text-zinc-500 block mb-1">Unit cost</label>
+                      <label className="text-xs text-zinc-500 block mb-1">Unit cost (optional)</label>
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500">
                           $

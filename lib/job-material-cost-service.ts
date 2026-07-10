@@ -28,6 +28,36 @@
 
 import { googleSheetsService, SHEET_NAMES } from './google-sheets-service';
 import crypto from 'crypto';
+import { JWT } from 'google-auth-library';
+import { GoogleSpreadsheet } from 'google-spreadsheet';
+
+/**
+ * Open the master spreadsheet directly (same pattern as
+ * lib/load-verified-aftermath.ts). Used for the Job_Breakdowns credit-memo
+ * adjustment — direct row access is safest against the tab's mixed header
+ * history (getOrCreateSheet header-fixing is avoided on purpose).
+ */
+async function openMasterDocForBreakdowns(): Promise<GoogleSpreadsheet | null> {
+  const sheetsId =
+    process.env.GOOGLE_SHEETS_ID ||
+    process.env.DELIVERY_SHEETS_ID ||
+    process.env.GOOGLE_SHEET_ID;
+  const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n').replace(/\r\n/g, '\n').trim();
+  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL?.trim();
+  if (!sheetsId || !email || !privateKey) return null;
+  const auth = new JWT({
+    email,
+    key: privateKey,
+    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+  });
+  const doc = new GoogleSpreadsheet(sheetsId, auth);
+  await doc.loadInfo();
+  return doc;
+}
+
+function moneyNum(v: unknown): number {
+  return parseFloat(String(v ?? '').replace(/[$,]/g, '')) || 0;
+}
 
 export type JobMaterialCostType = 'invoice' | 'credit_memo';
 export type JobMaterialCostStatus = 'draft' | 'posted' | 'voided';
@@ -316,6 +346,79 @@ class JobMaterialCostService {
   }
 
   /**
+   * Apply a credit memo to the job's Job_Breakdowns row: reduce the
+   * breakdown's material total (PRICE side — never cost) by the returned
+   * amount. Matches the row the same way the load-verified aftermath /
+   * auto-finalize cron create them: jobId first, then jobName, then
+   * customerName as a last resort.
+   *
+   * Idempotent per credit-memo id — a `[CM-APPLIED <id>]` marker is stamped
+   * into the row's notes and checked before applying, so retries or a
+   * double-submitted return can't subtract twice.
+   *
+   * Best-effort by contract: throws on hard failures; callers wrap in
+   * try/catch so the return-ticket response is never blocked.
+   */
+  async applyCreditMemoToBreakdown(input: {
+    creditMemoId: string;
+    jobId?: string;
+    jobName?: string;
+    customerName?: string;
+    /** Total PRICE (selling) of the returned lines. NEVER pass cost. */
+    creditPrice: number;
+  }): Promise<{ applied: boolean; reason?: string; breakdownId?: string }> {
+    const creditPrice = Math.round((input.creditPrice || 0) * 100) / 100;
+    if (!input.creditMemoId || creditPrice <= 0) {
+      return { applied: false, reason: 'nothing to apply (no credit-memo id or zero price)' };
+    }
+
+    const doc = await openMasterDocForBreakdowns();
+    if (!doc) return { applied: false, reason: 'Google Sheets credentials not configured' };
+    const sheet = doc.sheetsByTitle[SHEET_NAMES.JOB_BREAKDOWNS];
+    if (!sheet) return { applied: false, reason: 'Job_Breakdowns tab not found' };
+
+    const rows = await sheet.getRows({ limit: 100000 });
+    let row = null;
+    if (input.jobId) {
+      row = rows.find(r => (r.get('jobId') || '') === input.jobId) || null;
+    }
+    if (!row && input.jobName) {
+      row = rows.find(r => (r.get('jobName') || '') === input.jobName) || null;
+    }
+    if (!row && input.customerName) {
+      const want = input.customerName.toLowerCase().trim();
+      row = rows.find(r => (r.get('customerName') || '').toLowerCase().trim() === want) || null;
+    }
+    if (!row) return { applied: false, reason: 'no breakdown row found for job' };
+
+    // Idempotency marker — one application per credit-memo id.
+    const marker = `[CM-APPLIED ${input.creditMemoId}]`;
+    const notes = row.get('notes') || '';
+    if (notes.includes(marker)) {
+      return { applied: false, reason: 'already applied (idempotent)', breakdownId: row.get('breakdownId') || '' };
+    }
+
+    const materialTotal = moneyNum(row.get('materialTotal'));
+    const newMaterialTotal = Math.max(0, Math.round((materialTotal - creditPrice) * 100) / 100);
+    // Amount actually subtracted (floored at 0 so a bad qty can't go negative).
+    const delta = Math.round((materialTotal - newMaterialTotal) * 100) / 100;
+
+    row.set('materialTotal', newMaterialTotal.toFixed(2));
+    const totalEstimate = moneyNum(row.get('totalEstimate'));
+    if (totalEstimate > 0) {
+      row.set('totalEstimate', Math.max(0, Math.round((totalEstimate - delta) * 100) / 100).toFixed(2));
+    }
+    row.set('updatedAt', new Date().toISOString());
+    row.set(
+      'notes',
+      `${notes}${notes ? '\n' : ''}${marker} Credit memo reduced material total by $${delta.toFixed(2)} (price side).`,
+    );
+    await row.save();
+
+    return { applied: true, breakdownId: row.get('breakdownId') || '' };
+  }
+
+  /**
    * Read all interoffice invoices for a given job. Returns invoices and
    * credit memos in chronological order.
    */
@@ -383,11 +486,13 @@ async function postCreditMemoNoteToJN(record: JobMaterialCostRecord): Promise<vo
   const primaryId =
     (job as { primary?: { id?: string } }).primary?.id || job.jnid;
 
+  // COST RULE: no dollar amounts in the JN note. The Job_Material_Costs
+  // ledger rows carry purchase COST, which must never reach JobNimbus —
+  // the note lists items + qty + the credit-memo id only.
   const lineCount = record.lines.length;
-  const total = record.totalCost.toFixed(2);
   const linesPreview = record.lines
     .slice(0, 5)
-    .map(l => `  • ${l.quantity}× ${l.productName} ($${(l.lineCost || 0).toFixed(2)})`)
+    .map(l => `  • ${l.quantity}× ${l.productName}`)
     .join('\n');
   const moreLines = lineCount > 5 ? `\n  • …and ${lineCount - 5} more` : '';
 
@@ -395,8 +500,7 @@ async function postCreditMemoNoteToJN(record: JobMaterialCostRecord): Promise<vo
     `[Credit Memo ${record.invoiceId}]\n` +
     `Materials returned to warehouse from this job.\n` +
     `Ticket: ${record.referenceNumber || record.ticketId}\n` +
-    `Lines (${lineCount}):\n${linesPreview}${moreLines}\n` +
-    `Total credited (cost): $${total}\n` +
+    `Items (${lineCount}):\n${linesPreview}${moreLines}\n` +
     (record.createdByName ? `Posted by: ${record.createdByName}\n` : '') +
     (record.notes ? `Notes: ${record.notes}` : '');
 

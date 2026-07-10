@@ -1,13 +1,56 @@
 /**
- * Probe: learn the JobNimbus /files shape so uploadFileToJob's POST payload
- * can be verified before it's ever wired into a production path.
+ * Probe: verify the JobNimbus /files READ shape and (gated) WRITE payload so
+ * lib/jobnimbus-service.ts uploadFileToJob stays backed by a live-verified shape.
  *
- * READ-ONLY. This script only GETs. The actual write-probe (POST /files) is
- * commented out at the bottom — JN is a LIVE production CRM and a POST here
- * creates a real file on a real customer job. Do not uncomment during demos
- * or without picking a safe internal/test job first.
+ * Modes:
+ *   node scripts/test-jn-file-upload.mjs [R-XXXXX]          → READ-ONLY probe
+ *   node scripts/test-jn-file-upload.mjs --write [R-XXXXX]  → WRITE probe
  *
- * Run: node scripts/test-jn-file-upload.mjs [R-XXXXX]
+ * The WRITE probe posts a 1x1 transparent PNG named RCRS-UPLOAD-TEST-DELETE.png
+ * (description marks it as a safe-to-delete automated probe), confirms it
+ * appears in GET /files for the job, then DELETEs it. Owner-authorized
+ * 2026-07-10. JN is a LIVE production CRM — the write probe targets R-99001
+ * if it exists, else falls back to R-11305 (or the job passed as argv).
+ *
+ * ── VERIFIED WRITE CONTRACT (live probe, 2026-07-10) ───────────────────────
+ *   POST /files succeeds as plain JSON (multipart NOT needed):
+ *     {
+ *       data: '<base64>',
+ *       filename: 'name.png',
+ *       content_type: 'image/png',        // honored; inferred from ext if omitted
+ *       description: '...',
+ *       type: 2,                          // numeric JN FileTypeId — 2 = Photo.
+ *                                         // Full enum (returned by the API on a
+ *                                         // bad type): 1 Document, 2 Photo,
+ *                                         // 3 Email Attachment, 4 Estimate,
+ *                                         // 5 EagleView, 8 Invoice, 9 Contract,
+ *                                         // 10 Payment, 11 Insurance Summary,
+ *                                         // 13 Permit, 16 JOB BREAKDOWN,
+ *                                         // 18 Customer Acceptance Form,
+ *                                         // 24 Completed Photos
+ *       related: ['<jobJnid>', '<contactJnid>'],  // PLAIN JNID STRINGS!
+ *       persist: true,
+ *       is_active: true,
+ *     }
+ *   → 200 with the created record: JN expands related into {id,type,name},
+ *     derives `primary` (the job) + owners/sales_rep from it, and sets
+ *     record_type/record_type_name from the numeric `type`.
+ *
+ *   Shapes that DO NOT work (all tried live):
+ *     - related: [{ id }] / [{ jnid }] / [{ id, type:'job' }]
+ *         → HTTP 500 "Attempt to relate to invalid document"
+ *     - related: { jnid } (single object) or primary: {...}
+ *         → HTTP 200 but the relation is SILENTLY DROPPED (orphan file)
+ *     - type: 'jnid' or any string → 400 listing valid FileTypeIds
+ *     - record_type_name alone (no `type`) does NOT create the relation
+ *     - multipart/form-data → 500 "Invalid parameters"
+ *
+ *   DELETE /files/{jnid} → 200 {"msg":"success"} — verified cleanup path.
+ *   ⚠️ A DELETE fired within ~1s of the POST can return 200 yet silently
+ *   no-op (observed live: the record survived and stayed on the job). Wait a
+ *   few seconds after create before deleting, and re-check afterward.
+ *   GET /files/{jnid} returns the BINARY, not metadata; metadata comes from
+ *   GET /files?filter={term:{jnid}}. List key is `files`, NOT `results`.
  */
 import fs from 'fs';
 import path from 'path';
@@ -30,6 +73,11 @@ if (!JN_KEY) {
 
 const HEADERS = { Authorization: `Bearer ${JN_KEY}`, 'Content-Type': 'application/json' };
 
+const args = process.argv.slice(2);
+const WRITE = args.includes('--write');
+const jobArg = args.find(a => !a.startsWith('--'));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
 async function getJson(pathAndQuery) {
   const res = await fetch(`${JN_URL}${pathAndQuery}`, { headers: HEADERS });
   if (!res.ok) {
@@ -39,97 +87,101 @@ async function getJson(pathAndQuery) {
   return res.json();
 }
 
-// --- 1. Find a job to inspect (default R-10997 — known-good from prior probes)
-const jobNumber = process.argv[2] || 'R-10997';
-console.log(`=== Looking up job ${jobNumber} ===`);
-const jobFilter = { must: [{ term: { number: jobNumber } }] };
-const jobData = await getJson(`/jobs?filter=${encodeURIComponent(JSON.stringify(jobFilter))}`);
-const job = jobData?.results?.[0];
-if (!job) {
-  console.error(`No JN job found for ${jobNumber} — pass a different number as argv[2].`);
-  process.exit(1);
+async function findJob(jobNumber) {
+  const filter = { must: [{ term: { number: jobNumber } }] };
+  const data = await getJson(`/jobs?filter=${encodeURIComponent(JSON.stringify(filter))}`);
+  return data?.results?.[0] || null;
 }
-console.log(`  jnid: ${job.jnid}  name: ${job.name}  primary.id: ${job.primary?.id}`);
 
-// NOTE (verified 2026-07-10): GET /files returns { count, files } — the list
-// key is `files`, NOT `results` like /jobs and /activities. `pickList`
-// tolerates both in case JN ever normalizes it.
+// GET /files returns { count, files } — list key is `files`, NOT `results`
+// (verified 2026-07-10). pickList tolerates both in case JN ever normalizes.
 const pickList = (data) => data?.files || data?.results || [];
 
-// --- 2. GET /files for that job — this response shape is what a POST must produce
-console.log(`\n=== GET /files for job ${job.jnid} (related.id filter) ===`);
-const fileFilter = { must: [{ term: { 'related.id': job.jnid } }] };
-const jobFiles = await getJson(
-  `/files?filter=${encodeURIComponent(JSON.stringify(fileFilter))}&sort=-created_at&limit=3`,
-);
-console.log(`  count: ${jobFiles?.count ?? '(none)'}`);
-for (const f of pickList(jobFiles)) {
-  const { exif, ...rest } = f; // exif is huge and irrelevant
-  console.log(JSON.stringify(rest, null, 2));
+async function filesForJob(jobJnid, limit = 5) {
+  const filter = { must: [{ term: { 'related.id': jobJnid } }] };
+  return getJson(`/files?filter=${encodeURIComponent(JSON.stringify(filter))}&sort=-created_at&limit=${limit}`);
 }
 
-// --- 3. Bare GET /files — global shape + every field JN stores on a file record
-console.log('\n=== GET /files?limit=2 (global — full field inventory) ===');
-const anyFiles = await getJson('/files?limit=2');
-console.log(`  total files in account: ${anyFiles?.count ?? '?'}`);
-const sample = pickList(anyFiles)[0];
-if (sample) {
-  console.log('  fields present on a file record:');
-  console.log('  ' + Object.keys(sample).sort().join(', '));
-  const { exif, ...rest } = sample;
-  console.log('\n  full sample record (exif stripped):');
-  console.log(JSON.stringify(rest, null, 2));
+// ─── READ-ONLY PROBE ─────────────────────────────────────────────────────────
+if (!WRITE) {
+  const jobNumber = jobArg || 'R-11305';
+  console.log(`=== READ probe — job ${jobNumber} ===`);
+  const job = await findJob(jobNumber);
+  if (!job) {
+    console.error(`No JN job found for ${jobNumber}.`);
+    process.exit(1);
+  }
+  console.log(`  jnid: ${job.jnid}  name: ${job.name}  primary.id: ${job.primary?.id}`);
+
+  const jobFiles = await filesForJob(job.jnid, 3);
+  console.log(`\n=== GET /files for job (count: ${jobFiles?.count ?? '(none)'}) ===`);
+  for (const f of pickList(jobFiles)) {
+    console.log(JSON.stringify({
+      jnid: f.jnid, filename: f.filename, record_type_name: f.record_type_name,
+      content_type: f.content_type, upload_status: f.upload_status,
+      is_active: f.is_active, related: f.related,
+    }, null, 2));
+  }
+  process.exit(0);
 }
 
-console.log(`
-=== FINDINGS (verified from live GET, 2026-07-10) ===
-  1. List response key is \`files\`, NOT \`results\`. (Heads-up: the generic
-     read methods in lib/jobnimbus-service.ts that parse /files via
-     \`.results\` — getFiles / getFilesForJob / getAttachmentsForContact —
-     therefore see empty lists. Separate bug, not touched by this task.)
-  2. \`related\` is an ARRAY of { id, name, number, type } — job relation uses
-     type: 'job'. \`primary\` mirrors the job and is derived by JN.
-  3. \`record_type_name\` is a JN file CATEGORY ('Photo', 'Permit', ...).
-  4. Records carry no \`url\` field — download appears to be a separate
-     endpoint (likely GET /files/{jnid}), so don't expect a URL on create.
-  5. Interesting write-relevant fields on records: is_uploading,
-     upload_status ('completed'), is_private, is_active.
+// ─── WRITE PROBE (owner-authorized) ──────────────────────────────────────────
+console.log('=== WRITE probe ===');
+let job = await findJob(jobArg || 'R-99001');
+if (!job && !jobArg) {
+  console.log('  R-99001 not found — falling back to R-11305');
+  job = await findJob('R-11305');
+}
+if (!job) {
+  console.error('No target job resolvable. Aborting.');
+  process.exit(1);
+}
+const jobJnid = job.jnid;
+const contactJnid = job.primary?.id || job.jnid;
+console.log(`  target job: ${job.number} "${job.name}" jnid=${jobJnid} contact=${contactJnid}`);
 
-=== STILL UNVERIFIED (needs the gated write-probe below) ===
-  A. Whether POST /files accepts JSON with base64 in \`data\` (api1-docs
-     style) or requires multipart/form-data.
-  B. Whether the POST relation shape is related:[{id}] (matching GET) —
-     current best guess in uploadFileToJob — or {jnid} like /activities.
-`);
+const TINY_PNG_B64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+const FILENAME = 'RCRS-UPLOAD-TEST-DELETE.png';
 
-// =============================================================================
-// WRITE-PROBE — INTENTIONALLY DISABLED
-// =============================================================================
-// JN is a live production CRM: a POST /files creates a REAL file on a REAL
-// customer job that office staff will see. Only run this after:
-//   1. Reviewing the GET findings above and adjusting the payload,
-//   2. Choosing a safe target (an internal/test job, NOT a customer job),
-//   3. Being ready to delete the file from the JN UI afterward.
-//
-// To run: replace TEST_JOB_JNID/TEST_CONTACT_JNID with the safe job's ids,
-// uncomment, and run once. The 1x1 transparent PNG below is the smallest
-// possible harmless payload.
-//
-// const TEST_JOB_JNID = 'REPLACE_ME';
-// const TEST_CONTACT_JNID = 'REPLACE_ME';
-// const TINY_PNG_B64 =
-//   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
-// const postRes = await fetch(`${JN_URL}/files`, {
-//   method: 'POST',
-//   headers: HEADERS,
-//   body: JSON.stringify({
-//     data: TINY_PNG_B64,
-//     filename: 'jn-upload-probe.png',
-//     content_type: 'image/png',
-//     related: [{ id: TEST_JOB_JNID }, { id: TEST_CONTACT_JNID }],
-//     record_type_name: 'Photo',
-//     persist: true,
-//     is_active: true,
-//   }),
-// });
-// console.log('POST /files →', postRes.status, await postRes.text());
+// THE verified payload — mirrors lib/jobnimbus-service.ts uploadFileToJob.
+const payload = {
+  data: TINY_PNG_B64,
+  filename: FILENAME,
+  content_type: 'image/png',
+  description: '[RCRS automated upload probe — safe to delete]',
+  type: 2, // Photo
+  related: Array.from(new Set([jobJnid, contactJnid])),
+  persist: true,
+  is_active: true,
+};
+
+console.log('\n--- POST /files (verified payload shape) ---');
+const res = await fetch(`${JN_URL}/files`, {
+  method: 'POST',
+  headers: HEADERS,
+  body: JSON.stringify(payload),
+});
+const text = await res.text();
+console.log(`  HTTP ${res.status}: ${text.slice(0, 800)}`);
+if (!res.ok) {
+  console.error('\nPOST /files FAILED — the verified contract may have changed. See above.');
+  process.exit(1);
+}
+const created = JSON.parse(text);
+console.log(`  created jnid=${created.jnid} record_type_name=${created.record_type_name}`);
+console.log(`  related: ${JSON.stringify(created.related)}`);
+
+// ─── Confirm it appears on the job (ES index needs a beat) ──────────────────
+await sleep(6000);
+const after = await filesForJob(jobJnid, 5);
+const found = pickList(after).find(f => f.jnid === created.jnid);
+console.log(`\n=== verify: GET /files for job — probe file ${found ? 'FOUND' : 'NOT FOUND'} (count ${after?.count}) ===`);
+
+// ─── Cleanup: DELETE the probe file ──────────────────────────────────────────
+console.log(`\n=== cleanup: DELETE /files/${created.jnid} ===`);
+const del = await fetch(`${JN_URL}/files/${created.jnid}`, { method: 'DELETE', headers: HEADERS });
+console.log(`  HTTP ${del.status}: ${(await del.text()).slice(0, 300)}`);
+if (!del.ok) {
+  console.log(`  DELETE failed — delete ${FILENAME} manually from job ${job.number} in the JN UI.`);
+}

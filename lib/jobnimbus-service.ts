@@ -182,6 +182,29 @@ interface JobNimbusInvoice {
   related?: { jnid?: string; id?: string };
 }
 
+/**
+ * JN file-type ids for POST /files `type` (the file CATEGORY, not the record
+ * relation). Enumerated by the live API itself on 2026-07-10 — posting an
+ * invalid `type` returns a 400 listing every FileTypeId for the account.
+ * Reuse for future attachments: stock-order invoices → INVOICE or DOCUMENT,
+ * job breakdowns → JOB_BREAKDOWN.
+ */
+export const JN_FILE_TYPE = {
+  DOCUMENT: 1,
+  PHOTO: 2,
+  EMAIL_ATTACHMENT: 3,
+  ESTIMATE: 4,
+  EAGLEVIEW: 5,
+  INVOICE: 8,
+  CONTRACT: 9,
+  PAYMENT: 10,
+  INSURANCE_SUMMARY: 11,
+  PERMIT: 13,
+  JOB_BREAKDOWN: 16,
+  CUSTOMER_ACCEPTANCE_FORM: 18,
+  COMPLETED_PHOTOS: 24,
+} as const;
+
 // Error types for better error handling
 export class JobNimbusError extends Error {
   constructor(
@@ -454,10 +477,13 @@ class JobNimbusService {
       filter: JSON.stringify(filter),
       sort: '-created_at',
     });
-    const result = await this.apiRequest<{ results: JobNimbusAttachment[] }>(
+    // GET /files returns its list under `files`, NOT `results` (verified via
+    // live probe 2026-07-10 — see scripts/test-jn-file-upload.mjs). Tolerate
+    // both in case JN ever normalizes it.
+    const result = await this.apiRequest<{ files?: JobNimbusAttachment[]; results?: JobNimbusAttachment[] }>(
       `/files?${qs.toString()}`,
     );
-    return redactCostFieldsDeep(result.results || [], effectiveCanSeeCost(viewer));
+    return redactCostFieldsDeep(result.files || result.results || [], effectiveCanSeeCost(viewer));
   }
 
   // Get invoices for a contact
@@ -536,36 +562,43 @@ class JobNimbusService {
    * Upload a file (e.g. a delivery photo) directly onto a JN job via
    * POST /files.
    *
-   * ⚠️ UNVERIFIED PAYLOAD SHAPE — DO NOT WIRE INTO PRODUCTION PATHS YET.
-   * The api1 docs for file creation are thin and we have not run a live
-   * write-probe (a POST creates a real file on a real customer job). The
-   * shipping mechanism for delivery photos is the note-link written by
-   * lib/jn-photo-sync.ts (createNoteOnJob — prod-proven). This method exists
-   * so that, once the payload is confirmed via scripts/test-jn-file-upload.mjs,
-   * the sync can be upgraded to a real file attachment in one line.
-   *
-   * Payload informed by a real GET /files probe (2026-07-10, see
-   * scripts/test-jn-file-upload.mjs): file records return `related` as an
-   * ARRAY of { id, type } (job first), `primary` mirrors the job (JN derives
-   * it), `record_type_name` is a JN file category ('Photo', 'Permit', …),
-   * and the list response key is `files`, NOT `results`. What remains
-   * unverified is the WRITE side: whether POST accepts base64 in `data` as
-   * JSON (per api1 docs) or requires multipart — hence the disabled
-   * write-probe in the script.
+   * ✅ PAYLOAD LIVE-VERIFIED 2026-07-10 (owner-authorized write probe against
+   * R-11305, probe file deleted afterward — see scripts/test-jn-file-upload.mjs):
+   *   - Plain JSON with base64 in `data` works; NO multipart needed.
+   *   - `type` is the numeric JN FileTypeId (see JN_FILE_TYPE; 2 = Photo).
+   *     Do NOT send `record_type_name` or a string type — JN derives
+   *     record_type/record_type_name from the numeric `type`.
+   *   - `related` must be an array of PLAIN JNID STRINGS. Object shapes fail:
+   *     [{ id }] / [{ jnid }] → HTTP 500 "Attempt to relate to invalid
+   *     document"; { jnid } / primary:{...} → 200 but the relation is
+   *     silently DROPPED. JN expands the strings into { id, type, name },
+   *     derives `primary` (the job), and inherits owners/sales_rep from it.
+   *   - `content_type` is honored (and inferred from the filename extension
+   *     if omitted).
+   *   - Cleanup during the probe confirmed DELETE /files/{jnid} works.
    */
   async uploadFileToJob(
     jobJnid: string,
     contactJnid: string,
-    file: { filename: string; contentType: string; base64: string },
+    file: {
+      filename: string;
+      contentType: string;
+      base64: string;
+      description?: string;
+      /** JN FileTypeId — defaults to Photo (2). See JN_FILE_TYPE. */
+      fileType?: number;
+    },
   ): Promise<JobNimbusAttachment> {
+    // Relate to the job + contact so the file surfaces on both records.
+    // Dedupe: callers fall back to the job jnid when no contact is known.
+    const related = Array.from(new Set([jobJnid, contactJnid].filter(Boolean)));
     return this.apiRequest('/files', 'POST', {
       data: file.base64,
       filename: file.filename,
       content_type: file.contentType,
-      // Relate to the job (primary is derived by JN) + the contact so the
-      // file surfaces on both records — mirrors how real files come back.
-      related: [{ id: jobJnid }, { id: contactJnid }],
-      record_type_name: 'Photo',
+      description: file.description,
+      type: file.fileType ?? JN_FILE_TYPE.PHOTO,
+      related,
       persist: true,
       is_active: true,
     });
@@ -579,20 +612,25 @@ class JobNimbusService {
     const query = new URLSearchParams();
     if (params?.limit) query.set('limit', params.limit.toString());
     if (params?.offset) query.set('offset', params.offset.toString());
-    const raw = await this.apiRequest<{ count: number; results: JobNimbusAttachment[] }>(
+    // GET /files returns { count, files } — list key is `files`, NOT
+    // `results` (verified 2026-07-10). Normalize to `results` so callers keep
+    // the same shape as every other list method.
+    const raw = await this.apiRequest<{ count: number; files?: JobNimbusAttachment[]; results?: JobNimbusAttachment[] }>(
       `/files?${query.toString()}`,
     );
-    return redactCostFieldsDeep(raw, effectiveCanSeeCost(viewer));
+    const normalized = { count: raw.count, results: raw.files || raw.results || [] };
+    return redactCostFieldsDeep(normalized, effectiveCanSeeCost(viewer));
   }
 
   // Get files for a job
   // JN filter must be JSON-encoded — see getJobByNumber comment.
   async getFilesForJob(jobJnid: string, viewer?: JNViewer): Promise<JobNimbusAttachment[]> {
     const filter = { must: [{ term: { 'related.id': jobJnid } }] };
-    const result = await this.apiRequest<{ results: JobNimbusAttachment[] }>(
+    // GET /files list key is `files`, NOT `results` (verified 2026-07-10).
+    const result = await this.apiRequest<{ files?: JobNimbusAttachment[]; results?: JobNimbusAttachment[] }>(
       `/files?filter=${encodeURIComponent(JSON.stringify(filter))}&sort=-created_at`,
     );
-    return redactCostFieldsDeep(result.results || [], effectiveCanSeeCost(viewer));
+    return redactCostFieldsDeep(result.files || result.results || [], effectiveCanSeeCost(viewer));
   }
 
   // Create a note on a contact
