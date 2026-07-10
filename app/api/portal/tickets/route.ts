@@ -10,6 +10,7 @@ import { inventoryTabSync } from '@/lib/inventory-tab-sync';
 import { unifiedInventoryService } from '@/lib/unified-inventory-service';
 import { upsertDeliveryScheduleEntry } from '@/lib/delivery-schedule-service';
 import { normalizeLineItemQty } from '@/lib/normalize-line-item-qty';
+import { filterCostByRole } from '@/lib/cost-visibility';
 
 // Best-effort mirror of a status change onto the master Tickets tab — the
 // sheet the warehouse dashboard (/api/warehouse/today) reads. Without this,
@@ -70,6 +71,44 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Ticket not found' }, { status: 404 });
       }
       return NextResponse.json(ticket);
+    }
+
+    // Canonical history source: read the authoritative 'Tickets' tab
+    // (ticketSheetService) — every TKT-* order incl. all email-created
+    // deliveries (600+). The legacy Delivery Tickets tab that
+    // deliveryWorkflowService reads only holds ~20 orphaned rows, so the
+    // Order History page must opt into this via ?source=canonical. Existing
+    // consumers (driver pipeline, etc.) keep the legacy behavior unchanged.
+    if (searchParams.get('source') === 'canonical') {
+      const all = await ticketSheetService.getAll();
+      let list = all;
+      if (ticketType) list = list.filter(t => t.ticketType === ticketType);
+      if (status) list = list.filter(t => t.status === status);
+      list = list
+        .slice()
+        .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+      const mapped = list.map(t => ({
+        ticketId: t.ticketId,
+        referenceNumber: t.referenceNumber,
+        ticketType: t.ticketType,
+        status: t.status,
+        jobNumber: t.jobId || t.referenceNumber,
+        jobName: t.jobName,
+        customerName: t.customerName,
+        jobAddress: t.jobAddress,
+        city: t.city,
+        state: t.state,
+        createdAt: t.createdAt,
+        createdByName: t.createdByName,
+        loadVerifiedAt: t.completedAt,
+        materials: t.materials,
+        totalCost: t.totalCost,
+        totalPrice: t.totalPrice,
+        notes: t.notes,
+      }));
+      const capped = limit ? mapped.slice(0, parseInt(limit)) : mapped;
+      // Strip cost fields for roles that must never see purchase price.
+      return NextResponse.json(filterCostByRole(capped, auth.user.role));
     }
 
     // Get tickets with filters

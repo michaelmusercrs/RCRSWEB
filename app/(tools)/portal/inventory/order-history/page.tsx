@@ -153,8 +153,10 @@ export default function OrderHistoryPage() {
   const loadMaterial = useCallback(async () => {
     setMaterialLoading(true);
     try {
-      // Pull delivery + return tickets; we filter in memory below.
-      const res = await fetch('/api/portal/tickets?limit=100');
+      // Pull delivery + return tickets from the CANONICAL Tickets tab (all
+      // real orders, incl. every email-created delivery) — not the legacy
+      // Delivery Tickets tab. We filter in memory below.
+      const res = await fetch('/api/portal/tickets?source=canonical&limit=1000');
       const data = await res.json();
       const list: DeliveryTicket[] = Array.isArray(data) ? data : [];
       // Sort newest first
@@ -175,7 +177,7 @@ export default function OrderHistoryPage() {
       // (those auto-create credit memos), AND query for manual ones by sweeping
       // a few recent job numbers. Cheaper: use the material list filtered to
       // return tickets, since each return ticket maps to a CM.
-      const res = await fetch('/api/portal/tickets?type=return&limit=100');
+      const res = await fetch('/api/portal/tickets?source=canonical&type=return&limit=1000');
       const data = await res.json();
       const returns: DeliveryTicket[] = Array.isArray(data) ? data : [];
 
