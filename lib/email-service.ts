@@ -160,7 +160,7 @@ function isTemplateAllowed(template: EmailTemplate | undefined): boolean {
   // dropped as 'template_not_allowed', silently killing every storm-report
   // lead and the office copy of every website lead. See email-callsite-audit.
   const list = (process.env.ALLOWED_EMAIL_TEMPLATES ||
-    'contact-form,new-lead-office,storm-report-sales,load-verified-invoice,driver-new-order,return-credit')
+    'contact-form,new-lead-office,storm-report-sales,load-verified-invoice,driver-new-order,return-credit,low-stock-alert')
     .split(',').map(s => s.trim()).filter(Boolean);
   return list.includes(template);
 }
