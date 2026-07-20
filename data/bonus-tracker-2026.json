@@ -1,10 +1,11 @@
 {
-  "source": "C:/Users/Michael/Downloads/2026 Sales Numbers - with Totals.xlsx",
-  "generatedAt": "2026-05-11T16:12:46.702Z",
+  "source": "rollover from H1-2026",
+  "generatedAt": "2026-07-20T15:36:09.106Z",
   "period": {
-    "start": "2026-01-01",
-    "end": "2026-06-30",
-    "name": "H1 2026"
+    "id": "H2-2026",
+    "name": "H2 2026",
+    "start": "2026-07-01",
+    "end": "2026-12-31"
   },
   "tripThreshold": 400000,
   "bonusModel": "replacement",
@@ -63,321 +64,112 @@
   "reps": [
     {
       "rep": "Greg",
-      "ytd": 541722.95,
+      "ytd": 30018.64,
       "breakdown": [
         {
-          "month": "January",
-          "revenue": 22813.08,
-          "tier": null,
-          "bonus": 0
-        },
-        {
-          "month": "February",
-          "revenue": 6474.45,
-          "tier": null,
-          "bonus": 0
-        },
-        {
-          "month": "March",
-          "revenue": 177810.03,
-          "tier": "$150K",
-          "bonus": 750
-        },
-        {
-          "month": "April",
-          "revenue": 261333.12,
-          "tier": "$200K",
-          "bonus": 1200
-        },
-        {
-          "month": "May",
-          "revenue": 73292.27,
-          "tier": "$50K",
-          "bonus": 100
-        }
-      ],
-      "accruedTripBudget": 2050,
-      "qualifiedForTrip": true,
-      "actualTripBudget": 2050,
-      "gapToTrip": 0,
-      "pctToTrip": 100
-    },
-    {
-      "rep": "Hunter",
-      "ytd": 301606.97,
-      "breakdown": [
-        {
-          "month": "January",
-          "revenue": 669.5,
-          "tier": null,
-          "bonus": 0
-        },
-        {
-          "month": "February",
-          "revenue": 72481.15,
-          "tier": "$50K",
-          "bonus": 100
-        },
-        {
-          "month": "March",
-          "revenue": 20408.64,
-          "tier": null,
-          "bonus": 0
-        },
-        {
-          "month": "April",
-          "revenue": 206600.68,
-          "tier": "$200K",
-          "bonus": 1200
-        },
-        {
-          "month": "May",
-          "revenue": 1447,
+          "month": "July",
+          "revenue": 30018.64,
           "tier": null,
           "bonus": 0
         }
       ],
-      "accruedTripBudget": 1300,
+      "accruedTripBudget": 0,
       "qualifiedForTrip": false,
       "actualTripBudget": 0,
-      "gapToTrip": 98393.03000000003,
-      "pctToTrip": 75.4017425
+      "gapToTrip": 369981.36,
+      "pctToTrip": 7.50466
     },
     {
       "rep": "Aaron",
-      "ytd": 209207.81,
+      "ytd": 26475,
       "breakdown": [
         {
-          "month": "January",
-          "revenue": 75615.62,
-          "tier": "$75K",
-          "bonus": 250
-        },
-        {
-          "month": "February",
-          "revenue": 40183.42,
-          "tier": null,
-          "bonus": 0
-        },
-        {
-          "month": "March",
-          "revenue": 27534.49,
-          "tier": null,
-          "bonus": 0
-        },
-        {
-          "month": "April",
-          "revenue": 64724.28,
-          "tier": "$50K",
-          "bonus": 100
-        },
-        {
-          "month": "May",
-          "revenue": 1150,
+          "month": "July",
+          "revenue": 26475,
           "tier": null,
           "bonus": 0
         }
       ],
-      "accruedTripBudget": 350,
+      "accruedTripBudget": 0,
       "qualifiedForTrip": false,
       "actualTripBudget": 0,
-      "gapToTrip": 190792.19,
-      "pctToTrip": 52.301952500000006
+      "gapToTrip": 373525,
+      "pctToTrip": 6.6187499999999995
     },
     {
-      "rep": "Alijah",
-      "ytd": 125626,
+      "rep": "Hunter",
+      "ytd": 17796.67,
       "breakdown": [
         {
-          "month": "January",
-          "revenue": 0,
-          "tier": null,
-          "bonus": 0
-        },
-        {
-          "month": "February",
-          "revenue": 0,
-          "tier": null,
-          "bonus": 0
-        },
-        {
-          "month": "March",
-          "revenue": 0,
-          "tier": null,
-          "bonus": 0
-        },
-        {
-          "month": "April",
-          "revenue": 125626,
-          "tier": "$125K",
-          "bonus": 550
-        },
-        {
-          "month": "May",
-          "revenue": 0,
+          "month": "July",
+          "revenue": 17796.67,
           "tier": null,
           "bonus": 0
         }
       ],
-      "accruedTripBudget": 550,
+      "accruedTripBudget": 0,
       "qualifiedForTrip": false,
       "actualTripBudget": 0,
-      "gapToTrip": 274374,
-      "pctToTrip": 31.406499999999998
-    },
-    {
-      "rep": "Rudy",
-      "ytd": 101160.76000000001,
-      "breakdown": [
-        {
-          "month": "January",
-          "revenue": 59571.48,
-          "tier": "$50K",
-          "bonus": 100
-        },
-        {
-          "month": "February",
-          "revenue": 41589.28,
-          "tier": null,
-          "bonus": 0
-        },
-        {
-          "month": "March",
-          "revenue": 0,
-          "tier": null,
-          "bonus": 0
-        },
-        {
-          "month": "April",
-          "revenue": 0,
-          "tier": null,
-          "bonus": 0
-        },
-        {
-          "month": "May",
-          "revenue": 0,
-          "tier": null,
-          "bonus": 0
-        }
-      ],
-      "accruedTripBudget": 100,
-      "qualifiedForTrip": false,
-      "actualTripBudget": 0,
-      "gapToTrip": 298839.24,
-      "pctToTrip": 25.290190000000003
+      "gapToTrip": 382203.33,
+      "pctToTrip": 4.4491675
     },
     {
       "rep": "Travis",
-      "ytd": 85324.41,
+      "ytd": 8379.32,
       "breakdown": [
         {
-          "month": "January",
+          "month": "July",
+          "revenue": 8379.32,
+          "tier": null,
+          "bonus": 0
+        }
+      ],
+      "accruedTripBudget": 0,
+      "qualifiedForTrip": false,
+      "actualTripBudget": 0,
+      "gapToTrip": 391620.68,
+      "pctToTrip": 2.09483
+    },
+    {
+      "rep": "Alijah",
+      "ytd": 17.57,
+      "breakdown": [
+        {
+          "month": "July",
+          "revenue": 17.57,
+          "tier": null,
+          "bonus": 0
+        }
+      ],
+      "accruedTripBudget": 0,
+      "qualifiedForTrip": false,
+      "actualTripBudget": 0,
+      "gapToTrip": 399982.43,
+      "pctToTrip": 0.004392500000000001
+    },
+    {
+      "rep": "Rudy",
+      "ytd": 0,
+      "breakdown": [
+        {
+          "month": "July",
           "revenue": 0,
           "tier": null,
           "bonus": 0
-        },
-        {
-          "month": "February",
-          "revenue": 12120.52,
-          "tier": null,
-          "bonus": 0
-        },
-        {
-          "month": "March",
-          "revenue": 37074.81,
-          "tier": null,
-          "bonus": 0
-        },
-        {
-          "month": "April",
-          "revenue": 22999.46,
-          "tier": null,
-          "bonus": 0
-        },
-        {
-          "month": "May",
-          "revenue": 13129.62,
-          "tier": null,
-          "bonus": 0
         }
       ],
       "accruedTripBudget": 0,
       "qualifiedForTrip": false,
       "actualTripBudget": 0,
-      "gapToTrip": 314675.58999999997,
-      "pctToTrip": 21.3311025
-    },
-    {
-      "rep": "Brendon",
-      "ytd": 41745.89,
-      "breakdown": [
-        {
-          "month": "January",
-          "revenue": 17753.88,
-          "tier": null,
-          "bonus": 0
-        },
-        {
-          "month": "February",
-          "revenue": 5498.89,
-          "tier": null,
-          "bonus": 0
-        },
-        {
-          "month": "March",
-          "revenue": 16843.12,
-          "tier": null,
-          "bonus": 0
-        },
-        {
-          "month": "April",
-          "revenue": 450,
-          "tier": null,
-          "bonus": 0
-        },
-        {
-          "month": "May",
-          "revenue": 1200,
-          "tier": null,
-          "bonus": 0
-        }
-      ],
-      "accruedTripBudget": 0,
-      "qualifiedForTrip": false,
-      "actualTripBudget": 0,
-      "gapToTrip": 358254.11,
-      "pctToTrip": 10.4364725
+      "gapToTrip": 400000,
+      "pctToTrip": 0
     },
     {
       "rep": "Rick",
-      "ytd": 13035.97,
+      "ytd": 0,
       "breakdown": [
         {
-          "month": "January",
-          "revenue": 0,
-          "tier": null,
-          "bonus": 0
-        },
-        {
-          "month": "February",
-          "revenue": 0,
-          "tier": null,
-          "bonus": 0
-        },
-        {
-          "month": "March",
-          "revenue": 0,
-          "tier": null,
-          "bonus": 0
-        },
-        {
-          "month": "April",
-          "revenue": 13035.97,
-          "tier": null,
-          "bonus": 0
-        },
-        {
-          "month": "May",
+          "month": "July",
           "revenue": 0,
           "tier": null,
           "bonus": 0
@@ -386,10 +178,10 @@
       "accruedTripBudget": 0,
       "qualifiedForTrip": false,
       "actualTripBudget": 0,
-      "gapToTrip": 386964.03,
-      "pctToTrip": 3.2589924999999997
+      "gapToTrip": 400000,
+      "pctToTrip": 0
     }
   ],
-  "totalAccrued": 4350,
-  "totalToBePaid": 2050
+  "totalAccrued": 0,
+  "totalToBePaid": 0
 }
