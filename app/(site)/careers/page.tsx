@@ -89,9 +89,9 @@ export default function CareersPage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold">
-              Why Partner With <span className="text-brand-green-dark">River City Roofing?</span>
+              Why Partner With <span className="text-brand-green">River City Roofing?</span>
             </h2>
-            <p className="text-xl mt-6 max-w-3xl mx-auto text-gray-600">
+            <p className="text-xl mt-6 max-w-3xl mx-auto text-gray-300">
               Experience the freedom of entrepreneurship with the support and resources of an established company.
             </p>
           </div>
@@ -137,7 +137,7 @@ export default function CareersPage() {
             ].map((b) => (
               <div
                 key={b.title}
-                className="bg-white rounded-xl border-t-4 border-brand-green p-8 shadow-md hover:-translate-y-2 hover:shadow-xl transition-all duration-300"
+                className="bg-white rounded-xl border-t-4 border-brand-green p-8 shadow-md text-gray-900 hover:-translate-y-2 hover:shadow-xl transition-all duration-300"
               >
                 <div className="text-brand-green-dark mb-6 flex justify-center">{b.icon}</div>
                 <h3 className="text-xl font-bold mb-4 text-center">{b.title}</h3>
@@ -156,7 +156,7 @@ export default function CareersPage() {
       </section>
 
       {/* Benefits Breakdown */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-20 bg-gray-50 text-gray-900">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold">
@@ -256,7 +256,7 @@ export default function CareersPage() {
       </section>
 
       {/* How It Works */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-20 bg-gray-50 text-gray-900">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold">
@@ -314,7 +314,7 @@ export default function CareersPage() {
       </section>
 
       {/* Day in the Life */}
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-white text-gray-900">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold">
@@ -370,7 +370,7 @@ export default function CareersPage() {
       </section>
 
       {/* Testimonials */}
-      <section id="testimonials" className="py-20 bg-gray-50">
+      <section id="testimonials" className="py-20 bg-gray-50 text-gray-900">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold">
@@ -473,7 +473,7 @@ export default function CareersPage() {
       </section>
 
       {/* Referral Code Gate — unlocks earnings calculator & detailed info */}
-      <section id="calculator" className="py-20 bg-gray-50">
+      <section id="calculator" className="py-20 bg-gray-50 text-gray-900">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-4xl font-bold mb-4">
             Want to See the <span className="text-brand-green-dark">Numbers?</span>
@@ -497,14 +497,14 @@ export default function CareersPage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold">
-              Questions? <span className="text-brand-green-dark">Get in Touch</span>
+              Questions? <span className="text-brand-green">Get in Touch</span>
             </h2>
-            <p className="text-xl mt-6 max-w-3xl mx-auto text-gray-600">
+            <p className="text-xl mt-6 max-w-3xl mx-auto text-gray-300">
               Want to learn more? We&apos;re here to help!
             </p>
           </div>
 
-          <div className="max-w-2xl mx-auto bg-white rounded-xl p-8 shadow-md">
+          <div className="max-w-2xl mx-auto bg-white rounded-xl p-8 shadow-md text-gray-900">
             <div className="space-y-6">
               <a href="tel:256-274-8530" className="flex items-center gap-4 text-lg hover:text-brand-green-dark transition">
                 <Phone size={24} className="text-brand-green-dark" />

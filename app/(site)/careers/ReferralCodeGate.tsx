@@ -37,7 +37,7 @@ export default function ReferralCodeGate() {
   if (!unlocked) {
     return (
       <div className="max-w-md mx-auto">
-        <div className="bg-white rounded-xl p-8 shadow-lg border border-gray-200">
+        <div className="bg-white rounded-xl p-8 shadow-lg border border-gray-200 text-gray-900">
           <div className="flex justify-center mb-4">
             <div className="w-16 h-16 bg-brand-green/10 rounded-full flex items-center justify-center">
               <Lock size={32} className="text-brand-green-dark" />

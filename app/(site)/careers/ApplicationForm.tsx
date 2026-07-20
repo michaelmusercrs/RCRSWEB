@@ -54,7 +54,7 @@ export default function ApplicationForm() {
 
   if (status === 'success') {
     return (
-      <section id="application" className="py-20 bg-gray-50">
+      <section id="application" className="py-20 bg-gray-50 text-gray-900">
         <div className="container mx-auto px-4 text-center">
           <CheckCircle className="mx-auto mb-6 text-brand-green-dark" size={72} />
           <h2 className="text-4xl font-bold mb-6">Application Submitted!</h2>
@@ -73,7 +73,7 @@ export default function ApplicationForm() {
     setForm((prev) => ({ ...prev, [key]: value }));
 
   return (
-    <section id="application" className="py-20 bg-gray-50">
+    <section id="application" className="py-20 bg-gray-50 text-gray-900">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold">
