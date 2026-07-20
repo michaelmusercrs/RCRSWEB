@@ -305,7 +305,7 @@ export default function EmailCapturePopup() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full py-3 bg-brand-green hover:bg-brand-green/90 text-white font-bold rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+                className="w-full py-3 bg-brand-green hover:bg-brand-green/90 text-black font-bold rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed text-lg"
               >
                 {submitting ? 'Sending...' : 'Get My Free Roof Assessment →'}
               </button>

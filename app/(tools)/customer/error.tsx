@@ -42,7 +42,7 @@ export default function CustomerError({
         <div className="space-y-3">
           <button
             onClick={reset}
-            className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-brand-green hover:bg-brand-green/90 text-white font-semibold transition-all"
+            className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-brand-green hover:bg-brand-green/90 text-black font-semibold transition-all"
           >
             <RefreshCw className="w-5 h-5" />
             Try Again
@@ -59,7 +59,7 @@ export default function CustomerError({
         <div className="mt-6 pt-6 border-t border-gray-100">
           <p className="text-xs text-gray-400">
             Need help? Call us at{' '}
-            <a href="tel:+12563095890" className="text-brand-green hover:underline">
+            <a href="tel:+12563095890" className="text-brand-green-dark hover:underline">
               (256) 309-5890
             </a>
           </p>

@@ -75,10 +75,10 @@ export default function ServiceAreasPage() {
                       {area.tagline && (
                         <p className="text-sm text-gray-500 italic mb-1">{area.tagline}</p>
                       )}
-                      <p className="text-brand-green font-semibold">{area.state}</p>
+                      <p className="text-brand-green-dark font-semibold">{area.state}</p>
                     </div>
                     <div className="w-12 h-12 bg-brand-green/10 rounded-full flex items-center justify-center">
-                      <MapPin className="text-brand-green" size={24} />
+                      <MapPin className="text-brand-green-dark" size={24} />
                     </div>
                   </div>
 
@@ -103,7 +103,7 @@ export default function ServiceAreasPage() {
                     )}
 
                     <div className="flex items-start gap-2">
-                      <CheckCircle2 className="text-brand-green mt-0.5 flex-shrink-0" size={16} />
+                      <CheckCircle2 className="text-brand-green-dark mt-0.5 flex-shrink-0" size={16} />
                       <div>
                         <p className="text-xs text-gray-500 font-medium">Services</p>
                         <p className="text-sm text-gray-700">{area.services}</p>
@@ -118,7 +118,7 @@ export default function ServiceAreasPage() {
                       <ul className="space-y-1">
                         {area.keyDetails.map((detail, idx) => (
                           <li key={idx} className="text-sm text-gray-600 flex items-start gap-2">
-                            <span className="text-brand-green mt-1">•</span>
+                            <span className="text-brand-green-dark mt-1">•</span>
                             <span>{detail}</span>
                           </li>
                         ))}
@@ -223,7 +223,7 @@ export default function ServiceAreasPage() {
                       <ul className="space-y-1">
                         {area.keyDetails.map((detail, idx) => (
                           <li key={idx} className="text-sm text-gray-600 flex items-start gap-2">
-                            <CheckCircle2 className="text-brand-green mt-0.5 flex-shrink-0" size={16} />
+                            <CheckCircle2 className="text-brand-green-dark mt-0.5 flex-shrink-0" size={16} />
                             <span>{detail}</span>
                           </li>
                         ))}

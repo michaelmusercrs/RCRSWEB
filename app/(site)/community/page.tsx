@@ -171,7 +171,7 @@ export default function CommunityPage() {
       {/* Impact Stats */}
       <section className="bg-brand-green py-12">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center text-white">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center text-black">
             {[
               { value: '17+', label: 'Organizations Supported' },
               { value: 'Youth', label: 'Sports & Schools' },
@@ -180,7 +180,7 @@ export default function CommunityPage() {
             ].map((s) => (
               <div key={s.label}>
                 <div className="text-4xl md:text-5xl font-black mb-2">{s.value}</div>
-                <p className="text-lg font-medium text-white/90">{s.label}</p>
+                <p className="text-lg font-medium text-black/90">{s.label}</p>
               </div>
             ))}
           </div>
@@ -193,7 +193,7 @@ export default function CommunityPage() {
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-4xl font-bold mb-6">
-                More Than a <span className="text-brand-green">Roofing Company</span>
+                More Than a <span className="text-brand-green-dark">Roofing Company</span>
               </h2>
             </div>
             <div className="prose prose-lg mx-auto text-gray-700 space-y-6">
@@ -223,7 +223,7 @@ export default function CommunityPage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">
-              Organizations We <span className="text-brand-green">Support</span>
+              Organizations We <span className="text-brand-green-dark">Support</span>
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               We&apos;re proud to sponsor and support these local organizations — and many more.
@@ -240,10 +240,10 @@ export default function CommunityPage() {
                 >
                   <div className="flex items-start gap-4">
                     <div className="bg-brand-green/10 rounded-lg p-3 flex-shrink-0">
-                      <Icon className="text-brand-green" size={28} />
+                      <Icon className="text-brand-green-dark" size={28} />
                     </div>
                     <div>
-                      <span className="text-sm font-semibold text-brand-green uppercase tracking-wide">
+                      <span className="text-sm font-semibold text-brand-green-dark uppercase tracking-wide">
                         {org.type}
                       </span>
                       <h3 className="text-xl font-bold mt-1 mb-2">{org.name}</h3>
@@ -278,7 +278,7 @@ export default function CommunityPage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold mb-4">
-              RCRS in the <span className="text-brand-green">Community</span>
+              RCRS in the <span className="text-brand-green-dark">Community</span>
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               See what we&apos;ve been up to around North Alabama.
@@ -338,13 +338,13 @@ export default function CommunityPage() {
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Link
                 href="/referral-rewards"
-                className="inline-flex items-center gap-2 bg-brand-green text-white font-semibold px-8 py-4 rounded hover:brightness-110 transition text-lg"
+                className="inline-flex items-center gap-2 bg-brand-green text-black font-semibold px-8 py-4 rounded hover:brightness-110 transition text-lg"
               >
                 Learn More <ArrowRight size={20} />
               </Link>
               <Link
                 href="/contact"
-                className="inline-flex items-center gap-2 border-2 border-brand-green text-brand-green font-semibold px-8 py-4 rounded hover:bg-brand-green hover:text-white transition text-lg"
+                className="inline-flex items-center gap-2 border-2 border-brand-green text-brand-green font-semibold px-8 py-4 rounded hover:bg-brand-green hover:text-black transition text-lg"
               >
                 Get a Free Inspection
               </Link>
@@ -356,23 +356,23 @@ export default function CommunityPage() {
       {/* CTA */}
       <section className="py-16 bg-brand-green">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-black mb-4">
             Choose a Roofer That Gives Back
           </h2>
-          <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+          <p className="text-xl text-black/90 mb-8 max-w-2xl mx-auto">
             When you choose RCRS, you&apos;re investing in North Alabama. Let&apos;s protect your
             home and strengthen our community — together.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Link
               href="/contact"
-              className="inline-block bg-white text-brand-green font-bold px-8 py-4 rounded text-lg hover:bg-gray-100 transition"
+              className="inline-block bg-white text-brand-green-dark font-bold px-8 py-4 rounded text-lg hover:bg-gray-100 transition"
             >
               Schedule Free Inspection
             </Link>
             <a
               href="tel:256-274-8530"
-              className="inline-flex items-center justify-center gap-2 border-2 border-white text-white font-bold px-8 py-4 rounded text-lg hover:bg-white hover:text-brand-green transition"
+              className="inline-flex items-center justify-center gap-2 border-2 border-black text-black font-bold px-8 py-4 rounded text-lg hover:bg-black hover:text-brand-green transition"
             >
               <Phone size={20} /> (256) 274-8530
             </a>

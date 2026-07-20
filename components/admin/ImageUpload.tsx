@@ -231,7 +231,7 @@ export default function ImageUpload({
             `}
             >
               <Upload
-                className={`w-12 h-12 ${isDragging ? 'text-brand-green' : 'text-gray-400'}`}
+                className={`w-12 h-12 ${isDragging ? 'text-brand-green-dark' : 'text-gray-400'}`}
               />
             </div>
 

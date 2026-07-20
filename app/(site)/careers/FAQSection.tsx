@@ -42,7 +42,7 @@ export default function FAQSection() {
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold">
-            Frequently Asked <span className="text-brand-green">Questions</span>
+            Frequently Asked <span className="text-brand-green-dark">Questions</span>
           </h2>
           <p className="text-xl mt-6 max-w-3xl mx-auto text-gray-600">
             Got questions? We&apos;ve got answers.
@@ -60,7 +60,7 @@ export default function FAQSection() {
                 className="w-full flex items-center justify-between p-5 text-left font-semibold text-lg hover:bg-gray-50 transition"
               >
                 <span className="flex items-center gap-3">
-                  <HelpCircle size={20} className="text-brand-green flex-shrink-0" />
+                  <HelpCircle size={20} className="text-brand-green-dark flex-shrink-0" />
                   {item.q}
                 </span>
                 <ChevronDown

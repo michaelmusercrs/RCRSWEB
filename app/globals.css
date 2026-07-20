@@ -13,6 +13,8 @@
   :root {
     --brand-green: #39FF14;
     --brand-green-rgb: 57, 255, 20;
+    /* Accessible green for text/icons on light backgrounds (AA-compliant on white). */
+    --brand-green-dark: #0F8000;
     --brand-blue: #0066CC;
     --brand-blue-rgb: 0, 102, 204;
     --brand-black: #000000;

@@ -269,7 +269,7 @@ export default function ContactForm({
               <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                 I consent to receive appointment reminders, service updates, and promotional SMS messages from River City Roofing Solutions.
                 Reply STOP to opt-out; Reply HELP for support. Message & data rates may apply. Messaging frequency may vary.{' '}
-                <Link href="/privacy#sms-terms" className="text-brand-green hover:underline">
+                <Link href="/privacy#sms-terms" className="text-brand-green-dark hover:underline">
                   Privacy Policy & SMS Terms
                 </Link>
               </span>
@@ -331,9 +331,9 @@ export default function ContactForm({
           <p className={`text-xs text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
             We respect your privacy. Your information will only be used to respond to your inquiry.
             View our{' '}
-            <Link href="/privacy" className="text-brand-green hover:underline">Privacy Policy</Link>
+            <Link href="/privacy" className="text-brand-green-dark hover:underline">Privacy Policy</Link>
             {' '}and{' '}
-            <Link href="/terms" className="text-brand-green hover:underline">Terms of Service</Link>.
+            <Link href="/terms" className="text-brand-green-dark hover:underline">Terms of Service</Link>.
           </p>
         </form>
       </div>

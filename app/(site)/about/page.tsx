@@ -201,7 +201,7 @@ export default async function AboutPage() {
               return (
                 <div key={idx} className="flex flex-col items-center text-center">
                   <div className="bg-brand-green rounded-full p-4 mb-4">
-                    <Icon className="text-white" size={32} />
+                    <Icon className="text-black" size={32} />
                   </div>
                   <h3 className="text-xl font-bold text-white mb-2">{value.title}</h3>
                   <p className="text-blue-50">{value.desc}</p>

@@ -368,7 +368,7 @@ export default function RoutePlanningPage() {
         <button
           onClick={optimizeRoute}
           disabled={isOptimizing || routeStops.length < 2}
-          className="flex-1 bg-brand-green hover:bg-brand-green disabled:bg-neutral-700 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2"
+          className="flex-1 bg-brand-green hover:bg-brand-green disabled:bg-neutral-700 text-black font-semibold py-3 rounded-xl flex items-center justify-center gap-2"
         >
           {isOptimizing ? (
             <RefreshCw size={20} className="animate-spin" />

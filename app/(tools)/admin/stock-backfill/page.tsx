@@ -115,7 +115,7 @@ export default function StockBackfillPage() {
 
         <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
           <div className="flex items-center gap-3 mb-2">
-            <Package size={24} className="text-brand-green" />
+            <Package size={24} className="text-brand-green-dark" />
             <h1 className="text-2xl font-bold">Stock Backfill</h1>
           </div>
           <p className="text-sm text-gray-600">

@@ -48,13 +48,13 @@ export default function CareersPage() {
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <a
               href="#application"
-              className="bg-brand-green text-white font-semibold text-lg px-8 py-4 rounded hover:brightness-110 transition"
+              className="bg-brand-green text-black font-semibold text-lg px-8 py-4 rounded hover:brightness-110 transition"
             >
               Join Our Team
             </a>
             <a
               href="#calculator"
-              className="border-2 border-brand-green text-brand-green font-semibold text-lg px-8 py-4 rounded hover:bg-brand-green hover:text-white transition"
+              className="border-2 border-brand-green text-brand-green font-semibold text-lg px-8 py-4 rounded hover:bg-brand-green hover:text-black transition"
             >
               Have a Referral Code?
             </a>
@@ -89,7 +89,7 @@ export default function CareersPage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold">
-              Why Partner With <span className="text-brand-green">River City Roofing?</span>
+              Why Partner With <span className="text-brand-green-dark">River City Roofing?</span>
             </h2>
             <p className="text-xl mt-6 max-w-3xl mx-auto text-gray-600">
               Experience the freedom of entrepreneurship with the support and resources of an established company.
@@ -139,12 +139,12 @@ export default function CareersPage() {
                 key={b.title}
                 className="bg-white rounded-xl border-t-4 border-brand-green p-8 shadow-md hover:-translate-y-2 hover:shadow-xl transition-all duration-300"
               >
-                <div className="text-brand-green mb-6 flex justify-center">{b.icon}</div>
+                <div className="text-brand-green-dark mb-6 flex justify-center">{b.icon}</div>
                 <h3 className="text-xl font-bold mb-4 text-center">{b.title}</h3>
                 <p className="text-gray-600 mb-4">{b.text}</p>
                 {b.link && (
                   <div className="text-center mt-6">
-                    <a href={b.link.href} className="text-brand-green font-semibold hover:underline">
+                    <a href={b.link.href} className="text-brand-green-dark font-semibold hover:underline">
                       {b.link.label}
                     </a>
                   </div>
@@ -160,7 +160,7 @@ export default function CareersPage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold">
-              Real <span className="text-brand-green">Benefits</span>, Real Security
+              Real <span className="text-brand-green-dark">Benefits</span>, Real Security
             </h2>
             <p className="text-xl mt-6 max-w-3xl mx-auto text-gray-600">
               We invest in our people — not just with commissions, but with a comprehensive benefits package that protects you and your family.
@@ -177,7 +177,7 @@ export default function CareersPage() {
               { title: 'Sales Competitions & Bonuses', desc: 'Bi-annual bonus program, vacation trips for top performers, and monthly gas cards to fuel your hustle.' },
             ].map((b) => (
               <div key={b.title} className="bg-white rounded-lg p-6 shadow-md border border-gray-100">
-                <CheckCircle size={24} className="text-brand-green mb-3" />
+                <CheckCircle size={24} className="text-brand-green-dark mb-3" />
                 <h3 className="text-lg font-bold mb-2">{b.title}</h3>
                 <p className="text-gray-600 text-sm">{b.desc}</p>
               </div>
@@ -260,7 +260,7 @@ export default function CareersPage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold">
-              How It <span className="text-brand-green">Works</span>
+              How It <span className="text-brand-green-dark">Works</span>
             </h2>
             <p className="text-xl mt-6 max-w-3xl mx-auto text-gray-600">
               Our simple process gets you from application to earning in no time.
@@ -291,7 +291,7 @@ export default function CareersPage() {
               },
             ].map((s) => (
               <div key={s.step} className="flex gap-6 bg-white p-6 rounded-lg shadow-md">
-                <div className="w-10 h-10 bg-brand-green rounded-full flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
+                <div className="w-10 h-10 bg-brand-green rounded-full flex items-center justify-center text-black font-bold text-xl flex-shrink-0">
                   {s.step}
                 </div>
                 <div>
@@ -305,7 +305,7 @@ export default function CareersPage() {
           <div className="text-center mt-16">
             <a
               href="#application"
-              className="inline-block bg-brand-green text-white font-semibold text-lg px-8 py-4 rounded hover:brightness-110 transition"
+              className="inline-block bg-brand-green text-black font-semibold text-lg px-8 py-4 rounded hover:brightness-110 transition"
             >
               Start Your Journey Today
             </a>
@@ -318,7 +318,7 @@ export default function CareersPage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold">
-              A Day in the <span className="text-brand-green">Life</span>
+              A Day in the <span className="text-brand-green-dark">Life</span>
             </h2>
             <p className="text-xl mt-6 max-w-3xl mx-auto text-gray-600">
               What does a typical day look like as an RCRS partner? You decide — but here&apos;s what many of our top performers do.
@@ -353,9 +353,9 @@ export default function CareersPage() {
               },
             ].map((item) => (
               <div key={item.time} className="flex gap-4 p-6 bg-gray-50 rounded-xl">
-                <div className="text-brand-green flex-shrink-0">{item.icon}</div>
+                <div className="text-brand-green-dark flex-shrink-0">{item.icon}</div>
                 <div>
-                  <p className="text-sm text-brand-green font-semibold">{item.time}</p>
+                  <p className="text-sm text-brand-green-dark font-semibold">{item.time}</p>
                   <h3 className="text-lg font-bold">{item.title}</h3>
                   <p className="text-gray-600 text-sm mt-1">{item.text}</p>
                 </div>
@@ -374,7 +374,7 @@ export default function CareersPage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold">
-              Success <span className="text-brand-green">Stories</span>
+              Success <span className="text-brand-green-dark">Stories</span>
             </h2>
             <p className="text-xl mt-6 max-w-3xl mx-auto text-gray-600">
               Hear from our partners who have transformed their careers:
@@ -476,7 +476,7 @@ export default function CareersPage() {
       <section id="calculator" className="py-20 bg-gray-50">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-4xl font-bold mb-4">
-            Want to See the <span className="text-brand-green">Numbers?</span>
+            Want to See the <span className="text-brand-green-dark">Numbers?</span>
           </h2>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">
             Our current team members can give you a referral code to access detailed earnings information, 
@@ -497,7 +497,7 @@ export default function CareersPage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold">
-              Questions? <span className="text-brand-green">Get in Touch</span>
+              Questions? <span className="text-brand-green-dark">Get in Touch</span>
             </h2>
             <p className="text-xl mt-6 max-w-3xl mx-auto text-gray-600">
               Want to learn more? We&apos;re here to help!
@@ -506,20 +506,20 @@ export default function CareersPage() {
 
           <div className="max-w-2xl mx-auto bg-white rounded-xl p-8 shadow-md">
             <div className="space-y-6">
-              <a href="tel:256-274-8530" className="flex items-center gap-4 text-lg hover:text-brand-green transition">
-                <Phone size={24} className="text-brand-green" />
+              <a href="tel:256-274-8530" className="flex items-center gap-4 text-lg hover:text-brand-green-dark transition">
+                <Phone size={24} className="text-brand-green-dark" />
                 <span>(256) 274-8530</span>
               </a>
-              <a href="mailto:rcrs@rivercityroofingsolutions.com" className="flex items-center gap-4 text-lg hover:text-brand-green transition">
-                <Mail size={24} className="text-brand-green" />
+              <a href="mailto:rcrs@rivercityroofingsolutions.com" className="flex items-center gap-4 text-lg hover:text-brand-green-dark transition">
+                <Mail size={24} className="text-brand-green-dark" />
                 <span>rcrs@rivercityroofingsolutions.com</span>
               </a>
               <div className="flex items-start gap-4 text-lg">
-                <MapPin size={24} className="text-brand-green mt-1" />
+                <MapPin size={24} className="text-brand-green-dark mt-1" />
                 <span>3325 Central Parkway SW, Decatur, AL 35603</span>
               </div>
               <div className="flex items-start gap-4 text-lg">
-                <Clock size={24} className="text-brand-green mt-1" />
+                <Clock size={24} className="text-brand-green-dark mt-1" />
                 <div>
                   <p>Monday – Friday: 8am – 6pm</p>
                   <p>Saturday: By appointment</p>

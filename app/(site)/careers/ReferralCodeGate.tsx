@@ -40,7 +40,7 @@ export default function ReferralCodeGate() {
         <div className="bg-white rounded-xl p-8 shadow-lg border border-gray-200">
           <div className="flex justify-center mb-4">
             <div className="w-16 h-16 bg-brand-green/10 rounded-full flex items-center justify-center">
-              <Lock size={32} className="text-brand-green" />
+              <Lock size={32} className="text-brand-green-dark" />
             </div>
           </div>
           <h3 className="text-xl font-bold mb-2">Enter Referral Code</h3>
@@ -59,14 +59,14 @@ export default function ReferralCodeGate() {
             {error && <p className="text-red-500 text-sm">{error}</p>}
             <button
               type="submit"
-              className="w-full bg-brand-green text-white font-semibold py-3 rounded-lg hover:brightness-110 transition flex items-center justify-center gap-2"
+              className="w-full bg-brand-green text-black font-semibold py-3 rounded-lg hover:brightness-110 transition flex items-center justify-center gap-2"
             >
               <Unlock size={18} />
               Unlock Details
             </button>
           </form>
           <p className="text-gray-400 text-xs mt-4">
-            Don&apos;t have a code? <a href="#application" className="text-brand-green hover:underline">Apply directly</a> and we&apos;ll share everything during your interview.
+            Don&apos;t have a code? <a href="#application" className="text-brand-green-dark hover:underline">Apply directly</a> and we&apos;ll share everything during your interview.
           </p>
         </div>
       </div>
@@ -76,7 +76,7 @@ export default function ReferralCodeGate() {
   return (
     <div>
       <div className="bg-brand-green/10 border border-brand-green/30 rounded-lg p-4 mb-8 max-w-lg mx-auto">
-        <div className="flex items-center justify-center gap-2 text-brand-green font-semibold">
+        <div className="flex items-center justify-center gap-2 text-brand-green-dark font-semibold">
           <Unlock size={18} />
           <span>Unlocked{referredBy !== 'Website' ? ` · Referred by ${referredBy}` : ''}</span>
         </div>

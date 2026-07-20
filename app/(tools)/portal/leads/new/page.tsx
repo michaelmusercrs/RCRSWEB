@@ -566,7 +566,7 @@ export default function NewLeadPage() {
                     />
                     <button
                       onClick={() => copyToClipboard(leadResult.portalUrl, 'portal')}
-                      className="px-3 py-2 bg-brand-green hover:bg-brand-green/90 text-white rounded text-sm transition-colors"
+                      className="px-3 py-2 bg-brand-green hover:bg-brand-green/90 text-black rounded text-sm transition-colors"
                     >
                       {copied === 'portal' ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                     </button>
@@ -767,7 +767,7 @@ export default function NewLeadPage() {
                 type="button"
                 onClick={handleJnVerify}
                 disabled={jnSearching || (!firstName && !phone && !email)}
-                className="px-4 py-2 bg-brand-green hover:bg-brand-green disabled:bg-neutral-700 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-brand-green hover:bg-brand-green disabled:bg-neutral-700 disabled:cursor-not-allowed text-black text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
               >
                 {jnSearching ? (
                   <>

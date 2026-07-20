@@ -193,7 +193,7 @@ export default function Header() {
                 <div key={item.name}>
                   <Link
                     href={item.href!}
-                    className={`block text-2xl font-semibold text-gray-800 hover:text-brand-green transition-colors duration-300 py-3 ${item.name === 'Storm Check' ? 'text-brand-green' : ''}`}
+                    className={`block text-2xl font-semibold text-gray-800 hover:text-brand-green-dark transition-colors duration-300 py-3 ${item.name === 'Storm Check' ? 'text-brand-green-dark' : ''}`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     {item.name}
@@ -204,7 +204,7 @@ export default function Header() {
                         <Link
                           key={child.name}
                           href={child.href}
-                          className="block text-lg text-gray-600 hover:text-brand-green transition-colors duration-300 py-1.5"
+                          className="block text-lg text-gray-600 hover:text-brand-green-dark transition-colors duration-300 py-1.5"
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           {child.name}
@@ -222,7 +222,7 @@ export default function Header() {
                   <Link
                     key={loc.name}
                     href={loc.href}
-                    className="block text-xl font-semibold text-gray-700 hover:text-brand-green transition-colors duration-300 py-2 pl-4"
+                    className="block text-xl font-semibold text-gray-700 hover:text-brand-green-dark transition-colors duration-300 py-2 pl-4"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     {loc.name}
@@ -232,7 +232,7 @@ export default function Header() {
               <div className="pt-6 border-t space-y-4">
                 <a
                   href="tel:256-274-8530"
-                  className="flex items-center gap-3 text-xl font-semibold text-gray-800 hover:text-brand-green transition-colors py-3"
+                  className="flex items-center gap-3 text-xl font-semibold text-gray-800 hover:text-brand-green-dark transition-colors py-3"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   <Phone className="w-6 h-6" />

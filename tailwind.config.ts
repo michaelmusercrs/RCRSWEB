@@ -24,6 +24,9 @@ const config: Config = {
   		colors: {
   			'brand-black': '#000000',
   			'brand-green': '#39FF14',
+  			// Accessible green for text/icons on light (white / light-gray) backgrounds.
+  			// Neon #39FF14 fails WCAG contrast on white (~1.2:1); this passes AA (~5:1).
+  			'brand-green-dark': '#0F8000',
   			'brand-grey': '#404040',
   			'brand-white': '#FFFFFF',
   			'brand-blue': '#0066CC',

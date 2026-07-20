@@ -686,7 +686,7 @@ export default function BillingPortalPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium text-white ${statusColors[record.billingStatus]}`}>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${record.billingStatus === 'approved' ? 'text-black' : 'text-white'} ${statusColors[record.billingStatus]}`}>
                             {record.billingStatus.replace('_', ' ')}
                           </span>
                           {record.requiresApproval && record.billingStatus === 'pending_review' && (

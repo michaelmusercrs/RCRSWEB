@@ -76,7 +76,7 @@ function FooterEmailCapture() {
       <button
         type="submit"
         disabled={submitting}
-        className="w-full py-2 bg-brand-green hover:bg-brand-green/90 text-white font-semibold rounded-lg text-sm transition disabled:opacity-50"
+        className="w-full py-2 bg-brand-green hover:bg-brand-green/90 text-black font-semibold rounded-lg text-sm transition disabled:opacity-50"
       >
         {submitting ? 'Sending...' : 'Get Free Roof Assessment'}
       </button>

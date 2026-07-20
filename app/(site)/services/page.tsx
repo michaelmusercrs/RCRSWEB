@@ -129,7 +129,7 @@ export default function ServicesPage() {
                   >
                     <div className="mb-4">
                       <div className="w-16 h-16 bg-brand-green/10 rounded-full flex items-center justify-center group-hover:bg-brand-green/20 transition-colors">
-                        {Icon && <Icon className="text-brand-green" size={32} />}
+                        {Icon && <Icon className="text-brand-green-dark" size={32} />}
                       </div>
                     </div>
 

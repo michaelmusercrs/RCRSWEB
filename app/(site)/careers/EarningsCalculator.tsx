@@ -86,7 +86,7 @@ export default function EarningsCalculator() {
 
           <a
             href="#application"
-            className="block w-full py-4 text-xl text-center font-semibold bg-brand-green text-white rounded hover:brightness-110 transition"
+            className="block w-full py-4 text-xl text-center font-semibold bg-brand-green text-black rounded hover:brightness-110 transition"
           >
             Apply Now &amp; Start Building Your Business
           </a>

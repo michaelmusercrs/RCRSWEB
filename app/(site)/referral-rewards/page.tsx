@@ -112,7 +112,7 @@ export default function ReferralRewardsPage() {
         {/* Impact Stats */}
         <section className="bg-brand-green py-10">
           <div className="container mx-auto px-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center text-white">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center text-black">
               {[
                 { value: '$100K+', label: 'Donated to Community' },
                 { value: '~$250', label: 'Per Roof Replacement' },
@@ -121,7 +121,7 @@ export default function ReferralRewardsPage() {
               ].map((s) => (
                 <div key={s.label}>
                   <div className="text-3xl md:text-4xl font-black mb-1">{s.value}</div>
-                  <p className="text-sm md:text-base font-medium text-white/90">{s.label}</p>
+                  <p className="text-sm md:text-base font-medium text-black/80">{s.label}</p>
                 </div>
               ))}
             </div>
@@ -133,7 +133,7 @@ export default function ReferralRewardsPage() {
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="text-4xl md:text-5xl font-bold mb-4">
-                How It <span className="text-brand-green">Works</span>
+                How It <span className="text-brand-green-dark">Works</span>
               </h2>
               <p className="text-xl text-gray-600 max-w-2xl mx-auto">
                 Three simple steps — your new roof supports local education.
@@ -167,11 +167,11 @@ export default function ReferralRewardsPage() {
                     key={item.step}
                     className="bg-gray-50 rounded-xl p-8 text-center relative border border-gray-100"
                   >
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-brand-green text-white font-bold w-8 h-8 rounded-full flex items-center justify-center">
+                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-brand-green text-black font-bold w-8 h-8 rounded-full flex items-center justify-center">
                       {item.step}
                     </div>
                     <div className="bg-brand-green/10 rounded-full p-4 w-16 h-16 mx-auto mb-6 flex items-center justify-center">
-                      <Icon className="text-brand-green" size={32} />
+                      <Icon className="text-brand-green-dark" size={32} />
                     </div>
                     <h3 className="text-xl font-bold mb-3">{item.title}</h3>
                     <p className="text-gray-600">{item.desc}</p>
@@ -233,7 +233,7 @@ export default function ReferralRewardsPage() {
             <div className="max-w-4xl mx-auto">
               <div className="text-center mb-12">
                 <h2 className="text-4xl font-bold mb-4">
-                  Why Choose <span className="text-brand-green">RCRS?</span>
+                  Why Choose <span className="text-brand-green-dark">RCRS?</span>
                 </h2>
               </div>
 
@@ -258,7 +258,7 @@ export default function ReferralRewardsPage() {
                 ].map((item) => (
                   <div key={item.title} className="flex items-start gap-4 p-4">
                     <CheckCircle2
-                      className="text-brand-green flex-shrink-0 mt-1"
+                      className="text-brand-green-dark flex-shrink-0 mt-1"
                       size={24}
                     />
                     <div>
@@ -275,24 +275,24 @@ export default function ReferralRewardsPage() {
         {/* CTA */}
         <section className="py-16 bg-brand-green">
           <div className="container mx-auto px-4 text-center">
-            <GraduationCap className="text-white mx-auto mb-4" size={48} />
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            <GraduationCap className="text-black mx-auto mb-4" size={48} />
+            <h2 className="text-3xl md:text-4xl font-bold text-black mb-4">
               Your New Roof Can Make a Difference
             </h2>
-            <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+            <p className="text-xl text-black/80 mb-8 max-w-2xl mx-auto">
               Protect your home and support local education at the same time. Schedule your free
               inspection today.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 href="/contact"
-                className="inline-block bg-white text-brand-green font-bold px-8 py-4 rounded text-lg hover:bg-gray-100 transition"
+                className="inline-block bg-white text-brand-green-dark font-bold px-8 py-4 rounded text-lg hover:bg-gray-100 transition"
               >
                 Schedule Free Inspection
               </Link>
               <a
                 href="tel:256-274-8530"
-                className="inline-flex items-center justify-center gap-2 border-2 border-white text-white font-bold px-8 py-4 rounded text-lg hover:bg-white hover:text-brand-green transition"
+                className="inline-flex items-center justify-center gap-2 border-2 border-black text-black font-bold px-8 py-4 rounded text-lg hover:bg-black hover:text-brand-green transition"
               >
                 <Phone size={20} /> (256) 274-8530
               </a>

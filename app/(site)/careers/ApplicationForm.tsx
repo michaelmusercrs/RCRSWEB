@@ -56,12 +56,12 @@ export default function ApplicationForm() {
     return (
       <section id="application" className="py-20 bg-gray-50">
         <div className="container mx-auto px-4 text-center">
-          <CheckCircle className="mx-auto mb-6 text-brand-green" size={72} />
+          <CheckCircle className="mx-auto mb-6 text-brand-green-dark" size={72} />
           <h2 className="text-4xl font-bold mb-6">Application Submitted!</h2>
           <p className="text-xl mb-10 max-w-3xl mx-auto">
             Thank you for your interest in building your business with River City Roofing Solutions. Our team will contact you within 24 hours.
           </p>
-          <Link href="/" className="inline-block bg-brand-green text-white font-semibold px-8 py-4 rounded hover:brightness-110 transition">
+          <Link href="/" className="inline-block bg-brand-green text-black font-semibold px-8 py-4 rounded hover:brightness-110 transition">
             Return Home
           </Link>
         </div>
@@ -77,7 +77,7 @@ export default function ApplicationForm() {
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold">
-            Ready to <span className="text-brand-green">Get Started?</span>
+            Ready to <span className="text-brand-green-dark">Get Started?</span>
           </h2>
           <p className="text-xl mt-6 max-w-3xl mx-auto text-gray-600">
             Fill out the form below to begin your journey. We&apos;ll contact you within 24 hours.
@@ -194,7 +194,7 @@ export default function ApplicationForm() {
           <button
             type="submit"
             disabled={status === 'submitting'}
-            className="mt-6 w-full py-4 text-xl font-semibold bg-brand-green text-white rounded hover:brightness-110 transition disabled:opacity-50"
+            className="mt-6 w-full py-4 text-xl font-semibold bg-brand-green text-black rounded hover:brightness-110 transition disabled:opacity-50"
           >
             {status === 'submitting' ? 'Submitting…' : 'Submit Application'}
           </button>
