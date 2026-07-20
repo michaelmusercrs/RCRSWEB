@@ -1,15 +1,9 @@
-import { ChangeLogEntry, RepSummary, Snapshot, TrackerJSON } from './types';
-
-const LLC: Record<string, string> = {
-  Brendon: 'BCM Contracting LLC',
-  Aaron: 'Roof Angel, LLC',
-  Adam: 'Rudys Roofing Insights LLC',
-  Greg: 'Gregory Ray Muse',
-  Travis: 'Jeremy T. Wages',
-};
+import { ChangeLogEntry, Snapshot, TrackerJSON } from './types';
+import { enrichTracker, RichRep } from './insights';
+import { bonusReplacement } from './tracker';
+import { formatPeriodRange, inferPeriodId, nextPeriod, parsePeriodId } from './period';
 
 const CASH_OUT_PCT = 0.75;
-const H1_END = new Date('2026-06-30');
 
 export interface RenderInput {
   tracker: TrackerJSON;
@@ -17,105 +11,31 @@ export interface RenderInput {
   changeLog: ChangeLogEntry[];
   /** Optional override for "today" (for tests). Defaults to current date. */
   today?: Date;
-}
-
-interface RichRep extends RepSummary {
-  stats: NonNullable<RepSummary['stats']>;
-  delta: RepSummary['delta'];
-  insights: NonNullable<RepSummary['insights']>;
-  llc: string | null;
+  /** When true, server-renders the admin block visible (used by /trip/admin). */
+  isAdmin?: boolean;
 }
 
 /**
  * Generate the full /trip HTML page. Returns a complete HTML document string.
  */
 export function renderTripDashboard(input: RenderInput): string {
-  const { tracker, snapshots, changeLog } = input;
+  const { tracker, snapshots, changeLog, isAdmin = false } = input;
   const today = input.today ?? new Date();
 
-  // Months actually present in the data
+  // Everything period-specific is derived from the tracker's own period block,
+  // so archived trackers and pre-commit HTML backups re-render correctly.
+  const periodName = tracker.period.name;
+  const periodRange = formatPeriodRange(tracker.period);
+  const periodEnd = new Date(`${tracker.period.end}T23:59:59Z`);
+  const periodId = inferPeriodId(tracker.period);
+  const parsedPeriod = periodId ? parsePeriodId(periodId) : null;
+  const followingPeriod = parsedPeriod ? nextPeriod(parsedPeriod) : null;
+  const thresholdK = `$${Math.round(tracker.tripThreshold / 1000)}K`;
+
+  const enriched = enrichTracker({ tracker, snapshots, today, periodEnd });
+  const reps: RichRep[] = enriched.reps;
+  const { monthsCompleted, monthsLeft, weeksLeft, daysLeft } = enriched;
   const months = tracker.reps.length > 0 ? tracker.reps[0].breakdown.map((b) => b.month) : [];
-  const monthsCompleted = months.length;
-  const daysLeftH1 = Math.max(
-    0,
-    Math.ceil((H1_END.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)),
-  );
-  const weeksLeftH1 = Math.max(1, Math.round(daysLeftH1 / 7));
-  // Months remaining until end of June (inclusive of current partial month)
-  const monthsLeftH1 = Math.max(1, monthsRemaining(today, H1_END));
-
-  // Compute per-rep stats
-  const reps: RichRep[] = tracker.reps.map((r) => {
-    const revs = r.breakdown.map((b) => b.revenue);
-    const activeMonths = revs.filter((v) => v > 0).length;
-    const tieredMonths = r.breakdown.filter((b) => b.bonus > 0).length;
-    const bestMonth = [...r.breakdown].sort((a, b) => b.revenue - a.revenue)[0] ?? {
-      month: '—',
-      revenue: 0,
-      tier: null,
-      bonus: 0,
-    };
-    const monthlyAvg = activeMonths ? r.ytd / activeMonths : 0;
-    const monthlyAvgIncluding0 = monthsCompleted ? r.ytd / monthsCompleted : 0;
-    const projectedH1AtCurrentPace = r.ytd + monthlyAvgIncluding0 * monthsLeftH1;
-    const neededPerMonth = r.qualifiedForTrip ? 0 : (tracker.tripThreshold - r.ytd) / monthsLeftH1;
-    const neededPerWeek = r.qualifiedForTrip ? 0 : (tracker.tripThreshold - r.ytd) / weeksLeftH1;
-    const consistency = monthsCompleted ? (tieredMonths / monthsCompleted) * 100 : 0;
-    const bestMonthBeatGap = bestMonth.revenue >= tracker.tripThreshold - r.ytd;
-    const wouldQualifyIfBestRepeats =
-      r.ytd + bestMonth.revenue * monthsLeftH1 >= tracker.tripThreshold;
-
-    const stats = {
-      activeMonths,
-      tieredMonths,
-      bestMonth,
-      monthlyAvg,
-      monthlyAvgIncluding0,
-      projectedH1AtCurrentPace,
-      neededPerMonth,
-      neededPerWeek,
-      consistency,
-      bestMonthBeatGap,
-      wouldQualifyIfBestRepeats,
-    };
-
-    return {
-      ...r,
-      stats,
-      delta: null,
-      insights: { wins: [], gaps: [], suggestions: [], motivation: '', deltaMessage: null },
-      llc: LLC[r.rep] ?? null,
-    };
-  });
-
-  // Sort by YTD desc (consistent with existing display)
-  reps.sort((a, b) => b.ytd - a.ytd);
-
-  // Deltas vs previous snapshot
-  const lastSnapshot = snapshots.length >= 2 ? snapshots[snapshots.length - 2] : null;
-  for (const r of reps) {
-    if (lastSnapshot) {
-      const prev = lastSnapshot.reps.find((p) => p.rep === r.rep);
-      r.delta = prev
-        ? {
-            ytdDelta: r.ytd - prev.ytd,
-            accruedDelta: r.accruedTripBudget - (prev.accrued ?? 0),
-            isNew: false,
-            previousAccrued: prev.accrued ?? 0,
-            previousYtd: prev.ytd,
-          }
-        : {
-            ytdDelta: r.ytd,
-            accruedDelta: r.accruedTripBudget,
-            isNew: true,
-            previousAccrued: 0,
-            previousYtd: 0,
-          };
-    }
-  }
-
-  // Insights
-  for (const r of reps) r.insights = buildInsights(r, tracker.tripThreshold, monthsCompleted);
 
   // Awards
   const topProducer = reps[0];
@@ -132,7 +52,7 @@ export function renderTripDashboard(input: RenderInput): string {
   const fastestStarter = [...reps]
     .filter((r) => r.breakdown[0]?.revenue > 0)
     .sort((a, b) => b.breakdown[0].revenue - a.breakdown[0].revenue)[0];
-  const bestAprilSurge = [...reps]
+  const bestMidPeriodSurge = [...reps]
     .filter((r) => (r.breakdown[3]?.revenue ?? 0) > 0)
     .sort((a, b) => (b.breakdown[3]?.revenue ?? 0) - (a.breakdown[3]?.revenue ?? 0))[0];
   const comebackKid = [...reps]
@@ -149,13 +69,57 @@ export function renderTripDashboard(input: RenderInput): string {
     .reduce((s, r) => s + r.actualTripBudget, 0);
   const totalForfeitedSoFar = totalAccrued - totalToBePaid;
 
+  // Admin: per-rep cost rollup (projection + worst-case ceiling)
+  const repCosts = reps.map((r) => {
+    // Projection: apply tier curve to per-rep avg-incl-zero monthly revenue
+    // for the remaining months. Consistent with stats.projectedPeriodEnd.
+    const projMonthlyRev = r.stats.monthlyAvgIncluding0;
+    const projMonthlyBonus = bonusReplacement(projMonthlyRev, tracker.monthlyTiers).bonus;
+    const projAddlBonus = projMonthlyBonus * monthsLeft;
+    const projAccrued = r.accruedTripBudget + projAddlBonus;
+    const projRevenue = r.stats.projectedPeriodEnd;
+    const projQualified = projRevenue >= tracker.tripThreshold;
+
+    // Worst case (budget ceiling): rep hits their best month every remaining month
+    const bestRev = r.stats.bestMonth.revenue;
+    const bestBonus = bonusReplacement(bestRev, tracker.monthlyTiers).bonus;
+    const wcRevenue = r.ytd + bestRev * monthsLeft;
+    const wcAccrued = r.accruedTripBudget + bestBonus * monthsLeft;
+    const wcQualified = wcRevenue >= tracker.tripThreshold;
+
+    return {
+      rep: r.rep,
+      ytd: r.ytd,
+      qualified: r.qualifiedForTrip,
+      currentPot: r.accruedTripBudget,
+      cashOut: r.qualifiedForTrip ? r.actualTripBudget * CASH_OUT_PCT : 0,
+      projRevenue,
+      projAccrued,
+      projQualified,
+      projFinalPot: projQualified ? projAccrued : 0,
+      wcAccrued,
+      wcQualified,
+      wcFinalPot: wcQualified ? wcAccrued : 0,
+    };
+  });
+  const projectedTotalRevenue = repCosts.reduce((s, c) => s + c.projRevenue, 0);
+  const projectedQualifiedCount = repCosts.filter((c) => c.projQualified).length;
+  const projectedTotalLiability = repCosts.reduce((s, c) => s + c.projFinalPot, 0);
+  const currentCashOutAlt = totalToBePaid * CASH_OUT_PCT;
+  const projectedCashOutAlt = projectedTotalLiability * CASH_OUT_PCT;
+  const worstCaseQualifiedCount = repCosts.filter((c) => c.wcQualified).length;
+  const worstCaseTotalLiability = repCosts.reduce((s, c) => s + c.wcFinalPot, 0);
+  const bonusToRevenuePct = totalTeam > 0 ? (totalAccrued / totalTeam) * 100 : 0;
+
   // Payload for client-side charts
   const payload = {
     generatedAt: new Date().toISOString(),
     today: today.toISOString().slice(0, 10),
-    daysLeftH1,
-    weeksLeftH1,
-    monthsLeftH1,
+    daysLeft,
+    weeksLeft,
+    monthsLeft,
+    period: { ...tracker.period, id: periodId },
+    tripThreshold: tracker.tripThreshold,
     months,
     monthsCompleted,
     reps,
@@ -183,7 +147,7 @@ export function renderTripDashboard(input: RenderInput): string {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>RCRS 2026 H1 Trip Program — Live Dashboard</title>
+<title>RCRS ${periodName} Trip Program — Live Dashboard</title>
 <script src="/vendor/chart.umd.min.js"></script>
 <script src="/vendor/xlsx.full.min.js"></script>
 <style>
@@ -279,19 +243,17 @@ export function renderTripDashboard(input: RenderInput): string {
 </head>
 <body>
 
-<h1>RCRS 2026 H1 Trip Program</h1>
+<h1>RCRS ${periodName} Trip Program</h1>
 <div class="sub">
-  Live dashboard · Generated ${new Date().toLocaleString()} ·
-  ${daysLeftH1} days left in H1 (~${weeksLeftH1} weeks, ${monthsLeftH1} months) ·
-  Trip qualification = $400K cumulative Jan 1 – Jun 30
-  &nbsp;·&nbsp; <a href="/trip/update" class="btn btn-secondary" style="padding:4px 10px;font-size:11px">Upload new sheet</a>
+  ${daysLeft > 0 ? `${daysLeft} days left in ${periodName} (~${weeksLeft} weeks, ${monthsLeft} months)` : `${periodName} is closed`} ·
+  Trip qualification = ${thresholdK} cumulative ${periodRange}
+  &nbsp;·&nbsp; <a href="/trip/update" class="btn btn-secondary no-print" style="padding:4px 10px;font-size:11px">Upload new sheet</a>
+  &nbsp;·&nbsp; <button onclick="window.print()" class="btn btn-secondary no-print" style="padding:4px 10px;font-size:11px;border:0;cursor:pointer">Save as PDF</button>
 </div>
+<style>@media print { .no-print { display: none !important; } body { background: #fff !important; color: #000 !important; } .stat, .card, .chart-card, .rep-card, .award, .policy-box, .danger-box, .winner-box, .warn-box { background: #fff !important; color: #000 !important; border-color: #ccc !important; box-shadow: none !important; } h1, h2, h3, .stat-value, .rep-name, .motivation, .winner-box { color: #000 !important; } }</style>
 
 <div class="hero">
-  <div class="stat"><div class="stat-label">Team H1 YTD</div><div class="stat-value">$${Math.round(totalTeam).toLocaleString()}</div><div class="stat-sub">across ${reps.length} reps</div></div>
-  <div class="stat"><div class="stat-label">Team Average</div><div class="stat-value">$${Math.round(teamAvg).toLocaleString()}</div><div class="stat-sub">per rep YTD</div></div>
   <div class="stat"><div class="stat-label">Qualified for Trip</div><div class="stat-value">${qualifiedCount} / ${reps.length}</div><div class="stat-sub">${reps.length ? ((qualifiedCount / reps.length) * 100).toFixed(0) : 0}% of team</div></div>
-  <div class="stat"><div class="stat-label">Total Accrued</div><div class="stat-value">$${totalAccrued.toLocaleString()}</div><div class="stat-sub">$${totalToBePaid.toLocaleString()} locked, $${totalForfeitedSoFar.toLocaleString()} pending</div></div>
   ${topProducer ? `<div class="stat"><div class="stat-label">Top Producer</div><div class="stat-value">${topProducer.rep}</div><div class="stat-sub">$${Math.round(topProducer.ytd).toLocaleString()}</div></div>` : ''}
   ${biggestMonth ? `<div class="stat"><div class="stat-label">Biggest Month</div><div class="stat-value">$${Math.round(biggestMonth.revenue).toLocaleString()}</div><div class="stat-sub">${biggestMonth.rep} - ${biggestMonth.month}</div></div>` : ''}
 </div>
@@ -302,19 +264,18 @@ export function renderTripDashboard(input: RenderInput): string {
   ${biggestMonth ? `<div class="award"><div class="award-title">🔥 Biggest Single Month</div><div class="award-winner">${biggestMonth.rep}</div><div class="award-detail">${biggestMonth.month} - $${Math.round(biggestMonth.revenue).toLocaleString()}</div></div>` : ''}
   ${mostConsistent ? `<div class="award"><div class="award-title">🎯 Most Consistent</div><div class="award-winner">${mostConsistent.rep}</div><div class="award-detail">${mostConsistent.stats.tieredMonths} of ${monthsCompleted} months tier hit</div></div>` : ''}
   ${highestSingleTier ? `<div class="award"><div class="award-title">💰 Highest Tier Hit</div><div class="award-winner">${highestSingleTier.rep}</div><div class="award-detail">${highestSingleTier.tier} in ${highestSingleTier.month} (+$${highestSingleTier.bonus.toLocaleString()})</div></div>` : ''}
-  ${fastestStarter ? `<div class="award"><div class="award-title">🚀 Best January Start</div><div class="award-winner">${fastestStarter.rep}</div><div class="award-detail">$${Math.round(fastestStarter.breakdown[0].revenue).toLocaleString()} Jan</div></div>` : ''}
-  ${bestAprilSurge ? `<div class="award"><div class="award-title">🌟 April Surge</div><div class="award-winner">${bestAprilSurge.rep}</div><div class="award-detail">$${Math.round(bestAprilSurge.breakdown[3].revenue).toLocaleString()} April</div></div>` : ''}
+  ${fastestStarter && months[0] ? `<div class="award"><div class="award-title">🚀 Best ${months[0]} Start</div><div class="award-winner">${fastestStarter.rep}</div><div class="award-detail">$${Math.round(fastestStarter.breakdown[0].revenue).toLocaleString()} ${months[0]}</div></div>` : ''}
+  ${bestMidPeriodSurge && months[3] ? `<div class="award"><div class="award-title">🌟 ${months[3]} Surge</div><div class="award-winner">${bestMidPeriodSurge.rep}</div><div class="award-detail">$${Math.round(bestMidPeriodSurge.breakdown[3].revenue).toLocaleString()} ${months[3]}</div></div>` : ''}
   ${comebackKid ? `<div class="award"><div class="award-title">💪 Comeback Candidate</div><div class="award-winner">${comebackKid.rep}</div><div class="award-detail">Best month would close their gap if repeated</div></div>` : ''}
 </div>
 
 <h2>📊 Sales Charts</h2>
 <div class="grid-2">
   <div class="chart-card"><h3>YTD Sales by Rep</h3><div class="chart-wrap"><canvas id="ytdChart"></canvas></div></div>
-  <div class="chart-card"><h3>Trip Progress (toward $400K)</h3><div class="chart-wrap"><canvas id="tripChart"></canvas></div></div>
+  <div class="chart-card"><h3>Trip Progress (toward ${thresholdK})</h3><div class="chart-wrap"><canvas id="tripChart"></canvas></div></div>
 </div>
 <div class="grid-2" style="margin-top: 16px;">
   <div class="chart-card"><h3>Monthly Sales Trend</h3><div class="chart-wrap"><canvas id="trendChart"></canvas></div></div>
-  <div class="chart-card"><h3>Monthly Team Total (Stacked)</h3><div class="chart-wrap"><canvas id="teamMonthChart"></canvas></div></div>
 </div>
 
 <h2>🔥 Tier Heatmap (highest tier reached each month)</h2>
@@ -363,7 +324,7 @@ export function renderTripDashboard(input: RenderInput): string {
       <div class="rep-llc">${r.llc || '<em>(no LLC on file)</em>'}</div>
       ${ins.deltaMessage ? `<div class="delta-card">${ins.deltaMessage}</div>` : ''}
       <div class="section-label">Trip Progress</div>
-      <div class="progress"><div class="progress-bar ${barClass}" style="width: ${pct}%"></div><div class="progress-label">${pct.toFixed(1)}% to $400K</div></div>
+      <div class="progress"><div class="progress-bar ${barClass}" style="width: ${pct}%"></div><div class="progress-label">${pct.toFixed(1)}% to ${thresholdK}</div></div>
       <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-dim)">
         <span>$${Math.round(r.ytd).toLocaleString()} YTD</span>
         <span>${r.qualifiedForTrip ? 'Qualified ✓' : 'Gap: $' + Math.round(r.gapToTrip).toLocaleString()}</span>
@@ -373,7 +334,7 @@ export function renderTripDashboard(input: RenderInput): string {
       <div class="tier-row"><span class="lbl">Active months</span><span class="val">${r.stats.activeMonths} of ${monthsCompleted}</span></div>
       <div class="tier-row"><span class="lbl">Tier hits</span><span class="val">${r.stats.tieredMonths} of ${monthsCompleted}</span></div>
       <div class="tier-row"><span class="lbl">Avg / active month</span><span class="val">$${Math.round(r.stats.monthlyAvg).toLocaleString()}</span></div>
-      <div class="tier-row"><span class="lbl">Projected H1 finish</span><span class="val">$${Math.round(r.stats.projectedH1AtCurrentPace).toLocaleString()}</span></div>
+      <div class="tier-row"><span class="lbl">Projected ${periodName} finish</span><span class="val">$${Math.round(r.stats.projectedPeriodEnd).toLocaleString()}</span></div>
       ${!r.qualifiedForTrip ? `<div class="tier-row"><span class="lbl">Need / month to qualify</span><span class="val">$${Math.round(r.stats.neededPerMonth).toLocaleString()}</span></div>` : ''}
       ${!r.qualifiedForTrip ? `<div class="tier-row"><span class="lbl">Need / week to qualify</span><span class="val">$${Math.round(r.stats.neededPerWeek).toLocaleString()}</span></div>` : ''}
       <div class="tier-row"><span class="lbl">Trip fund pot</span><span class="val">$${r.accruedTripBudget.toLocaleString()}</span></div>
@@ -388,7 +349,7 @@ export function renderTripDashboard(input: RenderInput): string {
 
 <h2>🔮 What It Would Take (Remaining Months)</h2>
 <div class="card">
-  <p class="sub">For each pending rep: $/month and $/week needed to qualify by Jun 30.</p>
+  <p class="sub">For each pending rep: $/month and $/week needed to qualify by ${formatPeriodRange(tracker.period).split(' – ')[1]}.</p>
   <table>
     <thead><tr><th>Rep</th><th>Gap</th><th>$/month</th><th>$/week</th><th>Best month</th><th>If best repeats once</th><th>Verdict</th></tr></thead>
     <tbody>
@@ -429,11 +390,11 @@ export function renderTripDashboard(input: RenderInput): string {
   <div class="policy-box" style="margin-top:14px"><strong>Examples:</strong> $200K month = +$1,200 to pot. $700K month = $4,000 ($500K tier) + $2,000 (linear) = <strong>+$6,000 to pot</strong>. $1M month = <strong>+$9,000 (cap)</strong>. Anything above $1M in a single month still tops out at $9,000.</div>
   <h3 style="margin-top:24px">Trip Rules &amp; Restrictions</h3>
   <ul class="insight-list">
-    <li class="suggestions" style="padding-left:22px;position:relative">→ Hit <strong>$400K cumulative</strong> Jan 1 – Jun 30 to qualify. <strong>$400K total must be reached</strong> — anything below = no payout, accrued bonuses forfeited.</li>
+    <li class="suggestions" style="padding-left:22px;position:relative">→ Hit <strong>${thresholdK} cumulative</strong> ${periodRange} to qualify. <strong>${thresholdK} total must be reached</strong> — anything below = no payout, accrued bonuses forfeited.</li>
     <li class="suggestions" style="padding-left:22px;position:relative">→ Trip must be scheduled <strong>30–60 days following the end of the comp</strong>, unless approved by owners.</li>
     <li class="suggestions" style="padding-left:22px;position:relative">→ RCRS books wherever rep wants. Total flexibility within budget.</li>
     <li class="suggestions" style="padding-left:22px;position:relative">→ Cash for small spend (excursions, on-the-ground items) issued before/during.</li>
-    <li class="suggestions" style="padding-left:22px;position:relative">→ H2 (Jul 1 – Dec 31) starts over for the next trip cycle.</li>
+    <li class="suggestions" style="padding-left:22px;position:relative">→ ${followingPeriod ? `${followingPeriod.name} (${formatPeriodRange(followingPeriod)})` : 'The next half'} starts over for the next trip cycle.</li>
     <li class="suggestions" style="padding-left:22px;position:relative">→ <strong>Sale Definition:</strong> a sale counts the month the contract is signed AND the deposit is received.</li>
   </ul>
   <h3 style="margin-top:24px">Cancellation / Returned Deposit</h3>
@@ -444,6 +405,95 @@ export function renderTripDashboard(input: RenderInput): string {
 </div>
 
 <div id="adminOnly" style="display:none">
+
+<h2>💰 Company Cost &amp; Liability (admin)</h2>
+<div class="policy-box" style="margin-bottom:14px">
+  <strong>Pot = total RCRS trip spend per qualified rep.</strong> Pot covers travel, hotel, and all trip costs — the full company outlay. Numbers below are RCRS's actual financial exposure on this comp.
+</div>
+
+<h3>Current State (Actual)</h3>
+<div class="hero">
+  <div class="stat"><div class="stat-label">Total Accrued Pot</div><div class="stat-value">$${Math.round(totalAccrued).toLocaleString()}</div><div class="stat-sub">across ${reps.length} reps</div></div>
+  <div class="stat"><div class="stat-label">Locked (will pay)</div><div class="stat-value">$${Math.round(totalToBePaid).toLocaleString()}</div><div class="stat-sub">${qualifiedCount} qualified rep(s)</div></div>
+  <div class="stat"><div class="stat-label">At Risk (forfeitable)</div><div class="stat-value">$${Math.round(totalForfeitedSoFar).toLocaleString()}</div><div class="stat-sub">${reps.length - qualifiedCount} unqualified rep(s)</div></div>
+  <div class="stat"><div class="stat-label">Cash-out Alt (75%)</div><div class="stat-value">$${Math.round(currentCashOutAlt).toLocaleString()}</div><div class="stat-sub">if all qualified cashed out</div></div>
+  <div class="stat"><div class="stat-label">Bonus / Revenue</div><div class="stat-value">${bonusToRevenuePct.toFixed(2)}%</div><div class="stat-sub">accrued pot ÷ team revenue</div></div>
+  <div class="stat"><div class="stat-label">Team Average YTD</div><div class="stat-value">$${Math.round(teamAvg).toLocaleString()}</div><div class="stat-sub">per rep</div></div>
+</div>
+
+<h3 style="margin-top:18px">Projected at ${periodName} Close (Current Pace)</h3>
+<div class="sub">Each rep's avg-monthly revenue (including zero months) extrapolated through ${formatPeriodRange(tracker.period).split(' – ')[1]}, run through the tier curve.</div>
+<div class="hero">
+  <div class="stat"><div class="stat-label">Projected ${periodName} Revenue</div><div class="stat-value">$${Math.round(projectedTotalRevenue).toLocaleString()}</div><div class="stat-sub">team total at current pace</div></div>
+  <div class="stat"><div class="stat-label">Projected Qualified</div><div class="stat-value">${projectedQualifiedCount} / ${reps.length}</div><div class="stat-sub">reps hitting $${(tracker.tripThreshold / 1000).toFixed(0)}K</div></div>
+  <div class="stat"><div class="stat-label">Projected Liability</div><div class="stat-value">$${Math.round(projectedTotalLiability).toLocaleString()}</div><div class="stat-sub">total trip spend</div></div>
+  <div class="stat"><div class="stat-label">Projected Cash-out Alt</div><div class="stat-value">$${Math.round(projectedCashOutAlt).toLocaleString()}</div><div class="stat-sub">if all projected cash out</div></div>
+</div>
+
+<h3 style="margin-top:18px">Worst-case Ceiling (Best Month Repeats)</h3>
+<div class="sub">Every rep hits their best month every remaining month. Hard upper bound on company exposure — no realistic projection should ever exceed this.</div>
+<div class="hero">
+  <div class="stat"><div class="stat-label">Max Possible Qualified</div><div class="stat-value">${worstCaseQualifiedCount} / ${reps.length}</div><div class="stat-sub">ceiling</div></div>
+  <div class="stat"><div class="stat-label">Max Possible Liability</div><div class="stat-value">$${Math.round(worstCaseTotalLiability).toLocaleString()}</div><div class="stat-sub">budget ceiling</div></div>
+</div>
+
+<h2>📋 Per-Rep Cost Breakdown (admin)</h2>
+<div class="card">
+  <p class="sub">Current state + current-pace projection + worst-case per rep. Projected/worst-case "final" columns show $0 if rep doesn't qualify in that scenario (pot would be forfeited).</p>
+  <table>
+    <thead><tr>
+      <th>Rep</th>
+      <th>YTD</th>
+      <th>Status</th>
+      <th>Current Pot</th>
+      <th>Cash-out @ 75%</th>
+      <th>Projected Final</th>
+      <th>Worst-case Final</th>
+    </tr></thead>
+    <tbody>
+      ${repCosts
+        .map((c) => {
+          const statusBadge = c.qualified
+            ? '<span class="badge badge-green">QUAL</span>'
+            : '<span class="badge badge-bad">PENDING</span>';
+          const projCell = c.projQualified
+            ? `$${Math.round(c.projFinalPot).toLocaleString()}`
+            : '<span style="color:var(--text-dim)">—</span>';
+          const wcCell = c.wcQualified
+            ? `$${Math.round(c.wcFinalPot).toLocaleString()}`
+            : '<span style="color:var(--text-dim)">—</span>';
+          const cashCell = c.qualified
+            ? `$${Math.round(c.cashOut).toLocaleString()}`
+            : '<span style="color:var(--text-dim)">—</span>';
+          return `<tr>
+        <td><strong>${c.rep}</strong></td>
+        <td>$${Math.round(c.ytd).toLocaleString()}</td>
+        <td>${statusBadge}</td>
+        <td>$${Math.round(c.currentPot).toLocaleString()}</td>
+        <td>${cashCell}</td>
+        <td>${projCell}</td>
+        <td>${wcCell}</td>
+      </tr>`;
+        })
+        .join('')}
+      <tr style="border-top:2px solid var(--green);font-weight:700;background:var(--bg3)">
+        <td><strong>TOTALS</strong></td>
+        <td><strong>$${Math.round(totalTeam).toLocaleString()}</strong></td>
+        <td><strong>${qualifiedCount} qual</strong></td>
+        <td><strong>$${Math.round(totalAccrued).toLocaleString()}</strong></td>
+        <td><strong>$${Math.round(currentCashOutAlt).toLocaleString()}</strong></td>
+        <td><strong>$${Math.round(projectedTotalLiability).toLocaleString()}</strong></td>
+        <td><strong>$${Math.round(worstCaseTotalLiability).toLocaleString()}</strong></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<h2>📈 Team Aggregates (admin)</h2>
+<div class="grid-2" style="margin-top: 12px;">
+  <div class="chart-card"><h3>Monthly Team Total (Stacked)</h3><div class="chart-wrap"><canvas id="teamMonthChart"></canvas></div></div>
+</div>
+
 <h2>📅 Snapshot History &amp; Trends</h2>
 <div class="card">
   <p class="sub">Every change to the underlying spreadsheet creates a new snapshot. ${snapshots.length} snapshot(s) on file.</p>
@@ -482,6 +532,12 @@ export function renderTripDashboard(input: RenderInput): string {
   }
 </div>
 
+<h2>🗄️ HTML Backups</h2>
+<div class="card">
+  <p class="sub">Every commit to /trip writes a frozen HTML copy of the prior dashboard. Click an entry to open the pre-upload view.</p>
+  <div id="backupsList"><p class="sub">Loading…</p></div>
+</div>
+
 <h2>📝 Change Log (last ${changeLog.length} entries)</h2>
 <div class="card">
   <p class="sub">Every modification — including retroactive changes to past months — is logged here.</p>
@@ -512,17 +568,37 @@ export function renderTripDashboard(input: RenderInput): string {
 </div>
 
 <script>
-const IS_ADMIN = (function(){
+const IS_ADMIN = ${isAdmin ? 'true' : 'false'} || (function(){
   try {
     var params = new URLSearchParams(window.location.search);
-    if (params.get('admin') === '1') {
-      var el = document.getElementById('adminOnly');
-      if (el) el.style.display = 'block';
-      return true;
-    }
-  } catch(e) {}
-  return false;
+    return params.get('admin') === '1';
+  } catch(e) { return false; }
 })();
+if (IS_ADMIN) {
+  var __adminEl = document.getElementById('adminOnly');
+  if (__adminEl) __adminEl.style.display = 'block';
+}
+
+if (IS_ADMIN) {
+  fetch('/api/trip/backups', { cache: 'no-store' })
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      var el = document.getElementById('backupsList');
+      if (!el) return;
+      var backups = (j && j.backups) || [];
+      if (backups.length === 0) { el.innerHTML = '<p class="sub">No backups yet — they\\'re written automatically on each upload.</p>'; return; }
+      var rows = backups.map(function(b){
+        var when = new Date(b.uploadedAt).toLocaleString();
+        var sizeKb = (b.size / 1024).toFixed(1);
+        return '<tr><td>' + when + '</td><td><a href="' + b.url + '" target="_blank" style="color:#39FF14">open</a></td><td>' + sizeKb + ' KB</td><td style="color:#8b95a5;font-size:11px">' + b.key + '</td></tr>';
+      }).join('');
+      el.innerHTML = '<table class="small-table"><thead><tr><th>Captured</th><th>View</th><th>Size</th><th>Path</th></tr></thead><tbody>' + rows + '</tbody></table>';
+    })
+    .catch(function(){
+      var el = document.getElementById('backupsList');
+      if (el) el.innerHTML = '<p class="sub">Failed to load backups.</p>';
+    });
+}
 
 const PAYLOAD = ${JSON.stringify(payload)};
 
@@ -545,7 +621,7 @@ new Chart(document.getElementById('ytdChart'), {
 new Chart(document.getElementById('tripChart'), {
   type: 'bar',
   data: { labels: repNames, datasets: [{ label: '%', data: PAYLOAD.reps.map(r => r.pctToTrip.toFixed(1)), backgroundColor: repColors }] },
-  options: { ...COMMON, indexAxis: 'y', plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.raw + '% to $400K' } } }, scales: { x: { max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#1c2330' } }, y: { grid: { display: false } } } }
+  options: { ...COMMON, indexAxis: 'y', plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.raw + '% to $' + Math.round(PAYLOAD.tripThreshold / 1000) + 'K' } } }, scales: { x: { max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#1c2330' } }, y: { grid: { display: false } } } }
 });
 
 new Chart(document.getElementById('trendChart'), {
@@ -554,87 +630,15 @@ new Chart(document.getElementById('trendChart'), {
   options: { ...COMMON, interaction: { mode: 'index', intersect: false }, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } }, tooltip: { callbacks: { label: c => c.dataset.label + ': $' + c.raw.toLocaleString() } } }, scales: { y: { ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'K' }, grid: { color: '#1c2330' } } } }
 });
 
-new Chart(document.getElementById('teamMonthChart'), {
-  type: 'bar',
-  data: { labels: PAYLOAD.months, datasets: PAYLOAD.reps.map((r, i) => ({ label: r.rep, data: r.breakdown.map(b => Math.round(b.revenue)), backgroundColor: palette[i % palette.length] })) },
-  options: { ...COMMON, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } }, tooltip: { callbacks: { label: c => c.dataset.label + ': $' + c.raw.toLocaleString() } } }, scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'K' }, grid: { color: '#1c2330' } } } }
-});
+if (IS_ADMIN) {
+  new Chart(document.getElementById('teamMonthChart'), {
+    type: 'bar',
+    data: { labels: PAYLOAD.months, datasets: PAYLOAD.reps.map((r, i) => ({ label: r.rep, data: r.breakdown.map(b => Math.round(b.revenue)), backgroundColor: palette[i % palette.length] })) },
+    options: { ...COMMON, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } }, tooltip: { callbacks: { label: c => c.dataset.label + ': $' + c.raw.toLocaleString() } } }, scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'K' }, grid: { color: '#1c2330' } } } }
+  });
+}
 </script>
 </body>
 </html>`;
 }
 
-function buildInsights(
-  r: RichRep,
-  tripThreshold: number,
-  monthsCompleted: number,
-): RichRep['insights'] {
-  const out: RichRep['insights'] = {
-    wins: [],
-    gaps: [],
-    suggestions: [],
-    motivation: '',
-    deltaMessage: null,
-  };
-  const s = r.stats;
-  const d = r.delta;
-
-  if (d && d.accruedDelta > 0) {
-    out.deltaMessage = `Since the last update, you added <strong>+$${d.accruedDelta.toLocaleString()}</strong> to your trip fund — bringing your pot to <strong>$${r.accruedTripBudget.toLocaleString()}</strong> toward a peaceful vacation.`;
-  } else if (d && d.ytdDelta > 0 && d.accruedDelta === 0) {
-    out.deltaMessage = `Since the last update, you closed <strong>+$${Math.round(d.ytdDelta).toLocaleString()}</strong> in sales. One more push to clear $50K and the pot starts growing.`;
-  } else if (d && d.isNew) {
-    out.deltaMessage = `Welcome to the board. Every $50K month adds to your trip fund.`;
-  }
-
-  if (r.qualifiedForTrip) out.wins.push(`Already QUALIFIED with $${Math.round(r.ytd).toLocaleString()} sold.`);
-  if (s.bestMonth.revenue >= 200000)
-    out.wins.push(`Posted ${s.bestMonth.month} at $${Math.round(s.bestMonth.revenue).toLocaleString()} — proves $200K+ months are in your wheelhouse.`);
-  else if (s.bestMonth.revenue >= 100000)
-    out.wins.push(`Best month: ${s.bestMonth.month} = $${Math.round(s.bestMonth.revenue).toLocaleString()}, six-figure performance.`);
-  else if (s.bestMonth.revenue >= 50000)
-    out.wins.push(`Best month: ${s.bestMonth.month} = $${Math.round(s.bestMonth.revenue).toLocaleString()}, tier money earned.`);
-  if (r.accruedTripBudget >= 1000) out.wins.push(`Trip fund pot: $${r.accruedTripBudget.toLocaleString()}.`);
-  if (s.consistency >= 75) out.wins.push(`${s.tieredMonths} of ${monthsCompleted} months hit tier — elite consistency.`);
-
-  if (s.activeMonths < monthsCompleted) {
-    const dark = monthsCompleted - s.activeMonths;
-    out.gaps.push(`${dark} of ${monthsCompleted} months had zero sales. Every dark month is tier money missed.`);
-  }
-  if (s.activeMonths > 0 && s.tieredMonths < s.activeMonths) {
-    out.gaps.push(`${s.activeMonths - s.tieredMonths} active month(s) stayed under $50K — close-but-no-tier.`);
-  }
-  if (!r.qualifiedForTrip && s.projectedH1AtCurrentPace < tripThreshold) {
-    const shortBy = Math.round(tripThreshold - s.projectedH1AtCurrentPace);
-    out.gaps.push(`At current pace you finish H1 at ~$${Math.round(s.projectedH1AtCurrentPace).toLocaleString()} — $${shortBy.toLocaleString()} short of the trip.`);
-  }
-
-  if (!r.qualifiedForTrip) {
-    out.suggestions.push(`Average $${Math.round(s.neededPerMonth).toLocaleString()}/month for remaining months (~$${Math.round(s.neededPerWeek).toLocaleString()}/week) to qualify.`);
-    if (s.bestMonthBeatGap) out.suggestions.push(`ONE more month like ${s.bestMonth.month} closes the gap entirely.`);
-    else if (s.wouldQualifyIfBestRepeats) out.suggestions.push(`Repeat your ${s.bestMonth.month} performance through end of H1 and you're qualified.`);
-    if (s.bestMonth.revenue < 50000) out.suggestions.push(`No month has cleared $50K yet — first $50K month puts $100 in your pot.`);
-  } else {
-    out.suggestions.push(`Trip locked. Now climb tiers — bigger months = bigger pot.`);
-    if (s.bestMonth.revenue < 300000) out.suggestions.push(`Push for $300K month (+$2,000) — you've shown $200K is in range.`);
-    if (r.ytd >= 500000) out.suggestions.push(`$500K → $1M month: linear +$1,000 per additional $100K, capped at +$9,000.`);
-  }
-
-  if (r.qualifiedForTrip) out.motivation = "You're in. Now make the trip bigger.";
-  else if (s.wouldQualifyIfBestRepeats) out.motivation = `You've PROVEN you can do this. Repeat ${s.bestMonth.month}.`;
-  else if (s.activeMonths >= 1) out.motivation = `On the board. Scale it up.`;
-  else out.motivation = `The bar is $400K cumulative H1 — get on the board.`;
-
-  return out;
-}
-
-function monthsRemaining(from: Date, to: Date): number {
-  if (from >= to) return 0;
-  let count = 0;
-  const cursor = new Date(from.getFullYear(), from.getMonth(), 1);
-  while (cursor <= to) {
-    count += 1;
-    cursor.setMonth(cursor.getMonth() + 1);
-  }
-  return count;
-}

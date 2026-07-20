@@ -11,6 +11,19 @@ const ABOVE_500K_RATE = 1000;
 const MONTHLY_CAP_AMOUNT = 1000000;
 const MONTHLY_CAP_BONUS = 9000;
 
+// Default reps excluded from the trip program. Filtered at parse time so
+// re-uploads can never re-introduce them. The live list comes from
+// store.getExcludedReps() — this default is the seed for first-run.
+export const DEFAULT_EXCLUDED_REPS: ReadonlySet<string> = new Set(['brendon']);
+
+function firstNameOf(rep: string): string {
+  return rep.trim().split(/\s+/)[0]?.toLowerCase() ?? '';
+}
+
+function makeIsExcluded(list: ReadonlySet<string>) {
+  return (rep: string): boolean => list.has(firstNameOf(rep));
+}
+
 export function bonusReplacement(amount: number, tiers: BonusTier[]) {
   let bonus = 0;
   let topTier: string | null = null;
@@ -39,30 +52,72 @@ export function bonusReplacement(amount: number, tiers: BonusTier[]) {
  * Parse an xlsx Buffer into a DataMap (rep -> month -> revenue).
  * Skips any non-month sheets (e.g. a "Totals" tab).
  */
-export async function parseXlsxBuffer(buf: ArrayBuffer | Buffer): Promise<{
+export async function parseXlsxBuffer(
+  buf: ArrayBuffer | Buffer,
+  excludedReps: string[] | ReadonlySet<string> = DEFAULT_EXCLUDED_REPS,
+  /**
+   * Month sheets to keep. Sheets outside this set are reported in
+   * `ignoredMonths` and never reach the dataMap. Used to scope an upload to
+   * the active half of the year — the workbook carries all 12 months, but
+   * only the active period's six may be committed.
+   */
+  allowedMonths?: ReadonlySet<string>,
+): Promise<{
   dataMap: DataMap;
   months: string[];
+  excludedSummary: { rep: string; total: number }[];
+  excludedReps: string[];
+  ignoredMonths: { month: string; total: number }[];
 }> {
   const XLSX = await import('xlsx');
   const wb = XLSX.read(buf, { type: buf instanceof ArrayBuffer ? 'array' : 'buffer' });
   const monthSheets = wb.SheetNames.filter((s) => MONTH_NAME_SET.has(s.trim()));
   const months = monthSheets.map((s) => s.trim());
+  const excludedSet: ReadonlySet<string> =
+    excludedReps instanceof Set
+      ? (excludedReps as ReadonlySet<string>)
+      : new Set(
+          (Array.isArray(excludedReps) ? excludedReps : [...excludedReps]).map((r) =>
+            r.toLowerCase(),
+          ),
+        );
+  const isExcluded = makeIsExcluded(excludedSet);
   const dataMap: DataMap = {};
+  const excludedTotals: Record<string, number> = {};
+  const ignoredTotals: Record<string, number> = {};
   for (const sheetName of monthSheets) {
     const month = sheetName.trim();
     const rows = XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[sheetName], {
       header: 1,
       defval: '',
     });
+    const outOfPeriod = allowedMonths ? !allowedMonths.has(month) : false;
     for (const row of rows) {
       const rep = String((row as unknown[])[0] ?? '').trim();
       const rev = Number((row as unknown[])[1]) || 0;
       if (!rep || rev <= 0) continue;
+      if (outOfPeriod) {
+        ignoredTotals[month] = (ignoredTotals[month] || 0) + rev;
+        continue;
+      }
+      if (isExcluded(rep)) {
+        excludedTotals[rep] = (excludedTotals[rep] || 0) + rev;
+        continue;
+      }
       dataMap[rep] = dataMap[rep] || {};
       dataMap[rep][month] = (dataMap[rep][month] || 0) + rev;
     }
   }
-  return { dataMap, months };
+  const excludedSummary = Object.entries(excludedTotals).map(([rep, total]) => ({ rep, total }));
+  const ignoredMonths = Object.entries(ignoredTotals).map(([month, total]) => ({ month, total }));
+  const keptMonths = allowedMonths ? months.filter((m) => allowedMonths.has(m)) : months;
+  return {
+    dataMap,
+    months: keptMonths,
+    excludedSummary,
+    excludedReps: [...excludedSet],
+    ignoredMonths,
+  };
 }
 
 /**
@@ -73,7 +128,7 @@ export function buildTrackerJSON(args: {
   months: string[];
   tiers: BonusTier[];
   tripThreshold: number;
-  period: { start: string; end: string; name: string };
+  period: { start: string; end: string; name: string; id?: string };
   source: string;
 }): TrackerJSON {
   const { dataMap, months, tiers, tripThreshold, period, source } = args;

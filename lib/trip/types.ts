@@ -28,7 +28,7 @@ export interface RepStats {
   bestMonth: BreakdownEntry;
   monthlyAvg: number;
   monthlyAvgIncluding0: number;
-  projectedH1AtCurrentPace: number;
+  projectedPeriodEnd: number;
   neededPerMonth: number;
   neededPerWeek: number;
   consistency: number;
@@ -70,7 +70,11 @@ export interface RepSummary {
 export interface TrackerJSON {
   source: string;
   generatedAt: string;
-  period: { start: string; end: string; name: string };
+  /** `id` is optional so pre-split trackers (no id) still typecheck. */
+  period: { start: string; end: string; name: string; id?: string };
+  /** Set on archived periods. A locked tracker can never be written to again. */
+  locked?: boolean;
+  lockedAt?: string;
   tripThreshold: number;
   bonusModel: 'replacement';
   monthlyTiers: BonusTier[];
