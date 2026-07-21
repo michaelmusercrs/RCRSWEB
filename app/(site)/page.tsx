@@ -6,6 +6,7 @@ import { MapPin, Shield, Award, Users, CheckCircle2, ArrowRight, CloudLightning,
 
 import RotatingText from '@/components/RotatingText';
 import RotatingBanner from '@/components/RotatingBanner';
+import HeroIntroSplash from '@/components/HeroIntroSplash';
 import dynamic from 'next/dynamic';
 const QuickContactForm = dynamic(() => import('@/components/QuickContactForm'), { ssr: false });
 import { blogPostIndex as blogPosts } from '@/lib/blogPostIndex';
@@ -58,6 +59,9 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen text-white overflow-x-hidden">
+
+      {/* One-time intro splash — first homepage visit only, then unmounts */}
+      <HeroIntroSplash />
 
       {/* Rotating Announcement Banner */}
       <RotatingBanner />
