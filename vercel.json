@@ -124,7 +124,7 @@
         }
       ],
       "destination": "https://www.rivercityroofingsolutions.com/:path*",
-      "permanent": true
+      "permanent": false
     }
   ]
 }

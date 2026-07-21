@@ -270,6 +270,21 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Rule 2.5: Canonicalize the public apex → www for page routes.
+  // vercel.json already redirects apex→www, but the statically-prerendered
+  // homepage is served from a host-shared edge cache that can bypass that
+  // config redirect (users landing on the bare domain saw the home page
+  // served on the apex instead of forwarding). Middleware runs per request
+  // BEFORE the page cache, so it forwards the root — and every page —
+  // reliably. API routes are left alone; they're allowed on both hosts.
+  // 307 (not 308) per house rule so the redirect is never permanent-cached.
+  if (hostname === 'rivercityroofingsolutions.com' && !isApiRoute(pathname)) {
+    const url = request.nextUrl.clone();
+    url.hostname = 'www.rivercityroofingsolutions.com';
+    url.port = '';
+    return NextResponse.redirect(url, 307);
+  }
+
   // Rule 2: API routes work on BOTH domains — with CORS enforcement + CSRF protection
   if (isApiRoute(pathname)) {
     const origin = request.headers.get('origin') || '';
