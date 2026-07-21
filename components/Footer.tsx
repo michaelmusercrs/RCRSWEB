@@ -317,7 +317,7 @@ export default function Footer() {
             <p className="text-neutral-300 text-xs tracking-wide">
               Engineered with precision by{' '}
               <span className="text-neutral-300 font-medium hover:text-brand-green transition-colors cursor-default">
-                RoofPro Digital
+                Roof Consulting Rampart Services
               </span>
               {' '}— Where roofing meets innovation.
             </p>
