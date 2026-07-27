@@ -180,26 +180,24 @@ export async function POST(request: NextRequest) {
 
         const rawFormMaterials = (data.materials as MaterialItem[]) || [];
 
-        // UoM normalization: convert PM-entered linear feet to canonical
-        // stock units (e.g., Ridge Vent LF → sticks ÷4) BEFORE the rest of
-        // the pipeline sees the qty. Idempotent + backwards-compatible for
-        // SKUs with no UoM hint. See lib/normalize-line-item-qty.ts.
+        // UoM sanity check: we do NOT convert quantities — PMs enter Ridge
+        // Vent (and everything else) in the stock unit (sticks), so the
+        // entered qty is trusted. The helper only FLAGS an implausibly large
+        // qty for human review. See lib/normalize-line-item-qty.ts.
         const uomFormAnomalies: string[] = [];
         const formMaterials: MaterialItem[] = rawFormMaterials.map((m) => {
           const norm = normalizeLineItemQty({
             productId: m.productId,
             productName: m.productName,
             qty: m.quantity || 0,
-            adjacentText: `${m.productName || ''} ${m.unit || ''}`,
           });
-          if (norm.converted) {
+          if (norm.reason === 'flag_review') {
             uomFormAnomalies.push(
-              `[UoM-NORMALIZED] ${m.productId || m.productName}: qty ${norm.originalQty} → ${norm.qty} (${norm.reason})${norm.warning ? ` — ${norm.warning}` : ''}`,
+              `[UoM-REVIEW] ${m.productId || m.productName}: qty ${norm.qty} left as-entered — ${norm.warning}`,
             );
             console.warn(
-              `[tickets/create] UoM normalize: ${m.productId} qty=${norm.originalQty} → ${norm.qty} (${norm.reason})`,
+              `[tickets/create] UoM review flag: ${m.productId} qty=${norm.qty} (unchanged) — ${norm.warning}`,
             );
-            return { ...m, quantity: norm.qty };
           }
           return m;
         });
