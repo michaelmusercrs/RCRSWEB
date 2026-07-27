@@ -1,25 +1,36 @@
 /**
- * Unit-of-measure normalization for material-order line items.
+ * Unit-of-measure sanity check for material-order line items.
  *
- * Background (2026-05-21): the material-order PDF parser was accepting Ridge
- * Vent qty in LINEAR FEET, but the inventory + legacy log count Ridge Vent in
- * STICKS (each Ridge Vent 4LF unit is a 4-LF stick). Four tickets this week
- * shipped with 4× the intended stick count:
+ * HISTORY
+ * -------
+ * 2026-05-21: We added an auto-conversion here that divided Ridge Vent qty by
+ * 4 (LF → stick) whenever the line "looked like" linear feet. The LF signal
+ * was derived from the text next to the quantity — but that text included the
+ * product NAME, and the Ridge Vent SKU is literally named "Ridge Vent 4LF".
+ * The "4LF" is a fixed descriptor of the SKU (each stick spans 4 linear feet),
+ * NOT a statement that the order was placed in linear feet. So the detector
+ * fired on EVERY Ridge Vent line and quartered the quantity unconditionally.
  *
- *   TKT-R-10923 (Chuck)   qty=88  → 22 sticks
- *   TKT-R-10993 (Joy)     qty=88  → 22 sticks
- *   TKT-R-10997 (Leanna)  qty=48  → 12 sticks
- *   TKT-R-11223 (Brenda)  qty=40  → 10 sticks
+ * 2026-07-27: Confirmed with the owner that PMs order Ridge Vent in STICKS,
+ * not linear feet. The auto-÷4 was therefore wrong almost everywhere — it
+ * under-delivered normal orders 4× (40 sticks → 10) and collapsed edge cases
+ * to zero (qty 1 → 0, qty 0 → 0), producing broken tickets (e.g. R-9559,
+ * R-11266). We are removing the silent mutation entirely.
  *
- * This helper is the single chokepoint for converting a parsed line item's
- * qty to the canonical stock UoM. It's invoked from:
+ * NEW BEHAVIOR: this helper NEVER changes a quantity. It trusts the entered
+ * stick count. Its only job now is to FLAG a line for human review when the
+ * quantity is implausibly large for the stock unit (which usually means the
+ * PM accidentally pasted linear feet). A human then decides — we never guess.
+ *
+ * Still the single chokepoint, invoked from:
  *   - lib/material-order-email-parser.ts (PDF → parsed line)
  *   - app/api/webhooks/material-order-email/route.ts (webhook ticket create)
  *   - app/api/portal/tickets/route.ts (portal manual ticket create)
  *
- * Backwards-compatible: if a SKU has no UoM hint, the helper is a no-op and
- * returns the qty unchanged. Tickets that were already correct (typical
- * stick counts of 5–40) are not touched.
+ * Backwards-compatible surface: callers read `.qty`, `.originalQty`,
+ * `.converted`, `.reason`, `.warning`. `.converted` is now ALWAYS false —
+ * we no longer mutate — but flagged lines carry `reason: 'flag_review'` and a
+ * `.warning`.
  */
 
 export type StockUnitOfMeasure =
@@ -37,15 +48,14 @@ export interface UomHint {
   /** Canonical stock unit (what Inventory_Products.currentQty counts in). */
   unitOfMeasure: StockUnitOfMeasure;
   /**
-   * Linear feet covered per stock unit. Only set for SKUs sold by length.
-   * Ridge Vent 4LF = 4 (one stick = 4 LF). Most other SKUs are sold each /
-   * by roll / by box and DO NOT set this field.
+   * Linear feet covered per stock unit. Retained for documentation only —
+   * Ridge Vent 4LF = 4 (one stick = 4 LF). We no longer divide by it.
    */
   linearFeetPerUnit?: number;
   /**
-   * Heuristic threshold — if parsed qty exceeds this, it's suspiciously
-   * large for the stock unit and likely arrived in linear feet. Used as the
-   * fallback trigger when the PDF text doesn't say "LF" explicitly.
+   * Review threshold — if the entered qty exceeds this, it's suspiciously
+   * large for the stock unit (likely pasted in linear feet) and gets flagged
+   * for a human to eyeball. The quantity itself is NEVER changed.
    */
   suspiciousQtyThreshold?: number;
 }
@@ -54,26 +64,18 @@ export interface UomHint {
  * Map of canonical productId → UoM hint. Keyed by INV-XXXX so legacy IDs
  * resolve through `resolveProductId()` first.
  *
- * NOTE: Only SKUs whose stock unit differs from their natural quoting unit
- * need an entry here. Most items (boots, sealant, nails) are sold each /
- * by box and never need conversion — leave them off the map.
+ * Only SKUs that need a review flag belong here. Ridge Vent is stocked and
+ * ordered by the stick; anything over ~60 sticks (240 LF of ridge) is worth a
+ * human glance in case the number arrived as linear feet.
  */
 export const INVENTORY_UOM_HINTS: Record<string, UomHint> = {
-  // Ridge Vent: 4 LF per stick. Real orders typically 5–40 sticks.
-  // 88 LF, 48 LF, 40 LF are linear-feet entries — divide by 4.
-  'INV-0005': { unitOfMeasure: 'stick', linearFeetPerUnit: 4, suspiciousQtyThreshold: 50 },
+  'INV-0005': { unitOfMeasure: 'stick', linearFeetPerUnit: 4, suspiciousQtyThreshold: 60 },
 };
 
 // Legacy ID aliases — same hint surfaces under item-XXX and the old SKU code
-// so callers that haven't resolved to INV-XXXX yet still get the conversion.
+// so callers that haven't resolved to INV-XXXX yet still get the flag.
 INVENTORY_UOM_HINTS['item-127'] = INVENTORY_UOM_HINTS['INV-0005'];
 INVENTORY_UOM_HINTS['VENT-RIDGE-4'] = INVENTORY_UOM_HINTS['INV-0005'];
-
-/** True when the surrounding PDF text indicates the qty was in linear feet. */
-function textImpliesLinearFeet(adjacentText?: string): boolean {
-  if (!adjacentText) return false;
-  return /\b(LF|linear[- ]?feet|linear[- ]?foot|lin[. ]?ft|\s+ft\b)\b/i.test(adjacentText);
-}
 
 /**
  * Resolve any incoming id (canonical INV-XXXX, legacy item-XXX, or a name
@@ -95,57 +97,42 @@ export function getUomHint(opts: {
 }
 
 export interface NormalizeQtyResult {
-  /** Normalized qty in the canonical stock unit. */
+  /** The qty in the canonical stock unit. We never mutate, so this always
+   *  equals `originalQty`. Kept for a stable caller surface. */
   qty: number;
-  /** The original (un-converted) qty. */
+  /** The original (as-entered) qty. */
   originalQty: number;
-  /**
-   * Why the conversion fired (or didn't). Useful for logging + the
-   * LineItemAnomalies sheet.
-   */
+  /** Why we did (or didn't) flag the line. */
   reason:
-    | 'no_hint'           // SKU has no UoM hint registered — no-op
-    | 'no_conversion'     // SKU has a hint but the qty looks fine
-    | 'explicit_lf_text'  // PDF text said "LF" — confident convert
-    | 'heuristic_threshold' // qty > threshold for an LF-based SKU — fallback convert
-    | 'still_suspicious'; // converted qty STILL looks suspicious (fail-loud)
-  /** True when the value was actually changed. */
+    | 'no_hint'        // SKU has no UoM hint registered — no-op
+    | 'no_conversion'  // SKU has a hint and the qty looks fine — no-op
+    | 'flag_review';   // qty implausibly large for the stock unit — flagged, NOT changed
+  /**
+   * Always false now — this helper no longer converts quantities. Retained so
+   * existing callers that branch on `.converted` keep compiling. Flagged lines
+   * are signalled via `reason === 'flag_review'` + `.warning` instead.
+   */
   converted: boolean;
-  /** Human-readable warning when the result is suspicious. */
+  /** Human-readable warning when the line is flagged for review. */
   warning?: string;
 }
 
 /**
- * Normalize a parsed material-order line item's qty into the canonical
- * stock unit. Idempotent: a qty already in the canonical unit is returned
- * unchanged. Order-of-precedence:
- *
- *   1. No UoM hint registered for this SKU → no-op.
- *   2. PDF text adjacent to the qty contains "LF"/"linear feet" → divide by
- *      `linearFeetPerUnit`. This is the high-confidence path.
- *   3. SKU has `linearFeetPerUnit` AND qty > `suspiciousQtyThreshold` →
- *      divide by `linearFeetPerUnit` and flag as heuristic. This is the
- *      observed-pattern fallback (this week's 4 tickets had Ridge Vent qty
- *      40, 48, 88, 88 — all > 50 except Brenda's 40, which gets caught by
- *      the explicit threshold edge case).
- *   4. Otherwise, leave qty unchanged.
- *
- * Post-conversion, if the result STILL exceeds the threshold (would require
- * a double-conversion to land in a sane range), return `still_suspicious`
- * with the converted value but flag it for human review.
+ * Sanity-check a parsed material-order line item's qty. NEVER changes the
+ * quantity — PMs order in the stock unit (e.g. Ridge Vent in sticks), so the
+ * entered number is trusted. When the number is implausibly large for the
+ * stock unit (usually a linear-feet paste), the line is FLAGGED for human
+ * review and returned unchanged.
  */
 export function normalizeLineItemQty(opts: {
   productId?: string;
   legacyId?: string;
   productName?: string;
   qty: number;
-  /** Optional raw text from the PDF line — used to detect "LF" markers. */
+  /** Optional raw text from the PDF line. Unused now that we never auto-convert;
+   *  kept in the signature so callers don't have to change. */
   adjacentText?: string;
-  /**
-   * If true, lower the heuristic-threshold trigger. Used by manual
-   * portal-form submissions where the PM can also click an LF radio button
-   * (future hook — not implemented yet).
-   */
+  /** Kept for signature stability; no longer changes behavior. */
   forceCheck?: boolean;
 }): NormalizeQtyResult {
   const originalQty = opts.qty;
@@ -153,54 +140,32 @@ export function normalizeLineItemQty(opts: {
   if (!hint) {
     return { qty: originalQty, originalQty, reason: 'no_hint', converted: false };
   }
-  // SKU has a hint but no linear-feet conversion → no-op for now (future:
-  // could handle 'lb' vs 'each' for nails-by-weight, etc).
-  if (!hint.linearFeetPerUnit) {
-    return { qty: originalQty, originalQty, reason: 'no_conversion', converted: false };
-  }
 
-  // High-confidence: PDF text says "LF" near the qty
-  if (textImpliesLinearFeet(opts.adjacentText)) {
-    const converted = Math.round(originalQty / hint.linearFeetPerUnit);
-    const result: NormalizeQtyResult = {
-      qty: converted,
+  // Flag-only: never mutate. Surface implausibly large quantities so a human
+  // can confirm the SKU wasn't ordered in the wrong unit (e.g. linear feet
+  // pasted where sticks were expected).
+  const threshold = hint.suspiciousQtyThreshold;
+  if (threshold && originalQty > threshold) {
+    return {
+      qty: originalQty,
       originalQty,
-      reason: 'explicit_lf_text',
-      converted: true,
+      reason: 'flag_review',
+      converted: false,
+      warning:
+        `qty=${originalQty} is unusually large for ${opts.productName || opts.productId} ` +
+        `(stock unit: ${hint.unitOfMeasure}, ~${threshold} max typical). ` +
+        `Left AS-ENTERED — verify with the PM that it wasn't meant as linear feet ` +
+        `(${hint.linearFeetPerUnit ? `${hint.linearFeetPerUnit} LF per ${hint.unitOfMeasure}` : 'check units'}).`,
     };
-    if (hint.suspiciousQtyThreshold && converted > hint.suspiciousQtyThreshold) {
-      result.reason = 'still_suspicious';
-      result.warning = `Even after LF→stick conversion (÷${hint.linearFeetPerUnit}), qty=${converted} still exceeds the sane threshold (${hint.suspiciousQtyThreshold}) for ${opts.productName || opts.productId}. Human review required.`;
-    }
-    return result;
   }
 
-  // Heuristic fallback: qty too large for this stock unit → auto-convert
-  const threshold = hint.suspiciousQtyThreshold ?? 50;
-  if (originalQty > threshold) {
-    const converted = Math.round(originalQty / hint.linearFeetPerUnit);
-    const result: NormalizeQtyResult = {
-      qty: converted,
-      originalQty,
-      reason: 'heuristic_threshold',
-      converted: true,
-      warning: `qty=${originalQty} exceeds suspicious-threshold ${threshold} for ${opts.productName || opts.productId} (stock unit: ${hint.unitOfMeasure}). Auto-converted to ${converted} ${hint.unitOfMeasure}s by ÷${hint.linearFeetPerUnit}. Verify with PM if unexpected.`,
-    };
-    if (converted > threshold) {
-      result.reason = 'still_suspicious';
-      result.warning = `After ÷${hint.linearFeetPerUnit} conversion, qty=${converted} ${hint.unitOfMeasure}s STILL exceeds threshold ${threshold} for ${opts.productName || opts.productId}. Human review required.`;
-    }
-    return result;
-  }
-
-  // Edge case: forceCheck triggered or PDF text was ambiguous but qty looks
-  // sane — leave alone.
   return { qty: originalQty, originalQty, reason: 'no_conversion', converted: false };
 }
 
 /**
- * Returns true if a given qty for a given SKU exceeds the sane threshold.
- * Used by the Step-5 sanity scan to flag any existing tickets for review.
+ * True if a given qty for a given SKU exceeds the review threshold. Used by
+ * sanity scans to flag existing tickets. Does not imply the qty is wrong —
+ * only that a human should confirm the unit.
  */
 export function isSuspectQty(opts: {
   productId?: string;

@@ -223,49 +223,30 @@ export async function POST(request: NextRequest) {
   const enrichedMaterials = parsed.materials.map(line => {
     const itemId = matchCatalogItem(line.itemName, catalogPairs);
     if (itemId) matched++;
-    // CRITICAL: if the parser's first pass ALREADY normalized this line's UoM
-    // (e.g. Ridge Vent 160 LF → 40 sticks), do NOT run the second pass.
-    // normalizeLineItemQty divides by linearFeetPerUnit unconditionally when
-    // it sees "LF"/"ft" text, so a second pass on an already-converted qty
-    // divides AGAIN (40 → 10) — a silent under-delivery. The second pass is
-    // defense-in-depth ONLY for lines the name-based first pass MISSED but the
-    // catalog match now resolves.
-    const firstPassConverted =
-      line.originalQuantity !== undefined && line.originalQuantity !== line.quantity;
-    let finalQty = line.quantity;
-    if (firstPassConverted) {
-      // Already converted by the parser — log the anomaly, do NOT re-convert.
+    // UoM sanity check. We NEVER convert — PMs order in the stock unit (Ridge
+    // Vent in sticks), so the parsed qty is trusted as-is. Run the check now
+    // that the catalog match has resolved the productId (the parser's first
+    // pass runs before catalog match). It only FLAGS an implausibly large qty
+    // for human review; the quantity is left unchanged.
+    const check = normalizeLineItemQty({
+      productId: itemId || undefined,
+      productName: line.itemName,
+      qty: line.quantity,
+    });
+    if (check.reason === 'flag_review') {
       uomAnomalies.push({
         itemName: line.itemName,
         itemId,
-        originalQty: line.originalQuantity!,
-        normalizedQty: line.quantity,
-        reason: line.uomNormalizationReason || 'parser_first_pass',
-        warning: line.uomNormalizationWarning,
+        originalQty: line.quantity,
+        normalizedQty: line.quantity, // unchanged
+        reason: check.reason,
+        warning: check.warning,
       });
-    } else {
-      const secondPass = normalizeLineItemQty({
-        productId: itemId || undefined,
-        productName: line.itemName,
-        qty: line.quantity,
-        adjacentText: `${line.itemName} ${line.unit || ''}`,
-      });
-      if (secondPass.converted) {
-        finalQty = secondPass.qty;
-        uomAnomalies.push({
-          itemName: line.itemName,
-          itemId,
-          originalQty: secondPass.originalQty,
-          normalizedQty: secondPass.qty,
-          reason: secondPass.reason,
-          warning: secondPass.warning,
-        });
-        console.warn(
-          `[material-order-webhook] UoM second-pass convert: ${itemId || line.itemName} qty=${secondPass.originalQty} → ${secondPass.qty} (${secondPass.reason})`,
-        );
-      }
+      console.warn(
+        `[material-order-webhook] UoM REVIEW FLAG: ${itemId || line.itemName} qty=${line.quantity} (unchanged) — ${check.warning}`,
+      );
     }
-    return { ...line, itemId, quantity: finalQty };
+    return { ...line, itemId, quantity: line.quantity };
   });
 
   // Build the ticket payload — same shape the /api/portal/tickets create
@@ -298,12 +279,14 @@ export async function POST(request: NextRequest) {
     };
   });
 
-  // Surface UoM normalizations in the ticket notes so office staff can see
-  // at a glance which line items were auto-converted (e.g., Ridge Vent
-  // LF → sticks). DO NOT email or alert — owner directive: direct writes only.
+  // Surface UoM review flags in the ticket notes so office staff can eyeball
+  // any line item whose qty looks unusually large for the stock unit (e.g. a
+  // Ridge Vent number that may have been pasted in linear feet). Quantities
+  // are LEFT AS-ENTERED — this is a flag, not a conversion. DO NOT email or
+  // alert — owner directive: direct writes only.
   const uomNoteLines = uomAnomalies.map(
     (a) =>
-      `[UoM-NORMALIZED] ${a.itemId || a.itemName}: qty ${a.originalQty} → ${a.normalizedQty} (${a.reason})${a.warning ? ` — ${a.warning}` : ''}`,
+      `[UoM-REVIEW] ${a.itemId || a.itemName}: qty ${a.normalizedQty} left as-entered — ${a.warning || 'verify unit with PM'}`,
   );
   const combinedNotes = [parsed.specialInstructions, ...uomNoteLines].filter(Boolean).join('\n');
 

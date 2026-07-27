@@ -260,10 +260,12 @@ export function parseMaterialOrderEmail(body: string): ParsedMaterialOrder {
       // token so phrases like "Ridge Vent 88 LF" or "88 linear feet" are
       // detected. Catalog match hasn't happened yet at this point, so we
       // rely on the name-substring fallback inside the helper.
+      // UoM sanity check. We do NOT convert — PMs order in the stock unit
+      // (e.g. Ridge Vent in sticks), so the parsed qty is trusted as-is. The
+      // helper only FLAGS an implausibly large qty for human review.
       const normalized = normalizeLineItemQty({
         productName: head,
         qty: parsedQty,
-        adjacentText: `${head} ${unit}`,
       });
       const line: ParsedMaterialLine = {
         itemName: head,
@@ -272,20 +274,14 @@ export function parseMaterialOrderEmail(body: string): ParsedMaterialOrder {
         quantity: normalized.qty,
         unitCost: parseDollar(costStr),
       };
-      if (normalized.converted) {
+      if (normalized.reason === 'flag_review') {
+        // Qty left AS-ENTERED but flagged so office can confirm the unit.
         line.originalQuantity = normalized.originalQty;
         line.uomNormalizationReason = normalized.reason;
-        if (normalized.warning) line.uomNormalizationWarning = normalized.warning;
-        // Fail-loud log so anomalies surface in Vercel logs even when the
-        // downstream LineItemAnomalies sheet write is absent.
-        console.warn(
-          `[material-order-parser] UoM normalize: "${head}" qty=${normalized.originalQty} → ${normalized.qty} (reason=${normalized.reason})${normalized.warning ? ' :: ' + normalized.warning : ''}`,
-        );
-      } else if (normalized.reason === 'still_suspicious') {
-        // No conversion fired but qty is still suspect — surface it.
-        line.uomNormalizationReason = normalized.reason;
         line.uomNormalizationWarning = normalized.warning;
-        console.warn(`[material-order-parser] STILL SUSPICIOUS: "${head}" qty=${normalized.qty} — ${normalized.warning}`);
+        console.warn(
+          `[material-order-parser] UoM REVIEW FLAG: "${head}" qty=${normalized.qty} (unchanged) — ${normalized.warning}`,
+        );
       }
       // Caller does fuzzy catalog match on itemName — give it the whole
       // pre-unit chunk; don't truncate at an arbitrary word boundary.
