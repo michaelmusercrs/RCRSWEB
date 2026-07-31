@@ -8,7 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth-service';
+import { requireRoleAtLeast } from '@/lib/auth-service';
 import { callsService } from '@/lib/calls-service';
 
 /**
@@ -21,7 +21,8 @@ import { callsService } from '@/lib/calls-service';
  * - repId: Filter by rep
  */
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
+  // Aggregate analytics span every rep — management only.
+  const auth = await requireRoleAtLeast(['owner', 'admin', 'manager']);
   if (!auth.authenticated) return auth.response;
 
   try {

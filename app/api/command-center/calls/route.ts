@@ -8,7 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth-service';
+import { requireRoleAtLeast } from '@/lib/auth-service';
 import { callsService } from '@/lib/calls-service';
 
 /**
@@ -17,7 +17,8 @@ import { callsService } from '@/lib/calls-service';
  * Get calls summary for command center dashboard
  */
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
+  // Cross-rep dashboard summary — management only.
+  const auth = await requireRoleAtLeast(['owner', 'admin', 'manager']);
   if (!auth.authenticated) return auth.response;
 
   try {

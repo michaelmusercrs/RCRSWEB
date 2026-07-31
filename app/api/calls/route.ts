@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { callsService, CallFilter } from '@/lib/calls-service';
+import { getPhoneScope, filterCallsByScope } from '@/lib/phone-access';
 
 /**
  * GET /api/calls
@@ -36,6 +37,16 @@ import { callsService, CallFilter } from '@/lib/calls-service';
 export async function GET(request: NextRequest) {
   const auth = await requireAuth();
   if (!auth.authenticated) return auth.response;
+
+  // Scope: managers+ see everything; sales/office see only their own extension;
+  // everyone else gets no phone data.
+  const scope = getPhoneScope(auth.user);
+  if (scope.level === 'none') {
+    return NextResponse.json(
+      { error: 'You do not have access to phone data' },
+      { status: 403 }
+    );
+  }
 
   try {
     const { searchParams } = new URL(request.url);
@@ -74,30 +85,46 @@ export async function GET(request: NextRequest) {
       filter.tags = searchParams.get('tags')!.split(',');
     }
 
-    // Get calls
+    // Get calls, then narrow to what this caller is allowed to see.
     let calls = await callsService.getCalls(Object.keys(filter).length > 0 ? filter : undefined);
+    calls = filterCallsByScope(scope, calls);
 
     // Pagination
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
     const total = calls.length;
 
-    calls = calls.slice(offset, offset + limit);
+    const pageCalls = calls.slice(offset, offset + limit);
+
+    // Stats: global for managers+, otherwise derived from this caller's own set.
+    const stats = scope.level === 'all'
+      ? await callsService.getStats()
+      : {
+          totalCalls: calls.length,
+          totalDuration: calls.reduce((s, c) => s + c.duration, 0),
+          inboundCalls: calls.filter(c => c.direction === 'inbound').length,
+          outboundCalls: calls.filter(c => c.direction === 'outbound').length,
+          missedCalls: calls.filter(c => c.status === 'missed').length,
+          completedCalls: calls.filter(c => c.status === 'completed').length,
+          averageDuration: 0,
+          lastUpdated: new Date().toISOString(),
+        };
 
     // Build response
     const response: any = {
-      calls,
+      calls: pageCalls,
+      scope: scope.level,
       pagination: {
         total,
         limit,
         offset,
-        hasMore: offset + calls.length < total,
+        hasMore: offset + pageCalls.length < total,
       },
-      stats: await callsService.getStats(),
+      stats,
     };
 
-    // Include analytics if requested
-    if (searchParams.get('analytics') === 'true') {
+    // Aggregate analytics are management-only (they span all reps).
+    if (searchParams.get('analytics') === 'true' && scope.level === 'all') {
       const daysBack = parseInt(searchParams.get('analyticsDays') || '30');
       response.analytics = await callsService.getAnalytics(daysBack);
     }

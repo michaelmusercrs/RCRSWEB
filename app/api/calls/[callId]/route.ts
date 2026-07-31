@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { callsService } from '@/lib/calls-service';
+import { getPhoneScope, scopeAllowsCall } from '@/lib/phone-access';
 
 /**
  * GET /api/calls/[callId]
@@ -29,7 +30,8 @@ export async function GET(
   try {
     const call = await callsService.getCallById(params.callId);
 
-    if (!call) {
+    // Return 404 (not 403) when out of scope, so we don't reveal a call exists.
+    if (!call || !scopeAllowsCall(getPhoneScope(auth.user), call)) {
       return NextResponse.json(
         { error: 'Call not found' },
         { status: 404 }
@@ -60,6 +62,12 @@ export async function PATCH(
   if (!auth.authenticated) return auth.response;
 
   try {
+    // Must be allowed to see the call before editing its notes/tags.
+    const existing = await callsService.getCallById(params.callId);
+    if (!existing || !scopeAllowsCall(getPhoneScope(auth.user), existing)) {
+      return NextResponse.json({ error: 'Call not found' }, { status: 404 });
+    }
+
     const body = await request.json();
 
     // Only allow certain fields to be updated

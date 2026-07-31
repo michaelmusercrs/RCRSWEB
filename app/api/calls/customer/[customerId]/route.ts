@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-service';
 import { callsService } from '@/lib/calls-service';
+import { getPhoneScope, filterCallsByScope } from '@/lib/phone-access';
 
 /**
  * GET /api/calls/customer/[customerId]
@@ -34,10 +35,19 @@ export async function GET(
   const auth = await requireAuth();
   if (!auth.authenticated) return auth.response;
 
+  const scope = getPhoneScope(auth.user);
+  if (scope.level === 'none') {
+    return NextResponse.json(
+      { error: 'You do not have access to phone data' },
+      { status: 403 }
+    );
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '20');
-    const includeRecordings = searchParams.get('includeRecordings') === 'true';
+    // Recording references are management-only regardless of the query param.
+    const includeRecordings = searchParams.get('includeRecordings') === 'true' && scope.level === 'all';
 
     const identifier = params.customerId;
 
@@ -52,7 +62,8 @@ export async function GET(
       calls = await callsService.getCallsByCustomer(identifier);
     }
 
-    // Limit results
+    // Narrow to what this caller may see, then limit.
+    calls = filterCallsByScope(scope, calls);
     calls = calls.slice(0, limit);
 
     // Optionally strip recording URLs for privacy
