@@ -1,0 +1,23 @@
+[Unit]
+Description=RCR PBX Bridge (FreePBX CDR + recordings -> rcrsal portal)
+Documentation=file:/opt/rcr-pbx-bridge/README.md
+After=network-online.target mariadb.service asterisk.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Install dir; .env and ./state live here.
+WorkingDirectory=/opt/rcr-pbx-bridge
+# CRITICAL: the bridge converts CDR calldate (server-local Central) to UTC by
+# relying on the process timezone. Boston's WSL is already America/Chicago;
+# pin it here so a TZ change can never silently corrupt business-hours stats.
+Environment=TZ=America/Chicago
+ExecStart=/usr/bin/env node /opt/rcr-pbx-bridge/index.js
+Restart=always
+RestartSec=10
+# Runs as the asterisk user so it can read the spool dirs (world r-x anyway).
+User=asterisk
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

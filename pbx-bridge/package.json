@@ -1,0 +1,18 @@
+{
+  "name": "rcr-pbx-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Read-only bridge: pushes FreePBX CDR + recordings + voicemail from the office PBX to the rcrsal portal webhook. Runs on Boston, inside WSL.",
+  "type": "commonjs",
+  "engines": { "node": ">=18" },
+  "bin": { "rcr-pbx-bridge": "index.js" },
+  "scripts": {
+    "start": "node index.js",
+    "dry-run": "node index.js --dry-run --once",
+    "backfill": "node index.js --since"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "mysql2": "^3.11.0"
+  }
+}
