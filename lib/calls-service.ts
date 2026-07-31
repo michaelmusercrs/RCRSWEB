@@ -15,6 +15,12 @@
 
 import crypto from 'crypto';
 import { googleSheetsService, SHEET_NAMES } from './google-sheets-service';
+import {
+  seedForExtension,
+  isBusinessHours,
+  type CallStage,
+  type AnsweredVia,
+} from './phone-system-config';
 
 // =============================================================================
 // TYPES
@@ -22,6 +28,20 @@ import { googleSheetsService, SHEET_NAMES } from './google-sheets-service';
 
 export type CallDirection = 'inbound' | 'outbound';
 export type CallStatus = 'ringing' | 'in_progress' | 'completed' | 'missed' | 'voicemail' | 'failed';
+
+/** One CDR leg of an aggregated call (an extension that rang, a GV leg, etc.). */
+export interface CallLeg {
+  /** Asterisk per-leg uniqueid */
+  uniqueid: string;
+  channel: string;
+  /** Destination of this leg (extension, GV number, or answering service) */
+  dst: string;
+  dstType: 'ext' | 'gv' | 'answering_service' | 'other';
+  disposition: string;
+  billsec: number;
+  /** Leg start (ISO UTC) */
+  start: string;
+}
 
 export interface CallRecord {
   /** Unique call identifier */
@@ -60,6 +80,21 @@ export interface CallRecord {
   tags: string[];
   /** JobNimbus contact ID (for integration) */
   jobNimbusContactId: string;
+  // --- FreePBX bridge enrichment (optional; absent on legacy/manual rows) ---
+  /** Asterisk linkedid grouping every leg of this call */
+  linkedid?: string;
+  /** Ring stage that resolved the call (stage1|stage2|overflow|afterhours) */
+  stage?: CallStage | '';
+  /** How the call was ultimately answered */
+  answeredVia?: AnsweredVia;
+  /** Raw CDR disposition (ANSWERED | NO ANSWER | BUSY | FAILED) */
+  disposition?: string;
+  /** Whether the call arrived inside published business hours (Central) */
+  inBusinessHours?: boolean;
+  /** Per-leg breakdown: which extensions rang, who answered, via desk/GV */
+  legs?: CallLeg[];
+  /** Private Blob pathname of the recording (NOT a public URL) */
+  recordingPath?: string;
   /** Record creation timestamp */
   createdAt: string;
   /** Last update timestamp */
@@ -85,24 +120,46 @@ export interface CallsData {
 export interface WebhookPayload {
   /** Event type from phone system */
   event: 'call_start' | 'call_end' | 'call_missed' | 'voicemail' | 'recording_ready';
-  /** Call unique ID from phone system */
-  callUuid: string;
+  /**
+   * Bridge identity. When `source === 'freepbx-bridge'` the aggregated,
+   * idempotent path runs (one event per real call, keyed by linkedid) instead
+   * of the legacy per-leg call_start/call_end sequencing.
+   */
+  source?: 'freepbx-bridge' | string;
+  /** Call unique ID from phone system (legacy) */
+  callUuid?: string;
+  /** Asterisk linkedid — the call-group key the bridge dedups on */
+  linkedid?: string;
   /** Caller phone number */
   from: string;
   /** Callee phone number */
   to: string;
-  /** Extension that handled */
+  /** Answering / handling extension */
   extension?: string;
   /** Call direction */
   direction: 'inbound' | 'outbound';
-  /** Duration in seconds */
+  /** Talk time in seconds (billsec of the answered leg) */
   duration?: number;
-  /** Recording URL */
+  /** Recording URL (legacy) */
   recordingUrl?: string;
-  /** Timestamp */
+  /** Private Blob pathname of the recording (bridge) */
+  recordingPath?: string;
+  /** Call start timestamp (ISO UTC; bridge converts CDR calldate from Central) */
   timestamp: string;
   /** Caller ID name if available */
   callerIdName?: string;
+  // --- bridge aggregated fields ---
+  stage?: CallStage;
+  answeredVia?: AnsweredVia;
+  disposition?: string;
+  inBusinessHours?: boolean;
+  legs?: CallLeg[];
+  // --- voicemail events ---
+  vmExtension?: string;
+  vmMsgId?: string;
+  vmOrigTime?: string;
+  vmDuration?: number;
+  transcription?: string;
 }
 
 export interface CallFilter {
@@ -154,6 +211,13 @@ const CALL_HEADERS: string[] = [
   'notes',
   'tags',
   'jobNimbusContactId',
+  'linkedid',
+  'stage',
+  'answeredVia',
+  'disposition',
+  'inBusinessHours',
+  'legsJson',
+  'recordingPath',
   'createdAt',
   'updatedAt',
 ];
@@ -180,6 +244,16 @@ class CallsService {
       tags = row.tags ? row.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
     }
 
+    let legs: CallLeg[] = [];
+    try {
+      legs = row.legsJson ? JSON.parse(row.legsJson) : [];
+      if (!Array.isArray(legs)) legs = [];
+    } catch {
+      legs = [];
+    }
+
+    const ibh = row.inBusinessHours;
+
     return {
       callId: row.callId || '',
       customerId: row.customerId || '',
@@ -199,6 +273,13 @@ class CallsService {
       notes: row.notes || '',
       tags,
       jobNimbusContactId: row.jobNimbusContactId || '',
+      linkedid: row.linkedid || '',
+      stage: (row.stage as CallStage) || '',
+      answeredVia: (row.answeredVia as AnsweredVia) || null,
+      disposition: row.disposition || '',
+      inBusinessHours: ibh === undefined || ibh === '' ? undefined : ibh === 'true',
+      legs,
+      recordingPath: row.recordingPath || '',
       createdAt: row.createdAt || '',
       updatedAt: row.updatedAt || '',
     };
@@ -222,11 +303,26 @@ class CallsService {
   }
 
   private async upsertCall(call: CallRecord): Promise<void> {
+    // Build an explicit, header-aligned row: arrays/objects → JSON strings,
+    // optionals coalesced to '' so undefined never serializes as "undefined".
+    const row: Record<string, unknown> = {
+      ...call,
+      tags: JSON.stringify(call.tags || []),
+      legsJson: JSON.stringify(call.legs || []),
+      recordingAvailable: String(call.recordingAvailable),
+      linkedid: call.linkedid || '',
+      stage: call.stage || '',
+      answeredVia: call.answeredVia || '',
+      disposition: call.disposition || '',
+      inBusinessHours: call.inBusinessHours === undefined ? '' : String(call.inBusinessHours),
+      recordingPath: call.recordingPath || '',
+    };
+    delete (row as Record<string, unknown>).legs; // 'legs' has no column; stored as legsJson
     await googleSheetsService.upsertGenericRow(
       SHEET_NAMES.CALLS,
       CALL_HEADERS,
       'callId',
-      call as unknown as Record<string, unknown>,
+      row,
     );
     this.invalidateCache();
   }
@@ -248,12 +344,22 @@ class CallsService {
   }
 
   /**
-   * Generate unique call ID
+   * Generate unique call ID (legacy manual/outbound records only).
    */
   generateCallId(): string {
     const timestamp = Date.now();
     const random = crypto.randomBytes(3).toString('hex').toUpperCase();
     return `CALL-${timestamp}-${random}`;
+  }
+
+  /**
+   * Deterministic call ID derived from Asterisk linkedid. Same call → same id,
+   * which makes every bridge event an idempotent upsert (no correlation lookup,
+   * no duplicate rows on webhook redelivery).
+   */
+  deterministicCallId(key: string): string {
+    const safe = String(key || '').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    return `CALL-${safe || 'unknown'}`;
   }
 
   /**
@@ -298,11 +404,18 @@ class CallsService {
    * Process incoming webhook from phone system
    */
   async processWebhook(payload: WebhookPayload): Promise<CallRecord> {
+    // FreePBX bridge → aggregated, idempotent path (one event per real call).
+    if (payload.source === 'freepbx-bridge') {
+      return this.processBridgeEvent(payload);
+    }
+
     const calls = await this.loadCached();
     const now = new Date().toISOString();
 
-    // Find existing call record for this UUID
-    const existing = calls.find(c => c.callId.includes(payload.callUuid));
+    // Find existing call record for this UUID (legacy path)
+    const existing = payload.callUuid
+      ? calls.find(c => c.callId.includes(payload.callUuid as string))
+      : undefined;
 
     if (payload.event === 'call_start') {
       // Create new call record
@@ -442,6 +555,122 @@ class CallsService {
       createdAt: now,
       updatedAt: now,
     };
+  }
+
+  /** Blank record shell used when a bridge event arrives before its siblings. */
+  private emptyRecord(callId: string, now: string): CallRecord {
+    return {
+      callId,
+      customerId: '',
+      customerName: 'Unknown Caller',
+      customerPhone: '',
+      customerEmail: '',
+      repId: '',
+      repName: '',
+      repExtension: '',
+      direction: 'inbound',
+      status: 'completed',
+      startTime: now,
+      endTime: '',
+      duration: 0,
+      recordingUrl: '',
+      recordingAvailable: false,
+      notes: '',
+      tags: [],
+      jobNimbusContactId: '',
+      linkedid: '',
+      stage: '',
+      answeredVia: null,
+      disposition: '',
+      inBusinessHours: undefined,
+      legs: [],
+      recordingPath: '',
+      createdAt: now,
+      updatedAt: now,
+    };
+  }
+
+  /**
+   * FreePBX bridge event handler — aggregated + idempotent.
+   *
+   * One real inbound call produces ~10 CDR legs (each rung extension, each
+   * Google Voice leg, the answering-service leg). The bridge collapses them by
+   * Asterisk linkedid and sends ONE event per call. We key the record on a
+   * deterministic callId derived from linkedid, so:
+   *   - redelivery is safe (upsert, never a duplicate row)
+   *   - recording_ready / voicemail can arrive before or after the call event
+   *     and still land on the same record (create-or-update, no correlation
+   *     lookup — this is the bug the legacy path had)
+   */
+  private async processBridgeEvent(payload: WebhookPayload): Promise<CallRecord> {
+    const now = new Date().toISOString();
+    const key = payload.linkedid || payload.callUuid || '';
+    const callId = this.deterministicCallId(key);
+    const calls = await this.loadCached();
+    const existing = calls.find(c => c.callId === callId) || null;
+    const base: CallRecord = existing ? { ...existing } : this.emptyRecord(callId, now);
+    base.linkedid = key;
+    base.updatedAt = now;
+    if (!existing) base.createdAt = now;
+
+    // recording_ready — attach the recording, leave call fields untouched.
+    if (payload.event === 'recording_ready') {
+      base.recordingPath = payload.recordingPath || base.recordingPath || '';
+      base.recordingUrl = payload.recordingUrl || base.recordingUrl || '';
+      base.recordingAvailable = !!(base.recordingPath || base.recordingUrl);
+      await this.upsertCall(base);
+      return base;
+    }
+
+    // call_end / call_missed / voicemail / call_start — populate call fields.
+    const inboundNumber = payload.direction === 'outbound' ? payload.to : payload.from;
+    base.direction = payload.direction || base.direction || 'inbound';
+    base.customerPhone = this.normalizePhone(inboundNumber || base.customerPhone);
+    if (payload.callerIdName && (!base.customerName || base.customerName === 'Unknown Caller')) {
+      base.customerName = payload.callerIdName;
+    }
+    base.repExtension = payload.extension || base.repExtension || '';
+    const rep = this.findRepByExtension(base.repExtension);
+    if (rep) {
+      base.repId = rep.userId;
+      base.repName = rep.name;
+    }
+    base.startTime = payload.timestamp || base.startTime || now;
+    base.duration = payload.duration ?? base.duration ?? 0;
+    base.stage = payload.stage || base.stage || '';
+    base.answeredVia = payload.answeredVia ?? base.answeredVia ?? null;
+    base.disposition = payload.disposition || base.disposition || '';
+    base.inBusinessHours = payload.inBusinessHours ?? base.inBusinessHours
+      ?? isBusinessHours(new Date(base.startTime));
+    if (payload.legs && payload.legs.length) base.legs = payload.legs;
+
+    // End time: for answered calls approximate as start + talk time; otherwise
+    // the call ended at ring timeout ≈ the event timestamp.
+    const startMs = new Date(base.startTime).getTime();
+    base.endTime = base.duration > 0 && !Number.isNaN(startMs)
+      ? new Date(startMs + base.duration * 1000).toISOString()
+      : (payload.timestamp || base.startTime);
+
+    if (payload.event === 'call_missed') {
+      base.status = 'missed';
+      if (!base.tags.includes('missed')) base.tags = [...base.tags, 'missed'];
+    } else if (payload.event === 'voicemail') {
+      base.status = 'voicemail';
+      if (!base.tags.includes('voicemail')) base.tags = [...base.tags, 'voicemail'];
+    } else {
+      base.status = 'completed';
+    }
+
+    // Best-effort customer match (no-op until findCustomerByPhone is wired).
+    const matched = await this.findCustomerByPhone(base.customerPhone);
+    if (matched) {
+      base.customerId = matched.customerId;
+      base.customerName = matched.customerName;
+      base.customerEmail = matched.customerEmail || '';
+    }
+
+    await this.upsertCall(base);
+    return base;
   }
 
   /**
@@ -731,19 +960,11 @@ class CallsService {
    * Uses phone-data.ts extension directory
    */
   private findRepByExtension(extension: string): { userId: string; name: string } | null {
-    // Import from phone-data would cause circular dependency, so we inline the lookup
-    const extensionMap: Record<string, { userId: string; name: string }> = {
-      '101': { userId: 'michael-muse', name: 'Michael Muse' },
-      '102': { userId: 'chris-muse', name: 'Chris Muse' },
-      '103': { userId: 'sara-hill', name: 'Sara Hill' },
-      '104': { userId: 'tia', name: 'Tia' },
-      '105': { userId: 'destin', name: 'Destin' },
-      '106': { userId: 'john', name: 'John' },
-      '107': { userId: 'bart', name: 'Bart' },
-      '108': { userId: 'boston', name: 'Boston' },
-    };
-
-    return extensionMap[extension] || null;
+    // Single source of truth: the canonical seed in phone-system-config.ts
+    // (slug == the TeamMember slug, so repId stays consistent with the roster).
+    const seed = seedForExtension(extension);
+    if (!seed || !seed.slug) return null;
+    return { userId: seed.slug, name: seed.name };
   }
 }
 

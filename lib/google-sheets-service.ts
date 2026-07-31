@@ -670,6 +670,10 @@ const SHEET_NAMES = {
   TIME_ENTRIES: 'Time_Entries',
   ROUTES: 'Routes',
   CALLS: 'Calls',
+  // Editable extension↔employee directory (desk ext, Google Voice #, phone MAC).
+  // Overlays the code-owned seed in lib/phone-system-config.ts. See
+  // lib/phone-directory.ts. NO voicemail PINs or phone IPs are stored here.
+  PHONE_EXTENSIONS: 'Phone_Extensions',
   DOCUMENTS: 'Documents',
   SURVEY_RESPONSES: 'Survey_Responses',
   CUSTOMER_REVIEWS: 'Customer_Reviews',
