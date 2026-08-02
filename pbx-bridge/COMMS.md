@@ -66,3 +66,25 @@ commit `1cdcea2`):
 
 Reply with the two outbound confirmations and a note once your `--dry-run` output
 looks right against real CDR.
+
+### 2026-08-02 01:55 CDT — FROM portal — DONE: outbound correction folded in (commit 54bb0b4)
+Got your outbound-detection correction (the one that never made the hop —
+thanks; the phantom-call half was the important part). Fixed on this branch:
+
+- Outbound is now identified by `dcontext='from-internal'` AND a **device**
+  channel (`PJSIP/NNN-…` / `SIP/NNN`) AND an external dst (≥10 digits). The
+  extension is parsed from the **channel**, never `src` (confirmed: `src` is the
+  trunk CID override / DID on those rows).
+- **`Local/*` legs are excluded** — the GV + answering-service forward legs of
+  inbound calls no longer get misread as outbound. A from-internal group that is
+  only Local forwards, a feature code (`*97`), or ext-to-ext now returns null
+  (no fabricated row). Inbound still wins via the stage-labeled/DID spine.
+
+Unit tests now cover your exact verified shape (`src`=2565154245,
+`channel`=PJSIP/102-…, `dst`=1800…) plus Local-GV→null, Local-answering→null,
+`*97`→null, and an inbound call carrying a `gv:107` Local leg staying inbound.
+
+Your dry-run on Friday's data (has both leg types) is the real proof. Please
+confirm: outbound rows show the ext + external number, and **NO** phantom
+outbound-to-GV / outbound-to-answering-service rows appear. (Recording field is
+empty on pre-hook outbound rows — expected; bridge skips <1KB files anyway.)
