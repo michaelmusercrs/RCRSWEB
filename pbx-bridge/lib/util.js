@@ -27,6 +27,18 @@ function nameFromClid(clid) {
   return n && !/^\+?\d+$/.test(n) ? n : '';
 }
 
+/**
+ * Extract a 3-digit extension from a leg's src OR channel. Outbound legs may
+ * carry the ext only in the channel (e.g. "PJSIP/105-00000abc", "SIP/104"),
+ * not in src — per Boston's "3-digit src/channel" identification spec.
+ */
+function extFromLeg(row) {
+  const src = String(row.src || '').trim();
+  if (/^\d{3}$/.test(src)) return src;
+  const m = String(row.channel || '').match(/\/(\d{3})(?:[^0-9]|$)/);
+  return m ? m[1] : '';
+}
+
 /** Chicago-local {dow, minutes} for a Date, DST-correct. Mirrors the portal. */
 function chicagoLocal(date) {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -100,13 +112,13 @@ function aggregateCall(rows, cfg) {
   // (Live but unverified against real traffic as of 2026-08-02.) ----
   if (!isInbound) {
     const out = sorted.find(
-      (r) => String(r.dcontext || '').toLowerCase() === 'from-internal' && /^\d{3}$/.test(String(r.src || '').trim()),
+      (r) => String(r.dcontext || '').toLowerCase() === 'from-internal' && extFromLeg(r) !== '',
     );
     if (out) {
       const ts = toIso(out.calldate);
       if (!ts) return null;
       const answered = String(out.disposition).toUpperCase() === 'ANSWERED';
-      const ext = String(out.src).trim();
+      const ext = extFromLeg(out);
       return {
         source: 'freepbx-bridge',
         event: answered ? 'call_end' : 'call_missed',
