@@ -150,8 +150,23 @@ export const FEATURE_CODES = [
 export const DATA_AVAILABILITY = {
   /** Inbound call recordings first captured (~12:45 CT, 2026-07-31). */
   recordingsSince: '2026-07-31T12:45:00-05:00',
+  /**
+   * Record-from-ARRIVAL fix (2026-08-02 ~01:00 CT). Before this, calls answered
+   * via the answering service or Google Voice (Local channels) recorded EMPTY
+   * 44-byte files — only desk-answered calls have valid audio pre-fix. Also when
+   * outbound-call recording went live (unverified against real traffic).
+   */
+  recordingsAllAnswerTypesSince: '2026-08-02T01:00:00-05:00',
   /** Per-leg stage labeling (CDR userfield) went live (~13:00 CT, 2026-07-31). */
   stageLabelingSince: '2026-07-31T13:00:00-05:00',
   /** Raw call detail records reach back to roughly this date (unlabeled). */
   cdrSince: '2026-03-01T00:00:00-06:00',
+  /**
+   * TEMPORARY until the 256-274-8530 port to VoIP.ms completes (~mid-Aug 2026).
+   * The forwarding carrier caps to ONE concurrent forwarded call — a second
+   * simultaneous caller gets a carrier busy signal and NEVER reaches the PBX
+   * (no CDR, no trace). Call-VOLUME metrics undercount concurrency-clipped
+   * demand until the port lands. Surface this as a caveat on volume analytics.
+   */
+  concurrencyClippedUntilPort: true,
 } as const;

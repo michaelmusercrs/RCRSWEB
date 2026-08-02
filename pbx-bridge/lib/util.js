@@ -82,6 +82,54 @@ function aggregateCall(rows, cfg) {
     null;
 
   const isInbound = !!inbound;
+
+  // Shared per-leg breakdown (both directions).
+  const legs = classified.map((c) => ({
+    uniqueid: c.row.uniqueid,
+    channel: c.row.channel || '',
+    dst: String(c.row.dst || ''),
+    dstType: c.dstType,
+    disposition: String(c.row.disposition || ''),
+    billsec: Number(c.row.billsec || 0),
+    start: toIso(c.row.calldate),
+  }));
+  const recordingfile = sorted.map((r) => r.recordingfile).find(Boolean) || '';
+
+  // ---- Outbound: extension-originated. The dialplan does NOT set userfield on
+  // outbound legs, so identify by dcontext='from-internal' + a 3-digit src.
+  // (Live but unverified against real traffic as of 2026-08-02.) ----
+  if (!isInbound) {
+    const out = sorted.find(
+      (r) => String(r.dcontext || '').toLowerCase() === 'from-internal' && /^\d{3}$/.test(String(r.src || '').trim()),
+    );
+    if (out) {
+      const ts = toIso(out.calldate);
+      if (!ts) return null;
+      const answered = String(out.disposition).toUpperCase() === 'ANSWERED';
+      const ext = String(out.src).trim();
+      return {
+        source: 'freepbx-bridge',
+        event: answered ? 'call_end' : 'call_missed',
+        linkedid: out.linkedid || out.uniqueid,
+        callUuid: out.linkedid || out.uniqueid,
+        direction: 'outbound',
+        from: ext,
+        to: normalizeNum(out.dst),
+        callerIdName: '',
+        extension: ext,
+        stage: undefined,
+        answeredVia: answered ? 'desk' : null,
+        disposition: String(out.disposition || ''),
+        inBusinessHours: isBusinessHours(new Date(out.calldate)),
+        duration: answered ? Number(out.billsec || 0) : 0,
+        timestamp: ts,
+        recordingfile,
+        legs,
+      };
+    }
+  }
+
+  // ---- Inbound (default) ----
   const spine = inbound || sorted[0];
   const stageRaw = String(spine.userfield || '').toLowerCase();
   const stage = STAGE_LABELS.includes(stageRaw) ? stageRaw : '';
@@ -111,21 +159,16 @@ function aggregateCall(rows, cfg) {
 
   const answeringExt = answered ? (answered.ext || '') : '';
   const duration = answered ? Number(answered.row.billsec || 0) : 0;
-
-  // Recording path (CDR(recordingfile) is set on the inbound spine only).
-  const recordingfile = sorted.map((r) => r.recordingfile).find(Boolean) || '';
-
   const caller = callerFromClid(spine.clid) || normalizeNum(spine.src);
-  const external = isInbound ? caller : normalizeNum(spine.dst);
 
   return {
     source: 'freepbx-bridge',
     event,
     linkedid: spine.linkedid || spine.uniqueid,
     callUuid: spine.linkedid || spine.uniqueid,
-    direction: isInbound ? 'inbound' : 'outbound',
-    from: isInbound ? external : normalizeNum(spine.src),
-    to: isInbound ? cfg.did : external,
+    direction: 'inbound',
+    from: caller,
+    to: cfg.did,
     callerIdName: nameFromClid(spine.clid),
     extension: answeringExt,
     stage: stage || undefined,
@@ -135,15 +178,7 @@ function aggregateCall(rows, cfg) {
     duration,
     timestamp,
     recordingfile,
-    legs: classified.map((c) => ({
-      uniqueid: c.row.uniqueid,
-      channel: c.row.channel || '',
-      dst: String(c.row.dst || ''),
-      dstType: c.dstType,
-      disposition: String(c.row.disposition || ''),
-      billsec: Number(c.row.billsec || 0),
-      start: toIso(c.row.calldate),
-    })),
+    legs,
   };
 }
 

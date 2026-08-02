@@ -6,8 +6,13 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-# Install dir; .env and ./state live here.
+# Install dir; ./state lives here.
 WorkingDirectory=/opt/rcr-pbx-bridge
+# Secrets + all config live in this root-owned 600 file (CALLS_WEBHOOK_API_KEY,
+# CDR_DB_PASSWORD, PORTAL_URL, dirs, flags...). systemd loads it into the
+# environment; the bridge reads process.env directly, so no .env is needed for
+# the service (dotenv still works for manual/dry-run invocations).
+EnvironmentFile=/etc/rcrsal-bridge.env
 # CRITICAL: the bridge converts CDR calldate (server-local Central) to UTC by
 # relying on the process timezone. Boston's WSL is already America/Chicago;
 # pin it here so a TZ change can never silently corrupt business-hours stats.

@@ -21,9 +21,18 @@ function resolveFile(recordingfile, recordingDir) {
   return fs.existsSync(candidate) ? candidate : null;
 }
 
+// Files under this are empty MixMonitor stubs (44-byte WAV headers) — abandoned
+// or Local-channel-answered calls before the 2026-08-02 record-from-arrival fix,
+// plus retry stubs the PBX purges daily. Never upload them.
+const MIN_RECORDING_BYTES = 1024;
+
 async function processRecording(portal, cfg, { callUuid, recordingfile, ext }) {
   const file = resolveFile(recordingfile, cfg.recordingDir);
   if (!file) return { ok: false, reason: 'not-found', recordingfile };
+
+  let size = 0;
+  try { size = fs.statSync(file).size; } catch { return { ok: false, reason: 'not-found', recordingfile }; }
+  if (size < MIN_RECORDING_BYTES) return { ok: false, reason: 'empty-stub', file, bytes: size };
 
   let buffer;
   let contentType;
