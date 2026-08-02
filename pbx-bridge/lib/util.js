@@ -28,14 +28,16 @@ function nameFromClid(clid) {
 }
 
 /**
- * Extract a 3-digit extension from a leg's src OR channel. Outbound legs may
- * carry the ext only in the channel (e.g. "PJSIP/105-00000abc", "SIP/104"),
- * not in src — per Boston's "3-digit src/channel" identification spec.
+ * Extract a 3-digit extension from a DEVICE channel only ("PJSIP/NNN-…" or
+ * "SIP/NNN"). Returns '' for Local/* channels — those are the GV and
+ * answering-service FORWARD legs of inbound calls, which also live in
+ * from-internal with 10-digit destinations; treating them as outbound would
+ * fabricate phantom employee calls. Per Boston's verified CDRs an outbound
+ * leg's `src` is the trunk CID override (the DID), NOT the extension — the
+ * extension lives only in the channel, so we read it there and never from src.
  */
-function extFromLeg(row) {
-  const src = String(row.src || '').trim();
-  if (/^\d{3}$/.test(src)) return src;
-  const m = String(row.channel || '').match(/\/(\d{3})(?:[^0-9]|$)/);
+function extFromDeviceChannel(channel) {
+  const m = String(channel || '').match(/^(?:PJSIP|SIP)\/(\d{3})(?:-|$)/i);
   return m ? m[1] : '';
 }
 
@@ -111,14 +113,21 @@ function aggregateCall(rows, cfg) {
   // outbound legs, so identify by dcontext='from-internal' + a 3-digit src.
   // (Live but unverified against real traffic as of 2026-08-02.) ----
   if (!isInbound) {
-    const out = sorted.find(
-      (r) => String(r.dcontext || '').toLowerCase() === 'from-internal' && extFromLeg(r) !== '',
-    );
+    // A real outbound employee call: a DEVICE-channel leg (PJSIP/NNN-…) in
+    // from-internal dialing an EXTERNAL number (10+ digits). This deliberately
+    // excludes Local/* channels (GV + answering-service forward legs of inbound
+    // calls) and internal / feature-code dialing (dst like *97, or ext-to-ext),
+    // so neither can be counted as an employee outbound call.
+    const out = sorted.find((r) => {
+      if (String(r.dcontext || '').toLowerCase() !== 'from-internal') return false;
+      if (!extFromDeviceChannel(r.channel)) return false;
+      return String(r.dst || '').replace(/\D/g, '').length >= 10;
+    });
     if (out) {
       const ts = toIso(out.calldate);
       if (!ts) return null;
       const answered = String(out.disposition).toUpperCase() === 'ANSWERED';
-      const ext = extFromLeg(out);
+      const ext = extFromDeviceChannel(out.channel);
       return {
         source: 'freepbx-bridge',
         event: answered ? 'call_end' : 'call_missed',
@@ -139,6 +148,10 @@ function aggregateCall(rows, cfg) {
         legs,
       };
     }
+    // Not inbound and not a real outbound (Local-only forward legs, internal
+    // feature codes, ext-to-ext) → not a business call. Skip it rather than
+    // fabricate a row.
+    return null;
   }
 
   // ---- Inbound (default) ----
