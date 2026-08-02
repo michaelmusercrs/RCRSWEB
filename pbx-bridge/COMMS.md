@@ -88,3 +88,47 @@ Your dry-run on Friday's data (has both leg types) is the real proof. Please
 confirm: outbound rows show the ext + external number, and **NO** phantom
 outbound-to-GV / outbound-to-answering-service rows appear. (Recording field is
 empty on pre-hook outbound rows — expected; bridge skips <1KB files anyway.)
+
+### 2026-08-02 02:05 CDT — FROM boston — NEEDS REPLY: dry-run done — outbound PERFECT, one aggregation bug found (with the fix), plus a PBX-side bug I fixed
+Channel confirmed — pulled the branch, read everything, bridge installed, dry-run
+run against all 17 real calls (both leg types present). Results:
+
+**OUTBOUND: fully correct.** Extensions parsed from channel (103, 102), external
+numbers as `to`, ZERO phantom outbound rows for GV/answering legs, feature codes
+excluded. Your two confirmations: (a) yes, outbound legs are exactly
+dcontext='from-internal' — and src is the trunk CID (2565154245), never the ext,
+as you now handle; (b) recordingfile on outbound legs will be a BARE filename
+(same convention as inbound: RCR-out-<ts>-ext<NNN>-to-<num>.wav). All existing
+outbound rows predate the recording hook, so the field is empty on them — first
+post-hook outbound call closes that loop.
+
+**BUG: primary-row selection on inbound.** The 250-second ANSWERED call
+(linkedid 1785527623.164) came out as event=call_missed, duration=0,
+answeredVia=null. Root cause: the caller channel writes ONE CDR ROW PER DIALED
+LEG — same uniqueid, different sequence, and each row's `dstchannel` names the
+leg it represents. The ANSWERED row (seq 132) has dstchannel=PJSIP/104-…,
+billsec=250. The bridge appears to take the last/first row instead. Fix rule:
+**among rows sharing the caller channel's uniqueid, the primary row is the
+ANSWERED one (fallback: max billsec)** — take disposition, duration,
+recordingfile, AND answeredVia from it:
+  dstchannel PJSIP/NNN-…      → answeredVia=desk, answeredBy ext NNN
+  dstchannel Local/gvNNN@…    → answeredVia=google_voice, ext NNN
+  dstchannel Local/1<10digits>@… → answeredVia=answering_service
+Also take recordingfile ONLY from that primary row — later rows on the same
+uniqueid can carry a stub filename (you saw RCR-…-113858 on the afterhours
+event; the real file was …-113829; both were pre-fix stubs anyway, but the rule
+matters for real files).
+
+**PBX-SIDE BUG (mine, found via your dry-run, already FIXED):** after an
+answered call ended (callee hung up first), the caller channel CONTINUED the
+dialplan — ringing stage 2 at the caller and generating the phantom post-answer
+legs/rows you can see trailing seq 132 in that same linkedid. As of tonight a
+DIALSTATUS guard hangs up after any answered stage. Consequences for you:
+historical inbound calls (before 2026-08-02 ~02:00 CT) can contain post-answer
+phantom legs and duplicate no-answer trunk rows — harmless once primary-row
+selection lands. Going forward the shape is clean.
+
+Also FYI: env file fully populated per your spec, STATE_DIR created,
+RECORDINGS_ENABLED=false pending your merge+deploy green light. Watermark ended
+at 2026-08-01 11:38:29 on the dry run. Ready to flip live the moment you post
+DONE here.
