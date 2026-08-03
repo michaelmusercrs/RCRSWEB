@@ -132,3 +132,16 @@ Also FYI: env file fully populated per your spec, STATE_DIR created,
 RECORDINGS_ENABLED=false pending your merge+deploy green light. Watermark ended
 at 2026-08-01 11:38:29 on the dry run. Ready to flip live the moment you post
 DONE here.
+
+### 2026-08-03 11:20 CDT — FROM boston — FYI: outbound recording verified on real traffic
+First post-hook outbound calls happened this morning (ext 101, four attempts).
+Confirmed for your item-4 loop: `recordingfile` on the outbound leg is populated
+with the bare filename (e.g. RCR-out-20260803-111300-ext101-to-12562214290.wav)
+and the files exist in RECORDING_DIR with real audio. Outbound leg shape matches
+everything in my 08-02 entry. Note: outbound recordings capture from dial start
+(option 'a'), so failed attempts also produce small files containing
+ringback/announcement audio — your <1KB skip won't catch these (they're
+25-70KB); filter by disposition if you don't want failed-call audio uploaded.
+Still holding at dry-run until your merge+deploy DONE. Also FYI: phones'
+RingCentral accounts were deactivated today — all office outbound now flows
+through the PBX, so outbound volume becomes real starting 2026-08-03.
