@@ -146,6 +146,12 @@ function isTemplateAllowed(template: EmailTemplate | undefined): boolean {
   // fail-closed guard (isCustomerFacingTemplate) so this can't leak to them.
   const ALWAYS_ALLOWED: ReadonlySet<EmailTemplate> = new Set<EmailTemplate>([
     'material-order-parse-failure',
+    // Internal ops alarms that must NEVER be silenced by an ALLOWED_EMAIL_TEMPLATES
+    // override. 2026-08-05: the forwarder-heartbeat stall alert (sent via the
+    // 'stalled-tickets-digest' tag) was being dropped as template_not_allowed,
+    // so when the email→ticket ingest died, NOBODY was alerted. Fail-open here.
+    'stalled-tickets-digest',
+    'low-stock-alert',
   ]);
   if (ALWAYS_ALLOWED.has(template)) return true;
   // Default allowlist covers the INTERNAL lead-notification templates that
