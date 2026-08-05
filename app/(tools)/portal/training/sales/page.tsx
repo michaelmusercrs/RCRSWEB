@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import {
   ArrowLeft,
@@ -213,20 +212,38 @@ function SectionBody({ section, present }: { section: ContentSection; present: b
         </div>
       )}
 
-      {/* Image (dormant — no module currently sets one, but must compile) */}
+      {/* Image — real handbook diagrams, natural aspect ratio (varying page sizes) */}
       {section.image && (
         <figure className="mt-4">
-          <Image
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             src={section.image.src}
             alt={section.image.alt}
-            width={1200}
-            height={675}
-            className="max-w-full h-auto rounded"
+            loading="lazy"
+            className={`h-auto rounded border border-neutral-800 ${present ? 'max-h-[70vh] w-auto mx-auto' : 'max-w-full'}`}
           />
           <figcaption className={`mt-2 text-neutral-500 ${present ? 'text-base' : 'text-xs'}`}>
             {section.image.caption}
           </figcaption>
         </figure>
+      )}
+
+      {/* Media — NotebookLM audio/video overviews */}
+      {section.media && (
+        <div className="mt-4 rounded-lg border border-brand-green/20 bg-brand-green/5 p-4">
+          <div className={`mb-2 font-semibold text-brand-green ${present ? 'text-base' : 'text-sm'}`}>
+            {section.media.kind === 'audio' ? '🎧 Audio Overview' : '▶ Video Overview'} — {section.media.title}
+          </div>
+          {section.media.kind === 'audio' ? (
+            <audio controls preload="none" className="w-full">
+              <source src={section.media.src} />
+            </audio>
+          ) : (
+            <video controls preload="none" className={`w-full rounded ${present ? 'max-h-[60vh]' : ''}`}>
+              <source src={section.media.src} />
+            </video>
+          )}
+        </div>
       )}
 
       {/* Pro tips */}

@@ -38,6 +38,7 @@ export interface ContentSection {
   proTips?: string[];
   talkTracks?: TalkTrack[];
   image?: { src: string; alt: string; caption: string };
+  media?: { kind: 'audio' | 'video'; src: string; title: string };
   callout?: { tone: 'warning' | 'info'; title: string; text: string };
   drillId?: string;
   sourceNote?: string;
@@ -98,6 +99,11 @@ export const salesModules: SalesModule[] = [
     sections: [
       {
         heading: 'The "Hey There" Opener & the Big Three',
+        media: {
+          kind: 'audio',
+          src: '/training-media/advanced-sales-deep-dive.wav',
+          title: 'From Hail to Home — the full door-to-claim process (deep-dive audio)',
+        },
         content: [
           'Your opener is simply "Hey there." Not "How are you doing," not "Hope you\'re having a good day," not "Hope I\'m not bothering you." Boston teaches this intro verbatim, and he wants it delivered in a slightly higher pitch.',
           'Tell them who you are first, then who you are with, then why you are there. Once you have done that, your intro is complete — the homeowner now knows the three things everyone wants to know the moment they open the door.',
@@ -521,6 +527,11 @@ export const salesModules: SalesModule[] = [
     sections: [
       {
         heading: 'Assess First, Then Place the Ladder',
+        image: {
+          src: '/training/sales/handbook/hb-roof-slope-definitions.png',
+          alt: 'Roof slope diagram: slope measured as rise over run, showing conventional, low-slope, and flat ranges.',
+          caption: 'How roof slope is measured — conventional vs. low-slope vs. flat (RCRS handbook).',
+        },
         content: [
           'Step back, take a quick look, and get a lay of the land before you do anything. Think about where you are going to put the ladder up.',
           'Place the ladder on an eave — NOT on a rake. A rake is very uneven. Put it on an eave close to a hip, a valley, or the eave of a low-pitched front or back porch where it is easily accessible.',
@@ -638,6 +649,11 @@ export const salesModules: SalesModule[] = [
     sections: [
       {
         heading: 'Peel Up at the Eave',
+        image: {
+          src: '/training/sales/handbook/hb-roof-anatomy-labeled.png',
+          alt: 'Labeled cutaway of a house roof: valley, ridge, hip, eave, fascia, soffit, flashing, rafter, gutter and more.',
+          caption: 'Roof & house anatomy — know the name of every part you inspect (RCRS handbook).',
+        },
         content: [
           'The first thing you do at the top of the ladder — before stepping onto the roof — is peel up at the eave and look at what type of shingle it is.',
           'Identify whether it is three-tab or dimensional. Look for a starter strip (or did they use three-tab as starter?). Look for drip edge. Look at what kind of felt paper it has.',
@@ -654,6 +670,11 @@ export const salesModules: SalesModule[] = [
       },
       {
         heading: 'Drip Edge & Decking',
+        image: {
+          src: '/training/sales/handbook/hb-underlayment-tougher.png',
+          alt: 'Side-by-side comparison of intact synthetic underlayment vs. wrinkled, torn felt paper.',
+          caption: 'Synthetic vs. felt underlayment — synthetics are far stronger and tear-resistant (RCRS handbook).',
+        },
         content: [
           'Drip edge: either a physical piece OR a bent-out fascia lip counts. With no drip edge, you can see more of the decking easily.',
           'Decking: identify plywood, Luon board, or OSB. Is it rotted? Watch for gaps — for example, a 2-inch gap between the deck end and the fascia.',
@@ -756,6 +777,11 @@ export const salesModules: SalesModule[] = [
     sections: [
       {
         heading: 'Collateral First',
+        image: {
+          src: '/training/sales/handbook/hb-chimney-cricket-flashing.png',
+          alt: 'Diagram of a chimney cricket/saddle plus correct step and counter (reglet) flashing on shingles.',
+          caption: 'Chimney cricket + step/counter-flashing done right — a top leak point to check (RCRS handbook).',
+        },
         content: [
           'Start with collateral, not the field of the roof. First go look at gas vents, dryer vents, and mushroom vents; then chimneys and chimney caps; then any exposed valley metal or a metal porch — any of the metals on the roof.',
           'Look for a ding in the metal. Take chalk and rub it evenly on the surface to make dents and cracks show up.',
@@ -1671,6 +1697,11 @@ export const salesModules: SalesModule[] = [
     sections: [
       {
         heading: 'The IKO Shingle Lineup',
+        media: {
+          kind: 'video',
+          src: '/training-media/iko-investigators-guide.mp4',
+          title: 'IKO Shingles: An Investigator’s Guide',
+        },
         content: [
           'Dynasty is the primary product — the shingle RCRS installs most often. It carries up to a 130 mph wind warranty.',
           'Nordic is the impact-resistant shingle — Class 4, the highest impact rating.',
@@ -1680,6 +1711,11 @@ export const salesModules: SalesModule[] = [
       },
       {
         heading: 'IKO Warranty Tiers',
+        media: {
+          kind: 'audio',
+          src: '/training-media/iko-ironclad-deep-dive.wav',
+          title: 'IKO Iron Clad warranty — deep-dive audio',
+        },
         content: [
           'RCRS is IKO ROOFPRO Craftsman Premier — the highest IKO contractor tier.',
           'That tier unlocks the 25-year Iron Clad Protection warranty.',
@@ -1689,6 +1725,11 @@ export const salesModules: SalesModule[] = [
       },
       {
         heading: 'Accessories & Add-Ons',
+        image: {
+          src: '/training/sales/handbook/hb-bullet-boot-sheet-1.png',
+          alt: 'The Bullet Boot product sheet: TPO pipe boot install photos, benefits, and the four sizes.',
+          caption: 'The Bullet Boot — the TPO pipe boot that replaces the old lead boot (RCRS handbook).',
+        },
         content: [
           'StormShield is used for ice-and-water protection on the roof deck.',
           'LeafX is the gutter-guard system RCRS installs; the best time to sell it is during a roof-replacement job.',
