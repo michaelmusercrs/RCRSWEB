@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-service';
 import { googleSheetsService } from '@/lib/google-sheets-service';
 import { cache, CACHE_TTL } from '@/lib/cache';
+import { salesModules } from '@/lib/sales-training-content';
 
 // ============================================================================
 // ALL tracked training modules across every track
@@ -25,15 +26,13 @@ const ADMIN_TRAINING_MODULES = [
   { id: 'driver', name: 'Driver Portal', track: 'admin-training' },
 ];
 
-const SALES_MODULES = [
-  { id: 'sales_m1', name: 'Company Overview', track: 'sales' },
-  { id: 'sales_m2', name: 'Roofing Products & Materials', track: 'sales' },
-  { id: 'sales_m3', name: 'Insurance Claim Process', track: 'sales' },
-  { id: 'sales_m4', name: 'The Sales Process', track: 'sales' },
-  { id: 'sales_m5', name: 'Using JobNimbus CRM', track: 'sales' },
-  { id: 'sales_m6', name: 'Measurement & Estimation', track: 'sales' },
-  { id: 'sales_m7', name: 'Customer Communication', track: 'sales' },
-];
+// The 16 rebuilt sales modules (sales_c1..c12, sales_s1..s4), sourced from the
+// canonical content lib so titles never drift from what reps actually see.
+const SALES_MODULES = salesModules.map(m => ({
+  id: m.id,
+  name: m.title,
+  track: 'sales' as const,
+}));
 
 const ONBOARDING_MODULES = [
   { id: 'onboard_s1', name: 'Dashboard Overview', track: 'onboarding' },
