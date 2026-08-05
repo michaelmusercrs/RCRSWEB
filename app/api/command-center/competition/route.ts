@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
     repTotals[e.salesRep].monthlyDeals += 1;
   }
 
-  const tiers = config.bonusTiers;
+  const tiers = config.monthlyBonusTiers;
 
   const leaderboard = Object.entries(repTotals)
     .map(([name, data]) => {
@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
     dataSource: 'actual-commissions',
     dataSourceLabel: 'Actual Commission Records',
     period: config.currentPeriod,
-    tiers: config.bonusTiers,
+    tiers: config.monthlyBonusTiers,
     gasCard: config.monthlyGasCard,
     leaderboard,
     generatedAt: new Date().toISOString(),
