@@ -1,5 +1,16 @@
 import { CellChange, DataMap } from './types';
 
+export interface MonthTotals {
+  month: string;
+  prevTotal: number;
+  newTotal: number;
+  delta: number;
+  /** Was this month already present before this upload? */
+  preExisting: boolean;
+  /** Did any cell in this month change from a non-zero value? */
+  hasRetroChange: boolean;
+}
+
 export interface DiffResult {
   /** Cells changed in months that already had data — REQUIRES VERIFICATION. */
   retroactive: CellChange[];
@@ -19,6 +30,14 @@ export interface DiffResult {
   removedReps: string[];
   totalCurrent: number;
   totalNew: number;
+  /**
+   * True iff every prior cell that had a non-zero value is unchanged AND no
+   * months/reps were removed. The upload may add new months, new reps, or new
+   * cells in existing months — but nothing pre-existing is modified.
+   */
+  isAdditiveOnly: boolean;
+  /** Per-month totals (current vs incoming) — used for the "double-check" UI. */
+  monthTotals: MonthTotals[];
 }
 
 /**
@@ -30,6 +49,11 @@ export interface DiffResult {
  *  - **newCellAdditions**: cell in an existing month, new value (was zero). Informational.
  *  - **newMonthAdditions**: cells in a brand-new month not present in current data. Informational.
  */
+const MONTH_ORDER = [
+  'January','February','March','April','May','June',
+  'July','August','September','October','November','December',
+];
+
 export function computeDiff(current: DataMap, incoming: DataMap): DiffResult {
   const result: DiffResult = {
     retroactive: [],
@@ -42,6 +66,8 @@ export function computeDiff(current: DataMap, incoming: DataMap): DiffResult {
     removedReps: [],
     totalCurrent: 0,
     totalNew: 0,
+    isAdditiveOnly: false,
+    monthTotals: [],
   };
 
   const currentMonths = new Set<string>();
@@ -85,6 +111,38 @@ export function computeDiff(current: DataMap, incoming: DataMap): DiffResult {
   // Totals
   for (const rep of Object.keys(current)) for (const m of Object.keys(current[rep])) result.totalCurrent += current[rep][m];
   for (const rep of Object.keys(incoming)) for (const m of Object.keys(incoming[rep])) result.totalNew += incoming[rep][m];
+
+  // Per-month totals (for the "double-check" UI)
+  const monthList = [...allMonths].sort(
+    (a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b),
+  );
+  const retroMonthSet = new Set([
+    ...result.retroactive.map((c) => c.month),
+    ...result.removed.map((c) => c.month),
+  ]);
+  for (const m of monthList) {
+    let prevTotal = 0;
+    let newTotal = 0;
+    for (const rep of allReps) {
+      prevTotal += current[rep]?.[m] || 0;
+      newTotal += incoming[rep]?.[m] || 0;
+    }
+    result.monthTotals.push({
+      month: m,
+      prevTotal,
+      newTotal,
+      delta: newTotal - prevTotal,
+      preExisting: currentMonths.has(m),
+      hasRetroChange: retroMonthSet.has(m),
+    });
+  }
+
+  // Additive-only = no retroactive changes, no removed cells, no removed months, no removed reps.
+  result.isAdditiveOnly =
+    result.retroactive.length === 0 &&
+    result.removed.length === 0 &&
+    result.removedMonths.length === 0 &&
+    result.removedReps.length === 0;
 
   return result;
 }
