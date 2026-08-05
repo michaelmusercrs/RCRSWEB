@@ -26,6 +26,13 @@ export const runtime = 'nodejs';
 // cron cap and the pattern already used by sync-inventory-tab/route.ts.
 export const maxDuration = 300;
 
+// Pace tab reads so a 93-tab backup doesn't burst ~93 read requests in a few
+// seconds and blow the Google Sheets 60-reads/min quota — which starved every
+// interactive board/ticket read at the top of each hour. ~0.8s/tab keeps the
+// whole backup under the cap. It runs every 6h off-peak, so the extra minute
+// of wall-time is irrelevant.
+const BACKUP_READ_PACING_MS = 800;
+
 const MASTER_SHEET_ID = process.env.GOOGLE_SHEETS_ID || '1uMEdtHo3xMu2gs21p7dYAgYiPWuCZ3s4a8YU-gJZ31s';
 const MEETINGS_SHEET_ID = '1tEbMVUrvrRIkptISumvIrcgUhSWN5X2ldYro9ADTXF0';
 
@@ -166,6 +173,10 @@ async function backupSheet(
         error: err instanceof Error ? err.message : 'Unknown error',
       });
     }
+
+    // Throttle between tabs so the backup spreads its reads under the quota
+    // instead of firing them all in one burst.
+    await new Promise((r) => setTimeout(r, BACKUP_READ_PACING_MS));
   }
 
   return {

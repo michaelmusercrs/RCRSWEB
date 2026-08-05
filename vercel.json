@@ -5,15 +5,15 @@
   "crons": [
     {
       "path": "/api/cron/check-lead-timers",
-      "schedule": "*/2 * * * *"
-    },
-    {
-      "path": "/api/cron/auto-reassign",
       "schedule": "*/5 * * * *"
     },
     {
+      "path": "/api/cron/auto-reassign",
+      "schedule": "*/10 * * * *"
+    },
+    {
       "path": "/api/cron/publish-blog",
-      "schedule": "0 6 * * *"
+      "schedule": "45 6 * * *"
     },
     {
       "path": "/api/cron/meeting-reset",
@@ -21,23 +21,23 @@
     },
     {
       "path": "/api/cron/backup-sheets",
-      "schedule": "0 * * * *"
+      "schedule": "40 */6 * * *"
     },
     {
       "path": "/api/cron/sync-inventory-tab",
-      "schedule": "*/10 * * * *"
+      "schedule": "*/15 * * * *"
     },
     {
       "path": "/api/cron/chrisview-precompute",
-      "schedule": "30 * * * *"
+      "schedule": "30 */3 * * *"
     },
     {
       "path": "/api/cron/weekly-response-time-report",
-      "schedule": "0 12 * * 1"
+      "schedule": "35 12 * * 1"
     },
     {
       "path": "/api/cron/refresh-weather-forecast",
-      "schedule": "5 * * * *"
+      "schedule": "5 */3 * * *"
     },
     {
       "path": "/api/cron/auto-finalize-tickets",
@@ -45,15 +45,15 @@
     },
     {
       "path": "/api/cron/stalled-tickets-digest",
-      "schedule": "0 12 * * *"
+      "schedule": "12 12 * * *"
     },
     {
       "path": "/api/cron/forwarder-heartbeat",
-      "schedule": "0 17,22 * * 1-6"
+      "schedule": "25 17,22 * * 1-6"
     },
     {
       "path": "/api/cron/low-stock-alert",
-      "schedule": "0 13 * * *"
+      "schedule": "20 13 * * *"
     }
   ],
   "headers": [
