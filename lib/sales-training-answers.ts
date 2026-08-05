@@ -115,7 +115,7 @@ export const SALES_QUIZ_ANSWERS: Record<string, number> = {
   s4_2: 1, // While you are still on the roof
   s4_3: 1, // $386,076 in revenue was recorded as "Source Not Captured"
   s4_4: 1, // The Customer Acceptance Form
-  s4_5: 1, // Only Lead and Estimating; anything past Sold, ask the office
+  s4_5: 2, // Submit for Approval — the hand-off from rep to office/automations
 };
 
 /**

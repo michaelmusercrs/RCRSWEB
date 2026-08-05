@@ -1951,7 +1951,7 @@ export const salesModules: SalesModule[] = [
     id: 'sales_s4',
     title: 'The JobNimbus Pipeline',
     description:
-      'The pipeline stages a rep works, the five forms and when each fires, the data hygiene rules — and an honest gap on role permissions that are still being defined.',
+      'The pipeline stages a rep works, the five forms and when each fires, the data hygiene rules, and exactly who moves the job at each stage — rep vs. office.',
     icon: 'GitBranch',
     estimatedMinutes: 15,
     passingScore: 80,
@@ -1983,14 +1983,18 @@ export const salesModules: SalesModule[] = [
         sourceNote: JSON_SOURCE_NOTE,
       },
       {
-        heading: '⚠ Honest Gap: Role Permissions Are Not Yet Defined',
+        heading: 'Who Moves the Job — Rep vs. Office',
         content: [
-          'This module stops short of a role-by-status permission matrix because that ruleset does not exist yet.',
+          'JobNimbus has a real hand-off built into the workflow. As the rep, you move the job through the Lead and Estimating statuses yourself: Lead → Aerial Measurements → Inspection → Estimate → Contingency Signed → Signed Contract → Deposit → and finally Submit for Approval.',
+          'Submit for Approval is the hand-off line. The moment you submit, the job leaves your hands: the office, management, and JobNimbus automations move it through the next steps — approve or deny the job, then Materials Ordered/Scheduled and the rest of In Production.',
+          'You still have work inside Production. Once the office puts the job in the status "CA & Completed Photos Needed," you upload the signed Customer Acceptance Form and the completed photos, then set the status to "CA & Photos Uploaded." That is what triggers John to review the photos and approve payouts.',
+          'Accounts Receivable (Jobs to Cost → Invoiced → Payouts) and Completed (Paid & Closed) are office / production / automation controlled. Paid & Closed is the status that triggers your commission.',
+          'One rep-side timing rule lives at the very top of the pipeline: a new lead is a task. If you have not contacted the homeowner and completed that task by hour 3, the lead is automatically reassigned.',
         ],
         callout: {
-          tone: 'warning',
-          title: 'Role Permissions TBD',
-          text: 'Which roles can move a job between which statuses has NOT been defined yet. Michael and Chris are defining this ruleset. Until then: reps move jobs only through Lead and Estimating statuses; anything past Sold, ask the office. This module will be updated when the matrix is finalized.',
+          tone: 'info',
+          title: 'The hand-off line: Submit for Approval',
+          text: 'You control everything up to Submit for Approval. From that status forward, the office, management, and automations own the job — approval, materials, invoicing, and payout. Your only Production job is uploading the Customer Acceptance Form + completed photos and marking "CA & Photos Uploaded" so John can approve the payout.',
         },
         sourceNote: JSON_SOURCE_NOTE,
       },
@@ -2041,15 +2045,15 @@ export const salesModules: SalesModule[] = [
       {
         id: 's4_5',
         question:
-          'Until the role-permission matrix is finalized, which statuses may reps move jobs through?',
+          'At which status does the job leave the rep’s hands and pass to the office/automations?',
         options: [
-          'Any status, freely',
-          'Only Lead and Estimating; anything past Sold, ask the office',
-          'Only Completed and Paid & Closed',
-          'None — the office moves everything',
+          'Inspection',
+          'Contingency Signed',
+          'Submit for Approval',
+          'Paid & Closed',
         ],
         explanation:
-          'The role matrix is not yet defined. Until it is, reps move jobs only through Lead and Estimating statuses; for anything past Sold, ask the office.',
+          'The rep moves the job through the Lead and Estimating statuses up to Submit for Approval. From there, the office, management, and automations take over — approval, materials, invoicing, and payout.',
       },
     ],
   },
