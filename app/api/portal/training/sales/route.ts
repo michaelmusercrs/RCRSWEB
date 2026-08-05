@@ -113,12 +113,14 @@ export async function POST(request: NextRequest) {
 
     let score: number;
     let passed: boolean;
+    let correctAnswers: Record<string, number> | undefined;
 
     // Server-side grading when answers are provided
     if (body.answers && typeof body.answers === 'object' && SALES_MODULE_QUESTIONS[moduleId]) {
       const result = gradeQuiz(moduleId, body.answers);
       score = result.score;
       passed = result.passed;
+      correctAnswers = result.correctAnswers;
     } else {
       // Legacy fallback: trust client-provided score (backward compatibility)
       score = parseInt(String(body.score ?? '0'), 10);
@@ -155,6 +157,7 @@ export async function POST(request: NextRequest) {
       record,
       score,
       passed,
+      correctAnswers,
       message: passed
         ? 'Congratulations! You passed the quiz.'
         : 'Quiz submitted. Review the material and try again.',
