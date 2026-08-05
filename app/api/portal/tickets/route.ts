@@ -20,11 +20,16 @@ import { syncTicketPhotoToJN } from '@/lib/jn-photo-sync';
 async function syncTicketsTabStatus(
   ticketId: string,
   status: import('@/lib/ticket-sheet-service').TicketStatus,
-) {
+): Promise<boolean> {
   try {
     await ticketSheetService.updateStatus(ticketId, status);
+    return true;
   } catch (err) {
+    // The Sheets layer already retries rate-limit failures; reaching here means
+    // the mirror genuinely failed. Return false so the caller can tell the
+    // driver the board didn't update (instead of a false "success").
     console.warn(`[tickets] Failed to mirror status '${status}' to Tickets tab:`, err);
+    return false;
   }
 }
 
@@ -490,8 +495,8 @@ export async function POST(request: NextRequest) {
           data.scheduledDate,
           data.scheduledTime
         );
-        await syncTicketsTabStatus(data.ticketId, 'assigned');
-        return NextResponse.json({ success: true, ticket });
+        const assignSynced = await syncTicketsTabStatus(data.ticketId, 'assigned');
+        return NextResponse.json({ success: true, ticket, boardSynced: assignSynced });
       }
 
       case 'pull-materials': {
@@ -503,8 +508,8 @@ export async function POST(request: NextRequest) {
         // while deliveryWorkflowService writes only to Delivery Tickets.
         // Without this mirror the Pull button is a silent no-op on Rick's
         // phone and the ticket strands at 'created' forever.
-        await syncTicketsTabStatus(data.ticketId, 'materials_pulled');
-        return NextResponse.json({ success: true, ticket });
+        const pullSynced = await syncTicketsTabStatus(data.ticketId, 'materials_pulled');
+        return NextResponse.json({ success: true, ticket, boardSynced: pullSynced });
       }
 
       case 'verify-load': {
@@ -601,29 +606,29 @@ export async function POST(request: NextRequest) {
 
       case 'start-delivery': {
         const ticket = await deliveryWorkflowService.startDelivery(data.ticketId);
-        await syncTicketsTabStatus(data.ticketId, 'en_route');
+        const synced = await syncTicketsTabStatus(data.ticketId, 'en_route');
         if (ticket) {
           await sendDeliveryNotification(ticket, 'En Route');
         }
-        return NextResponse.json({ success: true, ticket });
+        return NextResponse.json({ success: true, ticket, boardSynced: synced });
       }
 
       case 'mark-arrived': {
         const ticket = await deliveryWorkflowService.markArrived(data.ticketId, data.gpsLocation);
-        await syncTicketsTabStatus(data.ticketId, 'arrived');
+        const synced = await syncTicketsTabStatus(data.ticketId, 'arrived');
         if (ticket) {
           await sendDeliveryNotification(ticket, 'Arrived');
         }
-        return NextResponse.json({ success: true, ticket });
+        return NextResponse.json({ success: true, ticket, boardSynced: synced });
       }
 
       case 'complete-delivery': {
         const ticket = await deliveryWorkflowService.completeDelivery(data.ticketId, data.notes);
-        await syncTicketsTabStatus(data.ticketId, 'delivered');
+        const synced = await syncTicketsTabStatus(data.ticketId, 'delivered');
         if (ticket) {
           await sendDeliveryNotification(ticket, 'Delivered');
         }
-        return NextResponse.json({ success: true, ticket });
+        return NextResponse.json({ success: true, ticket, boardSynced: synced });
       }
 
       case 'capture-proof': {
@@ -643,11 +648,11 @@ export async function POST(request: NextRequest) {
 
       case 'complete-ticket': {
         const ticket = await deliveryWorkflowService.completeTicket(data.ticketId);
-        await syncTicketsTabStatus(data.ticketId, 'completed');
+        const synced = await syncTicketsTabStatus(data.ticketId, 'completed');
         if (ticket) {
           await sendDeliveryNotification(ticket, 'Completed');
         }
-        return NextResponse.json({ success: true, ticket });
+        return NextResponse.json({ success: true, ticket, boardSynced: synced });
       }
 
       case 'add-photo': {

@@ -70,11 +70,38 @@ export async function GET(request: NextRequest) {
     viewerRole = auth.user.role;
   }
 
-  // Pull active tickets and weather in parallel
-  const [allTickets, weather] = await Promise.all([
-    ticketSheetService.getAll().catch(() => []),
-    weatherService.getWeather('Decatur, AL').catch(() => null),
-  ]);
+  // Pull active tickets and weather in parallel. Weather is best-effort.
+  // Tickets go through the cached reader, which serves a last-known-good
+  // snapshot (flagged stale) if the live Sheets read fails — so a rate-limit
+  // blip shows the previous board, never a false-empty one.
+  const weatherPromise = weatherService.getWeather('Decatur, AL').catch(() => null);
+
+  let ticketsResult: { tickets: Awaited<ReturnType<typeof ticketSheetService.getAll>>; stale: boolean };
+  try {
+    ticketsResult = await ticketSheetService.getAllCached();
+  } catch (err) {
+    // No cached snapshot to fall back to (cold instance + Sheets unavailable).
+    // Return an explicit degraded state so the UI shows "reconnecting", NOT an
+    // empty board that reads as "no deliveries today".
+    console.error('[warehouse/today] ticket read failed with no cached fallback:', err);
+    return NextResponse.json(
+      {
+        degraded: true,
+        error: 'schedule_unavailable',
+        message: 'Live schedule is briefly unavailable (Google rate limit). It will refresh automatically.',
+        greeting: greetingForHour(new Date().getHours()),
+        timestamp: new Date().toISOString(),
+        weather: await weatherPromise,
+        counts: { total: 0, created: 0, assigned: 0, materials_pulled: 0, en_route: 0, arrived: 0 },
+        cities: [],
+        totals: { totalPrice: 0, totalCost: 0 },
+        tickets: [],
+      },
+      { status: 503 },
+    );
+  }
+  const allTickets = ticketsResult.tickets;
+  const weather = await weatherPromise;
 
   // Filter to active (not completed) tickets, deliveries only
   const activeTickets = allTickets.filter(t =>
@@ -105,6 +132,9 @@ export async function GET(request: NextRequest) {
   const payload = {
     greeting: greetingForHour(hour),
     timestamp: now.toISOString(),
+    // True when the live Sheets read failed and we served the previous
+    // snapshot. The board stays populated; the UI can show a subtle indicator.
+    stale: ticketsResult.stale,
     weather: weather
       ? {
           temp: weather.current?.temp ?? null,

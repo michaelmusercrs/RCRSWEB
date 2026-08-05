@@ -190,15 +190,31 @@ function rowToTicket(row: Record<string, string>): SheetTicket {
   };
 }
 
+// Short-lived board snapshot cache. The warehouse dashboard (/warehouse/today)
+// and X88 kiosk (refreshes every 30s) both read the full ticket list; without
+// this every load is a live Sheets read that eats the per-minute read quota.
+// The cache also holds the LAST-KNOWN-GOOD snapshot so a transient read failure
+// serves the previous board (flagged stale) instead of a blank one.
+interface BoardSnapshot { at: number; data: SheetTicket[] }
+let _boardCache: BoardSnapshot | null = null;
+const BOARD_CACHE_TTL_MS = 12_000;
+
 class TicketSheetService {
+  /** Invalidate the board snapshot so the next read reflects a just-made write. */
+  private bustBoardCache(): void {
+    _boardCache = null;
+  }
+
   /** Insert or update a ticket by ticketId. Idempotent. */
   async upsert(ticket: SheetTicket): Promise<boolean> {
-    return googleSheetsService.upsertGenericRow(
+    const ok = await googleSheetsService.upsertGenericRow(
       SHEET_NAMES.TICKETS,
       TICKET_HEADERS,
       'ticketId',
       ticketToRow(ticket),
     );
+    if (ok) this.bustBoardCache();
+    return ok;
   }
 
   /**
@@ -226,6 +242,34 @@ class TicketSheetService {
       .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
   }
 
+  /**
+   * Board-optimized read for the warehouse dashboard / kiosk.
+   *
+   * - Serves a fresh snapshot from cache within BOARD_CACHE_TTL_MS.
+   * - On a cache miss, reads live and refreshes the snapshot.
+   * - On a read FAILURE, falls back to the last-known-good snapshot flagged
+   *   `stale: true` so the board shows the previous jobs (not an empty board).
+   * - Only throws if there is no snapshot to fall back to (never loaded), so
+   *   the caller can render an explicit "degraded" state instead of "0 jobs".
+   */
+  async getAllCached(ttlMs: number = BOARD_CACHE_TTL_MS): Promise<{ tickets: SheetTicket[]; stale: boolean; cached: boolean }> {
+    const now = Date.now();
+    if (_boardCache && now - _boardCache.at < ttlMs) {
+      return { tickets: _boardCache.data, stale: false, cached: true };
+    }
+    try {
+      const fresh = await this.getAll();
+      _boardCache = { at: now, data: fresh };
+      return { tickets: fresh, stale: false, cached: false };
+    } catch (err) {
+      if (_boardCache) {
+        console.warn('[ticket-sheet] getAllCached: live read failed, serving last-known-good snapshot:', err);
+        return { tickets: _boardCache.data, stale: true, cached: true };
+      }
+      throw err;
+    }
+  }
+
   async getById(ticketId: string): Promise<SheetTicket | null> {
     const rows = await googleSheetsService.getGenericRows(SHEET_NAMES.TICKETS, TICKET_HEADERS);
     const row = rows.find(r => r.ticketId === ticketId);
@@ -247,7 +291,7 @@ class TicketSheetService {
     status: TicketStatus,
     completedAt?: string,
   ): Promise<boolean> {
-    return googleSheetsService.updateGenericRow(
+    const ok = await googleSheetsService.updateGenericRow(
       SHEET_NAMES.TICKETS,
       TICKET_HEADERS,
       'ticketId',
@@ -257,6 +301,8 @@ class TicketSheetService {
         ...(completedAt ? { completedAt } : {}),
       },
     );
+    if (ok) this.bustBoardCache();
+    return ok;
   }
 
   /** Patch arbitrary columns on a ticket row. */
@@ -264,13 +310,15 @@ class TicketSheetService {
     ticketId: string,
     patch: Partial<Record<(typeof TICKET_HEADERS)[number], string>>,
   ): Promise<boolean> {
-    return googleSheetsService.updateGenericRow(
+    const ok = await googleSheetsService.updateGenericRow(
       SHEET_NAMES.TICKETS,
       TICKET_HEADERS,
       'ticketId',
       ticketId,
       patch as Record<string, string>,
     );
+    if (ok) this.bustBoardCache();
+    return ok;
   }
 }
 

@@ -7,7 +7,7 @@
  * so tickets piled up untracked and uninvoiced for weeks.
  *
  * This service finalizes any delivery ticket that has sat in 'created' for
- * longer than STALL_HOURS, doing the SAME complete finalization as the
+ * longer than STALL_BUSINESS_HOURS, doing the SAME complete finalization as the
  * 2026-06-30 backfill:
  *   1. Write an Invoices row (status='posted', no email)
  *   2. Write a Job_Breakdowns row if the job has none
@@ -36,7 +36,13 @@ import {
   makeDeductionKey,
 } from './inventory-deduction-log';
 
-const STALL_HOURS = 48;
+// Staleness is measured in BUSINESS hours (Mon–Sat 7am–6pm CT), not wall clock.
+// Wall-clock 48h swept a Thursday-evening or Friday order to 'completed' over
+// the weekend — before the driver's Monday. 24 business hours ≈ 2+ working days
+// of total silence: long enough that the ticket is genuinely abandoned (a
+// worked ticket leaves 'created' the same/next business day), short enough to
+// still catch a never-touched one. A worked order never qualifies.
+const STALL_BUSINESS_HOURS = 24;
 const MIN_PRICE = 1;
 const MAX_PER_RUN = 8; // bound write-quota usage; remainder waits for next run
 const WRITE_PAUSE_MS = 1100; // ~54 writes/min, under the 60/min Sheets quota
@@ -71,10 +77,45 @@ export interface AutoFinalizeSummary {
   errors: string[];
 }
 
-function ageHours(createdAt: string): number {
-  const t = new Date(createdAt).getTime();
-  if (!Number.isFinite(t)) return 0;
-  return (Date.now() - t) / 3_600_000;
+// ── Business-hours aging (America/Chicago, Mon–Sat 7am–6pm) ─────────────────
+// Mirrors app/api/cron/forwarder-heartbeat's model so "staleness" means the
+// same thing across the two ops safety nets.
+const CHICAGO_TZ = 'America/Chicago';
+const BIZ_START_HOUR = 7;   // inclusive
+const BIZ_END_HOUR = 18;    // exclusive (6pm)
+const WEEKDAY_INDEX: Record<string, number> = {
+  Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
+};
+
+function isChicagoBusinessTime(d: Date): boolean {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: CHICAGO_TZ, weekday: 'short', hour: '2-digit', hour12: false,
+  }).formatToParts(d);
+  let weekday = 1;
+  let hour = 0;
+  for (const p of parts) {
+    if (p.type === 'weekday') weekday = WEEKDAY_INDEX[p.value] ?? 1;
+    else if (p.type === 'hour') hour = parseInt(p.value, 10) % 24;
+  }
+  if (weekday === 0) return false; // Sunday
+  return hour >= BIZ_START_HOUR && hour < BIZ_END_HOUR;
+}
+
+/** Business hours (Mon–Sat 7am–6pm CT) elapsed since createdAt. 0 if invalid. */
+function businessHoursSince(createdAt: string): number {
+  const startMs = new Date(createdAt).getTime();
+  if (!Number.isFinite(startMs)) return 0;
+  const endMs = Date.now();
+  if (startMs >= endMs) return 0;
+  const stepMs = 10 * 60 * 1000;
+  const stepHours = stepMs / 3_600_000;
+  const maxSpanMs = 60 * 24 * 60 * 60 * 1000; // cap loop at 60 days wall time
+  const hardEnd = Math.min(endMs, startMs + maxSpanMs);
+  let biz = 0;
+  for (let t = startMs; t < hardEnd; t += stepMs) {
+    if (isChicagoBusinessTime(new Date(t + stepMs / 2))) biz += stepHours;
+  }
+  return biz;
 }
 
 function num(v: unknown): number {
@@ -140,7 +181,7 @@ export async function autoFinalizeStuckTickets(
     if ((r.get('status') || '').trim() !== 'created') return false;
     if ((r.get('ticketType') || '').trim() !== 'delivery') return false;
     if (invoicedTickets.has(r.get('ticketId'))) return false;
-    if (ageHours(r.get('createdAt') || '') < STALL_HOURS) return false;
+    if (businessHoursSince(r.get('createdAt') || '') < STALL_BUSINESS_HOURS) return false;
     if (num(r.get('totalPrice')) < MIN_PRICE) return false;
     let mats: RawMaterial[] = [];
     try { mats = JSON.parse(r.get('materialsJson') || '[]'); } catch { /* skip */ }
@@ -189,7 +230,7 @@ export async function autoFinalizeStuckTickets(
         createdAt: stamp, dueDate: '', paidAt: '',
         subtotal: total.toFixed(2), taxRate: '0', taxAmount: '0.00', deliveryFee: '0.00', rushFee: '0.00',
         total: total.toFixed(2), status: 'posted', paymentMethod: '', paymentReference: '',
-        notes: `Auto-finalized by cron (stuck in 'created' >${STALL_HOURS}h). Inventory deducted from Inventory_Products. No email sent.`,
+        notes: `Auto-finalized by cron (stuck in 'created' >${STALL_BUSINESS_HOURS} business hours). Inventory deducted from Inventory_Products. No email sent.`,
         internalNotes: '',
       });
       await pause();
