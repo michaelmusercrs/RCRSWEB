@@ -4,8 +4,8 @@
  * ScriptBuilder — Drill sales_d1 — "Door-Knock Script Builder"
  *
  * Three rounds of tap-to-order chip assembly. All script content is VERBATIM
- * from CANONICAL-sales-training.md §A.1–A.4 (Boston Muse's recorded door script).
- * Distractors are the forbidden openers Boston explicitly warns against.
+ * from CANONICAL-sales-training.md §A.1–A.4 (the recorded door script).
+ * Distractors are the forbidden openers the script explicitly warns against.
  *
  *   Round 1 (40 pts): assemble the verbatim intro from correct fragments mixed
  *                     with FORBIDDEN opener distractors.
@@ -108,7 +108,7 @@ const R3_QUESTIONS: BridgeQ[] = [
 const R1_COACH =
   'The scripted intro, verbatim: “Hey there, I am [name] with River City Roofing Solutions, and I am in your area inspecting wind and hail damage due to the storms that came through on [date].” That’s the big three things everybody wants to know as soon as they open the door. The openers you left out — “how are you doing,” “hope I’m not bothering you,” “hope you’re having a good day,” “umm” — all of that’s opening up a can of worms.';
 const R1_COACH_FORBIDDEN =
-  'You placed a forbidden opener. Boston: “Not how are you doing... Not hey, hope you’re having a good day. Hope I’m not bothering you. Nope. All of that’s opening up a can of worms.” Start clean with “Hey there.”';
+  'You placed a forbidden opener. As the training puts it: “Not how are you doing... Not hey, hope you’re having a good day. Hope I’m not bothering you. Nope. All of that’s opening up a can of worms.” Start clean with “Hey there.”';
 const R2_COACH =
   'Order: “How long have you owned the home?” first — “we need the owner there to give us permission to get on the roof.” Then “When was the last time your roof was inspected?” Then “Was it a roofer or an insurance company? And what did they say?” “Do you know how old the roof is?” is a great optional add — but only after the first three.';
 const R3_COACH =
@@ -233,7 +233,7 @@ export default function ScriptBuilder() {
 
   const instructions =
     phase === 1
-      ? 'Round 1 of 3 — Tap the fragments in order to build Boston’s intro. Skip the forbidden openers.'
+      ? 'Round 1 of 3 — Tap the fragments in order to build the scripted intro. Skip the forbidden openers.'
       : phase === 2
         ? 'Round 2 of 3 — Tap the qualifying questions into the right order.'
         : phase === 3

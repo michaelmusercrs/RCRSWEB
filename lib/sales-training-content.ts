@@ -2,16 +2,16 @@
  * RCRS Sales Training Content — CANONICAL REBUILD
  *
  * Every content sentence traces to the verified source extraction in
- * `CANONICAL-sales-training.md` (Boston Muse's recorded door-to-claim training
+ * `CANONICAL-sales-training.md` (the recorded door-to-claim training session
  * + the original portal module/quiz JSON). Where the recording does not teach
  * something (estimate writing, pricing, the close/deposit, JobNimbus role
  * permissions, door-objection rebuttals beyond the playbook), the content
  * renders an honest-gap callout instead of inventing material.
  *
- * Boston's exact words live in `talkTracks` (speaker: 'boston'). Transcription
+ * The verbatim field words live in `talkTracks` (speaker: 'field'). Transcription
  * artifacts are corrected per the canonical doc's artifact table (hail, cougar
  * paws, JobNimbus, Eagle View, HAAG, Drive, felt, galvalume, chimneys, Decatur
- * Daily, IKO Dynasty). His lightly-censored profanity is kept as the doc shows.
+ * Daily, IKO Dynasty). The lightly-censored profanity is kept as the doc shows.
  *
  * This is a plain .ts data module — NO JSX, NO React. Icons are lucide-react
  * name strings; the page maps string -> component. QuizQuestion intentionally
@@ -19,7 +19,7 @@
  */
 
 export interface TalkTrack {
-  speaker: 'boston';
+  speaker: 'field';
   text: string;
   context?: string;
 }
@@ -61,7 +61,7 @@ export interface SalesPart {
 }
 
 // Footer used on Part 5 modules whose content comes from the portal training
-// materials rather than Boston's recorded session.
+// materials rather than the recorded session.
 const JSON_SOURCE_NOTE =
   'Source: RCRS training materials (not from the recorded session).';
 
@@ -92,7 +92,7 @@ export const salesModules: SalesModule[] = [
     id: 'sales_c1',
     title: 'The Door Knock',
     description:
-      "Boston's verbatim door-knock intro, the Big Three, the three forbidden openers, the three qualifying questions in order, and the adjective bridge that keeps you moving.",
+      "The verbatim door-knock intro, the Big Three, the three forbidden openers, the three qualifying questions in order, and the adjective bridge that keeps you moving.",
     icon: 'DoorOpen',
     estimatedMinutes: 18,
     passingScore: 80,
@@ -105,23 +105,23 @@ export const salesModules: SalesModule[] = [
           title: 'From Hail to Home — the full door-to-claim process (deep-dive audio)',
         },
         content: [
-          'Your opener is simply "Hey there." Not "How are you doing," not "Hope you\'re having a good day," not "Hope I\'m not bothering you." Boston teaches this intro verbatim, and he wants it delivered in a slightly higher pitch.',
+          'Your opener is simply "Hey there." Not "How are you doing," not "Hope you\'re having a good day," not "Hope I\'m not bothering you." This intro is delivered verbatim, in a slightly higher pitch.',
           'Tell them who you are first, then who you are with, then why you are there. Once you have done that, your intro is complete — the homeowner now knows the three things everyone wants to know the moment they open the door.',
           'The assembled, verbatim intro line is: "Hey there, I am [name] with River City Roofing Solutions, and I am in your area inspecting wind and hail damage due to the storms that came through on [date]."',
           'You can tailor the storm reference — "from the April 10th storm" or "due to the storms that came through on [date]" — as long as it still hits the same main point: the storms that came through on a specific day.',
         ],
         proTips: [
-          'Use a higher pitch on the intro — Boston calls this out specifically.',
+          'Use a higher pitch on the intro — the script calls this out specifically.',
           'Say "hail damage" only if it was a hail date, or "wind damage" only if it was a wind date — otherwise say "wind and hail damage."',
         ],
         talkTracks: [
           {
-            speaker: 'boston',
-            text: "So, door knock is hey there, right? Not how are you doing, you know? Not hey, hope you're having a good day. Hope I'm not bothering you. Nope. All of that's opening up a can of worms. Hey there, I am Boston Muse... So, who are you? Tell them who you are first. Hey there. This is who I am. I am blank blank blank with — Who are you with? RCRS, River City Roofing Solutions. And I'm giving you guys this verbatim. The higher pitch. So, it's Hey there, I am blank blank with River City Roofing Solutions and I am in your area inspecting wind and hail damage due to the storms that came through on blank blank date.",
+            speaker: 'field',
+            text: "So, door knock is hey there, right? Not how are you doing, you know? Not hey, hope you're having a good day. Hope I'm not bothering you. Nope. All of that's opening up a can of worms. Hey there, I am [your name]... So, who are you? Tell them who you are first. Hey there. This is who I am. I am blank blank blank with — Who are you with? RCRS, River City Roofing Solutions. And I'm giving you guys this verbatim. The higher pitch. So, it's Hey there, I am blank blank with River City Roofing Solutions and I am in your area inspecting wind and hail damage due to the storms that came through on blank blank date.",
             context: 'The verbatim intro (recording, para 45, 60–61).',
           },
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "And at that point, you're done with your intro. You've introduced yourself. They know who you are. They know where you're from. They know why you're there. That's the big three things everybody wants to know as soon as they open the door.",
             context: 'The "Big Three" (recording, para 61).',
           },
@@ -146,22 +146,22 @@ export const salesModules: SalesModule[] = [
         content: [
           'Question 1: "How long have you owned the home?" This is first because you must confirm they are the owner — you need the owner\'s permission to get on the roof. It also screens for a caretaker (son/daughter/niece) or a power of attorney, which still qualifies.',
           'Question 2: "When was the last time your roof was inspected?" Homeowners often volunteer the whole story here.',
-          'Question 3: "Was it a roofer or an insurance company? And what did they say?" Boston deliberately packs two answers into one question. It is a little open-ended, but this is your final qualifying question.',
+          'Question 3: "Was it a roofer or an insurance company? And what did they say?" This question deliberately packs two answers into one. It is a little open-ended, but this is your final qualifying question.',
           'Optional Question 4: "Do you know how old the roof is?" A great early-intel question — a beat-up roof that is "only 7 years old" signals heavy hail damage or no ventilation.',
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "So, first qualifying question is how long have you owned the home? Why is this the first question? Because we want to make sure that they're not a renter... we're qualifying the home and we want to make sure they own the home cuz we need the owner there to give us permission to get on the roof.",
             context: 'Question 1 (recording, para 63).',
           },
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "The third qualifying question is was it a roofer or an insurance company? Was it a roofer or an insurance company? And what did they say?... Okay, put that all in that one question.",
             context: 'Question 3 (recording, para 74–79).',
           },
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "Another great question is, okay, do you know how old the roof is? You can throw that one in there, too. I kind of like that one... maybe your roof looks really, really beat up as you walk up to it and they say it's only 7 years old. You're like, that means it's got a lot of hail damage or maybe there's no ventilation. You can start getting some early information right there, too.",
             context: 'Optional Question 4 (recording, para 86–88).',
           },
@@ -176,7 +176,7 @@ export const salesModules: SalesModule[] = [
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "You say, 'How long have you owned the home?' They say, 'Seven years.' You use some sort of adjective and go immediately to the next question. Great, awesome, wonderful, glad to hear it... What a lot of people do is repeating what the person said cuz that's a way that people know you're stalling for something. They'll say seven years and you'll go 'seven years. Oh, that's great.' That's unnecessary information... So, cut that out and get to the chase, right? You only got so much time at the door to make a connection with this homeowner.",
             context: 'The adjective / response technique (recording, para 70–73).',
           },
@@ -226,7 +226,7 @@ export const salesModules: SalesModule[] = [
           '"...due to the storms that came through on [date]."',
         ],
         explanation:
-          '"Hope I\'m not bothering you" plants the idea that you ARE bothering them and opens up a can of worms. Boston bans it along with "How are you doing?" and filler words.',
+          '"Hope I\'m not bothering you" plants the idea that you ARE bothering them and opens up a can of worms. The script bans it along with "How are you doing?" and filler words.',
       },
       {
         id: 'c1_4',
@@ -275,7 +275,7 @@ export const salesModules: SalesModule[] = [
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "We're qualifying the home and we want to make sure they own the home cuz we need the owner there to give us permission to get on the roof.",
             context: 'Why Q1 is first (recording, para 63). A power of attorney still qualifies (para 67).',
           },
@@ -290,7 +290,7 @@ export const salesModules: SalesModule[] = [
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "What qualifies the homeowner is, have they had their roof inspected since this storm date? If they haven't had their roof inspected since the storm date, they automatically qualify... Or if it's been a long time, you don't really have to ask the third question... 'Oh, I haven't had it looked at since I bought the house.' — Okay, Greg, you're qualified. But if it's been somewhat recently, you probably still do want to ask because maybe they were denied.",
             context: 'The auto-qualify rule (recording, para 83–86).',
           },
@@ -299,7 +299,7 @@ export const salesModules: SalesModule[] = [
       {
         heading: 'Q3 — "Was it a roofer or an insurance company? And what did they say?"',
         content: [
-          'Only needed if the roof was recently inspected. Boston packs two answers into one question.',
+          'Only needed if the roof was recently inspected. This question packs two answers into one.',
           'Roofer inspected it → find out what they said. A roofer\'s look does NOT use up the insurance claim. A prior "it\'s fine" is handled with a fresh-look reframe (things change with each storm).',
           'Insurance inspected it before the storm date (e.g., a routine check when they first got their policy) → still qualifies.',
           'Insurance inspected AND denied since the storm date → this is the retail-prep path. You can offer a reinspection (the homeowner\'s right to a second opinion) and/or go retail.',
@@ -388,13 +388,13 @@ export const salesModules: SalesModule[] = [
         heading: 'The Folder Presentation — Get Their Hands Involved',
         content: [
           'Open the folder and get the homeowner\'s hands physically involved. Hand them the folder, have them open it, and point with your pen or pencil as you flip through the pages.',
-          'Walk them through, in order: the About Us section ("Chris and Michael own this company," ~15 years of experience each, or just "over 30 or 40 years of experience combined with the owners"); then point out the insurances and licenses; then BBB A+ rated; then Decatur Daily Best of the Best (emphasize this especially in Decatur, but Boston still gets it out in Huntsville, Madison, and Athens).',
+          'Walk them through, in order: the About Us section ("Chris and Michael own this company," ~15 years of experience each, or just "over 30 or 40 years of experience combined with the owners"); then point out the insurances and licenses; then BBB A+ rated; then Decatur Daily Best of the Best (emphasize this especially in Decatur, but still get it out in Huntsville, Madison, and Athens).',
           'Finally, point out your card and your information — and make sure they know to contact YOU, not the office, for anything they need.',
         ],
         // AWAITING PHOTO: folder-about-us.jpg — the physical RCRS folder open to the About Us / credentials page
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "You want to open up the folder... and you want to get their hands involved. Hand them a folder and get their hands physically involved. Have them open up the folder, show them, point with your pen or pencil or flip through the pages... here's the about us section. Chris and Michael own this company... over 30 or 40 years of experience with the owners and then point out our insurances and licenses... BBB. A plus rated. And for Decatur, Daily is best of the best... Decatur Daily's best of the best roofer... And then you want to point out your card, your information... make sure that they contact you and not the office for anything that they need.",
             context: 'The folder presentation (recording, para 91–116).',
           },
@@ -408,7 +408,7 @@ export const salesModules: SalesModule[] = [
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "You're the guy that's going to handle them. You're the guy that's going to take care of them. You're here to help them. This right here is where that's kind of starting to be established... because now they're not dealing with some company who they've never met before... You have to be the guy. So you're establishing that connection.",
             context: 'Establishing yourself as the point of contact (recording, para 116).',
           },
@@ -423,7 +423,7 @@ export const salesModules: SalesModule[] = [
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "Great. Why don't you look through that and clear off a spot inside on the kitchen table?... I've got my ladder in the truck. I'm going to get up on your roof and document everything that I see today. I have my ladder in the truck. I'm going to take about 10 minutes... get back down and show you the photos. Or you can even reiterate. We're going to get back down, sit at that kitchen table, and go over the photos so you know the condition of your roof.",
             context: 'Transition to the roof (recording, para 116–122).',
           },
@@ -432,12 +432,12 @@ export const salesModules: SalesModule[] = [
       {
         heading: 'The Free-Inspection Line & "I\'ll Be Right Back"',
         content: [
-          'Mention the free inspection only if needed. Boston often stays away from it — but if he starts to turn and the homeowner asks "How much am I going to owe you?", he responds: "Whoa. Sorry. My inspections, consultations, and estimates are always free," then reiterates the plan.',
+          'Mention the free inspection only if needed. The script often stays away from it — but if you start to turn and the homeowner asks "How much am I going to owe you?", you respond: "Whoa. Sorry. My inspections, consultations, and estimates are always free," then reiterate the plan.',
           'Your exit line is simply: "I\'ll be right back." Then you turn and walk away.',
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "You can also mention that the inspections are free if you feel like that's necessary, but a lot of times I feel like I stay away from it... But if I start to turn and they ask, 'Hey, well, how much am I going to owe you?' [I say] Whoa. Sorry. My inspections, consultations, and estimates are always free... I'm just going to hop up here real quick, document everything, get back down, and show you the photos.",
             context: 'The free-inspection line (recording, para 122).',
           },
@@ -447,11 +447,11 @@ export const salesModules: SalesModule[] = [
         heading: 'The "Oh, By The Way" Insurance Question',
         content: [
           'If the homeowner has not already volunteered their insurance company, you grab it as you walk away — NOT face-to-face. Take a step or two, turn back, and casually ask: "Oh, by the way, who is your insurance company?"',
-          'Sometimes Boston does not even turn all the way around — just a quick "Oh, hey, by the way, who is your insurance company?" and keeps walking.',
+          'Sometimes you do not even turn all the way around — just a quick "Oh, hey, by the way, who is your insurance company?" and keep walking.',
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "As you turn and walk away... this is the time when you ask and this is how you ask. I turn, I walk away a little, take a step or two and then I turn back and I go 'oh by the way, who is your insurance company?'... but sometimes I don't even turn way around to him. I just quick — 'Oh, hey, by the way, who is your insurance company?'",
             context: 'The walk-away insurance grab (recording, para 124).',
           },
@@ -463,17 +463,17 @@ export const salesModules: SalesModule[] = [
         id: 'c3_1',
         question: 'In the folder\'s About Us section, who owns the company?',
         options: [
-          'Boston and Aaron',
+          'Two outside investors',
           'Chris and Michael',
           'A national franchise group',
           'The Decatur Daily',
         ],
         explanation:
-          'Boston teaches: "Chris and Michael own this company," with over 30 to 40 years of combined experience between the owners.',
+          'The script teaches: "Chris and Michael own this company," with over 30 to 40 years of combined experience between the owners.',
       },
       {
         id: 'c3_2',
-        question: 'Which credentials does Boston tell you to point out in the folder?',
+        question: 'Which credentials does the script tell you to point out in the folder?',
         options: [
           'A five-star Google rating and a Yelp badge',
           'BBB A+ rating and Decatur Daily Best of the Best',
@@ -481,7 +481,7 @@ export const salesModules: SalesModule[] = [
           'State licensing number and OSHA certification only',
         ],
         explanation:
-          'Point out BBB A+ rated and Decatur Daily Best of the Best — especially the Decatur Daily award in Decatur, though Boston still uses it in Huntsville, Madison, and Athens.',
+          'Point out BBB A+ rated and Decatur Daily Best of the Best — especially the Decatur Daily award in Decatur, though you still use it in Huntsville, Madison, and Athens.',
       },
       {
         id: 'c3_3',
@@ -539,7 +539,7 @@ export const salesModules: SalesModule[] = [
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "Find an eve where you can put up your ladder. This is a very important note because you really don't want to put your ladder up on a rake. It's very uneven... put it on the eve that's close to a hip or a valley or a eve of a low pitched front or back porch where it's easily accessible... [if you can't reach safely] then you need a drone or ask for help.",
             context: 'Ladder placement (recording, para 139–158).',
           },
@@ -553,18 +553,18 @@ export const salesModules: SalesModule[] = [
         ],
         callout: {
           tone: 'info',
-          title: 'Boston\'s repeated theme',
+          title: 'A repeated theme',
           text: 'You don\'t want to look like an idiot. Ladder handling, preparedness, and professionalism all get judged — often on camera.',
         },
       },
       {
         heading: 'The Ladder Angle',
         content: [
-          'Set a smooth angle — roughly 20 to 40 degrees (Boston notes 45 is probably too much). Too steep and it can kick over or make it hard to descend; too flat on concrete or wet grass and it slips out.',
+          'Set a smooth angle — roughly 20 to 40 degrees (note: 45 is probably too much). Too steep and it can kick over or make it hard to descend; too flat on concrete or wet grass and it slips out.',
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "Like this angle, like almost like a 40, 45... Maybe 45 is too much. 20 to 40, 30... some smooth angle.",
             context: 'Ladder angle (recording, para 158).',
           },
@@ -578,7 +578,7 @@ export const salesModules: SalesModule[] = [
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "Have your cougar paws on them and the pitch hopper... You want to have your phone and either a pitch gauge app on your phone or a manual pitch gauge. You want to have chalk for the initial inspection... You need to bring a pen and paper and a tape measure.",
             context: 'On-roof tools (recording, para 158).',
           },
@@ -600,7 +600,7 @@ export const salesModules: SalesModule[] = [
       },
       {
         id: 'c4_2',
-        question: 'What ladder angle does Boston teach?',
+        question: 'What ladder angle does the script teach?',
         options: [
           'A steep 60–70° for a fast climb',
           'Roughly 20–40° — a smooth angle (45° is probably too much)',
@@ -662,7 +662,7 @@ export const salesModules: SalesModule[] = [
         // AWAITING PHOTO: shingle-three-tab-vs-dimensional.jpg — side-by-side eave lift showing 3-tab vs dimensional
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "Peel up at the eve and look for what type of shingle it is... identify if it's three tab or dimensional. You're looking for starter strip — or did they use three tab as starter? You're going to look for drip edge. You're going to look for what kind of felt paper it has.",
             context: 'The eave inspection (recording, para 162–190).',
           },
@@ -691,7 +691,7 @@ export const salesModules: SalesModule[] = [
         // AWAITING PHOTO: valley-open-metal-w.jpg — exposed open valley metal showing the "W" profile
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "Look for if it has valley metal or ice and water shield in the valleys... that's a big thing that we can get approved before we even do the job... typically a backend supplement... maybe you can get the adjuster to pay for it that day.",
             context: 'The valley supplement play (recording, para 162–190).',
           },
@@ -704,7 +704,7 @@ export const salesModules: SalesModule[] = [
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "You're looking at the granular loss. What kind of condition is it in as far as safety to walk onto... you swipe your hand one time — like them granules are loose, I'm going to go put my cougar paws on.",
             context: 'Granule swipe safety check (recording, para 162–190).',
           },
@@ -789,7 +789,7 @@ export const salesModules: SalesModule[] = [
         // AWAITING PHOTO: collateral-chalk-on-vent.jpg — chalk rubbed on a soft-metal vent revealing hail dings
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "First go look at gas vents, drier vents, mushroom vents... chimneys, chimney caps. If they have the nice exposed valley metal or if they have a metal porch, any of the metals on the roof, you want to go look at it, see if you see a ding in it... take some chalk and rub it evenly on the surface... see if you see any cracks.",
             context: 'Collateral inspection first (recording, para 196–224).',
           },
@@ -808,7 +808,7 @@ export const salesModules: SalesModule[] = [
         // AWAITING PHOTO: hail-hit-shingle.jpg — close-up of a legitimate hail hit showing the four characteristics
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "Something soft to the touch... like an apple. Somewhat irregular in shape. Not a perfect circle. It's always got maybe just a granule or two left in the center... No fiberglass all bulking through it.",
             context: 'The four hail-hit characteristics (recording, para 196–224).',
           },
@@ -822,7 +822,7 @@ export const salesModules: SalesModule[] = [
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "Wood blisters — is the fiberglass going to be fine under a microscope... you'll have straight strands of fiberglass... a perfect circle or linear pattern and no granules anywhere inside... all you see is fiberglass... It's not soft. It's not embedded.",
             context: 'Blister vs. hail (recording, para 196–224).',
           },
@@ -836,7 +836,7 @@ export const salesModules: SalesModule[] = [
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "Hips and ridges are a big one because if you have hail hits on a hip and a ridge, it's a much better sign that it's true damage and not just blistering.",
             context: 'Hips and ridges (recording, para 196–224). HAAG defined at para 200.',
           },
@@ -850,7 +850,7 @@ export const salesModules: SalesModule[] = [
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "You want to get some pictures of non-damage and damage.",
             context: 'Document both (recording, para 196–224).',
           },
@@ -938,11 +938,11 @@ export const salesModules: SalesModule[] = [
         content: [
           'While you are standing on the roof is a great time to create the contact and the job in JobNimbus. At the very least you now know their name, their address, and their insurance company — and you already have your pictures uploaded.',
           'Do this now so you do not have to remember it later. You can literally walk to the neighbor\'s house and start the process over immediately.',
-          'If you do not, you have to go back at night and try to remember which pictures went to what address — and you wind up in a mess. Boston\'s words: "Lost as hell."',
+          'If you do not, you have to go back at night and try to remember which pictures went to what address — and you wind up in a mess. As put in the training: "Lost as hell."',
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "It's a great time... to create a contact and a job while you're standing up there... At the very least, you should now know their name, their address, and their insurance company... already have your pictures and stuff uploaded... then you don't have to keep up and remember... you can literally walk to their neighbor's house and start the process over immediately.",
             context: 'Create the JobNimbus job on the roof (recording, para 214–217).',
           },
@@ -961,11 +961,11 @@ export const salesModules: SalesModule[] = [
         content: [
           'Photograph pre-existing conditions to protect yourself: the gutter that was already broken on the left side, the oil stains already in the driveway. After the job, the homeowner cannot come back on those things.',
           'Document expensive features too — a pool, a train running through the backyard, a crazy flower bed. That is expensive, and you do not want it coming out of your check.',
-          'Boston\'s coaching one-liner: "We are paid to document stuff... You\'re paid to document, but you\'re not paid when you f*** something up."',
+          'The coaching one-liner: "We are paid to document stuff... You\'re paid to document, but you\'re not paid when you f*** something up."',
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "We are paid to document stuff... You're paid to document, but you're not paid when you f*** something up.",
             context: 'The documentation ethic (recording, para 218–219).',
           },
@@ -1054,7 +1054,7 @@ export const salesModules: SalesModule[] = [
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "Based on who the insurance company is, you put on them goggles.",
             context: 'The insurance goggles (recording, para 226).',
           },
@@ -1073,12 +1073,12 @@ export const salesModules: SalesModule[] = [
         heading: 'Show the Damage & Create Urgency',
         content: [
           'Insurance route: "Here\'s the damage that I see. It\'s solid. It lines up with your neighbors in the area. I know this is what State Farm is looking for — typically six to 10 hits in every test square." Adjust the number by company/adjuster/storm.',
-          'The space-and-time caveat: Boston once had an All State adjuster who wanted "like 12 or 13," so for three weeks he told every homeowner in that neighborhood that number. It does not apply forever — "just in that storm, with that adjuster, on that date, in that neighborhood... space and time."',
+          'The space-and-time caveat: in one real case, an All State adjuster wanted "like 12 or 13," so for three weeks every homeowner in that neighborhood was told that number. It does not apply forever — "just in that storm, with that adjuster, on that date, in that neighborhood... space and time."',
           'Retail route (little/no damage): "Look, you don\'t really have any real damage... your roof\'s shot, it doesn\'t have a lot of life left in it... but we do have a storm date, so this is probably your last shot — we can try it. If they don\'t approve, we can work on getting you a cash job, a retail price, and we also have payment option plans."',
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "Typically this is what insurance is looking for because I know that they're looking for six to 10 hits in every test square.",
             context: 'The 6–10 hits target (recording, para 226–248).',
           },
@@ -1092,7 +1092,7 @@ export const salesModules: SalesModule[] = [
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "It's you and me, homeowner. It's us versus the insurance company. I'm going to meet that adjuster for you on your behalf... it's almost like a roof lawyer. Not really, but — we can't legally get away with saying that.",
             context: 'The partnership frame (recording, para 248).',
           },
@@ -1105,7 +1105,7 @@ export const salesModules: SalesModule[] = [
         question: 'How many hail hits per test square is insurance typically looking for?',
         options: ['1–2 hits', '3–5 hits', '6–10 hits', '15–20 hits'],
         explanation:
-          'Insurance is typically looking for six to 10 hits in every test square — the number Boston uses when presenting the damage.',
+          'Insurance is typically looking for six to 10 hits in every test square — the number the script uses when presenting the damage.',
       },
       {
         id: 'c8_2',
@@ -1117,11 +1117,11 @@ export const salesModules: SalesModule[] = [
           'No — it should always be raised to 12–13',
         ],
         explanation:
-          'The number flexes. Boston once used "12 or 13" for a specific All State adjuster for three weeks — it applies only to that storm, adjuster, date, and neighborhood ("space and time").',
+          'The number flexes. In one real case, "12 or 13" was used for a specific All State adjuster for three weeks — it applies only to that storm, adjuster, date, and neighborhood ("space and time").',
       },
       {
         id: 'c8_3',
-        question: 'What is the State Farm carrier profile Boston describes?',
+        question: 'What is the State Farm carrier profile the script describes?',
         options: [
           'Always approves on the first visit',
           'Roughly 50/50 — prep for a potential denial and the reinspection out the gate',
@@ -1176,7 +1176,7 @@ export const salesModules: SalesModule[] = [
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "The contingency is so simple. There's no reason that a homeowner shouldn't be willing to sign a contingency... A contingency is not a binding contract.",
             context: 'Clutch time (recording, para 256–262).',
           },
@@ -1190,7 +1190,7 @@ export const salesModules: SalesModule[] = [
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "At the top of the contingency, it says no claim approval, no obligation... If I don't do what I tell you I'm going to do or I don't show up when I tell you I'm going to show up or I'm not calling you back or being communicative... you're not obligated to do any business with me — cuz if you don't trust me it means I didn't do my job.",
             context: 'The top line (recording, para 260).',
           },
@@ -1208,11 +1208,11 @@ export const salesModules: SalesModule[] = [
         heading: 'The $0 Framing',
         content: [
           'This contingency is for $0. The homeowner owes nothing for your time today, for meeting the adjuster, or for writing the estimate — whether the claim is denied, partially approved for repair, or whatever happens.',
-          'Some other companies in the area make this agreement for a minimum of $500. Boston does not believe in doing business that way — that is why there is no obligation and it is $0. Never bash other companies by name.',
+          'Some other companies in the area make this agreement for a minimum of $500. We do not believe in doing business that way — that is why there is no obligation and it is $0. Never bash other companies by name.',
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "As you can see, ma'am, this contingency we're agreeing to $0. So, you don't owe me anything for my time today or meeting the adjuster or writing the estimate whether the claim is denied or partially approved for repair or whatever... you may have heard or noticed some other companies in this area like to make this agreement for a minimum of $500... But I don't believe in doing business that way. That's why there's no obligation and it's $0.",
             context: 'The $0 framing (recording, para 263–264). Never name competitors.',
           },
@@ -1228,7 +1228,7 @@ export const salesModules: SalesModule[] = [
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "Now you sign the contingency where they see you silent and you shut the f***. You get dead f***ing silent. You just say, 'All right, I'm going to sign right here.' And then all you got to do is sign as well. Then we can put in the call to that claim... you pass it across to them. Slide it across the table... you can pull out your phone and dial the insurance company right then and there. Let it start ringing before they even sign it... because now your signature is already on it and the call is already happening... You don't want to give a homeowner the chance to say no... You do all the thinking for them.",
             context: 'The dead-silent sign sequence (recording, para 269–271).',
           },
@@ -1323,7 +1323,7 @@ export const salesModules: SalesModule[] = [
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "Especially if it's an older homeowner and it's 6:30, 7:00 at night... we may get sent to the overseas call center cuz they have 24-hour call service... you're not going to get an American on the phone. May be a little difficult to hear them. I'm going to put them on speaker phone and I'll try to help you.",
             context: 'Overseas call center warning (recording, para 268).',
           },
@@ -1338,7 +1338,7 @@ export const salesModules: SalesModule[] = [
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "Hey, how are you doing? Hey, this is Brendan. I'm with River City Roofing Solutions. You're on speaker phone with the insured today. We're trying to file a new claim due to hail damage on their property.",
             context: 'The call intro (recording, para 275).',
           },
@@ -1353,7 +1353,7 @@ export const salesModules: SalesModule[] = [
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "When you're filing, everything happens same day and same time. None of this damage is old.",
             context: 'Same day, same time (recording, para 297). "Over an inch is considered damaging hail" (para 293–295).',
           },
@@ -1368,7 +1368,7 @@ export const salesModules: SalesModule[] = [
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "You got to get the claim number. So important. Write that down. Take a picture of it and put it in JobNimbus or tag a note... The claim number is the key to everything that's going on with that homeowner's claim.",
             context: 'The claim number (recording, para 305).',
           },
@@ -1383,7 +1383,7 @@ export const salesModules: SalesModule[] = [
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "Letting them know if they have an enclosed fence and a pool is really important because that's restricted access... we can get a little bit extra money on the claim cuz they're paying for labor hours to use a wheelbarrow to bring stuff around.",
             context: 'Restricted access (recording, para 313).',
           },
@@ -1402,7 +1402,7 @@ export const salesModules: SalesModule[] = [
           'Only two inches or larger',
         ],
         explanation:
-          'Over an inch is considered damaging hail — the size threshold Boston uses when filing.',
+          'Over an inch is considered damaging hail — the size threshold the script uses when filing.',
       },
       {
         id: 'c10_2',
@@ -1474,7 +1474,7 @@ export const salesModules: SalesModule[] = [
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "Once the adjuster comes out or once you get that phone call back, I want you to call me and let me know when the adjuster's coming out... so you can come and help them. Technical advisor on the claim... roof lawyer.",
             context: 'Make them call you (recording, para 336–356).',
           },
@@ -1489,7 +1489,7 @@ export const salesModules: SalesModule[] = [
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "Once I meet with the adjuster, it typically takes him about a week or two to get back with you with either an estimate or a denial.",
             context: 'Decision timeline (recording, para 336–356).',
           },
@@ -1504,7 +1504,7 @@ export const salesModules: SalesModule[] = [
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "Once I get your insurance summary, my goal is to turn it around into an estimate within 48 hours... My goal is for your only out-of-pocket cost to be your deductible, any rotted decking that the insurance may not cover or upgrades that you choose.",
             context: 'The 48-hour promise (recording, para 336–356).',
           },
@@ -1525,7 +1525,7 @@ export const salesModules: SalesModule[] = [
         callout: {
           tone: 'warning',
           title: 'Estimating, pricing & the close are taught live',
-          text: 'Estimate writing, pricing/upgrades, and the close (deposit) are taught live by Boston/Michael in the next session — this recording ends before that content. Do not improvise it here.',
+          text: 'Estimate writing, pricing/upgrades, and the close (deposit) are taught live by Michael and Chris in the next session — this recording ends before that content. Do not improvise it here.',
         },
       },
     ],
@@ -1611,7 +1611,7 @@ export const salesModules: SalesModule[] = [
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "Whenever I leave today, I'm going to go ahead and stick out a sign in your yard. Don't forget to call me when you hear back for when the adjuster appointment... it'll keep other roofers from coming by and like bothering you.",
             context: 'The yard sign (recording, para 356–362).',
           },
@@ -1632,7 +1632,7 @@ export const salesModules: SalesModule[] = [
         ],
         talkTracks: [
           {
-            speaker: 'boston',
+            speaker: 'field',
             text: "Your goal is to be able to do this whole process three to four times a day if you can... Your minimum goal is three in a week... none of those are f***ing guaranteed... Someone could come in underneath you and eat the deductibles... So, you got to constantly be adding stuff into your phone.",
             context: 'Volume goals (recording, para 362–368).',
           },
@@ -1806,7 +1806,7 @@ export const salesModules: SalesModule[] = [
     id: 'sales_s2',
     title: 'Objection Handling',
     description:
-      'The RCRS objection-handling playbook — acknowledge, question, reframe, always leave a card — plus the specific door rebuttals. (Boston handles most objections inside the qualifying questions.)',
+      'The RCRS objection-handling playbook — acknowledge, question, reframe, always leave a card — plus the specific door rebuttals. (Most objections are handled inside the qualifying questions.)',
     icon: 'MessageSquareWarning',
     estimatedMinutes: 14,
     passingScore: 80,
@@ -1814,13 +1814,13 @@ export const salesModules: SalesModule[] = [
       {
         heading: 'Read This First',
         content: [
-          'These rebuttals are from the RCRS playbook, not Boston\'s recorded session. Boston handles most objections inside the qualifying questions — master The Door Knock (c1) and Qualifying the Homeowner (c2) first.',
+          'These rebuttals are from the RCRS playbook, not the recorded session. Most objections are handled inside the qualifying questions — master The Door Knock (c1) and Qualifying the Homeowner (c2) first.',
         ],
         sourceNote: JSON_SOURCE_NOTE,
         callout: {
           tone: 'info',
           title: 'Source note',
-          text: 'The scripts in this module come from the portal playbook, not the recorded training. Boston\'s only real-time objection handling lives in the qualifying logic and the contingency talk-track.',
+          text: 'The scripts in this module come from the portal playbook, not the recorded training. The only real-time objection handling lives in the qualifying logic and the contingency talk-track.',
         },
       },
       {
@@ -1982,7 +1982,7 @@ export const salesModules: SalesModule[] = [
           'Offering the lowest price in the market',
         ],
         explanation:
-          '"Integrity first" means documenting honestly, including when there is no damage — the same ethic Boston teaches on the roof.',
+          '"Integrity first" means documenting honestly, including when there is no damage — the same ethic taught on the roof.',
       },
     ],
   },
@@ -2057,7 +2057,7 @@ export const salesModules: SalesModule[] = [
           'Only once the contract is signed',
         ],
         explanation:
-          'Create the job in JobNimbus while you are still on the roof — the same data-hygiene rule Boston teaches on the roof.',
+          'Create the job in JobNimbus while you are still on the roof — the same data-hygiene rule taught on the roof.',
       },
       {
         id: 's4_3',

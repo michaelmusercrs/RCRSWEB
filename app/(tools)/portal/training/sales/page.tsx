@@ -165,12 +165,12 @@ function SectionBody({ section, present }: { section: ContentSection; present: b
         })}
       </div>
 
-      {/* Boston Says talk tracks */}
+      {/* Playbook talk tracks */}
       {section.talkTracks?.map((tt, i) => (
         <div key={i} className="mt-4 rounded-lg border-l-4 border-brand-green bg-brand-green/5 p-4">
           <div className="flex items-center gap-2 mb-2">
             <Quote size={present ? 18 : 14} className="text-brand-green" />
-            <span className={`font-semibold text-brand-green ${present ? 'text-base' : 'text-xs'}`}>Boston Says</span>
+            <span className={`font-semibold text-brand-green ${present ? 'text-base' : 'text-xs'}`}>The Playbook</span>
           </div>
           <p className={`italic text-white/90 ${present ? 'text-2xl leading-relaxed' : 'text-sm'}`}>{tt.text}</p>
           {tt.context && (
