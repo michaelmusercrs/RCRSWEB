@@ -523,6 +523,19 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ success: false, error: 'Ticket not found' }, { status: 404 });
         }
 
+        // HOLD gate (owner rule): a ticket flagged [NEEDS REVIEW] by the ingest
+        // trust-check has its invoice + stock deduction held until the office
+        // confirms the order. Refuse verify-load (which fires both) and tell the
+        // driver why. The office clears it by removing the [NEEDS REVIEW] marker
+        // from the ticket notes once the order is fixed.
+        if ((sheetTicket.notes || '').includes('[NEEDS REVIEW')) {
+          return NextResponse.json({
+            success: false,
+            needsReview: true,
+            error: 'This order is flagged NEEDS REVIEW — the office must confirm it before it can be loaded and invoiced. It will be released once reviewed.',
+          }, { status: 409 });
+        }
+
         // Idempotency: skip the aftermath if this ticket has already been
         // verified. Status reflects the prior state because we haven't
         // updated it yet. Pre-verify statuses (created / assigned /

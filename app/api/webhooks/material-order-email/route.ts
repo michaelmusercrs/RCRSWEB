@@ -41,6 +41,11 @@ import { googleSheetsService } from '@/lib/google-sheets-service';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+// Cold-start path does several tab reads + writes + an email; without this the
+// 60s default can time out AFTER the ticket write, and Apps Script retries →
+// duplicate work. (Ticket + invoice writes are now idempotent, but don't rely
+// on that alone.)
+export const maxDuration = 300;
 
 const WEBHOOK_SECRET = process.env.MATERIAL_ORDER_WEBHOOK_SECRET;
 
@@ -290,6 +295,65 @@ export async function POST(request: NextRequest) {
   );
   const combinedNotes = [parsed.specialInstructions, ...uomNoteLines].filter(Boolean).join('\n');
 
+  // ── Revised-order guard (owner rule 2026-08): if this job already has a
+  // ticket BEYOND 'created' (Rick assigned/pulled/loaded/delivered it), a
+  // re-sent or revised order must NOT overwrite his in-progress work. Note the
+  // revision on the existing ticket and alert the office to reconcile — leave
+  // status, materials, and invoicing untouched.
+  const existingTicket = await ticketSheetService.getById(ticketId).catch(() => null);
+  const ACTIVE_TICKET_STATUSES = new Set([
+    'assigned', 'materials_pulled', 'load_verified', 'en_route', 'arrived', 'delivered', 'completed',
+  ]);
+  if (existingTicket && ACTIVE_TICKET_STATUSES.has(existingTicket.status)) {
+    const revNote = `[REVISED ${new Date().toISOString().slice(0, 10)}] A new material order (M-Order #${parsed.materialOrderNumber || '?'}) arrived while this ticket was already '${existingTicket.status}'. Office: reconcile the change manually — do NOT re-load. New parsed total price $${(Math.round(totalPrice * 100) / 100).toFixed(2)}.`;
+    try {
+      await ticketSheetService.patch(ticketId, {
+        notes: [existingTicket.notes, revNote].filter(Boolean).join('\n'),
+      });
+    } catch (err) {
+      console.warn('[material-order-webhook] Failed to note revision on existing ticket:', err);
+    }
+    await notifyParseFailure({
+      payload,
+      stage: 'revised_order_on_active_ticket',
+      error: revNote,
+      jobNumber: parsed.jobNumber,
+      materialsMatched: matched,
+      materialsTotal: enrichedMaterials.length,
+    });
+    return NextResponse.json({
+      success: true,
+      revised: true,
+      ticketId,
+      jobNumber: parsed.jobNumber,
+      message: `Revision logged on the existing '${existingTicket.status}' ticket; office alerted to reconcile. Original ticket left untouched.`,
+    });
+  }
+
+  // ── Trust check (owner rule 2026-08): when the parse isn't fully trustworthy,
+  // still CREATE the ticket (never block Rick) but flag it NEEDS REVIEW and HOLD
+  // the invoice + stock deduction until the office confirms. Three signals:
+  const reviewReasons: string[] = [];
+  if (enrichedMaterials.length === 0) {
+    reviewReasons.push('no line items were parsed from the order');
+  }
+  if (enrichedMaterials.length > 0 && matched < enrichedMaterials.length) {
+    reviewReasons.push(`${enrichedMaterials.length - matched} of ${enrichedMaterials.length} items did not match the catalog`);
+  }
+  // Totals reconciliation: the order PDF prints its own "Total Cost". If the sum
+  // of the parsed per-line costs doesn't match it, a line was mis-parsed (e.g.
+  // the digit-led-SKU swallow bug). This one check catches most silent parser
+  // corruption.
+  const parsedLineSum = parsed.materials.reduce((s, m) => s + (m.unitCost || 0), 0);
+  if (parsed.totalCost > 0 && Math.abs(parsedLineSum - parsed.totalCost) > 0.02) {
+    reviewReasons.push(`parsed line total $${parsedLineSum.toFixed(2)} ≠ the order's printed total $${parsed.totalCost.toFixed(2)} — a line may be mis-read`);
+  }
+  const needsReview = reviewReasons.length > 0;
+  const reviewNote = needsReview
+    ? `[NEEDS REVIEW] ${reviewReasons.join('; ')}. Invoice + stock deduction are HELD until the office confirms this order.`
+    : '';
+  const finalNotes = [reviewNote, combinedNotes].filter(Boolean).join('\n');
+
   // Step 1: persist to Tickets sheet
   const sheetTicket: SheetTicket = {
     ticketId,
@@ -310,7 +374,7 @@ export async function POST(request: NextRequest) {
     materials: sheetMaterials,
     totalCost: Math.round(totalCost * 100) / 100,
     totalPrice: Math.round(totalPrice * 100) / 100,
-    notes: combinedNotes,
+    notes: finalNotes,
   };
 
   try {
@@ -365,9 +429,10 @@ export async function POST(request: NextRequest) {
     console.warn('[material-order-webhook] Legacy tab sync skipped:', err);
   }
 
-  // Step 3: auto-create interoffice invoice
+  // Step 3: auto-create interoffice invoice — HELD when the order needs review
+  // (owner rule: no invoice until the office confirms a flagged order).
   let interofficeInvoiceId = '';
-  try {
+  if (!needsReview) try {
     const lines: JobMaterialCostLine[] = sheetMaterials.map(m => ({
       productId: m.productId,
       productName: m.productName,
@@ -419,17 +484,17 @@ export async function POST(request: NextRequest) {
   // here. So we do NOT re-send the delivery order email back to stock.
   // We DO send a parsed-confirmation as a separate concern if needed.
 
-  // Soft alert (non-blocking): the ticket was created, but if NONE of the
-  // parsed lines matched the catalog, there is nothing to deduct and the
-  // delivery is effectively empty — flag it so office/Michael can fix the
-  // catalog match, without holding up Rick's ticket.
-  if (enrichedMaterials.length > 0 && matched === 0) {
+  // Office alert (non-blocking): the ticket was created but flagged NEEDS
+  // REVIEW — its invoice + deduction are held. Tell the office so they can
+  // confirm/fix the order and clear the hold. (Supersedes the old
+  // zero-catalog-match soft alert, which is now one of the review signals.)
+  if (needsReview) {
     await notifyParseFailure({
       payload,
-      stage: 'zero_catalog_matches',
-      error: `Ticket ${ticketId} created but 0 of ${enrichedMaterials.length} line items matched the catalog — no inventory will deduct. Check catalog names / match-catalog-item.ts.`,
+      stage: 'needs_review_hold',
+      error: `Ticket ${ticketId} CREATED but held for review — ${reviewReasons.join('; ')}. Invoice + stock deduction are HELD until confirmed. Clear the [NEEDS REVIEW] note on the ticket once fixed.`,
       jobNumber: parsed.jobNumber,
-      materialsMatched: 0,
+      materialsMatched: matched,
       materialsTotal: enrichedMaterials.length,
     });
   }
@@ -441,6 +506,8 @@ export async function POST(request: NextRequest) {
     materialsMatched: matched,
     materialsTotal: enrichedMaterials.length,
     interofficeInvoiceId,
+    needsReview,
+    reviewReasons,
     customerName: parsed.customerName,
     materialOrderNumber: parsed.materialOrderNumber,
   });

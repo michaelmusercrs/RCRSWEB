@@ -249,6 +249,15 @@ class JobMaterialCostService {
     createdByName?: string;
     notes?: string;
   }): Promise<JobMaterialCostRecord> {
+    // Idempotency by ticketId: exactly one non-voided interoffice invoice per
+    // ticket. A re-delivered material-order email (Apps Script retry / label
+    // reset) or a webhook timeout-retry must NOT double-book job material cost.
+    // The upsert key is invoiceId (freshly minted), so without this guard every
+    // re-run added a second IN…-N row and doubled the job's cost.
+    const existingInvoice = (await this.getByTicket(input.ticketId))
+      .find(r => r.type === 'invoice' && r.status !== 'voided');
+    if (existingInvoice) return existingInvoice;
+
     const totalCost = input.lines.reduce((sum, l) => sum + (l.lineCost || 0), 0);
     const now = new Date().toISOString();
     const record: JobMaterialCostRecord = {
