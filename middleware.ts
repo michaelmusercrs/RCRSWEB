@@ -401,6 +401,12 @@ export function middleware(request: NextRequest) {
     if (pathname === '/division-leaders' || pathname.startsWith('/division-leaders/') || pathname.startsWith('/api/division-leaders')) {
       return NextResponse.next();
     }
+    // /reps is the sales rep production & commission report (QB 1099 +
+    // invoice-by-rep). Same intentional-public-link pattern; the route sends
+    // X-Robots-Tag: noindex so it stays out of search results.
+    if (pathname === '/reps' || pathname.startsWith('/reps/')) {
+      return NextResponse.next();
+    }
 
     // Everything else on rcrsal.com that's not portal → redirect to public site
     if (isPublicRoute(pathname)) {
