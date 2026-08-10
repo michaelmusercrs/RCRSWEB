@@ -140,6 +140,15 @@ export function isCustomerEmailEnabled(): boolean {
 
 function isTemplateAllowed(template: EmailTemplate | undefined): boolean {
   if (!template) return false;
+  // Every INTERNAL (non-customer-facing) template fires. 2026-08 audit found the
+  // old opt-in allowlist was silently DROPPING internal templates it didn't list
+  // — stalled-tickets-digest (the ingest-dead alarm) AND lead-assignment (reps
+  // not notified of new leads) — while send() reported success. Customer-facing
+  // templates are gated separately (CUSTOMER_EMAIL_ENABLED in send()) and still
+  // fall through to the env/default allowlist below; untagged sends stay dropped
+  // above (the email-flood guard). So this can never leak to a customer, and an
+  // ALLOWED_EMAIL_TEMPLATES misconfig can never mute an internal alert again.
+  if (!isCustomerFacingTemplate(template)) return true;
   // Internal failure/ops alerts are ALWAYS allowed (fail-open) — we never
   // want an env misconfiguration to silence a "material order could not be
   // processed" alert. Customer-facing templates are handled by a separate,

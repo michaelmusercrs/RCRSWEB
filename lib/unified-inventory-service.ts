@@ -1981,6 +1981,9 @@ class UnifiedInventoryService {
     const ticket = this.returnTickets.find(t => t.ticketId === ticketId);
     if (!ticket) return null;
 
+    // Idempotency guard: a return may only be 'received' ONCE. A double-tap or
+    // client retry must not re-add stock or re-credit the job breakdown.
+    const wasAlreadyReceived = ticket.status === 'received';
     ticket.status = status;
     if (updates) {
       if (updates.pickupPhotos) ticket.pickupPhotos.push(...updates.pickupPhotos);
@@ -1993,8 +1996,8 @@ class UnifiedInventoryService {
       if (updates.notes) ticket.notes = updates.notes;
     }
 
-    // If return is received at warehouse, add stock back
-    if (status === 'received' && ticket.type === 'return_to_warehouse') {
+    // If return is received at warehouse, add stock back (once only)
+    if (status === 'received' && ticket.type === 'return_to_warehouse' && !wasAlreadyReceived) {
       for (const item of ticket.items) {
         await this.addStock(item.productId, item.quantity, 'return', ticketId, 'return_ticket', ticket.createdBy, ticket.createdByName, `Return from ${ticket.jobName || ticket.orderId || 'unknown'}`);
       }
@@ -2003,7 +2006,7 @@ class UnifiedInventoryService {
     // On any received transition, sync a material credit to the matching
     // CustomerBreakdown so job costing reflects the returned material.
     // Wrapped so a breakdown lookup failure never blocks inventory restock.
-    if (status === 'received') {
+    if (status === 'received' && !wasAlreadyReceived) {
       try {
         const { syncReturnToBreakdown } = await import('./customer-breakdown-service');
         const result = await syncReturnToBreakdown({

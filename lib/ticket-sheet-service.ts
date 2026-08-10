@@ -233,9 +233,23 @@ class TicketSheetService {
     return { written, failed };
   }
 
-  /** Read every ticket from the sheet. */
+  /** Read every ticket from the sheet. Returns [] on read failure. */
   async getAll(): Promise<SheetTicket[]> {
     const rows = await googleSheetsService.getGenericRows(SHEET_NAMES.TICKETS, TICKET_HEADERS);
+    return rows
+      .filter(r => r.ticketId)
+      .map(rowToTicket)
+      .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+  }
+
+  /**
+   * Like getAll, but THROWS on a Sheets read failure instead of returning [].
+   * The board fallback below depends on this: getGenericRows swallows errors and
+   * returns [], which would look like a legitimately-empty board and get cached
+   * over the last-known-good snapshot. Strict reads make a real failure visible.
+   */
+  async getAllStrict(): Promise<SheetTicket[]> {
+    const rows = await googleSheetsService.getGenericRowsStrict(SHEET_NAMES.TICKETS, TICKET_HEADERS);
     return rows
       .filter(r => r.ticketId)
       .map(rowToTicket)
@@ -258,7 +272,9 @@ class TicketSheetService {
       return { tickets: _boardCache.data, stale: false, cached: true };
     }
     try {
-      const fresh = await this.getAll();
+      // Strict read so a Sheets failure THROWS (not a false-empty []) and we
+      // fall through to the last-known-good snapshot / degraded state below.
+      const fresh = await this.getAllStrict();
       _boardCache = { at: now, data: fresh };
       return { tickets: fresh, stale: false, cached: false };
     } catch (err) {

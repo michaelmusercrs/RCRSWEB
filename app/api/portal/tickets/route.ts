@@ -76,7 +76,8 @@ export async function GET(request: NextRequest) {
       if (!ticket) {
         return NextResponse.json({ error: 'Ticket not found' }, { status: 404 });
       }
-      return NextResponse.json(ticket);
+      // Strip purchase cost for roles that must never see it (driver/rep/customer).
+      return NextResponse.json(filterCostByRole(ticket, auth.user.role));
     }
 
     // Single ticket by JN reference (R-XXXXX) from the canonical Tickets tab —
@@ -139,8 +140,9 @@ export async function GET(request: NextRequest) {
       limit: limit ? parseInt(limit) : undefined,
     });
 
-    // Return array directly for driver portal compatibility
-    return NextResponse.json(tickets);
+    // Return array directly for driver portal compatibility (cost-filtered by role —
+    // these tickets carry ourCost/unitCost which reps/drivers must not see).
+    return NextResponse.json(filterCostByRole(tickets, auth.user.role));
   } catch (error) {
     console.error('Tickets API GET error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
@@ -601,7 +603,7 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        return NextResponse.json({ success: true, ticket: dtTicket || sheetTicket, aftermath });
+        return NextResponse.json({ success: true, ticket: filterCostByRole(dtTicket || sheetTicket, auth.user.role), aftermath });
       }
 
       case 'start-delivery': {

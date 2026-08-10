@@ -4386,6 +4386,31 @@ class GoogleSheetsService {
     }
   }
 
+  /**
+   * Like getGenericRows, but THROWS on read failure instead of returning [].
+   * Decision-making callers (e.g. the warehouse board's last-known-good cache)
+   * must be able to distinguish "tab is genuinely empty" from "Sheets read
+   * failed" — a swallowed [] renders a false-empty board. Use this where an
+   * empty result would be acted on as truth.
+   */
+  async getGenericRowsStrict(
+    tabName: string,
+    headers: string[],
+  ): Promise<Record<string, string>[]> {
+    const ready = await this.init();
+    if (!ready || !this.doc) throw new Error(`Google Sheets not initialized (reading "${tabName}")`);
+    const sheet = await this.getOrCreateSheet(tabName, headers);
+    const rows = await sheet.getRows({ limit: ROWS_READ_LIMIT });
+    return rows.map((row) => {
+      const obj: Record<string, string> = {};
+      for (const h of headers) {
+        const v = row.get(h);
+        obj[h] = v !== undefined && v !== null ? String(v) : '';
+      }
+      return obj;
+    });
+  }
+
   /** Coerce any value to a sheet-safe string. */
   private toCellValue(value: unknown): string {
     if (value === null || value === undefined) return '';
