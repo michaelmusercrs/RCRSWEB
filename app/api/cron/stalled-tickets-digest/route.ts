@@ -1,20 +1,23 @@
 /**
- * Stalled Tickets Daily Digest — DRAFT, NOT YET SCHEDULED
+ * Stalled Tickets Daily Digest + Overdue/Zombie Sweeps
  *
- * Every morning, email Michael + Sara a summary of any delivery ticket
- * stuck in a non-terminal status for >STALL_THRESHOLD_HOURS. Catches the
- * things that fall through the cracks — would have caught today's
- * "17 tickets in created status for weeks" if it had been running.
+ * Every morning (vercel.json: `12 12 * * *` = 6:12am CT), this cron:
+ *   1. Flags past-due deliveries — active tickets whose scheduledDate has
+ *      passed get overdueAt stamped + an [OVERDUE] note (once each; an
+ *      office reschedule clears overdueAt so a re-miss re-flags).
+ *   2. Auto-completes zombies — tickets stuck in delivered / proof_captured /
+ *      qc_photos for >24h are physically done; flip them to 'completed' so
+ *      they can't haunt the board. en_route/arrived are NEVER auto-completed.
+ *   3. Emails Michael + Sara a digest of stalled tickets (>48h in a
+ *      non-terminal status) plus the newly-flagged overdue deliveries.
  *
  * Trigger: GET /api/cron/stalled-tickets-digest
- * Schedule (add to vercel.json): `0 12 * * *` (6am CT = 12 UTC)
  * Auth: CRON_SECRET header (Vercel) or admin/owner session (manual run)
  *
  * Terminal statuses (NOT stalled — even if old): completed, cancelled.
  * Everything else with age > threshold counts as stalled.
  *
- * Output: groups stalled tickets by status with age, customer, job number.
- * Empty days send no email (no spam).
+ * Nothing stalled AND nothing newly overdue → no email (no spam).
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -33,6 +36,46 @@ const STALL_THRESHOLD_HOURS = 48;
 
 // Statuses that mean "this ticket is done" — never count as stalled
 const TERMINAL_STATUSES: TicketStatus[] = ['completed', 'cancelled'];
+
+// ── Overdue-delivery flagging (piggybacks on this cron's 6:12am CT slot) ────
+// A delivery ticket whose scheduledDate has passed without delivery gets
+// overdueAt stamped + an [OVERDUE] note, exactly once (blank-overdueAt gate;
+// an office reschedule clears overdueAt so a re-missed date re-flags).
+const ACTIVE_DELIVERY_STATUSES = new Set<TicketStatus>([
+  'created', 'assigned', 'materials_pulled', 'load_verified', 'en_route', 'arrived',
+]);
+const MAX_OVERDUE_FLAGS_PER_RUN = 15; // bound write quota; rest tomorrow
+const WRITE_PAUSE_MS = 1100;          // ~54 writes/min, under the 60/min quota
+
+// ── Zombie completion sweep ────────────────────────────────────────────────
+// A ticket that reached delivered/proof_captured/qc_photos is physically done
+// — the driver just never tapped the last step. After 24h it auto-completes
+// so it can't haunt boards/digests forever. en_route/arrived are NEVER
+// auto-completed (the truck may genuinely be stuck) — they stay in the
+// stalled sections above for a human.
+const ZOMBIE_STATUSES = new Set<TicketStatus>(['delivered', 'proof_captured', 'qc_photos']);
+const ZOMBIE_AGE_HOURS = 24;
+const MAX_ZOMBIE_COMPLETIONS_PER_RUN = 15;
+
+const CHICAGO_TZ = 'America/Chicago';
+function chicagoToday(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: CHICAGO_TZ }).format(new Date());
+}
+/** Whole calendar days a-b for two YYYY-MM-DD strings. */
+function dayDiff(a: string, b: string): number {
+  const [ay, am, ad] = a.split('-').map(Number);
+  const [by, bm, bd] = b.split('-').map(Number);
+  return Math.round((Date.UTC(ay, am - 1, ad) - Date.UTC(by, bm - 1, bd)) / 86_400_000);
+}
+
+interface OverdueEntry {
+  ticketId: string;
+  jobNumber: string;
+  customerName: string;
+  scheduledDate: string;
+  daysLate: number;
+  status: TicketStatus;
+}
 
 interface StalledTicket {
   ticketId: string;
@@ -58,8 +101,41 @@ function ageDisplay(hours: number): string {
   return remHours > 0 ? `${days}d ${remHours}h` : `${days}d`;
 }
 
-function buildDigestHtml(byStatus: Map<TicketStatus, StalledTicket[]>): string {
+function buildDigestHtml(
+  byStatus: Map<TicketStatus, StalledTicket[]>,
+  overdueEntries: OverdueEntry[],
+): string {
   const sections: string[] = [];
+
+  // "Past scheduled delivery date" first — these are promises we've broken
+  // to a job site, more urgent than a slow pipeline stage.
+  if (overdueEntries.length > 0) {
+    const rows = overdueEntries.map(t => `
+      <tr>
+        <td style="padding: 6px 12px;"><strong>${t.jobNumber}</strong></td>
+        <td style="padding: 6px 12px;">${t.customerName.slice(0, 40)}</td>
+        <td style="padding: 6px 12px;">${t.scheduledDate}</td>
+        <td style="padding: 6px 12px; text-align: right; color: ${t.daysLate > 3 ? '#c00' : '#e90'};">${t.daysLate}d late</td>
+        <td style="padding: 6px 12px;">${t.status}</td>
+      </tr>`).join('');
+    sections.push(`
+      <h3 style="margin: 24px 0 8px; color: #c00;">⚠ Past scheduled delivery date <span style="color: #888; font-weight: normal;">(${overdueEntries.length})</span></h3>
+      <table style="width: 100%; border-collapse: collapse; background: #fff5f5;">
+        <thead>
+          <tr style="background: #c00; color: white; text-align: left;">
+            <th style="padding: 8px 12px;">Job</th>
+            <th style="padding: 8px 12px;">Customer</th>
+            <th style="padding: 8px 12px;">Scheduled</th>
+            <th style="padding: 8px 12px; text-align: right;">Late</th>
+            <th style="padding: 8px 12px;">Status</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <p style="font-size: 12px; color: #888; margin: 4px 0 0;">
+        Rescheduling the ticket in the portal clears the flag (it re-flags if missed again).
+      </p>`);
+  }
   // Order matters — show oldest-stuck first
   const statusOrder: TicketStatus[] = [
     'created', 'assigned', 'materials_pulled', 'load_verified',
@@ -125,10 +201,73 @@ export async function GET(request: NextRequest) {
   }
 
   const all = await ticketSheetService.getAll();
+  const today = chicagoToday();
+  const nowIso = new Date().toISOString();
+  const pause = () => new Promise(r => setTimeout(r, WRITE_PAUSE_MS));
+
+  // ── Sweep 1: flag past-due deliveries (once each — blank-overdueAt gate).
+  const overdueCandidates = all
+    .filter(t =>
+      t.ticketType === 'delivery' &&
+      ACTIVE_DELIVERY_STATUSES.has(t.status) &&
+      !!t.scheduledDate && t.scheduledDate < today &&
+      !t.overdueAt,
+    )
+    // Oldest scheduled date first, so a capped run flags the worst offenders.
+    .sort((a, b) => (a.scheduledDate || '').localeCompare(b.scheduledDate || ''));
+
+  const newlyOverdue: OverdueEntry[] = [];
+  const sweepErrors: string[] = [];
+  for (const t of overdueCandidates.slice(0, MAX_OVERDUE_FLAGS_PER_RUN)) {
+    const sched = t.scheduledDate!;
+    const note = `[OVERDUE] Scheduled ${sched}, not delivered as of ${today}`;
+    try {
+      const ok = await ticketSheetService.patch(t.ticketId, {
+        overdueAt: nowIso,
+        notes: [t.notes, note].filter(Boolean).join('\n'),
+      });
+      if (ok) {
+        newlyOverdue.push({
+          ticketId: t.ticketId,
+          jobNumber: t.referenceNumber || '?',
+          customerName: t.customerName || '',
+          scheduledDate: sched,
+          daysLate: dayDiff(today, sched),
+          status: t.status,
+        });
+      } else {
+        sweepErrors.push(`overdue-flag ${t.ticketId}: patch returned false`);
+      }
+    } catch (err) {
+      sweepErrors.push(`overdue-flag ${t.ticketId}: ${String(err)}`);
+    }
+    await pause();
+  }
+
+  // ── Sweep 2: auto-complete zombie tickets (delivered but never closed out).
+  const zombies = all.filter(t =>
+    t.ticketType === 'delivery' &&
+    ZOMBIE_STATUSES.has(t.status) &&
+    ageHours(t.createdAt || '') > ZOMBIE_AGE_HOURS,
+  );
+  const zombieCompleted: string[] = [];
+  for (const t of zombies.slice(0, MAX_ZOMBIE_COMPLETIONS_PER_RUN)) {
+    try {
+      const ok = await ticketSheetService.updateStatus(t.ticketId, 'completed', nowIso);
+      if (ok) zombieCompleted.push(t.ticketId);
+      else sweepErrors.push(`zombie-complete ${t.ticketId}: update returned false`);
+    } catch (err) {
+      sweepErrors.push(`zombie-complete ${t.ticketId}: ${String(err)}`);
+    }
+    await pause();
+  }
+  const justCompleted = new Set(zombieCompleted);
+
   const stalled: StalledTicket[] = [];
   for (const t of all) {
     if (TERMINAL_STATUSES.includes(t.status)) continue;
     if (t.ticketType !== 'delivery') continue;
+    if (justCompleted.has(t.ticketId)) continue; // closed by the zombie sweep above
     const hrs = ageHours(t.createdAt || '');
     if (hrs < STALL_THRESHOLD_HOURS) continue;
     stalled.push({
@@ -142,12 +281,16 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  if (stalled.length === 0) {
+  if (stalled.length === 0 && newlyOverdue.length === 0) {
     return NextResponse.json({
       success: true,
       stalledCount: 0,
+      newlyOverdue: 0,
+      overdueBacklog: Math.max(0, overdueCandidates.length - newlyOverdue.length),
+      zombiesCompleted: zombieCompleted.length,
+      sweepErrors,
       emailSent: false,
-      message: 'No stalled tickets. Nothing emailed.',
+      message: 'No stalled tickets and nothing newly overdue. Nothing emailed.',
     });
   }
 
@@ -171,8 +314,16 @@ export async function GET(request: NextRequest) {
     }, { status: 500 });
   }
 
-  const subject = `[RCRS] ${stalled.length} ticket${stalled.length === 1 ? '' : 's'} stalled · oldest ${ageDisplay(Math.max(...stalled.map(s => s.ageHours)))}`;
-  const body = buildDigestHtml(byStatus);
+  const subjectBits = [
+    stalled.length > 0
+      ? `${stalled.length} ticket${stalled.length === 1 ? '' : 's'} stalled · oldest ${ageDisplay(Math.max(...stalled.map(s => s.ageHours)))}`
+      : '',
+    newlyOverdue.length > 0
+      ? `${newlyOverdue.length} past delivery date`
+      : '',
+  ].filter(Boolean);
+  const subject = `[RCRS] ${subjectBits.join(' · ')}`;
+  const body = buildDigestHtml(byStatus, newlyOverdue);
 
   let sent = 0;
   for (const to of recipients) {
@@ -183,6 +334,10 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     success: true,
     stalledCount: stalled.length,
+    newlyOverdue: newlyOverdue.length,
+    overdueBacklog: Math.max(0, overdueCandidates.length - newlyOverdue.length),
+    zombiesCompleted: zombieCompleted.length,
+    sweepErrors,
     recipients: recipients.length,
     emailsSent: sent,
     byStatus: Object.fromEntries(
@@ -191,9 +346,5 @@ export async function GET(request: NextRequest) {
   });
 }
 
-// ─── TODO before scheduling ──────────────────────────────────────────────
-// 1. Add vercel.json crons entry:
-//    { "path": "/api/cron/stalled-tickets-digest", "schedule": "0 12 * * *" }  // 6am CT
-// 2. Confirm CRON_SECRET is set in Vercel env (already used by other crons)
-// 3. Verify TEAM_MEMBERS in lib/team-roles has email addresses for office/admin/owner
-// 4. Tune STALL_THRESHOLD_HOURS if 48h is too eager (or not eager enough)
+// Scheduled in vercel.json: { "path": "/api/cron/stalled-tickets-digest", "schedule": "12 12 * * *" } (6:12am CT).
+// Tune STALL_THRESHOLD_HOURS / ZOMBIE_AGE_HOURS if 48h/24h prove too eager or too lax.

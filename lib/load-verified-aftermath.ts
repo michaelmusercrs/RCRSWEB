@@ -47,6 +47,8 @@ export interface AftermathResult {
   invoiceCreated: boolean;
   invoiceId: string;
   breakdownCreated: boolean;
+  /** True when an EXISTING breakdown had this delivery's price added to it. */
+  breakdownUpdated: boolean;
   deductedItems: number;
   missingFromCatalog: string[];
   legacyWritten: number;
@@ -85,11 +87,11 @@ async function writeInvoiceAndBreakdown(
   doc: GoogleSpreadsheet,
   ticket: SheetTicket,
   verifiedAtIso: string,
-): Promise<{ invoiceId: string; invoiceCreated: boolean; breakdownCreated: boolean; error?: string }> {
+): Promise<{ invoiceId: string; invoiceCreated: boolean; breakdownCreated: boolean; breakdownUpdated: boolean; error?: string }> {
   const invoicesSheet = doc.sheetsByTitle['Invoices'];
   const breakdownsSheet = doc.sheetsByTitle['Job_Breakdowns'];
   if (!invoicesSheet) {
-    return { invoiceId: ticket.ticketId, invoiceCreated: false, breakdownCreated: false, error: 'Invoices tab not found' };
+    return { invoiceId: ticket.ticketId, invoiceCreated: false, breakdownCreated: false, breakdownUpdated: false, error: 'Invoices tab not found' };
   }
 
   const invoiceRows = await invoicesSheet.getRows({ limit: 100000 });
@@ -101,6 +103,7 @@ async function writeInvoiceAndBreakdown(
       invoiceId: existing.get('invoiceId') || ticket.ticketId,
       invoiceCreated: false,
       breakdownCreated: false,
+      breakdownUpdated: false,
     };
   }
 
@@ -141,16 +144,17 @@ async function writeInvoiceAndBreakdown(
     internalNotes: '',
   });
 
-  // Breakdown row if the job has none.
+  // Breakdown row if the job has none; otherwise increment the existing one.
   let breakdownCreated = false;
+  let breakdownUpdated = false;
   if (breakdownsSheet && (ticket.jobId || ticket.jobName)) {
     const breakdownRows = await breakdownsSheet.getRows({ limit: 100000 });
-    const hasBd = breakdownRows.some(
+    const bdRow = breakdownRows.find(
       r =>
         (ticket.jobId && r.get('jobId') === ticket.jobId) ||
         (ticket.jobName && r.get('jobName') === ticket.jobName),
     );
-    if (!hasBd) {
+    if (!bdRow) {
       const breakdownId = `BD-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
       const materialsSummary = ticket.materials
         .slice(0, 6)
@@ -181,10 +185,26 @@ async function writeInvoiceAndBreakdown(
         notes: `Auto-created from delivery ticket ${ticket.ticketId}. Linked invoice ${invoiceId}.`,
       });
       breakdownCreated = true;
+    } else {
+      // 2nd+ delivery for a job that already has a breakdown: add THIS
+      // delivery's price to the material figures instead of silently
+      // skipping (a second load used to never reach the breakdown at all).
+      // Idempotent: we only get here when a NEW invoice was just created for
+      // this ticket — the invoice dedup gate above early-returns on retries,
+      // so the same delivery can never be added twice.
+      const prevMaterial = num(bdRow.get('materialTotal'));
+      const prevEstimate = num(bdRow.get('totalEstimate'));
+      bdRow.set('materialTotal', (prevMaterial + total).toFixed(2));
+      bdRow.set('totalEstimate', (prevEstimate + total).toFixed(2));
+      bdRow.set('updatedAt', verifiedAtIso);
+      const bdNote = `+$${total.toFixed(2)} materials from delivery ticket ${ticket.ticketId} (invoice ${invoiceId}).`;
+      bdRow.set('notes', [bdRow.get('notes') || '', bdNote].filter(Boolean).join('\n'));
+      await bdRow.save();
+      breakdownUpdated = true;
     }
   }
 
-  return { invoiceId, invoiceCreated: true, breakdownCreated };
+  return { invoiceId, invoiceCreated: true, breakdownCreated, breakdownUpdated };
 }
 
 /**
@@ -282,6 +302,7 @@ export async function runLoadVerifiedAftermath(input: {
     invoiceCreated: false,
     invoiceId: ticket.ticketId,
     breakdownCreated: false,
+    breakdownUpdated: false,
     deductedItems: 0,
     missingFromCatalog: [],
     legacyWritten: 0,
@@ -301,6 +322,7 @@ export async function runLoadVerifiedAftermath(input: {
     result.invoiceId = inv.invoiceId;
     result.invoiceCreated = inv.invoiceCreated;
     result.breakdownCreated = inv.breakdownCreated;
+    result.breakdownUpdated = inv.breakdownUpdated;
     if (inv.error) errors.push(`Invoice: ${inv.error}`);
   } catch (err) {
     errors.push(`Invoice threw: ${String(err)}`);

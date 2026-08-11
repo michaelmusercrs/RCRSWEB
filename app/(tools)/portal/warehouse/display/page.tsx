@@ -41,6 +41,10 @@ interface TicketRow {
   jobnimbusUrl: string | null;
   orderSource?: 'stock' | 'other_vendor';
   supplierName?: string;
+  /** YYYY-MM-DD delivery date (Chicago). Null on legacy tickets. */
+  scheduledDate?: string | null;
+  /** Computed server-side: scheduled before today and still not delivered. */
+  overdue?: boolean;
 }
 
 interface TodayPayload {
@@ -61,10 +65,15 @@ interface TodayPayload {
     materials_pulled: number;
     en_route: number;
     arrived: number;
+    overdue?: number;
+    today?: number;
+    upcoming?: number;
   };
   cities: Array<{ city: string; count: number }>;
   totals: { totalPrice: number; totalCost?: number };
+  // Flat list = [...overdue, ...today] (server orders overdue first).
   tickets: TicketRow[];
+  sections?: { overdue: TicketRow[]; today: TicketRow[]; upcoming: TicketRow[] };
 }
 
 type PanelKey = 'overview' | 'stops' | 'pipeline' | 'tickets';
@@ -175,6 +184,9 @@ export default function WarehouseDisplayPage() {
               <span className="text-white">Rick</span>
               {data && data.counts.total > 0 && (
                 <span className="ml-4 text-[#39FF14]">· {data.counts.total} active</span>
+              )}
+              {data && (data.counts.overdue || 0) > 0 && (
+                <span className="ml-4 text-red-500 font-black">· {data.counts.overdue} OVERDUE</span>
               )}
             </div>
           </div>
@@ -369,6 +381,14 @@ export default function WarehouseDisplayPage() {
             <div className="bg-zinc-900 rounded-3xl p-8 animate-fadeIn min-h-[500px]">
               <div className="text-4xl font-black text-gray-200 mb-6 flex items-center gap-3">
                 <Package className="w-14 h-14 text-[#39FF14]" /> Active Work Orders
+                {(data.counts.overdue || 0) > 0 && (
+                  <span className="text-3xl text-red-500">· {data.counts.overdue} overdue</span>
+                )}
+                {(data.sections?.upcoming.length || 0) > 0 && (
+                  <span className="ml-auto text-2xl text-blue-300 font-bold">
+                    +{data.sections!.upcoming.length} upcoming
+                  </span>
+                )}
               </div>
               {data.tickets.length === 0 ? (
                 <div className="text-4xl text-gray-500 italic py-16 text-center">
@@ -378,13 +398,22 @@ export default function WarehouseDisplayPage() {
                 <div className="grid grid-cols-2 gap-5 max-h-[60vh] overflow-y-auto">
                   {data.tickets.slice(0, 12).map(t => {
                     const isVendor = t.orderSource === 'other_vendor';
+                    // Overdue trumps the stock/vendor edge color — the server
+                    // orders the flat list overdue-first, so these float to
+                    // the top of the panel automatically.
+                    const isOverdue = Boolean(t.overdue);
                     return (
                       <div
                         key={t.ticketId}
                         className={`bg-black rounded-2xl p-6 border-l-8 ${
-                          isVendor ? 'border-purple-500' : 'border-[#39FF14]'
+                          isOverdue ? 'border-red-600' : isVendor ? 'border-purple-500' : 'border-[#39FF14]'
                         }`}
                       >
+                        {isOverdue && (
+                          <div className="text-lg font-black text-red-500 mb-1">
+                            OVERDUE — was scheduled {t.scheduledDate}
+                          </div>
+                        )}
                         <div className="flex justify-between items-start mb-2">
                           <div className="flex-1 min-w-0">
                             <div

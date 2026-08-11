@@ -177,10 +177,17 @@ export async function autoFinalizeStuckTickets(
   const dedKeys = await loadDeductionKeySet(doc);
 
   // Candidate selection
+  const chicagoTodayYmd = new Intl.DateTimeFormat('en-CA', { timeZone: CHICAGO_TZ }).format(new Date());
   const candidates = ticketRows.filter(r => {
     if ((r.get('status') || '').trim() !== 'created') return false;
     if ((r.get('ticketType') || '').trim() !== 'delivery') return false;
     if (invoicedTickets.has(r.get('ticketId'))) return false;
+    // Date-aware guard: a ticket whose scheduled delivery day hasn't passed
+    // isn't abandoned — it's WAITING. Never sweep it to 'completed', no
+    // matter how long ago the order email arrived. (Blank scheduledDate =
+    // legacy/unmigrated row → falls through to the age heuristic below.)
+    const sched = String(r.get('scheduledDate') || '').trim();
+    if (sched && sched >= chicagoTodayYmd) return false;
     if (businessHoursSince(r.get('createdAt') || '') < STALL_BUSINESS_HOURS) return false;
     if (num(r.get('totalPrice')) < MIN_PRICE) return false;
     let mats: RawMaterial[] = [];
@@ -235,7 +242,11 @@ export async function autoFinalizeStuckTickets(
       });
       await pause();
 
-      // 2. Breakdown row (if job has none)
+      // 2. Breakdown row (if job has none) — otherwise increment the
+      //    existing one with this delivery's price (mirrors
+      //    load-verified-aftermath; a 2nd delivery used to never reach the
+      //    breakdown). Idempotent: candidates exclude already-invoiced
+      //    tickets, so each delivery is added exactly once.
       if (!bdJobIds.has(jobId) && !bdJobNames.has(jobName)) {
         const breakdownId = `BD-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
         const materialsSummary = mats.slice(0, 6).map(m => `${m.quantity || 0} ${m.productName || ''}`).join('; ');
@@ -249,6 +260,19 @@ export async function autoFinalizeStuckTickets(
         bdJobIds.add(jobId);
         bdJobNames.add(jobName);
         await pause();
+      } else {
+        const bdRow = breakdownRows.find(r =>
+          (jobId && r.get('jobId') === jobId) || (jobName && r.get('jobName') === jobName),
+        );
+        if (bdRow) {
+          bdRow.set('materialTotal', (num(bdRow.get('materialTotal')) + total).toFixed(2));
+          bdRow.set('totalEstimate', (num(bdRow.get('totalEstimate')) + total).toFixed(2));
+          bdRow.set('updatedAt', stamp);
+          const bdNote = `+$${total.toFixed(2)} materials from delivery ticket ${ticketId} (invoice ${invoiceId}).`;
+          bdRow.set('notes', [bdRow.get('notes') || '', bdNote].filter(Boolean).join('\n'));
+          await bdRow.save();
+          await pause();
+        }
       }
 
       // 3. Deduct from Inventory_Products (idempotent)

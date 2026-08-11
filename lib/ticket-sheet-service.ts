@@ -84,6 +84,21 @@ export interface SheetTicket {
   orderSource?: 'stock' | 'other_vendor';
   /** Outside vendor name (required when orderSource === 'other_vendor'). */
   supplierName?: string;
+
+  /**
+   * Delivery scheduling — the Tickets tab is the single source of truth.
+   *   scheduledDate: YYYY-MM-DD calendar date (America/Chicago) the delivery
+   *     is expected to happen. Blank on legacy rows.
+   *   scheduleSource: who set the date — 'parsed' (from the order email),
+   *     'default' (no date found; next business day), 'office' (manual set).
+   *   overdueAt: ISO timestamp stamped by the overdue sweep when the
+   *     scheduled date passes undelivered. Blank until flagged; an office
+   *     reschedule clears it so a re-missed date re-flags.
+   * All optional on read so legacy rows without the columns stay valid.
+   */
+  scheduledDate?: string;
+  scheduleSource?: 'parsed' | 'default' | 'office';
+  overdueAt?: string;
 }
 
 const TICKET_HEADERS = [
@@ -112,6 +127,9 @@ const TICKET_HEADERS = [
   'sourceTransactionId',
   'orderSource',
   'supplierName',
+  'scheduledDate',
+  'scheduleSource',
+  'overdueAt',
 ];
 
 function ticketToRow(ticket: SheetTicket): Record<string, unknown> {
@@ -143,6 +161,9 @@ function ticketToRow(ticket: SheetTicket): Record<string, unknown> {
     // 'stock' via the rowToTicket default.
     orderSource: ticket.orderSource || '',
     supplierName: ticket.supplierName || '',
+    scheduledDate: ticket.scheduledDate || '',
+    scheduleSource: ticket.scheduleSource || '',
+    overdueAt: ticket.overdueAt || '',
   };
 }
 
@@ -187,6 +208,12 @@ function rowToTicket(row: Record<string, string>): SheetTicket {
       | 'stock'
       | 'other_vendor',
     supplierName: row.supplierName || undefined,
+    scheduledDate: row.scheduledDate || undefined,
+    scheduleSource:
+      row.scheduleSource === 'parsed' || row.scheduleSource === 'default' || row.scheduleSource === 'office'
+        ? row.scheduleSource
+        : undefined,
+    overdueAt: row.overdueAt || undefined,
   };
 }
 

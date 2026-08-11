@@ -58,14 +58,21 @@ interface Ticket {
   orderSource?: 'stock' | 'other_vendor';
   supplierName?: string;
   materials?: Array<{ productName: string; quantity: number; unit?: string }>;
+  /** YYYY-MM-DD delivery date (Chicago). Null on legacy/unmigrated tickets. */
+  scheduledDate?: string | null;
+  scheduleSource?: 'parsed' | 'default' | 'office' | null;
+  /** Computed server-side: scheduled before today and still not delivered. */
+  overdue?: boolean;
 }
 
 interface TodayPayload {
   greeting: string;
   weather: { temp: number | null; condition: string; high: number | null; low: number | null; isWorkable: boolean | null } | null;
-  counts: { total: number; created: number; assigned: number; materials_pulled: number; en_route: number; arrived: number };
+  counts: { total: number; created: number; assigned: number; materials_pulled: number; en_route: number; arrived: number; overdue?: number; today?: number; upcoming?: number };
   cities: Array<{ city: string; count: number }>;
   tickets: Ticket[];
+  /** Date-aware buckets; absent on an older API build (fall back to tickets). */
+  sections?: { overdue: Ticket[]; today: Ticket[]; upcoming: Ticket[] };
 }
 
 function countBySource(tickets: Ticket[] | undefined | null): { stock: number; vendor: number } {
@@ -773,15 +780,34 @@ export default function WarehousePage() {
             <div className="bg-zinc-900 rounded-2xl p-8 text-center border border-zinc-800">
               <CheckCircle2 className="w-10 h-10 text-[#39FF14] mx-auto mb-2" />
               <div className="text-lg font-bold">All caught up</div>
-              <div className="text-sm text-gray-500">No active orders right now</div>
+              <div className="text-sm text-gray-500">
+                {data.sections?.upcoming.length
+                  ? `Nothing due today — ${data.sections.upcoming.length} upcoming scheduled ahead`
+                  : 'No active orders right now'}
+              </div>
             </div>
           )}
 
-          <div className="space-y-3">
-            {data?.tickets.map(t => {
+          {(() => {
+            // Shared card renderer — used by the date-aware sections below
+            // (and by the flat-list fallback when the API predates sections).
+            const todayLocal = new Date().toLocaleDateString('en-CA');
+            const renderTicketCard = (t: Ticket) => {
               const status = STATUS_LABELS[t.status] || { label: t.status, color: 'bg-gray-700 text-gray-300' };
               return (
-                <div key={t.ticketId} className="bg-zinc-900 rounded-2xl p-4 border border-zinc-800">
+                <div key={t.ticketId} className={`bg-zinc-900 rounded-2xl p-4 border ${t.overdue ? 'border-red-600' : 'border-zinc-800'}`}>
+                  {t.overdue && (
+                    <div className="bg-red-900/40 border border-red-700 rounded-lg px-3 py-1.5 mb-2 text-xs font-black text-red-300 flex items-center gap-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                      OVERDUE — was scheduled {t.scheduledDate}
+                    </div>
+                  )}
+                  {!t.overdue && t.scheduledDate && t.scheduledDate !== todayLocal && (
+                    <div className="bg-blue-900/30 border border-blue-700/40 rounded-lg px-3 py-1.5 mb-2 text-xs font-bold text-blue-300 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                      Scheduled {t.scheduledDate}
+                    </div>
+                  )}
                   <div className="flex items-start justify-between mb-2">
                     <div>
                       <div className="text-2xl font-black text-[#39FF14]">{t.jobNumber}</div>
@@ -897,8 +923,50 @@ export default function WarehousePage() {
                   )}
                 </div>
               );
-            })}
-          </div>
+            };
+
+            const sections = data?.sections;
+            // Older API build (no sections): flat list, unchanged behavior.
+            if (!sections) {
+              return <div className="space-y-3">{(data?.tickets || []).map(renderTicketCard)}</div>;
+            }
+            return (
+              <div className="space-y-4">
+                {/* OVERDUE — always on top, loud. */}
+                {sections.overdue.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2 text-red-400 font-black text-sm uppercase tracking-wide">
+                      <AlertTriangle className="w-4 h-4" /> Overdue ({sections.overdue.length})
+                    </div>
+                    <div className="space-y-3">{sections.overdue.map(renderTicketCard)}</div>
+                  </div>
+                )}
+
+                {/* TODAY — includes undated tickets so nothing can hide. */}
+                {sections.today.length > 0 && (
+                  <div>
+                    {(sections.overdue.length > 0 || sections.upcoming.length > 0) && (
+                      <div className="flex items-center gap-2 mb-2 text-gray-400 font-black text-sm uppercase tracking-wide">
+                        <Truck className="w-4 h-4" /> Today ({sections.today.length})
+                      </div>
+                    )}
+                    <div className="space-y-3">{sections.today.map(renderTicketCard)}</div>
+                  </div>
+                )}
+
+                {/* UPCOMING — collapsed; count visible so Rick knows what's ahead. */}
+                {sections.upcoming.length > 0 && (
+                  <details className="bg-zinc-900 rounded-2xl border border-zinc-800">
+                    <summary className="cursor-pointer px-4 py-3 text-sm font-bold text-gray-300 select-none flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-blue-400" />
+                      Upcoming ({sections.upcoming.length}) — scheduled after today
+                    </summary>
+                    <div className="p-3 pt-0 space-y-3">{sections.upcoming.map(renderTicketCard)}</div>
+                  </details>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Suggested agents — slow day filler */}

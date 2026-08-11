@@ -45,6 +45,21 @@ function greetingForHour(h: number): string {
   return 'Late shift';
 }
 
+// The warehouse runs on Chicago time; the server runs UTC. Every "today"
+// comparison uses the Chicago calendar date (en-CA = ISO YYYY-MM-DD format),
+// and the greeting uses the Chicago hour — new Date().getHours() on Vercel
+// is UTC and used to greet Rick "Good afternoon" at 7am.
+const CHICAGO_TZ = 'America/Chicago';
+function chicagoToday(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: CHICAGO_TZ }).format(new Date());
+}
+function chicagoHour(): number {
+  const h = new Intl.DateTimeFormat('en-US', {
+    timeZone: CHICAGO_TZ, hour: '2-digit', hour12: false,
+  }).format(new Date());
+  return parseInt(h, 10) % 24;
+}
+
 export async function GET(request: NextRequest) {
   // X88 kiosk path: the warehouse wall display runs chromium --kiosk with no
   // login session. It authenticates with ?key=<WAREHOUSE_DISPLAY_KEY>
@@ -89,13 +104,14 @@ export async function GET(request: NextRequest) {
         degraded: true,
         error: 'schedule_unavailable',
         message: 'Live schedule is briefly unavailable (Google rate limit). It will refresh automatically.',
-        greeting: greetingForHour(new Date().getHours()),
+        greeting: greetingForHour(chicagoHour()),
         timestamp: new Date().toISOString(),
         weather: await weatherPromise,
-        counts: { total: 0, created: 0, assigned: 0, materials_pulled: 0, en_route: 0, arrived: 0 },
+        counts: { total: 0, created: 0, assigned: 0, materials_pulled: 0, en_route: 0, arrived: 0, overdue: 0, today: 0, upcoming: 0 },
         cities: [],
         totals: { totalPrice: 0, totalCost: 0 },
         tickets: [],
+        sections: { overdue: [], today: [], upcoming: [] },
       },
       { status: 503 },
     );
@@ -107,6 +123,22 @@ export async function GET(request: NextRequest) {
   const activeTickets = allTickets.filter(t =>
     t.ticketType === 'delivery' && ACTIVE_STATUSES.has(t.status)
   );
+
+  // ── Date-aware buckets (Chicago calendar day) ──────────────────────────
+  //   overdue  — scheduled before today and still not delivered
+  //   today    — scheduled today, OR undated (a legacy/unmigrated ticket
+  //              must fail VISIBLE on today's board, never hide)
+  //   upcoming — scheduled after today (collapsed in the UIs)
+  const todayYmd = chicagoToday();
+  const overdueTickets = activeTickets.filter(
+    t => t.scheduledDate && t.scheduledDate < todayYmd,
+  );
+  const todayTickets = activeTickets.filter(
+    t => !t.scheduledDate || t.scheduledDate === todayYmd,
+  );
+  const upcomingTickets = activeTickets
+    .filter(t => !!t.scheduledDate && t.scheduledDate > todayYmd)
+    .sort((a, b) => (a.scheduledDate || '').localeCompare(b.scheduledDate || ''));
 
   // Group by city for the display
   const cityCounts = new Map<string, number>();
@@ -127,10 +159,46 @@ export async function GET(request: NextRequest) {
   }
 
   const now = new Date();
-  const hour = now.getHours();
+
+  // Shared per-ticket shape for both the flat list and the sections.
+  const mapTicket = (t: (typeof activeTickets)[number]) => ({
+    ticketId: t.ticketId,
+    jobNumber: t.referenceNumber,
+    jobName: t.jobName,
+    customerName: t.customerName,
+    address: [t.jobAddress, t.city, t.state].filter(Boolean).join(', '),
+    city: t.city,
+    status: t.status,
+    // Delivery-date awareness. `overdue` is computed on READ against the
+    // Chicago calendar day — never stored — so it can't go stale.
+    scheduledDate: t.scheduledDate || null,
+    scheduleSource: t.scheduleSource || null,
+    overdue: Boolean(t.scheduledDate && t.scheduledDate < todayYmd),
+    itemCount: (t.materials || []).length,
+    totalPieces: (t.materials || []).reduce((sum, m) => sum + (m.quantity || 0), 0),
+    // Driver-safe line items for the pull checklist — name + qty only, NO
+    // cost/price (those are stripped by filterCostByRole anyway, but we
+    // never even include them here).
+    materials: (t.materials || []).map(m => ({
+      productName: m.productName,
+      quantity: m.quantity,
+      unit: (m as { unit?: string }).unit || '',
+    })),
+    totalCost: t.totalCost,
+    totalPrice: t.totalPrice,
+    notes: t.notes,
+    // Pass the stock-vs-vendor distinction through so Rick's mobile
+    // dashboard can badge each card. Default to 'stock' on legacy rows.
+    orderSource: t.orderSource || 'stock',
+    supplierName: t.supplierName,
+    // Direct link to JN job — opens in a new tab from the UI
+    jobnimbusUrl: t.referenceNumber
+      ? `https://app.jobnimbus.com/job/${encodeURIComponent(t.referenceNumber)}`
+      : null,
+  });
 
   const payload = {
-    greeting: greetingForHour(hour),
+    greeting: greetingForHour(chicagoHour()),
     timestamp: now.toISOString(),
     // True when the live Sheets read failed and we served the previous
     // snapshot. The board stays populated; the UI can show a subtle indicator.
@@ -152,42 +220,25 @@ export async function GET(request: NextRequest) {
       materials_pulled: activeTickets.filter(t => t.status === 'materials_pulled').length,
       en_route: activeTickets.filter(t => t.status === 'en_route').length,
       arrived: activeTickets.filter(t => t.status === 'arrived').length,
+      overdue: overdueTickets.length,
+      today: todayTickets.length,
+      upcoming: upcomingTickets.length,
     },
     cities,
     totals: {
       totalPrice: Math.round(totalPrice * 100) / 100,
       totalCost: Math.round(totalCost * 100) / 100,
     },
-    tickets: activeTickets.map(t => ({
-      ticketId: t.ticketId,
-      jobNumber: t.referenceNumber,
-      jobName: t.jobName,
-      customerName: t.customerName,
-      address: [t.jobAddress, t.city, t.state].filter(Boolean).join(', '),
-      city: t.city,
-      status: t.status,
-      itemCount: (t.materials || []).length,
-      totalPieces: (t.materials || []).reduce((sum, m) => sum + (m.quantity || 0), 0),
-      // Driver-safe line items for the pull checklist — name + qty only, NO
-      // cost/price (those are stripped by filterCostByRole anyway, but we
-      // never even include them here).
-      materials: (t.materials || []).map(m => ({
-        productName: m.productName,
-        quantity: m.quantity,
-        unit: (m as { unit?: string }).unit || '',
-      })),
-      totalCost: t.totalCost,
-      totalPrice: t.totalPrice,
-      notes: t.notes,
-      // Pass the stock-vs-vendor distinction through so Rick's mobile
-      // dashboard can badge each card. Default to 'stock' on legacy rows.
-      orderSource: t.orderSource || 'stock',
-      supplierName: t.supplierName,
-      // Direct link to JN job — opens in a new tab from the UI
-      jobnimbusUrl: t.referenceNumber
-        ? `https://app.jobnimbus.com/job/${encodeURIComponent(t.referenceNumber)}`
-        : null,
-    })),
+    // Backward-compat flat list: what needs attention NOW (overdue first,
+    // then today's). Upcoming tickets are NOT in this list — an old client
+    // build simply won't show them until their day comes.
+    tickets: [...overdueTickets, ...todayTickets].map(mapTicket),
+    // Date-aware sections for the updated dashboard + kiosk.
+    sections: {
+      overdue: overdueTickets.map(mapTicket),
+      today: todayTickets.map(mapTicket),
+      upcoming: upcomingTickets.map(mapTicket),
+    },
   };
 
   return NextResponse.json(filterCostByRole(payload, viewerRole));

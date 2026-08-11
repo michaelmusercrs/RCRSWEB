@@ -12,6 +12,7 @@ import { upsertDeliveryScheduleEntry } from '@/lib/delivery-schedule-service';
 import { normalizeLineItemQty } from '@/lib/normalize-line-item-qty';
 import { filterCostByRole } from '@/lib/cost-visibility';
 import { syncTicketPhotoToJN } from '@/lib/jn-photo-sync';
+import { deriveScheduledDate } from '@/lib/delivery-date-parser';
 
 // Best-effort mirror of a status change onto the master Tickets tab — the
 // sheet the warehouse dashboard (/api/warehouse/today) reads. Without this,
@@ -22,8 +23,9 @@ async function syncTicketsTabStatus(
   status: import('@/lib/ticket-sheet-service').TicketStatus,
 ): Promise<boolean> {
   try {
-    await ticketSheetService.updateStatus(ticketId, status);
-    return true;
+    // updateStatus returns false on a swallowed Sheets failure (row missing,
+    // write rejected) — propagate that instead of reporting a phantom success.
+    return await ticketSheetService.updateStatus(ticketId, status);
   } catch (err) {
     // The Sheets layer already retries rate-limit failures; reaching here means
     // the mirror genuinely failed. Return false so the caller can tell the
@@ -289,6 +291,15 @@ export async function POST(request: NextRequest) {
           // staff can see what was changed at a glance.
           const baseNotes = data.specialInstructions || data.workOrderBody || data.returnReason || '';
           const combinedNotes = [baseNotes, ...uomFormAnomalies].filter(Boolean).join('\n');
+          // Delivery date: an office-entered requestedDate (YYYY-MM-DD) wins;
+          // otherwise derive from the special instructions / next business
+          // day, same as the email webhook.
+          const requestedYmd = /^\d{4}-\d{2}-\d{2}$/.test(String(data.requestedDate || '').trim())
+            ? String(data.requestedDate).trim()
+            : '';
+          const derivedSchedule = requestedYmd
+            ? null
+            : deriveScheduledDate(data.specialInstructions || '', '', ticket.createdAt);
           const sheetTicket: SheetTicket = {
             ticketId: ticket.ticketId,
             ticketType: ticket.ticketType,
@@ -309,6 +320,8 @@ export async function POST(request: NextRequest) {
             totalCost: Math.round(totalCost * 100) / 100,
             totalPrice: Math.round(totalPrice * 100) / 100,
             notes: combinedNotes,
+            scheduledDate: requestedYmd || derivedSchedule!.date,
+            scheduleSource: requestedYmd ? 'office' : derivedSchedule!.source,
           };
           await ticketSheetService.upsert(sheetTicket);
         } catch (mirrorErr) {
@@ -619,31 +632,74 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, ticket: filterCostByRole(dtTicket || sheetTicket, auth.user.role), aftermath });
       }
 
+      // ── start-delivery / mark-arrived / complete-delivery ────────────────
+      // Tickets-tab-FIRST (authoritative), Delivery Tickets second — same
+      // shape as verify-load. The board (and every downstream sweep) reads
+      // the Tickets tab; the old order updated Delivery Tickets first and
+      // reported success even when the Tickets-tab mirror failed, which is
+      // exactly how delivered "zombie" cards stayed on Rick's board. If the
+      // authoritative write fails, the driver must see a failure and tap
+      // again — not a false success.
+
       case 'start-delivery': {
-        const ticket = await deliveryWorkflowService.startDelivery(data.ticketId);
         const synced = await syncTicketsTabStatus(data.ticketId, 'en_route');
+        if (!synced) {
+          return NextResponse.json(
+            { success: false, boardSynced: false, error: 'Board not updated — tap again' },
+            { status: 502 },
+          );
+        }
+        let ticket = null;
+        try {
+          ticket = await deliveryWorkflowService.startDelivery(data.ticketId);
+        } catch (err) {
+          // Webhook-created tickets have no Delivery Tickets row — that's fine.
+          console.warn('[tickets] start-delivery: Delivery Tickets update skipped:', err);
+        }
         if (ticket) {
           await sendDeliveryNotification(ticket, 'En Route');
         }
-        return NextResponse.json({ success: true, ticket, boardSynced: synced });
+        return NextResponse.json({ success: true, ticket, boardSynced: true });
       }
 
       case 'mark-arrived': {
-        const ticket = await deliveryWorkflowService.markArrived(data.ticketId, data.gpsLocation);
         const synced = await syncTicketsTabStatus(data.ticketId, 'arrived');
+        if (!synced) {
+          return NextResponse.json(
+            { success: false, boardSynced: false, error: 'Board not updated — tap again' },
+            { status: 502 },
+          );
+        }
+        let ticket = null;
+        try {
+          ticket = await deliveryWorkflowService.markArrived(data.ticketId, data.gpsLocation);
+        } catch (err) {
+          console.warn('[tickets] mark-arrived: Delivery Tickets update skipped:', err);
+        }
         if (ticket) {
           await sendDeliveryNotification(ticket, 'Arrived');
         }
-        return NextResponse.json({ success: true, ticket, boardSynced: synced });
+        return NextResponse.json({ success: true, ticket, boardSynced: true });
       }
 
       case 'complete-delivery': {
-        const ticket = await deliveryWorkflowService.completeDelivery(data.ticketId, data.notes);
         const synced = await syncTicketsTabStatus(data.ticketId, 'delivered');
+        if (!synced) {
+          return NextResponse.json(
+            { success: false, boardSynced: false, error: 'Board not updated — tap again' },
+            { status: 502 },
+          );
+        }
+        let ticket = null;
+        try {
+          ticket = await deliveryWorkflowService.completeDelivery(data.ticketId, data.notes);
+        } catch (err) {
+          console.warn('[tickets] complete-delivery: Delivery Tickets update skipped:', err);
+        }
         if (ticket) {
           await sendDeliveryNotification(ticket, 'Delivered');
         }
-        return NextResponse.json({ success: true, ticket, boardSynced: synced });
+        return NextResponse.json({ success: true, ticket, boardSynced: true });
       }
 
       case 'capture-proof': {
@@ -707,6 +763,43 @@ export async function POST(request: NextRequest) {
           data.condition
         );
         return NextResponse.json({ success: true, ticket });
+      }
+
+      case 'set-schedule': {
+        // Office override of a ticket's delivery date. Clears any overdue
+        // flag so a rescheduled ticket that misses AGAIN gets re-flagged by
+        // the overdue sweep.
+        if (!['office', 'admin', 'owner', 'manager'].includes(auth.user.role)) {
+          return NextResponse.json({ error: 'Office access required' }, { status: 403 });
+        }
+        const newDate = String(data.scheduledDate || '').trim();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) {
+          return NextResponse.json(
+            { error: 'scheduledDate must be YYYY-MM-DD' },
+            { status: 400 },
+          );
+        }
+        const existing = await ticketSheetService.getById(data.ticketId);
+        if (!existing) {
+          return NextResponse.json({ error: 'Ticket not found' }, { status: 404 });
+        }
+        const patched = await ticketSheetService.patch(data.ticketId, {
+          scheduledDate: newDate,
+          scheduleSource: 'office',
+          overdueAt: '',
+        });
+        if (!patched) {
+          return NextResponse.json(
+            { success: false, error: 'Schedule not saved — try again' },
+            { status: 502 },
+          );
+        }
+        return NextResponse.json({
+          success: true,
+          ticketId: data.ticketId,
+          scheduledDate: newDate,
+          scheduleSource: 'office',
+        });
       }
 
       case 'stock-adjustment': {

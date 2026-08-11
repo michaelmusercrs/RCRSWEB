@@ -38,6 +38,7 @@ import { inventoryTabSync } from '@/lib/inventory-tab-sync';
 import { emailService } from '@/lib/email-service';
 import { normalizeLineItemQty } from '@/lib/normalize-line-item-qty';
 import { googleSheetsService } from '@/lib/google-sheets-service';
+import { deriveScheduledDate } from '@/lib/delivery-date-parser';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -352,7 +353,21 @@ export async function POST(request: NextRequest) {
   const reviewNote = needsReview
     ? `[NEEDS REVIEW] ${reviewReasons.join('; ')}. Invoice + stock deduction are HELD until the office confirms this order.`
     : '';
-  const finalNotes = [reviewNote, combinedNotes].filter(Boolean).join('\n');
+
+  // ── Delivery date (owner rule 2026-08): every ticket gets a scheduledDate.
+  // Parsed from the Special Instructions when the PM wrote one; otherwise
+  // defaults to the next business day — flagged in the notes so the office
+  // knows the date is a guess they can change.
+  const schedule = deriveScheduledDate(
+    parsed.specialInstructions,
+    parsed.orderDate,
+    payload.receivedAt || new Date().toISOString(),
+  );
+  const scheduleNote = schedule.source === 'default'
+    ? `[SCHEDULE] No delivery date found — defaulted to ${schedule.date}. Office can change it.`
+    : '';
+
+  const finalNotes = [reviewNote, combinedNotes, scheduleNote].filter(Boolean).join('\n');
 
   // Step 1: persist to Tickets sheet
   const sheetTicket: SheetTicket = {
@@ -375,6 +390,8 @@ export async function POST(request: NextRequest) {
     totalCost: Math.round(totalCost * 100) / 100,
     totalPrice: Math.round(totalPrice * 100) / 100,
     notes: finalNotes,
+    scheduledDate: schedule.date,
+    scheduleSource: schedule.source,
   };
 
   try {
@@ -508,6 +525,8 @@ export async function POST(request: NextRequest) {
     interofficeInvoiceId,
     needsReview,
     reviewReasons,
+    scheduledDate: schedule.date,
+    scheduleSource: schedule.source,
     customerName: parsed.customerName,
     materialOrderNumber: parsed.materialOrderNumber,
   });
