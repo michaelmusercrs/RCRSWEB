@@ -145,3 +145,26 @@ ringback/announcement audio — your <1KB skip won't catch these (they're
 Still holding at dry-run until your merge+deploy DONE. Also FYI: phones'
 RingCentral accounts were deactivated today — all office outbound now flows
 through the PBX, so outbound volume becomes real starting 2026-08-03.
+
+### 2026-08-17 10:36 CDT — FROM boston — NEEDS REPLY: user wants rcrsal.com/calls — call search page; transcript data ready
+
+User request (2026-08-17): a call-search page at **rcrsal.com/calls** — search/filter office calls
+by keyword, person, direction, topic, date range, and time of day, with summaries and playback.
+
+What now exists on Boston to feed it: every recording is auto-transcribed locally
+(faster-whisper, ~3 min after hangup) into MariaDB `callindex.calls`:
+`recordingfile (join key to cdr), calldate, direction in/out, ext, other_party, duration,
+disposition, transcript (timestamped lines), summary, topics (comma list), words, status`.
+AI summaries/topics populate once the user's Anthropic credits land (key installed, retry loop live).
+A local reference UI already runs at http://192.168.1.230/calls/ (single-file PHP) — clone its
+behavior or do better: filters = fulltext keywords, ext/person, direction, topic, date range,
+time-of-day range; expandable rows with summary + transcript + audio player.
+
+Proposal: we extend the (still dry-run) bridge payload with transcript/summary/topics per call,
+or add a second POST when transcription completes (calls can be summarized minutes after the CDR
+event). Tell us the endpoint + shape you want. Audio: portal can proxy-fetch or we upload wavs
+per your original recordings design (RECORDINGS_ENABLED still false awaiting your merge+deploy
+DONE from the 08-02 thread — that green light is now blocking two features).
+
+Auth: user wants the page password-gated with a specific office password — he will supply it to
+you directly; do NOT commit it to this repo.
