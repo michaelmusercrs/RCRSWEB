@@ -12,7 +12,8 @@ import { normalizeLineItemQty } from '@/lib/normalize-line-item-qty';
 import { filterCostByRole } from '@/lib/cost-visibility';
 import { syncTicketPhotoToJN } from '@/lib/jn-photo-sync';
 import { deriveScheduledDate } from '@/lib/delivery-date-parser';
-import { evaluateMove } from '@/lib/ticket-status-matrix';
+import { evaluateMove, POST_ZONE } from '@/lib/ticket-status-matrix';
+import { withKeyLock } from '@/lib/request-mutex';
 
 // Best-effort mirror of a status change onto the master Tickets tab — the
 // sheet the warehouse dashboard (/api/warehouse/today) reads. Without this,
@@ -566,40 +567,64 @@ export async function POST(request: NextRequest) {
         // only, reason required. Invoices/breakdowns are intentionally left
         // intact — re-verify reuses the existing invoice (no double count) and
         // the net-delta deduction log lets stock re-deduct exactly once.
-        const sheetTicket = await ticketSheetService.getById(data.ticketId);
-        if (!sheetTicket) {
-          return NextResponse.json({ success: false, error: 'Ticket not found' }, { status: 404 });
-        }
-        if (!['office', 'admin', 'owner', 'manager'].includes(auth.user.role)) {
-          return NextResponse.json({ success: false, error: 'Only office/admin can undo verify-load.' }, { status: 403 });
-        }
-        const undoReason = (data.reason || '').trim();
-        if (!undoReason) {
-          return NextResponse.json({ success: false, error: 'A reason is required to undo verify-load.', requiresReason: true }, { status: 400 });
-        }
-        const { undoVerifyLoad } = await import('@/lib/load-verified-aftermath');
-        const undo = await undoVerifyLoad(sheetTicket);
-        if (undo.errors.length) {
-          return NextResponse.json({ success: false, error: 'Undo failed', detail: undo.errors }, { status: 500 });
-        }
-        const undoSynced = await syncTicketsTabStatus(data.ticketId, 'materials_pulled');
-        if (!undoSynced) {
-          return NextResponse.json(
-            { success: false, error: 'Stock restored, but the board status update failed — tap again.' },
-            { status: 502 },
-          );
-        }
-        const undoStamp = new Date().toISOString().slice(0, 16).replace('T', ' ');
-        const undoWho = auth.user?.name || auth.user?.email || auth.user.role;
-        const undoNote = `[UNDO-VERIFY by ${undoWho} @ ${undoStamp}: ${undoReason} — restored ${undo.restored} item(s)]`;
-        try {
-          await ticketSheetService.patch(data.ticketId, {
-            notes: `${sheetTicket.notes ? sheetTicket.notes + '\n' : ''}${undoNote}`,
-          });
-        } catch (e) {
-          console.warn('[tickets] undo-verify-load: failed to append audit note:', e);
-        }
-        return NextResponse.json({ success: true, restored: undo.restored, restoredItems: undo.restoredItems, note: undoNote });
+        // Serialized per ticket so a double-click can't double-restore.
+        return await withKeyLock(`ticket:${data.ticketId}`, async () => {
+          const sheetTicket = await ticketSheetService.getById(data.ticketId);
+          if (!sheetTicket) {
+            return NextResponse.json({ success: false, error: 'Ticket not found' }, { status: 404 });
+          }
+          if (!['office', 'admin', 'owner', 'manager'].includes(auth.user.role)) {
+            return NextResponse.json({ success: false, error: 'Only office/admin can undo verify-load.' }, { status: 403 });
+          }
+          // Status gate: only meaningful from a POST (stock-committed) state.
+          if (!POST_ZONE.includes(sheetTicket.status)) {
+            return NextResponse.json(
+              { success: false, error: `Ticket is "${sheetTicket.status}" — there's nothing loaded to undo.` },
+              { status: 400 },
+            );
+          }
+          const undoReason = (data.reason || '').trim();
+          if (!undoReason) {
+            return NextResponse.json({ success: false, error: 'A reason is required to undo verify-load.', requiresReason: true }, { status: 400 });
+          }
+          const { undoVerifyLoad } = await import('@/lib/load-verified-aftermath');
+          const undo = await undoVerifyLoad(sheetTicket);
+          if (undo.errors.length) {
+            // Something went wrong mid-restore. Do NOT move the status back —
+            // undoVerifyLoad rolls back cleanly, so a retry is safe; a moved
+            // status here could strand a partially-reversed ticket.
+            return NextResponse.json({ success: false, error: 'Undo could not complete — safe to retry.', detail: undo.errors }, { status: 500 });
+          }
+          const isStock = (sheetTicket.orderSource || 'stock') !== 'other_vendor';
+          if (undo.restored === 0 && isStock) {
+            // POST-status stock ticket but no logged deductions to reverse. This
+            // means the deduction was never logged (a lost-log case) — we can't
+            // safely reason about inventory, so leave the status alone and ask
+            // for a manual check instead of silently "succeeding" (D3).
+            return NextResponse.json(
+              { success: false, error: 'No logged deductions found for this loaded ticket. If stock was deducted it was not logged — check inventory manually. Status left unchanged.' },
+              { status: 409 },
+            );
+          }
+          const undoSynced = await syncTicketsTabStatus(data.ticketId, 'materials_pulled');
+          if (!undoSynced) {
+            return NextResponse.json(
+              { success: false, error: 'Stock restored, but the board status update failed — tap again.' },
+              { status: 502 },
+            );
+          }
+          const undoStamp = new Date().toISOString().slice(0, 16).replace('T', ' ');
+          const undoWho = auth.user?.name || auth.user?.email || auth.user.role;
+          const undoNote = `[UNDO-VERIFY by ${undoWho} @ ${undoStamp}: ${undoReason} — restored ${undo.restored} item(s)]`;
+          try {
+            await ticketSheetService.patch(data.ticketId, {
+              notes: `${sheetTicket.notes ? sheetTicket.notes + '\n' : ''}${undoNote}`,
+            });
+          } catch (e) {
+            console.warn('[tickets] undo-verify-load: failed to append audit note:', e);
+          }
+          return NextResponse.json({ success: true, restored: undo.restored, restoredItems: undo.restoredItems, note: undoNote });
+        });
       }
 
       case 'pull-materials': {
@@ -616,6 +641,9 @@ export async function POST(request: NextRequest) {
       }
 
       case 'verify-load': {
+        // Serialized per ticket so two simultaneous "Mark Loaded" taps can't
+        // both pass the alreadyVerified check and double-deduct/duplicate.
+        return await withKeyLock(`ticket:${data.ticketId}`, async () => {
         // Use the master Tickets sheet as source of truth so this works for
         // BOTH webhook-created tickets (Tickets only) AND portal-created
         // tickets (Tickets + Delivery Tickets).
@@ -704,6 +732,7 @@ export async function POST(request: NextRequest) {
         // Run deduction + legacy mirror + office invoice exactly once per
         // ticket, regardless of which sheet the ticket originated in.
         let aftermath = null;
+        let aftermathError: string | null = null;
         if (!alreadyVerified) {
           try {
             const { runLoadVerifiedAftermath } = await import('@/lib/load-verified-aftermath');
@@ -712,12 +741,30 @@ export async function POST(request: NextRequest) {
               verifiedAtIso,
               verifiedByName: auth.user?.name || data.verifiedBy || 'driver',
             });
+            if (aftermath.errors?.length) {
+              // Status already advanced to load_verified, but the invoice /
+              // deduction step reported problems. Don't hide it — the office
+              // needs to know, and the ticket-chain scanner will also flag the
+              // data-level effect (missing invoice / deduction mismatch). (D6)
+              aftermathError = aftermath.errors.join(' | ');
+              console.error('[verify-load] Aftermath errors:', aftermathError);
+            }
           } catch (err) {
+            aftermathError = `Aftermath threw: ${err instanceof Error ? err.message : String(err)}`;
             console.error('[verify-load] Aftermath threw:', err);
           }
         }
 
-        return NextResponse.json({ success: true, ticket: filterCostByRole(dtTicket || sheetTicket, auth.user.role), aftermath });
+        return NextResponse.json({
+          success: true,
+          ticket: filterCostByRole(dtTicket || sheetTicket, auth.user.role),
+          aftermath,
+          // Present only when the invoice/deduction step failed after the status
+          // advanced — a signal for the office/API, surfaced without failing the
+          // driver's action.
+          ...(aftermathError ? { aftermathError } : {}),
+        });
+        });
       }
 
       // ── start-delivery / mark-arrived / complete-delivery ────────────────

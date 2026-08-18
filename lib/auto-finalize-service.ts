@@ -291,9 +291,12 @@ export async function autoFinalizeStuckTickets(
         row.set('totalValue', (after * unitCost).toFixed(2));
         await row.save();
         deducted += 1;
+        // Log the ACTUAL delta (after - before), not the intended -qty, so a
+        // later undo-verify-load restores exactly what left and never fabricates
+        // stock when a deduction was clamped at 0. Must match deductFromStock.
         await appendDeductionLog(doc, {
           ticketId, productName, productId: row.get('productId') || '',
-          qtyBefore: before, qtyAfter: after, qtyDelta: -qty, invoiceId, source: DEDUCTION_SOURCE,
+          qtyBefore: before, qtyAfter: after, qtyDelta: after - before, invoiceId, source: DEDUCTION_SOURCE,
         });
         dedKeys.add(makeDeductionKey(ticketId, productName));
         await pause();

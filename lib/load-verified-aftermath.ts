@@ -238,13 +238,17 @@ async function deductFromStock(
   const deductedKeys = await loadDeductionKeySet(doc);
 
   const missing: string[] = [];
+  const logErrors: string[] = [];
   let deducted = 0;
   let skippedIdempotent = 0;
   for (const m of materials) {
     const productName = (m.productName || '').toLowerCase().trim();
     const qty = num(m.quantity);
     if (!qty || (!productName && !m.productId)) continue;
-    if (productName && wasDeducted(deductedKeys, ticketId, productName)) {
+    // Idempotency/undo key: prefer productName, fall back to a productId-based
+    // key so productId-only lines are still dedup-protected AND reversible (D7).
+    const logKey = productName || `id:${(m.productId || '').toLowerCase().trim()}`;
+    if (wasDeducted(deductedKeys, ticketId, logKey)) {
       skippedIdempotent++;
       continue;
     }
@@ -262,22 +266,30 @@ async function deductFromStock(
     await row.save();
     deducted++;
 
-    if (productName) {
-      await appendDeductionLog(doc, {
-        ticketId,
-        productName,
-        productId: row.get('productId') || '',
-        qtyBefore: before,
-        qtyAfter: after,
-        qtyDelta: -qty,
-        invoiceId: invoiceIdHint,
-        source: DEDUCTION_SOURCE,
-      });
-      // Claim the key in-memory regardless of audit-write outcome.
-      deductedKeys.add(makeDeductionKey(ticketId, productName));
+    // Log the ACTUAL delta (after - before), NOT the intended -qty. When stock
+    // is clamped at 0 the real removal is smaller; logging reality means
+    // undo-verify-load restores exactly what left, never fabricating stock (D1).
+    const logged = await appendDeductionLog(doc, {
+      ticketId,
+      productName: logKey,
+      productId: row.get('productId') || m.productId || '',
+      qtyBefore: before,
+      qtyAfter: after,
+      qtyDelta: after - before,
+      invoiceId: invoiceIdHint,
+      source: DEDUCTION_SOURCE,
+    });
+    if (!logged) {
+      // The log IS the idempotency gate. A missing row can cause a later
+      // double-deduct/undo error — surface it hard instead of swallowing (D3).
+      logErrors.push(
+        `Stock deducted for "${logKey}" on ${ticketId} but its Inventory_Deductions_Log row FAILED to write — reconcile before any re-verify or undo.`,
+      );
     }
+    // Claim the key in-memory regardless of audit-write outcome.
+    deductedKeys.add(makeDeductionKey(ticketId, logKey));
   }
-  return { deducted, missing, skippedIdempotent };
+  return { deducted, missing, skippedIdempotent, error: logErrors.length ? logErrors.join(' | ') : undefined };
 }
 
 /**
@@ -353,8 +365,10 @@ export async function runLoadVerifiedAftermath(input: {
   // mirror. Field kept at 0 for back-compat with AftermathResult consumers.
   result.legacyWritten = 0;
 
-  // 5. Price-only office email. Skipped when silent=true (backfill mode).
-  if (!silent) {
+  // 5. Price-only office email. Skipped when silent=true (backfill mode) AND
+  // only when a NEW invoice was actually created — so an undo→re-verify cycle
+  // (which reuses the existing invoice row) doesn't re-spam the office (D8).
+  if (!silent && result.invoiceCreated) {
     try {
       const fullAddress = [ticket.jobAddress, ticket.city, ticket.state]
         .filter(Boolean)
@@ -462,10 +476,19 @@ export async function undoVerifyLoad(ticket: SheetTicket): Promise<UndoVerifyLoa
       source: 'undo-verify-load',
     });
     if (!logged) {
-      result.errors.push(
-        `Stock restored for ${d.productName} but the reversal-log row failed to write — ` +
-        `verify the deduction log before re-running to avoid a double restore.`,
-      );
+      // Reversal log failed (after its own retries). Roll the inventory restore
+      // back so this item stays cleanly "still deducted" (net negative) and a
+      // retry cannot double-restore (D4). If the rollback also fails, it's a
+      // genuine inconsistency needing manual review.
+      row.set('currentQty', String(before));
+      row.set('totalValue', (before * unitCost).toFixed(2));
+      try {
+        await row.save();
+        result.errors.push(`Could not log the reversal for "${d.productName}" — left it deducted; the undo is safe to retry.`);
+      } catch (e2) {
+        result.errors.push(`INCONSISTENT: restored "${d.productName}" but could neither log nor roll back (${String(e2)}). Manual inventory check required.`);
+      }
+      continue;
     }
     result.restored++;
     result.restoredItems.push({ productName: d.productName, qty: qtyToRestore });

@@ -207,32 +207,41 @@ export async function appendDeductionLog(
   doc: GoogleSpreadsheet,
   entry: InventoryDeductionLogEntry,
 ): Promise<boolean> {
-  try {
-    const sheet = await ensureInventoryDeductionsLogSheet(doc);
-    const deductionId = `DED-${Date.now().toString(36).toUpperCase()}-${Math.random()
-      .toString(36)
-      .slice(2, 8)
-      .toUpperCase()}`;
-    await sheet.addRow({
-      deductionId,
-      ticketId: entry.ticketId,
-      productName: entry.productName,
-      productId: entry.productId || '',
-      qtyBefore: String(entry.qtyBefore),
-      qtyAfter: String(entry.qtyAfter),
-      qtyDelta: String(entry.qtyDelta),
-      invoiceId: entry.invoiceId || '',
-      deductedAt: entry.deductedAt || new Date().toISOString(),
-      source: entry.source,
-    });
-    return true;
-  } catch (err) {
-    console.error('[INVENTORY DEDUCT LOG FAILED]', {
-      ticketId: entry.ticketId,
-      productName: entry.productName,
-      source: entry.source,
-      err: err instanceof Error ? err.message : err,
-    });
-    return false;
+  // This row IS the idempotency gate (not mere audit): a missing row lets a
+  // later re-verify or undo double-act. So retry a few times before giving up.
+  const deductionId = `DED-${Date.now().toString(36).toUpperCase()}-${Math.random()
+    .toString(36)
+    .slice(2, 8)
+    .toUpperCase()}`;
+  const payload = {
+    deductionId,
+    ticketId: entry.ticketId,
+    productName: entry.productName,
+    productId: entry.productId || '',
+    qtyBefore: String(entry.qtyBefore),
+    qtyAfter: String(entry.qtyAfter),
+    qtyDelta: String(entry.qtyDelta),
+    invoiceId: entry.invoiceId || '',
+    deductedAt: entry.deductedAt || new Date().toISOString(),
+    source: entry.source,
+  };
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const sheet = await ensureInventoryDeductionsLogSheet(doc);
+      await sheet.addRow(payload);
+      return true;
+    } catch (err) {
+      lastErr = err;
+      // brief backoff before retry (Sheets rate-limit / transient)
+      await new Promise(r => setTimeout(r, 300 * (attempt + 1)));
+    }
   }
+  console.error('[INVENTORY DEDUCT LOG FAILED after retries]', {
+    ticketId: entry.ticketId,
+    productName: entry.productName,
+    source: entry.source,
+    err: lastErr instanceof Error ? lastErr.message : lastErr,
+  });
+  return false;
 }

@@ -77,6 +77,20 @@ t('same-status is rejected', () => {
   assert.equal(evaluateMove('created', 'created', 'admin').ok, false);
 });
 
+// ── D2: unzoned / unknown statuses are refused (boundary-bypass guard) ──────
+t('picked_up (unzoned) refused as target from any zone', () => {
+  assert.equal(evaluateMove('created', 'picked_up', 'admin').ok, false);
+  assert.equal(evaluateMove('load_verified', 'picked_up', 'admin').ok, false);
+});
+t('picked_up as CURRENT status cannot be moved via set-status', () => {
+  assert.equal(evaluateMove('picked_up', 'load_verified', 'admin').ok, false);
+  assert.equal(evaluateMove('picked_up', 'materials_pulled', 'admin').ok, false);
+});
+t('garbage status string refused (no two-hop bypass)', () => {
+  assert.equal(evaluateMove('created', 'totally_made_up', 'admin').ok, false);
+  assert.equal(evaluateMove('made_up', 'load_verified', 'admin').ok, false);
+});
+
 // ── allowedTargets sanity ──────────────────────────────────────────────────
 t('allowedTargets from created (office) = other pre + cancelled, no post', () => {
   const targets = allowedTargets('created', 'office');

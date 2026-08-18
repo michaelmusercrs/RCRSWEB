@@ -32,6 +32,12 @@ export const POST_ZONE: TicketStatus[] = [
 const ORDER: TicketStatus[] = [...PRE_ZONE, ...POST_ZONE];
 const orderIndex = (s: TicketStatus): number => ORDER.indexOf(s);
 
+// The ONLY statuses set-status is allowed to touch. Anything else — an unzoned
+// status like 'picked_up', or an unvalidated garbage string cast to TicketStatus
+// — must be refused so it can't two-hop across the PRE/POST boundary and bypass
+// verify-load / undo-verify-load (their inventory side effects).
+const KNOWN_STATUSES = new Set<string>([...ORDER, 'cancelled']);
+
 const inPre = (s: TicketStatus) => PRE_ZONE.includes(s);
 const inPost = (s: TicketStatus) => POST_ZONE.includes(s);
 
@@ -61,6 +67,15 @@ export function evaluateMove(
 ): MoveEvaluation {
   if (!OPERATOR_ROLES.has(role)) {
     return { ok: false, requiresReason: false, error: 'Your role cannot change ticket status.' };
+  }
+  // Refuse any status this tool doesn't govern (unzoned like 'picked_up', or an
+  // unvalidated string). Prevents a two-hop boundary bypass through an unzoned
+  // status. Boundary crossings must use verify-load / undo-verify-load.
+  if (!KNOWN_STATUSES.has(target)) {
+    return { ok: false, requiresReason: false, error: `"${target}" is not a status you can set here.` };
+  }
+  if (!KNOWN_STATUSES.has(current)) {
+    return { ok: false, requiresReason: false, error: `This ticket's status ("${current}") can't be changed with this tool.` };
   }
   if (current === target) {
     return { ok: false, requiresReason: false, error: 'Ticket is already in that status.' };
