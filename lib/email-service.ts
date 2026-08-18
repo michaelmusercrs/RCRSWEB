@@ -75,6 +75,9 @@ export type EmailTemplate =
   | 'pipeline-milestone'
   | 'reassign-notify'       // SLA breach → dispatcher team alert
   | 'response-time-report'  // weekly summary → Chris + Michael
+  | 'gaf-report-summary'    // GAF QuickMeasure material cheat-sheet → rep (internal)
+  | 'gaf-no-match-rep'      // GAF report arrived, no matching JN job → rep (internal)
+  | 'gaf-office-escalation' // GAF report unmatched after retries → office (internal)
   | 'customer-welcome-portal'; // post-assignment welcome with portal link
 
 /**

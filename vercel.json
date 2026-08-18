@@ -54,6 +54,10 @@
     {
       "path": "/api/cron/low-stock-alert",
       "schedule": "20 13 * * *"
+    },
+    {
+      "path": "/api/cron/gaf-report-sync",
+      "schedule": "*/15 * * * *"
     }
   ],
   "headers": [

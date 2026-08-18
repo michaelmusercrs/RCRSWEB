@@ -370,6 +370,26 @@ class JobNimbusService {
   }
 
   /**
+   * Jobs in a given ZIP. Used by the GAF QuickMeasure matcher to narrow the
+   * candidate set to same-zip jobs before an in-memory address match — far
+   * more reliable than a recency window. JSON-encoded ES filter (see
+   * getJobByNumber). Returns [] on any error so the caller can fall back.
+   */
+  async getJobsByZip(zip: string, viewer?: JNViewer): Promise<JobNimbusJob[]> {
+    const z = (zip || '').trim().slice(0, 5);
+    if (!z) return [];
+    try {
+      const filter = { must: [{ term: { zip: z } }] };
+      const result = await this.apiRequest<{ results: JobNimbusJob[] }>(
+        `/jobs?filter=${encodeURIComponent(JSON.stringify(filter))}&size=100`,
+      );
+      return redactCostFieldsDeep(result.results || [], effectiveCanSeeCost(viewer));
+    } catch {
+      return [];
+    }
+  }
+
+  /**
    * Look up a single job by its display number (e.g. "R-11071"). Returns
    * null if no match — used by the historical inventory backfill to
    * enrich tickets with customer/address/sales rep data.
