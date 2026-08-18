@@ -520,6 +520,15 @@ export default function NewOrderPage() {
 
       {/* Content */}
       <div className="max-w-4xl mx-auto px-6 py-8">
+        {/* Deprecation notice (2026-08-18): orders created through this legacy
+            form do NOT appear on the warehouse board. Point users at the flows
+            that create a real Tickets-tab ticket. */}
+        <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <strong>Heads up:</strong> orders started on this legacy screen do not
+          show up on the warehouse board. To get materials to Rick, use{' '}
+          <a href="/portal/warehouse" className="font-semibold underline">the Warehouse “New Work Order” button</a>{' '}
+          or email the order to <span className="font-mono">stock@rcrsal.com</span>.
+        </div>
         {/* Step 1: Job Details */}
         {step === 1 && (
           <div className="space-y-6">

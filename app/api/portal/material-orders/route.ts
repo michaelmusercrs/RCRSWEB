@@ -10,7 +10,6 @@ import { requireAuth } from '@/lib/auth-service';
 import { materialOrderPipeline, type PipelineStage } from '@/lib/material-order-pipeline';
 import { unifiedInventoryService } from '@/lib/unified-inventory-service';
 import { canSeeCost, filterCostByRole } from '@/lib/cost-visibility';
-import { upsertDeliveryScheduleEntry } from '@/lib/delivery-schedule-service';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth();
@@ -87,64 +86,17 @@ export async function POST(request: NextRequest) {
   const auth = await requireAuth();
   if (!auth.authenticated) return auth.response;
 
-  try {
-    const body = await request.json();
-
-    // Create order via pipeline
-    const order = await materialOrderPipeline.createOrder({
-      createdBy: auth.user.userId,
-      createdByName: auth.user.name,
-      createdByRole: auth.user.role,
-      priority: body.priority || 'normal',
-      jobId: body.jobId,
-      jobNimbusId: body.jobNimbusId,
-      jobNumber: body.jobNumber || '',
-      jobName: body.jobName || '',
-      customerName: body.customerName || '',
-      customerPhone: body.customerPhone || '',
-      customerEmail: body.customerEmail,
-      deliveryAddress: body.shippingAddress || body.deliveryAddress || '',
-      deliveryCity: body.city || body.deliveryCity || '',
-      deliveryState: body.state || body.deliveryState || 'AL',
-      deliveryZip: body.zipCode || body.deliveryZip || '',
-      requestedDeliveryDate: body.requestedDeliveryDate || '',
-      items: (body.materials || body.items || []).map((m: any) => ({
-        productId: m.productId,
-        quantity: m.quantity,
-        notes: m.notes,
-      })),
-      specialInstructions: body.specialInstructions,
-      notes: body.notes,
-    });
-
-    // Owner directive: every material order submitted from the portal lands
-    // a Delivery Schedule entry automatically — the same as the work-order
-    // → stock@rcrsal.com email path. Best-effort write, never blocks.
-    try {
-      await upsertDeliveryScheduleEntry({
-        ticketId: order.orderId,
-        jobNumber: order.jobNumber,
-        customerName: order.customerName,
-        address: [
-          order.deliveryAddress,
-          order.deliveryCity,
-          order.deliveryState,
-          order.deliveryZip,
-        ]
-          .filter(Boolean)
-          .join(', '),
-        scheduledDate: order.scheduledDeliveryDate || order.requestedDeliveryDate || '',
-        status: 'pending',
-        driverSlug: order.assignedDriverId || '',
-        notes: order.specialInstructions || order.notes || '',
-      });
-    } catch (scheduleErr) {
-      console.warn('[material-orders] Failed to upsert Delivery Schedule entry:', scheduleErr);
-    }
-
-    return NextResponse.json(order, { status: 201 });
-  } catch (error) {
-    console.error('Material orders POST error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
+  // PARKED 2026-08-18: this created a System-B "PipelineOrder" that never
+  // reached the warehouse board (the board reads the canonical Tickets tab).
+  // No UI POSTs here (verified). New orders must go through the warehouse
+  // "New Work Order" flow or the stock@rcrsal.com email → webhook path, both of
+  // which create a real Tickets-tab ticket. GET stays available so the legacy
+  // orders/office views keep reading existing pipeline records.
+  return NextResponse.json(
+    {
+      error: 'This endpoint is retired. Create material orders from the Warehouse board ("New Work Order") or the stock@rcrsal.com email flow so they appear for the warehouse.',
+      redirect: '/portal/warehouse',
+    },
+    { status: 410 },
+  );
 }
