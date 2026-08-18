@@ -1,9 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { apiError } from '@/lib/api-response';
 import { deliveryReminderService } from '@/lib/delivery-reminder-service';
-import { deliveryWorkflowService } from '@/lib/delivery-workflow-service';
 import { leadPortalService } from '@/lib/lead-portal-service';
 import { validateSession } from '@/lib/auth-service';
+import { ticketSheetService, type SheetTicket } from '@/lib/ticket-sheet-service';
+
+// Map an internal ticket status to a customer-facing delivery stage. Used as
+// the fallback when the enrichment service (which reads the legacy Delivery
+// Tickets sheet) has no row for a canonical-only ticket. Deliberately does NOT
+// expose overdue/late — that's an internal ops flag, not customer-facing.
+function customerStage(status?: string): string {
+  switch (status) {
+    case 'en_route': return 'out_for_delivery';
+    case 'arrived': return 'arriving';
+    case 'delivered':
+    case 'completed': return 'delivered';
+    case 'cancelled': return 'cancelled';
+    default: return 'preparing'; // created / assigned / materials_pulled / load_verified
+  }
+}
+
+function materialsSummaryOf(t: SheetTicket): string {
+  return (t.materials || []).slice(0, 6).map(m => `${m.quantity || 0} ${m.productName || ''}`.trim()).join('; ');
+}
 
 // SECURITY: Validate that a token belongs to a customer with the given phone number
 async function validateTokenForPhone(token: string, phone: string): Promise<boolean> {
@@ -59,16 +78,23 @@ export async function GET(request: NextRequest) {
 
     // Look up by ticket ID
     if (ticketId) {
-      const result = await deliveryReminderService.getCustomerDeliveryStatus(ticketId);
-      if (!result) {
+      // Enrichment-first: the reminder service adds ETA + proof photos, but it
+      // reads the legacy Delivery Tickets sheet and returns null for the 600+
+      // email-created (canonical-only) tickets — the exact gap we're closing.
+      // Fall back to the canonical Tickets tab when it has no row.
+      let result: Awaited<ReturnType<typeof deliveryReminderService.getCustomerDeliveryStatus>> | null = null;
+      try { result = await deliveryReminderService.getCustomerDeliveryStatus(ticketId); } catch { result = null; }
+      const canonical = await ticketSheetService.getById(ticketId).catch(() => null);
+
+      if (!result && !canonical) {
         return apiError('Delivery not found', 404);
       }
 
+      const phoneForAuth = result?.ticket?.customerPhone || canonical?.customerPhone || '';
       // SECURITY: For ticket lookups without admin auth, verify the token belongs to this customer
       if (!hasAdminAuth && token) {
-        const ticketPhone = result.ticket.customerPhone;
-        if (ticketPhone) {
-          const isAuthorized = await validateTokenForPhone(token, ticketPhone);
+        if (phoneForAuth) {
+          const isAuthorized = await validateTokenForPhone(token, phoneForAuth);
           if (!isAuthorized) {
             return NextResponse.json(
               { error: 'Not authorized to view this delivery' },
@@ -84,36 +110,40 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Return sanitized customer-facing data (no internal costs, etc.)
+      const t = result?.ticket; // legacy enrichment ticket (may be undefined)
+      const c = canonical;       // canonical SheetTicket (may be null)
+
+      // Return sanitized customer-facing data (no internal costs, etc.),
+      // preferring enrichment fields and falling back to the canonical ticket.
       return NextResponse.json({
         success: true,
         delivery: {
-          ticketId: result.ticket.ticketId,
-          jobName: result.ticket.jobName,
-          jobAddress: result.ticket.jobAddress,
-          city: result.ticket.city,
-          state: result.ticket.state,
-          zip: result.ticket.zip,
-          customerName: result.ticket.customerName,
-          scheduledDate: result.ticket.scheduledDate,
-          scheduledTime: result.ticket.scheduledTime,
-          driverName: result.ticket.assignedDriverName || null,
-          materialsSummary: result.ticket.materialsSummary,
-          specialInstructions: result.ticket.specialInstructions,
-          priority: result.ticket.priority,
+          ticketId: t?.ticketId || c?.ticketId,
+          jobName: t?.jobName ?? c?.jobName,
+          jobAddress: t?.jobAddress ?? c?.jobAddress,
+          city: t?.city ?? c?.city,
+          state: t?.state ?? c?.state,
+          zip: t?.zip ?? '',
+          customerName: t?.customerName ?? c?.customerName,
+          scheduledDate: t?.scheduledDate ?? c?.scheduledDate ?? null,
+          scheduledTime: t?.scheduledTime ?? null,
+          driverName: t?.assignedDriverName ?? c?.assignedToName ?? null,
+          materialsSummary: t?.materialsSummary ?? (c ? materialsSummaryOf(c) : ''),
+          specialInstructions: t?.specialInstructions ?? c?.notes,
+          priority: t?.priority ?? null,
         },
-        status: result.statusStage,
-        eta: result.eta ? {
+        status: result?.statusStage ?? customerStage(c?.status),
+        eta: result?.eta ? {
           estimatedArrival: result.eta.estimatedArrival,
           estimatedMinutesAway: result.eta.estimatedMinutesAway,
           stopNumber: result.eta.stopNumber,
           totalStops: result.eta.totalStops,
         } : null,
-        proofPhotos: result.photos,
+        proofPhotos: result?.photos ?? [],
         timestamps: {
-          departedAt: result.ticket.departedAt || null,
-          arrivedAt: result.ticket.arrivedAt || null,
-          deliveredAt: result.ticket.deliveredAt || null,
+          departedAt: t?.departedAt || null,
+          arrivedAt: t?.arrivedAt || null,
+          deliveredAt: t?.deliveredAt || (c?.status === 'completed' ? c?.completedAt : null) || null,
         },
       });
     }
@@ -138,17 +168,20 @@ export async function GET(request: NextRequest) {
 
       const lookupValue = customerPhone || token;
 
-      // Get all non-completed tickets
-      const allTickets = await deliveryWorkflowService.getTickets();
+      // Get all active deliveries from the CANONICAL Tickets tab (600+ rows),
+      // not the near-empty legacy sheet. Phone-matched, non-terminal only.
+      const normalizePhone = (p: string) => (p || '').replace(/\D/g, '').slice(-10);
+      const TERMINAL = new Set(['completed', 'cancelled', 'voided', 'delivered']);
+      const allTickets = await ticketSheetService.getAll();
       const customerTickets = allTickets.filter(t => {
+        if (t.ticketType !== 'delivery') return false;
+        if (TERMINAL.has(t.status)) return false;
         if (customerPhone) {
-          // Match by phone (strip non-digits for comparison)
-          const normalizePhone = (p: string) => p.replace(/\D/g, '').slice(-10);
-          return normalizePhone(t.customerPhone) === normalizePhone(customerPhone);
+          return normalizePhone(t.customerPhone || '') === normalizePhone(customerPhone);
         }
         // Token-based lookup would match by customer email or access token
         return false;
-      }).filter(t => !['completed', 'cancelled'].includes(t.status));
+      });
 
       if (customerTickets.length === 0) {
         return NextResponse.json({
@@ -159,21 +192,22 @@ export async function GET(request: NextRequest) {
       }
 
       const deliveries = await Promise.all(
-        customerTickets.map(async (ticket) => {
-          const result = await deliveryReminderService.getCustomerDeliveryStatus(ticket.ticketId);
-          if (!result) return null;
-
+        customerTickets.map(async (c) => {
+          // Enrichment-first (ETA), falling back to the canonical ticket.
+          let result: Awaited<ReturnType<typeof deliveryReminderService.getCustomerDeliveryStatus>> | null = null;
+          try { result = await deliveryReminderService.getCustomerDeliveryStatus(c.ticketId); } catch { result = null; }
+          const t = result?.ticket;
           return {
-            ticketId: result.ticket.ticketId,
-            jobName: result.ticket.jobName,
-            jobAddress: result.ticket.jobAddress,
-            city: result.ticket.city,
-            scheduledDate: result.ticket.scheduledDate,
-            scheduledTime: result.ticket.scheduledTime,
-            driverName: result.ticket.assignedDriverName || null,
-            materialsSummary: result.ticket.materialsSummary,
-            status: result.statusStage,
-            eta: result.eta ? {
+            ticketId: c.ticketId,
+            jobName: t?.jobName ?? c.jobName,
+            jobAddress: t?.jobAddress ?? c.jobAddress,
+            city: t?.city ?? c.city,
+            scheduledDate: t?.scheduledDate ?? c.scheduledDate ?? null,
+            scheduledTime: t?.scheduledTime ?? null,
+            driverName: t?.assignedDriverName ?? c.assignedToName ?? null,
+            materialsSummary: t?.materialsSummary ?? materialsSummaryOf(c),
+            status: result?.statusStage ?? customerStage(c.status),
+            eta: result?.eta ? {
               estimatedArrival: result.eta.estimatedArrival,
               estimatedMinutesAway: result.eta.estimatedMinutesAway,
             } : null,

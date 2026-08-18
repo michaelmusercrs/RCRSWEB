@@ -500,6 +500,18 @@ export async function POST(request: NextRequest) {
           data.scheduledTime
         );
         const assignSynced = await syncTicketsTabStatus(data.ticketId, 'assigned');
+        // Also mirror the driver assignment onto the Tickets tab so the
+        // delivery-route view (which reads canonical assignedTo/assignedToName)
+        // groups this ticket under the driver instead of "Unassigned".
+        try {
+          await ticketSheetService.patch(data.ticketId, {
+            assignedTo: data.driverId || '',
+            assignedToName: data.driverName || '',
+            ...(data.scheduledDate ? { scheduledDate: data.scheduledDate, scheduleSource: 'office' } : {}),
+          });
+        } catch (e) {
+          console.warn('[tickets] assign-driver: failed to mirror driver to Tickets tab:', e);
+        }
         return NextResponse.json({ success: true, ticket, boardSynced: assignSynced });
       }
 

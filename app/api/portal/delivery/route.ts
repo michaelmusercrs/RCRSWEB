@@ -3,6 +3,29 @@ import { requireAuth } from '@/lib/auth-service';
 import { auditLog } from '@/lib/audit-logger';
 import { orderWorkflowService } from '@/lib/order-workflow-service';
 import { deliveryWorkflowService } from '@/lib/delivery-workflow-service';
+import { ticketSheetService } from '@/lib/ticket-sheet-service';
+import { activeDeliveries, ticketsForRouteDate, chicagoToday } from '@/lib/ticket-board-buckets';
+
+export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
+export const runtime = 'nodejs';
+
+// Best-effort mirror of a delivery status change onto the canonical Tickets
+// tab (the store the warehouse board + driver views read). Returns false on a
+// swallowed Sheets failure so the caller can 502 instead of stranding the
+// ticket (the "delivered-but-never-clears" zombie bug came from silent legacy-
+// only writes). Mirrors syncTicketsTabStatus in app/api/portal/tickets/route.ts.
+async function mirrorStatusToTicketsTab(
+  ticketId: string,
+  status: import('@/lib/ticket-sheet-service').TicketStatus,
+): Promise<boolean> {
+  try {
+    return await ticketSheetService.updateStatus(ticketId, status);
+  } catch (err) {
+    console.warn(`[portal/delivery] Failed to mirror status '${status}' to Tickets tab:`, err);
+    return false;
+  }
+}
 
 // GET - Fetch routes or delivery information
 export async function GET(request: NextRequest) {
@@ -40,45 +63,48 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Get all deliveries for the date
-    let tickets: any[] = [];
+    // Get all deliveries for the date from the CANONICAL Tickets tab (the same
+    // 600+-row store the warehouse board reads) — NOT the near-empty legacy
+    // Delivery Tickets sheet that deliveryWorkflowService reads (~20 orphaned
+    // rows), which was why this view showed almost nothing. Active deliveries
+    // only, so delivered/completed jobs drop off the schedule automatically.
+    let tickets;
     try {
-      tickets = await deliveryWorkflowService.getTickets({
-        date,
-        ticketType: 'delivery',
-      });
+      tickets = await ticketSheetService.getAll();
     } catch (ticketError) {
       console.error('Error fetching delivery tickets:', ticketError);
       return NextResponse.json({ routes: [] });
     }
+    const todayYmd = chicagoToday();
+    const active = activeDeliveries(tickets);
+    const forDate = ticketsForRouteDate(active, date, todayYmd);
 
-    // Group by driver for route view
-    const driverRoutes = new Map<string, any[]>();
-    for (const ticket of tickets) {
-      const driverId = ticket.assignedDriver || 'unassigned';
-      if (!driverRoutes.has(driverId)) {
-        driverRoutes.set(driverId, []);
-      }
+    // Group by assigned driver (Tickets-tab fields: assignedTo/assignedToName).
+    const driverRoutes = new Map<string, typeof forDate>();
+    for (const ticket of forDate) {
+      const driverId = ticket.assignedTo || 'unassigned';
+      if (!driverRoutes.has(driverId)) driverRoutes.set(driverId, []);
       driverRoutes.get(driverId)!.push(ticket);
     }
 
     const routes = Array.from(driverRoutes.entries()).map(([driverId, deliveries]) => {
-      const driver = deliveries[0]?.assignedDriverName || 'Unassigned';
-      const completedCount = deliveries.filter((d: any) =>
-        ['delivered', 'completed'].includes(d.status)
-      ).length;
+      const driver = deliveries[0]?.assignedToName || 'Unassigned';
+      // In the active set 'arrived' is the closest-to-done state; delivered/
+      // completed have already dropped off. Count those as progress.
+      const doneCount = deliveries.filter(d => d.status === 'arrived').length;
 
       return {
         routeId: `RT-${date.replace(/-/g, '')}-${driverId.slice(0, 4).toUpperCase()}`,
         date,
         driverId,
         driverName: driver,
-        vehicle: deliveries[0]?.assignedVehicle || 'TBD',
-        status: completedCount === deliveries.length ? 'completed' :
-                completedCount > 0 ? 'in_progress' : 'planned',
+        vehicle: 'TBD', // vehicle assignment not tracked on the Tickets tab yet
+        status: deliveries.some(d => ['en_route', 'arrived'].includes(d.status))
+          ? 'in_progress'
+          : 'planned',
         totalStops: deliveries.length,
-        completedStops: completedCount,
-        stops: deliveries.map((d: any, idx: number) => ({
+        completedStops: doneCount,
+        stops: deliveries.map((d, idx) => ({
           sequence: idx + 1,
           orderId: d.ticketId,
           jobName: d.jobName,
@@ -87,14 +113,14 @@ export async function GET(request: NextRequest) {
           address: d.jobAddress,
           city: d.city,
           state: d.state,
-          zip: d.zip,
-          scheduledTime: d.scheduledTime,
-          priority: d.priority,
-          status: d.status === 'delivered' || d.status === 'completed' ? 'delivered' :
-                  d.status === 'arrived' ? 'arrived' :
+          zip: '', // not tracked on the Tickets tab
+          scheduledDate: d.scheduledDate || null,
+          overdue: Boolean(d.scheduledDate && d.scheduledDate < todayYmd),
+          priority: undefined,
+          status: d.status === 'arrived' ? 'arrived' :
                   d.status === 'en_route' ? 'in_progress' : 'pending',
           itemCount: d.materials?.length || 0,
-          specialInstructions: d.specialInstructions,
+          specialInstructions: d.notes,
           inspectorRequired: false,
         })),
       };
@@ -139,21 +165,34 @@ export async function POST(request: NextRequest) {
 
       case 'start_delivery': {
         const { ticketId } = data;
-        const ticket = await deliveryWorkflowService.startDelivery(ticketId);
+        // Canonical Tickets tab FIRST — 502 if it fails so the caller retries
+        // instead of the board silently missing the change.
+        if (!(await mirrorStatusToTicketsTab(ticketId, 'en_route'))) {
+          return NextResponse.json({ error: 'Board update failed — tap again' }, { status: 502 });
+        }
+        let ticket: unknown = { success: true };
+        try { ticket = await deliveryWorkflowService.startDelivery(ticketId); } catch (e) { console.warn('[portal/delivery] legacy startDelivery failed (non-fatal):', e); }
         auditLog('DELIVERY_START', auth.user.email, `Started delivery ${ticketId}`, request);
         return NextResponse.json(ticket);
       }
 
       case 'arrive': {
         const { ticketId, gpsLocation } = data;
-        const ticket = await deliveryWorkflowService.markArrived(ticketId, gpsLocation);
+        if (!(await mirrorStatusToTicketsTab(ticketId, 'arrived'))) {
+          return NextResponse.json({ error: 'Board update failed — tap again' }, { status: 502 });
+        }
+        let ticket: unknown = { success: true };
+        try { ticket = await deliveryWorkflowService.markArrived(ticketId, gpsLocation); } catch (e) { console.warn('[portal/delivery] legacy markArrived failed (non-fatal):', e); }
         auditLog('DELIVERY_ARRIVE', auth.user.email, `Arrived at delivery ${ticketId}`, request);
         return NextResponse.json(ticket);
       }
 
       case 'complete_delivery': {
         const { ticketId, notes } = data;
-        await deliveryWorkflowService.completeDelivery(ticketId, notes);
+        if (!(await mirrorStatusToTicketsTab(ticketId, 'delivered'))) {
+          return NextResponse.json({ error: 'Board update failed — tap again' }, { status: 502 });
+        }
+        try { await deliveryWorkflowService.completeDelivery(ticketId, notes); } catch (e) { console.warn('[portal/delivery] legacy completeDelivery failed (non-fatal):', e); }
         auditLog('DELIVERY_COMPLETE', auth.user.email, `Completed delivery ${ticketId}${notes ? ': ' + notes : ''}`, request);
         return NextResponse.json({ success: true });
       }
@@ -217,22 +256,40 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Ticket ID required' }, { status: 400 });
     }
 
-    switch (status) {
-      case 'en_route':
-        await deliveryWorkflowService.startDelivery(ticketId);
-        break;
-      case 'arrived':
-        await deliveryWorkflowService.markArrived(ticketId, updates.gpsLocation);
-        break;
-      case 'delivered':
-        await deliveryWorkflowService.completeDelivery(ticketId, updates.notes);
-        break;
-      case 'proof_captured':
-        await deliveryWorkflowService.captureProof(ticketId);
-        break;
-      case 'completed':
-        await deliveryWorkflowService.completeTicket(ticketId);
-        break;
+    // Mirror to the canonical Tickets tab FIRST for statuses it tracks; 502 on
+    // failure so the board can't silently miss the change. proof_captured has
+    // no canonical equivalent, so it only touches the legacy enrichment store.
+    const canonicalStatus: Record<string, import('@/lib/ticket-sheet-service').TicketStatus> = {
+      en_route: 'en_route', arrived: 'arrived', delivered: 'delivered', completed: 'completed',
+    };
+    if (canonicalStatus[status]) {
+      if (!(await mirrorStatusToTicketsTab(ticketId, canonicalStatus[status]))) {
+        return NextResponse.json({ error: 'Board update failed — try again' }, { status: 502 });
+      }
+    }
+
+    try {
+      switch (status) {
+        case 'en_route':
+          await deliveryWorkflowService.startDelivery(ticketId);
+          break;
+        case 'arrived':
+          await deliveryWorkflowService.markArrived(ticketId, updates.gpsLocation);
+          break;
+        case 'delivered':
+          await deliveryWorkflowService.completeDelivery(ticketId, updates.notes);
+          break;
+        case 'proof_captured':
+          await deliveryWorkflowService.captureProof(ticketId);
+          break;
+        case 'completed':
+          await deliveryWorkflowService.completeTicket(ticketId);
+          break;
+      }
+    } catch (e) {
+      // Legacy enrichment store is best-effort; the canonical write already
+      // succeeded above, so don't fail the request on a legacy-sheet miss.
+      console.warn('[portal/delivery] legacy PATCH status write failed (non-fatal):', e);
     }
 
     auditLog('DELIVERY_STATUS', auth.user.email, `Delivery ${ticketId} status changed to ${status}`, request);
