@@ -39,8 +39,14 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // Manual runs (admin session) may pass ?lookbackDays=N&quiet=1 for a one-time
+  // backlog sweep. The scheduled Vercel call passes neither → normal behavior.
+  const lookbackParam = request.nextUrl.searchParams.get('lookbackDays');
+  const quiet = request.nextUrl.searchParams.get('quiet') === '1';
+  const lookbackDays = lookbackParam ? Math.min(60, Math.max(1, parseInt(lookbackParam, 10) || 0)) : undefined;
+
   return withCronLock('gaf-report-sync', { staleMinutes: 20 }, async () => {
-    const result = await processGafReports();
+    const result = await processGafReports({ lookbackDays, quiet });
     return NextResponse.json({ success: true, ...result });
   });
 }

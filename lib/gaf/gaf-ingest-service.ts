@@ -70,7 +70,14 @@ export interface IngestResult {
   message?: string;
 }
 
-export async function processGafReports(): Promise<IngestResult> {
+export interface IngestOptions {
+  /** Override the inbox lookback window (for a one-time backlog sweep). */
+  lookbackDays?: number;
+  /** Backlog mode: attach + note only, send NO rep/office emails. */
+  quiet?: boolean;
+}
+
+export async function processGafReports(opts: IngestOptions = {}): Promise<IngestResult> {
   const res: IngestResult = {
     configured: true, discovered: 0, attached: 0, verified: 0,
     repNoMatch: 0, escalated: 0, errors: 0, processed: 0,
@@ -82,7 +89,8 @@ export async function processGafReports(): Promise<IngestResult> {
 
   // ── 1. INGEST ──────────────────────────────────────────────────────────────
   try {
-    const query = `from:services@gaf.com subject:"GAF QuickMeasure" has:attachment newer_than:${LOOKBACK_DAYS}d`;
+    const lookback = opts.lookbackDays ?? LOOKBACK_DAYS;
+    const query = `from:services@gaf.com subject:"GAF QuickMeasure" has:attachment newer_than:${lookback}d`;
     const ids = await listMessageIds(query, 50);
     const existing = new Set((await getAllReports()).map(r => r.orderNumber));
     for (const id of ids) {
@@ -162,7 +170,7 @@ export async function processGafReports(): Promise<IngestResult> {
   for (const r of due) {
     res.processed++;
     try {
-      await processOne(r, resolveCandidates, res);
+      await processOne(r, resolveCandidates, res, opts);
     } catch (err) {
       res.errors++;
       const msg = err instanceof Error ? err.message : String(err);
@@ -179,6 +187,7 @@ async function processOne(
   r: QueueRecord,
   resolveCandidates: (address: string) => Promise<JobLike[]>,
   res: IngestResult,
+  opts: IngestOptions,
 ): Promise<void> {
   const nowIso = new Date().toISOString();
 
@@ -235,7 +244,7 @@ async function processOne(
 
     // First miss → notify the rep once.
     let repNotified = r.repNotifiedNoMatch;
-    if (!repNotified && r.repEmail) {
+    if (!opts.quiet && !repNotified && r.repEmail) {
       const sent = await sendRepNoMatch({ repEmail: r.repEmail, repName: r.repName, address: r.address, orderNumber: r.orderNumber });
       if (sent.success) { repNotified = true; res.repNoMatch++; }
       await logIngest({ orderNumber: r.orderNumber, address: r.address, status: 'rep_notified_no_match', mechanism: 'email', detail: sent.success ? r.repEmail : (sent.error || 'send failed') });
@@ -244,7 +253,7 @@ async function processOne(
     // After the ~60-min window still nothing → escalate to office once.
     let escalated = r.officeEscalated;
     let status: ReportStatus = 'unmatched';
-    if (elapsedMin >= 58 && !escalated) {
+    if (!opts.quiet && elapsedMin >= 58 && !escalated) {
       const sent = await sendOfficeEscalation({ address: r.address, orderNumber: r.orderNumber, repName: r.repName, repEmail: r.repEmail });
       if (sent.success) { escalated = true; res.escalated++; }
       status = 'escalated';
@@ -306,7 +315,8 @@ async function processOne(
       if (!r.xmlKeysLogged) {
         await logIngest({ orderNumber: r.orderNumber, address: r.address, status: 'xml_keys', detail: parsed.rawKeys.join(',') });
       }
-      const summary = buildMaterialSummary(measurements);
+      const pa = parseAddress(r.address);
+      const summary = buildMaterialSummary(measurements, { city: pa.city, zip: pa.zip });
       summaryForEmail = summary;
       squares = measurements.squares != null ? measurements.squares.toFixed(1) : '';
       noteText = renderSummaryText(r.address, r.orderNumber, measurements, summary);
@@ -339,7 +349,7 @@ async function processOne(
   }
 
   // Email the rep the summary (they already have the report itself).
-  if (r.repEmail && summaryForEmail) {
+  if (!opts.quiet && r.repEmail && summaryForEmail) {
     const sent = await sendRepSummary({
       repEmail: r.repEmail, repName: r.repName, address: r.address,
       orderNumber: r.orderNumber, measurements, summary: summaryForEmail,

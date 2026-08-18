@@ -51,23 +51,35 @@ it never breaks other crons.
 The three email templates (`gaf-report-summary`, `gaf-no-match-rep`,
 `gaf-office-escalation`) are **internal** — not gated by `CUSTOMER_EMAIL_ENABLED`.
 
-## Coverage numbers — CONFIRM BEFORE TRUSTING ORDERS
+## Coverage numbers — from the official handbook cheat sheet
 
-The material cheat-sheet math lives in `lib/gaf/coverage-config.ts`. Confirmed
-values: synthetic underlayment 10 sq/roll, coil nails 17 sq/box, cap nails
-30 sq/bucket, I&W 2 sq (67 LF)/roll, hip & ridge cap 30 LF/bundle, ridge vent
-4 LF/stick, shingles 3 bundles/sq.
+The material math in `lib/gaf/coverage-config.ts` uses the AUTHORITATIVE RCRS
+"Material Order Cheat Sheet" (SALES REP HANDBOOK, Drive id
+`1Vbk9TBlggz4N3ORh-obi522e10pFXLf3`):
 
-**Still using unconfirmed defaults (flagged `(est)` in every summary):**
-- Starter strip — **120 LF/bundle** (GAF Pro-Start default)
-- Drip edge — **10 ft/stick**
-- Waste factor — **10%**
-- Ice & Water applied to — **eaves + valleys**
-- Starter applied to — **eaves only**
-- Ridge vent — **advisory only** (not auto-quantified)
+| Material | Coverage |
+|----------|----------|
+| Architectural shingles | 3 bundles / square |
+| Synthetic underlayment | 10 sq / roll |
+| Coil nails (1¼") | 16 sq / box |
+| Button/cap nails | 35 sq/bucket flat · 25 sq/bucket steep (≥7/12) |
+| Ice & Water (Stormguard) | 60 LF / roll |
+| Hip & Ridge cap (IKO) | 33 LF / bundle (OC DuraRidge alt 20) |
+| Starter shingles | 100 LF / bundle |
+| Ridge vent | 4 LF / piece (advisory, not auto-ordered) |
+| Drip edge | 10' sticks, ~9.5 LF usable / stick |
 
-Edit `COVERAGE` / `CALC_RULES` in that one file to finalize. Every `(est)` line
-is visibly flagged so nobody orders off an unconfirmed number.
+**Placement rules (Michael 2026-08-18):**
+- Starter → all eaves **+ rakes**. Drip edge → full perimeter (eaves + rakes).
+- Ice & Water → every job: valleys + walls + chimneys + penetrations. In
+  **Madison County / Madison / Huntsville** (+ code areas) also the **full
+  perimeter** (eaves + rakes). Code areas set by city/zip:
+  `GAF_ICE_WATER_CODE_CITIES` (default `huntsville,madison`) +
+  `GAF_ICE_WATER_CODE_ZIP_PREFIXES` (default `357,358`).
+
+**Still `(est)`-flagged (only unconfirmed value):** shingle **waste factor 10%**.
+Walls/chimneys/penetrations I&W footage is surfaced as an advisory (not in the
+measurement report — add field-measured LF).
 
 ## Verifying the XML schema
 

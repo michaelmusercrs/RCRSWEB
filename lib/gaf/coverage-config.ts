@@ -1,74 +1,96 @@
 /**
  * GAF QuickMeasure → Material Cheat-Sheet coverage config + calculator.
  *
- * The coverage numbers below drive the auto-generated material order summary
- * that gets attached to each JN job and emailed to the rep. They come from
- * RCRS's real inventory catalog (data/inventory-products.json) + Michael's
- * stated numbers. Items marked `needsConfirm: true` use an industry-standard
- * default that Michael still needs to confirm — the summary flags every such
- * line with a ⚠ so nobody orders off an unconfirmed number by accident.
+ * Numbers are the AUTHORITATIVE RCRS values from the official "Material Order
+ * Cheat Sheet" in the SALES REP HANDBOOK (Google Drive,
+ * id 1Vbk9TBlggz4N3ORh-obi522e10pFXLf3), reconciled with Michael's rules
+ * (2026-08-18). Edit COVERAGE + CALC_RULES here to tune — one file.
  *
- * TO TUNE: edit COVERAGE + CALC_RULES here. One file, no code changes needed.
+ * Handbook conversions used:
+ *   Arch shingle ........ 3 BDL = 1 SQ (100 sq ft)
+ *   Synthetic Felt ...... 1 RL = 10 SQ
+ *   Coil Nails 1¼" ...... 1 BX = 16 SQ
+ *   Button Caps ......... Flat 1 BKT = 35 SQ, Steep 1 BKT = 25 SQ (pitch-dependent)
+ *   Stormguard I&W ...... 1 RL = 60 LF (200 sq ft = 2 SQ)
+ *   IKO Hip & Ridge ..... 1 BDL = 33 LF  (OC DuraRidge alt = 20 LF/BDL)
+ *   Starter Shingles .... 1 BDL = 100 LF
+ *   Ridge Vent .......... 1 PC = 4 LF
+ *   Drip Edge ........... 10' sticks, figure ~9.5 LF usable per stick
  *
- * Sources:
- *   - Synthetic underlayment 10 sq/roll .......... confirmed (Michael 2026-08-18)
- *   - Coil nails 15–18 sq/box (using 17) ......... catalog + Michael's example
- *   - Ice & Water 2 sq (67 LF)/roll .............. catalog
- *   - Cap/button nails ~30 sq/bucket ............. catalog "25–35 by pitch"
- *   - Hip & Ridge cap 30 LF/bundle ............... Michael's example
- *   - Ridge vent 4 LF/stick ...................... catalog (INV Ridge Vent 4LF)
- *   - Architectural shingles 3 bundles/sq ........ training content
- *   - Starter 120 LF/bundle ...................... ⚠ default (GAF Pro-Start) — confirm
- *   - Drip edge 10 ft/stick ...................... ⚠ default — confirm length/profile
+ * Michael's placement rules (2026-08-18):
+ *   - Starter goes on ALL eaves AND rakes.
+ *   - Drip edge goes on ALL perimeters (eaves + rakes).
+ *   - Ice & Water: on EVERY job in valleys + along walls + chimneys +
+ *     penetrations (pipe boots, gas vents). In Madison County / Madison City /
+ *     Huntsville (and a few other code areas) code also requires I&W around the
+ *     ENTIRE perimeter (eaves + rakes) — so those add the full perimeter.
  */
 
 export interface CoverageItem {
-  /** Display name on the cheat-sheet. */
   name: string;
-  /** Unit ordered in (roll, box, bundle, bucket, stick). */
   unit: string;
-  /** How much one unit covers. */
   per: number;
-  /** What `per` is measured in: 'sq' (squares) or 'lf' (linear feet). */
   basis: 'sq' | 'lf';
-  /** True when `per` is an unconfirmed industry default — flagged in output. */
   needsConfirm?: boolean;
 }
 
 export const COVERAGE = {
-  shingles:      { name: 'Architectural shingles', unit: 'bundle', per: 1 / 3, basis: 'sq' as const }, // 3 bundles / square
-  underlayment:  { name: 'Synthetic underlayment', unit: 'roll',   per: 10,    basis: 'sq' as const },
-  coilNails:     { name: 'Coil roofing nails (1¼\" EG)', unit: 'box', per: 17,  basis: 'sq' as const },
-  capNails:      { name: 'Cap / button nails',     unit: 'bucket', per: 30,    basis: 'sq' as const },
-  iceWater:      { name: 'Ice & Water shield',     unit: 'roll',   per: 67,    basis: 'lf' as const }, // 67 LF / roll
-  hipRidgeCap:   { name: 'Hip & Ridge cap',        unit: 'bundle', per: 30,    basis: 'lf' as const },
-  ridgeVent:     { name: 'Ridge vent',             unit: 'stick',  per: 4,     basis: 'lf' as const },
-  starter:       { name: 'Starter strip',          unit: 'bundle', per: 120,   basis: 'lf' as const, needsConfirm: true },
-  dripEdge:      { name: 'Drip edge',              unit: 'stick',  per: 10,    basis: 'lf' as const, needsConfirm: true },
+  shingles:     { name: 'Architectural shingles', unit: 'bundle', per: 1 / 3, basis: 'sq' as const }, // 3 bundles / square
+  underlayment: { name: 'Synthetic underlayment', unit: 'roll',   per: 10,    basis: 'sq' as const },
+  coilNails:    { name: 'Coil nails (1¼\")',       unit: 'box',    per: 16,    basis: 'sq' as const },
+  iceWater:     { name: 'Ice & Water (Stormguard)', unit: 'roll',  per: 60,    basis: 'lf' as const },
+  hipRidgeCap:  { name: 'Hip & Ridge cap (IKO)',   unit: 'bundle', per: 33,    basis: 'lf' as const },
+  ridgeVent:    { name: 'Ridge vent',              unit: 'piece',  per: 4,     basis: 'lf' as const },
+  starter:      { name: 'Starter shingles',        unit: 'bundle', per: 100,   basis: 'lf' as const },
+  dripEdge:     { name: 'Drip edge',               unit: 'stick',  per: 9.5,   basis: 'lf' as const },
 } satisfies Record<string, CoverageItem>;
 
-/**
- * Calc rules Michael still needs to confirm (the 4 questions from 2026-08-18).
- * Defaults chosen to be reasonable and clearly surfaced in the summary.
- */
-export const CALC_RULES = {
-  /** Waste factor added to shingle squares. 0.10 = 10%. */
-  wasteFactor: 0.10,
-  /** Where Ice & Water is applied → which LF feed the roll count. */
-  iceWaterApplyTo: 'eaves+valleys' as 'eaves' | 'eaves+valleys' | 'whole-roof',
-  /** Starter placement → which LF feed the starter bundle count. */
-  starterApplyTo: 'eaves' as 'eaves' | 'eaves+rakes',
-  /**
-   * Ridge vent is a per-job call (not every ridge is vented). When false we
-   * do NOT auto-quantify it — we just surface the ridge LF and the "if fully
-   * vented" count as an advisory line so the rep/PM decides.
-   */
-  autoQuantifyRidgeVent: false,
-  /** All defaults above are pending Michael's confirmation. */
-  needsConfirm: true,
+/** Button caps are pitch-dependent (flat vs steep). */
+export const CAP_NAILS = {
+  name: 'Button / cap nails',
+  unit: 'bucket',
+  flatPer: 35, // sq per bucket, low slope
+  steepPer: 25, // sq per bucket, steep slope
+  /** Pitch (rise/12) at or above which we treat the roof as "steep". */
+  steepThreshold: 7,
 };
 
-/** Structured measurements pulled from the QuickMeasure XML (all optional). */
+export const CALC_RULES = {
+  /** Waste factor added to shingle squares. 0.10 = 10%. (Still confirm w/ Michael.) */
+  wasteFactor: 0.10,
+  wasteNeedsConfirm: true,
+  /** Starter on eaves + rakes (Michael 2026-08-18). */
+  starterApplyTo: 'eaves+rakes' as 'eaves' | 'eaves+rakes',
+  /** Drip edge on the full perimeter (eaves + rakes). */
+  dripEdgeApplyTo: 'eaves+rakes' as 'eaves' | 'eaves+rakes',
+  /** Ridge vent stays advisory (per-job ventilation call). */
+  autoQuantifyRidgeVent: false,
+};
+
+/**
+ * Areas where code requires Ice & Water around the ENTIRE perimeter (not just
+ * valleys/walls/penetrations). Matched against the report's city (normalized,
+ * lowercase) or zip prefix. Override/extend via GAF_ICE_WATER_CODE_CITIES (csv
+ * of city substrings) and GAF_ICE_WATER_CODE_ZIP_PREFIXES (csv).
+ */
+export function iceWaterCodeCities(): string[] {
+  const raw = process.env.GAF_ICE_WATER_CODE_CITIES || 'huntsville,madison';
+  return raw.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+}
+export function iceWaterCodeZipPrefixes(): string[] {
+  // 357xx (Madison/Madison Co. west) + 358xx (Huntsville / Madison Co.).
+  const raw = process.env.GAF_ICE_WATER_CODE_ZIP_PREFIXES || '357,358';
+  return raw.split(',').map(s => s.trim()).filter(Boolean);
+}
+
+export function isIceWaterCodeArea(city?: string, zip?: string): boolean {
+  const c = (city || '').toLowerCase();
+  if (c && iceWaterCodeCities().some(k => c.includes(k))) return true;
+  const z = (zip || '').trim();
+  if (z && iceWaterCodeZipPrefixes().some(p => z.startsWith(p))) return true;
+  return false;
+}
+
 export interface Measurements {
   squares?: number;
   roofAreaSqFt?: number;
@@ -86,30 +108,38 @@ export interface MaterialLine {
   name: string;
   qty: number;
   unit: string;
-  /** Human-readable basis, e.g. "22.4 sq ÷ 10 sq/roll". */
   basis: string;
-  /** True when this line rests on an unconfirmed coverage/rule default. */
   estimated: boolean;
 }
 
 export interface MaterialSummary {
   lines: MaterialLine[];
-  /** Advisory lines that are NOT firm order quantities (e.g. ridge vent). */
   advisories: string[];
-  /** Assumptions applied (waste %, I&W placement, etc.) for transparency. */
   assumptions: string[];
-  /** True if any input measurement was missing so counts may be partial. */
   incomplete: boolean;
+}
+
+export interface SummaryContext {
+  city?: string;
+  zip?: string;
 }
 
 const ceil = (n: number) => Math.ceil(Number(n.toFixed(4)));
 
+/** Parse "6/12" | "6:12" | "6" → 6 (rise per 12). undefined if unknown. */
+function pitchRise(p?: string): number | undefined {
+  if (!p) return undefined;
+  const m = p.match(/(\d+(?:\.\d+)?)\s*[\/:]\s*12/) || p.match(/^(\d+(?:\.\d+)?)$/);
+  return m ? parseFloat(m[1]) : undefined;
+}
+
 /**
  * Turn QuickMeasure measurements into a material order cheat-sheet using the
- * coverage config above. Deterministic — no AI, instant, and every number is
- * traceable to a measurement ÷ a coverage constant.
+ * handbook coverage numbers. Deterministic — every number traces to a
+ * measurement ÷ a coverage constant. `ctx` (city/zip) drives the Ice & Water
+ * code-area rule.
  */
-export function buildMaterialSummary(m: Measurements): MaterialSummary {
+export function buildMaterialSummary(m: Measurements, ctx: SummaryContext = {}): MaterialSummary {
   const lines: MaterialLine[] = [];
   const advisories: string[] = [];
   const assumptions: string[] = [];
@@ -122,29 +152,15 @@ export function buildMaterialSummary(m: Measurements): MaterialSummary {
   const ridge = m.ridgeLengthFt;
   const hip = m.hipLengthFt;
 
-  const push = (
-    item: CoverageItem,
-    input: number | undefined,
-    qtyPerUnit: number,
-    basisLabel: string,
-    extraEstimated = false,
-  ) => {
+  const push = (item: CoverageItem, input: number | undefined, basisLabel: string) => {
     if (input == null || !Number.isFinite(input)) { incomplete = true; return; }
-    const qty = ceil(input / qtyPerUnit);
-    lines.push({
-      name: item.name,
-      qty,
-      unit: item.unit,
-      basis: basisLabel,
-      estimated: !!item.needsConfirm || extraEstimated,
-    });
+    lines.push({ name: item.name, qty: ceil(input / item.per), unit: item.unit, basis: basisLabel, estimated: !!item.needsConfirm });
   };
 
-  // ── Field / area items (squares-based) ────────────────────────────────────
+  // ── Area items (squares-based) ────────────────────────────────────────────
   if (squares != null) {
     const wasteSquares = squares * (1 + CALC_RULES.wasteFactor);
-    assumptions.push(`Waste factor: ${Math.round(CALC_RULES.wasteFactor * 100)}% (on shingles)`);
-    // Shingles: 3 bundles/sq × squares(+waste)
+    assumptions.push(`Waste factor: ${Math.round(CALC_RULES.wasteFactor * 100)}% on shingles${CALC_RULES.wasteNeedsConfirm ? ' (confirm)' : ''}`);
     lines.push({
       name: COVERAGE.shingles.name,
       qty: ceil(wasteSquares * 3),
@@ -152,70 +168,85 @@ export function buildMaterialSummary(m: Measurements): MaterialSummary {
       basis: `${wasteSquares.toFixed(1)} sq × 3 bundles/sq`,
       estimated: false,
     });
-    push(COVERAGE.underlayment, squares, COVERAGE.underlayment.per, `${squares.toFixed(1)} sq ÷ ${COVERAGE.underlayment.per} sq/roll`);
-    push(COVERAGE.coilNails, squares, COVERAGE.coilNails.per, `${squares.toFixed(1)} sq ÷ ${COVERAGE.coilNails.per} sq/box`);
-    push(COVERAGE.capNails, squares, COVERAGE.capNails.per, `${squares.toFixed(1)} sq ÷ ${COVERAGE.capNails.per} sq/bucket`);
+    push(COVERAGE.underlayment, squares, `${squares.toFixed(1)} sq ÷ ${COVERAGE.underlayment.per} sq/roll`);
+    push(COVERAGE.coilNails, squares, `${squares.toFixed(1)} sq ÷ ${COVERAGE.coilNails.per} sq/box`);
+
+    // Button caps — pitch-dependent (flat 35 / steep 25).
+    const rise = pitchRise(m.predominantPitch);
+    const steep = rise == null ? true : rise >= CAP_NAILS.steepThreshold; // unknown → assume steep (order more)
+    const per = steep ? CAP_NAILS.steepPer : CAP_NAILS.flatPer;
+    lines.push({
+      name: CAP_NAILS.name,
+      qty: ceil(squares / per),
+      unit: CAP_NAILS.unit,
+      basis: `${squares.toFixed(1)} sq ÷ ${per} sq/bucket (${steep ? 'steep' : 'flat'}${rise == null ? ', pitch unknown → assumed steep' : ` ${rise}/12`})`,
+      estimated: rise == null,
+    });
   } else {
     incomplete = true;
   }
 
-  // ── Ice & Water (eaves +/- valleys) ───────────────────────────────────────
-  if (eave != null) {
-    let iwLf = eave;
-    let label = `${eave.toFixed(0)} LF eaves`;
-    if (CALC_RULES.iceWaterApplyTo === 'eaves+valleys' && valley != null) {
-      iwLf += valley;
-      label = `${eave.toFixed(0)} LF eaves + ${valley.toFixed(0)} LF valleys`;
+  // ── Ice & Water — valleys always; full perimeter in code areas ────────────
+  const codeArea = isIceWaterCodeArea(ctx.city, ctx.zip);
+  {
+    let iwLf = 0;
+    const parts: string[] = [];
+    if (valley != null) { iwLf += valley; parts.push(`${valley.toFixed(0)} LF valleys`); }
+    if (codeArea) {
+      if (eave != null) { iwLf += eave; parts.push(`${eave.toFixed(0)} LF eaves`); }
+      if (rake != null) { iwLf += rake; parts.push(`${rake.toFixed(0)} LF rakes`); }
     }
-    assumptions.push(`Ice & Water applied to: ${CALC_RULES.iceWaterApplyTo}`);
-    push(COVERAGE.iceWater, iwLf, COVERAGE.iceWater.per, `${label} ÷ ${COVERAGE.iceWater.per} LF/roll`);
-  } else {
-    incomplete = true;
+    if (parts.length) {
+      lines.push({
+        name: COVERAGE.iceWater.name,
+        qty: ceil(iwLf / COVERAGE.iceWater.per),
+        unit: COVERAGE.iceWater.unit,
+        basis: `${parts.join(' + ')} ÷ ${COVERAGE.iceWater.per} LF/roll`,
+        estimated: false,
+      });
+    } else {
+      incomplete = true;
+    }
+    assumptions.push(codeArea
+      ? 'Ice & Water: FULL PERIMETER (code area) + valleys.'
+      : 'Ice & Water: valleys only in the auto-count.');
+    advisories.push('Ice & Water also required along walls, chimneys & penetrations (pipe boots, gas vents) on every job — add that field-measured footage; it is not in the measurement report.');
   }
 
   // ── Hip & Ridge cap (ridge + hip) ─────────────────────────────────────────
   if (ridge != null || hip != null) {
     const capLf = (ridge ?? 0) + (hip ?? 0);
-    push(COVERAGE.hipRidgeCap, capLf, COVERAGE.hipRidgeCap.per,
-      `${(ridge ?? 0).toFixed(0)} LF ridge + ${(hip ?? 0).toFixed(0)} LF hip ÷ ${COVERAGE.hipRidgeCap.per} LF/bundle`);
+    push(COVERAGE.hipRidgeCap, capLf, `${(ridge ?? 0).toFixed(0)} LF ridge + ${(hip ?? 0).toFixed(0)} LF hip ÷ ${COVERAGE.hipRidgeCap.per} LF/bundle`);
   } else {
     incomplete = true;
   }
 
-  // ── Starter (eaves +/- rakes) ─────────────────────────────────────────────
-  if (eave != null) {
-    let starterLf = eave;
-    let label = `${eave.toFixed(0)} LF eaves`;
-    if (CALC_RULES.starterApplyTo === 'eaves+rakes' && rake != null) {
-      starterLf += rake;
-      label = `${eave.toFixed(0)} LF eaves + ${rake.toFixed(0)} LF rakes`;
-    }
-    assumptions.push(`Starter applied to: ${CALC_RULES.starterApplyTo}`);
-    push(COVERAGE.starter, starterLf, COVERAGE.starter.per, `${label} ÷ ${COVERAGE.starter.per} LF/bundle`);
+  // ── Starter (eaves + rakes) ───────────────────────────────────────────────
+  {
+    let sLf = 0; const parts: string[] = [];
+    if (eave != null) { sLf += eave; parts.push(`${eave.toFixed(0)} LF eaves`); }
+    if (CALC_RULES.starterApplyTo === 'eaves+rakes' && rake != null) { sLf += rake; parts.push(`${rake.toFixed(0)} LF rakes`); }
+    if (parts.length) push(COVERAGE.starter, sLf, `${parts.join(' + ')} ÷ ${COVERAGE.starter.per} LF/bundle`);
+    else incomplete = true;
   }
 
   // ── Drip edge (eaves + rakes) ─────────────────────────────────────────────
-  if (eave != null || rake != null) {
-    const dripLf = (eave ?? 0) + (rake ?? 0);
-    push(COVERAGE.dripEdge, dripLf, COVERAGE.dripEdge.per,
-      `${(eave ?? 0).toFixed(0)} LF eaves + ${(rake ?? 0).toFixed(0)} LF rakes ÷ ${COVERAGE.dripEdge.per} ft/stick`);
+  {
+    let dLf = 0; const parts: string[] = [];
+    if (eave != null) { dLf += eave; parts.push(`${eave.toFixed(0)} LF eaves`); }
+    if (rake != null) { dLf += rake; parts.push(`${rake.toFixed(0)} LF rakes`); }
+    if (parts.length) push(COVERAGE.dripEdge, dLf, `${parts.join(' + ')} ÷ ${COVERAGE.dripEdge.per} LF usable/stick`);
+    else incomplete = true;
   }
 
-  // ── Ridge vent (advisory unless auto-quantify enabled) ────────────────────
+  // ── Ridge vent (advisory) ─────────────────────────────────────────────────
   if (ridge != null) {
-    const ventSticks = ceil(ridge / COVERAGE.ridgeVent.per);
+    const ventPcs = ceil(ridge / COVERAGE.ridgeVent.per);
     if (CALC_RULES.autoQuantifyRidgeVent) {
-      lines.push({
-        name: COVERAGE.ridgeVent.name, qty: ventSticks, unit: COVERAGE.ridgeVent.unit,
-        basis: `${ridge.toFixed(0)} LF ridge ÷ ${COVERAGE.ridgeVent.per} LF/stick`, estimated: false,
-      });
+      lines.push({ name: COVERAGE.ridgeVent.name, qty: ventPcs, unit: COVERAGE.ridgeVent.unit, basis: `${ridge.toFixed(0)} LF ridge ÷ ${COVERAGE.ridgeVent.per} LF/pc`, estimated: false });
     } else {
-      advisories.push(`Ridge vent: ${ridge.toFixed(0)} LF of ridge → ${ventSticks} sticks if fully vented (per-job call — not auto-ordered).`);
+      advisories.push(`Ridge vent: ${ridge.toFixed(0)} LF of ridge → ${ventPcs} pieces if fully vented (per-job call — not auto-ordered).`);
     }
-  }
-
-  if (CALC_RULES.needsConfirm) {
-    assumptions.push('⚠ Coverage numbers + calc rules are pending Michael\'s final confirmation.');
   }
 
   return { lines, advisories, assumptions, incomplete };
