@@ -12,6 +12,7 @@ import { normalizeLineItemQty } from '@/lib/normalize-line-item-qty';
 import { filterCostByRole } from '@/lib/cost-visibility';
 import { syncTicketPhotoToJN } from '@/lib/jn-photo-sync';
 import { deriveScheduledDate } from '@/lib/delivery-date-parser';
+import { evaluateMove } from '@/lib/ticket-status-matrix';
 
 // Best-effort mirror of a status change onto the master Tickets tab — the
 // sheet the warehouse dashboard (/api/warehouse/today) reads. Without this,
@@ -513,6 +514,50 @@ export async function POST(request: NextRequest) {
           console.warn('[tickets] assign-driver: failed to mirror driver to Tickets tab:', e);
         }
         return NextResponse.json({ success: true, ticket, boardSynced: assignSynced });
+      }
+
+      case 'set-status': {
+        // Rick's "Fix status" tool — plain status correction with NO inventory
+        // side effects. The safety matrix (lib/ticket-status-matrix) refuses any
+        // move that would change the deduction state; those must go through
+        // verify-load (deduct) or undo-verify-load (restore) instead. So a
+        // mis-click can be fixed without risking a double/skipped deduction.
+        const current = await ticketSheetService.getById(data.ticketId);
+        if (!current) {
+          return NextResponse.json({ success: false, error: 'Ticket not found' }, { status: 404 });
+        }
+        const target = data.status as import('@/lib/ticket-sheet-service').TicketStatus;
+        const verdict = evaluateMove(current.status, target, auth.user.role);
+        if (!verdict.ok) {
+          return NextResponse.json(
+            { success: false, error: verdict.error, hint: verdict.hint },
+            { status: 400 },
+          );
+        }
+        const reason = (data.reason || '').trim();
+        if (verdict.requiresReason && !reason) {
+          return NextResponse.json(
+            { success: false, error: 'A reason is required for this change.', requiresReason: true },
+            { status: 400 },
+          );
+        }
+        const completedAt = target === 'completed' ? new Date().toISOString() : undefined;
+        const ok = await ticketSheetService.updateStatus(data.ticketId, target, completedAt);
+        if (!ok) {
+          return NextResponse.json({ success: false, error: 'Board update failed — try again' }, { status: 502 });
+        }
+        // Append an audit note onto the ticket (this route's audit trail).
+        const stamp = new Date().toISOString().slice(0, 16).replace('T', ' ');
+        const who = auth.user?.name || auth.user?.email || auth.user.role;
+        const note = `[STATUS ${current.status}->${target} by ${who} @ ${stamp}${reason ? `: ${reason}` : ''}]`;
+        try {
+          await ticketSheetService.patch(data.ticketId, {
+            notes: `${current.notes ? current.notes + '\n' : ''}${note}`,
+          });
+        } catch (e) {
+          console.warn('[tickets] set-status: failed to append audit note:', e);
+        }
+        return NextResponse.json({ success: true, status: target, note });
       }
 
       case 'pull-materials': {

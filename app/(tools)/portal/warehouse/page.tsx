@@ -38,6 +38,7 @@ import {
   Search,
 } from 'lucide-react';
 import JobSearchAutocomplete, { type JobSearchHit } from '@/components/JobSearchAutocomplete';
+import { PRE_ZONE, POST_ZONE } from '@/lib/ticket-status-matrix';
 
 interface Ticket {
   ticketId: string;
@@ -112,7 +113,7 @@ interface SuggestedAgent {
 // 'returnMemo' is the merged Return / Credit Memo modal — a STOCK vs OUTSIDE
 // toggle inside it replaces the old separate 'creditMemo' / 'vendorReturn'
 // modals.
-type ModalType = null | 'newTicket' | 'returnMemo' | 'photo' | 'pullList';
+type ModalType = null | 'newTicket' | 'returnMemo' | 'photo' | 'pullList' | 'fixStatus';
 type ReturnMode = 'stock' | 'outside';
 type PhotoMode = 'job_site_before' | 'delivery_proof' | 'job_site_after';
 
@@ -130,6 +131,7 @@ export default function WarehousePage() {
     ticketId?: string;
     jobNumber?: string;
     photoMode?: PhotoMode;
+    current?: string;
   }>({});
   const [submitting, setSubmitting] = useState(false);
   // Pull-checklist: which line-item indices Rick has checked off as pulled.
@@ -406,6 +408,29 @@ export default function WarehousePage() {
       });
       if (res.ok) refresh();
       else alert('Failed to update ticket');
+    } catch (e) {
+      alert(`Error: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  };
+
+  // "Fix status" — plain status correction routed through the server safety
+  // matrix (no inventory side effects). Handles the "reason required" prompt
+  // for backward moves and surfaces the server's hint when a move is refused.
+  const submitFixStatus = async (ticketId: string, target: string, reason?: string) => {
+    try {
+      const res = await fetch('/api/portal/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'set-status', ticketId, status: target, reason: reason || '' }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok) { closeModal(); refresh(); return; }
+      if (json?.requiresReason) {
+        const r = window.prompt('A reason is required for this change:');
+        if (r && r.trim()) return submitFixStatus(ticketId, target, r.trim());
+        return;
+      }
+      alert([json?.error, json?.hint].filter(Boolean).join('\n') || 'Could not change status');
     } catch (e) {
       alert(`Error: ${e instanceof Error ? e.message : String(e)}`);
     }
@@ -904,6 +929,15 @@ export default function WarehousePage() {
                     )}
                   </div>
 
+                  {/* Fix status — mis-click correction; the server safety
+                      matrix blocks anything that would change inventory. */}
+                  <button
+                    onClick={() => openModal('fixStatus', { ticketId: t.ticketId, jobNumber: t.jobNumber, current: t.status })}
+                    className="mt-2 w-full text-xs text-gray-500 hover:text-gray-300 py-1.5 text-center"
+                  >
+                    Fix status ▾
+                  </button>
+
                   {/* Photo capture row — pre-delivery + post-delivery */}
                   {(t.status === 'arrived' || t.status === 'en_route') && (
                     <div className="grid grid-cols-2 gap-2 mt-2">
@@ -1018,6 +1052,7 @@ export default function WarehousePage() {
                 {modal === 'newTicket' && 'New Work Order'}
                 {modal === 'returnMemo' && 'Return / Credit Memo'}
                 {modal === 'pullList' && 'Pull List'}
+                {modal === 'fixStatus' && 'Fix Status'}
                 {modal === 'photo' && (
                   modalContext.photoMode === 'job_site_before' ? 'Pre-Delivery Photo' :
                   modalContext.photoMode === 'delivery_proof' ? 'Drop-Off Proof Photo' :
@@ -1063,6 +1098,47 @@ export default function WarehousePage() {
                   </button>
                 </form>
               )}
+
+              {modal === 'fixStatus' && (() => {
+                const cur = modalContext.current || '';
+                const zone = PRE_ZONE.includes(cur as never)
+                  ? PRE_ZONE
+                  : POST_ZONE.includes(cur as never) ? POST_ZONE : [];
+                const targets = zone.filter(s => s !== cur);
+                return (
+                  <div className="space-y-3">
+                    <p className="text-xs text-gray-500">
+                      Correct a mis-clicked status. Moves that change inventory (Verify Load / Undo)
+                      are intentionally not here. Backward moves ask for a reason.
+                    </p>
+                    <div className="text-sm text-gray-300">
+                      Current: <span className="font-bold text-white">{STATUS_LABELS[cur]?.label || cur}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {targets.map(s => (
+                        <button
+                          key={s}
+                          onClick={() => submitFixStatus(modalContext.ticketId!, s)}
+                          className="bg-zinc-800 border border-zinc-700 text-white text-sm font-bold py-2.5 rounded-lg active:bg-zinc-700"
+                        >
+                          {STATUS_LABELS[s]?.label || s}
+                        </button>
+                      ))}
+                    </div>
+                    {PRE_ZONE.includes(cur as never) && (
+                      <button
+                        onClick={() => submitFixStatus(modalContext.ticketId!, 'cancelled')}
+                        className="w-full bg-red-900/40 border border-red-700 text-red-300 text-sm font-bold py-2.5 rounded-lg active:bg-red-900/60"
+                      >
+                        Cancel this order
+                      </button>
+                    )}
+                    {targets.length === 0 && !PRE_ZONE.includes(cur as never) && (
+                      <p className="text-xs text-gray-500">No safe status changes are available here for this ticket.</p>
+                    )}
+                  </div>
+                );
+              })()}
 
               {modal === 'returnMemo' && (
                 <div className="space-y-3">
