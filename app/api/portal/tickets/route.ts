@@ -560,6 +560,48 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, status: target, note });
       }
 
+      case 'undo-verify-load': {
+        // Reverse an accidental "Mark Loaded": restore the deducted stock and
+        // move the ticket back to materials_pulled. Office/admin/owner/manager
+        // only, reason required. Invoices/breakdowns are intentionally left
+        // intact — re-verify reuses the existing invoice (no double count) and
+        // the net-delta deduction log lets stock re-deduct exactly once.
+        const sheetTicket = await ticketSheetService.getById(data.ticketId);
+        if (!sheetTicket) {
+          return NextResponse.json({ success: false, error: 'Ticket not found' }, { status: 404 });
+        }
+        if (!['office', 'admin', 'owner', 'manager'].includes(auth.user.role)) {
+          return NextResponse.json({ success: false, error: 'Only office/admin can undo verify-load.' }, { status: 403 });
+        }
+        const undoReason = (data.reason || '').trim();
+        if (!undoReason) {
+          return NextResponse.json({ success: false, error: 'A reason is required to undo verify-load.', requiresReason: true }, { status: 400 });
+        }
+        const { undoVerifyLoad } = await import('@/lib/load-verified-aftermath');
+        const undo = await undoVerifyLoad(sheetTicket);
+        if (undo.errors.length) {
+          return NextResponse.json({ success: false, error: 'Undo failed', detail: undo.errors }, { status: 500 });
+        }
+        const undoSynced = await syncTicketsTabStatus(data.ticketId, 'materials_pulled');
+        if (!undoSynced) {
+          return NextResponse.json(
+            { success: false, error: 'Stock restored, but the board status update failed — tap again.' },
+            { status: 502 },
+          );
+        }
+        const undoStamp = new Date().toISOString().slice(0, 16).replace('T', ' ');
+        const undoWho = auth.user?.name || auth.user?.email || auth.user.role;
+        const undoNote = `[UNDO-VERIFY by ${undoWho} @ ${undoStamp}: ${undoReason} — restored ${undo.restored} item(s)]`;
+        try {
+          await ticketSheetService.patch(data.ticketId, {
+            notes: `${sheetTicket.notes ? sheetTicket.notes + '\n' : ''}${undoNote}`,
+          });
+        } catch (e) {
+          console.warn('[tickets] undo-verify-load: failed to append audit note:', e);
+        }
+        return NextResponse.json({ success: true, restored: undo.restored, restoredItems: undo.restoredItems, note: undoNote });
+      }
+
       case 'pull-materials': {
         // Prefer the authenticated identity over the client-supplied name
         // (the warehouse UI used to hardcode 'rick').

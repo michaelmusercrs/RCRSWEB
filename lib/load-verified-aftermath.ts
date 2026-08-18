@@ -35,6 +35,7 @@ import { emailService } from './email-service';
 import {
   ensureInventoryDeductionsLogSheet,
   loadDeductionKeySet,
+  loadTicketDeductions,
   wasDeducted,
   appendDeductionLog,
   makeDeductionKey,
@@ -390,5 +391,84 @@ export async function runLoadVerifiedAftermath(input: {
     }
   }
 
+  return result;
+}
+
+export interface UndoVerifyLoadResult {
+  restored: number;
+  restoredItems: Array<{ productName: string; qty: number }>;
+  errors: string[];
+}
+
+/**
+ * Reverse the INVENTORY effect of an accidental verify-load: for every material
+ * still net-deducted for this ticket, add the quantity back to Inventory_Products
+ * and append a matching POSITIVE reversal row to Inventory_Deductions_Log (so the
+ * log nets to zero and a later re-verify deducts again exactly once).
+ *
+ * Deliberately does NOT touch the Invoices row, Job_Breakdowns, or the
+ * interoffice Job_Material_Costs invoice. The aftermath's invoice dedup matches
+ * any existing row per ticketId, so a re-verify REUSES the same invoice and does
+ * NOT re-increment the breakdown — meaning the money side needs no reversal here,
+ * only the stock does. (Caller is responsible for moving the ticket status back
+ * to materials_pulled.)
+ *
+ * Idempotent: once reversed, loadTicketDeductions returns [] so a repeat call is
+ * a safe no-op. Order mirrors the deduction path (save inventory, then log) and
+ * accepts the same rare partial-failure window — a failed reversal-log append is
+ * surfaced in `errors` for operator reconciliation.
+ */
+export async function undoVerifyLoad(ticket: SheetTicket): Promise<UndoVerifyLoadResult> {
+  const result: UndoVerifyLoadResult = { restored: 0, restoredItems: [], errors: [] };
+  const doc = await openMasterDoc();
+  if (!doc) { result.errors.push('Sheets not configured'); return result; }
+
+  const invProdSheet = doc.sheetsByTitle['Inventory_Products'];
+  if (!invProdSheet) { result.errors.push('Inventory_Products tab not found'); return result; }
+
+  const deductions = await loadTicketDeductions(doc, ticket.ticketId);
+  if (deductions.length === 0) return result; // nothing currently deducted — no-op
+
+  const rows = await invProdSheet.getRows({ limit: 100000 });
+  const byName = new Map(rows.map(r => [(r.get('productName') || '').toLowerCase().trim(), r]));
+  const byId = new Map(rows.map(r => [r.get('productId'), r]));
+
+  for (const d of deductions) {
+    const qtyToRestore = Math.abs(d.netQty);
+    if (!qtyToRestore) continue;
+    const key = (d.productName || '').toLowerCase().trim();
+    const row = byName.get(key) || byId.get(d.productId || '');
+    if (!row) { result.errors.push(`No Inventory_Products row for ${d.productName}`); continue; }
+    const before = num(row.get('currentQty'));
+    const after = before + qtyToRestore;
+    const unitCost = num(row.get('unitCost'));
+    row.set('currentQty', String(after));
+    row.set('totalValue', (after * unitCost).toFixed(2));
+    try {
+      await row.save();
+    } catch (e) {
+      result.errors.push(`Restore failed for ${d.productName}: ${String(e)}`);
+      continue;
+    }
+    // Positive reversal row zeroes the net so a re-verify re-deducts once.
+    const logged = await appendDeductionLog(doc, {
+      ticketId: ticket.ticketId,
+      productName: d.productName,
+      productId: d.productId,
+      qtyBefore: before,
+      qtyAfter: after,
+      qtyDelta: qtyToRestore, // positive = restored
+      invoiceId: d.lastInvoiceId,
+      source: 'undo-verify-load',
+    });
+    if (!logged) {
+      result.errors.push(
+        `Stock restored for ${d.productName} but the reversal-log row failed to write — ` +
+        `verify the deduction log before re-running to avoid a double restore.`,
+      );
+    }
+    result.restored++;
+    result.restoredItems.push({ productName: d.productName, qty: qtyToRestore });
+  }
   return result;
 }

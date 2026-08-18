@@ -128,14 +128,59 @@ export async function loadDeductionKeySet(
 ): Promise<Set<string>> {
   const sheet = await ensureInventoryDeductionsLogSheet(doc);
   const rows = await sheet.getRows({ limit: 100000 });
-  const keys = new Set<string>();
+  // Aggregate the NET qtyDelta per (ticket, product) key. Deductions log a
+  // negative qtyDelta; a reversal (undo-verify-load) logs the matching positive
+  // qtyDelta. A key counts as "currently deducted" only while its net delta is
+  // still negative — so once a deduction is fully reversed (net 0) the key drops
+  // out and a later re-verify deducts again exactly once. This keeps wasDeducted()
+  // correct across undo/redo without changing its signature.
+  const net = new Map<string, number>();
   for (const row of rows) {
     const ticketId = row.get('ticketId');
     const productName = row.get('productName');
     if (!ticketId || !productName) continue;
-    keys.add(makeDeductionKey(ticketId, productName));
+    const key = makeDeductionKey(ticketId, productName);
+    const delta = parseFloat(String(row.get('qtyDelta') ?? '')) || 0;
+    net.set(key, (net.get(key) || 0) + delta);
+  }
+  const keys = new Set<string>();
+  for (const [key, delta] of net) {
+    if (delta < 0) keys.add(key);
   }
   return keys;
+}
+
+/**
+ * Load the reversible deduction rows for a single ticket — the raw
+ * per-(ticket,product) net still on the books — so undo-verify-load knows
+ * exactly how much to restore. Returns [] when nothing is currently deducted.
+ */
+export async function loadTicketDeductions(
+  doc: GoogleSpreadsheet,
+  ticketId: string,
+): Promise<Array<{ productName: string; productId: string; netQty: number; lastInvoiceId: string }>> {
+  const sheet = await ensureInventoryDeductionsLogSheet(doc);
+  const rows = await sheet.getRows({ limit: 100000 });
+  const byKey = new Map<string, { productName: string; productId: string; netQty: number; lastInvoiceId: string }>();
+  for (const row of rows) {
+    if ((row.get('ticketId') || '').trim() !== (ticketId || '').trim()) continue;
+    const productName = row.get('productName') || '';
+    if (!productName) continue;
+    const key = makeDeductionKey(ticketId, productName);
+    const delta = parseFloat(String(row.get('qtyDelta') ?? '')) || 0;
+    const cur = byKey.get(key) || {
+      productName,
+      productId: row.get('productId') || '',
+      netQty: 0,
+      lastInvoiceId: '',
+    };
+    cur.netQty += delta;
+    if (row.get('productId')) cur.productId = row.get('productId');
+    if (row.get('invoiceId')) cur.lastInvoiceId = row.get('invoiceId');
+    byKey.set(key, cur);
+  }
+  // Only keys still net-negative are reversible (net qty currently removed).
+  return Array.from(byKey.values()).filter(v => v.netQty < 0);
 }
 
 /**

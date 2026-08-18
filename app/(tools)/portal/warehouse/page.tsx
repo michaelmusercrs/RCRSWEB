@@ -436,6 +436,27 @@ export default function WarehousePage() {
     }
   };
 
+  // Undo an accidental "Mark Loaded" — restores the deducted stock and moves the
+  // ticket back to Materials Pulled. Office/admin only (enforced server-side).
+  const submitUndoVerify = async (ticketId: string) => {
+    const reason = window.prompt(
+      'Undo verify-load will RESTORE the deducted stock and move this ticket back to Materials Pulled.\n\nReason (required):',
+    );
+    if (!reason || !reason.trim()) return;
+    try {
+      const res = await fetch('/api/portal/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'undo-verify-load', ticketId, reason: reason.trim() }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok) { closeModal(); refresh(); alert(`Restored ${json.restored ?? 0} item(s) to inventory.`); return; }
+      alert(json?.error || 'Undo failed');
+    } catch (e) {
+      alert(`Error: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  };
+
   // Submit handlers for the self-service modals
   const submitNewTicket = async (form: FormData) => {
     setSubmitting(true);
@@ -1133,8 +1154,16 @@ export default function WarehousePage() {
                         Cancel this order
                       </button>
                     )}
+                    {POST_ZONE.includes(cur as never) && (
+                      <button
+                        onClick={() => submitUndoVerify(modalContext.ticketId!)}
+                        className="w-full bg-amber-900/40 border border-amber-700 text-amber-300 text-sm font-bold py-2.5 rounded-lg active:bg-amber-900/60"
+                      >
+                        Undo verify-load — restore stock
+                      </button>
+                    )}
                     {targets.length === 0 && !PRE_ZONE.includes(cur as never) && (
-                      <p className="text-xs text-gray-500">No safe status changes are available here for this ticket.</p>
+                      <p className="text-xs text-gray-500">Use "Undo verify-load" to restore stock and move this ticket back.</p>
                     )}
                   </div>
                 );
