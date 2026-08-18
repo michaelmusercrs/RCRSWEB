@@ -281,15 +281,26 @@ interface VercelConfigShape {
 }
 
 function readVercelConfig(): VercelConfigShape {
+  let parsed: VercelConfigShape = {};
   try {
-    const filePath = path.join(process.cwd(), 'vercel.json');
-    const raw = fs.readFileSync(filePath, 'utf-8');
-    const parsed = JSON.parse(raw) as VercelConfigShape;
-    return parsed ?? {};
+    const raw = fs.readFileSync(path.join(process.cwd(), 'vercel.json'), 'utf-8');
+    parsed = (JSON.parse(raw) as VercelConfigShape) ?? {};
   } catch (err) {
     console.warn('[system-health] failed to read vercel.json:', err);
-    return {};
   }
+  // Disabled crons no longer live in vercel.json (Vercel's schema rejects the
+  // `_disabledCrons` key), so read them from vercel-disabled-crons.json — else
+  // the dashboard's disabledCount is permanently 0.
+  if (!parsed._disabledCrons) {
+    try {
+      const raw = fs.readFileSync(path.join(process.cwd(), 'vercel-disabled-crons.json'), 'utf-8');
+      const dc = JSON.parse(raw) as { disabledCrons?: VercelCronEntry[]; _disabledCrons?: VercelCronEntry[] };
+      parsed._disabledCrons = dc.disabledCrons ?? dc._disabledCrons ?? [];
+    } catch {
+      // file optional — leave disabled list empty
+    }
+  }
+  return parsed;
 }
 
 /** Derive a cron's friendly heartbeat name from its path. */
