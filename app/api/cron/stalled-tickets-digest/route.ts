@@ -22,6 +22,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { ticketSheetService, type TicketStatus } from '@/lib/ticket-sheet-service';
+import { scanTicketChain, type ChainScanReport } from '@/lib/ticket-chain-scan';
 import { emailService } from '@/lib/email-service';
 import { TEAM_MEMBERS } from '@/lib/team-roles';
 
@@ -281,7 +282,19 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  if (stalled.length === 0 && newlyOverdue.length === 0) {
+  // Daily self-check: reconcile material-order ↔ ticket ↔ invoice ↔ breakdown ↔
+  // inventory for the last 14 days. Best-effort — a scan failure never blocks the
+  // stalled digest. The scan persists its own summary row (Chain_Scan_Results)
+  // for the health dashboard.
+  let chainScan: ChainScanReport | null = null;
+  try {
+    chainScan = await scanTicketChain(14);
+  } catch (e) {
+    console.warn('[stalled-tickets-digest] chain scan failed:', e);
+  }
+  const chainRed = chainScan?.counts.red ?? 0;
+
+  if (stalled.length === 0 && newlyOverdue.length === 0 && chainRed === 0) {
     return NextResponse.json({
       success: true,
       stalledCount: 0,
@@ -289,8 +302,9 @@ export async function GET(request: NextRequest) {
       overdueBacklog: Math.max(0, overdueCandidates.length - newlyOverdue.length),
       zombiesCompleted: zombieCompleted.length,
       sweepErrors,
+      chainScan: chainScan?.counts ?? null,
       emailSent: false,
-      message: 'No stalled tickets and nothing newly overdue. Nothing emailed.',
+      message: 'No stalled tickets, nothing newly overdue, no red chain findings. Nothing emailed.',
     });
   }
 
@@ -322,8 +336,29 @@ export async function GET(request: NextRequest) {
       ? `${newlyOverdue.length} past delivery date`
       : '',
   ].filter(Boolean);
-  const subject = `[RCRS] ${subjectBits.join(' · ')}`;
-  const body = buildDigestHtml(byStatus, newlyOverdue);
+  if (chainRed > 0) subjectBits.push(`${chainRed} chain issue${chainRed === 1 ? '' : 's'}`);
+  const subject = `[RCRS] ${subjectBits.join(' · ') || 'Self-check'}`;
+  let body = buildDigestHtml(byStatus, newlyOverdue);
+
+  // Append the self-check summary + top findings when the scan found anything.
+  if (chainScan && (chainScan.counts.red > 0 || chainScan.counts.yellow > 0 || chainScan.counts.proposals > 0)) {
+    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const top = chainScan.findings
+      .filter(f => f.severity === 'red')
+      .slice(0, 15)
+      .map(f => `<li><strong>${esc(f.referenceNumber || f.ticketId)}</strong> — ${esc(f.check)}: ${esc(f.detail)}</li>`)
+      .join('');
+    body += `
+      <div style="margin-top:24px;padding-top:16px;border-top:2px solid #e5e5e5">
+        <h3 style="margin:0 0 6px;color:#b91c1c">Inventory self-check (last ${chainScan.windowDays} days)</h3>
+        <p style="margin:0 0 8px;font-size:14px;color:#555">
+          Scanned ${chainScan.ticketsScanned} tickets — <strong style="color:#b91c1c">${chainScan.counts.red} red</strong>,
+          ${chainScan.counts.yellow} yellow, ${chainScan.counts.proposals} proposed inventory adjustment(s).
+          Full report: /api/admin/ticket-chain-scan
+        </p>
+        ${top ? `<ul style="font-size:13px;color:#333;margin:6px 0 0;padding-left:18px">${top}</ul>` : ''}
+      </div>`;
+  }
 
   let sent = 0;
   for (const to of recipients) {
@@ -340,6 +375,7 @@ export async function GET(request: NextRequest) {
     sweepErrors,
     recipients: recipients.length,
     emailsSent: sent,
+    chainScan: chainScan?.counts ?? null,
     byStatus: Object.fromEntries(
       [...byStatus.entries()].map(([s, list]) => [s, list.length])
     ),

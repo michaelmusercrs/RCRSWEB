@@ -115,7 +115,21 @@ export interface SystemHealthResponse {
     jn: JnSubsystem;
     resend: EmailSubsystem;
     leadFallback: LeadFallbackSubsystem;
+    ticketChain?: TicketChainSubsystem;
   };
+}
+
+// Read-only view of the last stored ticket-chain self-check run. The scan
+// itself runs on the daily stalled-tickets-digest cron (+ on demand via
+// /api/admin/ticket-chain-scan); here we just surface its freshness + counts.
+interface TicketChainSubsystem {
+  status: 'ok' | 'warn' | 'error' | 'unknown';
+  lastRunAt: string | null;
+  windowDays: number;
+  ticketsScanned: number;
+  red: number;
+  yellow: number;
+  proposals: number;
 }
 
 // ─── Env masking ──────────────────────────────────────────────────────────────
@@ -725,6 +739,26 @@ export async function GET() {
     lastCaptureAt: leadFallbackLastCapture,
   };
 
+  // Ticket-chain self-check — cheap read of the last stored scan summary.
+  let ticketChainSubsystem: TicketChainSubsystem = {
+    status: 'unknown', lastRunAt: null, windowDays: 0, ticketsScanned: 0, red: 0, yellow: 0, proposals: 0,
+  };
+  try {
+    const { getLastChainScanSummary } = await import('@/lib/ticket-chain-scan');
+    const s = await getLastChainScanSummary();
+    if (s) {
+      ticketChainSubsystem = {
+        status: s.red > 0 ? 'error' : s.yellow > 0 ? 'warn' : 'ok',
+        lastRunAt: s.generatedAt || null,
+        windowDays: s.windowDays,
+        ticketsScanned: s.ticketsScanned,
+        red: s.red, yellow: s.yellow, proposals: s.proposals,
+      };
+    }
+  } catch (e) {
+    console.warn('[system-health] ticket-chain summary read failed:', e);
+  }
+
   const subsystems: SystemHealthResponse['subsystems'] = {
     email: emailSubsystem,
     turnstile: turnstileSubsystem,
@@ -734,6 +768,7 @@ export async function GET() {
     jn: jnSubsystem,
     resend: resendSubsystem,
     leadFallback: leadFallbackSubsystem,
+    ticketChain: ticketChainSubsystem,
   };
 
   const response: SystemHealthResponse = {
