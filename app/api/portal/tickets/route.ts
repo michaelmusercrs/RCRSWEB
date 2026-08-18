@@ -6,7 +6,6 @@ import { deliveryReminderService } from '@/lib/delivery-reminder-service';
 import { ticketSheetService, type SheetTicket } from '@/lib/ticket-sheet-service';
 import { emailService } from '@/lib/email-service';
 import { jobMaterialCostService, type JobMaterialCostLine } from '@/lib/job-material-cost-service';
-import { inventoryTabSync } from '@/lib/inventory-tab-sync';
 import { unifiedInventoryService } from '@/lib/unified-inventory-service';
 import { upsertDeliveryScheduleEntry } from '@/lib/delivery-schedule-service';
 import { normalizeLineItemQty } from '@/lib/normalize-line-item-qty';
@@ -328,22 +327,12 @@ export async function POST(request: NextRequest) {
           console.warn('[tickets] Failed to mirror ticket to Tickets tab:', mirrorErr);
         }
 
-        // Step 3: dual-write to the legacy Inventory tab Richard's app uses.
-        // 2-way sync requirement — every transaction has to land here too.
-        try {
-          await inventoryTabSync.pushTransactions({
-            referenceNumber,
-            timestamp: ticket.createdAt,
-            lines: sheetMaterials.map(m => ({
-              itemId: m.productId,
-              // Sign convention: delivery = negative (out), return = positive (in)
-              amount: isReturn ? Math.abs(m.quantity) : -Math.abs(m.quantity),
-              unitPrice: m.unitPrice,
-            })),
-          });
-        } catch (legacyErr) {
-          console.warn('[tickets] Failed to sync to legacy Inventory tab:', legacyErr);
-        }
+        // Step 3 (REMOVED 2026-08-18): legacy Inventory-tab transaction
+        // dual-write. Richard's standalone app reads the catalog-state mirror
+        // maintained by the sync-inventory-tab cron (Portal->legacy, every
+        // 15 min), which deletes+rewrites that tab — so these transaction rows
+        // were wiped within 15 min and their schema fought the cron's. The
+        // cron is the sole mirror. See inventory-tab-sync.ts (deprecated).
 
         // Step 4: auto-create the interoffice invoice (or credit memo for
         // returns). This is the internal job-material-cost record. NEVER

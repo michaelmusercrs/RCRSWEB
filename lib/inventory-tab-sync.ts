@@ -183,4 +183,11 @@ class InventoryTabSync {
   }
 }
 
+/**
+ * @deprecated 2026-08-18 — All call sites removed. The legacy `Inventory` tab
+ * is now maintained solely by the `sync-inventory-tab` cron (Portal->legacy
+ * catalog-state mirror, every 15 min), which deletes+rewrites that tab. Pushing
+ * transaction rows here conflicted with the cron's schema and was wiped within
+ * 15 min. Kept only for reference / possible future transaction-log feature.
+ */
 export const inventoryTabSync = new InventoryTabSync();

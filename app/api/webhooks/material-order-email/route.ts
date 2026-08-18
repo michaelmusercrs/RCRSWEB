@@ -34,7 +34,6 @@ import { parseMaterialOrderEmail, matchCatalogItem } from '@/lib/material-order-
 import { unifiedInventoryService } from '@/lib/unified-inventory-service';
 import { ticketSheetService, type SheetTicket } from '@/lib/ticket-sheet-service';
 import { jobMaterialCostService, type JobMaterialCostLine } from '@/lib/job-material-cost-service';
-import { inventoryTabSync } from '@/lib/inventory-tab-sync';
 import { emailService } from '@/lib/email-service';
 import { normalizeLineItemQty } from '@/lib/normalize-line-item-qty';
 import { googleSheetsService } from '@/lib/google-sheets-service';
@@ -429,22 +428,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Step 2: dual-write to legacy Inventory tab (no-op if env not set)
-  try {
-    await inventoryTabSync.pushTransactions({
-      referenceNumber: parsed.jobNumber,
-      timestamp: sheetTicket.createdAt,
-      lines: sheetMaterials
-        .filter(m => m.productId.startsWith('item-'))
-        .map(m => ({
-          itemId: m.productId,
-          amount: -Math.abs(m.quantity),
-          unitPrice: m.unitPrice,
-        })),
-    });
-  } catch (err) {
-    console.warn('[material-order-webhook] Legacy tab sync skipped:', err);
-  }
+  // Step 2 (REMOVED 2026-08-18): the legacy Inventory-tab dual-write was a
+  // no-op here (its `startsWith('item-')` filter never matched INV-* catalog
+  // ids) AND schema-conflicting — the sync-inventory-tab cron rewrites that
+  // same tab as full catalog state every 15 min, wiping any transaction rows.
+  // The cron is the sole Portal->legacy mirror. See inventory-tab-sync.ts (deprecated).
 
   // Step 3: auto-create interoffice invoice — HELD when the order needs review
   // (owner rule: no invoice until the office confirms a flagged order).

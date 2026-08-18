@@ -31,7 +31,6 @@ import { JWT } from 'google-auth-library';
 import { GoogleSpreadsheet } from 'google-spreadsheet';
 import crypto from 'crypto';
 import type { SheetTicket } from './ticket-sheet-service';
-import { inventoryTabSync } from './inventory-tab-sync';
 import { emailService } from './email-service';
 import {
   ensureInventoryDeductionsLogSheet,
@@ -346,24 +345,12 @@ export async function runLoadVerifiedAftermath(input: {
     }
   }
 
-  // 4. Mirror to legacy external inventory app (no-op if env unset)
-  try {
-    const legacyResult = await inventoryTabSync.pushTransactions({
-      referenceNumber: ticket.referenceNumber,
-      timestamp: verifiedAtIso,
-      lines: ticket.materials
-        .filter(m => m.productId && m.productId.startsWith('item-'))
-        .map(m => ({
-          itemId: m.productId,
-          amount: -Math.abs(m.quantity),
-          unitPrice: m.unitPrice,
-        })),
-    });
-    result.legacyWritten = legacyResult.written;
-    if (legacyResult.error) errors.push(`Legacy sync: ${legacyResult.error}`);
-  } catch (err) {
-    errors.push(`Legacy sync threw: ${String(err)}`);
-  }
+  // 4. (REMOVED 2026-08-18) Legacy Inventory-tab transaction dual-write.
+  // Was a no-op (item- filter never matched INV-* ids) and schema-conflicting:
+  // the sync-inventory-tab cron rewrites that tab as full catalog state every
+  // 15 min, wiping any transaction rows. The cron is the sole Portal->legacy
+  // mirror. Field kept at 0 for back-compat with AftermathResult consumers.
+  result.legacyWritten = 0;
 
   // 5. Price-only office email. Skipped when silent=true (backfill mode).
   if (!silent) {

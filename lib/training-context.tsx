@@ -229,11 +229,15 @@ export function TrainingProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // Check if should show training popup
+    // Check if should show training popup.
+    // Once-only gate: after the user has seen+closed it once, never auto-show
+    // again (they can still reopen it from the Settings menu). This flag is set
+    // by dismissPopup() on any close.
+    const popupSeen = localStorage.getItem('rcrs-training-popup-seen') === 'true';
     const today = new Date().toISOString().split('T')[0];
     if (savedProgress) {
       const parsed = localProgress;
-      if (!parsed.dontShowPopup && !parsed.allTrainingComplete) {
+      if (!popupSeen && !parsed.dontShowPopup && !parsed.allTrainingComplete) {
         const requiredModules = ROLE_TRAINING_MODULES[localSettings.role] || [];
         const allComplete = requiredModules.every(m => parsed.completedModules.includes(m));
         if (!allComplete) {
@@ -266,7 +270,7 @@ export function TrainingProvider({ children }: { children: ReactNode }) {
           points: prev.points + bonusPoints,
         }));
       }
-    } else {
+    } else if (!popupSeen) {
       setShowTrainingPopup(true);
     }
 
@@ -395,6 +399,11 @@ export function TrainingProvider({ children }: { children: ReactNode }) {
 
   const dismissPopup = useCallback((dontShowAgain: boolean) => {
     setShowTrainingPopup(false);
+    // Persist a "seen" flag on ANY dismiss (plain close included) so the popup
+    // only ever auto-shows once per browser. Previously a plain close saved
+    // nothing and the popup reappeared every login. Mirrors the once-only
+    // `onboarding_complete_<userId>` pattern used by the /portal/welcome flow.
+    try { localStorage.setItem('rcrs-training-popup-seen', 'true'); } catch {}
     if (dontShowAgain) {
       setProgress(prev => ({ ...prev, dontShowPopup: true }));
     }
