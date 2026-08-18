@@ -27,7 +27,7 @@ fs.readFileSync(envPath, 'utf8').split('\n').forEach(l => {
 
 const { JWT } = await import('google-auth-library');
 const { GoogleSpreadsheet } = await import('google-spreadsheet');
-const { INVENTORY_DEDUCTIONS_LOG_TAB, makeDeductionKey } = await import('../lib/inventory-deduction-log.mjs');
+const { INVENTORY_DEDUCTIONS_LOG_TAB, makeDeductionKey } = await import('../lib/inventory-deduction-log.node.mjs');
 
 // READ-ONLY variant of loadDeductionKeySet: never auto-creates the tab.
 async function loadDeductionKeySetReadOnly(docInst) {

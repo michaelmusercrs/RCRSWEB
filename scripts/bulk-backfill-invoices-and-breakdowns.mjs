@@ -25,7 +25,7 @@ import {
   loadDeductionKeySet,
   wasDeducted,
   appendDeductionLog,
-} from '../lib/inventory-deduction-log.mjs';
+} from '../lib/inventory-deduction-log.node.mjs';
 
 config({ path: '.env.local', quiet: true });
 
@@ -75,7 +75,7 @@ const ticketRowById = new Map(ticketRows.map(r => [r.get('ticketId'), r]));
 
 // M7 idempotency: lazy-create Inventory_Deductions_Log + load existing keys
 // so we never double-deduct on a re-run (even one that follows a manual
-// Invoice row deletion). See lib/inventory-deduction-log.mjs.
+// Invoice row deletion). See lib/inventory-deduction-log.node.mjs.
 await ensureInventoryDeductionsLogSheet(doc);
 const deductedKeys = await loadDeductionKeySet(doc);
 console.error(`Existing deduction log entries: ${deductedKeys.size}`);

@@ -35,7 +35,7 @@ const {
   loadDeductionKeySet,
   wasDeducted,
   appendDeductionLog,
-} = await import('../lib/inventory-deduction-log.mjs');
+} = await import('../lib/inventory-deduction-log.node.mjs');
 
 const HISTORICAL_CLOSE_CUTOFF = '2026-05-15';
 const TODAY_ISO = new Date().toISOString();
