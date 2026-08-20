@@ -40,3 +40,5 @@ CLI deploy and it keeps git = production. If Vercel is down, use
 Use the Vercel dashboard → Deployments → pick a known-good production
 deployment → "Promote to Production" (or "Rollback"). Do not fix-forward with a
 dirty CLI deploy.
+
+<!-- auto-deploy reconnected & verified 2026-08-20 -->
