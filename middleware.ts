@@ -407,6 +407,12 @@ export function middleware(request: NextRequest) {
     if (pathname === '/reps' || pathname.startsWith('/reps/')) {
       return NextResponse.next();
     }
+    // /repday3 is the final-day in-office sales training deck ("Close to
+    // Referral"), served as a static HTML presentation. Same intentional
+    // public-link pattern; the route sends X-Robots-Tag: noindex.
+    if (pathname === '/repday3' || pathname.startsWith('/repday3/')) {
+      return NextResponse.next();
+    }
 
     // Everything else on rcrsal.com that's not portal → redirect to public site
     if (isPublicRoute(pathname)) {
