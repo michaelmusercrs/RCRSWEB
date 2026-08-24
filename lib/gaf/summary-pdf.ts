@@ -1,0 +1,183 @@
+// GAF material cheat-sheet → PDF (attached to the JN job like the report).
+//
+// The summary was originally posted as a JobNimbus note, but JN's /activities
+// API rejects the shared createNoteOnJob shape (400: missing primary.id/type/
+// name). The report PDF attaches reliably via /files, so we render the material
+// summary as its OWN PDF and attach it the same proven way. Same pdfmake setup
+// as lib/email-templates/load-verified-invoice-pdf.ts (pure-JS, serverless-safe).
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+const _pdfmake = require('pdfmake');
+// pdfmake's CJS export is the PdfPrinter constructor. Under some loaders it
+// arrives wrapped as { default: … } — unwrap so both the Next build and tsx work.
+const PdfPrinter: new (fontDescriptors: Record<string, unknown>) => {
+  createPdfKitDocument(docDefinition: unknown): NodeJS.ReadableStream & {
+    end(): void;
+    on(event: 'data', cb: (chunk: Buffer) => void): void;
+    on(event: 'end', cb: () => void): void;
+    on(event: 'error', cb: (err: Error) => void): void;
+  };
+} = _pdfmake.default || _pdfmake;
+import type { TDocumentDefinitions, Content } from 'pdfmake/interfaces';
+import type { Measurements, MaterialSummary } from './coverage-config';
+
+const ACCENT = '#0066CC';
+const TEXT = '#1f2937';
+const MUTED = '#6b7280';
+const BORDER = '#e3e6ea';
+const TINT = '#f6f8fb';
+const WARN = '#b8860b';
+
+const FONTS = {
+  Roboto: {
+    normal: 'Roboto-Regular.ttf',
+    bold: 'Roboto-Medium.ttf',
+    italics: 'Roboto-Italic.ttf',
+    bolditalics: 'Roboto-MediumItalic.ttf',
+  },
+};
+
+function measurementLine(m: Measurements): string {
+  const bits: string[] = [];
+  if (m.squares != null) bits.push(`${m.squares.toFixed(1)} sq`);
+  if (m.predominantPitch) bits.push(`pitch ${m.predominantPitch}`);
+  if (m.ridgeLengthFt != null) bits.push(`ridge ${m.ridgeLengthFt.toFixed(0)} LF`);
+  if (m.hipLengthFt != null) bits.push(`hip ${m.hipLengthFt.toFixed(0)} LF`);
+  if (m.valleyLengthFt != null) bits.push(`valley ${m.valleyLengthFt.toFixed(0)} LF`);
+  if (m.eaveLengthFt != null) bits.push(`eave ${m.eaveLengthFt.toFixed(0)} LF`);
+  if (m.rakeLengthFt != null) bits.push(`rake ${m.rakeLengthFt.toFixed(0)} LF`);
+  return bits.join('  ·  ');
+}
+
+export function buildSummaryDocDef(
+  address: string,
+  orderNumber: string,
+  m: Measurements,
+  s: MaterialSummary,
+): TDocumentDefinitions {
+  const header: Content = {
+    columns: [
+      {
+        width: '*',
+        stack: [
+          { text: 'RIVER CITY ROOFING SOLUTIONS', style: 'wordmark' },
+          { text: 'Material Order Cheat-Sheet', style: 'wordmarkSub' },
+        ],
+      },
+      {
+        width: 'auto',
+        stack: [
+          { text: 'GAF QUICKMEASURE', style: 'tagLabel' },
+          { text: `Order #${orderNumber}`, style: 'tagId' },
+        ],
+        alignment: 'right',
+      },
+    ],
+  };
+
+  const headerRule: Content = {
+    canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 2, lineColor: ACCENT }],
+    margin: [0, 6, 0, 12],
+  };
+
+  const propBlock: Content = {
+    stack: [
+      { text: address || '(address unavailable)', style: 'propName' },
+      { text: measurementLine(m) || 'measurements unavailable', style: 'propMeas' },
+    ],
+    margin: [0, 0, 0, 14],
+  };
+
+  const tableBody: Content[][] = [
+    [
+      { text: 'Qty', style: 'thRight' },
+      { text: 'Unit', style: 'th' },
+      { text: 'Material', style: 'th' },
+      { text: 'Basis', style: 'th' },
+    ],
+    ...s.lines.map<Content[]>((l) => [
+      { text: String(l.qty), style: 'tdRightBold' },
+      { text: l.unit, style: 'td' },
+      { text: l.name + (l.estimated ? '  (est)' : ''), style: l.estimated ? 'tdWarn' : 'td' },
+      { text: l.basis, style: 'tdMuted' },
+    ]),
+  ];
+
+  const table: Content = {
+    table: { headerRows: 1, widths: [34, 44, '*', 200], body: tableBody },
+    layout: {
+      hLineWidth: () => 0.5,
+      vLineWidth: () => 0,
+      hLineColor: () => BORDER,
+      fillColor: (rowIndex: number) => (rowIndex === 0 ? TINT : null),
+      paddingTop: () => 6,
+      paddingBottom: () => 6,
+      paddingLeft: () => 8,
+      paddingRight: () => 8,
+    },
+    margin: [0, 2, 0, 0],
+  };
+
+  const content: Content[] = [header, headerRule, propBlock, { text: 'MATERIALS', style: 'sectionLabel' }, table];
+
+  if (s.advisories.length) {
+    content.push({ text: 'FIELD ADD / ADVISORIES', style: 'sectionLabel', margin: [0, 16, 0, 4] });
+    content.push({ ul: s.advisories, style: 'body' });
+  }
+  if (s.assumptions.length) {
+    content.push({ text: 'ASSUMPTIONS', style: 'sectionLabel', margin: [0, 16, 0, 4] });
+    content.push({ ul: s.assumptions, style: 'bodyMuted' });
+  }
+  if (s.incomplete) {
+    content.push({ text: 'Some measurements were missing in the report — counts may be partial.', style: 'warnNote', margin: [0, 12, 0, 0] });
+  }
+  content.push({
+    text: '(est) = uses a coverage/rule default still pending final confirmation. Auto-generated by the RCRS portal from the GAF QuickMeasure XML.',
+    style: 'footerNote',
+    margin: [0, 20, 0, 0],
+  });
+
+  return {
+    pageSize: 'LETTER',
+    pageMargins: [40, 40, 40, 40],
+    defaultStyle: { font: 'Roboto', fontSize: 10, color: TEXT, lineHeight: 1.3 },
+    content,
+    styles: {
+      wordmark: { fontSize: 13, bold: true, color: TEXT, characterSpacing: 1 },
+      wordmarkSub: { fontSize: 10, color: MUTED, margin: [0, 2, 0, 0] },
+      tagLabel: { fontSize: 10, bold: true, color: ACCENT, characterSpacing: 1.5 },
+      tagId: { fontSize: 14, bold: true, color: TEXT, margin: [0, 2, 0, 0] },
+      propName: { fontSize: 13, bold: true, color: TEXT },
+      propMeas: { fontSize: 10, color: MUTED, margin: [0, 3, 0, 0] },
+      sectionLabel: { fontSize: 9, bold: true, color: MUTED, characterSpacing: 0.8, margin: [0, 0, 0, 4] },
+      th: { fontSize: 9, bold: true, color: MUTED, characterSpacing: 0.6 },
+      thRight: { fontSize: 9, bold: true, color: MUTED, characterSpacing: 0.6, alignment: 'right' },
+      td: { fontSize: 10, color: TEXT },
+      tdMuted: { fontSize: 9, color: MUTED },
+      tdWarn: { fontSize: 10, color: WARN },
+      tdRightBold: { fontSize: 11, color: TEXT, bold: true, alignment: 'right' },
+      body: { fontSize: 10, color: TEXT },
+      bodyMuted: { fontSize: 9, color: MUTED },
+      warnNote: { fontSize: 9, color: WARN, italics: true },
+      footerNote: { fontSize: 8, color: MUTED, italics: true },
+    },
+  };
+}
+
+/** Render the material cheat-sheet as a PDF buffer. */
+export async function renderSummaryPdf(
+  address: string,
+  orderNumber: string,
+  m: Measurements,
+  s: MaterialSummary,
+): Promise<Buffer> {
+  const printer = new PdfPrinter(FONTS);
+  const pdfDoc = printer.createPdfKitDocument(buildSummaryDocDef(address, orderNumber, m, s));
+  return new Promise<Buffer>((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    pdfDoc.on('data', (c: Buffer) => chunks.push(c));
+    pdfDoc.on('end', () => resolve(Buffer.concat(chunks)));
+    pdfDoc.on('error', (err: Error) => reject(err));
+    pdfDoc.end();
+  });
+}

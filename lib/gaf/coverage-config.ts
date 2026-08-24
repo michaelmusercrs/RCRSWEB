@@ -102,6 +102,18 @@ export interface Measurements {
   perimeterFt?: number;
   predominantPitch?: string;
   facets?: number;
+  // GAF QuickMeasure Summary-page roll-ups (preferred when present — GAF has
+  // already summed these across all facets):
+  ridgeCapLengthFt?: number;  // ridges + hips
+  starterLengthFt?: number;   // eaves + rakes
+  dripEdgeLengthFt?: number;  // eaves + rakes
+  leakBarrierLengthFt?: number; // full I&W formula (eaves+rakes+valleys+flash+step+hips)
+  flashLengthFt?: number;
+  stepLengthFt?: number;
+  penetrations?: number;
+  penetrationPerimeterFt?: number;
+  /** GAF's suggested waste for this roof, 0..1 (e.g. 0.21). Overrides default. */
+  suggestedWaste?: number;
 }
 
 export interface MaterialLine {
@@ -146,108 +158,51 @@ export function buildMaterialSummary(m: Measurements, ctx: SummaryContext = {}):
   let incomplete = false;
 
   const squares = m.squares ?? (m.roofAreaSqFt ? m.roofAreaSqFt / 100 : undefined);
-  const eave = m.eaveLengthFt;
-  const rake = m.rakeLengthFt;
-  const valley = m.valleyLengthFt;
-  const ridge = m.ridgeLengthFt;
-  const hip = m.hipLengthFt;
-
-  const push = (item: CoverageItem, input: number | undefined, basisLabel: string) => {
-    if (input == null || !Number.isFinite(input)) { incomplete = true; return; }
-    lines.push({ name: item.name, qty: ceil(input / item.per), unit: item.unit, basis: basisLabel, estimated: !!item.needsConfirm });
-  };
-
-  // ── Area items (squares-based) ────────────────────────────────────────────
-  if (squares != null) {
-    const wasteSquares = squares * (1 + CALC_RULES.wasteFactor);
-    assumptions.push(`Waste factor: ${Math.round(CALC_RULES.wasteFactor * 100)}% on shingles${CALC_RULES.wasteNeedsConfirm ? ' (confirm)' : ''}`);
-    lines.push({
-      name: COVERAGE.shingles.name,
-      qty: ceil(wasteSquares * 3),
-      unit: COVERAGE.shingles.unit,
-      basis: `${wasteSquares.toFixed(1)} sq × 3 bundles/sq`,
-      estimated: false,
-    });
-    push(COVERAGE.underlayment, squares, `${squares.toFixed(1)} sq ÷ ${COVERAGE.underlayment.per} sq/roll`);
-    push(COVERAGE.coilNails, squares, `${squares.toFixed(1)} sq ÷ ${COVERAGE.coilNails.per} sq/box`);
-
-    // Button caps — pitch-dependent (flat 35 / steep 25).
-    const rise = pitchRise(m.predominantPitch);
-    const steep = rise == null ? true : rise >= CAP_NAILS.steepThreshold; // unknown → assume steep (order more)
-    const per = steep ? CAP_NAILS.steepPer : CAP_NAILS.flatPer;
-    lines.push({
-      name: CAP_NAILS.name,
-      qty: ceil(squares / per),
-      unit: CAP_NAILS.unit,
-      basis: `${squares.toFixed(1)} sq ÷ ${per} sq/bucket (${steep ? 'steep' : 'flat'}${rise == null ? ', pitch unknown → assumed steep' : ` ${rise}/12`})`,
-      estimated: rise == null,
-    });
-  } else {
-    incomplete = true;
-  }
-
-  // ── Ice & Water — valleys always; full perimeter in code areas ────────────
+  const waste = m.suggestedWaste ?? CALC_RULES.wasteFactor;
+  const wasteEst = m.suggestedWaste == null;
   const codeArea = isIceWaterCodeArea(ctx.city, ctx.zip);
-  {
-    let iwLf = 0;
-    const parts: string[] = [];
-    if (valley != null) { iwLf += valley; parts.push(`${valley.toFixed(0)} LF valleys`); }
-    if (codeArea) {
-      if (eave != null) { iwLf += eave; parts.push(`${eave.toFixed(0)} LF eaves`); }
-      if (rake != null) { iwLf += rake; parts.push(`${rake.toFixed(0)} LF rakes`); }
-    }
-    if (parts.length) {
-      lines.push({
-        name: COVERAGE.iceWater.name,
-        qty: ceil(iwLf / COVERAGE.iceWater.per),
-        unit: COVERAGE.iceWater.unit,
-        basis: `${parts.join(' + ')} ÷ ${COVERAGE.iceWater.per} LF/roll`,
-        estimated: false,
-      });
-    } else {
-      incomplete = true;
-    }
-    assumptions.push(codeArea
-      ? 'Ice & Water: FULL PERIMETER (code area) + valleys.'
-      : 'Ice & Water: valleys only in the auto-count.');
-    advisories.push('Ice & Water also required along walls, chimneys & penetrations (pipe boots, gas vents) on every job — add that field-measured footage; it is not in the measurement report.');
-  }
 
-  // ── Hip & Ridge cap (ridge + hip) ─────────────────────────────────────────
-  if (ridge != null || hip != null) {
-    const capLf = (ridge ?? 0) + (hip ?? 0);
-    push(COVERAGE.hipRidgeCap, capLf, `${(ridge ?? 0).toFixed(0)} LF ridge + ${(hip ?? 0).toFixed(0)} LF hip ÷ ${COVERAGE.hipRidgeCap.per} LF/bundle`);
-  } else {
-    incomplete = true;
-  }
+  const add = (name: string, qty: number, unit: string, basis: string, estimated = false) =>
+    lines.push({ name, qty: ceil(qty), unit, basis, estimated });
 
-  // ── Starter (eaves + rakes) ───────────────────────────────────────────────
-  {
-    let sLf = 0; const parts: string[] = [];
-    if (eave != null) { sLf += eave; parts.push(`${eave.toFixed(0)} LF eaves`); }
-    if (CALC_RULES.starterApplyTo === 'eaves+rakes' && rake != null) { sLf += rake; parts.push(`${rake.toFixed(0)} LF rakes`); }
-    if (parts.length) push(COVERAGE.starter, sLf, `${parts.join(' + ')} ÷ ${COVERAGE.starter.per} LF/bundle`);
-    else incomplete = true;
-  }
+  // Prefer GAF's pre-summed roll-ups; fall back to component sums.
+  const nz = (n?: number) => (n && n > 0 ? n : undefined);
+  const ridgeCapLf = m.ridgeCapLengthFt ?? nz((m.ridgeLengthFt ?? 0) + (m.hipLengthFt ?? 0));
+  const starterLf = m.starterLengthFt ?? nz((m.eaveLengthFt ?? 0) + (m.rakeLengthFt ?? 0));
+  const dripLf = m.dripEdgeLengthFt ?? nz((m.eaveLengthFt ?? 0) + (m.rakeLengthFt ?? 0));
 
-  // ── Drip edge (eaves + rakes) ─────────────────────────────────────────────
-  {
-    let dLf = 0; const parts: string[] = [];
-    if (eave != null) { dLf += eave; parts.push(`${eave.toFixed(0)} LF eaves`); }
-    if (rake != null) { dLf += rake; parts.push(`${rake.toFixed(0)} LF rakes`); }
-    if (parts.length) push(COVERAGE.dripEdge, dLf, `${parts.join(' + ')} ÷ ${COVERAGE.dripEdge.per} LF usable/stick`);
-    else incomplete = true;
-  }
+  // ── Area items ────────────────────────────────────────────────────────────
+  if (squares != null) {
+    const ws = squares * (1 + waste);
+    assumptions.push(`Waste: ${Math.round(waste * 100)}%${wasteEst ? ' (default — GAF suggested not found)' : ' (GAF suggested for this roof)'}, applied to shingles`);
+    add(COVERAGE.shingles.name, ws * 3, 'bundle', `${ws.toFixed(1)} sq (+${Math.round(waste * 100)}% waste) × 3 bundles/sq`);
+    add(COVERAGE.underlayment.name, squares / COVERAGE.underlayment.per, 'roll', `${squares.toFixed(1)} sq ÷ ${COVERAGE.underlayment.per} sq/roll`);
+    add(COVERAGE.coilNails.name, squares / COVERAGE.coilNails.per, 'box', `${squares.toFixed(1)} sq ÷ ${COVERAGE.coilNails.per} sq/box`);
+    const rise = pitchRise(m.predominantPitch);
+    const steep = rise == null ? true : rise >= CAP_NAILS.steepThreshold;
+    const capPer = steep ? CAP_NAILS.steepPer : CAP_NAILS.flatPer;
+    add(CAP_NAILS.name, squares / capPer, 'bucket', `${squares.toFixed(1)} sq ÷ ${capPer} sq/bucket (${steep ? 'steep' : 'flat'}${rise == null ? ', pitch unknown' : ` ${rise}/12`})`, rise == null);
+  } else { incomplete = true; }
 
-  // ── Ridge vent (advisory) ─────────────────────────────────────────────────
-  if (ridge != null) {
-    const ventPcs = ceil(ridge / COVERAGE.ridgeVent.per);
-    if (CALC_RULES.autoQuantifyRidgeVent) {
-      lines.push({ name: COVERAGE.ridgeVent.name, qty: ventPcs, unit: COVERAGE.ridgeVent.unit, basis: `${ridge.toFixed(0)} LF ridge ÷ ${COVERAGE.ridgeVent.per} LF/pc`, estimated: false });
-    } else {
-      advisories.push(`Ridge vent: ${ridge.toFixed(0)} LF of ridge → ${ventPcs} pieces if fully vented (per-job call — not auto-ordered).`);
-    }
-  }
+  // ── Ice & Water ───────────────────────────────────────────────────────────
+  let iwLf: number | undefined;
+  let iwBasis = '';
+  if (codeArea && m.leakBarrierLengthFt != null) { iwLf = m.leakBarrierLengthFt; iwBasis = `${iwLf} LF full perimeter (GAF leak barrier, code area)`; }
+  else if (codeArea) { iwLf = nz((m.eaveLengthFt ?? 0) + (m.rakeLengthFt ?? 0) + (m.valleyLengthFt ?? 0)); iwBasis = `${iwLf ?? 0} LF eaves+rakes+valleys (code area)`; }
+  else { iwLf = nz((m.valleyLengthFt ?? 0) + (m.flashLengthFt ?? 0) + (m.stepLengthFt ?? 0) + (m.penetrationPerimeterFt ?? 0)); iwBasis = `${iwLf ?? 0} LF valleys+walls+penetrations`; }
+  if (iwLf) add(COVERAGE.iceWater.name, iwLf / COVERAGE.iceWater.per, 'roll', `${iwBasis} ÷ ${COVERAGE.iceWater.per} LF/roll`);
+  else incomplete = true;
+  assumptions.push(codeArea ? 'Ice & Water: FULL PERIMETER (Madison Co./Huntsville code area)' : 'Ice & Water: valleys + walls/chimneys/penetrations');
+  if (!codeArea) advisories.push('Ice & Water: confirm wall/chimney footage on site — some is not in the report.');
+
+  // ── LF items from roll-ups ────────────────────────────────────────────────
+  if (ridgeCapLf) add(COVERAGE.hipRidgeCap.name, ridgeCapLf / COVERAGE.hipRidgeCap.per, 'bundle', `${ridgeCapLf} LF ridge+hip ÷ ${COVERAGE.hipRidgeCap.per} LF/bundle`); else incomplete = true;
+  if (starterLf) add(COVERAGE.starter.name, starterLf / COVERAGE.starter.per, 'bundle', `${starterLf} LF eaves+rakes ÷ ${COVERAGE.starter.per} LF/bundle`); else incomplete = true;
+  if (dripLf) add(COVERAGE.dripEdge.name, dripLf / COVERAGE.dripEdge.per, 'stick', `${dripLf} LF eaves+rakes ÷ ${COVERAGE.dripEdge.per} ft usable/stick`); else incomplete = true;
+
+  // ── Advisories ────────────────────────────────────────────────────────────
+  if (m.ridgeLengthFt != null) advisories.push(`Ridge vent: ${m.ridgeLengthFt.toFixed(0)} LF ridge → ${ceil(m.ridgeLengthFt / COVERAGE.ridgeVent.per)} pieces if fully vented (per-job call).`);
+  if (m.penetrations) advisories.push(`${m.penetrations} penetrations (pipe boots / gas vents) — confirm boot sizes at the job.`);
 
   return { lines, advisories, assumptions, incomplete };
 }
