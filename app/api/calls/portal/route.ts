@@ -22,6 +22,12 @@ import { callsService } from '@/lib/calls-service';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+// TESTING TOGGLE: when CALLS_PORTAL_OPEN === 'true', the portal is fully open
+// (no password) so it can be tested without a login. Flip it off (remove the
+// env var + redeploy) to re-secure behind the shared password before real
+// customer call data flows in.
+const OPEN_MODE = process.env.CALLS_PORTAL_OPEN === 'true';
+
 const COOKIE_NAME = 'calls_portal';
 // Static salt so the cookie token isn't just sha256(password) — combined with
 // the secret password it's not guessable from the cookie alone.
@@ -89,7 +95,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  if (!isAuthed()) {
+  if (!OPEN_MODE && !isAuthed()) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
   }
 
