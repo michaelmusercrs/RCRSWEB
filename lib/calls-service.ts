@@ -301,13 +301,16 @@ class CallsService {
     const calls = await this.loadCached();
     const now = new Date().toISOString();
 
-    // Find existing call record for this UUID
-    const existing = calls.find(c => c.callId.includes(payload.callUuid));
+    // Find existing call record for this UUID. The record's callId IS the
+    // phone system's callUuid (set on creation below), so every event for a
+    // call — start → end → recording_ready — matches and upserts the same row.
+    const existing = calls.find(c => c.callId === payload.callUuid);
 
     if (payload.event === 'call_start') {
-      // Create new call record
+      // Create new call record. Use the phone system's callUuid as the canonical
+      // callId so later events (call_end, recording_ready) find and update it.
       const newCall: CallRecord = {
-        callId: this.generateCallId(),
+        callId: payload.callUuid,
         customerId: '',
         customerName: payload.callerIdName || 'Unknown Caller',
         customerPhone: this.normalizePhone(payload.direction === 'inbound' ? payload.from : payload.to),
@@ -372,7 +375,7 @@ class CallsService {
         return updated;
       }
       const missedCall: CallRecord = {
-        callId: this.generateCallId(),
+        callId: payload.callUuid,
         customerId: '',
         customerName: payload.callerIdName || 'Unknown Caller',
         customerPhone: this.normalizePhone(payload.from),
