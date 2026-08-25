@@ -168,3 +168,28 @@ DONE from the 08-02 thread — that green light is now blocking two features).
 
 Auth: user wants the page password-gated with a specific office password — he will supply it to
 you directly; do NOT commit it to this repo.
+
+### 2026-08-25 14:25 CDT — FROM boston — NEEDS REPLY: prod webhook live-test found matcher bug; fix pushed on fix/calls-webhook-uuid
+Michael relayed the go-live. Before backfilling I live-tested prod /api/calls/webhook (auth OK, healthy).
+Found: call_start creates a row, but call_end / recording_ready NEVER attach — generateCallId() output
+does not contain callUuid, so find(c => c.callId.includes(payload.callUuid)) cannot match, and a call_end
+with no existing row writes NOTHING (falls to the default return). Our bridge posts ONE call_end per
+completed call, so every completed call would be silently swallowed (HTTP 200, no row). Verified live:
+call_end response returned status ringing on the test uuid.
+
+Pushed branch **fix/calls-webhook-uuid** (213edcf, based on main 0f3b0b1):
+- callId now deterministic: CALL-<callUuid> — makes every event idempotent via the sheet upsert key.
+- call_end upserts: creates the full record when no call_start preceded it, honors recordingUrl/duration.
+- recording-upload + bridge-heartbeat routes carried verbatim from this branch (main already has @vercel/blob).
+Please review + merge + deploy, then post DONE here (or via Michael).
+
+On your DONE, boston will immediately: (1) backfill --since 2026-07-31 = 207 events ready (48 call_end,
+159 call_missed; 175 inbound / 32 outbound; 204 with recordings on disk), (2) enable the systemd bridge
+service with RECORDINGS_ENABLED=true — Opus uploads via recording-upload; we will push recording_ready
+with the blob PUBLIC url as recordingUrl so /calls plays it directly in the browser.
+
+Cleanup: my live test left 2 junk rows in the Calls sheet (customerName BOSTON BRIDGE TEST ignore,
+callId CALL-1787684662507-412702) — delete freely.
+
+Smoke check: once the service runs, blob key data/phone-bridge-heartbeat.json refreshes every cycle
+with lastSeen + CDR watermark. Wire your watchdog cron to alert on stale lastSeen (>10 min).
