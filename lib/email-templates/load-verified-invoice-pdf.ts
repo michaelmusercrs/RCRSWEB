@@ -1,5 +1,3 @@
-// TODO npm install pdfmake @types/pdfmake
-//
 // Load-verified office invoice PDF generator.
 //
 // Generates the PDF attachment that rides out with the
@@ -13,27 +11,15 @@
 // office / manager / Richard via separate reports, never on the invoice.
 // JN reps and customers must be safe to forward this PDF to.
 //
-// Library: pdfmake. Chosen because it is pure JS (no native bindings,
-// no Chromium), small (~1MB), and runs on Vercel serverless without
-// the binary-bundling pain Puppeteer / playwright cause. @react-pdf
-// would also work but ships a React renderer we don't need on the
-// server side and has heavier deps. Roboto is bundled as a standard
-// font so we don't need to ship font files.
+// Library: pdfkit (2026-08-25). Replaced pdfmake, whose `require('pdfmake')`
+// returned the browser bundle in the Vercel serverless build ("PdfPrinter is
+// not a constructor"), so the invoice PDF silently failed to attach and the
+// office got a text-only email. pdfkit is pure JS, already present (pdfmake's
+// own dependency), and uses the 14 built-in PDF standard fonts (Helvetica) —
+// so there are NO external .ttf files to resolve in the bundle, which is
+// exactly what broke pdfmake here.
 
-// pdfmake's CommonJS export is the PdfPrinter constructor itself, but the
-// @types package types it as a module namespace. Use a require-style import
-// + cast to keep TypeScript and the actual runtime in agreement.
-// eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-const PdfPrinter: new (fontDescriptors: Record<string, unknown>) => {
-  createPdfKitDocument(docDefinition: unknown): NodeJS.ReadableStream & {
-    end(): void;
-    on(event: 'data', cb: (chunk: Buffer) => void): void;
-    on(event: 'end', cb: () => void): void;
-    on(event: 'error', cb: (err: Error) => void): void;
-  };
-} = require('pdfmake');
-import type { TDocumentDefinitions, Content } from 'pdfmake/interfaces';
-
+import PDFDocument from 'pdfkit';
 import type { LoadVerifiedInvoiceEmailData } from './load-verified-invoice';
 
 // Brand accent — matches the HTML template (shared.ts ACCENT).
@@ -43,16 +29,10 @@ const MUTED = '#6b7280';
 const BORDER = '#e3e6ea';
 const TINT = '#f6f8fb';
 
-// Roboto ships with pdfmake's default font registration. Declaring it
-// explicitly keeps the printer happy in a Node / serverless context.
-const FONTS = {
-  Roboto: {
-    normal: 'Roboto-Regular.ttf',
-    bold: 'Roboto-Medium.ttf',
-    italics: 'Roboto-Italic.ttf',
-    bolditalics: 'Roboto-MediumItalic.ttf',
-  },
-};
+// Letter page = 612×792 pt. 40pt margins → content spans x:40→572 (width 532).
+const L = 40;
+const R = 572;
+const W = R - L;
 
 function fmtMoney(n: number): string {
   if (typeof n !== 'number' || !isFinite(n)) return '$0.00';
@@ -71,313 +51,22 @@ function fmtVerifiedAt(raw: string): string {
   }
 }
 
-/**
- * Build the pdfmake document definition for a load-verified invoice.
- * Exported only so it can be unit-tested without spinning up a printer.
- */
-export function buildLoadVerifiedInvoiceDocDef(
-  data: LoadVerifiedInvoiceEmailData,
-): TDocumentDefinitions {
-  // Line-item table body — header row then one row per material.
-  const lineItemBody: Content[][] = [
-    [
-      { text: 'Qty', style: 'th' },
-      { text: 'Unit', style: 'th' },
-      { text: 'Item', style: 'th' },
-      { text: 'Unit Price', style: 'thRight' },
-      { text: 'Line Total', style: 'thRight' },
-    ],
-    ...data.materials.map<Content[]>((m) => [
-      { text: String(m.qty), style: 'td' },
-      { text: m.unit || '', style: 'td' },
-      { text: m.name, style: 'td' },
-      { text: fmtMoney(m.unitPrice), style: 'tdRight' },
-      { text: fmtMoney(m.linePrice), style: 'tdRightBold' },
-    ]),
-  ];
-
-  // Header row: wordmark left, "INVOICE" + invoice id right.
-  const header: Content = {
-    columns: [
-      {
-        width: '*',
-        stack: [
-          {
-            text: 'RIVER CITY ROOFING SOLUTIONS',
-            style: 'wordmark',
-          },
-          {
-            text: 'North Alabama  ·  (256) 274-8530',
-            style: 'wordmarkSub',
-          },
-        ],
-      },
-      {
-        width: 'auto',
-        stack: [
-          { text: 'INVOICE', style: 'invoiceLabel' },
-          { text: data.invoiceId, style: 'invoiceId' },
-        ],
-        alignment: 'right',
-      },
-    ],
-  };
-
-  // 2px accent underline below the header.
-  const headerRule: Content = {
-    canvas: [
-      {
-        type: 'line',
-        x1: 0,
-        y1: 0,
-        x2: 515, // letter width (612) - 2 * 40px margin - small gutter
-        y2: 0,
-        lineWidth: 2,
-        lineColor: ACCENT,
-      },
-    ],
-    margin: [0, 6, 0, 14],
-  };
-
-  // Two-column body block: bill-to (left) + invoice metadata (right).
-  const billToBlock: Content = {
-    columns: [
-      {
-        width: '*',
-        stack: [
-          { text: 'BILL TO', style: 'sectionLabel' },
-          { text: data.customerName, style: 'billToName' },
-          { text: data.address, style: 'billToAddr' },
-        ],
-      },
-      {
-        width: 'auto',
-        table: {
-          widths: ['auto', 'auto'],
-          body: [
-            [
-              { text: 'Invoice', style: 'kvLabel' },
-              { text: data.invoiceId, style: 'kvValue' },
-            ],
-            [
-              { text: 'Ticket', style: 'kvLabel' },
-              { text: data.ticketId, style: 'kvValue' },
-            ],
-            [
-              { text: 'Job', style: 'kvLabel' },
-              { text: data.jobNumber, style: 'kvValue' },
-            ],
-            [
-              { text: 'Sales Rep', style: 'kvLabel' },
-              { text: data.salesRepName || '—', style: 'kvValue' },
-            ],
-            [
-              { text: 'Verified by', style: 'kvLabel' },
-              { text: data.verifiedByName, style: 'kvValue' },
-            ],
-            [
-              { text: 'Verified at', style: 'kvLabel' },
-              { text: fmtVerifiedAt(data.verifiedAt), style: 'kvValue' },
-            ],
-          ],
-        },
-        layout: 'noBorders',
-      },
-    ],
-    columnGap: 24,
-    margin: [0, 0, 0, 18],
-  };
-
-  const lineItemsTable: Content = {
-    table: {
-      headerRows: 1,
-      // Column widths chosen so item description has room to wrap.
-      widths: [40, 40, '*', 80, 80],
-      body: lineItemBody,
-    },
-    layout: {
-      hLineWidth: () => 0.5,
-      vLineWidth: () => 0,
-      hLineColor: () => BORDER,
-      fillColor: (rowIndex: number) => (rowIndex === 0 ? TINT : null),
-      paddingTop: () => 7,
-      paddingBottom: () => 7,
-      paddingLeft: () => 8,
-      paddingRight: () => 8,
-    },
-    margin: [0, 4, 0, 0],
-  };
-
-  // Bold accented total row, right-aligned.
-  const totalBlock: Content = {
-    table: {
-      widths: ['*', 'auto'],
-      body: [
-        [
-          { text: 'TOTAL', style: 'totalLabel' },
-          { text: fmtMoney(data.totalPrice), style: 'totalValue' },
-        ],
-      ],
-    },
-    layout: {
-      hLineWidth: (i: number) => (i === 0 ? 1.5 : 0),
-      vLineWidth: () => 0,
-      hLineColor: () => ACCENT,
-      paddingTop: () => 10,
-      paddingBottom: () => 10,
-      paddingLeft: () => 8,
-      paddingRight: () => 8,
-    },
-    margin: [0, 6, 0, 0],
-  };
-
-  const notesBlock: Content | null = data.notes
-    ? {
-        stack: [
-          { text: 'NOTES', style: 'sectionLabel' },
-          {
-            text: data.notes,
-            style: 'notesBody',
-          },
-        ],
-        margin: [0, 16, 0, 0],
-      }
-    : null;
-
-  const footer: Content = {
-    text:
-      'Materials loaded and verified at the warehouse. Stock has been deducted. ' +
-      'Cost-side material consumption recorded separately.',
-    style: 'footerNote',
-    margin: [0, 24, 0, 0],
-  };
-
-  const docContent: Content[] = [
-    header,
-    headerRule,
-    billToBlock,
-    { text: 'LINE ITEMS', style: 'sectionLabel' },
-    lineItemsTable,
-    totalBlock,
-  ];
-  if (notesBlock) docContent.push(notesBlock);
-  docContent.push(footer);
-
-  return {
-    pageSize: 'LETTER',
-    pageMargins: [40, 40, 40, 40],
-    defaultStyle: {
-      font: 'Roboto',
-      fontSize: 10,
-      color: TEXT,
-      lineHeight: 1.35,
-    },
-    content: docContent,
-    styles: {
-      wordmark: {
-        fontSize: 13,
-        bold: true,
-        color: TEXT,
-        characterSpacing: 1,
-      },
-      wordmarkSub: {
-        fontSize: 9,
-        color: MUTED,
-        margin: [0, 2, 0, 0],
-      },
-      invoiceLabel: {
-        fontSize: 11,
-        bold: true,
-        color: ACCENT,
-        characterSpacing: 2,
-      },
-      invoiceId: {
-        fontSize: 16,
-        bold: true,
-        color: TEXT,
-        margin: [0, 2, 0, 0],
-      },
-      sectionLabel: {
-        fontSize: 9,
-        bold: true,
-        color: MUTED,
-        characterSpacing: 0.8,
-        margin: [0, 0, 0, 4],
-      },
-      billToName: {
-        fontSize: 12,
-        bold: true,
-        color: TEXT,
-      },
-      billToAddr: {
-        fontSize: 10,
-        color: TEXT,
-        margin: [0, 2, 0, 0],
-      },
-      kvLabel: {
-        fontSize: 9,
-        color: MUTED,
-        alignment: 'right',
-      },
-      kvValue: {
-        fontSize: 10,
-        color: TEXT,
-        bold: true,
-      },
-      th: {
-        fontSize: 9,
-        bold: true,
-        color: MUTED,
-        characterSpacing: 0.6,
-      },
-      thRight: {
-        fontSize: 9,
-        bold: true,
-        color: MUTED,
-        characterSpacing: 0.6,
-        alignment: 'right',
-      },
-      td: {
-        fontSize: 10,
-        color: TEXT,
-      },
-      tdRight: {
-        fontSize: 10,
-        color: TEXT,
-        alignment: 'right',
-      },
-      tdRightBold: {
-        fontSize: 10,
-        color: TEXT,
-        alignment: 'right',
-        bold: true,
-      },
-      totalLabel: {
-        fontSize: 11,
-        bold: true,
-        color: TEXT,
-        alignment: 'right',
-        characterSpacing: 1,
-      },
-      totalValue: {
-        fontSize: 14,
-        bold: true,
-        color: ACCENT,
-        alignment: 'right',
-      },
-      notesBody: {
-        fontSize: 10,
-        color: TEXT,
-        margin: [0, 0, 0, 0],
-      },
-      footerNote: {
-        fontSize: 8,
-        color: MUTED,
-        italics: true,
-      },
-    },
-  };
+interface Col {
+  x: number;
+  w: number;
+  align: 'left' | 'right';
+  head: string;
 }
+
+// Line-item columns. Sum of widths = 532 = content width.
+const COLS: Col[] = [
+  { x: L, w: 38, align: 'left', head: 'Qty' },
+  { x: L + 38, w: 46, align: 'left', head: 'Unit' },
+  { x: L + 84, w: 250, align: 'left', head: 'Item' },
+  { x: L + 334, w: 88, align: 'right', head: 'Unit Price' },
+  { x: L + 422, w: 110, align: 'right', head: 'Line Total' },
+];
+const PAD = 8;
 
 /**
  * Render the load-verified invoice as a PDF buffer. Returns a single
@@ -386,15 +75,126 @@ export function buildLoadVerifiedInvoiceDocDef(
 export async function renderLoadVerifiedInvoicePDF(
   data: LoadVerifiedInvoiceEmailData,
 ): Promise<Buffer> {
-  const printer = new PdfPrinter(FONTS);
-  const docDef = buildLoadVerifiedInvoiceDocDef(data);
-  const pdfDoc = printer.createPdfKitDocument(docDef);
-
-  return new Promise<Buffer>((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    pdfDoc.on('data', (chunk: Buffer) => chunks.push(chunk));
-    pdfDoc.on('end', () => resolve(Buffer.concat(chunks)));
-    pdfDoc.on('error', (err: Error) => reject(err));
-    pdfDoc.end();
+  const doc = new PDFDocument({ size: 'LETTER', margin: 40 });
+  const chunks: Buffer[] = [];
+  const done = new Promise<Buffer>((resolve, reject) => {
+    doc.on('data', (c: Buffer) => chunks.push(c));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
   });
+
+  // ── Header: wordmark left, INVOICE + id right ──────────────────────────
+  doc.font('Helvetica-Bold').fontSize(13).fillColor(TEXT)
+    .text('RIVER CITY ROOFING SOLUTIONS', L, 42, { characterSpacing: 1 });
+  doc.font('Helvetica').fontSize(9).fillColor(MUTED)
+    .text('North Alabama  ·  (256) 274-8530', L, doc.y + 1);
+  doc.font('Helvetica-Bold').fontSize(11).fillColor(ACCENT)
+    .text('INVOICE', R - 200, 42, { width: 200, align: 'right', characterSpacing: 2 });
+  doc.font('Helvetica-Bold').fontSize(16).fillColor(TEXT)
+    .text(data.invoiceId, R - 200, doc.y + 1, { width: 200, align: 'right' });
+
+  // 2pt accent rule under the header.
+  const ruleY = 86;
+  doc.moveTo(L, ruleY).lineTo(R, ruleY).lineWidth(2).strokeColor(ACCENT).stroke();
+
+  // ── Bill-to (left) + metadata (right), independent columns ─────────────
+  const blockTop = ruleY + 16;
+  const leftW = 250;
+  doc.font('Helvetica-Bold').fontSize(9).fillColor(MUTED)
+    .text('BILL TO', L, blockTop, { characterSpacing: 0.8 });
+  doc.font('Helvetica-Bold').fontSize(12).fillColor(TEXT)
+    .text(data.customerName || '—', L, doc.y + 2, { width: leftW });
+  doc.font('Helvetica').fontSize(10).fillColor(TEXT)
+    .text(data.address || '', L, doc.y + 2, { width: leftW });
+  const leftEndY = doc.y;
+
+  const meta: Array<[string, string]> = [
+    ['Invoice', data.invoiceId],
+    ['Ticket', data.ticketId],
+    ['Job', data.jobNumber],
+    ['Sales Rep', data.salesRepName || '—'],
+    ['Verified by', data.verifiedByName],
+    ['Verified at', fmtVerifiedAt(data.verifiedAt)],
+  ];
+  const mLabelX = 312, mLabelW = 108, mValX = 424, mValW = 148;
+  let my = blockTop;
+  for (const [label, value] of meta) {
+    doc.font('Helvetica').fontSize(9).fillColor(MUTED)
+      .text(label, mLabelX, my, { width: mLabelW, align: 'right' });
+    doc.font('Helvetica-Bold').fontSize(9.5).fillColor(TEXT)
+      .text(String(value ?? '—'), mValX, my, { width: mValW, align: 'right' });
+    my += 15;
+  }
+
+  let y = Math.max(leftEndY, my) + 18;
+
+  // ── Line items ─────────────────────────────────────────────────────────
+  doc.font('Helvetica-Bold').fontSize(9).fillColor(MUTED)
+    .text('LINE ITEMS', L, y, { characterSpacing: 0.8 });
+  y = doc.y + 4;
+
+  const headH = 20;
+  doc.rect(L, y, W, headH).fill(TINT);
+  doc.fillColor(MUTED).font('Helvetica-Bold').fontSize(9);
+  for (const c of COLS) {
+    doc.text(c.head, c.align === 'right' ? c.x : c.x + PAD, y + 6, {
+      width: c.w - PAD, align: c.align,
+    });
+  }
+  y += headH;
+  doc.moveTo(L, y).lineTo(R, y).lineWidth(0.5).strokeColor(BORDER).stroke();
+
+  for (const m of data.materials || []) {
+    if (y > 720) { doc.addPage(); y = 42; }
+    const cells = [
+      String(m.qty),
+      m.unit || '',
+      m.name,
+      fmtMoney(m.unitPrice),
+      fmtMoney(m.linePrice),
+    ];
+    doc.font('Helvetica').fontSize(10);
+    const itemH = doc.heightOfString(m.name || '', { width: COLS[2].w - PAD });
+    const rowH = Math.max(itemH, 12) + 14;
+    for (let i = 0; i < COLS.length; i++) {
+      const c = COLS[i];
+      doc.font(i === 4 ? 'Helvetica-Bold' : 'Helvetica').fontSize(10).fillColor(TEXT)
+        .text(cells[i], c.align === 'right' ? c.x : c.x + PAD, y + 7, {
+          width: c.w - PAD, align: c.align,
+        });
+    }
+    y += rowH;
+    doc.moveTo(L, y).lineTo(R, y).lineWidth(0.5).strokeColor(BORDER).stroke();
+  }
+
+  // ── Total ──────────────────────────────────────────────────────────────
+  y += 2;
+  doc.moveTo(L, y).lineTo(R, y).lineWidth(1.5).strokeColor(ACCENT).stroke();
+  y += 9;
+  doc.font('Helvetica-Bold').fontSize(11).fillColor(TEXT)
+    .text('TOTAL', L, y + 2, { width: W - 130, align: 'right', characterSpacing: 1 });
+  doc.font('Helvetica-Bold').fontSize(14).fillColor(ACCENT)
+    .text(fmtMoney(data.totalPrice), R - 130, y, { width: 130, align: 'right' });
+  y += 28;
+
+  // ── Notes (optional) ───────────────────────────────────────────────────
+  if (data.notes) {
+    if (y > 700) { doc.addPage(); y = 42; }
+    doc.font('Helvetica-Bold').fontSize(9).fillColor(MUTED)
+      .text('NOTES', L, y, { characterSpacing: 0.8 });
+    doc.font('Helvetica').fontSize(10).fillColor(TEXT)
+      .text(data.notes, L, doc.y + 2, { width: W });
+    y = doc.y;
+  }
+
+  // ── Footer ─────────────────────────────────────────────────────────────
+  doc.font('Helvetica-Oblique').fontSize(8).fillColor(MUTED)
+    .text(
+      'Materials loaded and verified at the warehouse. Stock has been deducted. ' +
+      'Cost-side material consumption recorded separately.',
+      L, y + 22, { width: W },
+    );
+
+  doc.end();
+  return done;
 }
