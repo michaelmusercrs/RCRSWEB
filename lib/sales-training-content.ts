@@ -2145,7 +2145,7 @@ export const salesModules: SalesModule[] = [
           'Every RCRS job runs the same seven-step lifecycle. Learn it as the spine that everything else hangs on — keep asking yourself "where are we on the job?"',
           '1. LEAD — comes in from a storm response, a referral, or a door knock, and gets assigned to a rep.',
           '2. INSPECT & ESTIMATE — the rep inspects the roof, documents the damage with photos, and delivers an in-person estimate (best with both decision-makers home).',
-          '3. SIGN — the customer signs. On insurance jobs, you head to the adjuster appointment to get it approved.',
+          '3. SIGN — the customer signs. On insurance jobs, you head to the adjuster appointment, where the claim is approved or denied.',
           '4. MATERIAL — materials are ordered and staged at the warehouse; the driver loads and verifies the order before it leaves the yard.',
           '5. INSTALL — the crew protects the property, tears off the old roof, inspects the decking, installs the new roof, and cleans up with magnets and rakes.',
           "6. JOB BREAKDOWN — the job is totaled: overhead, profit, and the rep's 50% pay.",
