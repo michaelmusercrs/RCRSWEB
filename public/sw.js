@@ -1,14 +1,15 @@
 // River City Roofing Solutions - Service Worker
-// Version: 1.0.3 (calls bypass — 2026-08-25)
+// Version: 1.0.4 (smithlake + meeting-live bypass — 2026-08-25)
 
-const CACHE_NAME = 'rcrs-cache-v6';
+const CACHE_NAME = 'rcrs-cache-v7';
 const OFFLINE_URL = '/offline';
 
 // Paths the SW must NEVER intercept — always go direct to network.
-// /ram/* and /calls/* are public open-link pages; the SW was incorrectly
-// serving stale cached portal-login HTML for these requests (the classic
-// "open page keeps redirecting to login" bug). Keep new open-link routes here.
-const BYPASS_PREFIXES = ['/ram', '/calls'];
+// These are public open-link pages; the SW was incorrectly serving stale
+// cached HTML for them (the classic "open page redirects to login / shows a
+// blank white page even after a fix ships" bug). Add every new open-link
+// standalone route here so it always loads fresh from the network.
+const BYPASS_PREFIXES = ['/ram', '/calls', '/smithlake', '/meeting-live'];
 
 // Static assets to pre-cache on install
 const PRECACHE_ASSETS = [
