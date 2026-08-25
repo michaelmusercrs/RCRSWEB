@@ -1,22 +1,37 @@
 /**
- * HailRecon Service
+ * HailRecon Service  ⚠️ READ/IMPACT API IS NOT ENABLED FOR OUR ACCOUNT
  *
- * Integrates with HailRecon (Interactive Hail Maps) API for historical
- * hail data going back to 2011. Provides property-level and area-level
- * hail history lookup.
+ * HISTORY: This file was originally written against a fabricated host
+ * (`api.hailrecon.com`, which does not resolve) with guessed endpoints, so it
+ * has never returned real data — it silently degrades to null. The live hail
+ * data shown on the site actually comes from NWS + Iowa State Mesonet via
+ * `storm-report-service.ts`, NOT from this client.
  *
- * API authentication uses API key + secret pair.
- * Includes 24-hour in-memory cache per address.
- * Gracefully degrades when API is not configured or unavailable.
+ * VERIFIED 2026-08-25: The REAL Interactive Hail Maps API lives at
+ *   https://maps.interactivehailmaps.com/  (base updated below)
+ * and uses one of two mechanisms:
+ *   1. /ExternalApi/*  — HTTP Basic Auth (AccessKey:AccessSecret).
+ *      Includes ImpactDatesForLatLong / ImpactDatesForAddressMarker (the reads
+ *      this file wants). ⚠️ Returns 401 for our account — impact/read API is
+ *      NOT provisioned on our plan. Do not rely on this client until IHM
+ *      enables ExternalApi access for us.
+ *   2. /WebHook/AddressMarkerImport — query-param auth
+ *      (?IhmAccessKey&IhmAccessSecret&IntegrationType=ihmjson&MonitoringSize=N).
+ *      This DOES work (creates/updates markers, assigns reps, JN sync).
+ *      For the working IMPORT path see: scripts/ihm-import.mjs
+ *
+ * Credentials: IHM_ACCESS_KEY / IHM_ACCESS_SECRET in .env.local.
  */
 
 // ---------------------------------------------------------------------------
 // Configuration
 // ---------------------------------------------------------------------------
 
-const HAILRECON_API_KEY = process.env.HAILRECON_API_KEY || '';
-const HAILRECON_API_SECRET = process.env.HAILRECON_API_SECRET || '';
-const HAILRECON_BASE_URL = 'https://api.hailrecon.com';
+const HAILRECON_API_KEY = process.env.IHM_ACCESS_KEY || process.env.HAILRECON_API_KEY || '';
+const HAILRECON_API_SECRET = process.env.IHM_ACCESS_SECRET || process.env.HAILRECON_API_SECRET || '';
+// Real host (was the fake `api.hailrecon.com`). ExternalApi uses Basic Auth but
+// currently 401s for our account — see file header. Import path is in scripts/ihm-import.mjs.
+const HAILRECON_BASE_URL = 'https://maps.interactivehailmaps.com';
 
 // ---------------------------------------------------------------------------
 // Types
