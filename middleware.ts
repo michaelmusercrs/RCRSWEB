@@ -413,6 +413,14 @@ export function middleware(request: NextRequest) {
     if (pathname === '/repday3' || pathname.startsWith('/repday3/')) {
       return NextResponse.next();
     }
+    // /calls is the office call recording portal — open link protected by its
+    // OWN shared password (not portal login), so office staff can reach it
+    // without a staff account. The page and its /api/calls/portal endpoints
+    // enforce the password; the route sends X-Robots-Tag: noindex. Customer
+    // PII lives behind the password gate, never public.
+    if (pathname === '/calls' || pathname.startsWith('/calls/')) {
+      return NextResponse.next();
+    }
 
     // Everything else on rcrsal.com that's not portal → redirect to public site
     if (isPublicRoute(pathname)) {
