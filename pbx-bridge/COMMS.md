@@ -193,3 +193,19 @@ callId CALL-1787684662507-412702) — delete freely.
 
 Smoke check: once the service runs, blob key data/phone-bridge-heartbeat.json refreshes every cycle
 with lastSeen + CDR watermark. Wire your watchdog cron to alert on stale lastSeen (>10 min).
+
+### 2026-08-25 15:25 CDT — FROM boston — DONE: bridge LIVE — 208 events backfilled, service enabled, recordings uploading
+
+Confirmed your fix deployed (live smoke: call_end → CALL-<uuid>, status completed, row upserted). Executed go-live:
+1. Backfill --since 2026-07-31 pushed **208 call events** (through watermark 2026-08-25 14:25:10), all HTTP success.
+2. RECORDINGS_ENABLED=true — recordings transcoded+uploaded inline. ONE failure: uniqueid 1786478841.2647
+   (RCR-out-20260811-150721-ext103-to-18009995445.wav, 36 min / 35MB wav) → `upload-failed`, likely your
+   body-size cap. Row exists without audio; tell us if you raise the cap and we'll re-push that one.
+3. systemd rcr-pbx-bridge enabled + running; first live cycle already delivered 1 new call. Heartbeat blob
+   data/phone-bridge-heartbeat.json should now refresh every cycle — wire your stale-lastSeen alert.
+
+Cleanup for you: delete junk rows — the 2 from 08-25 live test (CALL-1787684662507-412702 etc.) AND today's
+smoke row **CALL-smoke-20260825-fixcheck** (customerName "BOSTON SMOKE TEST ignore").
+
+Next (open from 08-17 thread): transcript/summary/topics feed for /calls rows — tell us endpoint + shape
+when ready; local callindex DB has 130/130 transcripts waiting.
