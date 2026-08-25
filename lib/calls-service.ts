@@ -307,7 +307,7 @@ class CallsService {
     if (payload.event === 'call_start') {
       // Create new call record
       const newCall: CallRecord = {
-        callId: this.generateCallId(),
+        callId: "CALL-" + payload.callUuid,
         customerId: '',
         customerName: payload.callerIdName || 'Unknown Caller',
         customerPhone: this.normalizePhone(payload.direction === 'inbound' ? payload.from : payload.to),
@@ -348,12 +348,52 @@ class CallsService {
       return newCall;
     }
 
-    if (payload.event === 'call_end' && existing) {
+    if (payload.event === "call_end") {
+      const startIso = payload.duration
+        ? new Date(new Date(payload.timestamp).getTime() - payload.duration * 1000).toISOString()
+        : payload.timestamp;
+      const base: CallRecord = existing || {
+        callId: "CALL-" + payload.callUuid,
+        customerId: "",
+        customerName: payload.callerIdName || "Unknown Caller",
+        customerPhone: this.normalizePhone(payload.direction === "inbound" ? payload.from : payload.to),
+        customerEmail: "",
+        repId: "",
+        repName: "",
+        repExtension: payload.extension || "",
+        direction: payload.direction,
+        status: "completed",
+        startTime: startIso,
+        endTime: "",
+        duration: 0,
+        recordingUrl: "",
+        recordingAvailable: false,
+        notes: "",
+        tags: [],
+        jobNimbusContactId: "",
+        createdAt: now,
+        updatedAt: now,
+      };
+      if (!existing) {
+        const matchedCustomer = await this.findCustomerByPhone(base.customerPhone);
+        if (matchedCustomer) {
+          base.customerId = matchedCustomer.customerId;
+          base.customerName = matchedCustomer.customerName;
+          base.customerEmail = matchedCustomer.customerEmail || "";
+        }
+        const matchedRep = this.findRepByExtension(payload.extension || "");
+        if (matchedRep) {
+          base.repId = matchedRep.userId || "";
+          base.repName = matchedRep.name;
+        }
+      }
       const updated: CallRecord = {
-        ...existing,
-        status: 'completed',
+        ...base,
+        status: "completed",
         endTime: payload.timestamp,
         duration: payload.duration || 0,
+        recordingUrl: payload.recordingUrl || base.recordingUrl,
+        recordingAvailable: !!(payload.recordingUrl || base.recordingUrl),
         updatedAt: now,
       };
       await this.upsertCall(updated);
@@ -372,7 +412,7 @@ class CallsService {
         return updated;
       }
       const missedCall: CallRecord = {
-        callId: this.generateCallId(),
+        callId: "CALL-" + payload.callUuid,
         customerId: '',
         customerName: payload.callerIdName || 'Unknown Caller',
         customerPhone: this.normalizePhone(payload.from),
