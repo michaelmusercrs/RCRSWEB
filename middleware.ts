@@ -49,6 +49,8 @@ const PROTECTED_PAGE_RULES: Array<{ prefix: string; minRole: RoleName }> = [
   { prefix: '/command-center/settings', minRole: 'Admin' },
   // Manager+ (operations oversight)
   { prefix: '/portal/manager', minRole: 'Manager' },
+  // Smith Lake homeowner marketing DB (PII) — logged-in sales team and up
+  { prefix: '/portal/smithlake', minRole: 'Sales' },
   // Office/Manager+
   // Rick (driver) needs inventory access for restock, weekly counts, QR scans
   { prefix: '/portal/inventory', minRole: 'Driver' },
@@ -365,6 +367,12 @@ export function middleware(request: NextRequest) {
         }
       }
       return NextResponse.next();
+    }
+
+    // Friendly alias: rcrsal.com/smithlake -> the gated portal page.
+    // 307 (not 308) per house rule so it's never permanent-cached.
+    if (pathname === '/smithlake' || pathname === '/smithlake/') {
+      return NextResponse.redirect(new URL('/portal/smithlake', request.url), 307);
     }
 
     // Allow BNI routes on portal domain (presentations)
