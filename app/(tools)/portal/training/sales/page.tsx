@@ -41,6 +41,16 @@ import {
   MessageSquareWarning,
   Building2,
   GitBranch,
+  Route,
+  Calculator,
+  Layers,
+  Briefcase,
+  MonitorSmartphone,
+  Presentation,
+  Droplets,
+  HardHat,
+  ClipboardList,
+  Share2,
   type LucideIcon,
 } from 'lucide-react';
 import SettingsMenu from '@/components/SettingsMenu';
@@ -83,6 +93,16 @@ const ICON_MAP: Record<string, LucideIcon> = {
   MessageSquareWarning,
   Building2,
   GitBranch,
+  Route,
+  Calculator,
+  Layers,
+  Briefcase,
+  MonitorSmartphone,
+  Presentation,
+  Droplets,
+  HardHat,
+  ClipboardList,
+  Share2,
 };
 
 // ============================================================================
@@ -417,6 +437,10 @@ export default function SalesTrainingPage() {
   // Unlock logic (per-Part)
   const isModuleUnlocked = (moduleId: string): boolean => {
     if (present) return true;
+    // A module the rep has already passed stays accessible regardless of its
+    // position — so reordering/adding modules never locks a veteran out of
+    // work they already completed.
+    if (progress[moduleId]?.passed) return true;
     const info = unlockInfo[moduleId];
     if (!info || info.firstInPart || !info.prevId) return true;
     return !!progress[info.prevId]?.passed;

@@ -66,19 +66,37 @@ const JSON_SOURCE_NOTE =
   'Source: RCRS training materials (not from the recorded session).';
 
 export const salesParts: SalesPart[] = [
-  { title: 'Part 1 — The Door', moduleIds: ['sales_c1', 'sales_c2', 'sales_c3'] },
   {
-    title: 'Part 2 — The Roof',
+    title: 'Part 1 — Foundations: The Company & The Job',
+    moduleIds: ['sales_s3', 'sales_c13', 'sales_s1', 'sales_p1'],
+  },
+  {
+    title: 'Part 2 — The Door',
+    moduleIds: ['sales_c1', 'sales_c2', 'sales_c3', 'sales_s2'],
+  },
+  {
+    title: 'Part 3 — The Roof',
     moduleIds: ['sales_c4', 'sales_c5', 'sales_c6', 'sales_c7'],
   },
-  { title: 'Part 3 — The Table', moduleIds: ['sales_c8', 'sales_c9'] },
   {
-    title: 'Part 4 — The Claim',
+    title: 'Part 4 — Measure & Estimate',
+    moduleIds: ['sales_c14', 'sales_c15'],
+  },
+  {
+    title: 'Part 5 — The Table',
+    moduleIds: ['sales_c8', 'sales_c9', 'sales_r1', 'sales_r2'],
+  },
+  {
+    title: 'Part 6 — The Claim',
     moduleIds: ['sales_c10', 'sales_c11', 'sales_c12'],
   },
   {
-    title: 'Part 5 — Foundations',
-    moduleIds: ['sales_s1', 'sales_s2', 'sales_s3', 'sales_s4'],
+    title: 'Part 7 — The Build: Install to Referral',
+    moduleIds: ['sales_r3', 'sales_r4', 'sales_r5'],
+  },
+  {
+    title: 'Part 8 — Systems & Your Business',
+    moduleIds: ['sales_s4', 'sales_b1'],
   },
 ];
 
@@ -1482,6 +1500,11 @@ export const salesModules: SalesModule[] = [
       },
       {
         heading: 'Meeting the Adjuster & the Decision Timeline',
+        media: {
+          kind: 'audio',
+          src: '/training-media/insurance-adjuster.mp3',
+          title: 'From Hail to Home — the insurance claim, adjuster to summary (21 min)',
+        },
         content: [
           'Set the expectation for meeting the adjuster: "I\'m going to meet your adjuster and we\'re going to take a look at the damage. After he leaves, I\'ll let you know how I\'m thinking or how it went." Communication builds trust.',
           'Decision timeline: once you meet with the adjuster, it typically takes about a week or two for them to come back with either an estimate or a denial.',
@@ -1913,6 +1936,11 @@ export const salesModules: SalesModule[] = [
     sections: [
       {
         heading: 'Who We Are & Where We Work',
+        media: {
+          kind: 'video',
+          src: '/training-media/company-overview.mp4',
+          title: 'River City Roofing Solutions — company overview',
+        },
         content: [
           'Headquarters: Decatur, AL — 3325 Central Pkwy SW, Decatur, AL 35603.',
           'Primary service areas: North Alabama — Huntsville, Madison, Decatur, Athens, and Owens Cross Roads.',
@@ -2095,6 +2123,1376 @@ export const salesModules: SalesModule[] = [
         ],
         explanation:
           'The rep moves the job through the Lead and Estimating statuses up to Submit for Approval. From there, the office, management, and automations take over — approval, materials, invoicing, and payout.',
+      },
+    ],
+  },
+
+  // ===================== UNIFIED CURRICULUM — 10 NEW MODULES (2026-08) =====================
+
+  // -------------------- sales_c13 --------------------
+  {
+    id: 'sales_c13',
+    title: 'Spark to Cash: The Full Job Workflow',
+    description:
+      'The seven-step lifecycle every job runs — Lead to Paid — the funnel from doors to closes, the clean rep → office → crew handoffs, and one job walked start to finish.',
+    icon: 'Route',
+    estimatedMinutes: 15,
+    passingScore: 80,
+    sections: [
+      {
+        heading: 'The Seven Steps — Spark to Cash',
+        content: [
+          'Every RCRS job runs the same seven-step lifecycle. Learn it as the spine that everything else hangs on — keep asking yourself "where are we on the job?"',
+          '1. LEAD — comes in from a storm response, a referral, or a door knock, and gets assigned to a rep.',
+          '2. INSPECT & ESTIMATE — the rep inspects the roof, documents the damage with photos, and delivers an in-person estimate (best with both decision-makers home).',
+          '3. SIGN — the customer signs. On insurance jobs, you head to the adjuster appointment to get it approved.',
+          '4. MATERIAL — materials are ordered and staged at the warehouse; the driver loads and verifies the order before it leaves the yard.',
+          '5. INSTALL — the crew protects the property, tears off the old roof, inspects the decking, installs the new roof, and cleans up with magnets and rakes.',
+          "6. JOB BREAKDOWN — the job is totaled: overhead, profit, and the rep's 50% pay.",
+          '7. PAID & FOLLOW-UP — the rep is paid (1099), and the customer gets a review request, a survey, and their warranty.',
+        ],
+        proTips: [
+          'On insurance jobs, step 3 (Sign) includes the adjuster appointment — that is where the claim actually gets approved.',
+          'The whole company works off what you enter — update your JobNimbus status in real time as each step happens.',
+        ],
+        sourceNote:
+          'Source: RCRS Aug 13, 2026 weekly class — "The Full Job Workflow (Spark to Cash)."',
+      },
+      {
+        heading: 'The Funnel: Doors to Closes',
+        media: {
+          kind: 'audio',
+          src: '/training-media/sales-funnel.mp3',
+          title: 'Decoding the Funnel of Fire — how elite reps convert (14 min)',
+        },
+        content: [
+          'A job is the end of a funnel that starts at the top with volume. You knock every door — 10 out of 10, nice house or not — because the doors at the top are what feed signed jobs at the bottom.',
+          'Doors become conversations, conversations become inspections, inspections become in-person estimates, and estimates become closes. Each stage is narrower than the one above it, so the only way to grow the bottom is to feed the top.',
+          'The numbers to hit: 8–10 inspections per week, with 40–50% conversion counted as a strong rate. Speed matters too — first contact on a new lead in under 5 minutes.',
+          'Log every door-knock area in JobNimbus. It feeds your lead credit AND the routing that puts the next lead in your hands.',
+        ],
+        proTips: [
+          'Conversion lives in the middle of the funnel — in-person delivery with both decision-makers home is what turns inspections into closes.',
+          'Under-5-minute speed-to-lead is a funnel multiplier: the faster you reach the top, the more comes out the bottom.',
+        ],
+        sourceNote:
+          'Source: RCRS Aug 13, 2026 weekly class — "Door Knocking" numbers-to-hit and the funnel audio; funnel framing generalized from the class.',
+      },
+      {
+        heading: 'Clean Handoffs: Rep → Office → Crew',
+        content: [
+          'A job passes through three sets of hands, and the cleaner each handoff, the faster the job closes and everyone gets paid.',
+          'Rep → Office: you hand off a signed contract, the claim number, and real-time JobNimbus status updates. Sloppy notes here mean the office is guessing.',
+          'Office → Crew: the office orders and stages materials; the driver load-verifies the truck before it leaves the yard, which is what deducts stock and fires the invoice. Then the crew installs.',
+          'Crew → Rep/Customer: once the roof is on, the job comes back around to the breakdown, the rep\'s pay, and the customer\'s follow-up. Nothing should fall in the gaps between hands.',
+        ],
+        callout: {
+          tone: 'info',
+          title: 'The whole company reads what you enter',
+          text: 'JobNimbus is the single source of truth for contacts, jobs, and the pipeline. Update the status in real time — the office, the PM, and the crew are all working off what you put in.',
+        },
+        sourceNote:
+          'Source: RCRS Aug 13, 2026 weekly class — workflow "Pro tip" on rep to office to crew handoffs and JN real-time updates; handoff detail generalized from the class.',
+      },
+      {
+        heading: 'One Job, Spark to Cash (Worked Example)',
+        content: [
+          'Follow one job the whole way through: LEAD → SIGN → TICKET → DELIVER → BREAKDOWN → PAID.',
+          'A hail lead comes in and is assigned to you. You inspect the roof, document every damage point with photos, and deliver the estimate in person with both spouses home. They sign, and on the adjuster appointment the claim gets approved.',
+          'The office turns the approval into a material order; a warehouse ticket is created, the crew pulls it, and the driver load-verifies the truck — stock deducts and the invoice fires. The truck delivers, the crew tears off, inspects the decking, installs, and cleans up.',
+          'The job breakdown totals overhead, profit, and your 50%. When QuickBooks pays the 1099, that cash is yours. The customer, meanwhile, gets a review request, a survey, and their warranty.',
+          'Underneath all of it sit three data pillars: Google Sheets (the master store), JobNimbus/JN (live CRM + invoicing), and QuickBooks/QB (actual commission cash). Sheets + JN + QB.',
+        ],
+        proTips: [
+          'Log it in real time, document everything, deliver in person — the three habits that carry a job cleanly from spark to cash.',
+        ],
+        sourceNote:
+          'Source: RCRS Aug 13, 2026 weekly class — "One Job, Spark to Cash" wrap-up; the Sheets + JN + QB mental model from the RCRS portal training materials.',
+      },
+    ],
+    quiz: [
+      {
+        id: 'c13_1',
+        question: 'What is the correct order of the seven-step job workflow?',
+        options: [
+          'Lead → Sign → Inspect & Estimate → Material → Install → Paid → Job Breakdown',
+          'Lead → Inspect & Estimate → Sign → Material → Install → Job Breakdown → Paid & Follow-Up',
+          'Inspect & Estimate → Lead → Material → Sign → Install → Job Breakdown → Paid',
+          'Lead → Inspect & Estimate → Material → Sign → Job Breakdown → Install → Paid',
+        ],
+        explanation:
+          'The lifecycle is Lead → Inspect & Estimate → Sign → Material → Install → Job Breakdown → Paid & Follow-Up. You inspect and estimate before the sign, order material after the sign, and the breakdown comes after the roof is installed.',
+      },
+      {
+        id: 'c13_2',
+        question: 'Before a job is signed, what does the rep do in step 2?',
+        options: [
+          'Order the materials and schedule the crew',
+          'Run the job breakdown and calculate the rep pay',
+          'Inspect and document the roof with photos, then deliver an in-person estimate',
+          'Load-verify the truck at the warehouse',
+        ],
+        explanation:
+          'Step 2 (Inspect & Estimate) is the rep inspecting the roof, documenting the damage with photos, and delivering an in-person estimate — best with both decision-makers home. Material, crew, and the breakdown all come later.',
+      },
+      {
+        id: 'c13_3',
+        question: 'Who loads and verifies the material before it leaves the yard?',
+        options: [
+          'The driver',
+          'The sales rep',
+          'The homeowner',
+          'The insurance adjuster',
+        ],
+        explanation:
+          'In the Material step, the driver loads and verifies the order before it leaves the warehouse. That load-verify is the moment stock deducts and the invoice fires.',
+      },
+      {
+        id: 'c13_4',
+        question: 'What does the Job Breakdown total?',
+        options: [
+          "The homeowner's deductible and any upgrades",
+          'The number of squares and the waste factor',
+          "The claim number and the adjuster's scope",
+          "Overhead, profit, and the rep's 50% pay",
+        ],
+        explanation:
+          "The Job Breakdown totals the job into overhead, profit, and the rep's 50% share. It is how the company knows the job made money and how the rep gets paid.",
+      },
+      {
+        id: 'c13_5',
+        question: 'At Paid & Follow-Up, what does the customer receive?',
+        options: [
+          'A second estimate and a new contingency',
+          'A material order and a delivery ticket',
+          'A review request, a survey, and their warranty',
+          'A commission statement and a job breakdown',
+        ],
+        explanation:
+          'After the install and pay, the customer gets a review request, a satisfaction survey, and their warranty — the follow-up that closes the loop on the job.',
+      },
+    ],
+  },
+
+  // -------------------- sales_c14 --------------------
+  {
+    id: 'sales_c14',
+    title: 'Estimates & Measurements',
+    description:
+      'The measurement math (squares, pitch multiplier, waste factor), building the estimate in the portal from an EagleView report, the 48-hour insurance promise, and the honest out-of-pocket conversation.',
+    icon: 'Calculator',
+    estimatedMinutes: 20,
+    passingScore: 80,
+    sections: [
+      {
+        heading: 'Measurement Basics',
+        content: [
+          'A SQUARE is the roofing unit of area: 100 square feet. To get squares, take the total roof area and divide by 100.',
+          "The PITCH MULTIPLIER converts the roof's flat footprint into its actual sloped area — a steeper roof has more real surface than its footprint suggests, so the multiplier scales the number up.",
+          'The WASTE FACTOR accounts for cuts, starter, and overlaps. Standard is 10–15%, depending on how complex (cut-up) the roof is.',
+          'Steeper pitch costs more two ways: it takes more material (more actual area), and the labor is harder, slower, and more expensive.',
+        ],
+        proTips: [
+          'A cut-up roof with lots of hips, valleys, and penetrations sits at the high end of the 10–15% waste range.',
+        ],
+        sourceNote:
+          'Source: RCRS Aug 13, 2026 weekly class — "Estimates: Measurement basics."',
+      },
+      {
+        heading: 'Building the Estimate',
+        content: [
+          "Build the estimate in the RCRS portal / JobNimbus, working from an EagleView measurement report so the roof's real numbers drive it — not a guess from the ground.",
+          'Cover the cost categories: materials, labor, disposal, permits, and overhead.',
+          'An accurate address is what makes the measurement, hail lookup, and routing work — so the estimate is only as good as the job entry behind it.',
+        ],
+        sourceNote:
+          'Source: RCRS Aug 13, 2026 weekly class — "Estimates: Building the estimate."',
+      },
+      {
+        heading: 'Insurance Jobs: Summary → Estimate in 48 Hours',
+        content: [
+          'On an approved insurance job, get a copy of the insurance summary — the 7–11 page approval document the carrier issues.',
+          'Turn that summary into an estimate within 48 hours. Fast turnaround keeps the job moving and the homeowner confident.',
+          'Cross-ref: the adjuster appointment and how the claim gets approved are covered in the Insurance Process module — this module picks up once you have the summary in hand.',
+        ],
+        sourceNote:
+          'Source: RCRS Aug 13, 2026 weekly class — "Estimates" (48-hour promise) and "The Adjuster Appointment" (7–11 page summary).',
+      },
+      {
+        heading: 'The Out-of-Pocket Promise',
+        content: [
+          "On an approved insurance job, the homeowner's only out-of-pocket cost is their deductible — plus any rotted wood found on tear-off and any upgrades they choose (like an impact shingle or premium synthetic felt).",
+          'Say it plainly and honestly: "Your out-of-pocket is your deductible, plus any rotted decking and any upgrades you decide you want." Nothing hidden, nothing inflated.',
+        ],
+        talkTracks: [
+          {
+            speaker: 'field',
+            text: "On an approved claim, your only out-of-pocket is your deductible — plus any rotted wood we find once we tear off, and any upgrades you choose. That's it.",
+            context: 'The out-of-pocket promise (Aug 13, 2026 class — Estimates).',
+          },
+        ],
+        callout: {
+          tone: 'warning',
+          title: 'The deductible is NEVER waived',
+          text: 'The homeowner is responsible for their deductible — it is never waived, discounted, absorbed, or "eaten" by RCRS. Offering to waive a deductible is insurance fraud. Payment plans exist for high deductibles, but the deductible itself is always owed.',
+        },
+        sourceNote:
+          'Source: RCRS Aug 13, 2026 weekly class — "Estimates" (out-of-pocket). Deductible-never-waived stated per RCRS insurance-ethics rules.',
+      },
+      {
+        heading: 'Before You Sign: See the Contingency Module',
+        content: [
+          'The contingency agreement is what lets you act as the homeowner\'s technical advisor with the insurance company. It is taught in full elsewhere.',
+        ],
+        callout: {
+          tone: 'info',
+          title: 'Cross-reference: The Contingency',
+          text: 'The contingency agreement itself — what it is, why it protects both sides, and the signing technique — is covered in "The Contingency" module. This Estimates module does not re-teach it; head there for the agreement.',
+        },
+        sourceNote:
+          'Cross-reference only — the contingency is taught in its own module.',
+      },
+    ],
+    quiz: [
+      {
+        id: 'c14_1',
+        question: 'What is a "square" in roofing?',
+        options: [
+          '100 square feet of roof area (total area ÷ 100)',
+          'A single bundle of shingles',
+          "10 feet by 10 feet of the roof's flat footprint only",
+          'The area covered by one EagleView report',
+        ],
+        explanation:
+          'A square is 100 square feet of roof area. You get the number of squares by dividing total roof area by 100.',
+      },
+      {
+        id: 'c14_2',
+        question: 'What is the standard waste factor on an estimate?',
+        options: [
+          '0–5%',
+          '5–8%',
+          '10–15%, depending on roof complexity',
+          '20–25% on every roof',
+        ],
+        explanation:
+          'Standard waste factor is 10–15%, with more cut-up (complex) roofs sitting toward the high end.',
+      },
+      {
+        id: 'c14_3',
+        question: 'On an insurance job, what is the 48-hour promise?',
+        options: [
+          'The adjuster must inspect within 48 hours',
+          'The first insurance check arrives within 48 hours',
+          'The homeowner must sign within 48 hours',
+          'Turn the insurance summary into an estimate within 48 hours',
+        ],
+        explanation:
+          'Once you have the 7–11 page insurance summary, the goal is to turn it into an estimate within 48 hours — fast turnaround keeps the job moving.',
+      },
+      {
+        id: 'c14_4',
+        question: "On an approved insurance job, what is the homeowner's only out-of-pocket cost?",
+        options: [
+          'The full retail price of the roof',
+          'Their deductible (plus any rotted wood and upgrades they choose)',
+          'Half of the total contract, split with insurance',
+          'Nothing — RCRS covers the deductible',
+        ],
+        explanation:
+          'The only out-of-pocket cost is the deductible, plus any rotted decking found on tear-off and any upgrades the homeowner chooses. The deductible is never waived by RCRS.',
+      },
+      {
+        id: 'c14_5',
+        question: 'Why does a steeper pitch cost more?',
+        options: [
+          'Steeper roofs need a bigger deductible',
+          'Insurance always denies steep roofs',
+          'It takes more material AND harder, more expensive labor',
+          'The waste factor drops to zero on steep roofs',
+        ],
+        explanation:
+          'A steeper pitch has more actual roof area than its footprint (more material) and the work is harder, slower, and pricier (more expensive labor).',
+      },
+    ],
+  },
+
+  // -------------------- sales_c15 --------------------
+  {
+    id: 'sales_c15',
+    title: 'Special Roofs: Low Slope, Chimneys & Crickets',
+    description:
+      'The RCRS pitch cutoffs for when shingles stop and modified bitumen starts, what code and manufacturers require, when a chimney needs a cricket, and where Ice & Water Shield always goes.',
+    icon: 'Layers',
+    estimatedMinutes: 15,
+    passingScore: 80,
+    sections: [
+      {
+        heading: 'The RCRS Cutoffs',
+        media: {
+          kind: 'audio',
+          src: '/training-media/pitch-matching.mp3',
+          title: 'Matching Roofing Material to Your Roof Pitch (5 min)',
+        },
+        content: [
+          'Where the pitch drops, the rules change — put the wrong system on a low slope and it leaks. Know the RCRS cutoffs cold:',
+          'Below 2/12 — NEVER shingle. Asphalt shingles do not belong on a slope under 2:12.',
+          '2.9/12 pitch or less — the roof REQUIRES Modified Bitumen, not shingles.',
+          '3/12 to 3.9/12 pitch — the roof REQUIRES Ice & Water Shield underlayment.',
+          "The pitch decides the system — not the customer's budget. Low slopes drain slowly, which means water backup and ice-dam damage if you put the wrong material on.",
+        ],
+        proTips: [
+          'Carry the three numbers as a ladder: under 2/12 = no shingles ever; 2.9/12 or less = Modified Bitumen; 3–3.9/12 = shingles but with Ice & Water Shield underlayment.',
+        ],
+        sourceNote:
+          'Source: RCRS Aug 13, 2026 weekly class — "Flat & Low-Slope Roofs: RCRS Low-Slope Guidelines."',
+      },
+      {
+        heading: 'What Code & Manufacturers Say',
+        content: [
+          'IRC R905.2.2: asphalt shingles are allowed only on slopes 2/12 and up. From 2/12 to 4/12, special underlayment is required (IRC R905.2.7).',
+          'IKO (list first): never apply asphalt shingles to slopes less than 2:12.',
+          'Owens Corning: shingles are OK on 2/12–4/12 only with special procedures, and never below 2/12.',
+          'The RCRS cutoffs sit inside these code and manufacturer limits — they are the practical version of what the code and the manufacturers already require.',
+        ],
+        sourceNote:
+          'Source: RCRS Aug 13, 2026 weekly class — "What the codes & manufacturers say." IKO listed first per RCRS convention.',
+      },
+      {
+        heading: 'Chimneys: Crickets & Flashing',
+        image: {
+          src: '/training/sales/handbook/hb-chimney-cricket-flashing.png',
+          alt: 'Diagram of a chimney cricket/saddle plus correct step and counter (reglet) flashing on shingles.',
+          caption: 'Chimney cricket + step/counter-flashing done right — the #1 leak point to check (RCRS handbook).',
+        },
+        content: [
+          'A penetration is the #1 leak spot on a roof, and a chimney gets the full treatment.',
+          'A cricket (saddle) is the peaked structure built behind the up-slope side of the chimney. It diverts water and debris around the chimney so nothing pools behind it.',
+          'Code (IRC R1003.20): a cricket is required when the chimney is wider than 30 inches, measured across the slope.',
+          'Flash it properly with step flashing plus counter flashing — never rely on caulk alone.',
+        ],
+        callout: {
+          tone: 'info',
+          title: 'The 30-inch rule',
+          text: 'Chimney wider than 30" across the slope = a cricket, no exceptions (IRC R1003.20). Document it in your photos so the adjuster sees it belongs on the claim.',
+        },
+        sourceNote:
+          'Source: RCRS Aug 13, 2026 weekly class — "Chimneys & Crickets: The rules."',
+      },
+      {
+        heading: 'Where Ice & Water Shield Always Goes',
+        content: [
+          'Ice & Water Shield is the waterproofing membrane that goes at every vulnerable point on the roof.',
+          'It always goes: around every chimney, in the valleys, under pipe boots, and at skylights (and flashings generally).',
+          'On a low-slope 3/12–3.9/12 roof, Ice & Water Shield is required as the underlayment — see the RCRS cutoffs above.',
+        ],
+        sourceNote:
+          'Source: RCRS Aug 13, 2026 weekly class — "Chimneys & Crickets" and "Flat & Low-Slope Roofs."',
+      },
+      {
+        heading: 'Document It for the Adjuster',
+        content: [
+          'Special-roof items are money on the claim only if the adjuster sees them. Photograph the low-slope sections, the chimney and its width, the cricket (or the missing one), and every Ice & Water Shield location.',
+          'When you walk the adjuster, point to each documented item so the low-slope material, the cricket, and the Ice & Water Shield all get scoped in. Missed detail = missed money for the homeowner and the job.',
+        ],
+        sourceNote:
+          'Source: RCRS Aug 13, 2026 weekly class — "Do this: document it in your photos so the adjuster sees it," generalized to special-roof items.',
+      },
+    ],
+    quiz: [
+      {
+        id: 'c15_1',
+        question: 'Below what pitch can you NEVER use asphalt shingles?',
+        options: [
+          'Below 4/12',
+          'Below 2/12',
+          'Below 6/12',
+          'Below 3/12',
+        ],
+        explanation:
+          'Never shingle a slope under 2:12. Both the code (IRC R905.2.2) and the manufacturers (IKO, Owens Corning) draw the line at 2/12.',
+      },
+      {
+        id: 'c15_2',
+        question: 'What does RCRS require on a roof of 2.9/12 pitch or less?',
+        options: [
+          'Modified Bitumen (not shingles)',
+          'Three-tab shingles with extra nails',
+          'Ice & Water Shield under standard shingles',
+          'A cricket behind every penetration',
+        ],
+        explanation:
+          'At 2.9/12 or less, the RCRS rule is Modified Bitumen — shingles are not used on that low a slope.',
+      },
+      {
+        id: 'c15_3',
+        question: 'What does RCRS require on a 3/12–3.9/12 roof?',
+        options: [
+          'Modified Bitumen instead of shingles',
+          'No underlayment at all',
+          'A metal standing-seam system',
+          'Ice & Water Shield underlayment',
+        ],
+        explanation:
+          'On a 3/12–3.9/12 roof, shingles are allowed but RCRS requires Ice & Water Shield underlayment because the slope still drains slowly.',
+      },
+      {
+        id: 'c15_4',
+        question: 'Per code, when is a chimney cricket required?',
+        options: [
+          'On every chimney, regardless of size',
+          'Only on two-story homes',
+          'When the chimney is wider than 30 inches across the slope',
+          'Only when the roof is steeper than 8/12',
+        ],
+        explanation:
+          'IRC R1003.20 requires a cricket when the chimney is wider than 30 inches, measured across the slope.',
+      },
+      {
+        id: 'c15_5',
+        question: 'What does a cricket (saddle) do?',
+        options: [
+          'It seals the chimney flue against smoke',
+          "It diverts water and debris around the up-slope side of the chimney so nothing pools behind it",
+          'It replaces step and counter flashing',
+          'It vents the attic through the chimney chase',
+        ],
+        explanation:
+          "A cricket is the peaked structure behind the chimney's up-slope side that splits water and debris around the chimney so nothing pools and backs up behind it.",
+      },
+    ],
+  },
+
+  // -------------------- sales_b1 --------------------
+  {
+    id: 'sales_b1',
+    title: 'Your Business: 1099, Rep LLCs & Getting Paid',
+    description:
+      'How pay works at RCRS: every rep is a 1099 contractor, rep LLCs are rep entities (not subcontractors), the 50% job-breakdown split, and keeping your credit clean in JobNimbus.',
+    icon: 'Briefcase',
+    estimatedMinutes: 12,
+    passingScore: 80,
+    sections: [
+      {
+        heading: 'All Reps Are 1099',
+        content: [
+          'Every RCRS sales rep is a 1099 independent contractor. You are in business for yourself, selling under the RCRS banner.',
+          'QuickBooks (QB) is the source of truth for the actual 1099 commission cash paid to you — that is what shows on the Commission leaderboard.',
+        ],
+        sourceNote:
+          'Source: RCRS Aug 13, 2026 weekly class — "The LLC / Rep Entities"; QB commission-cash detail from RCRS portal training materials.',
+      },
+      {
+        heading: 'Rep LLCs Are Rep Entities, NOT Subcontractors',
+        content: [
+          'Many reps operate under their own LLC. Examples: "BCM Contracting LLC" is Brendon Muse; Rudys and Roof Angel are also rep LLCs.',
+          'KEY RULE: these LLCs are REP ENTITIES, not subcontractors. They are reps who happen to run their sales through an LLC — not outside crews hired to install.',
+          'The LLC name is always credited back to the person behind it — "BCM Contracting LLC" credits to Brendon Muse — so the rep gets the right credit and commission. The system aliases the LLC to the person on the leaderboards.',
+        ],
+        callout: {
+          tone: 'info',
+          title: 'When you see an LLC on a job',
+          text: 'It is a rep, not a subcontractor. Credit and commission flow to the person behind the LLC.',
+        },
+        sourceNote:
+          'Source: RCRS Aug 13, 2026 weekly class — "The LLC / Rep Entities"; leaderboard aliasing from RCRS portal training materials.',
+      },
+      {
+        heading: 'The Job Breakdown & Your 50%',
+        content: [
+          'Every job is totaled in a Job Breakdown: material (at price), labor, overhead, and profit. Under the standard split, the rep earns 50% of the profit.',
+          "You see your pay side — JobTotal, Overhead, JobCost, Deposit, Profit, RepPay, and the percentages. You do not see material cost or the company's internal splits; those are hidden by role.",
+          'Cross-ref: the full seven-step flow that produces the breakdown is covered in "Spark to Cash: The Full Job Workflow."',
+        ],
+        sourceNote:
+          'Source: RCRS Aug 13, 2026 weekly class — workflow "rep\'s 50% pay"; breakdown line detail from RCRS portal training materials.',
+      },
+      {
+        heading: 'Keeping Your Credit Clean in JobNimbus',
+        content: [
+          'Your credit is only as clean as your JobNimbus records. Log your door-knock activity so the lead credits YOU — and so routing puts the next lead in your area back in your hands.',
+          'Create the contact and job while you are still on the roof, and update the pipeline status in real time as events happen. A job that is not entered, or entered late, is credit you may not get.',
+          'Enter your weekly numbers accurately — that is how you show up on the board. Booked revenue (accrual) and cash paid (commission) are two different numbers; do not expect them to match.',
+        ],
+        sourceNote:
+          'Source: RCRS Aug 13, 2026 weekly class — "Door Knocking" (log it so it credits YOU) and JN real-time updates; accrual-vs-commission from RCRS portal training materials.',
+      },
+    ],
+    quiz: [
+      {
+        id: 'b1_1',
+        question: 'Are rep LLCs (like BCM, Rudys, Roof Angel) subcontractors?',
+        options: [
+          'Yes — they are hired crews paid per job',
+          'Yes — but only on insurance jobs',
+          'It depends on the size of the job',
+          'No — they are rep entities, not subcontractors',
+        ],
+        explanation:
+          'Rep LLCs are REP ENTITIES, not subcontractors. They are reps running their sales through an LLC, and all reps are 1099.',
+      },
+      {
+        id: 'b1_2',
+        question: 'Who is "BCM Contracting LLC"?',
+        options: [
+          'An outside install subcontractor',
+          'Brendon Muse',
+          'A material vendor',
+          'The company that owns RCRS',
+        ],
+        explanation:
+          '"BCM Contracting LLC" is Brendon Muse — a rep operating under his own LLC, credited back to him personally.',
+      },
+      {
+        id: 'b1_3',
+        question: 'Why is the LLC name always credited back to the person?',
+        options: [
+          'So credit and commission flow to the rep behind the LLC',
+          'So the LLC pays lower taxes',
+          "So the office can hide the rep's numbers",
+          'So the LLC ranks separately from the person on the leaderboard',
+        ],
+        explanation:
+          'The LLC name is aliased back to the person so the credit and commission go to the right rep — the LLC and the person are the same for pay and ranking.',
+      },
+      {
+        id: 'b1_4',
+        question: 'What is the employment status of RCRS sales reps?',
+        options: [
+          'Salaried W-2 employees',
+          'Hourly W-2 employees',
+          'All reps are 1099 independent contractors',
+          'Unpaid interns until their first close',
+        ],
+        explanation:
+          'Every RCRS rep is a 1099 independent contractor, paid commission — with QuickBooks as the source of truth for the cash actually paid.',
+      },
+    ],
+  },
+
+  // -------------------- sales_p1 --------------------
+  {
+    id: 'sales_p1',
+    title: 'The RCRS Portal',
+    description:
+      'A guided tour of the RCRS staff portal — a five-minute orientation, the full walkthrough, what lives in the portal vs. JobNimbus, and the daily habits that keep you on the board.',
+    icon: 'MonitorSmartphone',
+    estimatedMinutes: 20,
+    passingScore: 80,
+    sections: [
+      {
+        heading: 'Five-Minute Orientation',
+        media: {
+          kind: 'video',
+          src: '/training-media/portal-short.mp4',
+          title: 'RCRS Portal — 5-minute orientation',
+        },
+        content: [
+          'The RCRS portal is the company command center — the private staff site at rcrsal.com. (The public site, rivercityroofingsolutions.com, is separate; never mix the two.)',
+          'You sign in with your email and password, are forced to change your password on first login, and then take a short welcome tour tailored to your role — a rep sees sales tools, a driver sees the delivery board.',
+          'Your home base as a rep is the sales cockpit: your assigned leads, your customers, your stats, the leaderboards, training, and your weekly numbers.',
+          'A money rule baked into the portal: reps see inventory QUANTITIES only — never price or cost. The system redacts sensitive numbers by role automatically.',
+        ],
+        sourceNote:
+          'Source: RCRS Portal Training Source — Modules 1 & 3, and the role-based access rules in Part 2.',
+      },
+      {
+        heading: 'The Full Walkthrough',
+        media: {
+          kind: 'video',
+          src: '/training-media/portal-walkthrough.mp4',
+          title: 'RCRS Portal — full walkthrough',
+        },
+        content: [
+          "The full walkthrough covers the pages you touch as a rep: your dashboard, your leads (work them top to bottom), each customer's file, your commission tracking (your numbers only), the leaderboards, your performance stats, and your weekly-numbers submission.",
+          'Your weekly numbers use the language of the Monday meeting: Inspected, Damage, Signed, Repair, Gutter, $$$$$ (revenue accrual), Approved, Goal, Referrals, Agents, Present, and Home Show. What you enter flows straight into the Monday meeting deck.',
+          'RCRS runs THREE separate leaderboards that measure different things and are never combined: Commission (real QuickBooks cash), Sales (the $$$$$ accrual you booked), and Weekly (what you self-reported). The same rep shows different numbers on each — and that is correct.',
+          'Other portal areas you will meet: the customer welcome portal (built for each customer), reviews and referrals, training, and — for other roles — inventory, delivery, and the Command Center.',
+        ],
+        sourceNote:
+          'Source: RCRS Portal Training Source — Modules 3 & 4 (sales cockpit, weekly numbers, the three leaderboards).',
+      },
+      {
+        heading: 'Portal vs. JobNimbus — What Lives Where',
+        content: [
+          'JobNimbus (JN) is the live CRM and invoicing sync — it holds contacts, jobs, the pipeline, photos, notes, and estimates. It is where you enter and move the job itself.',
+          'The RCRS portal is the command center layered on top — leaderboards, weekly numbers, training, the customer welcome portal, inventory and delivery, and analytics. It is where the job becomes tracked, coachable activity.',
+          'Underneath both sit the three data pillars: Google Sheets (master store), JobNimbus (live CRM + invoicing), and QuickBooks (actual commission cash). Sheets + JN + QB.',
+          'Estimates are built in the portal / JobNimbus from an EagleView measurement report — the roof-measure and estimate tools live in the portal, syncing with JN.',
+        ],
+        callout: {
+          tone: 'info',
+          title: 'Two systems, one job',
+          text: 'Enter and move the job in JobNimbus; track your numbers, ranking, and training in the portal. Keep them in sync by updating JN in real time.',
+        },
+        sourceNote:
+          'Source: RCRS Portal Training Source — Part 1 (Sheets + JN + QB) and Module 19 (estimates/roof-measure).',
+      },
+      {
+        heading: 'Daily Habits: Check This Every Morning',
+        content: [
+          'First thing every morning, check your assigned leads (/portal/sales/leads) and work them top to bottom. Speed matters — first contact on a new lead in under 5 minutes.',
+          'Glance at the leaderboards to see where you stand, and keep your customer files and JobNimbus statuses current so the office and crew are never guessing.',
+          'End the week by logging your weekly numbers (accurately — that is how you land on the Monday board) and requesting reviews from recent customers.',
+        ],
+        proTips: [
+          'Logging "Present = yes" and beating your Goal is how you open the Monday meeting deck as a top name — the numbers you enter are the numbers on the wall.',
+        ],
+        sourceNote:
+          'Source: RCRS Portal Training Source — Module 3 and the "Sales Rep\'s Day" scenario in Part 5; morning-habit ordering generalized from the source.',
+      },
+    ],
+    quiz: [
+      {
+        id: 'p1_1',
+        question: 'Where are estimates built?',
+        options: [
+          'Only inside QuickBooks',
+          'On the public rivercityroofingsolutions.com site',
+          'In the RCRS portal / JobNimbus, from an EagleView measurement report',
+          'In the customer welcome portal',
+        ],
+        explanation:
+          'Estimates are built in the RCRS portal / JobNimbus, working from an EagleView measurement report — the roof-measure and estimate tools live in the portal and sync with JN.',
+      },
+      {
+        id: 'p1_2',
+        question: 'What is the difference between the portal and JobNimbus?',
+        options: [
+          'JobNimbus is the live CRM/invoicing (contacts, jobs, pipeline); the portal is the command center (leaderboards, weekly numbers, training, inventory)',
+          'They are the same system with two names',
+          'The portal holds contacts and jobs; JobNimbus only shows the leaderboards',
+          'JobNimbus is the public website; the portal is QuickBooks',
+        ],
+        explanation:
+          'JobNimbus is the live CRM and invoicing sync where the job itself lives; the RCRS portal is the command center on top — leaderboards, weekly numbers, training, the customer portal, inventory, and analytics.',
+      },
+      {
+        id: 'p1_3',
+        question: 'Where is your training progress tracked?',
+        options: [
+          'In JobNimbus notes',
+          'On the Sales leaderboard',
+          'In QuickBooks',
+          "In the portal's Training Center",
+        ],
+        explanation:
+          'Training — including this module — lives in the portal\'s Training Center, with role-specific lessons so you learn what your role needs.',
+      },
+      {
+        id: 'p1_4',
+        question: 'What is a good daily habit first thing every morning?',
+        options: [
+          'Rebuild every estimate from scratch',
+          'Check your assigned leads and work them top to bottom (first contact under 5 minutes)',
+          'Reset the three leaderboards',
+          'Email the office for your commission total',
+        ],
+        explanation:
+          'Start each morning by checking your assigned leads and working them top to bottom — with first contact on a new lead in under 5 minutes.',
+      },
+    ],
+  },
+
+  // -------------------- sales_r1 --------------------
+  {
+    id: 'sales_r1',
+    title: 'The Closing Presentation: Proof Stack & the Retail Close',
+    description:
+      "The retail closing presentation — building the proof stack (IKO first), saying 'how we do the work' out loud, holding value ahead of price, running the retail close with Good/Better/Best and financing, and walking the folder page by page.",
+    icon: 'Presentation',
+    estimatedMinutes: 20,
+    passingScore: 80,
+    sections: [
+      {
+        heading: 'The Proof Stack',
+        content: [
+          "The close doesn't reveal the price — it earns it. Before a number ever comes up, you stack proof so the price lands on a foundation of trust. Build it in this order.",
+          'IKO ROOFPRO Craftsman Premier certification FIRST — the highest IKO contractor tier and the warranty that outlives the job. This is the anchor of the whole stack; lead with it.',
+          'Warranties — the manufacturer (IKO) warranty plus RCRS workmanship. Anchor the system to what stays covered long after the crew leaves.',
+          'Licenses & insurance — you are licensed and insured; that protects the homeowner, not just you.',
+          'Nearby jobs — recent roofs you have done in their area or neighborhood. Proximity beats a brochure.',
+          'Reviews — Google and BBB (RCRS holds a BBB A+). Reviews are where a local company is most beatable, so put your best social proof in front of them here.',
+          'About-me — a short, human line on who you are and why they can trust you on their roof. People buy the rep before they buy the roof.',
+        ],
+        proTips: [
+          'Always name IKO first when certs or products come up — it is the strongest single credential you carry.',
+          'Recap what you found with photos before anything else — re-live the problem on their roof, then show them the drone shots and report.',
+        ],
+        talkTracks: [
+          {
+            speaker: 'field',
+            text: "Here's who we are before we ever talk price — River City Roofing Solutions is an IKO ROOFPRO Craftsman Premier contractor, we're licensed and insured, and here are roofs we just finished right here in your neighborhood. Let me show you what your neighbors are saying.",
+            context: 'Building the proof stack, IKO first (Close to Referral deck, slides 2 & 7; adapted).',
+          },
+        ],
+        sourceNote:
+          "The deck lists the closing order (recap → show roof → present system → anchor to IKO ROOFPRO Craftsman Premier warranty → investment → ask) and names IKO ROOFPRO, licenses/insurance, warranties, and Google reviews in the folder/close slides. 'About-me,' 'nearby jobs,' and BBB are standard proof-stack elements and the RCRS BBB A+ fact, added as field-practical structure rather than verbatim deck items.",
+      },
+      {
+        heading: '"How We Do the Work" — Say It Out Loud',
+        content: [
+          "Homeowners can't see craftsmanship on a proposal — so name it. Walk them through exactly how RCRS does the job, out loud, before you talk price. This is proof you can describe.",
+          'We haul debris on our own trailer — never a roll-off container dropped in your driveway for days.',
+          'We tarp to protect the property — landscaping, AC unit, pool, and structures get covered before a shingle comes off.',
+          'We do a full tear-off down to the deck, then inspect the decking — we never roof over old layers, and we catch rotted wood.',
+          'We put Ice & Water Shield in the vulnerable spots — valleys, around chimneys, and at pipe boots.',
+          'We use silicone bullet boots on the pipe penetrations — not the old lead boots that crack and leak.',
+          'We clean up with magnets and rakes — magnet sweeps and hand-raking the whole yard, drive, and both sides of the fence for nails.',
+        ],
+        callout: {
+          tone: 'info',
+          title: 'Why say it out loud',
+          text: "Every one of these is a reason your price is higher than the cheap quote. If you don't say it, the homeowner assumes every roofer does it — and you just became the expensive one for no reason.",
+        },
+        sourceNote:
+          "The deck's install-day and walkaround slides reference tarps, full tear-off to the deck, deck inspection, ice-and-water dry-in, pipe boots, the trailer to haul, and the magnet sweep. 'No roll-off containers,' 'silicone bullet boots,' Ice & Water specifically in valleys/chimneys/boots, and 'rakes' are the RCRS how-we-work commitments, added here so the rep says all of them out loud.",
+      },
+      {
+        heading: 'Value Before Price at the Kitchen Table',
+        content: [
+          "The close doesn't reveal the price — it earns it. Recap the problem, show them their roof, present the system (not just a shingle), and anchor to the IKO ROOFPRO Craftsman Premier warranty. Only then does the investment come out.",
+          "By the time you say a number, they should already believe the roof is worth it — the price is a confirmation, not a reveal.",
+          'For the full seating, insurance-goggles framing, and how to run the table, see the "Kitchen Table & Insurance Goggles" module — the same discipline of value before price applies whether the job is retail or insurance.',
+        ],
+        proTips: [
+          'Present in person. The folder, photos, samples, and the handshake do not travel over email.',
+          'All decision-makers present, every time — confirm it when you book the appointment and again the day before. "Let me talk to my wife" is a sit-down you never should have taken.',
+        ],
+        talkTracks: [
+          {
+            speaker: 'field',
+            text: "Present the whole system, not just a shingle — then anchor it to the Craftsman Premier warranty so they feel covered long after the job's done. The price comes after that, paired with the monthly payment, never before.",
+            context: 'Value-before-price sequence (Close to Referral deck, slides 2–3; adapted).',
+          },
+        ],
+      },
+      {
+        heading: 'The Retail Close — No Insurance Involved',
+        content: [
+          'On a retail job there is no adjuster and no claim — the homeowner is paying, so the close is about the system and the payment, not an approval.',
+          'Present Good / Better / Best — give them a clear ladder of options and spend the most time on the middle (the primary IKO Dynasty system most homeowners land on).',
+          'Pair the total with financing every time — "here\'s the investment, and here\'s the monthly payment." The monthly number is what makes a big total feel doable.',
+          'Handle the three you will hear: "It\'s a lot of money" → cost-of-waiting plus the monthly payment; "We want other quotes" → compare the whole system and who holds the warranty, then hand them the folder; "We need to think about it" → "Is it the timing, the investment, or the roof itself?" then let silence work.',
+          'Ask for the business with an assumptive close — then go quiet. The first person to talk owns the next move; let it be them.',
+        ],
+        talkTracks: [
+          {
+            speaker: 'field',
+            text: "With our Craftsman Premier warranty you're covered long after the job's done, and we can start next week. Do you want the standard architectural, or the upgraded system I showed you?",
+            context: 'Verbatim assumptive close (Close to Referral deck, slide 4).',
+          },
+        ],
+        callout: {
+          tone: 'info',
+          title: 'What makes the retail close different',
+          text: 'No insurance means no deductible and no adjuster gating the decision — the homeowner is buying outright. That is why financing and Good/Better/Best carry the retail close, where an approval carries the insurance path.',
+        },
+        sourceNote:
+          "The Good/Better/Best ladder and IKO Dynasty as the primary/middle option come from the RCRS product structure (see 'Product Knowledge: The IKO Line'); the deck supplies the objections, the assumptive close, and the total-paired-with-financing move.",
+      },
+      {
+        heading: 'The Folder, Page by Page',
+        content: [
+          "Don't hand the folder over and let them flip through it later — walk them through it, page by page, while you are sitting there.",
+          'Signed agreement & scope — what they bought, in writing.',
+          'Warranty & certification — IKO ROOFPRO plus RCRS workmanship.',
+          'The roofing checklist — every quality step on their roof. This is the spine of the job: read it out loud WITH them so they hear each commitment. Same document used twice — expectation-setter at signing, inspection script at the walkaround.',
+          'What-to-expect / prep sheet — noise, timeline, cars out.',
+          'Care & maintenance plus contacts.',
+          'Review & referral card — plant the seed now.',
+        ],
+        talkTracks: [
+          {
+            speaker: 'field',
+            text: "At the end of install day, we'll walk this exact list together — before you pay a dime.",
+            context: 'Pre-framing the walkaround off the folder checklist (Close to Referral deck, slide 8).',
+          },
+        ],
+        callout: {
+          tone: 'info',
+          title: 'The folder principle',
+          text: "Walking each page turns a stack of paper into a guided commitment — they hear every quality step in your voice, and the checklist becomes the script you'll both use at the walkaround.",
+        },
+      },
+    ],
+    quiz: [
+      {
+        id: 'r1_1',
+        question: 'In the closing presentation, when should the price come out?',
+        options: [
+          'First, so the homeowner knows what they are dealing with up front',
+          'After you recap the problem, show them the roof, present the system, and anchor to the warranty',
+          'Only after they have gotten two competing quotes',
+          'Right after the about-me, before anything else in the proof stack',
+        ],
+        explanation:
+          "The close doesn't reveal the price — it earns it. You recap the problem, show them their roof, present the system, and anchor to the IKO ROOFPRO Craftsman Premier warranty, and only then present the investment paired with financing.",
+      },
+      {
+        id: 'r1_2',
+        question: 'Which credential should you lead with in the proof stack?',
+        options: [
+          'Your general liability insurance certificate',
+          'The number of roofs you have done this month',
+          'IKO ROOFPRO Craftsman Premier certification',
+          'Your Google review count',
+        ],
+        explanation:
+          'IKO is always named first when certs or products come up. IKO ROOFPRO Craftsman Premier is the highest IKO contractor tier and the anchor of the proof stack.',
+      },
+      {
+        id: 'r1_3',
+        question: 'How does RCRS haul debris off the job, and how should you say it out loud?',
+        options: [
+          'A roll-off dumpster dropped in the driveway for the duration of the job',
+          'On our own trailer — never a roll-off container sitting in your driveway',
+          'The crew bags it and the homeowner sets it out with the trash',
+          'A subcontracted junk-removal service after the job closes',
+        ],
+        explanation:
+          'RCRS hauls on its own trailer and uses no roll-off containers. Saying it out loud is part of the how-we-do-the-work proof — it is a reason your price is higher than the cheap quote.',
+      },
+      {
+        id: 'r1_4',
+        question: 'What makes the retail close different from the insurance path?',
+        options: [
+          'The homeowner is buying outright — no adjuster or deductible gates the decision, so financing and Good/Better/Best carry the close',
+          'You can waive the deductible to win the job',
+          'You skip the warranty because retail roofs are not covered',
+          'You do not need all decision-makers present for a retail sale',
+        ],
+        explanation:
+          'Retail has no insurance claim and no adjuster, so there is no approval or deductible driving it. The homeowner pays outright, which is why Good/Better/Best and financing carry the retail close. (The deductible is never waived on any path.)',
+      },
+      {
+        id: 'r1_5',
+        question: 'What is the right way to use the homeowner folder at the close?',
+        options: [
+          'Hand it over and let them read it after you leave',
+          'Email a PDF of it so they have a copy on file',
+          'Walk them through it page by page while you are sitting with them',
+          'Give it to them only after they sign, so it does not distract from the price',
+        ],
+        explanation:
+          "Don't hand it over — walk them through it page by page. Reading the roofing checklist out loud WITH them turns paper into a guided commitment and pre-frames the walkaround.",
+      },
+    ],
+  },
+
+  // -------------------- sales_r2 --------------------
+  {
+    id: 'sales_r2',
+    title: 'Gutters, LeafX & Add-On Estimating',
+    description:
+      "Why a roof replacement is the best time to sell gutters and LeafX gutter guard, how to measure and estimate them on-site (linear feet, size, downspouts), the LeafX pitch, and how to add the upsell to the estimate and JobNimbus.",
+    icon: 'Droplets',
+    estimatedMinutes: 12,
+    passingScore: 80,
+    sections: [
+      {
+        heading: 'Why Roof Time Is Gutter Time',
+        content: [
+          'A new roof is the best time to sell gutters and gutter protection. New shingles draining into 20-year-old gutters is a callback waiting to happen.',
+          'Bundle it — one trip, one crew, one invoice. That is cheaper and cleaner for the homeowner than calling a gutter company out separately later.',
+          "The crew is already on site with ladders up and the roof torn off. This is the one moment when adding gutters and LeafX is cheap to do — and it protects the roof they just invested in.",
+        ],
+        talkTracks: [
+          {
+            speaker: 'field',
+            text: "While the crew's already here, this is the one time it's cheap to do the gutters and put LeafX on them — and it protects the roof you just invested in.",
+            context: 'Verbatim add-on tie-in (Close to Referral deck, slide 5).',
+          },
+        ],
+      },
+      {
+        heading: 'Measuring & Estimating Gutters',
+        content: [
+          'Measure it right, on-site — never quote gutters or LeafX from memory.',
+          'Total linear feet of gutter — walk the eaves or pull the aerial measurement.',
+          'Gutter size — 5" vs 6" changes both the gutter price and the guard price.',
+          'Downspouts — count them and note any two-story runs.',
+          'Fascia / soffit rot — flag it now, not later as a change order.',
+        ],
+        callout: {
+          tone: 'warning',
+          title: 'Price from the sheet, not from memory',
+          text: 'Pull the per-linear-foot numbers from the current price sheet for both gutter and LeafX. A wrong measurement or a guessed number comes straight out of your margin.',
+        },
+        sourceNote:
+          "The deck says to price gutter and LeafX per LF from the current price sheet but does not print the actual numbers. Rep should always pull live per-LF pricing rather than any figure quoted here.",
+      },
+      {
+        heading: 'The LeafX Pitch',
+        content: [
+          'LeafX is the gutter-guard upsell — the gutter protection RCRS installs. Sell the outcome, not the product: never clean your gutters again.',
+          "LeafX is priced per linear foot and can be a subset of the total gutter run — for example, only the tree side of the house where leaves actually fall.",
+          'Frame it as protecting the roof investment: clean, free-flowing gutters keep water moving away from the fascia, soffit, and foundation instead of backing up under the new roof edge.',
+        ],
+        talkTracks: [
+          {
+            speaker: 'field',
+            text: "You don't ever want to be up on a ladder cleaning these out again — that's what LeafX does. And it keeps the water moving off the roof you just paid for instead of sitting in a clogged gutter.",
+            context: 'The LeafX outcome pitch (Close to Referral deck, slides 5–6; adapted).',
+          },
+        ],
+      },
+      {
+        heading: 'Adding It to the Estimate & JN',
+        content: [
+          'Add the gutter and LeafX line items to the same estimate as the roof — one invoice, not a separate quote the homeowner has to think about twice.',
+          'Enter it into JobNimbus (JN) against the same job so the add-on is tracked with the roof, not floating loose.',
+          'Because gutter and LeafX are priced per linear foot, the estimate is only as accurate as your on-site measurement — get the LF right and the numbers off the price sheet before it goes in.',
+        ],
+        sourceNote:
+          "The deck covers measuring and pricing gutter/LeafX and bundling it into 'one invoice'; recording it in JobNimbus against the same job is the standard RCRS estimate workflow, added here for practice.",
+      },
+    ],
+    quiz: [
+      {
+        id: 'r2_1',
+        question: 'When is the best time to sell gutters and LeafX?',
+        options: [
+          'On a separate follow-up visit a few weeks after the roof is done',
+          'During the roof replacement, while the crew is already on site',
+          'Only if the homeowner brings up their gutters first',
+          'After the first heavy rain, once they see the gutters overflow',
+        ],
+        explanation:
+          "A new roof is the best time to sell gutters and protection. The crew is already there with ladders up, so it's cheap to do, it's one trip and one invoice, and it protects the roof they just bought.",
+      },
+      {
+        id: 'r2_2',
+        question: 'How are gutters and LeafX measured and priced?',
+        options: [
+          'By the number of downspouts alone',
+          'A flat rate per house regardless of size',
+          'By total linear feet, with gutter size (5" vs 6") also affecting the price',
+          'By the square footage of the roof',
+        ],
+        explanation:
+          'Gutters and LeafX are estimated by total linear feet, and the gutter size (5" vs 6") changes both gutter and guard pricing. Pull the per-LF numbers from the current price sheet, not from memory.',
+      },
+      {
+        id: 'r2_3',
+        question: 'What does LeafX do, and how should you pitch it?',
+        options: [
+          'It replaces the gutters entirely — pitch it as a cheaper gutter',
+          'It is a gutter guard — sell the outcome: never clean your gutters again',
+          'It is a roof underlayment — pitch it as leak protection under the shingles',
+          'It seals the roof deck — pitch it as ice-and-water protection',
+        ],
+        explanation:
+          'LeafX is the gutter-guard system. Sell the outcome, not the product — never clean your gutters again — and tie it to protecting the roof they just invested in. It is priced per linear foot and can cover just part of the run (e.g., the tree side).',
+      },
+      {
+        id: 'r2_4',
+        question: 'Where does the gutter/LeafX add-on go?',
+        options: [
+          'On a separate standalone quote handled by a gutter company',
+          'On the same estimate and job in JobNimbus as the roof — one invoice',
+          'It is a handshake add-on that does not need to be written down',
+          'Billed later, only after the roof balance is collected',
+        ],
+        explanation:
+          'Add the gutter and LeafX line items to the same estimate and enter them in JobNimbus against the same job — one crew, one trip, one invoice, tracked with the roof.',
+      },
+    ],
+  },
+
+  // -------------------- sales_r3 --------------------
+  {
+    id: 'sales_r3',
+    title: 'Install Day: Be There at the Start',
+    description:
+      "Being on-site when the crew arrives — prepping the homeowner (cars out, pets, wall hangings), walking the protection plan (tarps, flower beds, AC), handling the rotted-decking conversation honestly, and staying reachable all day.",
+    icon: 'HardHat',
+    estimatedMinutes: 15,
+    passingScore: 80,
+    sections: [
+      {
+        heading: 'Pre-Install: Prepping the Homeowner',
+        content: [
+          'The homeowner bought YOU. Be there at the start of install day — this is where your sale becomes a real, well-run job in their eyes.',
+          'Prep the homeowner before the crew starts: cars out of the driveway and garage so the crew can stage materials and haul debris.',
+          'Furniture moved and pets secured inside — a tear-off is loud and the yard is a work zone.',
+          'Wall hangings down — pictures and shelves can rattle off the wall from the pounding of a tear-off. Have them come down the night before or first thing.',
+          'Kids clear of the work area, and set the expectation: "It\'ll be loud, that\'s normal, we\'ll be done in a day, and I\'ll be back to walk it with you."',
+        ],
+        proTips: [
+          'Arrive at material drop / crew arrival so you can introduce the crew to the homeowner and confirm the scope in person.',
+          'Set the noise-and-timeline expectation up front — a homeowner who was warned it would be loud is calm; one who was surprised is calling the office.',
+        ],
+        talkTracks: [
+          {
+            speaker: 'field',
+            text: "It's going to be loud today — that's completely normal, it means they're working. We'll be done in a day, and I'll be back at the end to walk the whole roof with you before you pay anything.",
+            context: 'Setting install-day expectations (Close to Referral deck, slide 9).',
+          },
+        ],
+      },
+      {
+        heading: 'Morning Of: Meet the Crew, Walk the Protection Plan',
+        content: [
+          'Introduce the crew to the homeowner and confirm the scope out loud so everyone is working from the same job.',
+          'Walk the protection plan with the homeowner so they see it, not just hear about it: tarps over landscaping and flower beds, the AC unit covered, and the pool covered.',
+          'RCRS tarps to protect the property — that is a commitment you made at the close, so show it happening. Flower beds and shrubs get covered before the first shingle comes off.',
+          'Point out where materials will be staged and where debris will land, so nothing surprises the homeowner mid-day.',
+        ],
+        callout: {
+          tone: 'info',
+          title: "Show the protection, don't just promise it",
+          text: 'Watching their flower beds get tarped and their AC covered is the moment the homeowner relaxes. It is also proof of the how-we-do-the-work commitments you sold them.',
+        },
+      },
+      {
+        heading: 'Tear-Off & Decking: The Rotted-Wood Conversation',
+        content: [
+          'RCRS does a full tear-off down to the deck, then inspects the decking. When you take off old shingles, you sometimes find rotted or damaged wood underneath that has to be replaced.',
+          'Decking is the honesty moment. Communicate bad decking AND the price BEFORE it is replaced — never let it show up as a surprise on the final invoice.',
+          "Frame it plainly: the wood is bad, here is what it costs to make it right, and we don't put a new roof over rotten decking. Surprises on the invoice kill referrals.",
+          'This is exactly why you set the expectation at the close and in the folder — so when it happens, it is a confirmation of your honesty, not a shock.',
+        ],
+        talkTracks: [
+          {
+            speaker: 'field',
+            text: "We pulled the old shingles and there's some rotted decking right here — I want you to see it. We can't put a new roof over bad wood, so here's what it costs to replace it. I wanted to tell you before we did it, not put it on the invoice as a surprise.",
+            context: 'The rotted-decking honesty moment (Close to Referral deck, slide 10; adapted).',
+          },
+        ],
+        callout: {
+          tone: 'warning',
+          title: 'Price before replacement',
+          text: 'Get the homeowner to agree to the decking cost BEFORE the crew replaces it. Bad decking discovered and communicated is trust earned; bad decking discovered on the invoice is a referral lost.',
+        },
+      },
+      {
+        heading: 'Staying Reachable All Day',
+        content: [
+          "You don't have to stand on the roof all day, but the homeowner needs to be able to reach you all day. You are their point of contact, not the crew.",
+          'Check in through the day and be reachable by phone for any question that comes up — a homeowner who can reach you stays calm.',
+          'Schedule your day so you can be back on-site as the job wraps for the end-of-day walkaround — while the crew is still there. (That walkaround is its own module: "The Walkaround, Reworks & Final Payment.")',
+        ],
+        sourceNote:
+          "The deck emphasizes arriving at the start and being present to walk the job at the end; 'reachable all day as the homeowner's point of contact' is field-practical guidance filling the gap between those two on-site moments.",
+      },
+    ],
+    quiz: [
+      {
+        id: 'r3_1',
+        question: 'Why should the rep be on-site when the crew arrives on install day?',
+        options: [
+          'To supervise the crew because they cannot be trusted to work alone',
+          'Because the homeowner bought YOU — being there turns the sale into a well-run job in their eyes',
+          'Because RCRS requires two people to carry materials up the ladder',
+          'Only to collect the final payment before work starts',
+        ],
+        explanation:
+          'The homeowner bought the rep. Being there at the start lets you introduce the crew, confirm scope, walk the protection plan, and set expectations — it is where your sale becomes a real, trusted job.',
+      },
+      {
+        id: 'r3_2',
+        question: 'Which of these is a homeowner-prep item for install day?',
+        options: [
+          'Have the homeowner climb up and help tear off the old shingles',
+          'Take wall hangings down so the pounding of the tear-off does not knock them off the wall',
+          'Have the homeowner leave the property for the entire week',
+          'Ask the homeowner to rent a dumpster in advance',
+        ],
+        explanation:
+          'Prep includes cars out, pets secured, kids clear, and wall hangings down — a tear-off pounds hard enough to rattle pictures off the wall. (RCRS hauls on its own trailer, so no dumpster is needed.)',
+      },
+      {
+        id: 'r3_3',
+        question: 'When you find rotted decking during tear-off, what do you do?',
+        options: [
+          'Replace it quietly and add the cost to the final invoice',
+          'Roof over it to keep the job on schedule',
+          'Show the homeowner and get agreement on the price BEFORE it is replaced',
+          'Leave it and note it in the warranty paperwork',
+        ],
+        explanation:
+          'Decking is the honesty moment. RCRS never roofs over bad wood — communicate the rotted decking and its price before replacing it. Surprises on the invoice kill referrals.',
+      },
+      {
+        id: 'r3_4',
+        question: 'Which is a property-protection step you walk with the homeowner?',
+        options: [
+          'Tarping the landscaping and flower beds and covering the AC unit',
+          "Moving the homeowner's car to a neighbor's driveway",
+          'Shutting off the water to the house for the day',
+          'Removing the gutters before the tear-off begins',
+        ],
+        explanation:
+          'RCRS tarps to protect the property. Walk the protection plan with the homeowner — tarps over landscaping and flower beds, AC covered, pool covered — so they see the commitment happening, not just hear about it.',
+      },
+    ],
+  },
+
+  // -------------------- sales_r4 --------------------
+  {
+    id: 'sales_r4',
+    title: 'The Walkaround, Reworks & Final Payment',
+    description:
+      "The end-of-day walkaround done while the crew is still on-site, turning a punch list into a same-day rework logged against the SAME JobNimbus job with dated notes and before/after photos, collecting final payment on the spot, and getting customer acceptance plus the review.",
+    icon: 'ClipboardList',
+    estimatedMinutes: 18,
+    passingScore: 80,
+    sections: [
+      {
+        heading: 'The End-of-Day Walkaround — While the Crew Is Still There',
+        content: [
+          'Do the walkaround while the roofers are STILL on the job. That is the whole lesson.',
+          'Crew still on site = same-day fix. Crew gone = a second trip, a frustrated customer, and delayed payment. Schedule your day to be on-site as the job wraps.',
+          'Walk it WITH the homeowner, checklist in hand — the same roofing checklist you read out loud at the close. Same document, used twice: expectation-setter at signing, inspection script now.',
+          'Check the whole list: magnet sweep of the whole yard/drive/beds/both fence sides; gutters cleared of debris and granules; ground and roof clear with the trailer ready to haul; flashing, pipe boots, and valleys sealed; ridge vent/cap straight and complete; drip edge and lines straight from the ground; landscaping/AC/structures undamaged; and the homeowner has seen it and is happy.',
+          'Point out quality as you walk, not just problems. Anything they spot — get the crew on it right now, while they are still there.',
+        ],
+        talkTracks: [
+          {
+            speaker: 'field',
+            text: "Before the guys pack up, let's walk the whole roof together off this same checklist we went through at the start. Anything you want a second look at, I'll have them fix it right now while they're still here.",
+            context: 'Walking the job with the crew still on-site (Close to Referral deck, slides 11–12; adapted).',
+          },
+        ],
+        callout: {
+          tone: 'warning',
+          title: 'Timing is the whole lesson',
+          text: 'The single most important thing about the walkaround is WHEN it happens: while the crew is still on the job. A crew that is gone turns a five-minute fix into a second trip and a delayed check.',
+        },
+      },
+      {
+        heading: 'Punch List → Rework',
+        content: [
+          'Anything the walkaround turns up becomes a punch-list item — and every rework is logged against the SAME job in JobNimbus. Never open a new job for a fix on an existing roof.',
+          'Log it with dated notes and before/after photos — what was wrong, when it was addressed, and proof it was made right.',
+          'The best rework is the one the crew handles on the spot, before they leave. Log it anyway — the job record should show the fix even when it took five minutes.',
+          "Untracked rework is a profit leak. A fix that never gets logged against the job still costs labor and material, but disappears from the job's numbers — so the breakdown looks more profitable than the job really was.",
+        ],
+        callout: {
+          tone: 'warning',
+          title: 'Same job, never a new one',
+          text: 'A rework logged as its own job breaks the job breakdown — the original job looks cleaner than it was and the rework looks like new work. One job, dated notes, before/after photos.',
+        },
+        sourceNote:
+          "The deck covers the walkaround and same-day fixes; logging every rework against the SAME JobNimbus job with dated notes and before/after photos — and the 'untracked rework = profit leak' rationale — is the RCRS job-breakdown/profit practice, added here as the operational rule.",
+      },
+      {
+        heading: 'Collecting Final Payment on the Spot',
+        content: [
+          'Payment follows acceptance — collect the balance while you are standing there, after the homeowner has walked the roof and confirmed they are happy.',
+          'Know their method before you arrive — check, card, or financing draw — so there is no fumbling at the end.',
+          'Tie payment to the completion form — sign-off and settle in the same sit-down.',
+          "Don't leave the job open — a finished roof with an uncollected balance is an unfinished job.",
+          'Ask without flinching. You did the work, they are happy, and the balance is simply the next step.',
+        ],
+        talkTracks: [
+          {
+            speaker: 'field',
+            text: "Everything's done and you're happy — let's take care of the balance and I'll finalize your completion paperwork and warranty. Check today, or on the card?",
+            context: 'Verbatim payment ask (Close to Referral deck, slide 13).',
+          },
+        ],
+      },
+      {
+        heading: 'Customer Acceptance & the Review Request',
+        content: [
+          'Get the acceptance / completion form signed — it protects the customer, the company, and the warranty. Payment and acceptance happen together in the same sit-down.',
+          "Then ask for the Google review out loud — reviews are where a local company is most beatable, and peak happiness is right now.",
+          "Make it effortless: pull the review up on their phone for them right there. A review you make them find later is a review that never gets written.",
+        ],
+        talkTracks: [
+          {
+            speaker: 'field',
+            text: "One thing that genuinely helps a local company — would you take 60 seconds for a Google review while it's fresh? Here, I'll pull it up right now.",
+            context: 'Verbatim review ask (Close to Referral deck, slide 14).',
+          },
+        ],
+        callout: {
+          tone: 'info',
+          title: 'Acceptance, then payment, then review',
+          text: 'The sequence is one sit-down: sign the completion/acceptance form, settle the balance, and get the review while they are at peak happiness. (Referrals come next — see the "Referrals" module.)',
+        },
+      },
+    ],
+    quiz: [
+      {
+        id: 'r4_1',
+        question: 'When should the end-of-day walkaround happen?',
+        options: [
+          'The next morning, after the homeowner has slept on it',
+          'While the roofers are still on the job',
+          'A week later, once the roof has settled',
+          'Only if the homeowner requests one',
+        ],
+        explanation:
+          'Do the walkaround while the crew is still on-site — that is the whole lesson. Crew still there means a same-day fix; crew gone means a second trip, a frustrated customer, and delayed payment.',
+      },
+      {
+        id: 'r4_2',
+        question: 'Where is a rework logged?',
+        options: [
+          'As a brand-new job in JobNimbus so it can be tracked separately',
+          'Against the SAME job in JobNimbus — never a new one',
+          'On a paper punch list that stays with the crew',
+          'It does not need logging if the crew fixes it before leaving',
+        ],
+        explanation:
+          'Every rework is logged against the same job in JobNimbus, never a new one. A rework opened as its own job breaks the job breakdown — the original looks cleaner than it was and the fix looks like new work.',
+      },
+      {
+        id: 'r4_3',
+        question: 'What does a logged rework need to include?',
+        options: [
+          'Just a note that a fix happened',
+          'Dated notes and before/after photos',
+          'A new invoice sent to the homeowner',
+          'A separate warranty document',
+        ],
+        explanation:
+          'Log every rework with dated notes and before/after photos — what was wrong, when it was addressed, and proof it was made right — all against the same job.',
+      },
+      {
+        id: 'r4_4',
+        question: 'Why must reworks be tracked?',
+        options: [
+          'To bill the homeowner for the extra visit',
+          'Because untracked rework is a profit leak — the cost disappears from the job while still consuming labor and material',
+          'Because JobNimbus deletes jobs with no recent activity',
+          'To decide whether to fire the crew that did the work',
+        ],
+        explanation:
+          "Untracked rework still costs labor and material but vanishes from the job's numbers, so the breakdown looks more profitable than the job really was. Tracking it against the same job keeps the profit picture honest.",
+      },
+      {
+        id: 'r4_5',
+        question: 'What is the relationship between customer acceptance and final payment?',
+        options: [
+          'Payment is collected up front, before the homeowner accepts the roof',
+          'Payment follows acceptance — collect the balance after they walk the roof and confirm they are happy',
+          'Payment and acceptance are handled on separate visits',
+          'Acceptance is optional as long as payment clears',
+        ],
+        explanation:
+          'Payment follows acceptance. The homeowner walks the roof, confirms they are happy, signs the completion/acceptance form, and settles the balance — all in the same sit-down. A finished roof with an uncollected balance is an unfinished job.',
+      },
+    ],
+  },
+
+  // -------------------- sales_r5 --------------------
+  {
+    id: 'sales_r5',
+    title: 'Referrals: Peak Happiness Is Right Now',
+    description:
+      "Asking for referrals at the moment of peak happiness — the specific referral ask and script, handing over referral cards, recording referrals in JobNimbus, and how the yard sign and a fresh clean roof turn the neighborhood into leads.",
+    icon: 'Share2',
+    estimatedMinutes: 10,
+    passingScore: 80,
+    sections: [
+      {
+        heading: 'Why Now — Peak Happiness',
+        content: [
+          "Peak happiness is right now. The roof is done, it looks great, they just walked it and they are thrilled — that is the single best moment to ask for referrals, reviews, and the yard sign.",
+          'The sale does not end at payment. It ends at the referral. Payment closes one job; a referral opens the next three.',
+          'Wait a week and the glow fades, life moves on, and the ask gets awkward. Ask while the emotion is high and you are standing on a fresh, clean roof.',
+        ],
+        callout: {
+          tone: 'info',
+          title: 'The sale ends at the referral',
+          text: "Collecting the check feels like the finish line, but the job is not fully worked until you have asked for the review, the referral, and the yard sign — all at peak happiness, in the same visit.",
+        },
+      },
+      {
+        heading: 'The Referral Ask',
+        content: [
+          'Be specific — a specific ask beats "know anyone who needs a roof?" Point at the neighborhood: "Which neighbor has an older roof, or lost shingles in that same storm?" Specific questions get specific names.',
+          'Hand over referral cards — give them two or three so they have something physical to pass along.',
+          'Reference the current referral program, but confirm it live with the office — never promise a number or reward you are not sure of.',
+        ],
+        talkTracks: [
+          {
+            speaker: 'field',
+            text: "Now that yours is done and looks great — which of your neighbors has an older roof, or lost shingles in that same storm? Here are a couple of my cards, pass them along. And let me confirm our current referral program with the office so I give you the right details.",
+            context: 'The specific referral ask (Close to Referral deck, slide 15; assembled from the slide bullets).',
+          },
+        ],
+        proTips: [
+          'Ask about a specific neighbor by house or direction ("the two-story on the corner") — it jogs a real name loose far better than a general question.',
+          'Never quote a referral reward amount from memory — confirm the live program with the office first.',
+        ],
+      },
+      {
+        heading: 'Tracking Referrals in JN',
+        content: [
+          'A referral you do not write down is a referral you will lose. Record every name the homeowner gives you in JobNimbus (JN) so it becomes a real lead, not a note that dies in your phone.',
+          'Capture who referred them along with the new contact, so the referral is traceable back to the customer — that is what lets the referral program actually pay out correctly.',
+          'Follow up on referred leads like any other lead — a warm name from a happy customer is the best lead you will get all week.',
+        ],
+        sourceNote:
+          "The deck covers asking for referrals and handing over cards; recording referrals in JobNimbus (with the referring customer captured) is the standard RCRS lead-tracking workflow, added here so the names become tracked leads.",
+      },
+      {
+        heading: 'Yard Sign + Neighbors Synergy',
+        content: [
+          'Ask for the yard sign — a billboard on a fresh, clean roof. The neighbors are already looking at the new roof; the sign tells them who did it.',
+          'The yard sign and the referral ask work together: the sign markets to the whole street passively while the referral names give you specific doors to knock.',
+          'For the full yard-sign script, its two benefits, and the HOA variant, see the "Close-Out, Yard Sign & Your Numbers" module — the same play, applied here at the happy-customer end of a completed retail job.',
+        ],
+        callout: {
+          tone: 'info',
+          title: 'One fresh roof, a whole street of leads',
+          text: 'A new roof plus a yard sign plus two or three referral cards turns one happy customer into passive advertising and a handful of warm neighbor leads — all set up in the same peak-happiness visit.',
+        },
+      },
+    ],
+    quiz: [
+      {
+        id: 'r5_1',
+        question: 'When is the best moment to ask for referrals?',
+        options: [
+          'A week after the job, once the homeowner has had time to reflect',
+          'Right now, at peak happiness — the roof is done, they just walked it and love it',
+          'Before the roof is installed, so they are already thinking about it',
+          'Only after the warranty registration is processed',
+        ],
+        explanation:
+          'Peak happiness is right now. The roof is finished, it looks great, and they are thrilled — that is the single best moment to ask. Wait and the glow fades and the ask gets awkward.',
+      },
+      {
+        id: 'r5_2',
+        question: 'What makes an effective referral ask?',
+        options: [
+          '"Do you know anyone who might need a roof sometime?"',
+          '"Which neighbor has an older roof, or lost shingles in that same storm?"',
+          '"If you think of anybody, you have my number."',
+          '"Would you mind mentioning us if it ever comes up?"',
+        ],
+        explanation:
+          'Be specific. A pointed question about a particular neighbor jogs a real name loose, where a vague "know anyone?" gets a vague answer. Then hand over two or three referral cards.',
+      },
+      {
+        id: 'r5_3',
+        question: 'Where do referrals get recorded?',
+        options: [
+          'In your personal phone notes',
+          'In JobNimbus (JN), with the referring customer captured, so each name becomes a tracked lead',
+          'Nowhere — you just follow up from memory',
+          'Only on the paper referral card the homeowner keeps',
+        ],
+        explanation:
+          'Record every referral in JobNimbus with the referring customer attached, so it becomes a real, traceable lead and the referral program can pay out correctly. A name not written down is a name lost.',
+      },
+      {
+        id: 'r5_4',
+        question: 'How do referrals connect to the yard-sign play?',
+        options: [
+          'The yard sign replaces the need to ask for referrals',
+          'They work together — the sign markets passively to the whole street while referral names give you specific doors to knock',
+          'You only plant a yard sign if the homeowner gives no referrals',
+          'The yard sign is for insurance jobs and referrals are for retail jobs',
+        ],
+        explanation:
+          'The yard sign on a fresh, clean roof is a billboard to the whole street, and the specific referral names give you warm doors to knock. One happy customer becomes passive advertising plus a handful of warm neighbor leads. (See "Close-Out, Yard Sign & Your Numbers" for the full sign script.)',
       },
     ],
   },

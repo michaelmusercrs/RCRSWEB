@@ -116,6 +116,28 @@ export const SALES_QUIZ_ANSWERS: Record<string, number> = {
   s4_3: 1, // $386,076 in revenue was recorded as "Source Not Captured"
   s4_4: 1, // The Customer Acceptance Form
   s4_5: 2, // Submit for Approval — the hand-off from rep to office/automations
+
+  // ===== Unified curriculum — 10 new modules (2026-08) =====
+  // --- sales_c13 Spark to Cash ---
+  c13_1: 1, c13_2: 2, c13_3: 0, c13_4: 3, c13_5: 2,
+  // --- sales_c14 Estimates & Measurements ---
+  c14_1: 0, c14_2: 2, c14_3: 3, c14_4: 1, c14_5: 2,
+  // --- sales_c15 Special Roofs ---
+  c15_1: 1, c15_2: 0, c15_3: 3, c15_4: 2, c15_5: 1,
+  // --- sales_b1 Your Business (1099 / rep LLCs) ---
+  b1_1: 3, b1_2: 1, b1_3: 0, b1_4: 2,
+  // --- sales_p1 The RCRS Portal ---
+  p1_1: 2, p1_2: 0, p1_3: 3, p1_4: 1,
+  // --- sales_r1 Closing Presentation / Retail Close ---
+  r1_1: 1, r1_2: 2, r1_3: 1, r1_4: 0, r1_5: 2,
+  // --- sales_r2 Gutters, LeafX & Add-Ons ---
+  r2_1: 1, r2_2: 2, r2_3: 1, r2_4: 1,
+  // --- sales_r3 Install Day ---
+  r3_1: 1, r3_2: 1, r3_3: 2, r3_4: 0,
+  // --- sales_r4 Walkaround, Reworks & Final Payment ---
+  r4_1: 1, r4_2: 1, r4_3: 1, r4_4: 1, r4_5: 1,
+  // --- sales_r5 Referrals ---
+  r5_1: 1, r5_2: 1, r5_3: 1, r5_4: 1,
 };
 
 /**
@@ -139,6 +161,17 @@ export const SALES_MODULE_QUESTIONS: Record<string, string[]> = {
   sales_s2: ['s2_1', 's2_2', 's2_3', 's2_4'],
   sales_s3: ['s3_1', 's3_2', 's3_3', 's3_4', 's3_5'],
   sales_s4: ['s4_1', 's4_2', 's4_3', 's4_4', 's4_5'],
+  // Unified curriculum — 10 new modules (2026-08)
+  sales_c13: ['c13_1', 'c13_2', 'c13_3', 'c13_4', 'c13_5'],
+  sales_c14: ['c14_1', 'c14_2', 'c14_3', 'c14_4', 'c14_5'],
+  sales_c15: ['c15_1', 'c15_2', 'c15_3', 'c15_4', 'c15_5'],
+  sales_b1: ['b1_1', 'b1_2', 'b1_3', 'b1_4'],
+  sales_p1: ['p1_1', 'p1_2', 'p1_3', 'p1_4'],
+  sales_r1: ['r1_1', 'r1_2', 'r1_3', 'r1_4', 'r1_5'],
+  sales_r2: ['r2_1', 'r2_2', 'r2_3', 'r2_4'],
+  sales_r3: ['r3_1', 'r3_2', 'r3_3', 'r3_4'],
+  sales_r4: ['r4_1', 'r4_2', 'r4_3', 'r4_4', 'r4_5'],
+  sales_r5: ['r5_1', 'r5_2', 'r5_3', 'r5_4'],
 };
 
 /**
@@ -168,6 +201,17 @@ export const SALES_MODULE_PASSING_SCORES: Record<string, number> = {
   sales_d3: 80,
   sales_d4: 80,
   sales_d5: 80,
+  // Unified curriculum — 10 new modules (2026-08)
+  sales_c13: 80,
+  sales_c14: 80,
+  sales_c15: 80,
+  sales_b1: 80,
+  sales_p1: 80,
+  sales_r1: 80,
+  sales_r2: 80,
+  sales_r3: 80,
+  sales_r4: 80,
+  sales_r5: 80,
 };
 
 /**
