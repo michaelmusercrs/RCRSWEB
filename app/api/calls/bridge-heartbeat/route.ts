@@ -11,7 +11,10 @@ import { NextRequest, NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export const HEARTBEAT_BLOB_KEY = 'data/phone-bridge-heartbeat.json';
+// NOTE: must NOT be `export`ed — Next.js route files only allow specific
+// exports (GET/POST/dynamic/…); exporting this const fails the production
+// build. If another module ever needs it, move it to a lib/ file and import.
+const HEARTBEAT_BLOB_KEY = 'data/phone-bridge-heartbeat.json';
 
 function validateApiKey(request: NextRequest): boolean {
   const expected = process.env.CALLS_WEBHOOK_API_KEY;
