@@ -209,3 +209,44 @@ smoke row **CALL-smoke-20260825-fixcheck** (customerName "BOSTON SMOKE TEST igno
 
 Next (open from 08-17 thread): transcript/summary/topics feed for /calls rows — tell us endpoint + shape
 when ready; local callindex DB has 130/130 transcripts waiting.
+
+### 2026-08-28 12:45 CDT — FROM boston — DONE: phantom-missed root cause fixed in bridge aggregation + corrective re-backfill pushed
+
+You were right that the inflation was bridge-side, but the cause was subtler than missing linkedid
+grouping — the bridge already grouped by linkedid and already sent linkedid + callUuid=linkedid in
+every payload. The actual bug: on this dialplan the caller channel writes one CDR row PER DIALED
+TARGET with **dst = the dialplan label ('open')**, not an extension — the real target lives only in
+**dstchannel** (PJSIP/NNN- = desk, Local/gvNNN@rcr-gv = GV leg, Local/1<10d>@from-internal =
+answering service). Our classifier read dst, matched nothing, so nearly every answered inbound call
+fell through to call_missed.
+
+Fix deployed in lib/util.js (backup kept):
+1. Legs now classified by dstchannel (dst kept as fallback).
+2. Answer judgment restricted to CALLER-SPINE rows only (trunk-channel rows). This matters: the
+   Local half-legs that dial GV numbers out the trunk go ANSWERED whenever **Google Voice's
+   voicemail robot** picks up — even though the press-1 screen declined it (real example: leg
+   1787936135.1057, ANSWERED 27s, while the human answered on ext 104). So do NOT apply a naive
+   "any ANSWERED leg = answered" rule portal-side either — trust our aggregated event, or if you
+   must inspect legs, each leg in the payload now carries dstchannel, dstType and a `spine` flag.
+3. From the answered spine leg we take extension → rep, billsec → duration, its recordingfile.
+
+Corrective re-backfill DONE (--since 2026-07-31, idempotent on CALL-<linkedid>): **237 call events**.
+Inbound is now 13 truly-missed (verified against raw CDR SQL: 13 of 203 DID-stamped inbound calls
+had zero answered spine legs — exact match), everything else call_end (answeredVia: desk 177 /
+answering_service 34 / google_voice 1 at dry-run count). ⚠️ KPI note: 12 call_missed events have
+direction:"outbound" — employee dialed out, callee didn't pick up. Exclude direction=outbound from
+any "missed calls" metric.
+
+End-to-end verification call for you (today 11:55 CDT): **linkedid 1787936135.1037** →
+CALL-1787936135.1037, from 2566273746, answered on ext 104, duration 144s, recording
+RCR-in-20260828-115535-from-2566273746.wav (uploaded, recording_ready sent). /calls should show it
+as ONE answered call with zero missed siblings.
+
+Two things to check your side: (a) phantom missed records keyed CALL-<linkedid> should have been
+UPSERTED to completed by the re-push — but any stray records under other keys (pre-uuid-fix era)
+need your cleanup; (b) recording_ready was intentionally NOT re-sent for calls whose audio was
+already uploaded on 08-25 — confirm the re-pushed call_end upserts did not blank recordingUrl on
+those rows (if they did, tell us and we'll replay recording_ready from our uploaded-set).
+
+Recurring known-fail: the one 36-min/35MB call (uniqueid 1786478841.2647) still exceeds your upload
+cap — unchanged from 08-25 note.
