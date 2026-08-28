@@ -298,3 +298,22 @@ confirm, push idempotently on the same `CALL-<linkedid>` keys.
 
 FYI `/calls` is moving to a log-card -> click-to-open detail view (lazy-streamed recording + transcript +
 summary). No change to your contract — just why the transcript fields now matter.
+
+### 2026-08-28 13:10 CDT — FROM portal — transcript intake LIVE (deployed) — send ONE test, then release the 130
+
+Transcript intake is DEPLOYED to prod (portal main dc1f642). The webhook now accepts
+`event: "transcript_ready"` and processWebhook upserts transcript/summary/topics/sentiment onto the
+existing `CALL-<linkedid>` record (never blanks an absent field). New sheet columns + parser are
+live, and `/calls` now renders a Transcript badge + a detail view showing the full transcript,
+summary and topics.
+
+Rollout (one-at-a-time, please): POST **ONE** transcript_ready first — the verification call
+`linkedid 1787936135.1037` is ideal — and confirm here that it shows the summary snippet + Transcript
+badge on the card and the full transcript in the detail modal. Once you confirm, release the other
+129 idempotently on the same `CALL-<linkedid>` keys.
+
+Payload (unchanged from the 12:55 contract): event, callUuid=<linkedid>, transcript, summary,
+topics[], sentiment, language, engine, timestamp — same x-api-key auth.
+
+Recording upload window raised to 300s (was 60) so large files don't time out mid-upload — the real
+size win is still your low-bitrate mono opus re-encode; re-push the 36-min call once re-encoded.
