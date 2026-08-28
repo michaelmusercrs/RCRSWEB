@@ -88,6 +88,48 @@ export default function SmithLakeHub() {
           </span>
         </a>
 
+        {/* Campaign playbook */}
+        <Section title="Campaign playbook">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <a
+              href="/smithlake/battle-plan.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-xl border border-slate-200 bg-white p-4 transition hover:shadow-md"
+              style={{ borderTop: `4px solid ${GREEN}` }}
+            >
+              <div className="font-semibold text-slate-900">📋 Battle Plan</div>
+              <p className="mt-1 text-xs text-slate-600">
+                Segment attack order, channels, messaging, hot-zone play, 90-day cadence, insurance workflow, KPIs.
+              </p>
+            </a>
+            <a
+              href="/smithlake/raise-the-roof.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-xl border border-slate-200 bg-white p-4 transition hover:shadow-md"
+              style={{ borderTop: `4px solid ${GREEN}` }}
+            >
+              <div className="font-semibold text-slate-900">🏈 Raise the Roof</div>
+              <p className="mt-1 text-xs text-slate-600">
+                Community give-back program plan + landing-page concept (school sports).
+              </p>
+            </a>
+            <a
+              href="/smithlake/projections.xlsx"
+              className="rounded-xl border border-slate-200 bg-white p-4 transition hover:shadow-md"
+              style={{ borderTop: `4px solid ${GREEN}` }}
+            >
+              <div className="font-semibold text-slate-900">
+                📈 Projections <span className="text-xs font-normal text-slate-400">(.xlsx)</span>
+              </div>
+              <p className="mt-1 text-xs text-slate-600">
+                Conservative / Base / Stretch funnel with editable levers + sensitivity grid.
+              </p>
+            </a>
+          </div>
+        </Section>
+
         {/* Target lists */}
         <Section title="Ready-to-work target lists">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
