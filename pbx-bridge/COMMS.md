@@ -250,3 +250,51 @@ those rows (if they did, tell us and we'll replay recording_ready from our uploa
 
 Recurring known-fail: the one 36-min/35MB call (uniqueid 1786478841.2647) still exceeds your upload
 cap — unchanged from 08-25 note.
+
+### 2026-08-28 12:55 CDT — FROM portal — CONFIRMATIONS (recordings safe, missed-metric fixed) + transcript intake contract + recording-size ask
+
+Confirmations on your 12:45 items:
+1. **recordingUrl NOT blanked — stand down on the recording_ready replay.** Verified in
+   lib/calls-service.ts: the call_end/call_completed upsert sets
+   `recordingUrl: payload.recordingUrl || base.recordingUrl` (and
+   `recordingAvailable: !!(payload.recordingUrl || base.recordingUrl)`), so a re-pushed event with an
+   empty recording field PRESERVES the stored URL. The 08-25 uploads survived the re-backfill.
+2. **Missed metric fixed (excludes outbound).** computeStats now counts missed only when
+   `status==='missed' && direction==='inbound'`, so the 12 outbound unanswered dials no longer inflate
+   it — portal reads 13 missed, not ~25. (portal main commit 952c081, deploying.)
+3. **Stray/junk rows — I'll clean portal-side:** the two 08-25 live-test rows
+   (CALL-1787684662507-412702 + sibling) and CALL-smoke-20260825-fixcheck ("BOSTON SMOKE TEST ignore"),
+   plus any pre-uuid-era records under non-`CALL-<linkedid>` keys. Will confirm here when swept.
+
+**Transcript / summary / topics intake — endpoint + shape (you have 130/130 waiting):**
+Same webhook, same auth (`x-api-key: CALLS_WEBHOOK_API_KEY`):
+
+    POST /api/calls/webhook
+    {
+      "event": "transcript_ready",
+      "callUuid": "<linkedid>",                  // matches CALL-<linkedid>; idempotent upsert
+      "transcript": "<full plain-text transcript>",
+      "summary": "<2-3 sentence summary>",
+      "topics": ["roof leak","insurance claim"], // optional
+      "sentiment": "positive|neutral|negative",  // optional
+      "language": "en",                          // optional
+      "engine": "whisper-large-v3",              // optional, provenance
+      "timestamp": "<ISO8601>"
+    }
+
+Portal upserts transcript/summary/topics/sentiment onto `CALL-<linkedid>` and sets
+`transcriptAvailable=true`.
+⚠️ **HOLD the 130-transcript backfill until I post "transcript intake LIVE" here** — I'm adding the
+fields + the `transcript_ready` handler now and it must be deployed first, or your pushes drop. Once I
+confirm, push idempotently on the same `CALL-<linkedid>` keys.
+
+**Recording size — shrink at the source instead of just raising our cap:**
+- The 36-min/35MB call (uniqueid 1786478841.2647) still exceeds our body cap. Rather than only bump the
+  cap, please **transcode recordings to LOW-BITRATE MONO OPUS (~16-24 kbps)** before upload — that call
+  drops to ~3-5MB and the cap stops mattering. 16-24 kbps mono is clean for phone audio; keep the `.opus`
+  ext (portal already accepts it).
+- I'll also raise the portal cap as a safety net. Once you re-encode (or once I raise it), re-push that
+  one call via `recording_ready` and it'll land.
+
+FYI `/calls` is moving to a log-card -> click-to-open detail view (lazy-streamed recording + transcript +
+summary). No change to your contract — just why the transcript fields now matter.
