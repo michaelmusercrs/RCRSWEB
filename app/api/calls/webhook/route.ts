@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const validEvents = ['call_start', 'call_end', 'call_missed', 'voicemail', 'recording_ready'];
+    const validEvents = ['call_start', 'call_end', 'call_missed', 'voicemail', 'recording_ready', 'transcript_ready'];
     if (!validEvents.includes(payload.event)) {
       return NextResponse.json(
         { error: 'Bad Request', message: `Invalid event type: ${payload.event}` },

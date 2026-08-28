@@ -54,6 +54,16 @@ export interface CallRecord {
   recordingUrl: string;
   /** Whether recording is available */
   recordingAvailable: boolean;
+  /** AI transcript (plain text), from the bridge's transcript_ready event */
+  transcript?: string;
+  /** Short AI summary of the call */
+  summary?: string;
+  /** Topics derived from the transcript */
+  topics?: string[];
+  /** Sentiment: positive | neutral | negative */
+  sentiment?: string;
+  /** Whether a transcript/summary is available */
+  transcriptAvailable?: boolean;
   /** Notes added by rep */
   notes: string;
   /** Tags for categorization */
@@ -84,7 +94,7 @@ export interface CallsData {
 
 export interface WebhookPayload {
   /** Event type from phone system */
-  event: 'call_start' | 'call_end' | 'call_missed' | 'voicemail' | 'recording_ready';
+  event: 'call_start' | 'call_end' | 'call_missed' | 'voicemail' | 'recording_ready' | 'transcript_ready';
   /** Call unique ID from phone system */
   callUuid: string;
   /** Caller phone number */
@@ -103,6 +113,14 @@ export interface WebhookPayload {
   timestamp: string;
   /** Caller ID name if available */
   callerIdName?: string;
+  /** transcript_ready: full plain-text transcript */
+  transcript?: string;
+  /** transcript_ready: short AI summary */
+  summary?: string;
+  /** transcript_ready: derived topics */
+  topics?: string[];
+  /** transcript_ready: sentiment (positive|neutral|negative) */
+  sentiment?: string;
 }
 
 export interface CallFilter {
@@ -156,6 +174,11 @@ const CALL_HEADERS: string[] = [
   'jobNimbusContactId',
   'createdAt',
   'updatedAt',
+  'transcript',
+  'summary',
+  'topics',
+  'sentiment',
+  'transcriptAvailable',
 ];
 
 // =============================================================================
@@ -180,6 +203,14 @@ class CallsService {
       tags = row.tags ? row.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
     }
 
+    let topics: string[] = [];
+    try {
+      topics = row.topics ? JSON.parse(row.topics) : [];
+      if (!Array.isArray(topics)) topics = [];
+    } catch {
+      topics = row.topics ? row.topics.split(',').map(t => t.trim()).filter(Boolean) : [];
+    }
+
     return {
       callId: row.callId || '',
       customerId: row.customerId || '',
@@ -196,6 +227,11 @@ class CallsService {
       duration: Number(row.duration) || 0,
       recordingUrl: row.recordingUrl || '',
       recordingAvailable: row.recordingAvailable === 'true',
+      transcript: row.transcript || '',
+      summary: row.summary || '',
+      topics,
+      sentiment: row.sentiment || '',
+      transcriptAvailable: row.transcriptAvailable === 'true',
       notes: row.notes || '',
       tags,
       jobNimbusContactId: row.jobNimbusContactId || '',
@@ -456,6 +492,23 @@ class CallsService {
         ...existing,
         recordingUrl: payload.recordingUrl || '',
         recordingAvailable: !!payload.recordingUrl,
+        updatedAt: now,
+      };
+      await this.upsertCall(updated);
+      return updated;
+    }
+
+    // transcript_ready — the bridge (Boston) posts the Whisper transcript + AI
+    // summary/topics for an already-recorded call. Upsert onto the existing
+    // CALL-<linkedid> record; never blank existing fields when a field is absent.
+    if (payload.event === 'transcript_ready' && existing) {
+      const updated: CallRecord = {
+        ...existing,
+        transcript: payload.transcript ?? existing.transcript ?? '',
+        summary: payload.summary ?? existing.summary ?? '',
+        topics: payload.topics ?? existing.topics ?? [],
+        sentiment: payload.sentiment ?? existing.sentiment ?? '',
+        transcriptAvailable: !!(payload.transcript || payload.summary || existing.transcriptAvailable),
         updatedAt: now,
       };
       await this.upsertCall(updated);

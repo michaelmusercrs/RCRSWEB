@@ -10,6 +10,10 @@ import {
   LogOut,
   Lock,
   Play,
+  Mic,
+  FileText,
+  X,
+  ChevronRight,
 } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
@@ -35,6 +39,11 @@ interface CallRecord {
   duration: number;
   recordingUrl: string;
   recordingAvailable: boolean;
+  transcript?: string;
+  summary?: string;
+  topics?: string[];
+  sentiment?: string;
+  transcriptAvailable?: boolean;
   notes: string;
   tags: string[];
   jobNimbusContactId: string;
@@ -130,6 +139,9 @@ export default function CallPortalPage() {
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [fetchError, setFetchError] = useState('');
+
+  // detail modal: the call whose recording/transcript is open (null = list only)
+  const [selected, setSelected] = useState<CallRecord | null>(null);
 
   // keep the latest search string for pagination fetches
   const searchRef = useRef('');
@@ -414,7 +426,11 @@ export default function CallPortalPage() {
           ) : (
             <ul className="space-y-3">
               {calls.map((call, idx) => (
-                <CallRow key={call.callId || `${call.startTime}-${idx}`} call={call} />
+                <CallRow
+                  key={call.callId || `${call.startTime}-${idx}`}
+                  call={call}
+                  onOpen={() => setSelected(call)}
+                />
               ))}
             </ul>
           )}
@@ -435,6 +451,10 @@ export default function CallPortalPage() {
           )}
         </div>
       </div>
+
+      {selected && (
+        <CallDetail call={selected} onClose={() => setSelected(null)} />
+      )}
     </main>
   );
 }
@@ -496,87 +516,255 @@ function StatusBadge({ status }: { status: CallStatus }) {
   );
 }
 
-function CallRow({ call }: { call: CallRecord }) {
+function AvailBadge({
+  icon: Icon,
+  label,
+  tone,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  tone: string;
+}) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${tone}`}
+    >
+      <Icon className="h-3 w-3" />
+      {label}
+    </span>
+  );
+}
+
+/* A clickable summary card — no audio loads here. Click opens CallDetail. */
+function CallRow({ call, onOpen }: { call: CallRecord; onOpen: () => void }) {
+  const name = call.customerName || 'Unknown Caller';
+  const hasRecording = call.recordingAvailable && !!call.recordingUrl;
+  const hasTranscript = !!(call.transcriptAvailable || call.transcript || call.summary);
+
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={onOpen}
+        className="w-full rounded-xl border border-white/10 bg-white/[0.03] p-4 text-left transition-colors hover:bg-white/[0.06] focus:outline-none focus:ring-1 focus:ring-emerald-500"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="mt-0.5 shrink-0">
+              <DirectionIcon call={call} />
+            </div>
+            <div className="min-w-0">
+              <div className="truncate font-medium text-neutral-100">{name}</div>
+              {call.customerPhone && (
+                <div className="truncate text-sm text-neutral-400">{call.customerPhone}</div>
+              )}
+              <div className="mt-0.5 truncate text-xs text-neutral-500">
+                {formatDateTime(call.startTime)}
+                {call.repName && (
+                  <>
+                    {' · '}
+                    {call.repName}
+                    {call.repExtension && ` ext ${call.repExtension}`}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-3">
+            <div className="flex flex-col items-end gap-1">
+              <StatusBadge status={call.status} />
+              <span className="text-sm tabular-nums text-neutral-300">
+                {formatDuration(call.duration)}
+              </span>
+            </div>
+            <ChevronRight className="h-4 w-4 text-neutral-600" aria-hidden="true" />
+          </div>
+        </div>
+
+        {(call.summary || hasRecording || hasTranscript) && (
+          <div className="mt-2 pl-8">
+            {call.summary && (
+              <p className="line-clamp-2 text-sm text-neutral-400">{call.summary}</p>
+            )}
+            {(hasRecording || hasTranscript) && (
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {hasRecording && (
+                  <AvailBadge
+                    icon={Mic}
+                    label="Recording"
+                    tone="border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                  />
+                )}
+                {hasTranscript && (
+                  <AvailBadge
+                    icon={FileText}
+                    label="Transcript"
+                    tone="border-sky-500/30 bg-sky-500/10 text-sky-300"
+                  />
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </button>
+    </li>
+  );
+}
+
+/* Detail modal — the recording only downloads here (rendered on open), plus
+   the transcript, summary, topics, notes and JobNimbus link. */
+function CallDetail({ call, onClose }: { call: CallRecord; onClose: () => void }) {
   const name = call.customerName || 'Unknown Caller';
   const hasRecording = call.recordingAvailable && !!call.recordingUrl;
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   return (
-    <li className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        {/* Left: direction + who */}
-        <div className="flex min-w-0 items-start gap-3">
-          <div className="mt-0.5 shrink-0">
-            <DirectionIcon call={call} />
-          </div>
-          <div className="min-w-0">
-            <div className="truncate font-medium text-neutral-100">{name}</div>
-            {call.customerPhone && (
-              <div className="truncate text-sm text-neutral-400">
-                {call.customerPhone}
-              </div>
-            )}
-            <div className="mt-0.5 truncate text-xs text-neutral-500">
-              {formatDateTime(call.startTime)}
-              {call.repName && (
-                <>
-                  {' · '}
-                  {call.repName}
-                  {call.repExtension && ` ext ${call.repExtension}`}
-                </>
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center sm:p-4"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-t-2xl border border-white/10 bg-neutral-950 p-5 shadow-2xl sm:rounded-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* header */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="mt-0.5 shrink-0">
+              <DirectionIcon call={call} />
+            </div>
+            <div className="min-w-0">
+              <div className="truncate text-lg font-semibold text-neutral-100">{name}</div>
+              {call.customerPhone && (
+                <div className="text-sm text-neutral-400">{call.customerPhone}</div>
               )}
+              <div className="mt-0.5 text-xs text-neutral-500">
+                {formatDateTime(call.startTime)}
+                {call.repName && (
+                  <>
+                    {' · '}
+                    {call.repName}
+                    {call.repExtension && ` ext ${call.repExtension}`}
+                  </>
+                )}
+                {' · '}
+                {formatDuration(call.duration)}
+              </div>
             </div>
           </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="rounded-lg p-1.5 text-neutral-400 hover:bg-white/10 hover:text-neutral-100"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
-        {/* Right: meta */}
-        <div className="flex shrink-0 items-center gap-3 sm:flex-col sm:items-end">
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           <StatusBadge status={call.status} />
-          <span className="text-sm tabular-nums text-neutral-300">
-            {formatDuration(call.duration)}
-          </span>
+          {call.sentiment && (
+            <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs capitalize text-neutral-300">
+              {call.sentiment}
+            </span>
+          )}
         </div>
-      </div>
 
-      {/* Recording */}
-      <div className="mt-3">
-        {hasRecording ? (
-          <div className="flex items-center gap-2">
-            <Play className="h-4 w-4 shrink-0 text-emerald-400" aria-hidden="true" />
-            <audio
-              controls
-              preload="none"
-              src={call.recordingUrl}
-              className="h-8 w-full max-w-md"
-            >
-              Your browser does not support audio playback.
-            </audio>
+        {/* recording — audio element only exists while this modal is open */}
+        <div className="mt-4">
+          <div className="mb-1.5 text-xs font-medium uppercase tracking-wide text-neutral-500">
+            Recording
           </div>
-        ) : (
-          <span className="text-xs text-neutral-500">No recording</span>
+          {hasRecording ? (
+            <div className="flex items-center gap-2">
+              <Play className="h-4 w-4 shrink-0 text-emerald-400" aria-hidden="true" />
+              <audio controls preload="metadata" src={call.recordingUrl} className="h-9 w-full">
+                Your browser does not support audio playback.
+              </audio>
+            </div>
+          ) : (
+            <p className="text-sm text-neutral-500">No recording available.</p>
+          )}
+        </div>
+
+        {/* summary */}
+        {call.summary && (
+          <div className="mt-4">
+            <div className="mb-1.5 text-xs font-medium uppercase tracking-wide text-neutral-500">
+              Summary
+            </div>
+            <p className="rounded-lg bg-white/[0.03] px-3 py-2 text-sm text-neutral-200">
+              {call.summary}
+            </p>
+          </div>
+        )}
+
+        {/* topics */}
+        {call.topics && call.topics.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {call.topics.map((t) => (
+              <span
+                key={t}
+                className="rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-xs text-sky-300"
+              >
+                {t}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* transcript */}
+        <div className="mt-4">
+          <div className="mb-1.5 text-xs font-medium uppercase tracking-wide text-neutral-500">
+            Transcript
+          </div>
+          {call.transcript ? (
+            <pre className="max-h-72 overflow-y-auto whitespace-pre-wrap rounded-lg bg-white/[0.02] px-3 py-2 font-sans text-sm leading-relaxed text-neutral-300">
+              {call.transcript}
+            </pre>
+          ) : (
+            <p className="text-sm text-neutral-500">
+              Transcript pending — it appears here once the phone system finishes processing the call.
+            </p>
+          )}
+        </div>
+
+        {/* notes */}
+        {call.notes && (
+          <div className="mt-4">
+            <div className="mb-1.5 text-xs font-medium uppercase tracking-wide text-neutral-500">
+              Notes
+            </div>
+            <p className="rounded-lg bg-white/[0.03] px-3 py-2 text-sm text-neutral-300">
+              {call.notes}
+            </p>
+          </div>
+        )}
+
+        {/* JobNimbus */}
+        {call.jobNimbusContactId && (
+          <div className="mt-4">
+            <a
+              href={`https://app.jobnimbus.com/contact/${call.jobNimbusContactId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-sm font-medium text-emerald-400 hover:text-emerald-300"
+            >
+              Open in JobNimbus ↗
+            </a>
+          </div>
         )}
       </div>
-
-      {/* Notes */}
-      {call.notes && (
-        <p className="mt-2 rounded-lg bg-white/[0.02] px-3 py-2 text-sm text-neutral-300">
-          {call.notes}
-        </p>
-      )}
-
-      {/* JobNimbus link */}
-      {call.jobNimbusContactId && (
-        <div className="mt-2">
-          <a
-            href={`https://app.jobnimbus.com/contact/${call.jobNimbusContactId}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs font-medium text-emerald-400 hover:text-emerald-300"
-          >
-            JobNimbus ↗
-          </a>
-        </div>
-      )}
-    </li>
+    </div>
   );
 }
 

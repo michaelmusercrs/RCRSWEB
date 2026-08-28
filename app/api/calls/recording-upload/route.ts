@@ -15,7 +15,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
-export const maxDuration = 60;
+// 300s (max on current plans) so large recordings over a slow office uplink
+// don't time out mid-upload. The real size win is bridge-side: transcode to
+// low-bitrate mono Opus before upload (see COMMS.md) — a 36-min call should be
+// ~3-5MB, well under the platform body limit.
+export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
 
 function validateApiKey(request: NextRequest): 'ok' | 'not_configured' | 'invalid' {
