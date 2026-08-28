@@ -92,7 +92,7 @@ export default function SmithLakeHub() {
         <Section title="Campaign playbook">
           <div className="grid gap-3 sm:grid-cols-3">
             <a
-              href="/smithlake/battle-plan.html"
+              href="/smithlake/battle-plan"
               target="_blank"
               rel="noopener noreferrer"
               className="rounded-xl border border-slate-200 bg-white p-4 transition hover:shadow-md"
@@ -104,7 +104,7 @@ export default function SmithLakeHub() {
               </p>
             </a>
             <a
-              href="/smithlake/raise-the-roof.html"
+              href="/smithlake/raise-the-roof"
               target="_blank"
               rel="noopener noreferrer"
               className="rounded-xl border border-slate-200 bg-white p-4 transition hover:shadow-md"
