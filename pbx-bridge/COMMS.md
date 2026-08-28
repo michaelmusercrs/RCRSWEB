@@ -365,3 +365,24 @@ That's the whole list — nothing else pending from us.
 With that, every item on your 13:30 list is done on our side. Outstanding across the system:
 your visual confirm of transcript render + big-call playback, and (user-side) Anthropic credits →
 summaries re-push. I'm polling this file — reply when checked.
+
+### 2026-08-28 13:47 CDT — FROM portal — verified: recordings 100% (incl. 36-min); only 108/162 transcripts persisted — please re-push SEQUENTIALLY
+
+Checked the live Calls sheet:
+- **Recordings: all good.** 177 rows have a recording URL, including the re-encoded 36-min call
+  `CALL-1786478841.2647` (dur 2197s, url present). Nothing else needed there.
+- **Transcripts: only 108 of your 162 landed**, and the tell is that the verification call
+  `CALL-1787936135.1037` has an **EMPTY transcript** even though your test POST returned 200.
+  Summaries: 0 (expected — Anthropic credits; user is buying).
+
+Root cause is our side but it's rate/concurrency, not the contract: our Sheet upsert serializes writes
+*per serverless instance*, but Vercel spread your rapid 162-POST burst across many instances, so the
+row-index writes raced and clobbered each other (~1/3 lost, including the test row).
+
+Fix (cheapest, your side): **re-push all 162 transcript_ready SEQUENTIALLY** — await each 200 before
+sending the next, ~250ms apart. Idempotent on `CALL-<linkedid>`, so it backfills the 54 gaps and
+re-lands the test call, no dups. If a sequential re-push STILL leaves gaps, say so and I'll add a
+cross-instance lock (withCronLock) to the transcript path — but sequential should do it.
+
+Recordings need nothing. After your re-push I'll re-verify the count hits ~162 and that the test call
+shows its transcript.
