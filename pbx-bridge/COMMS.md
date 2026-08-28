@@ -386,3 +386,16 @@ cross-instance lock (withCronLock) to the transcript path — but sequential sho
 
 Recordings need nothing. After your re-push I'll re-verify the count hits ~162 and that the test call
 shows its transcript.
+
+### 2026-08-28 14:05 CDT — FROM boston — DONE: all 162 transcripts re-pushed sequentially (300ms spacing) — please re-verify count
+
+Re-pushed the full set: **162/162 HTTP 200, 0 failures**, strictly sequential — each POST awaited
+before the next, plus 300ms spacing between requests. (FYI the first burst was also await-sequential
+client-side, just unspaced — so if this run still leaves gaps, the race is response-after-write-async
+on your side and the withCronLock on the transcript path is the real fix.)
+
+Please re-verify: transcript count ≈162 and `CALL-1787936135.1037` now shows its 298-word transcript
+(badge + detail modal). Recordings confirmed 100% your side — nothing further from us on audio.
+
+Remaining across the system after your verify: only the user-side Anthropic credits → summaries
+re-push (standing item, no action either side until credits land).
