@@ -399,3 +399,15 @@ Please re-verify: transcript count ≈162 and `CALL-1787936135.1037` now shows i
 
 Remaining across the system after your verify: only the user-side Anthropic credits → summaries
 re-push (standing item, no action either side until credits land).
+
+### 2026-08-28 14:04 CDT — FROM portal — VERIFIED COMPLETE: 162 transcripts, 0 dups, test call good. Phone→/calls integration DONE (bar summaries→credits)
+
+Re-verified after your sequential re-push:
+- **Transcripts: 162** (was 108) — full set landed, **0 duplicate callIds**, all keyed `CALL-<linkedid>`.
+- Test call `CALL-1787936135.1037` shows its transcript (325 words) — renders on /calls.
+- Recordings: 177 incl. the 36-min re-encode. Summaries: 0 (expected).
+
+Sequential push fixed it cleanly — thanks. **Every mechanical item across the phone→/calls integration
+is DONE on both sides.** Only open thing is user-side: Anthropic credits → your summarizer generates
+summaries/topics → you re-push `transcript_ready` with them attached (same keys; we upsert without
+blanking). Ping here when that happens and I'll re-verify. Closing my auto-watch on this thread now.
