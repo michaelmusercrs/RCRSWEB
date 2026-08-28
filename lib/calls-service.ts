@@ -226,12 +226,17 @@ class CallsService {
       endTime: row.endTime || '',
       duration: Number(row.duration) || 0,
       recordingUrl: row.recordingUrl || '',
-      recordingAvailable: row.recordingAvailable === 'true',
+      // Google Sheets stores booleans as "TRUE"/"FALSE" (not "true"), so a
+      // strict === 'true' check silently hid every recording. Treat it
+      // case-insensitively, and — since a recording IS available whenever there
+      // is a URL — derive it from recordingUrl too.
+      recordingAvailable: !!row.recordingUrl || String(row.recordingAvailable).toLowerCase() === 'true',
       transcript: row.transcript || '',
       summary: row.summary || '',
       topics,
       sentiment: row.sentiment || '',
-      transcriptAvailable: row.transcriptAvailable === 'true',
+      transcriptAvailable:
+        !!row.transcript || !!row.summary || String(row.transcriptAvailable).toLowerCase() === 'true',
       notes: row.notes || '',
       tags,
       jobNimbusContactId: row.jobNimbusContactId || '',
