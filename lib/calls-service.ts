@@ -238,7 +238,10 @@ class CallsService {
       totalDuration: calls.reduce((sum, c) => sum + c.duration, 0),
       inboundCalls: calls.filter(c => c.direction === 'inbound').length,
       outboundCalls: calls.filter(c => c.direction === 'outbound').length,
-      missedCalls: calls.filter(c => c.status === 'missed').length,
+      // Missed = INBOUND calls that went unanswered only. Outbound dials that
+      // nobody picked up are tagged status:'missed' + direction:'outbound' by the
+      // bridge; per the PBX side (Boston) they must NOT count as missed calls.
+      missedCalls: calls.filter(c => c.status === 'missed' && c.direction === 'inbound').length,
       completedCalls: completedCount,
       averageDuration: completedCount > 0
         ? Math.round(calls.reduce((sum, c) => sum + c.duration, 0) / completedCount)
