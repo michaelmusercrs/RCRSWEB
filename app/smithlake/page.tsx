@@ -1,219 +1,166 @@
-'use client';
+/* Smith Lake Campaign — landing / hub. Overview + a prominent link into the
+   ranked homeowner database at /smithlake/database. Static content (real
+   numbers from the campaign build); the database page carries the PII + auth
+   posture. Kept noindex via the /smithlake layout. */
 
-import { useEffect, useMemo, useState } from 'react';
+const GREEN = '#80FF00';
 
-interface Row {
-  owner: string;
-  mailAdd1: string;
-  mailCity: string;
-  mailState: string;
-  mailZip: string;
-  parcels: number | null;
-  situs: string;
-  riskLevel: string;
-  riskScore: number | null;
-  maxHailIn: number | null;
-  maxHailDate: string;
-  damagingEvents: number | null;
-  mostRecentDamaging: string;
-  nearestMi: number | null;
-  lat: number | null;
-  lon: number | null;
-}
+const CAMPAIGN_STATS: { n: string; label: string }[] = [
+  { n: '15,824', label: 'Lake parcels' },
+  { n: '9,096', label: 'Homes' },
+  { n: '8,572', label: 'Owners' },
+  { n: '561', label: 'Storm-hit' },
+  { n: '479', label: 'Hit since 2023' },
+  { n: '34 · $758k', label: '90-day base case' },
+];
 
-interface Payload {
-  source: string;
-  count: number;
-  byLevel: Record<string, number>;
-  rows: Row[];
-}
+const TARGET_LISTS: { name: string; homes: number; play: string; hot?: boolean }[] = [
+  { name: 'Fresh + valuable', homes: 344, play: 'START HERE — recent hail + $300k+ + claim-viable', hot: true },
+  { name: 'Storm-hit core', homes: 561, play: 'The full High / Severe universe' },
+  { name: 'Waterfront storm-hit', homes: 322, play: 'Highest-value roofs (dock)' },
+  { name: 'Local storm-hit', homes: 177, play: 'Donnie door-knocks these' },
+  { name: 'Second-home storm-hit', homes: 384, play: 'Mail-only (owners are remote)' },
+  { name: 'Crane Hill hot zone', homes: 883, play: 'Saturation-canvass area' },
+  { name: 'Premium ($700k+)', homes: 225, play: 'White-glove, bigger tickets' },
+];
 
-const RISK_COLORS: Record<string, string> = {
-  High: 'bg-red-100 text-red-800 border-red-300',
-  Moderate: 'bg-amber-100 text-amber-800 border-amber-300',
-  Low: 'bg-slate-100 text-slate-700 border-slate-300',
-};
+const FUNNEL: { w: number; label: string }[] = [
+  { w: 100, label: '561 storm-hit prime homes' },
+  { w: 78, label: '~420 reached (knock + mail + phone)' },
+  { w: 52, label: '~190 inspections' },
+  { w: 30, label: '~65 claims filed' },
+  { w: 20, label: '~42 approved' },
+  { w: 15, label: '~34 roofs built · ~$758k' },
+];
 
-function mapsUrl(r: Row): string {
-  if (r.lat != null && r.lon != null) return `https://www.google.com/maps?q=${r.lat},${r.lon}`;
-  const q = encodeURIComponent(r.situs || `${r.mailAdd1} ${r.mailCity} ${r.mailState}`);
-  return `https://www.google.com/maps/search/?api=1&query=${q}`;
-}
-
-export default function SmithLakePage() {
-  const [data, setData] = useState<Payload | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [q, setQ] = useState('');
-  const [level, setLevel] = useState('All');
-  const [sort, setSort] = useState<'risk' | 'hail' | 'recent' | 'events'>('risk');
-  const [limit, setLimit] = useState(200);
-
-  useEffect(() => {
-    fetch('/api/smithlake', { credentials: 'same-origin' })
-      .then(async (r) => {
-        if (r.status === 401) throw new Error('Please log in to view this page.');
-        if (!r.ok) throw new Error(`Failed to load (${r.status})`);
-        return r.json();
-      })
-      .then(setData)
-      .catch((e) => setError(e.message));
-  }, []);
-
-  const filtered = useMemo(() => {
-    if (!data) return [];
-    const needle = q.trim().toLowerCase();
-    let rows = data.rows.filter((r) => {
-      if (level !== 'All' && r.riskLevel !== level) return false;
-      if (!needle) return true;
-      return (
-        r.owner.toLowerCase().includes(needle) ||
-        r.situs.toLowerCase().includes(needle) ||
-        r.mailCity.toLowerCase().includes(needle) ||
-        r.mailZip.includes(needle)
-      );
-    });
-    const by: Record<string, (r: Row) => number> = {
-      risk: (r) => r.riskScore ?? -1,
-      hail: (r) => r.maxHailIn ?? -1,
-      recent: (r) => (r.mostRecentDamaging ? Date.parse(r.mostRecentDamaging) : -1),
-      events: (r) => r.damagingEvents ?? -1,
-    };
-    const key = by[sort];
-    return [...rows].sort((a, b) => key(b) - key(a));
-  }, [data, q, level, sort]);
-
-  function exportCsv() {
-    const cols = ['owner', 'situs', 'mailAdd1', 'mailCity', 'mailState', 'mailZip', 'riskLevel', 'riskScore', 'maxHailIn', 'maxHailDate', 'damagingEvents', 'mostRecentDamaging', 'nearestMi', 'lat', 'lon'];
-    const esc = (v: unknown) => {
-      const s = v == null ? '' : String(v);
-      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-    };
-    const csv = [cols.join(','), ...filtered.map((r) => cols.map((c) => esc((r as unknown as Record<string, unknown>)[c])).join(','))].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `smith-lake-${level.toLowerCase()}-${filtered.length}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  if (error) {
-    return (
-      <div className="p-6">
-        <h1 className="text-2xl font-bold text-slate-800">Smith Lake Database</h1>
-        <p className="mt-4 rounded-lg bg-red-50 p-4 text-red-700">{error}</p>
-      </div>
-    );
-  }
-
-  if (!data) {
-    return (
-      <div className="p-6">
-        <h1 className="text-2xl font-bold text-slate-800">Smith Lake Database</h1>
-        <p className="mt-4 text-slate-500">Loading {`${(1153172 / 1024 / 1024).toFixed(1)}MB`} of homeowner records…</p>
-      </div>
-    );
-  }
-
-  const tiles = [
-    { label: 'Total Owners', value: data.count, hint: 'Unique property owners around Smith Lake (Winston + Cullman + neighbors), from county parcel records.' },
-    { label: 'High Risk', value: data.byLevel.High ?? 0, hint: 'Owners whose parcels sit in the highest hail-impact tier (largest/most-frequent nearby damaging hail).' },
-    { label: 'Moderate', value: data.byLevel.Moderate ?? 0, hint: 'Owners with meaningful nearby hail history but below the High tier.' },
-    { label: 'Low', value: data.byLevel.Low ?? 0, hint: 'Owners with limited nearby damaging hail on record.' },
-  ];
-
+export default function SmithLakeHub() {
   return (
-    <div className="p-4 md:p-6">
-      <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-slate-800">Smith Lake Database</h1>
-        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">Internal · noindex · homeowner PII</span>
-      </div>
-      <p className="mb-5 text-sm text-slate-500">{data.source} — ranked by hail-impact risk. Public county parcel/owner data joined with hail history.</p>
+    <div className="min-h-screen bg-slate-50 text-slate-800">
+      {/* Header band */}
+      <header
+        className="border-b-[6px] px-5 py-8 text-white sm:px-10"
+        style={{ background: '#141414', borderColor: GREEN }}
+      >
+        <div className="mx-auto max-w-5xl">
+          <h1 className="text-2xl font-extrabold uppercase tracking-wide sm:text-3xl">
+            Smith Lake <span style={{ color: GREEN }}>Campaign</span>
+          </h1>
+          <p className="mt-1 text-sm text-neutral-400">
+            Donnie Dotson territory · Winston + Cullman · the roof-sales push in one place
+          </p>
 
-      {/* Stat tiles */}
-      <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-        {tiles.map((t) => (
-          <div key={t.label} className="group relative rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="text-2xl font-bold text-slate-800">{t.value.toLocaleString()}</div>
-            <div className="text-xs font-medium text-slate-500">{t.label}</div>
-            <div className="pointer-events-none absolute left-0 top-full z-10 mt-1 hidden w-64 rounded-lg bg-slate-800 p-2 text-xs text-white shadow-lg group-hover:block">
-              {t.hint}
+          {/* stat strip */}
+          <div className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-lg sm:grid-cols-3 lg:grid-cols-6" style={{ background: '#333' }}>
+            {CAMPAIGN_STATS.map((s) => (
+              <div key={s.label} className="px-3 py-3" style={{ background: '#141414' }}>
+                <div className="text-xl font-extrabold" style={{ color: GREEN }}>{s.n}</div>
+                <div className="text-[10.5px] uppercase tracking-wide text-neutral-400">{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-5xl px-5 py-8 sm:px-10">
+        {/* Primary CTA: the database */}
+        <a
+          href="/smithlake/database"
+          className="group flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
+          style={{ borderLeft: `6px solid ${GREEN}` }}
+        >
+          <div>
+            <div className="text-lg font-bold text-slate-900">Open the Ranked Database →</div>
+            <p className="mt-1 text-sm text-slate-600">
+              3,265 owners scored by hail-impact risk
+              <span className="ml-2 inline-flex gap-2 align-middle">
+                <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">High 208</span>
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">Moderate 2,252</span>
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">Low 805</span>
+              </span>
+            </p>
+            <p className="mt-1 text-sm text-slate-500">Search, filter by risk or area, sort, export to CSV, and map each house.</p>
+          </div>
+          <span
+            className="shrink-0 rounded-lg px-5 py-3 text-center text-sm font-bold text-black transition group-hover:brightness-95"
+            style={{ background: GREEN }}
+          >
+            Open Database
+          </span>
+        </a>
+
+        {/* Target lists */}
+        <Section title="Ready-to-work target lists">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {TARGET_LISTS.map((t) => (
+              <div
+                key={t.name}
+                className="rounded-xl border bg-white p-4"
+                style={t.hot ? { borderColor: GREEN, boxShadow: `inset 0 0 0 1px ${GREEN}` } : { borderColor: '#e6e6e6' }}
+              >
+                <div className="flex items-baseline justify-between gap-2">
+                  <div className="font-semibold text-slate-900">{t.name}</div>
+                  <div className="text-sm font-bold tabular-nums text-slate-500">{t.homes.toLocaleString()}</div>
+                </div>
+                <p className="mt-1 text-xs text-slate-600">{t.play}</p>
+              </div>
+            ))}
+          </div>
+        </Section>
+
+        {/* 90-day funnel */}
+        <Section title="The 90-day funnel (base case)">
+          <div className="space-y-1.5">
+            {FUNNEL.map((f, i) => (
+              <div key={i} className="flex justify-center">
+                <div
+                  className="rounded-md px-3 py-1.5 text-center text-sm font-bold text-black"
+                  style={{ width: `${f.w}%`, background: `linear-gradient(90deg, ${GREEN}, #5bbb00)` }}
+                >
+                  {f.label}
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-xs text-slate-500">
+            Conservative ~16 roofs / $286k · Base ~34 / $758k · Stretch ~62 / $1.75M.
+          </p>
+        </Section>
+
+        {/* Storm highlights */}
+        <Section title="Storms that actually hit the lake">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
+              <div className="text-sm font-semibold text-slate-900">2012-03-31 — 2.5&quot; hail</div>
+              <p className="mt-1 text-xs text-slate-600">~4,357 homes in the swath. The biggest single event on the lake.</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
+              <div className="text-sm font-semibold text-slate-900">2018-03-20 — 5.0&quot; hail</div>
+              <p className="mt-1 text-xs text-slate-600">Largest hail size on record. Cite the exact storm in a pitch.</p>
             </div>
           </div>
-        ))}
-      </div>
+          <p className="mt-2 text-xs text-slate-500">25 storms total, 2012–present (free NWS + Iowa State Mesonet).</p>
+        </Section>
 
-      {/* Controls */}
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search owner, address, city, zip…"
-          className="w-full max-w-xs rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-        />
-        <select value={level} onChange={(e) => setLevel(e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">
-          {['All', 'High', 'Moderate', 'Low'].map((l) => <option key={l}>{l}</option>)}
-        </select>
-        <select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">
-          <option value="risk">Sort: Risk score</option>
-          <option value="hail">Sort: Max hail size</option>
-          <option value="recent">Sort: Most recent hail</option>
-          <option value="events">Sort: # damaging events</option>
-        </select>
-        <button onClick={exportCsv} className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700">
-          Export CSV ({filtered.length.toLocaleString()})
-        </button>
-        <span className="text-sm text-slate-500">Showing {Math.min(limit, filtered.length).toLocaleString()} of {filtered.length.toLocaleString()}</span>
-      </div>
-
-      {/* Table */}
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-full text-sm">
-          <thead className="sticky top-0 bg-slate-50 text-left text-xs uppercase text-slate-500">
-            <tr>
-              <th className="px-3 py-2">Owner</th>
-              <th className="px-3 py-2">Property (Situs)</th>
-              <th className="px-3 py-2">Mailing</th>
-              <th className="px-3 py-2">Risk</th>
-              <th className="px-3 py-2" title="Largest nearby hail (inches) on record">Max Hail</th>
-              <th className="px-3 py-2" title="Count of 1&quot;+ damaging hail events near this parcel">Events</th>
-              <th className="px-3 py-2" title="Distance (mi) to nearest damaging hail">Nearest</th>
-              <th className="px-3 py-2">Most Recent</th>
-              <th className="px-3 py-2">Map</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {filtered.slice(0, limit).map((r, i) => (
-              <tr key={i} className="hover:bg-slate-50">
-                <td className="px-3 py-2 font-medium text-slate-800">{r.owner}</td>
-                <td className="px-3 py-2 text-slate-600">{r.situs}</td>
-                <td className="px-3 py-2 text-slate-500">{r.mailAdd1}, {r.mailCity} {r.mailState} {r.mailZip}</td>
-                <td className="px-3 py-2">
-                  <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${RISK_COLORS[r.riskLevel] || RISK_COLORS.Low}`} title={`Risk score ${r.riskScore ?? '—'} — composite of hail size, frequency, and proximity`}>
-                    {r.riskLevel} {r.riskScore != null ? `· ${r.riskScore}` : ''}
-                  </span>
-                </td>
-                <td className="px-3 py-2 text-slate-600">{r.maxHailIn != null ? `${r.maxHailIn}"` : '—'}</td>
-                <td className="px-3 py-2 text-slate-600">{r.damagingEvents ?? '—'}</td>
-                <td className="px-3 py-2 text-slate-600">{r.nearestMi != null ? `${r.nearestMi} mi` : '—'}</td>
-                <td className="px-3 py-2 text-slate-500">{r.mostRecentDamaging || '—'}</td>
-                <td className="px-3 py-2">
-                  <a href={mapsUrl(r)} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">View</a>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {limit < filtered.length && (
-        <div className="mt-4 text-center">
-          <button onClick={() => setLimit((l) => l + 200)} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
-            Load 200 more
-          </button>
-        </div>
-      )}
+        <p className="mt-10 border-t border-slate-200 pt-4 text-xs text-slate-400">
+          Internal use only · not indexed. Figures from public county parcel records + public storm reports;
+          value estimates are directional (county assessed × 10 local / × 5 remote). Pipeline uses a placeholder
+          average job value — swap in the real number in the projections file.
+        </p>
+      </main>
     </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="mt-8">
+      <h2
+        className="mb-3 border-b-[3px] pb-1.5 text-sm font-bold uppercase tracking-wide text-slate-800"
+        style={{ borderColor: GREEN }}
+      >
+        {title}
+      </h2>
+      {children}
+    </section>
   );
 }
