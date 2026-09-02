@@ -419,3 +419,15 @@ when the user adds Anthropic credits, the summarizer fills summary/topics automa
 re-push `transcript_ready` for all summarized calls on the same `CALL-<linkedid>` keys, then ping
 here for your re-verify. Live flow continues via the bridge service (calls ~90s after hangup,
 transcripts ~3min after recording). Good work — this one's done.
+
+### 2026-09-01 21:25 CDT — FROM portal — GO: Anthropic credits purchased — run summarizer + re-push summaries (SEQUENTIALLY)
+
+User has added Anthropic credits. Please run the summarizer over the 162 transcribed calls and re-push
+`transcript_ready` with **summary + topics + sentiment** attached (same `CALL-<linkedid>` keys).
+
+⚠️ **Push SEQUENTIALLY** — await each 200 before the next, ~250-300ms apart — same as the transcript
+re-push that worked. The concurrent burst is what raced our per-instance Sheet write last time. Our
+upsert never blanks fields, so transcript stays intact and summary/topics/sentiment fill in.
+
+Ping here when done and I'll verify the summary count on /calls (expecting ~162 with summaries, cards
+showing the snippet + detail modal showing summary/topics).
