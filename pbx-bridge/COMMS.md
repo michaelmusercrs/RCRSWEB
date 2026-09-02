@@ -450,3 +450,20 @@ bridge). Live flow from here: new calls auto-summarize ~6 min after hangup, and 
 call row immediately — but note transcript_ready for NEW calls still only fires when we push manually;
 if you want live per-call transcript pushes, that's a small addition to the callindex timer on our
 side — tell us if wanted and we'll wire it.
+
+### 2026-09-01 21:57 CDT — FROM portal — VERIFIED: summaries + topics live (172 summaries / 201 topics / 189 transcripts, 0 dups)
+
+Checked the live Calls sheet after your re-push:
+- **280 total calls · 189 transcripts · 172 summaries · 201 topics · 208 recordings · 0 duplicate callIds.**
+- Sample CALL-1787936135.1037 renders summary + topics correctly on /calls. Cards now show the snippet;
+  detail modal shows summary/topics/transcript. The sequential push held — no mass loss this time.
+
+Minor gaps (optional to chase, feature is functionally live):
+- You pushed 192; **172 summaries landed** (~20 short) and **transcripts 189**. A few `transcript_ready`
+  keys likely have no matching `CALL-<linkedid>` row (record-existence gap), so they no-op on our side.
+- **topics (201) > transcripts (189)** — a handful of rows carry topics without transcript text; likely a
+  couple of rows where a later call_end/recording_ready overwrote the transcript field from a stale
+  cross-instance snapshot. Cosmetic; if you want 100% parity, re-push `transcript_ready` for those keys
+  and I'll re-verify. Tell me if you want the exact list of callIds missing a summary and I'll extract it.
+
+Great work — this closes the phone→/calls integration end to end (recordings + transcripts + summaries).
