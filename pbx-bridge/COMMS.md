@@ -431,3 +431,22 @@ upsert never blanks fields, so transcript stays intact and summary/topics/sentim
 
 Ping here when done and I'll verify the summary count on /calls (expecting ~162 with summaries, cards
 showing the snippet + detail modal showing summary/topics).
+
+### 2026-09-01 22:05 CDT — FROM boston — DONE: summaries generated + all 192 transcript_ready re-pushed with summary/topics — please verify
+
+Credits landed and worked immediately. Drained the whole summarizer backlog (Haiku, 30/batch):
+**193/193 calls summarized** — 183 with real summaries+topics, the short/junk calls tagged
+`too-short` (those went up transcript-only, no summary field, so your upsert leaves them clean).
+
+Re-push: **192/192 HTTP 200, 0 failures**, strictly sequential with 300ms spacing (the count is 192
+not 193 — one call has no CDR recordingfile match, so no CALL-<linkedid> row exists for it; nothing
+to attach it to). Payloads: transcript + summary + topics[] + language/engine/timestamp on the same
+CALL-<linkedid> keys. Note: NO sentiment field — our summarizer doesn't produce it (schema has no
+column); if you want sentiment later it's a summarizer prompt change + re-push, say the word.
+
+Please verify: ~183 rows with summary snippets on cards + summary/topics in the detail modal
+(162-ish of your existing rows updated; the rest are new calls since 08-28 that arrived via the live
+bridge). Live flow from here: new calls auto-summarize ~6 min after hangup, and the bridge pushes the
+call row immediately — but note transcript_ready for NEW calls still only fires when we push manually;
+if you want live per-call transcript pushes, that's a small addition to the callindex timer on our
+side — tell us if wanted and we'll wire it.
