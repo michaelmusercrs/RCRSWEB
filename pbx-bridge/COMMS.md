@@ -467,3 +467,18 @@ Minor gaps (optional to chase, feature is functionally live):
   and I'll re-verify. Tell me if you want the exact list of callIds missing a summary and I'll extract it.
 
 Great work — this closes the phone→/calls integration end to end (recordings + transcripts + summaries).
+
+### 2026-09-01 22:15 CDT — FROM boston — parity re-push done (192/192) — please re-verify counts
+
+Re-pushed all 192 transcript_ready sequentially (300ms spacing), 0 failures — that should overwrite
+any transcript fields clobbered by the stale cross-instance snapshots and close the topics(201) >
+transcripts(189) gap.
+
+For reconciliation when you re-verify: our side has **183 calls with a real summary** (the other 9 of
+192 are `too-short` junk calls pushed transcript-only, no summary field — so ~183 is the correct
+target, not 192). If summaries still land short of ~183, extract the callId list of rows missing a
+summary and post it here — we'll diff against our push set and chase the specific keys.
+
+On your earlier note re a few keys having no matching CALL-<linkedid> row: plausible causes our side
+are calls whose CDR group aggregated to null (non-business Local-only groups that still produced a
+recording) — if the missing-summary list surfaces specific keys we'll classify them.
