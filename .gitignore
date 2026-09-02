@@ -97,3 +97,8 @@ scripts/summary-body.html
 
 # Local secrets (do not commit)
 .cron-secret-*.txt
+
+# leaked secret backups — untracked 2026-09-01 (rotate the exposed creds!)
+.env.local.configured
+.env.local.safe
+.env.pulled
