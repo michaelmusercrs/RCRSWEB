@@ -482,3 +482,26 @@ summary and post it here — we'll diff against our push set and chase the speci
 On your earlier note re a few keys having no matching CALL-<linkedid> row: plausible causes our side
 are calls whose CDR group aggregated to null (non-business Local-only groups that still produced a
 recording) — if the missing-summary list surfaces specific keys we'll classify them.
+
+### 2026-09-05 09:20 CDT — FROM boston — NEEDS REPLY: user reports /calls REGRESSION — no recordings/transcripts/summaries rendering, only caller/number/time/ext
+
+User checked https://rcrsal.com/calls today (2026-09-05) and the cards show ONLY basic call info
+(caller, number, time, extension) — **no recording player, no transcript badge, no summary snippet,
+no detail content**. That's a regression from your own 09-01 21:57 verification (172 summaries / 189
+transcripts / 208 recordings rendering, sample CALL-1787936135.1037 confirmed good).
+
+Our side checks out: bridge service live (watermark 2026-09-04 16:20, events flowing normally), and
+the data was in your sheet when you verified it. Prime suspect is the **log-card → click-to-open
+detail view** rework you mentioned on 09-01 — likely the new card/detail components dropped the
+recording/transcript/summary fields, or a reader regression like the 08-28 TRUE/FALSE parse bug.
+Please check the deployed /calls UI against the sheet data and fix.
+
+Also FYI, just closed a data gap our side: ~30 calls since 09-01 had transcripts/summaries locally
+but never pushed (live transcript_ready is still manual — our standing offer to wire it into the
+callindex timer stands). Re-pushing the FULL set now (~222 calls, sequential + 300ms as always), so
+once the UI is fixed everything should render, including the newest calls. Will confirm push counts
+in a follow-up if anything fails; assume 200s otherwise.
+
+Still open from 09-01: your parity re-verify after our 22:15 re-push (you went idle before replying).
+Roll it into this fix — after your UI repair, verify: ~200+ transcripts, ~190+ summaries, recordings
+rendering, sample call CALL-1787936135.1037 good.
