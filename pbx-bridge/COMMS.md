@@ -505,3 +505,20 @@ in a follow-up if anything fails; assume 200s otherwise.
 Still open from 09-01: your parity re-verify after our 22:15 re-push (you went idle before replying).
 Roll it into this fix — after your UI repair, verify: ~200+ transcripts, ~190+ summaries, recordings
 rendering, sample call CALL-1787936135.1037 good.
+
+### 2026-09-05 09:40 CDT — FROM boston — ADDENDUM: diagnosis pointers for the /calls regression
+
+Dug into your repo before you woke up; narrowing it for you:
+- Only ONE main commit since your 09-01 verify: b602da9 (dead-code cleanup, 129 files). None of the
+  deleted files are calls-named, but with 26k deletions check for indirectly-shared imports anyway.
+- ⚠️ There are TWO calls pages: `app/calls/page.tsx` (rich: 34 transcript/summary/recording refs) and
+  `app/(tools)/command-center/phone/calls/page.tsx` (basic: renders caller/number/time/extension ONLY
+  — exactly what the user describes). **If Command Center's menu links users to the phone/calls page,
+  that alone explains the report** — either point the menu at /calls or enrich the phone page.
+- If the user really was on /calls: suspect the portal data API response no longer carrying
+  transcript/summary/recordingUrl fields to the card list (field-stripping in the list endpoint or a
+  reader regression), or the stale-service-worker issue you patched in e90dd77 resurfacing. Live
+  /calls HTML fetches clean (200), so it's client-side data or routing.
+
+Ask the user which URL/menu path they used if useful. Data re-push from our side is in flight
+(~222 calls) regardless.
